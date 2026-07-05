@@ -171,7 +171,7 @@ func buildProdConfig() *config.APIServiceConfig {
 			ConnMaxLifetime:          30 * time.Minute,
 			ReadConnection: databasecfg.ConnectionDetails{
 				Username:   "api_db_user",
-				Password:   "REPLACE_AT_DEPLOY",
+				Password:   "REPLACE_AT_DEPLOY", /* #nosec G101 */
 				Database:   "dinner-done-better",
 				Host:       "REPLACE_AT_DEPLOY",
 				Port:       5432,
@@ -179,7 +179,7 @@ func buildProdConfig() *config.APIServiceConfig {
 			},
 			WriteConnection: databasecfg.ConnectionDetails{
 				Username:   "api_db_user",
-				Password:   "REPLACE_AT_DEPLOY",
+				Password:   "REPLACE_AT_DEPLOY", /* #nosec G101 */
 				Database:   "dinner-done-better",
 				Host:       "REPLACE_AT_DEPLOY",
 				Port:       5432,
