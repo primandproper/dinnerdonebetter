@@ -9,7 +9,7 @@ afterEach(() => {
 
 describe('exchangeJwtForOAuth2Token', () => {
   it('exchanges a JWT for an OAuth2 access token', async () => {
-    const fetchMock = vi.fn(async (input: string) => {
+    const fetchMock = vi.fn(async (input: string, _init?: RequestInit) => {
       const url = String(input);
       if (url.includes('/oauth2/authorize')) {
         return new Response(null, {

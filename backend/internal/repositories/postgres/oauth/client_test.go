@@ -5,19 +5,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
+	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
+
 	encryptioncfg "github.com/primandproper/platform-go/v3/cryptography/encryption/config"
 	databasecfg "github.com/primandproper/platform-go/v3/database/config"
 	mockdatabase "github.com/primandproper/platform-go/v3/database/mock"
 	"github.com/primandproper/platform-go/v3/database/postgres"
 	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
+
 	"github.com/stretchr/testify/require"
 	pgcontainers "github.com/testcontainers/testcontainers-go/modules/postgres"
-
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
-	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 )
 
 const (
