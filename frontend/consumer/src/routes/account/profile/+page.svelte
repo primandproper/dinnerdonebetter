@@ -3,7 +3,10 @@
   import { goto, invalidateAll } from '$app/navigation';
   import { env as publicEnv } from '$env/dynamic/public';
   import { PageContainer, FormField, Input, Button, Alert, Link } from '@dinnerdonebetter/ui';
+  import { buildClientSideLogger } from '@dinnerdonebetter/logger/browser';
   import type { User } from '@dinnerdonebetter/api-client/identity/identity_messages';
+
+  const logger = buildClientSideLogger('profile');
 
   let { data, form } = $props();
   const user = data?.user as User | null | undefined;
@@ -61,10 +64,7 @@
   function handleAvatarFormSubmit() {
     return async (opts: { result: { type: string; location?: string; data?: unknown } }) => {
       const { result } = opts;
-      console.log('[Profile avatar] enhance callback ran', {
-        type: result?.type,
-        data: (result as { data?: unknown })?.data,
-      });
+      logger.with({ type: result?.type, data: (result as { data?: unknown })?.data }).debug('avatar form callback ran');
       if (result.type === 'redirect' && (result as { location?: string }).location) {
         // Server redirect URL; no-app-paths resolve() available for dynamic redirect
         // eslint-disable-next-line svelte/no-navigation-without-resolve -- redirect from form action
@@ -79,7 +79,7 @@
         'avatarStoragePath' in result.data
       ) {
         const path = (result.data as { avatarStoragePath: string }).avatarStoragePath;
-        console.log('[Profile avatar] setting latestAvatarPath', path);
+        logger.with({ path }).debug('captured latest avatar path');
         latestAvatarPath = path;
         avatarImageError = false;
       }
@@ -205,7 +205,7 @@
                 onchange={(e) => {
                   const input = e.currentTarget as HTMLInputElement;
                   const formEl = document.getElementById('avatar-form') as HTMLFormElement;
-                  console.log('[Profile avatar] file selected', { hasForm: !!formEl, fileCount: input.files?.length });
+                  logger.with({ hasForm: !!formEl, fileCount: input.files?.length }).debug('avatar file selected');
                   if (formEl && input.files?.length) {
                     formEl.requestSubmit();
                   }

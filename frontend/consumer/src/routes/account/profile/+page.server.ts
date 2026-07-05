@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getSelf, updateUserUsername, updateUserDetails, uploadUserAvatar } from '$lib/grpc/clients';
+import { logger } from '$lib/logger';
 import { env } from '$env/dynamic/private';
 
 const MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -122,7 +123,7 @@ export const actions: Actions = {
       const storagePath =
         apiResponse?.created?.storagePath ??
         (apiResponse?.created as { storage_path?: string } | undefined)?.storage_path;
-      console.log('[Profile update-avatar] server returning', { storagePath: storagePath ?? null });
+      logger.with({ storagePath: storagePath ?? null }).debug('avatar upload returning');
       if (storagePath) {
         return { updated: true, avatarStoragePath: storagePath };
       }

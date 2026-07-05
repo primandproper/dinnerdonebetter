@@ -42,7 +42,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
           });
     return json({ results: res.results ?? [] });
   } catch (e) {
-    logger.error('measurement unit search failed:', e);
+    logger.error('measurement unit search failed', e);
     return json({ error: 'Search failed' }, { status: 500 });
   }
 };
