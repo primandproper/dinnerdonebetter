@@ -16,11 +16,13 @@
     <p>
       To accept this invitation, open the {COMPANY_NAME} app. If you don't have the app, download it from the App Store.
     </p>
+    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- external App Store URL, not an internal route -->
     <a href={APP_STORE_URL} class="app-link">Open in App Store</a>
   {:else}
     <p>
       This invitation link is for the {COMPANY_NAME} mobile app. Open this link on your iPhone or iPad to accept the invitation.
     </p>
+    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- external App Store URL, not an internal route -->
     <a href={APP_STORE_URL} class="app-link">Get the App</a>
   {/if}
 </PageContainer>
