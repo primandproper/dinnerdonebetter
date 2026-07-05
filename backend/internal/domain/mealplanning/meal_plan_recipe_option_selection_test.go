@@ -3,7 +3,7 @@ package mealplanning
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v2/identifiers"
+	"github.com/primandproper/platform-go/v3/identifiers"
 
 	"github.com/stretchr/testify/assert"
 )

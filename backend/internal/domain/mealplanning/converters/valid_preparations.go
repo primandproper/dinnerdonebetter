@@ -3,7 +3,7 @@ package converters
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v2/identifiers"
+	"github.com/primandproper/platform-go/v3/identifiers"
 )
 
 // ConvertValidPreparationToValidPreparationUpdateRequestInput creates a ValidPreparationUpdateRequestInput from a ValidPreparation.

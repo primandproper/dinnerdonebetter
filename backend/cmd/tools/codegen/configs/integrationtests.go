@@ -11,27 +11,27 @@ import (
 	uploadedmediacfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	analyticscfg "github.com/primandproper/platform-go/v2/analytics/config"
-	tokenscfg "github.com/primandproper/platform-go/v2/authentication/tokens/config"
-	circuitbreakingcfg "github.com/primandproper/platform-go/v2/circuitbreaking/config"
-	encryptioncfg "github.com/primandproper/platform-go/v2/cryptography/encryption/config"
-	databasecfg "github.com/primandproper/platform-go/v2/database/config"
-	"github.com/primandproper/platform-go/v2/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v2/featureflags/config"
-	msgconfig "github.com/primandproper/platform-go/v2/messagequeue/config"
-	"github.com/primandproper/platform-go/v2/messagequeue/redis"
-	notificationscfg "github.com/primandproper/platform-go/v2/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v2/observability"
-	"github.com/primandproper/platform-go/v2/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v2/observability/logging/config"
-	tracingcfg "github.com/primandproper/platform-go/v2/observability/tracing/config"
-	"github.com/primandproper/platform-go/v2/routing/chi"
-	routingcfg "github.com/primandproper/platform-go/v2/routing/config"
-	textsearchcfg "github.com/primandproper/platform-go/v2/search/text/config"
-	"github.com/primandproper/platform-go/v2/server/grpc"
-	"github.com/primandproper/platform-go/v2/server/http"
-	uploadscfg "github.com/primandproper/platform-go/v2/uploads/config"
-	"github.com/primandproper/platform-go/v2/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v3/analytics/config"
+	tokenscfg "github.com/primandproper/platform-go/v3/authentication/tokens/config"
+	circuitbreakingcfg "github.com/primandproper/platform-go/v3/circuitbreaking/config"
+	encryptioncfg "github.com/primandproper/platform-go/v3/cryptography/encryption/config"
+	databasecfg "github.com/primandproper/platform-go/v3/database/config"
+	"github.com/primandproper/platform-go/v3/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v3/featureflags/config"
+	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
+	"github.com/primandproper/platform-go/v3/messagequeue/redis"
+	notificationscfg "github.com/primandproper/platform-go/v3/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v3/observability"
+	"github.com/primandproper/platform-go/v3/observability/logging"
+	loggingcfg "github.com/primandproper/platform-go/v3/observability/logging/config"
+	tracingcfg "github.com/primandproper/platform-go/v3/observability/tracing/config"
+	"github.com/primandproper/platform-go/v3/routing/chi"
+	routingcfg "github.com/primandproper/platform-go/v3/routing/config"
+	textsearchcfg "github.com/primandproper/platform-go/v3/search/text/config"
+	"github.com/primandproper/platform-go/v3/server/grpc"
+	"github.com/primandproper/platform-go/v3/server/http"
+	uploadscfg "github.com/primandproper/platform-go/v3/uploads/config"
+	"github.com/primandproper/platform-go/v3/uploads/objectstorage"
 )
 
 func buildIntegrationTestsConfig() *config.APIServiceConfig {
@@ -40,7 +40,6 @@ func buildIntegrationTestsConfig() *config.APIServiceConfig {
 		Storage: objectstorage.Config{
 			Provider:   "memory",
 			BucketName: "avatars",
-			S3Config:   nil,
 		},
 	}
 

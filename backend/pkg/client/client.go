@@ -25,8 +25,8 @@ import (
 	waitlistsgrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 	webhooksgrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 
-	"github.com/primandproper/platform-go/v2/httpclient"
-	"github.com/primandproper/platform-go/v2/random"
+	"github.com/primandproper/platform-go/v3/httpclient"
+	"github.com/primandproper/platform-go/v3/random"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"

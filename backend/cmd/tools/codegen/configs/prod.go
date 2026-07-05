@@ -15,38 +15,38 @@ import (
 	uploadedmediacfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	analyticscfg "github.com/primandproper/platform-go/v2/analytics/config"
-	analyticsposthog "github.com/primandproper/platform-go/v2/analytics/posthog"
-	tokenscfg "github.com/primandproper/platform-go/v2/authentication/tokens/config"
-	circuitbreakingcfg "github.com/primandproper/platform-go/v2/circuitbreaking/config"
-	encryptioncfg "github.com/primandproper/platform-go/v2/cryptography/encryption/config"
-	databasecfg "github.com/primandproper/platform-go/v2/database/config"
-	emailcfg "github.com/primandproper/platform-go/v2/email/config"
-	"github.com/primandproper/platform-go/v2/email/resend"
-	"github.com/primandproper/platform-go/v2/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v2/featureflags/config"
-	"github.com/primandproper/platform-go/v2/featureflags/posthog"
-	msgconfig "github.com/primandproper/platform-go/v2/messagequeue/config"
-	"github.com/primandproper/platform-go/v2/messagequeue/pubsub"
-	notificationscfg "github.com/primandproper/platform-go/v2/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v2/observability"
-	"github.com/primandproper/platform-go/v2/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v2/observability/logging/config"
-	logotelgrpc "github.com/primandproper/platform-go/v2/observability/logging/otelgrpc"
-	metricscfg "github.com/primandproper/platform-go/v2/observability/metrics/config"
-	"github.com/primandproper/platform-go/v2/observability/metrics/otelgrpc"
-	profilingcfg "github.com/primandproper/platform-go/v2/observability/profiling/config"
-	"github.com/primandproper/platform-go/v2/observability/profiling/pyroscope"
-	tracingcfg "github.com/primandproper/platform-go/v2/observability/tracing/config"
-	"github.com/primandproper/platform-go/v2/observability/tracing/oteltrace"
-	"github.com/primandproper/platform-go/v2/routing/chi"
-	routingcfg "github.com/primandproper/platform-go/v2/routing/config"
-	"github.com/primandproper/platform-go/v2/search/text/algolia"
-	textsearchcfg "github.com/primandproper/platform-go/v2/search/text/config"
-	"github.com/primandproper/platform-go/v2/server/grpc"
-	"github.com/primandproper/platform-go/v2/server/http"
-	uploadscfg "github.com/primandproper/platform-go/v2/uploads/config"
-	"github.com/primandproper/platform-go/v2/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v3/analytics/config"
+	analyticsposthog "github.com/primandproper/platform-go/v3/analytics/posthog"
+	tokenscfg "github.com/primandproper/platform-go/v3/authentication/tokens/config"
+	circuitbreakingcfg "github.com/primandproper/platform-go/v3/circuitbreaking/config"
+	encryptioncfg "github.com/primandproper/platform-go/v3/cryptography/encryption/config"
+	databasecfg "github.com/primandproper/platform-go/v3/database/config"
+	emailcfg "github.com/primandproper/platform-go/v3/email/config"
+	"github.com/primandproper/platform-go/v3/email/resend"
+	"github.com/primandproper/platform-go/v3/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v3/featureflags/config"
+	"github.com/primandproper/platform-go/v3/featureflags/posthog"
+	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
+	"github.com/primandproper/platform-go/v3/messagequeue/pubsub"
+	notificationscfg "github.com/primandproper/platform-go/v3/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v3/observability"
+	"github.com/primandproper/platform-go/v3/observability/logging"
+	loggingcfg "github.com/primandproper/platform-go/v3/observability/logging/config"
+	logotelgrpc "github.com/primandproper/platform-go/v3/observability/logging/otelgrpc"
+	metricscfg "github.com/primandproper/platform-go/v3/observability/metrics/config"
+	"github.com/primandproper/platform-go/v3/observability/metrics/otelgrpc"
+	profilingcfg "github.com/primandproper/platform-go/v3/observability/profiling/config"
+	"github.com/primandproper/platform-go/v3/observability/profiling/pyroscope"
+	tracingcfg "github.com/primandproper/platform-go/v3/observability/tracing/config"
+	"github.com/primandproper/platform-go/v3/observability/tracing/oteltrace"
+	"github.com/primandproper/platform-go/v3/routing/chi"
+	routingcfg "github.com/primandproper/platform-go/v3/routing/config"
+	"github.com/primandproper/platform-go/v3/search/text/algolia"
+	textsearchcfg "github.com/primandproper/platform-go/v3/search/text/config"
+	"github.com/primandproper/platform-go/v3/server/grpc"
+	"github.com/primandproper/platform-go/v3/server/http"
+	uploadscfg "github.com/primandproper/platform-go/v3/uploads/config"
+	"github.com/primandproper/platform-go/v3/uploads/objectstorage"
 )
 
 const (
@@ -62,21 +62,14 @@ const (
 
 func buildProdConfig() *config.APIServiceConfig {
 	gcpMediaStorage := objectstorage.Config{
-		Provider:          objectstorage.GCPCloudStorageProvider,
-		BucketName:        prodMediaBucket,
-		BucketPrefix:      "avatars/",
-		UploadFilenameKey: "avatar",
-		GCP: &objectstorage.GCPConfig{
-			BucketName: prodMediaBucket,
-		},
+		Provider:     objectstorage.GCPCloudStorageProvider,
+		BucketName:   prodMediaBucket,
+		BucketPrefix: "avatars/",
 	}
 
 	gcpUserDataStorage := objectstorage.Config{
 		Provider:   objectstorage.GCPCloudStorageProvider,
 		BucketName: prodUserDataBucket,
-		GCP: &objectstorage.GCPConfig{
-			BucketName: prodUserDataBucket,
-		},
 	}
 
 	pubsubConfig := msgconfig.MessageQueueConfig{
@@ -107,6 +100,7 @@ func buildProdConfig() *config.APIServiceConfig {
 				EnableHostMetrics:    true,
 			},
 			Provider: metricscfg.ProviderOtel,
+			Enabled:  true,
 		},
 		Tracing: tracingcfg.Config{
 			Provider:                  tracingcfg.ProviderOtel,
@@ -177,13 +171,17 @@ func buildProdConfig() *config.APIServiceConfig {
 			ConnMaxLifetime:          30 * time.Minute,
 			ReadConnection: databasecfg.ConnectionDetails{
 				Username:   "api_db_user",
+				Password:   "REPLACE_AT_DEPLOY",
 				Database:   "dinner-done-better",
+				Host:       "REPLACE_AT_DEPLOY",
 				Port:       5432,
 				DisableSSL: false,
 			},
 			WriteConnection: databasecfg.ConnectionDetails{
 				Username:   "api_db_user",
+				Password:   "REPLACE_AT_DEPLOY",
 				Database:   "dinner-done-better",
+				Host:       "REPLACE_AT_DEPLOY",
 				Port:       5432,
 				DisableSSL: false,
 			},

@@ -14,9 +14,10 @@ import (
 	uploadedmediasvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v2/database/filtering"
-	"github.com/primandproper/platform-go/v2/reflection"
-	mockuploads "github.com/primandproper/platform-go/v2/uploads/mock"
+	"github.com/primandproper/platform-go/v3/database/filtering"
+	"github.com/primandproper/platform-go/v3/reflection"
+	"github.com/primandproper/platform-go/v3/uploads"
+	mockuploads "github.com/primandproper/platform-go/v3/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -653,7 +654,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 		mockStream.On("SendMsg", mock.AnythingOfType("*identity.UploadUserAvatarResponse")).Return(nil).Once()
 
 		uploadManager := service.uploadManager.(*mockuploads.UploadManagerMock)
-		uploadManager.SaveFileFunc = func(_ context.Context, _ string, _ []byte) error { return nil }
+		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
 		uploadedMediaRepo.On(reflection.GetMethodName(uploadedMediaRepo.CreateUploadedMedia), testutils.ContextMatcher, mock.AnythingOfType("*uploadedmedia.UploadedMediaDatabaseCreationInput")).Return(&uploadedmedia.UploadedMedia{ID: identityfakes.BuildFakeID()}, nil)
 		identityDataManager.On(reflection.GetMethodName(identityDataManager.SetUserAvatar), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(nil)
 
@@ -705,7 +706,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 		mockStream.On("RecvMsg").Return(nil, io.EOF).Once()
 
 		uploadManager := service.uploadManager.(*mockuploads.UploadManagerMock)
-		uploadManager.SaveFileFunc = func(_ context.Context, _ string, _ []byte) error { return nil }
+		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
 		uploadedMediaRepo.On(reflection.GetMethodName(uploadedMediaRepo.CreateUploadedMedia), testutils.ContextMatcher, mock.AnythingOfType("*uploadedmedia.UploadedMediaDatabaseCreationInput")).Return(&uploadedmedia.UploadedMedia{ID: identityfakes.BuildFakeID()}, nil)
 		identityDataManager.On(reflection.GetMethodName(identityDataManager.SetUserAvatar), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(errors.New("set avatar error"))
 

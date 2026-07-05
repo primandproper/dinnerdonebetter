@@ -25,7 +25,7 @@
 	},
 	"baseURL": "",
 	"events": {
-		"consumers": {
+		"consumer": {
 			"kafka": {
 				"groupId": "",
 				"brokers": null
@@ -39,12 +39,12 @@
 			},
 			"redis": {
 				"username": "",
-				"queueAddress": [
+				"queueAddresses": [
 					"worker_queue:6379"
 				]
 			}
 		},
-		"publishers": {
+		"publisher": {
 			"kafka": {
 				"groupId": "",
 				"brokers": null
@@ -58,7 +58,7 @@
 			},
 			"redis": {
 				"username": "",
-				"queueAddress": [
+				"queueAddresses": [
 					"worker_queue:6379"
 				]
 			}
@@ -94,7 +94,7 @@
 			},
 			"serviceName": "api_server",
 			"provider": "otelgrpc",
-			"enabled": false
+			"enabled": true
 		},
 		"tracing": {
 			"otelgrpc": {
@@ -120,7 +120,6 @@
 		},
 		"segment": null,
 		"posthog": null,
-		"rudderstack": null,
 		"provider": "",
 		"circuitBreaker": {
 			"name": "feature_flagger",
@@ -150,7 +149,7 @@
 		"launchDarkly": null,
 		"posthog": null,
 		"provider": "",
-		"circuitBreakingConfig": {
+		"circuitBreakerConfig": {
 			"name": "feature_flagger",
 			"circuitBreakerErrorPercentage": 0.5,
 			"circuitBreakerMinimumOccurrenceThreshold": 100
@@ -231,10 +230,10 @@
 			"uploads": {
 				"storageConfig": {
 					"filesystem": {
-						"rootDirectory": "/uploads"
+						"rootDirectory": "/uploads",
+						"directoryMode": 0
 					},
 					"bucketName": "avatars",
-					"uploadFilenameKey": "avatar",
 					"provider": "filesystem",
 					"circuitBreakerConfig": {
 						"name": "",
@@ -249,7 +248,8 @@
 			"uploads": {
 				"storageConfig": {
 					"filesystem": {
-						"rootDirectory": "/tmp"
+						"rootDirectory": "/tmp",
+						"directoryMode": 0
 					},
 					"bucketName": "userdata",
 					"provider": "filesystem",
@@ -266,10 +266,10 @@
 			"uploads": {
 				"storageConfig": {
 					"filesystem": {
-						"rootDirectory": "/uploads"
+						"rootDirectory": "/uploads",
+						"directoryMode": 0
 					},
 					"bucketName": "avatars",
-					"uploadFilenameKey": "avatar",
 					"provider": "filesystem",
 					"circuitBreakerConfig": {
 						"name": "",

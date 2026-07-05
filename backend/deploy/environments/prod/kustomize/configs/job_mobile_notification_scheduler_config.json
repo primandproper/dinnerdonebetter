@@ -8,7 +8,7 @@
 		"webhookExecutionRequestsTopicName": "webhook_execution_requests"
 	},
 	"events": {
-		"consumers": {
+		"consumer": {
 			"kafka": {
 				"groupId": "",
 				"brokers": null
@@ -22,10 +22,10 @@
 			},
 			"redis": {
 				"username": "",
-				"queueAddress": null
+				"queueAddresses": null
 			}
 		},
-		"publishers": {
+		"publisher": {
 			"kafka": {
 				"groupId": "",
 				"brokers": null
@@ -39,7 +39,7 @@
 			},
 			"redis": {
 				"username": "",
-				"queueAddress": null
+				"queueAddresses": null
 			}
 		}
 	},
@@ -75,7 +75,7 @@
 			},
 			"serviceName": "mobile_notification_scheduler",
 			"provider": "otelgrpc",
-			"enabled": false
+			"enabled": true
 		},
 		"tracing": {
 			"otelgrpc": {
@@ -95,17 +95,17 @@
 		"provider": "postgres",
 		"readConnection": {
 			"username": "mobile_notification_scheduler",
-			"password": "",
+			"password": "REPLACE_AT_DEPLOY",
 			"database": "dinner-done-better",
-			"hostname": "",
+			"hostname": "REPLACE_AT_DEPLOY",
 			"port": 5432,
 			"disableSSL": false
 		},
 		"writeConnection": {
 			"username": "mobile_notification_scheduler",
-			"password": "",
+			"password": "REPLACE_AT_DEPLOY",
 			"database": "dinner-done-better",
-			"hostname": "",
+			"hostname": "REPLACE_AT_DEPLOY",
 			"port": 5432,
 			"disableSSL": false
 		},

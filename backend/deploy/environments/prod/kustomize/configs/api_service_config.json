@@ -33,7 +33,7 @@
 	},
 	"baseURL": "",
 	"events": {
-		"consumers": {
+		"consumer": {
 			"kafka": {
 				"groupId": "",
 				"brokers": null
@@ -47,10 +47,10 @@
 			},
 			"redis": {
 				"username": "",
-				"queueAddress": null
+				"queueAddresses": null
 			}
 		},
-		"publishers": {
+		"publisher": {
 			"kafka": {
 				"groupId": "",
 				"brokers": null
@@ -64,7 +64,7 @@
 			},
 			"redis": {
 				"username": "",
-				"queueAddress": null
+				"queueAddresses": null
 			}
 		}
 	},
@@ -100,7 +100,7 @@
 			},
 			"serviceName": "api_server",
 			"provider": "otelgrpc",
-			"enabled": false
+			"enabled": true
 		},
 		"tracing": {
 			"otelgrpc": {
@@ -124,9 +124,9 @@
 			"ios": {
 				"segment": null,
 				"posthog": {
-					"apiKey": "placeholder"
+					"apiKey": "placeholder",
+					"endpoint": ""
 				},
-				"rudderstack": null,
 				"provider": "posthog",
 				"circuitBreaker": {
 					"name": "ios_analytics",
@@ -137,9 +137,9 @@
 			"web": {
 				"segment": null,
 				"posthog": {
-					"apiKey": "placeholder"
+					"apiKey": "placeholder",
+					"endpoint": ""
 				},
-				"rudderstack": null,
 				"provider": "posthog",
 				"circuitBreaker": {
 					"name": "web_analytics",
@@ -150,9 +150,9 @@
 		},
 		"segment": null,
 		"posthog": {
-			"apiKey": "placeholder"
+			"apiKey": "placeholder",
+			"endpoint": ""
 		},
-		"rudderstack": null,
 		"provider": "posthog",
 		"circuitBreaker": {
 			"name": "api_analytics",
@@ -185,6 +185,7 @@
 		"posthog": {
 			"projectAPIKey": "placeholder",
 			"personalAPIKey": "",
+			"endpoint": "",
 			"circuitBreakerConfig": {
 				"name": "",
 				"circuitBreakerErrorPercentage": 0,
@@ -192,7 +193,7 @@
 			}
 		},
 		"provider": "posthog",
-		"circuitBreakingConfig": {
+		"circuitBreakerConfig": {
 			"name": "feature_flagger",
 			"circuitBreakerErrorPercentage": 0.5,
 			"circuitBreakerMinimumOccurrenceThreshold": 100
@@ -250,17 +251,17 @@
 		"provider": "postgres",
 		"readConnection": {
 			"username": "api_db_user",
-			"password": "",
+			"password": "REPLACE_AT_DEPLOY",
 			"database": "dinner-done-better",
-			"hostname": "",
+			"hostname": "REPLACE_AT_DEPLOY",
 			"port": 5432,
 			"disableSSL": false
 		},
 		"writeConnection": {
 			"username": "api_db_user",
-			"password": "",
+			"password": "REPLACE_AT_DEPLOY",
 			"database": "dinner-done-better",
-			"hostname": "",
+			"hostname": "REPLACE_AT_DEPLOY",
 			"port": 5432,
 			"disableSSL": false
 		},
@@ -283,12 +284,8 @@
 			"publicMediaURLPrefix": "https://media.dinnerdonebetter.com/avatars",
 			"uploads": {
 				"storageConfig": {
-					"gcpConfig": {
-						"bucketName": "media.dinnerdonebetter.com"
-					},
 					"bucketPrefix": "avatars/",
 					"bucketName": "media.dinnerdonebetter.com",
-					"uploadFilenameKey": "avatar",
 					"provider": "gcp",
 					"circuitBreakerConfig": {
 						"name": "",
@@ -302,9 +299,6 @@
 		"dataPrivacy": {
 			"uploads": {
 				"storageConfig": {
-					"gcpConfig": {
-						"bucketName": "userdata.dinnerdonebetter.com"
-					},
 					"bucketName": "userdata.dinnerdonebetter.com",
 					"provider": "gcp",
 					"circuitBreakerConfig": {
@@ -319,12 +313,8 @@
 		"uploadedMedia": {
 			"uploads": {
 				"storageConfig": {
-					"gcpConfig": {
-						"bucketName": "media.dinnerdonebetter.com"
-					},
 					"bucketPrefix": "avatars/",
 					"bucketName": "media.dinnerdonebetter.com",
-					"uploadFilenameKey": "avatar",
 					"provider": "gcp",
 					"circuitBreakerConfig": {
 						"name": "",

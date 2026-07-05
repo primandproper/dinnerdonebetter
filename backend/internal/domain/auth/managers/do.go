@@ -7,13 +7,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v2/authentication/totp"
-	"github.com/primandproper/platform-go/v2/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v2/messagequeue/config"
-	"github.com/primandproper/platform-go/v2/observability/logging"
-	"github.com/primandproper/platform-go/v2/observability/tracing"
-	"github.com/primandproper/platform-go/v2/qrcodes"
-	"github.com/primandproper/platform-go/v2/random"
+	"github.com/primandproper/platform-go/v3/authentication/totp"
+	"github.com/primandproper/platform-go/v3/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
+	"github.com/primandproper/platform-go/v3/observability/logging"
+	"github.com/primandproper/platform-go/v3/observability/tracing"
+	"github.com/primandproper/platform-go/v3/qrcodes"
+	"github.com/primandproper/platform-go/v3/random"
 
 	"github.com/samber/do/v2"
 )

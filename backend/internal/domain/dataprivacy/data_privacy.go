@@ -14,7 +14,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
 
-	"github.com/primandproper/platform-go/v2/database/filtering"
+	"github.com/primandproper/platform-go/v3/database/filtering"
 )
 
 // UserDataDisclosureStatus represents the status of a user data disclosure request.

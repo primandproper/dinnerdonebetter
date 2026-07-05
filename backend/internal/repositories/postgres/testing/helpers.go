@@ -10,24 +10,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
-
-	"github.com/primandproper/platform-go/v2/database"
-	databasecfg "github.com/primandproper/platform-go/v2/database/config"
-	"github.com/primandproper/platform-go/v2/database/filtering"
-	"github.com/primandproper/platform-go/v2/identifiers"
-	"github.com/primandproper/platform-go/v2/retry"
-
 	_ "github.com/jackc/pgx/v5/stdlib"
+	encryptioncfg "github.com/primandproper/platform-go/v3/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v3/database"
+	databasecfg "github.com/primandproper/platform-go/v3/database/config"
+	"github.com/primandproper/platform-go/v3/database/filtering"
+	"github.com/primandproper/platform-go/v3/identifiers"
+	"github.com/primandproper/platform-go/v3/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 )
 
 var RunContainerTests = strings.ToLower(os.Getenv("RUN_CONTAINER_TESTS")) != "false" // on by default
@@ -157,6 +157,7 @@ func BuildDatabaseContainer(ctx context.Context, dbName string) (*postgres.Postg
 
 	dbConfig := &databasecfg.Config{
 		RunMigrations:            false,
+		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
 		OAuth2TokenEncryptionKey: "blahblahblahblahblahblahblahblah",
 	}
 	if err = dbConfig.LoadConnectionDetailsFromURL(connStr); err != nil {

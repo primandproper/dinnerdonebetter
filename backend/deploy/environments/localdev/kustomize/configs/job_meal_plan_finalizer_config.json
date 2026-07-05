@@ -8,7 +8,7 @@
 		"webhookExecutionRequestsTopicName": "webhook_execution_requests"
 	},
 	"events": {
-		"consumers": {
+		"consumer": {
 			"kafka": {
 				"groupId": "",
 				"brokers": null
@@ -22,12 +22,12 @@
 			},
 			"redis": {
 				"username": "",
-				"queueAddress": [
+				"queueAddresses": [
 					"worker_queue:6379"
 				]
 			}
 		},
-		"publishers": {
+		"publisher": {
 			"kafka": {
 				"groupId": "",
 				"brokers": null
@@ -41,7 +41,7 @@
 			},
 			"redis": {
 				"username": "",
-				"queueAddress": [
+				"queueAddresses": [
 					"worker_queue:6379"
 				]
 			}
@@ -77,7 +77,7 @@
 			},
 			"serviceName": "meal_plan_finalizer",
 			"provider": "otelgrpc",
-			"enabled": false
+			"enabled": true
 		},
 		"tracing": {
 			"otelgrpc": {

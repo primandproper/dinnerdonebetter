@@ -21,12 +21,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
 	waitlistsrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 
-	"github.com/primandproper/platform-go/v2/authentication/totp"
-	"github.com/primandproper/platform-go/v2/encoding"
-	"github.com/primandproper/platform-go/v2/observability"
-	"github.com/primandproper/platform-go/v2/routing"
-	routingcfg "github.com/primandproper/platform-go/v2/routing/config"
-	"github.com/primandproper/platform-go/v2/version"
+	"github.com/primandproper/platform-go/v3/authentication/totp"
+	"github.com/primandproper/platform-go/v3/encoding"
+	"github.com/primandproper/platform-go/v3/observability"
+	"github.com/primandproper/platform-go/v3/routing"
+	routingcfg "github.com/primandproper/platform-go/v3/routing/config"
+	"github.com/primandproper/platform-go/v3/version"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"

@@ -10,11 +10,12 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config/envvars"
 
-	databasecfg "github.com/primandproper/platform-go/v2/database/config"
-	"github.com/primandproper/platform-go/v2/encoding"
-	msgconfig "github.com/primandproper/platform-go/v2/messagequeue/config"
-	"github.com/primandproper/platform-go/v2/observability"
-	"github.com/primandproper/platform-go/v2/server/http"
+	databasecfg "github.com/primandproper/platform-go/v3/database/config"
+	"github.com/primandproper/platform-go/v3/encoding"
+	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
+	"github.com/primandproper/platform-go/v3/observability"
+	loggingcfg "github.com/primandproper/platform-go/v3/observability/logging/config"
+	"github.com/primandproper/platform-go/v3/server/http"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -313,7 +314,9 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 			Encoding: encoding.Config{
 				ContentType: "application/json",
 			},
-			Observability: observability.Config{},
+			Observability: observability.Config{
+				Logging: loggingcfg.Config{ServiceName: "service"},
+			},
 			HTTPServer: http.Config{
 				Port:            8080,
 				StartupDeadline: time.Minute,
@@ -333,6 +336,7 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 					Password: "pass",
 					Database: "db",
 					Host:     "host",
+					Port:     5432,
 				},
 			},
 		}
@@ -391,7 +395,9 @@ func TestDBCleanerConfig_ValidateWithContext(T *testing.T) {
 
 		ctx := t.Context()
 		cfg := &DBCleanerConfig{
-			Observability: observability.Config{},
+			Observability: observability.Config{
+				Logging: loggingcfg.Config{ServiceName: "service"},
+			},
 			Database: databasecfg.Config{
 				Debug: true,
 				ReadConnection: databasecfg.ConnectionDetails{
@@ -399,6 +405,7 @@ func TestDBCleanerConfig_ValidateWithContext(T *testing.T) {
 					Password: "pass",
 					Database: "db",
 					Host:     "host",
+					Port:     5432,
 				},
 			},
 		}

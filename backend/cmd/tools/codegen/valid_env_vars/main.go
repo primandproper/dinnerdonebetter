@@ -14,7 +14,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 
-	reflast "github.com/primandproper/platform-go/v2/reflection/ast"
+	reflast "github.com/primandproper/platform-go/v3/reflection/ast"
 
 	"github.com/codemodus/kace"
 )
@@ -150,7 +150,7 @@ func parseGoFiles(dir, modulePath string) map[string]*structEntry {
 			return nil
 		}
 
-		if strings.Contains(path, "/vendor/") && !strings.Contains(path, "/vendor/github.com/primandproper/platform-go/v2/") {
+		if strings.Contains(path, "/vendor/") && !strings.Contains(path, "/vendor/github.com/primandproper/platform-go/v3/") {
 			return filepath.SkipDir
 		}
 

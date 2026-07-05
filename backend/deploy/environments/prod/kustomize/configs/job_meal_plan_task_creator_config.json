@@ -12,9 +12,9 @@
 			"ios": {
 				"segment": null,
 				"posthog": {
-					"apiKey": "placeholder"
+					"apiKey": "placeholder",
+					"endpoint": ""
 				},
-				"rudderstack": null,
 				"provider": "posthog",
 				"circuitBreaker": {
 					"name": "ios_analytics",
@@ -25,9 +25,9 @@
 			"web": {
 				"segment": null,
 				"posthog": {
-					"apiKey": "placeholder"
+					"apiKey": "placeholder",
+					"endpoint": ""
 				},
-				"rudderstack": null,
 				"provider": "posthog",
 				"circuitBreaker": {
 					"name": "web_analytics",
@@ -38,9 +38,9 @@
 		},
 		"segment": null,
 		"posthog": {
-			"apiKey": "placeholder"
+			"apiKey": "placeholder",
+			"endpoint": ""
 		},
-		"rudderstack": null,
 		"provider": "posthog",
 		"circuitBreaker": {
 			"name": "api_analytics",
@@ -49,7 +49,7 @@
 		}
 	},
 	"events": {
-		"consumers": {
+		"consumer": {
 			"kafka": {
 				"groupId": "",
 				"brokers": null
@@ -63,10 +63,10 @@
 			},
 			"redis": {
 				"username": "",
-				"queueAddress": null
+				"queueAddresses": null
 			}
 		},
-		"publishers": {
+		"publisher": {
 			"kafka": {
 				"groupId": "",
 				"brokers": null
@@ -80,7 +80,7 @@
 			},
 			"redis": {
 				"username": "",
-				"queueAddress": null
+				"queueAddresses": null
 			}
 		}
 	},
@@ -116,7 +116,7 @@
 			},
 			"serviceName": "meal_plan_task_creator",
 			"provider": "otelgrpc",
-			"enabled": false
+			"enabled": true
 		},
 		"tracing": {
 			"otelgrpc": {
@@ -136,17 +136,17 @@
 		"provider": "postgres",
 		"readConnection": {
 			"username": "meal_plan_task_creator",
-			"password": "",
+			"password": "REPLACE_AT_DEPLOY",
 			"database": "dinner-done-better",
-			"hostname": "",
+			"hostname": "REPLACE_AT_DEPLOY",
 			"port": 5432,
 			"disableSSL": false
 		},
 		"writeConnection": {
 			"username": "meal_plan_task_creator",
-			"password": "",
+			"password": "REPLACE_AT_DEPLOY",
 			"database": "dinner-done-better",
-			"hostname": "",
+			"hostname": "REPLACE_AT_DEPLOY",
 			"port": 5432,
 			"disableSSL": false
 		},

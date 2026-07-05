@@ -11,33 +11,33 @@ import (
 	uploadedmediacfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	analyticscfg "github.com/primandproper/platform-go/v2/analytics/config"
-	tokenscfg "github.com/primandproper/platform-go/v2/authentication/tokens/config"
-	circuitbreakingcfg "github.com/primandproper/platform-go/v2/circuitbreaking/config"
-	encryptioncfg "github.com/primandproper/platform-go/v2/cryptography/encryption/config"
-	databasecfg "github.com/primandproper/platform-go/v2/database/config"
-	"github.com/primandproper/platform-go/v2/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v2/featureflags/config"
-	msgconfig "github.com/primandproper/platform-go/v2/messagequeue/config"
-	"github.com/primandproper/platform-go/v2/messagequeue/redis"
-	notificationscfg "github.com/primandproper/platform-go/v2/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v2/observability"
-	"github.com/primandproper/platform-go/v2/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v2/observability/logging/config"
-	logotelgrpc "github.com/primandproper/platform-go/v2/observability/logging/otelgrpc"
-	metricscfg "github.com/primandproper/platform-go/v2/observability/metrics/config"
-	"github.com/primandproper/platform-go/v2/observability/metrics/otelgrpc"
-	profilingcfg "github.com/primandproper/platform-go/v2/observability/profiling/config"
-	"github.com/primandproper/platform-go/v2/observability/profiling/pprof"
-	tracingcfg "github.com/primandproper/platform-go/v2/observability/tracing/config"
-	"github.com/primandproper/platform-go/v2/observability/tracing/oteltrace"
-	"github.com/primandproper/platform-go/v2/routing/chi"
-	routingcfg "github.com/primandproper/platform-go/v2/routing/config"
-	"github.com/primandproper/platform-go/v2/search/text/algolia"
-	textsearchcfg "github.com/primandproper/platform-go/v2/search/text/config"
-	"github.com/primandproper/platform-go/v2/server/http"
-	uploadscfg "github.com/primandproper/platform-go/v2/uploads/config"
-	"github.com/primandproper/platform-go/v2/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v3/analytics/config"
+	tokenscfg "github.com/primandproper/platform-go/v3/authentication/tokens/config"
+	circuitbreakingcfg "github.com/primandproper/platform-go/v3/circuitbreaking/config"
+	encryptioncfg "github.com/primandproper/platform-go/v3/cryptography/encryption/config"
+	databasecfg "github.com/primandproper/platform-go/v3/database/config"
+	"github.com/primandproper/platform-go/v3/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v3/featureflags/config"
+	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
+	"github.com/primandproper/platform-go/v3/messagequeue/redis"
+	notificationscfg "github.com/primandproper/platform-go/v3/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v3/observability"
+	"github.com/primandproper/platform-go/v3/observability/logging"
+	loggingcfg "github.com/primandproper/platform-go/v3/observability/logging/config"
+	logotelgrpc "github.com/primandproper/platform-go/v3/observability/logging/otelgrpc"
+	metricscfg "github.com/primandproper/platform-go/v3/observability/metrics/config"
+	"github.com/primandproper/platform-go/v3/observability/metrics/otelgrpc"
+	profilingcfg "github.com/primandproper/platform-go/v3/observability/profiling/config"
+	"github.com/primandproper/platform-go/v3/observability/profiling/pprof"
+	tracingcfg "github.com/primandproper/platform-go/v3/observability/tracing/config"
+	"github.com/primandproper/platform-go/v3/observability/tracing/oteltrace"
+	"github.com/primandproper/platform-go/v3/routing/chi"
+	routingcfg "github.com/primandproper/platform-go/v3/routing/config"
+	"github.com/primandproper/platform-go/v3/search/text/algolia"
+	textsearchcfg "github.com/primandproper/platform-go/v3/search/text/config"
+	"github.com/primandproper/platform-go/v3/server/http"
+	uploadscfg "github.com/primandproper/platform-go/v3/uploads/config"
+	"github.com/primandproper/platform-go/v3/uploads/objectstorage"
 )
 
 const (
@@ -74,6 +74,7 @@ var (
 				CollectionInterval: time.Second,
 			},
 			Provider: metricscfg.ProviderOtel,
+			Enabled:  true,
 		},
 		Tracing: tracingcfg.Config{
 			Provider:                  tracingcfg.ProviderOtel,
@@ -107,9 +108,8 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 	uploadsConfig := uploadscfg.Config{
 		Debug: true,
 		Storage: objectstorage.Config{
-			UploadFilenameKey: "avatar",
-			Provider:          objectstorage.FilesystemProvider,
-			BucketName:        "avatars",
+			Provider:   objectstorage.FilesystemProvider,
+			BucketName: "avatars",
 			FilesystemConfig: &objectstorage.FilesystemConfig{
 				RootDirectory: "/uploads",
 			},

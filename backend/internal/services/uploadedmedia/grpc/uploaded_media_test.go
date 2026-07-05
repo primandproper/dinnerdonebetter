@@ -15,11 +15,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v2/database/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v2/observability/logging/noop"
-	"github.com/primandproper/platform-go/v2/observability/tracing"
-	"github.com/primandproper/platform-go/v2/reflection"
-	mockuploads "github.com/primandproper/platform-go/v2/uploads/mock"
+	"github.com/primandproper/platform-go/v3/database/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
+	"github.com/primandproper/platform-go/v3/observability/tracing"
+	"github.com/primandproper/platform-go/v3/reflection"
+	"github.com/primandproper/platform-go/v3/uploads"
+	mockuploads "github.com/primandproper/platform-go/v3/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -798,7 +799,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 		mockStream.On(reflection.GetMethodName(mockStream.SendAndClose), mock.AnythingOfType("*uploaded_media.UploadResponse")).Return(nil).Once()
 
 		// Setup mock upload manager expectation
-		mockUploadMgr.SaveFileFunc = func(_ context.Context, _ string, _ []byte) error { return nil }
+		mockUploadMgr.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
 
 		// Setup mock repo expectation
 		mockRepo.On(reflection.GetMethodName(mockRepo.CreateUploadedMedia), testutils.ContextMatcher, mock.AnythingOfType("*uploadedmedia.UploadedMediaDatabaseCreationInput")).Return(fakeUploadedMedia, nil)
@@ -1045,7 +1046,9 @@ func TestServiceImpl_Upload(t *testing.T) {
 		mockStream.On(reflection.GetMethodName(mockStream.Recv)).Return(nil, io.EOF).Once()
 
 		// Mock upload manager to return error
-		mockUploadMgr.SaveFileFunc = func(_ context.Context, _ string, _ []byte) error { return errors.New("storage error") }
+		mockUploadMgr.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error {
+			return errors.New("storage error")
+		}
 
 		err := service.Upload(mockStream)
 
@@ -1086,7 +1089,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 		mockStream.On(reflection.GetMethodName(mockStream.Recv)).Return(chunkReq, nil).Once()
 		mockStream.On(reflection.GetMethodName(mockStream.Recv)).Return(nil, io.EOF).Once()
 
-		mockUploadMgr.SaveFileFunc = func(_ context.Context, _ string, _ []byte) error { return nil }
+		mockUploadMgr.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
 
 		// Mock repo to return error
 		mockRepo.On(reflection.GetMethodName(mockRepo.CreateUploadedMedia), testutils.ContextMatcher, mock.AnythingOfType("*uploadedmedia.UploadedMediaDatabaseCreationInput")).Return(nil, errors.New("database error"))

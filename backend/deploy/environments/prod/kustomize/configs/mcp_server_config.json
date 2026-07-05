@@ -38,7 +38,7 @@
 			},
 			"serviceName": "dinner_done_better_mcp_server",
 			"provider": "otelgrpc",
-			"enabled": false
+			"enabled": true
 		},
 		"tracing": {
 			"otelgrpc": {
@@ -67,17 +67,17 @@
 		"provider": "postgres",
 		"readConnection": {
 			"username": "mcp_server",
-			"password": "",
+			"password": "REPLACE_AT_DEPLOY",
 			"database": "dinner-done-better",
-			"hostname": "",
+			"hostname": "REPLACE_AT_DEPLOY",
 			"port": 5432,
 			"disableSSL": false
 		},
 		"writeConnection": {
 			"username": "mcp_server",
-			"password": "",
+			"password": "REPLACE_AT_DEPLOY",
 			"database": "dinner-done-better",
-			"hostname": "",
+			"hostname": "REPLACE_AT_DEPLOY",
 			"port": 5432,
 			"disableSSL": false
 		},

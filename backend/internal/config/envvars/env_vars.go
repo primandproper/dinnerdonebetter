@@ -19,14 +19,11 @@ const (
 	// AnalyticsProxySourcesIosPosthogAPIKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.IOS.Posthog.APIKey`.
 	AnalyticsProxySourcesIosPosthogAPIKeyEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_IOS_POSTHOG_API_KEY"
 
+	// AnalyticsProxySourcesIosPosthogEndpointEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.IOS.Posthog.Endpoint`.
+	AnalyticsProxySourcesIosPosthogEndpointEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_IOS_POSTHOG_ENDPOINT"
+
 	// AnalyticsProxySourcesIosProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.IOS.Provider`.
 	AnalyticsProxySourcesIosProviderEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_IOS_PROVIDER"
-
-	// AnalyticsProxySourcesIosRudderstackAPIKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.IOS.Rudderstack.APIKey`.
-	AnalyticsProxySourcesIosRudderstackAPIKeyEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_IOS_RUDDERSTACK_API_KEY"
-
-	// AnalyticsProxySourcesIosRudderstackDataPlaneURLEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.IOS.Rudderstack.DataPlaneURL`.
-	AnalyticsProxySourcesIosRudderstackDataPlaneURLEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_IOS_RUDDERSTACK_DATA_PLANE_URL"
 
 	// AnalyticsProxySourcesIosSegmentAPITokenEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.IOS.Segment.APIToken`.
 	AnalyticsProxySourcesIosSegmentAPITokenEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_IOS_SEGMENT_API_TOKEN"
@@ -43,14 +40,11 @@ const (
 	// AnalyticsProxySourcesWebPosthogAPIKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.Web.Posthog.APIKey`.
 	AnalyticsProxySourcesWebPosthogAPIKeyEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_WEB_POSTHOG_API_KEY"
 
+	// AnalyticsProxySourcesWebPosthogEndpointEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.Web.Posthog.Endpoint`.
+	AnalyticsProxySourcesWebPosthogEndpointEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_WEB_POSTHOG_ENDPOINT"
+
 	// AnalyticsProxySourcesWebProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.Web.Provider`.
 	AnalyticsProxySourcesWebProviderEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_WEB_PROVIDER"
-
-	// AnalyticsProxySourcesWebRudderstackAPIKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.Web.Rudderstack.APIKey`.
-	AnalyticsProxySourcesWebRudderstackAPIKeyEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_WEB_RUDDERSTACK_API_KEY"
-
-	// AnalyticsProxySourcesWebRudderstackDataPlaneURLEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.Web.Rudderstack.DataPlaneURL`.
-	AnalyticsProxySourcesWebRudderstackDataPlaneURLEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_WEB_RUDDERSTACK_DATA_PLANE_URL"
 
 	// AnalyticsProxySourcesWebSegmentAPITokenEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.Web.Segment.APIToken`.
 	AnalyticsProxySourcesWebSegmentAPITokenEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_WEB_SEGMENT_API_TOKEN"
@@ -283,20 +277,20 @@ const (
 	// FeatureFlagsCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.CircuitBreaker.Name`.
 	FeatureFlagsCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_CIRCUIT_BREAKING_NAME"
 
-	// FeatureFlagsLaunchDarklycircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.CircuitBreakerConfig.ErrorRate`.
-	FeatureFlagsLaunchDarklycircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLYCIRCUIT_BREAKING_ERROR_RATE"
+	// FeatureFlagsLaunchDarklyCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.CircuitBreakerConfig.ErrorRate`.
+	FeatureFlagsLaunchDarklyCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLY_CIRCUIT_BREAKING_ERROR_RATE"
 
-	// FeatureFlagsLaunchDarklycircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.CircuitBreakerConfig.MinimumSampleThreshold`.
-	FeatureFlagsLaunchDarklycircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLYCIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+	// FeatureFlagsLaunchDarklyCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.CircuitBreakerConfig.MinimumSampleThreshold`.
+	FeatureFlagsLaunchDarklyCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLY_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
 
-	// FeatureFlagsLaunchDarklycircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.CircuitBreakerConfig.Name`.
-	FeatureFlagsLaunchDarklycircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLYCIRCUIT_BREAKING_NAME"
+	// FeatureFlagsLaunchDarklyCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.CircuitBreakerConfig.Name`.
+	FeatureFlagsLaunchDarklyCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLY_CIRCUIT_BREAKING_NAME"
 
-	// FeatureFlagsLaunchDarklyinitTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.InitTimeout`.
-	FeatureFlagsLaunchDarklyinitTimeoutEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLYINIT_TIMEOUT"
+	// FeatureFlagsLaunchDarklyInitTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.InitTimeout`.
+	FeatureFlagsLaunchDarklyInitTimeoutEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLY_INIT_TIMEOUT"
 
-	// FeatureFlagsLaunchDarklysdkKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.SDKKey`.
-	FeatureFlagsLaunchDarklysdkKeyEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLYSDK_KEY"
+	// FeatureFlagsLaunchDarklySdkKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.SDKKey`.
+	FeatureFlagsLaunchDarklySdkKeyEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLY_SDK_KEY"
 
 	// FeatureFlagsPosthogCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.PostHog.CircuitBreakerConfig.ErrorRate`.
 	FeatureFlagsPosthogCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_POSTHOG_CIRCUIT_BREAKING_ERROR_RATE"
@@ -306,6 +300,9 @@ const (
 
 	// FeatureFlagsPosthogCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.PostHog.CircuitBreakerConfig.Name`.
 	FeatureFlagsPosthogCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_POSTHOG_CIRCUIT_BREAKING_NAME"
+
+	// FeatureFlagsPosthogEndpointEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.PostHog.Endpoint`.
+	FeatureFlagsPosthogEndpointEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_POSTHOG_ENDPOINT"
 
 	// FeatureFlagsPosthogPersonalAPIKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.PostHog.PersonalAPIKey`.
 	FeatureFlagsPosthogPersonalAPIKeyEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_POSTHOG_PERSONAL_API_KEY"
@@ -340,8 +337,14 @@ const (
 	// HTTPDebugEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.Debug`.
 	HTTPDebugEnvVarKey = "DINNER_DONE_BETTER_HTTP_DEBUG"
 
+	// HTTPIdleTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.IdleTimeout`.
+	HTTPIdleTimeoutEnvVarKey = "DINNER_DONE_BETTER_HTTP_IDLE_TIMEOUT"
+
 	// HTTPPortEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.Port`.
 	HTTPPortEnvVarKey = "DINNER_DONE_BETTER_HTTP_PORT"
+
+	// HTTPReadTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.ReadTimeout`.
+	HTTPReadTimeoutEnvVarKey = "DINNER_DONE_BETTER_HTTP_READ_TIMEOUT"
 
 	// HTTPSslCertificateFilepathEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.SSLCertificateFile`.
 	HTTPSslCertificateFilepathEnvVarKey = "DINNER_DONE_BETTER_HTTP_SSL_CERTIFICATE_FILEPATH"
@@ -351,6 +354,9 @@ const (
 
 	// HTTPStartupDeadlineEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.StartupDeadline`.
 	HTTPStartupDeadlineEnvVarKey = "DINNER_DONE_BETTER_HTTP_STARTUP_DEADLINE"
+
+	// HTTPWriteTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.WriteTimeout`.
+	HTTPWriteTimeoutEnvVarKey = "DINNER_DONE_BETTER_HTTP_WRITE_TIMEOUT"
 
 	// MetaDebugEnvVarKey is the environment variable name to set to override `APIServiceConfig.Meta.Debug`.
 	MetaDebugEnvVarKey = "DINNER_DONE_BETTER_META_DEBUG"
@@ -448,14 +454,14 @@ const (
 	// ObservabilityTracingOtelgrpcInsecureEnvVarKey is the environment variable name to set to override `APIServiceConfig.Observability.Tracing.Otel.Insecure`.
 	ObservabilityTracingOtelgrpcInsecureEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_OTELGRPC_INSECURE"
 
-	// ObservabilityTracingTracingProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Observability.Tracing.Provider`.
-	ObservabilityTracingTracingProviderEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_TRACING_PROVIDER"
+	// ObservabilityTracingProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Observability.Tracing.Provider`.
+	ObservabilityTracingProviderEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_PROVIDER"
 
-	// ObservabilityTracingTracingServiceNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Observability.Tracing.ServiceName`.
-	ObservabilityTracingTracingServiceNameEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_TRACING_SERVICE_NAME"
+	// ObservabilityTracingServiceNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Observability.Tracing.ServiceName`.
+	ObservabilityTracingServiceNameEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_SERVICE_NAME"
 
-	// ObservabilityTracingTracingSpanCollectionProbabilityEnvVarKey is the environment variable name to set to override `APIServiceConfig.Observability.Tracing.SpanCollectionProbability`.
-	ObservabilityTracingTracingSpanCollectionProbabilityEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_TRACING_SPAN_COLLECTION_PROBABILITY"
+	// ObservabilityTracingSpanCollectionProbabilityEnvVarKey is the environment variable name to set to override `APIServiceConfig.Observability.Tracing.SpanCollectionProbability`.
+	ObservabilityTracingSpanCollectionProbabilityEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_SPAN_COLLECTION_PROBABILITY"
 
 	// PushNotificationsApnsAuthKeyPathEnvVarKey is the environment variable name to set to override `APIServiceConfig.PushNotifications.APNs.AuthKeyPath`.
 	PushNotificationsApnsAuthKeyPathEnvVarKey = "DINNER_DONE_BETTER_PUSH_NOTIFICATIONS_APNS_AUTH_KEY_PATH"
@@ -604,9 +610,6 @@ const (
 	// ServiceDataPrivacyUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.BackblazeB2Config.ApplicationKeyID`.
 	ServiceDataPrivacyUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
 
-	// ServiceDataPrivacyUploadsStorageBackblazeB2BucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.BackblazeB2Config.BucketName`.
-	ServiceDataPrivacyUploadsStorageBackblazeB2BucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_BACKBLAZE_B2_BUCKET_NAME"
-
 	// ServiceDataPrivacyUploadsStorageBackblazeB2RegionEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.BackblazeB2Config.Region`.
 	ServiceDataPrivacyUploadsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_BACKBLAZE_B2_REGION"
 
@@ -625,11 +628,11 @@ const (
 	// ServiceDataPrivacyUploadsStorageCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.CircuitBreaker.Name`.
 	ServiceDataPrivacyUploadsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_CIRCUIT_BREAKING_NAME"
 
+	// ServiceDataPrivacyUploadsStorageFilesystemDirectoryModeEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.FilesystemConfig.DirectoryMode`.
+	ServiceDataPrivacyUploadsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
+
 	// ServiceDataPrivacyUploadsStorageFilesystemRootDirectoryEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.FilesystemConfig.RootDirectory`.
 	ServiceDataPrivacyUploadsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
-
-	// ServiceDataPrivacyUploadsStorageGcpBucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.GCP.BucketName`.
-	ServiceDataPrivacyUploadsStorageGcpBucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_GCP_BUCKET_NAME"
 
 	// ServiceDataPrivacyUploadsStorageProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.Provider`.
 	ServiceDataPrivacyUploadsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_PROVIDER"
@@ -640,17 +643,8 @@ const (
 	// ServiceDataPrivacyUploadsStorageR2AccountIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.R2Config.AccountID`.
 	ServiceDataPrivacyUploadsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_R2_ACCOUNT_ID"
 
-	// ServiceDataPrivacyUploadsStorageR2BucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.R2Config.BucketName`.
-	ServiceDataPrivacyUploadsStorageR2BucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_R2_BUCKET_NAME"
-
 	// ServiceDataPrivacyUploadsStorageR2SecretAccessKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.R2Config.SecretAccessKey`.
 	ServiceDataPrivacyUploadsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_R2_SECRET_ACCESS_KEY"
-
-	// ServiceDataPrivacyUploadsStorageS3BucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.S3Config.BucketName`.
-	ServiceDataPrivacyUploadsStorageS3BucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_S3_BUCKET_NAME"
-
-	// ServiceDataPrivacyUploadsStorageUploadFilenameKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.UploadFilenameKey`.
-	ServiceDataPrivacyUploadsStorageUploadFilenameKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_UPLOAD_FILENAME_KEY"
 
 	// ServiceEnvironmentEnvVarKey is the environment variable name to set to override `EmailDeliverabilityTestConfigServiceEnvironment`.
 	ServiceEnvironmentEnvVarKey = "DINNER_DONE_BETTER_SERVICE_ENVIRONMENT"
@@ -666,9 +660,6 @@ const (
 
 	// ServiceMealPlanningUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.MealPlanning.Uploads.Storage.BackblazeB2Config.ApplicationKeyID`.
 	ServiceMealPlanningUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_UPLOADS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
-
-	// ServiceMealPlanningUploadsStorageBackblazeB2BucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.MealPlanning.Uploads.Storage.BackblazeB2Config.BucketName`.
-	ServiceMealPlanningUploadsStorageBackblazeB2BucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_UPLOADS_STORAGE_BACKBLAZE_B2_BUCKET_NAME"
 
 	// ServiceMealPlanningUploadsStorageBackblazeB2RegionEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.MealPlanning.Uploads.Storage.BackblazeB2Config.Region`.
 	ServiceMealPlanningUploadsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_UPLOADS_STORAGE_BACKBLAZE_B2_REGION"
@@ -688,11 +679,11 @@ const (
 	// ServiceMealPlanningUploadsStorageCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.MealPlanning.Uploads.Storage.CircuitBreaker.Name`.
 	ServiceMealPlanningUploadsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_UPLOADS_STORAGE_CIRCUIT_BREAKING_NAME"
 
+	// ServiceMealPlanningUploadsStorageFilesystemDirectoryModeEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.MealPlanning.Uploads.Storage.FilesystemConfig.DirectoryMode`.
+	ServiceMealPlanningUploadsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_UPLOADS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
+
 	// ServiceMealPlanningUploadsStorageFilesystemRootDirectoryEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.MealPlanning.Uploads.Storage.FilesystemConfig.RootDirectory`.
 	ServiceMealPlanningUploadsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_UPLOADS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
-
-	// ServiceMealPlanningUploadsStorageGcpBucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.MealPlanning.Uploads.Storage.GCP.BucketName`.
-	ServiceMealPlanningUploadsStorageGcpBucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_UPLOADS_STORAGE_GCP_BUCKET_NAME"
 
 	// ServiceMealPlanningUploadsStorageProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.MealPlanning.Uploads.Storage.Provider`.
 	ServiceMealPlanningUploadsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_UPLOADS_STORAGE_PROVIDER"
@@ -703,17 +694,8 @@ const (
 	// ServiceMealPlanningUploadsStorageR2AccountIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.MealPlanning.Uploads.Storage.R2Config.AccountID`.
 	ServiceMealPlanningUploadsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_UPLOADS_STORAGE_R2_ACCOUNT_ID"
 
-	// ServiceMealPlanningUploadsStorageR2BucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.MealPlanning.Uploads.Storage.R2Config.BucketName`.
-	ServiceMealPlanningUploadsStorageR2BucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_UPLOADS_STORAGE_R2_BUCKET_NAME"
-
 	// ServiceMealPlanningUploadsStorageR2SecretAccessKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.MealPlanning.Uploads.Storage.R2Config.SecretAccessKey`.
 	ServiceMealPlanningUploadsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_UPLOADS_STORAGE_R2_SECRET_ACCESS_KEY"
-
-	// ServiceMealPlanningUploadsStorageS3BucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.MealPlanning.Uploads.Storage.S3Config.BucketName`.
-	ServiceMealPlanningUploadsStorageS3BucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_UPLOADS_STORAGE_S3_BUCKET_NAME"
-
-	// ServiceMealPlanningUploadsStorageUploadFilenameKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.MealPlanning.Uploads.Storage.UploadFilenameKey`.
-	ServiceMealPlanningUploadsStorageUploadFilenameKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_UPLOADS_STORAGE_UPLOAD_FILENAME_KEY"
 
 	// ServiceMealPlanningUseSearchServiceEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.MealPlanning.UseSearchService`.
 	ServiceMealPlanningUseSearchServiceEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_USE_SEARCH_SERVICE"
@@ -742,9 +724,6 @@ const (
 	// ServiceUploadedMediaUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.BackblazeB2Config.ApplicationKeyID`.
 	ServiceUploadedMediaUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
 
-	// ServiceUploadedMediaUploadsStorageBackblazeB2BucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.BackblazeB2Config.BucketName`.
-	ServiceUploadedMediaUploadsStorageBackblazeB2BucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_BACKBLAZE_B2_BUCKET_NAME"
-
 	// ServiceUploadedMediaUploadsStorageBackblazeB2RegionEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.BackblazeB2Config.Region`.
 	ServiceUploadedMediaUploadsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_BACKBLAZE_B2_REGION"
 
@@ -763,11 +742,11 @@ const (
 	// ServiceUploadedMediaUploadsStorageCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.CircuitBreaker.Name`.
 	ServiceUploadedMediaUploadsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_CIRCUIT_BREAKING_NAME"
 
+	// ServiceUploadedMediaUploadsStorageFilesystemDirectoryModeEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.FilesystemConfig.DirectoryMode`.
+	ServiceUploadedMediaUploadsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
+
 	// ServiceUploadedMediaUploadsStorageFilesystemRootDirectoryEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.FilesystemConfig.RootDirectory`.
 	ServiceUploadedMediaUploadsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
-
-	// ServiceUploadedMediaUploadsStorageGcpBucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.GCP.BucketName`.
-	ServiceUploadedMediaUploadsStorageGcpBucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_GCP_BUCKET_NAME"
 
 	// ServiceUploadedMediaUploadsStorageProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.Provider`.
 	ServiceUploadedMediaUploadsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_PROVIDER"
@@ -778,17 +757,8 @@ const (
 	// ServiceUploadedMediaUploadsStorageR2AccountIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.R2Config.AccountID`.
 	ServiceUploadedMediaUploadsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_R2_ACCOUNT_ID"
 
-	// ServiceUploadedMediaUploadsStorageR2BucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.R2Config.BucketName`.
-	ServiceUploadedMediaUploadsStorageR2BucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_R2_BUCKET_NAME"
-
 	// ServiceUploadedMediaUploadsStorageR2SecretAccessKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.R2Config.SecretAccessKey`.
 	ServiceUploadedMediaUploadsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_R2_SECRET_ACCESS_KEY"
-
-	// ServiceUploadedMediaUploadsStorageS3BucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.S3Config.BucketName`.
-	ServiceUploadedMediaUploadsStorageS3BucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_S3_BUCKET_NAME"
-
-	// ServiceUploadedMediaUploadsStorageUploadFilenameKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.UploadFilenameKey`.
-	ServiceUploadedMediaUploadsStorageUploadFilenameKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_UPLOAD_FILENAME_KEY"
 
 	// ServiceUsersPublicMediaURLPrefixEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.PublicMediaURLPrefix`.
 	ServiceUsersPublicMediaURLPrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_PUBLIC_MEDIA_URL_PREFIX"
@@ -801,9 +771,6 @@ const (
 
 	// ServiceUsersUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.Uploads.Storage.BackblazeB2Config.ApplicationKeyID`.
 	ServiceUsersUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
-
-	// ServiceUsersUploadsStorageBackblazeB2BucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.Uploads.Storage.BackblazeB2Config.BucketName`.
-	ServiceUsersUploadsStorageBackblazeB2BucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_BACKBLAZE_B2_BUCKET_NAME"
 
 	// ServiceUsersUploadsStorageBackblazeB2RegionEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.Uploads.Storage.BackblazeB2Config.Region`.
 	ServiceUsersUploadsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_BACKBLAZE_B2_REGION"
@@ -823,11 +790,11 @@ const (
 	// ServiceUsersUploadsStorageCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.Uploads.Storage.CircuitBreaker.Name`.
 	ServiceUsersUploadsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_CIRCUIT_BREAKING_NAME"
 
+	// ServiceUsersUploadsStorageFilesystemDirectoryModeEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.Uploads.Storage.FilesystemConfig.DirectoryMode`.
+	ServiceUsersUploadsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
+
 	// ServiceUsersUploadsStorageFilesystemRootDirectoryEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.Uploads.Storage.FilesystemConfig.RootDirectory`.
 	ServiceUsersUploadsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
-
-	// ServiceUsersUploadsStorageGcpBucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.Uploads.Storage.GCP.BucketName`.
-	ServiceUsersUploadsStorageGcpBucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_GCP_BUCKET_NAME"
 
 	// ServiceUsersUploadsStorageProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.Uploads.Storage.Provider`.
 	ServiceUsersUploadsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_PROVIDER"
@@ -838,26 +805,14 @@ const (
 	// ServiceUsersUploadsStorageR2AccountIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.Uploads.Storage.R2Config.AccountID`.
 	ServiceUsersUploadsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_R2_ACCOUNT_ID"
 
-	// ServiceUsersUploadsStorageR2BucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.Uploads.Storage.R2Config.BucketName`.
-	ServiceUsersUploadsStorageR2BucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_R2_BUCKET_NAME"
-
 	// ServiceUsersUploadsStorageR2SecretAccessKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.Uploads.Storage.R2Config.SecretAccessKey`.
 	ServiceUsersUploadsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_R2_SECRET_ACCESS_KEY"
-
-	// ServiceUsersUploadsStorageS3BucketNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.Uploads.Storage.S3Config.BucketName`.
-	ServiceUsersUploadsStorageS3BucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_S3_BUCKET_NAME"
-
-	// ServiceUsersUploadsStorageUploadFilenameKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.Uploads.Storage.UploadFilenameKey`.
-	ServiceUsersUploadsStorageUploadFilenameKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_UPLOAD_FILENAME_KEY"
 
 	// StorageBackblazeB2ApplicationKeyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.BackblazeB2Config.ApplicationKey`.
 	StorageBackblazeB2ApplicationKeyEnvVarKey = "DINNER_DONE_BETTER_STORAGE_BACKBLAZE_B2_APPLICATION_KEY"
 
 	// StorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.BackblazeB2Config.ApplicationKeyID`.
 	StorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
-
-	// StorageBackblazeB2BucketNameEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.BackblazeB2Config.BucketName`.
-	StorageBackblazeB2BucketNameEnvVarKey = "DINNER_DONE_BETTER_STORAGE_BACKBLAZE_B2_BUCKET_NAME"
 
 	// StorageBackblazeB2RegionEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.BackblazeB2Config.Region`.
 	StorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_STORAGE_BACKBLAZE_B2_REGION"
@@ -877,11 +832,11 @@ const (
 	// StorageCircuitBreakingNameEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.CircuitBreaker.Name`.
 	StorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_STORAGE_CIRCUIT_BREAKING_NAME"
 
+	// StorageFilesystemDirectoryModeEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.FilesystemConfig.DirectoryMode`.
+	StorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_STORAGE_FILESYSTEM_DIRECTORY_MODE"
+
 	// StorageFilesystemRootDirectoryEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.FilesystemConfig.RootDirectory`.
 	StorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
-
-	// StorageGcpBucketNameEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.GCP.BucketName`.
-	StorageGcpBucketNameEnvVarKey = "DINNER_DONE_BETTER_STORAGE_GCP_BUCKET_NAME"
 
 	// StorageProviderEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.Provider`.
 	StorageProviderEnvVarKey = "DINNER_DONE_BETTER_STORAGE_PROVIDER"
@@ -892,15 +847,6 @@ const (
 	// StorageR2AccountIDEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.R2Config.AccountID`.
 	StorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_STORAGE_R2_ACCOUNT_ID"
 
-	// StorageR2BucketNameEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.R2Config.BucketName`.
-	StorageR2BucketNameEnvVarKey = "DINNER_DONE_BETTER_STORAGE_R2_BUCKET_NAME"
-
 	// StorageR2SecretAccessKeyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.R2Config.SecretAccessKey`.
 	StorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_STORAGE_R2_SECRET_ACCESS_KEY"
-
-	// StorageS3BucketNameEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.S3Config.BucketName`.
-	StorageS3BucketNameEnvVarKey = "DINNER_DONE_BETTER_STORAGE_S3_BUCKET_NAME"
-
-	// StorageUploadFilenameKeyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.UploadFilenameKey`.
-	StorageUploadFilenameKeyEnvVarKey = "DINNER_DONE_BETTER_STORAGE_UPLOAD_FILENAME_KEY"
 )

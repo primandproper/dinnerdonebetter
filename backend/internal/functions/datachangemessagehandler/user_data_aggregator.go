@@ -10,8 +10,9 @@ import (
 	dataprivacykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy/keys"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	"github.com/primandproper/platform-go/v2/observability"
-	"github.com/primandproper/platform-go/v2/observability/tracing"
+	"github.com/primandproper/platform-go/v3/observability"
+	"github.com/primandproper/platform-go/v3/observability/tracing"
+	"github.com/primandproper/platform-go/v3/uploads"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -70,7 +71,7 @@ func (a *AsyncDataChangeMessageHandler) UserDataAggregationEventHandler(topicNam
 		logger.Info("saving file to object storage")
 
 		// Save to object storage with report ID as filename
-		if err = a.uploadManager.SaveFile(ctx, fmt.Sprintf("%s.json", userDataCollectionRequest.ReportID), collectionBytes); err != nil {
+		if err = uploads.SaveFile(ctx, a.uploadManager, fmt.Sprintf("%s.json", userDataCollectionRequest.ReportID), collectionBytes); err != nil {
 			a.handlerErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicUserDataAggregation)))
 			status = statusFailure
 			return observability.PrepareAndLogError(err, logger, span, "saving collection")

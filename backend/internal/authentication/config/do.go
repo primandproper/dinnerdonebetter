@@ -1,7 +1,7 @@
 package authcfg
 
 import (
-	tokenscfg "github.com/primandproper/platform-go/v2/authentication/tokens/config"
+	tokenscfg "github.com/primandproper/platform-go/v3/authentication/tokens/config"
 
 	"github.com/samber/do/v2"
 )

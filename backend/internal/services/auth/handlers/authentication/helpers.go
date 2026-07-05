@@ -9,8 +9,8 @@ import (
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	"github.com/primandproper/platform-go/v2/authentication/totp"
-	"github.com/primandproper/platform-go/v2/observability"
+	"github.com/primandproper/platform-go/v3/authentication/totp"
+	"github.com/primandproper/platform-go/v3/observability"
 )
 
 // validateLogin takes login information and returns whether the login is valid.
