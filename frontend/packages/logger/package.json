@@ -10,6 +10,6 @@
     "./browser": "./browser.ts"
   },
   "dependencies": {
-    "@primandproper/observability": "0.0.1"
+    "@primandproper/observability": "0.1.0"
   }
 }

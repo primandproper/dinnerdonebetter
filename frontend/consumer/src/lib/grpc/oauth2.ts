@@ -32,7 +32,7 @@ const oauthHttp = new FetchHttpClient(
   {
     headers: {},
     timeoutMs: 30_000,
-    retry: { maxAttempts: 3, baseDelayMs: 100, maxDelayMs: 30_000, jitter: 0.1 },
+    retry: { maxAttempts: 3, baseDelayMs: 100, maxDelayMs: 30_000, jitter: 0.1, maxElapsedMs: 0 },
     fetch: manualRedirectFetch,
   },
   observabilityDeps,

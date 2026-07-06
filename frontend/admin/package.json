@@ -20,8 +20,8 @@
     "@dinnerdonebetter/branding": "file:../packages/branding",
     "@dinnerdonebetter/logger": "file:../packages/logger",
     "@dinnerdonebetter/ui": "file:../packages/ui",
-    "@primandproper/errors": "0.0.1",
-    "@primandproper/numbers": "0.0.1",
+    "@primandproper/errors": "0.0.2",
+    "@primandproper/numbers": "0.0.2",
     "mermaid": "11.13.0"
   },
   "devDependencies": {
