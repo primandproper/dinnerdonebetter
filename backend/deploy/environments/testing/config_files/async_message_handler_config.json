@@ -10,7 +10,8 @@
 	},
 	"storage": {
 		"filesystem": {
-			"rootDirectory": "/tmp"
+			"rootDirectory": "/tmp",
+			"directoryMode": 0
 		},
 		"bucketName": "userdata",
 		"provider": "filesystem",
@@ -30,7 +31,7 @@
 	},
 	"baseURL": "",
 	"events": {
-		"consumers": {
+		"consumer": {
 			"kafka": {
 				"groupId": "",
 				"brokers": null
@@ -44,12 +45,12 @@
 			},
 			"redis": {
 				"username": "",
-				"queueAddress": [
+				"queueAddresses": [
 					"worker_queue:6379"
 				]
 			}
 		},
-		"publishers": {
+		"publisher": {
 			"kafka": {
 				"groupId": "",
 				"brokers": null
@@ -63,7 +64,7 @@
 			},
 			"redis": {
 				"username": "",
-				"queueAddress": [
+				"queueAddresses": [
 					"worker_queue:6379"
 				]
 			}
@@ -93,7 +94,6 @@
 		},
 		"segment": null,
 		"posthog": null,
-		"rudderstack": null,
 		"provider": "",
 		"circuitBreaker": {
 			"name": "feature_flagger",

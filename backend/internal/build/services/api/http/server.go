@@ -4,12 +4,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	paymentswebhook "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/http"
 
-	"github.com/primandproper/platform-go/v2/healthcheck"
-	"github.com/primandproper/platform-go/v2/observability/logging"
-	"github.com/primandproper/platform-go/v2/observability/metrics"
-	"github.com/primandproper/platform-go/v2/observability/tracing"
-	"github.com/primandproper/platform-go/v2/routing"
-	routingcfg "github.com/primandproper/platform-go/v2/routing/config"
+	"github.com/primandproper/platform-go/v3/healthcheck"
+	"github.com/primandproper/platform-go/v3/observability/logging"
+	"github.com/primandproper/platform-go/v3/observability/metrics"
+	"github.com/primandproper/platform-go/v3/observability/tracing"
+	"github.com/primandproper/platform-go/v3/routing"
+	routingcfg "github.com/primandproper/platform-go/v3/routing/config"
 
 	"github.com/samber/do/v2"
 )

@@ -6,9 +6,10 @@
   "main": "index.ts",
   "types": "index.ts",
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./browser": "./browser.ts"
   },
   "dependencies": {
-    "tslog": "4.10.2"
+    "@primandproper/observability": "0.1.0"
   }
 }

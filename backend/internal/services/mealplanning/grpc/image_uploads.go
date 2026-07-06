@@ -13,9 +13,10 @@ import (
 	mealplanningsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
 
-	platformerrors "github.com/primandproper/platform-go/v2/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v2/errors/grpc"
-	"github.com/primandproper/platform-go/v2/identifiers"
+	platformerrors "github.com/primandproper/platform-go/v3/errors"
+	errorsgrpc "github.com/primandproper/platform-go/v3/errors/grpc"
+	"github.com/primandproper/platform-go/v3/identifiers"
+	"github.com/primandproper/platform-go/v3/uploads"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -157,7 +158,7 @@ func (s *serviceImpl) UploadMealImage(stream grpc.ClientStreamingServer[mealplan
 	fileID := identifiers.New()
 	storagePath := filepath.Join("meals", mealID, fileID, metadata.ObjectName)
 
-	if err = s.uploadManager.SaveFile(ctx, storagePath, fileData.Bytes()); err != nil {
+	if err = uploads.SaveFile(ctx, s.uploadManager, storagePath, fileData.Bytes()); err != nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to save file")
 	}
 
@@ -330,7 +331,7 @@ func (s *serviceImpl) UploadRecipeImage(stream grpc.ClientStreamingServer[mealpl
 	fileID := identifiers.New()
 	storagePath := filepath.Join("recipes", recipeID, fileID, metadata.ObjectName)
 
-	if err = s.uploadManager.SaveFile(ctx, storagePath, fileData.Bytes()); err != nil {
+	if err = uploads.SaveFile(ctx, s.uploadManager, storagePath, fileData.Bytes()); err != nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to save file")
 	}
 
@@ -498,7 +499,7 @@ func (s *serviceImpl) UploadPreparationMedia(stream grpc.ClientStreamingServer[m
 	fileID := identifiers.New()
 	storagePath := filepath.Join("preparations", validPreparationID, fileID, metadata.ObjectName)
 
-	if err = s.uploadManager.SaveFile(ctx, storagePath, fileData.Bytes()); err != nil {
+	if err = uploads.SaveFile(ctx, s.uploadManager, storagePath, fileData.Bytes()); err != nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to save file")
 	}
 
@@ -671,7 +672,7 @@ func (s *serviceImpl) UploadIngredientMedia(stream grpc.ClientStreamingServer[me
 	fileID := identifiers.New()
 	storagePath := filepath.Join("ingredients", validIngredientID, fileID, metadata.ObjectName)
 
-	if err = s.uploadManager.SaveFile(ctx, storagePath, fileData.Bytes()); err != nil {
+	if err = uploads.SaveFile(ctx, s.uploadManager, storagePath, fileData.Bytes()); err != nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to save file")
 	}
 
@@ -864,7 +865,7 @@ func (s *serviceImpl) UploadRecipeStepImage(stream grpc.ClientStreamingServer[me
 	fileID := identifiers.New()
 	storagePath := filepath.Join("recipes", recipeID, "steps", recipeStepID, fileID, metadata.ObjectName)
 
-	if err = s.uploadManager.SaveFile(ctx, storagePath, fileData.Bytes()); err != nil {
+	if err = uploads.SaveFile(ctx, s.uploadManager, storagePath, fileData.Bytes()); err != nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to save file")
 	}
 

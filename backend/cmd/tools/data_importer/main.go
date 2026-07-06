@@ -15,13 +15,13 @@ import (
 	identityrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
-	"github.com/primandproper/platform-go/v2/database"
-	databasecfg "github.com/primandproper/platform-go/v2/database/config"
-	"github.com/primandproper/platform-go/v2/database/postgres"
-	"github.com/primandproper/platform-go/v2/observability/logging"
-	loggingnoop "github.com/primandproper/platform-go/v2/observability/logging/noop"
-	"github.com/primandproper/platform-go/v2/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v2/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v3/database"
+	databasecfg "github.com/primandproper/platform-go/v3/database/config"
+	"github.com/primandproper/platform-go/v3/database/postgres"
+	"github.com/primandproper/platform-go/v3/observability/logging"
+	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
+	"github.com/primandproper/platform-go/v3/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )

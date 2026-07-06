@@ -41,36 +41,16 @@ class MealListViewModel {
     errorMessage = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "MealListViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-
-      // Get OAuth2 token (will refresh if needed)
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "MealListViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
-      // Create request
       let request = Mealplanning_GetMealsRequest()
 
-      // Execute request
-      let response = try await clientManager.client.mealPlanning.getMeals(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("getMeals", idempotent: true) {
+        client, metadata, options in
+        try await client.mealPlanning.getMeals(request, metadata: metadata, options: options)
+      }
 
       self.meals = response.results
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       errorMessage = "Failed to load meals: \(error.localizedDescription)"
-      print("❌ Error loading meals: \(error)")
     }
 
     isLoading = false
@@ -106,37 +86,18 @@ class MealListViewModel {
     searchError = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "MealListViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "MealListViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
-      // Create search request
       var request = Mealplanning_SearchForMealsRequest()
       request.query = query
-      request.useSearchService = APIConfiguration.useSearchService
+      request.useSearchService = Features.useSearchService
 
-      // Execute search
-      let response = try await clientManager.client.mealPlanning.searchForMeals(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("searchForMeals", idempotent: true) {
+        client, metadata, options in
+        try await client.mealPlanning.searchForMeals(request, metadata: metadata, options: options)
+      }
 
       searchResults = response.results
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       searchError = "Failed to search meals: \(error.localizedDescription)"
-      print("❌ Error searching for meals: \(error)")
       searchResults = []
     }
 

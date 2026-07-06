@@ -36,7 +36,7 @@ require (
 	github.com/matcornic/hermes/v2 v2.1.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/pquerna/otp v1.5.0
-	github.com/primandproper/platform-go/v2 v2.0.1
+	github.com/primandproper/platform-go/v3 v3.0.0
 	github.com/samber/do/v2 v2.0.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/spf13/cobra v1.10.2
@@ -123,7 +123,6 @@ require (
 	github.com/google/wire v0.7.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
-	github.com/grafana/jsonparser v0.0.0-20250909130937-5f438463be34 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/inbucket/html2text v1.0.0 // indirect
@@ -164,7 +163,6 @@ require (
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/rs/zerolog v1.35.1 // indirect
 	github.com/rubyist/circuitbreaker v2.2.1+incompatible // indirect
-	github.com/rudderlabs/analytics-go/v4 v4.2.3 // indirect
 	github.com/samber/go-type-to-string v1.8.0 // indirect
 	github.com/samber/slog-common v0.22.0 // indirect
 	github.com/samber/slog-multi v1.8.0 // indirect

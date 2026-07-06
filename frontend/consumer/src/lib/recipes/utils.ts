@@ -12,11 +12,12 @@ import type {
   RecipeStepVessel,
 } from '@dinnerdonebetter/api-client/mealplanning/mealplanning_messages';
 import { RecipeStepProductType } from '@dinnerdonebetter/api-client/mealplanning/mealplanning_messages';
+import { round } from '@primandproper/numbers';
 
 export const englishListFormatter = new Intl.ListFormat('en');
 
 export function cleanFloat(float: number): number {
-  return parseFloat(float.toFixed(2));
+  return round(float, 2);
 }
 
 /**

@@ -6,10 +6,10 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v2/observability"
-	"github.com/primandproper/platform-go/v2/observability/logging"
-	"github.com/primandproper/platform-go/v2/observability/tracing"
-	textsearch "github.com/primandproper/platform-go/v2/search/text"
+	"github.com/primandproper/platform-go/v3/observability"
+	"github.com/primandproper/platform-go/v3/observability/logging"
+	"github.com/primandproper/platform-go/v3/observability/tracing"
+	textsearch "github.com/primandproper/platform-go/v3/search/text"
 )
 
 const (

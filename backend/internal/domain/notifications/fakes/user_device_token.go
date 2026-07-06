@@ -3,7 +3,7 @@ package fakes
 import (
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications"
 
-	"github.com/primandproper/platform-go/v2/database/filtering"
+	"github.com/primandproper/platform-go/v3/database/filtering"
 )
 
 // BuildFakeUserDeviceToken builds a faked user device token.

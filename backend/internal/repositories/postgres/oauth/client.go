@@ -7,12 +7,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/oauth/generated"
 
-	"github.com/primandproper/platform-go/v2/cryptography/encryption"
-	encryptioncfg "github.com/primandproper/platform-go/v2/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v2/database"
-	databasecfg "github.com/primandproper/platform-go/v2/database/config"
-	"github.com/primandproper/platform-go/v2/observability/logging"
-	"github.com/primandproper/platform-go/v2/observability/tracing"
+	"github.com/primandproper/platform-go/v3/cryptography/encryption"
+	encryptioncfg "github.com/primandproper/platform-go/v3/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v3/database"
+	databasecfg "github.com/primandproper/platform-go/v3/database/config"
+	"github.com/primandproper/platform-go/v3/observability/logging"
+	"github.com/primandproper/platform-go/v3/observability/tracing"
 )
 
 const (

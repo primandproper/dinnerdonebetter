@@ -1,15 +1,6 @@
 {
-  "originHash" : "4ce7c680a8f7d4e5ac8cd297e845ee0aaf8847ce1c87f5b84b8f615e63beb191",
+  "originHash" : "f5218eaa05d1dd8b951dc37599d6d419a7a71558c4a1a32a27a8352dfaa8fee7",
   "pins" : [
-    {
-      "identity" : "analytics-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/segmentio/analytics-swift.git",
-      "state" : {
-        "revision" : "f604cef21bb7269f76136c68bd664c6c993f8e28",
-        "version" : "1.9.1"
-      }
-    },
     {
       "identity" : "beautiful-mermaid-swift",
       "kind" : "remoteSourceControl",
@@ -56,12 +47,12 @@
       }
     },
     {
-      "identity" : "jsonsafeencoding-swift",
+      "identity" : "platform-swift",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/segmentio/jsonsafeencoding-swift.git",
+      "location" : "https://github.com/primandproper/platform-swift.git",
       "state" : {
-        "revision" : "af6a8b360984085e36c6341b21ecb35c12f47ebd",
-        "version" : "2.0.0"
+        "revision" : "6a0d3d567dd66610f12e4aab47577593a15d5faf",
+        "version" : "0.0.1"
       }
     },
     {
@@ -71,15 +62,6 @@
       "state" : {
         "revision" : "4d75c384d9169316d6aa5b74b541c02dd0e345ec",
         "version" : "5.60.0"
-      }
-    },
-    {
-      "identity" : "sovran-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/segmentio/sovran-swift.git",
-      "state" : {
-        "revision" : "24867f3e4ac62027db9827112135e6531b6f4051",
-        "version" : "1.1.2"
       }
     },
     {
@@ -170,6 +152,15 @@
       "state" : {
         "revision" : "b1fa4ef41fe21b13120c034854042d12c43f66b2",
         "version" : "1.7.1"
+      }
+    },
+    {
+      "identity" : "swift-metrics",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-metrics.git",
+      "state" : {
+        "revision" : "087e8074afa97040c3b870c8664fe5482fb87cc4",
+        "version" : "2.11.0"
       }
     },
     {

@@ -17,11 +17,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
 	uploadedmediaconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v2/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v2/errors/grpc"
-	"github.com/primandproper/platform-go/v2/identifiers"
-	"github.com/primandproper/platform-go/v2/observability"
-	platformkeys "github.com/primandproper/platform-go/v2/observability/keys"
+	platformerrors "github.com/primandproper/platform-go/v3/errors"
+	errorsgrpc "github.com/primandproper/platform-go/v3/errors/grpc"
+	"github.com/primandproper/platform-go/v3/identifiers"
+	"github.com/primandproper/platform-go/v3/observability"
+	platformkeys "github.com/primandproper/platform-go/v3/observability/keys"
+	"github.com/primandproper/platform-go/v3/uploads"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
@@ -329,7 +330,7 @@ func (s *serviceImpl) UploadUserAvatar(stream grpc.ClientStreamingServer[uploade
 	objectName := avatarObjectName(mimeType)
 	storagePath := filepath.Join(userID, fileID, objectName)
 
-	if err = s.uploadManager.SaveFile(ctx, storagePath, fileData.Bytes()); err != nil {
+	if err = uploads.SaveFile(ctx, s.uploadManager, storagePath, fileData.Bytes()); err != nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to save file")
 	}
 

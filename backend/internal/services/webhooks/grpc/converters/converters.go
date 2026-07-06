@@ -8,8 +8,8 @@ import (
 	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
 	webhookssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 
-	"github.com/primandproper/platform-go/v2/encoding"
-	"github.com/primandproper/platform-go/v2/identifiers"
+	"github.com/primandproper/platform-go/v3/encoding"
+	"github.com/primandproper/platform-go/v3/identifiers"
 )
 
 func ConvertStringToWebhookContentType(s string) webhookssvc.WebhookContentType {

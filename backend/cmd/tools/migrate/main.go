@@ -9,11 +9,11 @@ import (
 
 	postgresmigrations "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 
-	"github.com/primandproper/platform-go/v2/database"
-	databasecfg "github.com/primandproper/platform-go/v2/database/config"
-	"github.com/primandproper/platform-go/v2/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v2/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v2/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v3/database"
+	databasecfg "github.com/primandproper/platform-go/v3/database/config"
+	"github.com/primandproper/platform-go/v3/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )

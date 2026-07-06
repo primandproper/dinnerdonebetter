@@ -16,7 +16,7 @@ export async function trackEvent(event: string, properties: Record<string, strin
   try {
     await grpcTrackEvent(event, properties);
   } catch (err) {
-    logger.error('Analytics trackEvent failed:', err);
+    logger.error('Analytics trackEvent failed', err);
   }
 }
 
@@ -32,6 +32,6 @@ export async function trackAnonymousEvent(
   try {
     await grpcTrackAnonymousEvent(event, anonymousId, properties);
   } catch (err) {
-    logger.error('Analytics trackAnonymousEvent failed:', err);
+    logger.error('Analytics trackAnonymousEvent failed', err);
   }
 }

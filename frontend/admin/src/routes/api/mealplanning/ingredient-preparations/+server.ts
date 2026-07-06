@@ -21,7 +21,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     });
     return json({ results: (res as { results?: unknown[] }).results ?? [] });
   } catch (e) {
-    logger.error('getValidIngredientPreparationsByPreparation failed:', e);
+    logger.error('getValidIngredientPreparationsByPreparation failed', e);
     return json({ error: 'Search failed' }, { status: 500 });
   }
 };

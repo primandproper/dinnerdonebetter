@@ -47,37 +47,18 @@ class RecipeListViewModel {
     errorMessage = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "RecipeListViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-
-      // Get OAuth2 token (will refresh if needed)
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "RecipeListViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
-      // Create request - use selected status (approved by default; service admins can toggle)
+      // Use selected status (approved by default; service admins can toggle).
       var request = Mealplanning_GetRecipesRequest()
       request.status = recipeStatusFilter
 
-      // Execute request
-      let response = try await clientManager.client.mealPlanning.getRecipes(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("getRecipes", idempotent: true) {
+        client, metadata, options in
+        try await client.mealPlanning.getRecipes(request, metadata: metadata, options: options)
+      }
 
       self.recipes = response.results
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       errorMessage = "Failed to load recipes: \(error.localizedDescription)"
-      print("❌ Error loading recipes: \(error)")
     }
 
     isLoading = false
@@ -113,37 +94,19 @@ class RecipeListViewModel {
     searchError = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "RecipeListViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "RecipeListViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
-      // Create search request
       var request = Mealplanning_SearchForRecipesRequest()
       request.query = query
-      request.useSearchService = APIConfiguration.useSearchService
+      request.useSearchService = Features.useSearchService
 
-      // Execute search
-      let response = try await clientManager.client.mealPlanning.searchForRecipes(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("searchForRecipes", idempotent: true) {
+        client, metadata, options in
+        try await client.mealPlanning.searchForRecipes(
+          request, metadata: metadata, options: options)
+      }
 
       searchResults = response.results
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       searchError = "Failed to search recipes: \(error.localizedDescription)"
-      print("❌ Error searching for recipes: \(error)")
       searchResults = []
     }
 
@@ -156,19 +119,8 @@ class RecipeListViewModel {
     hasCheckedServiceAdmin = true
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else { return }
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else { return }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-      let response = try await clientManager.client.auth.getSelf(
-        Auth_GetSelfRequest(),
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
-
-      if response.hasResult {
-        isServiceAdmin = response.result.serviceRole == "service_admin"
-      }
+      let user = try await CurrentUserService.shared.currentUser(using: authManager)
+      isServiceAdmin = user.serviceRole == "service_admin"
     } catch {
       // Non-fatal: just leave isServiceAdmin false
     }

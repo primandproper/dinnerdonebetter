@@ -29,7 +29,7 @@
 			},
 			"serviceName": "db_cleaner",
 			"provider": "otelgrpc",
-			"enabled": false
+			"enabled": true
 		},
 		"tracing": {
 			"otelgrpc": {

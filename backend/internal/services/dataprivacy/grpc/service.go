@@ -14,11 +14,11 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/dataprivacy/grpc/converters"
 
-	errorsgrpc "github.com/primandproper/platform-go/v2/errors/grpc"
-	"github.com/primandproper/platform-go/v2/identifiers"
-	"github.com/primandproper/platform-go/v2/observability/logging"
-	"github.com/primandproper/platform-go/v2/observability/tracing"
-	"github.com/primandproper/platform-go/v2/uploads"
+	errorsgrpc "github.com/primandproper/platform-go/v3/errors/grpc"
+	"github.com/primandproper/platform-go/v3/identifiers"
+	"github.com/primandproper/platform-go/v3/observability/logging"
+	"github.com/primandproper/platform-go/v3/observability/tracing"
+	"github.com/primandproper/platform-go/v3/uploads"
 
 	"google.golang.org/grpc/codes"
 )
@@ -90,7 +90,7 @@ func (s *serviceImpl) AggregateUserDataReport(ctx context.Context, _ *dataprivac
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "marshaling user data collection")
 	}
 
-	if err = s.uploadManager.SaveFile(ctx, fmt.Sprintf("%s.json", reportID), collectionBytes); err != nil {
+	if err = uploads.SaveFile(ctx, s.uploadManager, fmt.Sprintf("%s.json", reportID), collectionBytes); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "saving user data report")
 	}
 
@@ -146,7 +146,7 @@ func (s *serviceImpl) FetchUserDataReport(ctx context.Context, request *datapriv
 	logger.Info("fetching user data report")
 
 	// Read the report from object storage
-	reportBytes, err := s.uploadManager.ReadFile(ctx, fmt.Sprintf("%s.json", reportID))
+	reportBytes, err := uploads.ReadFile(ctx, s.uploadManager, fmt.Sprintf("%s.json", reportID))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "reading report from storage")
 	}

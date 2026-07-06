@@ -36,7 +36,7 @@
 			},
 			"serviceName": "dinner_done_better_mcp_server",
 			"provider": "otelgrpc",
-			"enabled": false
+			"enabled": true
 		},
 		"tracing": {
 			"otelgrpc": {

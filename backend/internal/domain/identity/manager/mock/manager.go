@@ -8,7 +8,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
 
-	"github.com/primandproper/platform-go/v2/database/filtering"
+	"github.com/primandproper/platform-go/v3/database/filtering"
 
 	"github.com/stretchr/testify/mock"
 )

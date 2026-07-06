@@ -5,7 +5,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v2/database/filtering"
+	"github.com/primandproper/platform-go/v3/database/filtering"
 )
 
 // PaymentsDataManager defines the interface for payments business logic.

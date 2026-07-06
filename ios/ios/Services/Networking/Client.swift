@@ -9,6 +9,7 @@ import Foundation
 import GRPCCore
 import GRPCNIOTransportHTTP2
 import GRPCNIOTransportHTTP2TransportServices
+import Observability
 
 /// A unified gRPC client that provides access to all service clients.
 /// This is the Swift analog of the Go client in backend/pkg/client/client.go
@@ -92,7 +93,7 @@ internal struct Client<Transport> where Transport: GRPCCore.ClientTransport {
       do {
         try await grpcClient.runConnections()
       } catch {
-        print("❌ Failed to start gRPC client connections: \(error)")
+        PlatformServices.shared.logger("gRPCClient").error("starting gRPC connections", error)
       }
     }
   }
@@ -149,7 +150,7 @@ internal class ClientManager<Transport: GRPCCore.ClientTransport> {
       do {
         try await grpcTransportClient.runConnections()
       } catch {
-        print("❌ Failed to start gRPC client connections: \(error)")
+        PlatformServices.shared.logger("gRPCClient").error("starting gRPC connections", error)
       }
     }
   }

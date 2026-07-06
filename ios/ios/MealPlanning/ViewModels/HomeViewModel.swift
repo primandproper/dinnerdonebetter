@@ -272,7 +272,6 @@ class HomeViewModel {
         for: mealPlans.filter { $0.status == .finalized && $0.groceryListInitialized }
       )
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       let display = ErrorDisplayFormatter.format(error, context: "load data")
       errorMessage = display.message
       errorTitle = display.title
@@ -285,76 +284,21 @@ class HomeViewModel {
   }
 
   private func fetchCurrentUser() async throws -> Identity_User {
-    guard let clientManager = try? authManager.getClientManager() else {
-      throw NSError(
-        domain: "HomeViewModel", code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-    }
-
-    guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-      throw NSError(
-        domain: "HomeViewModel", code: 2,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-    }
-
-    let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
-    let response = try await clientManager.client.auth.getSelf(
-      Auth_GetSelfRequest(),
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
-
-    guard response.hasResult else {
-      throw NSError(
-        domain: "HomeViewModel", code: 3,
-        userInfo: [NSLocalizedDescriptionKey: "No user in response"])
-    }
-
-    return response.result
+    try await CurrentUserService.shared.currentUser(using: authManager)
   }
 
   private func fetchMealPlans() async throws -> [Mealplanning_MealPlan] {
-    guard let clientManager = try? authManager.getClientManager() else {
-      throw NSError(
-        domain: "HomeViewModel", code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
+    let response = try await authManager.authenticatedCall(
+      "getMealPlansForAccount", idempotent: true
+    ) { client, metadata, options in
+      try await client.mealPlanning.getMealPlansForAccount(
+        Mealplanning_GetMealPlansForAccountRequest(), metadata: metadata, options: options)
     }
-
-    // Get OAuth2 token (will refresh if needed)
-    guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-      throw NSError(
-        domain: "HomeViewModel", code: 2,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-    }
-
-    let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
-    let response = try await clientManager.client.mealPlanning.getMealPlansForAccount(
-      Mealplanning_GetMealPlansForAccountRequest(),
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
 
     return response.results
   }
 
   private func fetchUserTasks() async throws -> [Mealplanning_MealPlanTask] {
-    guard let clientManager = try? authManager.getClientManager() else {
-      throw NSError(
-        domain: "HomeViewModel", code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-    }
-
-    // Get OAuth2 token (will refresh if needed)
-    guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-      throw NSError(
-        domain: "HomeViewModel", code: 2,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-    }
-
-    let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
     // We need to get tasks for all meal plans and filter by user
     // For now, let's get tasks from all finalized meal plans
     let finalizedMealPlans = allMealPlans.filter {
@@ -369,11 +313,12 @@ class HomeViewModel {
       request.mealPlanID = mealPlan.id
 
       do {
-        let response = try await clientManager.client.mealPlanning.getMealPlanTasks(
-          request,
-          metadata: metadata,
-          options: clientManager.defaultCallOptions
-        )
+        let response = try await authManager.authenticatedCall(
+          "getMealPlanTasks", idempotent: true
+        ) { client, metadata, options in
+          try await client.mealPlanning.getMealPlanTasks(
+            request, metadata: metadata, options: options)
+        }
 
         grouped[mealPlan.id] = response.results
 
@@ -382,8 +327,7 @@ class HomeViewModel {
         }
         allUserTasks.append(contentsOf: userTasks)
       } catch {
-        await authManager.invalidateCredentialsIfSessionError(error)
-        print("⚠️ Failed to fetch tasks for meal plan \(mealPlan.id): \(error)")
+        // Non-fatal: skip this meal plan's tasks (session errors handled by authenticatedCall)
       }
     }
 
@@ -392,36 +336,23 @@ class HomeViewModel {
   }
 
   private func fetchGroceryLists(for mealPlans: [Mealplanning_MealPlan]) async {
-    guard let clientManager = try? authManager.getClientManager() else {
-      return
-    }
-
-    // Get OAuth2 token (will refresh if needed)
-    guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-      print("⚠️ Failed to get OAuth2 access token for grocery lists")
-      return
-    }
-
-    let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
     for mealPlan in mealPlans {
       var request = Mealplanning_GetMealPlanGroceryListItemsForMealPlanRequest()
       request.mealPlanID = mealPlan.id
 
       do {
-        let response = try await clientManager.client.mealPlanning
-          .getMealPlanGroceryListItemsForMealPlan(
-            request,
-            metadata: metadata,
-            options: clientManager.defaultCallOptions
-          )
+        let response = try await authManager.authenticatedCall(
+          "getMealPlanGroceryListItemsForMealPlan", idempotent: true
+        ) { client, metadata, options in
+          try await client.mealPlanning.getMealPlanGroceryListItemsForMealPlan(
+            request, metadata: metadata, options: options)
+        }
 
         await MainActor.run {
           groceryLists[mealPlan.id] = response.results
         }
       } catch {
-        await authManager.invalidateCredentialsIfSessionError(error)
-        print("⚠️ Failed to fetch grocery list for meal plan \(mealPlan.id): \(error)")
+        // Non-fatal: skip this grocery list (session errors handled by authenticatedCall)
       }
     }
   }

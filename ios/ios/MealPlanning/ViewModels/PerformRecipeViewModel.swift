@@ -62,31 +62,13 @@ class PerformRecipeViewModel {
     errorMessage = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "PerformRecipeViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-
-      // Get OAuth2 token (will refresh if needed)
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "PerformRecipeViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
-      // Create request
       var request = Mealplanning_GetRecipeRequest()
       request.recipeID = recipeID
 
-      // Execute request
-      let response = try await clientManager.client.mealPlanning.getRecipe(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("getRecipe", idempotent: true) {
+        client, metadata, options in
+        try await client.mealPlanning.getRecipe(request, metadata: metadata, options: options)
+      }
 
       self.recipe = response.result
       buildProductIDToStepIndexMapping()
@@ -94,9 +76,7 @@ class PerformRecipeViewModel {
       // Load prep tasks after recipe is loaded
       await loadPrepTasks()
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       errorMessage = "Failed to load recipe: \(error.localizedDescription)"
-      print("❌ Error loading recipe: \(error)")
     }
 
     isLoading = false
@@ -106,37 +86,19 @@ class PerformRecipeViewModel {
     isLoadingPrepTasks = true
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "PerformRecipeViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-
-      // Get OAuth2 token (will refresh if needed)
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "PerformRecipeViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
-      // Create request
       var request = Mealplanning_GetRecipePrepTasksRequest()
       request.recipeID = recipeID
 
-      // Execute request
-      let response = try await clientManager.client.mealPlanning.getRecipePrepTasks(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("getRecipePrepTasks", idempotent: true)
+      {
+        client, metadata, options in
+        try await client.mealPlanning.getRecipePrepTasks(
+          request, metadata: metadata, options: options)
+      }
 
       self.prepTasks = response.results
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
-      print("⚠️ Error loading prep tasks: \(error)")
-      // Don't set error message for prep tasks - it's not critical
+      // Non-critical: don't surface a prep-tasks error to the user
     }
 
     isLoadingPrepTasks = false
@@ -148,34 +110,19 @@ class PerformRecipeViewModel {
     mermaidError = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "PerformRecipeViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "PerformRecipeViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
       var request = Mealplanning_GetMermaidDiagramForRecipeRequest()
       request.recipeID = recipeID
 
-      let response = try await clientManager.client.mealPlanning.getMermaidDiagramForRecipe(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall(
+        "getMermaidDiagramForRecipe", idempotent: true
+      ) { client, metadata, options in
+        try await client.mealPlanning.getMermaidDiagramForRecipe(
+          request, metadata: metadata, options: options)
+      }
 
       self.mermaidDiagram = response.response
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       mermaidError = "Failed to load diagram: \(error.localizedDescription)"
-      print("❌ Error loading mermaid diagram: \(error)")
     }
 
     isLoadingMermaid = false

@@ -10,11 +10,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	databasecfg "github.com/primandproper/platform-go/v2/database/config"
-	mockdatabase "github.com/primandproper/platform-go/v2/database/mock"
-	"github.com/primandproper/platform-go/v2/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v2/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v2/observability/tracing/noop"
+	encryptioncfg "github.com/primandproper/platform-go/v3/cryptography/encryption/config"
+	databasecfg "github.com/primandproper/platform-go/v3/database/config"
+	mockdatabase "github.com/primandproper/platform-go/v3/database/mock"
+	"github.com/primandproper/platform-go/v3/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
 
 	"github.com/stretchr/testify/require"
 	pgcontainers "github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -49,6 +50,7 @@ func buildInertClientForTest(t *testing.T) *repository {
 	config := &databasecfg.Config{
 		Provider:                 databasecfg.ProviderPostgres,
 		ReadConnection:           databasecfg.ConnectionDetails{},
+		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
 		Debug:                    false,
 		LogQueries:               false,
 		RunMigrations:            true,

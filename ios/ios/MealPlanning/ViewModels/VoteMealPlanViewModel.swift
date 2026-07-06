@@ -226,29 +226,15 @@ class VoteMealPlanViewModel {
     isLoadingVotingStatus = true
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "VoteMealPlanViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "VoteMealPlanViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
       // Get account details to get members
       var accountRequest = Identity_GetAccountRequest()
       accountRequest.accountID = mealPlan.belongsToAccount
 
-      let accountResponse = try await clientManager.client.identity.getAccount(
-        accountRequest,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let accountResponse = try await authManager.authenticatedCall("getAccount", idempotent: true)
+      {
+        client, metadata, options in
+        try await client.identity.getAccount(accountRequest, metadata: metadata, options: options)
+      }
 
       guard accountResponse.hasResult else {
         print("⚠️ Account not found")
@@ -310,8 +296,7 @@ class VoteMealPlanViewModel {
 
       votingStatus = statusMap
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
-      print("❌ Error loading voting status: \(error)")
+      // Non-fatal: leave voting status as-is (session errors handled by authenticatedCall)
     }
 
     isLoadingVotingStatus = false
@@ -329,20 +314,6 @@ class VoteMealPlanViewModel {
     }
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "VoteMealPlanViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "VoteMealPlanViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
       // Create abstain votes for all options in this event
       var request = Mealplanning_CreateMealPlanOptionVoteRequest()
       request.mealPlanID = mealPlan.id
@@ -364,11 +335,11 @@ class VoteMealPlanViewModel {
       request.input = input
 
       // Submit abstain votes for this event
-      _ = try await clientManager.client.mealPlanning.createMealPlanOptionVote(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      _ = try await authManager.authenticatedCall("createMealPlanOptionVote") {
+        client, metadata, options in
+        try await client.mealPlanning.createMealPlanOptionVote(
+          request, metadata: metadata, options: options)
+      }
 
       // Update the ballot to reflect abstention
       // Note: We'd need to extract vote IDs from the response, but for now we'll mark it as abstained
@@ -381,8 +352,6 @@ class VoteMealPlanViewModel {
 
       return true
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
-      print("❌ Error abstaining from event: \(error)")
       return false
     }
   }
@@ -401,20 +370,6 @@ class VoteMealPlanViewModel {
     submissionSuccess = false
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "VoteMealPlanViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "VoteMealPlanViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
       // Submit or update votes for each event
       for event in mealPlan.events {
         guard let ballot = ballots[event.id] else {
@@ -452,11 +407,11 @@ class VoteMealPlanViewModel {
             updateRequest.input = updateInput
 
             // Update vote for this option
-            _ = try await clientManager.client.mealPlanning.updateMealPlanOptionVote(
-              updateRequest,
-              metadata: metadata,
-              options: clientManager.defaultCallOptions
-            )
+            _ = try await authManager.authenticatedCall("updateMealPlanOptionVote") {
+              client, metadata, options in
+              try await client.mealPlanning.updateMealPlanOptionVote(
+                updateRequest, metadata: metadata, options: options)
+            }
           }
         } else {
           // Create new votes
@@ -480,11 +435,11 @@ class VoteMealPlanViewModel {
           request.input = input
 
           // Submit votes for this event
-          _ = try await clientManager.client.mealPlanning.createMealPlanOptionVote(
-            request,
-            metadata: metadata,
-            options: clientManager.defaultCallOptions
-          )
+          _ = try await authManager.authenticatedCall("createMealPlanOptionVote") {
+            client, metadata, options in
+            try await client.mealPlanning.createMealPlanOptionVote(
+              request, metadata: metadata, options: options)
+          }
         }
       }
 
@@ -492,9 +447,7 @@ class VoteMealPlanViewModel {
       isSubmitting = false
       return true
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       submissionError = "Failed to submit votes: \(error.localizedDescription)"
-      print("❌ Error submitting votes: \(error)")
       isSubmitting = false
       return false
     }

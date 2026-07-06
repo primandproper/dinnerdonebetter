@@ -12,9 +12,16 @@
 		002AAC262EE8AB5F00BEA5A7 /* GRPCNIOTransportHTTP2TransportServices in Frameworks */ = {isa = PBXBuildFile; productRef = 002AAC252EE8AB5F00BEA5A7 /* GRPCNIOTransportHTTP2TransportServices */; };
 		002AAC292EE8AB7900BEA5A7 /* GRPCProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 002AAC282EE8AB7900BEA5A7 /* GRPCProtobuf */; };
 		002AAC2E2EE8AB7B00BEA5A7 /* BeautifulMermaid in Frameworks */ = {isa = PBXBuildFile; productRef = 002AAC2D2EE8AB7B00BEA5A7 /* BeautifulMermaid */; };
-		0062078E2F521083002DE49D /* Segment in Frameworks */ = {isa = PBXBuildFile; productRef = 002AAC2B2EE8AB7A00BEA5A7 /* Segment */; };
 		006207902F521085002DE49D /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 002AAC312EE8AB7C00BEA5A7 /* RevenueCat */; };
 		006207912F521086002DE49D /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = 002AAC322EE8AB7D00BEA5A7 /* RevenueCatUI */; };
+		FADE0100000000000000CC01 /* Observability in Frameworks */ = {isa = PBXBuildFile; productRef = FADE0100000000000000BB01 /* Observability */; };
+		FADE0100000000000000CC02 /* Authentication in Frameworks */ = {isa = PBXBuildFile; productRef = FADE0100000000000000BB02 /* Authentication */; };
+		FADE0100000000000000CC03 /* Secrets in Frameworks */ = {isa = PBXBuildFile; productRef = FADE0100000000000000BB03 /* Secrets */; };
+		FADE0100000000000000CC04 /* Retry in Frameworks */ = {isa = PBXBuildFile; productRef = FADE0100000000000000BB04 /* Retry */; };
+		FADE0100000000000000CC05 /* CircuitBreaking in Frameworks */ = {isa = PBXBuildFile; productRef = FADE0100000000000000BB05 /* CircuitBreaking */; };
+		FADE0100000000000000CC06 /* Analytics in Frameworks */ = {isa = PBXBuildFile; productRef = FADE0100000000000000BB06 /* Analytics */; };
+		FADE0100000000000000CC07 /* Cache in Frameworks */ = {isa = PBXBuildFile; productRef = FADE0100000000000000BB07 /* Cache */; };
+		FADE0100000000000000CC08 /* FeatureFlags in Frameworks */ = {isa = PBXBuildFile; productRef = FADE0100000000000000BB08 /* FeatureFlags */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -78,13 +85,20 @@
 			buildActionMask = 2147483647;
 			files = (
 				002AAC2E2EE8AB7B00BEA5A7 /* BeautifulMermaid in Frameworks */,
-				0062078E2F521083002DE49D /* Segment in Frameworks */,
 				006207902F521085002DE49D /* RevenueCat in Frameworks */,
 				006207912F521086002DE49D /* RevenueCatUI in Frameworks */,
 				002AAC242EE8AB5F00BEA5A7 /* GRPCNIOTransportHTTP2Posix in Frameworks */,
 				002AAC292EE8AB7900BEA5A7 /* GRPCProtobuf in Frameworks */,
 				002AAC262EE8AB5F00BEA5A7 /* GRPCNIOTransportHTTP2TransportServices in Frameworks */,
 				002AAC222EE8AB5F00BEA5A7 /* GRPCNIOTransportHTTP2 in Frameworks */,
+				FADE0100000000000000CC01 /* Observability in Frameworks */,
+				FADE0100000000000000CC02 /* Authentication in Frameworks */,
+				FADE0100000000000000CC03 /* Secrets in Frameworks */,
+				FADE0100000000000000CC04 /* Retry in Frameworks */,
+				FADE0100000000000000CC05 /* CircuitBreaking in Frameworks */,
+				FADE0100000000000000CC06 /* Analytics in Frameworks */,
+				FADE0100000000000000CC07 /* Cache in Frameworks */,
+				FADE0100000000000000CC08 /* FeatureFlags in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -158,10 +172,17 @@
 				002AAC232EE8AB5F00BEA5A7 /* GRPCNIOTransportHTTP2Posix */,
 				002AAC252EE8AB5F00BEA5A7 /* GRPCNIOTransportHTTP2TransportServices */,
 				002AAC282EE8AB7900BEA5A7 /* GRPCProtobuf */,
-				002AAC2B2EE8AB7A00BEA5A7 /* Segment */,
 				002AAC2D2EE8AB7B00BEA5A7 /* BeautifulMermaid */,
 				002AAC312EE8AB7C00BEA5A7 /* RevenueCat */,
 				002AAC322EE8AB7D00BEA5A7 /* RevenueCatUI */,
+				FADE0100000000000000BB01 /* Observability */,
+				FADE0100000000000000BB02 /* Authentication */,
+				FADE0100000000000000BB03 /* Secrets */,
+				FADE0100000000000000BB04 /* Retry */,
+				FADE0100000000000000BB05 /* CircuitBreaking */,
+				FADE0100000000000000BB06 /* Analytics */,
+				FADE0100000000000000BB07 /* Cache */,
+				FADE0100000000000000BB08 /* FeatureFlags */,
 			);
 			productName = ios;
 			productReference = 00D164F42EE78B510033A550 /* ios.app */;
@@ -248,9 +269,9 @@
 			packageReferences = (
 				002AAC202EE8AB5F00BEA5A7 /* XCRemoteSwiftPackageReference "grpc-swift-nio-transport" */,
 				002AAC272EE8AB7900BEA5A7 /* XCRemoteSwiftPackageReference "grpc-swift-protobuf" */,
-				002AAC2A2EE8AB7A00BEA5A7 /* XCRemoteSwiftPackageReference "analytics-swift" */,
 				002AAC2C2EE8AB7B00BEA5A7 /* XCRemoteSwiftPackageReference "beautiful-mermaid-swift" */,
 				002AAC302EE8AB7C00BEA5A7 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
+				FADE0100000000000000AA00 /* XCRemoteSwiftPackageReference "platform-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 00D164F52EE78B510033A550 /* Products */;
@@ -651,14 +672,6 @@
 				minimumVersion = 2.1.1;
 			};
 		};
-		002AAC2A2EE8AB7A00BEA5A7 /* XCRemoteSwiftPackageReference "analytics-swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/segmentio/analytics-swift.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.9.0;
-			};
-		};
 		002AAC2C2EE8AB7B00BEA5A7 /* XCRemoteSwiftPackageReference "beautiful-mermaid-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/lukilabs/beautiful-mermaid-swift.git";
@@ -673,6 +686,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 5.0.0;
+			};
+		};
+		FADE0100000000000000AA00 /* XCRemoteSwiftPackageReference "platform-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/primandproper/platform-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.0.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -698,11 +719,6 @@
 			package = 002AAC272EE8AB7900BEA5A7 /* XCRemoteSwiftPackageReference "grpc-swift-protobuf" */;
 			productName = GRPCProtobuf;
 		};
-		002AAC2B2EE8AB7A00BEA5A7 /* Segment */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 002AAC2A2EE8AB7A00BEA5A7 /* XCRemoteSwiftPackageReference "analytics-swift" */;
-			productName = Segment;
-		};
 		002AAC2D2EE8AB7B00BEA5A7 /* BeautifulMermaid */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 002AAC2C2EE8AB7B00BEA5A7 /* XCRemoteSwiftPackageReference "beautiful-mermaid-swift" */;
@@ -717,6 +733,46 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 002AAC302EE8AB7C00BEA5A7 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
 			productName = RevenueCatUI;
+		};
+		FADE0100000000000000BB01 /* Observability */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FADE0100000000000000AA00 /* XCRemoteSwiftPackageReference "platform-swift" */;
+			productName = Observability;
+		};
+		FADE0100000000000000BB02 /* Authentication */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FADE0100000000000000AA00 /* XCRemoteSwiftPackageReference "platform-swift" */;
+			productName = Authentication;
+		};
+		FADE0100000000000000BB03 /* Secrets */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FADE0100000000000000AA00 /* XCRemoteSwiftPackageReference "platform-swift" */;
+			productName = Secrets;
+		};
+		FADE0100000000000000BB04 /* Retry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FADE0100000000000000AA00 /* XCRemoteSwiftPackageReference "platform-swift" */;
+			productName = Retry;
+		};
+		FADE0100000000000000BB05 /* CircuitBreaking */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FADE0100000000000000AA00 /* XCRemoteSwiftPackageReference "platform-swift" */;
+			productName = CircuitBreaking;
+		};
+		FADE0100000000000000BB06 /* Analytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FADE0100000000000000AA00 /* XCRemoteSwiftPackageReference "platform-swift" */;
+			productName = Analytics;
+		};
+		FADE0100000000000000BB07 /* Cache */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FADE0100000000000000AA00 /* XCRemoteSwiftPackageReference "platform-swift" */;
+			productName = Cache;
+		};
+		FADE0100000000000000BB08 /* FeatureFlags */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FADE0100000000000000AA00 /* XCRemoteSwiftPackageReference "platform-swift" */;
+			productName = FeatureFlags;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -41,38 +41,22 @@ class GroceryListViewModel {
       let fetchedItems = try await fetchGroceryListItems()
       self.items = fetchedItems
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       errorMessage = "Failed to load grocery list: \(error.localizedDescription)"
-      print("❌ Error loading grocery list: \(error)")
     }
 
     isLoading = false
   }
 
   private func fetchGroceryListItems() async throws -> [Mealplanning_MealPlanGroceryListItem] {
-    guard let clientManager = try? authManager.getClientManager() else {
-      throw NSError(
-        domain: "GroceryListViewModel", code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-    }
-
-    guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-      throw NSError(
-        domain: "GroceryListViewModel", code: 2,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-    }
-
-    let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
     var request = Mealplanning_GetMealPlanGroceryListItemsForMealPlanRequest()
     request.mealPlanID = mealPlan.id
 
-    let response = try await clientManager.client.mealPlanning
-      .getMealPlanGroceryListItemsForMealPlan(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+    let response = try await authManager.authenticatedCall(
+      "getMealPlanGroceryListItemsForMealPlan", idempotent: true
+    ) { client, metadata, options in
+      try await client.mealPlanning.getMealPlanGroceryListItemsForMealPlan(
+        request, metadata: metadata, options: options)
+    }
 
     return response.results
   }
@@ -116,9 +100,7 @@ class GroceryListViewModel {
         items[index] = updated
       }
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       errorMessage = "Failed to update item: \(error.localizedDescription)"
-      print("❌ Error updating grocery list item: \(error)")
     }
 
     isUpdating = false
@@ -166,30 +148,16 @@ class GroceryListViewModel {
     itemID: String,
     input: Mealplanning_MealPlanGroceryListItemUpdateRequestInput
   ) async throws -> Mealplanning_MealPlanGroceryListItem {
-    guard let clientManager = try? authManager.getClientManager() else {
-      throw NSError(
-        domain: "GroceryListViewModel", code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-    }
-
-    guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-      throw NSError(
-        domain: "GroceryListViewModel", code: 2,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-    }
-
-    let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
     var request = Mealplanning_UpdateMealPlanGroceryListItemRequest()
     request.mealPlanID = mealPlan.id
     request.mealPlanGroceryListItemID = itemID
     request.input = input
 
-    let response = try await clientManager.client.mealPlanning.updateMealPlanGroceryListItem(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    let response = try await authManager.authenticatedCall("updateMealPlanGroceryListItem") {
+      client, metadata, options in
+      try await client.mealPlanning.updateMealPlanGroceryListItem(
+        request, metadata: metadata, options: options)
+    }
     return response.updated
   }
 

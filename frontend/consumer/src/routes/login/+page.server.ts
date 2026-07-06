@@ -1,4 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { messageOf } from '@primandproper/errors';
 import type { Actions, PageServerLoad } from './$types';
 import { loginForToken } from '$lib/grpc/clients';
 import { encodeSession, getCookieOptions } from '$lib/auth/session';
@@ -54,7 +55,7 @@ export const actions: Actions = {
             ? 'Cannot reach API server. Check GRPC_API_SERVER_URL and ensure the API is reachable (or port-forward for local dev).'
             : err.message;
       }
-      const errMsg = err instanceof Error ? err.message : String(err);
+      const errMsg = messageOf(err);
       const totpRequired =
         errMsg.toLowerCase().includes('totp') ||
         errMsg.toLowerCase().includes('two factor') ||

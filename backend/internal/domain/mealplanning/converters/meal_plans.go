@@ -3,7 +3,7 @@ package converters
 import (
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v2/identifiers"
+	"github.com/primandproper/platform-go/v3/identifiers"
 )
 
 // ConvertMealPlanToMealPlanUpdateRequestInput creates a MealPlanUpdateRequestInput from a MealPlan.

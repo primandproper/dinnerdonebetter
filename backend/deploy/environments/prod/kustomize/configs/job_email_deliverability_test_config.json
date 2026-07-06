@@ -34,7 +34,7 @@
 			},
 			"serviceName": "email_deliverability_test",
 			"provider": "otelgrpc",
-			"enabled": false
+			"enabled": true
 		},
 		"tracing": {
 			"otelgrpc": {

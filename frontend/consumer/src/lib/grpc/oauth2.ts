@@ -4,12 +4,39 @@
  */
 
 import { randomBytes } from 'node:crypto';
+import { PlatformError } from '@primandproper/errors';
+import { FetchHttpClient, type FetchLike } from '@primandproper/httpclient';
+import { observabilityDeps } from '$lib/observability';
 
 export interface OAuth2TokenResult {
   accessToken: string;
   refreshToken?: string;
   expiresIn?: number;
 }
+
+interface OAuth2TokenResponse {
+  access_token: string;
+  refresh_token?: string;
+  expires_in?: number;
+}
+
+/**
+ * The authorize step returns a 302 whose Location header carries the code. `httpclient` has no
+ * per-request redirect control, so we force manual redirect at the fetch layer for this
+ * dedicated client; both OAuth calls then flow through it, gaining OTel spans and retry on
+ * transient network failures.
+ */
+const manualRedirectFetch: FetchLike = (input, init) => fetch(input, { ...init, redirect: 'manual' });
+
+const oauthHttp = new FetchHttpClient(
+  {
+    headers: {},
+    timeoutMs: 30_000,
+    retry: { maxAttempts: 3, baseDelayMs: 100, maxDelayMs: 30_000, jitter: 0.1, maxElapsedMs: 0 },
+    fetch: manualRedirectFetch,
+  },
+  observabilityDeps,
+);
 
 /**
  * Exchanges JWT (from LoginForToken) for OAuth2 access token via authorization code flow.
@@ -30,50 +57,40 @@ export async function exchangeJwtForOAuth2Token(
   authUrl.searchParams.set('state', state);
   authUrl.searchParams.set('code_challenge_method', 'plain');
 
-  const authRes = await fetch(authUrl.toString(), {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${jwt}`,
-    },
-    redirect: 'manual',
+  const authRes = await oauthHttp.get(authUrl.toString(), {
+    headers: { Authorization: `Bearer ${jwt}` },
   });
 
   const location = authRes.headers.get('location');
   if (!location) {
-    throw new Error('No redirect location from oauth2 authorize');
+    throw new PlatformError('oauth2/no-redirect', 'No redirect location from oauth2 authorize');
   }
 
   const redirectUrl = new URL(location, authServerUrl);
   const code = redirectUrl.searchParams.get('code');
   if (!code) {
-    throw new Error('Code not returned from oauth2 redirect');
+    throw new PlatformError('oauth2/no-code', 'Code not returned from oauth2 redirect');
   }
 
   const tokenUrl = `${authServerUrl.replace(/\/$/, '')}/oauth2/token`;
-  const tokenRes = await fetch(tokenUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
+  const tokenRes = await oauthHttp.post<OAuth2TokenResponse>(
+    tokenUrl,
+    new URLSearchParams({
       grant_type: 'authorization_code',
       code,
       redirect_uri: authServerUrl,
       client_id: clientId,
       client_secret: clientSecret,
-    }).toString(),
-  });
+    }),
+    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+  );
 
   if (!tokenRes.ok) {
     const text = await tokenRes.text();
-    throw new Error(`OAuth2 token exchange failed: ${tokenRes.status} ${text}`);
+    throw new PlatformError('oauth2/token-exchange', `OAuth2 token exchange failed: ${tokenRes.status} ${text}`);
   }
 
-  const tokenData = (await tokenRes.json()) as {
-    access_token: string;
-    refresh_token?: string;
-    expires_in?: number;
-  };
+  const tokenData = tokenRes.data;
 
   return {
     accessToken: tokenData.access_token,

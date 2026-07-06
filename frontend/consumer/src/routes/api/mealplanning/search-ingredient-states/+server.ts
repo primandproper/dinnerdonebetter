@@ -23,7 +23,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
           });
     return json({ results: res.results ?? [] });
   } catch (e) {
-    logger.error('searchForValidIngredientStates failed:', e);
+    logger.error('searchForValidIngredientStates failed', e);
     return json({ error: 'Search failed' }, { status: 500 });
   }
 };

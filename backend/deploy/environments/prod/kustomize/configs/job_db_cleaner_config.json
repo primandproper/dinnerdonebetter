@@ -31,7 +31,7 @@
 			},
 			"serviceName": "db_cleaner",
 			"provider": "otelgrpc",
-			"enabled": false
+			"enabled": true
 		},
 		"tracing": {
 			"otelgrpc": {
@@ -51,17 +51,17 @@
 		"provider": "postgres",
 		"readConnection": {
 			"username": "db_cleaner",
-			"password": "",
+			"password": "REPLACE_AT_DEPLOY",
 			"database": "dinner-done-better",
-			"hostname": "",
+			"hostname": "REPLACE_AT_DEPLOY",
 			"port": 5432,
 			"disableSSL": false
 		},
 		"writeConnection": {
 			"username": "db_cleaner",
-			"password": "",
+			"password": "REPLACE_AT_DEPLOY",
 			"database": "dinner-done-better",
-			"hostname": "",
+			"hostname": "REPLACE_AT_DEPLOY",
 			"port": 5432,
 			"disableSSL": false
 		},

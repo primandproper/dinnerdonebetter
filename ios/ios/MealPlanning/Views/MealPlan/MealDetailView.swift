@@ -958,18 +958,14 @@ struct MealDetailView: View {
   @MainActor
   private func loadCompletedStepsFromTasks(mealPlanID: String, meal: Mealplanning_Meal) async {
     do {
-      guard let clientManager = try? authManager.getClientManager() else { return }
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else { return }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
       var request = Mealplanning_GetMealPlanTasksRequest()
       request.mealPlanID = mealPlanID
 
-      let response = try await clientManager.client.mealPlanning.getMealPlanTasks(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("getMealPlanTasks", idempotent: true) {
+        client, metadata, options in
+        try await client.mealPlanning.getMealPlanTasks(
+          request, metadata: metadata, options: options)
+      }
 
       var completedStepsByRecipe: [String: Set<String>] = [:]
       let mealRecipeIDs = Set(meal.components.map { $0.recipe.id })
@@ -1004,7 +1000,7 @@ struct MealDetailView: View {
 
       mealTimerTick += 1
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
+      // Non-fatal: leave completed-steps state as-is
     }
   }
 

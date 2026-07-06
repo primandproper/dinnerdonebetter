@@ -3,8 +3,8 @@ package dbcleaner
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 
-	databasecfg "github.com/primandproper/platform-go/v2/database/config"
-	"github.com/primandproper/platform-go/v2/observability"
+	databasecfg "github.com/primandproper/platform-go/v3/database/config"
+	"github.com/primandproper/platform-go/v3/observability"
 
 	"github.com/samber/do/v2"
 )

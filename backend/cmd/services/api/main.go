@@ -8,7 +8,7 @@ import (
 	apiserver "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 
-	"github.com/primandproper/platform-go/v2/version"
+	"github.com/primandproper/platform-go/v3/version"
 
 	"github.com/spf13/cobra"
 	_ "go.uber.org/automaxprocs"
@@ -69,5 +69,5 @@ func versionCmd() *cobra.Command {
 }
 
 func runVersion(_ *cobra.Command, _ []string) error {
-	return version.WriteJSON()
+	return version.WriteJSONToStdout()
 }

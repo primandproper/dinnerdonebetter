@@ -105,13 +105,6 @@ struct AcceptInvitationSheet: View {
     errorMessage = nil
 
     do {
-      let clientManager = try authManager.getClientManager()
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        errorMessage = "Session expired. Please sign in again."
-        isLoading = false
-        return
-      }
-
       var input = Identity_AccountInvitationUpdateRequestInput()
       input.token = invitationToken
       input.note = "Accepted via invite link"
@@ -120,17 +113,16 @@ struct AcceptInvitationSheet: View {
       request.accountInvitationID = invitationID
       request.input = input
 
-      _ = try await clientManager.client.identity.acceptAccountInvitation(
-        request,
-        metadata: clientManager.authenticatedMetadata(accessToken: oauth2Token),
-        options: clientManager.defaultCallOptions
-      )
+      _ = try await authManager.authenticatedCall("acceptAccountInvitation") {
+        client, metadata, options in
+        try await client.identity.acceptAccountInvitation(
+          request, metadata: metadata, options: options)
+      }
 
       eventReporterService.reporter.track(event: "invitation_accepted", properties: [:])
       didAccept = true
       onAccepted()
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       errorMessage = "Failed to accept invitation: \(error.localizedDescription)"
     }
 

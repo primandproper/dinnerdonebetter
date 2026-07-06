@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
-	"github.com/primandproper/platform-go/v2/reflection"
+	"github.com/primandproper/platform-go/v3/reflection"
+	"github.com/primandproper/platform-go/v3/uploads"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -40,7 +42,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 
 		dataPrivacyRepo.On(reflection.GetMethodName(dataPrivacyRepo.FetchUserDataCollection), mock.Anything, "test-user-id").Return(&dataprivacy.UserDataCollection{}, nil)
 
-		uploadManager.SaveFileFunc = func(_ context.Context, _ string, _ []byte) error { return nil }
+		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
 
 		err = handler.UserDataAggregationEventHandler("user_data_aggregation")(ctx, rawMsg)
 		assert.NoError(t, err)
@@ -120,7 +122,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 		dataPrivacyRepo.On(reflection.GetMethodName(dataPrivacyRepo.FetchUserDataCollection), mock.Anything, "test-user-id").Return(&dataprivacy.UserDataCollection{}, nil)
 
 		expectedError := errors.New("upload error")
-		uploadManager.SaveFileFunc = func(_ context.Context, _ string, _ []byte) error { return expectedError }
+		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return expectedError }
 
 		err = handler.UserDataAggregationEventHandler("user_data_aggregation")(ctx, rawMsg)
 		assert.Error(t, err)
@@ -152,7 +154,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 
 		dataPrivacyRepo.On(reflection.GetMethodName(dataPrivacyRepo.FetchUserDataCollection), mock.Anything, "test-user-id").Return(&dataprivacy.UserDataCollection{}, nil)
 
-		uploadManager.SaveFileFunc = func(_ context.Context, _ string, _ []byte) error { return nil }
+		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
 
 		err = handler.UserDataAggregationEventHandler("user_data_aggregation")(ctx, rawMsg)
 		assert.NoError(t, err)
@@ -183,7 +185,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 
 		dataPrivacyRepo.On(reflection.GetMethodName(dataPrivacyRepo.FetchUserDataCollection), mock.Anything, "test-user-id").Return(&dataprivacy.UserDataCollection{}, nil)
 
-		uploadManager.SaveFileFunc = func(_ context.Context, _ string, _ []byte) error { return nil }
+		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
 
 		err = handler.UserDataAggregationEventHandler("user_data_aggregation")(ctx, rawMsg)
 		assert.NoError(t, err)

@@ -54,7 +54,7 @@ export const actions: Actions = {
       if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 302) {
         throw e;
       }
-      logger.error('createRecipe failed:', e);
+      logger.error('createRecipe failed', e);
       return fail(500, {
         error: 'Failed to create recipe. Please try again.',
       });

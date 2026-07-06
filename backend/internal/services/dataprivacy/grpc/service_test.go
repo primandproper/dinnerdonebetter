@@ -1,8 +1,10 @@
 package grpc
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"testing"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
@@ -11,11 +13,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	dataprivacysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 
-	"github.com/primandproper/platform-go/v2/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v2/observability/logging/noop"
-	"github.com/primandproper/platform-go/v2/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v2/observability/tracing/noop"
-	mockuploads "github.com/primandproper/platform-go/v2/uploads/mock"
+	"github.com/primandproper/platform-go/v3/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
+	"github.com/primandproper/platform-go/v3/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v3/uploads"
+	mockuploads "github.com/primandproper/platform-go/v3/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -92,7 +95,7 @@ func TestServiceImpl_AggregateUserDataReport(t *testing.T) {
 		}
 
 		mockRepo.On("FetchUserDataCollection", mock.Anything, mock.AnythingOfType("string")).Return(collection, nil)
-		mockUploads.SaveFileFunc = func(_ context.Context, _ string, _ []byte) error { return nil }
+		mockUploads.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
 
 		request := &dataprivacysvc.AggregateUserDataReportRequest{}
 
@@ -149,7 +152,9 @@ func TestServiceImpl_FetchUserDataReport(t *testing.T) {
 		}
 		collectionBytes, _ := json.Marshal(collection)
 
-		mockUploads.ReadFileFunc = func(_ context.Context, _ string) ([]byte, error) { return collectionBytes, nil }
+		mockUploads.OpenFunc = func(_ context.Context, _ string) (io.ReadCloser, error) {
+			return io.NopCloser(bytes.NewReader(collectionBytes)), nil
+		}
 
 		request := &dataprivacysvc.FetchUserDataReportRequest{
 			UserDataAggregationReportId: identifiers.New(),

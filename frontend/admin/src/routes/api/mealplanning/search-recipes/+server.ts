@@ -22,7 +22,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     }));
     return json({ results });
   } catch (e) {
-    logger.error('searchForRecipes failed:', e);
+    logger.error('searchForRecipes failed', e);
     return json({ error: 'Search failed' }, { status: 500 });
   }
 };

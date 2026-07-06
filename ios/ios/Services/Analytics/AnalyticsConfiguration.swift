@@ -44,8 +44,10 @@ enum AnalyticsConfiguration {
       reporter = BackendEventReporter(authManager: auth)
     } else {
       let key = segmentWriteKey.trimmingCharacters(in: .whitespaces)
-      if !key.isEmpty, key != placeholderWriteKey {
-        reporter = SegmentEventReporter(writeKey: key)
+      if !key.isEmpty, key != placeholderWriteKey,
+        let segment = SegmentBackedEventReporter(writeKey: key)
+      {
+        reporter = segment
       } else {
         reporter = NoopEventReporter()
       }
