@@ -491,55 +491,25 @@ extension TaskListViewModel {
   }
 
   private func fetchRecipe(recipeID: String) async throws -> Mealplanning_Recipe {
-    guard let clientManager = try? authManager.getClientManager() else {
-      throw NSError(
-        domain: "TaskListViewModel", code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-    }
-
-    guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-      throw NSError(
-        domain: "TaskListViewModel", code: 2,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-    }
-
-    let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
     var request = Mealplanning_GetRecipeRequest()
     request.recipeID = recipeID
 
-    let response = try await clientManager.client.mealPlanning.getRecipe(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    let response = try await authManager.authenticatedCall("getRecipe", idempotent: true) {
+      client, metadata, options in
+      try await client.mealPlanning.getRecipe(request, metadata: metadata, options: options)
+    }
 
     return response.result
   }
 
   private func fetchTasks() async throws -> [Mealplanning_MealPlanTask] {
-    guard let clientManager = try? authManager.getClientManager() else {
-      throw NSError(
-        domain: "TaskListViewModel", code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-    }
-
-    guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-      throw NSError(
-        domain: "TaskListViewModel", code: 2,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-    }
-
-    let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
     var request = Mealplanning_GetMealPlanTasksRequest()
     request.mealPlanID = mealPlan.id
 
-    let response = try await clientManager.client.mealPlanning.getMealPlanTasks(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    let response = try await authManager.authenticatedCall("getMealPlanTasks", idempotent: true) {
+      client, metadata, options in
+      try await client.mealPlanning.getMealPlanTasks(request, metadata: metadata, options: options)
+    }
 
     // Deduplicate tasks by ID (keep first occurrence)
     var seenIDs: Set<String> = []
@@ -558,20 +528,6 @@ extension TaskListViewModel {
     taskID: String,
     status: Mealplanning_MealPlanTaskStatus
   ) async throws {
-    guard let clientManager = try? authManager.getClientManager() else {
-      throw NSError(
-        domain: "TaskListViewModel", code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-    }
-
-    guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-      throw NSError(
-        domain: "TaskListViewModel", code: 2,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-    }
-
-    let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
     var request = Mealplanning_UpdateMealPlanTaskStatusRequest()
     request.mealPlanID = mealPlan.id
     request.mealPlanTaskID = taskID
@@ -579,10 +535,10 @@ extension TaskListViewModel {
     input.status = status
     request.input = input
 
-    _ = try await clientManager.client.mealPlanning.updateMealPlanTaskStatus(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    _ = try await authManager.authenticatedCall("updateMealPlanTaskStatus") {
+      client, metadata, options in
+      try await client.mealPlanning.updateMealPlanTaskStatus(
+        request, metadata: metadata, options: options)
+    }
   }
 }

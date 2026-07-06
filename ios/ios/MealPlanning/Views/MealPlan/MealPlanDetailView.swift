@@ -137,22 +137,17 @@ struct MealPlanDetailView: View {
 
   private func refetchMealPlan() async {
     do {
-      guard let clientManager = try? authManager.getClientManager() else { return }
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else { return }
-
       var request = Mealplanning_GetMealPlanRequest()
       request.mealPlanID = mealPlan.id
 
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-      let response = try await clientManager.client.mealPlanning.getMealPlan(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("getMealPlan", idempotent: true) {
+        client, metadata, options in
+        try await client.mealPlanning.getMealPlan(request, metadata: metadata, options: options)
+      }
 
       mealPlan = response.result
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
+      // Non-fatal: keep the current meal plan on refresh failure
     }
   }
 
@@ -161,33 +156,17 @@ struct MealPlanDetailView: View {
     archiveError = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        archiveError = "Failed to connect"
-        isArchiving = false
-        return
-      }
-
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        archiveError = "Please sign in again"
-        isArchiving = false
-        return
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
       var request = Mealplanning_ArchiveMealPlanRequest()
       request.mealPlanID = mealPlan.id
 
-      _ = try await clientManager.client.mealPlanning.archiveMealPlan(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      _ = try await authManager.authenticatedCall("archiveMealPlan") {
+        client, metadata, options in
+        try await client.mealPlanning.archiveMealPlan(request, metadata: metadata, options: options)
+      }
 
       NotificationCenter.default.post(name: .mealPlanArchived, object: nil)
       dismiss()
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       archiveError = error.localizedDescription
     }
 
@@ -199,32 +178,19 @@ struct MealPlanDetailView: View {
     cancelEventError = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        cancelEventError = "Failed to connect"
-        isCancellingEvent = false
-        return
-      }
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        cancelEventError = "Please sign in again"
-        isCancellingEvent = false
-        return
-      }
-
       var request = Mealplanning_ArchiveMealPlanEventRequest()
       request.mealPlanID = mealPlan.id
       request.mealPlanEventID = event.id
 
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-      _ = try await clientManager.client.mealPlanning.archiveMealPlanEvent(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      _ = try await authManager.authenticatedCall("archiveMealPlanEvent") {
+        client, metadata, options in
+        try await client.mealPlanning.archiveMealPlanEvent(
+          request, metadata: metadata, options: options)
+      }
 
       NotificationCenter.default.post(name: .mealPlanEventsUpdated, object: nil)
       await refetchMealPlan()
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       cancelEventError = error.localizedDescription
     }
 
@@ -237,24 +203,14 @@ struct MealPlanDetailView: View {
     }
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        return
-      }
-
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        return
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
       var request = Mealplanning_GetMealPlanTasksRequest()
       request.mealPlanID = mealPlan.id
 
-      let response = try await clientManager.client.mealPlanning.getMealPlanTasks(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("getMealPlanTasks", idempotent: true) {
+        client, metadata, options in
+        try await client.mealPlanning.getMealPlanTasks(
+          request, metadata: metadata, options: options)
+      }
 
       // Deduplicate by ID and get count
       var seenIDs: Set<String> = []
@@ -268,8 +224,6 @@ struct MealPlanDetailView: View {
 
       taskCount = uniqueCount
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
-      print("⚠️ Failed to fetch task count: \(error)")
       taskCount = 0
     }
   }
@@ -280,30 +234,18 @@ struct MealPlanDetailView: View {
     }
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        return
-      }
-
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        return
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
       var request = Mealplanning_GetMealPlanGroceryListItemsForMealPlanRequest()
       request.mealPlanID = mealPlan.id
 
-      let response = try await clientManager.client.mealPlanning
-        .getMealPlanGroceryListItemsForMealPlan(
-          request,
-          metadata: metadata,
-          options: clientManager.defaultCallOptions
-        )
+      let response = try await authManager.authenticatedCall(
+        "getMealPlanGroceryListItemsForMealPlan", idempotent: true
+      ) { client, metadata, options in
+        try await client.mealPlanning.getMealPlanGroceryListItemsForMealPlan(
+          request, metadata: metadata, options: options)
+      }
 
       groceryListItemCount = response.results.count
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
-      print("⚠️ Failed to fetch grocery list item count: \(error)")
       groceryListItemCount = 0
     }
   }

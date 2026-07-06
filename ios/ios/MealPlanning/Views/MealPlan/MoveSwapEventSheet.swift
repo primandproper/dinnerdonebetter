@@ -282,17 +282,6 @@ struct MoveSwapEventSheet: View {
     errorMessage = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        errorMessage = "Failed to connect"
-        isUpdating = false
-        return
-      }
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        errorMessage = "Please sign in again"
-        isUpdating = false
-        return
-      }
-
       let originalStart = HomeViewModel.timestampToDate(event.startsAt)
       let originalEnd = HomeViewModel.timestampToDate(event.endsAt)
       let cal = Calendar.current
@@ -344,19 +333,17 @@ struct MoveSwapEventSheet: View {
       request.mealPlanEventID = event.id
       request.input = input
 
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-      _ = try await clientManager.client.mealPlanning.updateMealPlanEvent(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      _ = try await authManager.authenticatedCall("updateMealPlanEvent") {
+        client, metadata, options in
+        try await client.mealPlanning.updateMealPlanEvent(
+          request, metadata: metadata, options: options)
+      }
 
       eventReporterService.reporter.track(event: "move_swap_completed", properties: [:])
       await onSuccess()
       NotificationCenter.default.post(name: .mealPlanEventsUpdated, object: nil)
       dismiss()
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       errorMessage = error.localizedDescription
     }
 
@@ -368,35 +355,22 @@ struct MoveSwapEventSheet: View {
     errorMessage = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        errorMessage = "Failed to connect"
-        isUpdating = false
-        return
-      }
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        errorMessage = "Please sign in again"
-        isUpdating = false
-        return
-      }
-
       var request = Mealplanning_SwapMealPlanEventsRequest()
       request.mealPlanID = mealPlan.id
       request.mealPlanEventIDA = event.id
       request.mealPlanEventIDB = otherEvent.id
 
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-      _ = try await clientManager.client.mealPlanning.swapMealPlanEvents(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      _ = try await authManager.authenticatedCall("swapMealPlanEvents") {
+        client, metadata, options in
+        try await client.mealPlanning.swapMealPlanEvents(
+          request, metadata: metadata, options: options)
+      }
 
       eventReporterService.reporter.track(event: "move_swap_completed", properties: [:])
       await onSuccess()
       NotificationCenter.default.post(name: .mealPlanEventsUpdated, object: nil)
       dismiss()
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       errorMessage = error.localizedDescription
     }
 

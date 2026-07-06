@@ -7,12 +7,15 @@
 //  is never accessed before configure().
 //
 
+import Observability
 import RevenueCat
 import UIKit
 import UserNotifications
 
 @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
 class AppDelegate: NSObject, UIApplicationDelegate {
+  private let logger = PlatformServices.shared.logger("AppDelegate")
+
   override init() {
     super.init()
     if RevenueCatConfiguration.isConfigured {
@@ -39,7 +42,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     _ application: UIApplication,
     didFailToRegisterForRemoteNotificationsWithError error: Error
   ) {
-    print("⚠️ Failed to register for remote notifications: \(error.localizedDescription)")
+    logger.error("registering for remote notifications", error)
   }
 
   private func requestNotificationPermissionAndRegister() {
@@ -47,7 +50,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
       options: [.alert, .badge, .sound]
     ) { granted, error in
       if let error {
-        print("⚠️ Notification permission error: \(error.localizedDescription)")
+        self.logger.error("requesting notification permission", error)
         return
       }
       if granted {

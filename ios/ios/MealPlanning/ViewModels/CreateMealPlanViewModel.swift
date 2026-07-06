@@ -281,28 +281,14 @@ class CreateMealPlanViewModel {
     searchError = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "CreateMealPlanViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "CreateMealPlanViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
       var request = Mealplanning_SearchForMealsRequest()
       request.query = queryWhenStarted
-      request.useSearchService = APIConfiguration.useSearchService
+      request.useSearchService = Features.useSearchService
 
-      let response = try await clientManager.client.mealPlanning.searchForMeals(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("searchForMeals", idempotent: true) {
+        client, metadata, options in
+        try await client.mealPlanning.searchForMeals(request, metadata: metadata, options: options)
+      }
 
       if searchQuery.trimmingCharacters(in: .whitespacesAndNewlines) == queryWhenStarted {
         searchResults = response.results
@@ -311,7 +297,6 @@ class CreateMealPlanViewModel {
           properties: ["query_length": queryWhenStarted.count])
       }
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       if searchQuery.trimmingCharacters(in: .whitespacesAndNewlines) == queryWhenStarted {
         searchError = "Failed to search meals: \(error.localizedDescription)"
         searchResults = []
@@ -380,20 +365,6 @@ class CreateMealPlanViewModel {
     creationError = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "CreateMealPlanViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "CreateMealPlanViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
       var input = Mealplanning_MealPlanCreationRequestInput()
       input.notes = mealPlanName
       // Solo flow: set voting deadline to now so cron finalizes immediately
@@ -441,11 +412,10 @@ class CreateMealPlanViewModel {
       var request = Mealplanning_CreateMealPlanRequest()
       request.input = input
 
-      let response = try await clientManager.client.mealPlanning.createMealPlan(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("createMealPlan") {
+        client, metadata, options in
+        try await client.mealPlanning.createMealPlan(request, metadata: metadata, options: options)
+      }
 
       let createdPlan = response.created
 
@@ -467,11 +437,11 @@ class CreateMealPlanViewModel {
           voteRequest.mealPlanEventID = event.id
           voteRequest.input = voteInput
 
-          _ = try? await clientManager.client.mealPlanning.createMealPlanOptionVote(
-            voteRequest,
-            metadata: metadata,
-            options: clientManager.defaultCallOptions
-          )
+          _ = try? await authManager.authenticatedCall("createMealPlanOptionVote") {
+            client, metadata, options in
+            try await client.mealPlanning.createMealPlanOptionVote(
+              voteRequest, metadata: metadata, options: options)
+          }
         }
       }
 
@@ -479,7 +449,6 @@ class CreateMealPlanViewModel {
       isCreating = false
       return true
     } catch let error as GRPCCore.RPCError {
-      await authManager.invalidateCredentialsIfSessionError(error)
       creationError =
         error.code == .alreadyExists
         ? "One or more meals are already in this plan."
@@ -490,7 +459,6 @@ class CreateMealPlanViewModel {
       isCreating = false
       return false
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       creationError = "Failed to create meal plan: \(error.localizedDescription)"
       AnalyticsConfiguration.provideEventReporter().track(
         event: "meal_plan_creation_failed",

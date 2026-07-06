@@ -1,11 +1,20 @@
+import CircuitBreaking
 import Foundation
 import GRPCCore
 import GRPCNIOTransportHTTP2
 import GRPCNIOTransportHTTP2TransportServices
+import Retry
 import RevenueCat
 import SwiftProtobuf
 import SwiftUI
 import UIKit
+
+// NOTE: `import Observability` (broad) cannot appear in this file: Observability exports a
+// `struct Observation`, which shadows Apple's `Observation` module that the `@Observable`
+// macro expands against. Import only the protocols we reference here.
+import protocol Observability.Logger
+import protocol Observability.Observer
+import protocol Secrets.SecretSource
 
 /// URLSessionDelegate that prevents automatic redirect following
 private class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
@@ -42,14 +51,31 @@ class AuthenticationManager: AuthenticationManaging {
   // Mock support for UI tests
   private var mockManager: MockAuthenticationManager?
   private var isUsingMock: Bool {
-    ProcessInfo.processInfo.arguments.contains("--use-mock-auth")
+    Features.useMockAuth
   }
 
-  init() {
-    print("🔧 AuthenticationManager: Initialized")
-    print(
-      "🔧 Environment: \(APIConfiguration.currentEnvironment.displayName) (\(APIConfiguration.grpcHost):\(APIConfiguration.grpcPort))"
-    )
+  // Platform cross-cutting services, injected at the composition root. Used by
+  // `authenticatedCall` (see AuthenticationManager+AuthenticatedCall.swift).
+  let observer: any Observer
+  let retry: any Retry.RetryPolicy
+  let breaker: any CircuitBreaking.CircuitBreaker
+  /// Component logger for lifecycle/session logging outside of an operation scope.
+  let logger: any Logger
+
+  init(
+    observer: any Observer = PlatformServices.shared.observer("AuthenticationManager"),
+    retry: any Retry.RetryPolicy = PlatformServices.shared.retry,
+    breaker: any CircuitBreaking.CircuitBreaker = PlatformServices.shared.breaker
+  ) {
+    self.observer = observer
+    self.retry = retry
+    self.breaker = breaker
+    self.logger = PlatformServices.shared.logger("AuthenticationManager")
+    logger
+      .withValue("environment", APIConfiguration.currentEnvironment.displayName)
+      .withValue("grpc.host", APIConfiguration.grpcHost)
+      .withValue("grpc.port", APIConfiguration.grpcPort)
+      .info("initializing")
 
     // Check if we should use mock behavior (for UI tests)
     if isUsingMock {
@@ -423,7 +449,7 @@ class AuthenticationManager: AuthenticationManaging {
     }
     components.queryItems = [
       URLQueryItem(name: "response_type", value: "code"),
-      URLQueryItem(name: "client_id", value: APIConfiguration.oauth2ClientID),
+      URLQueryItem(name: "client_id", value: await oauth2ClientID()),
       URLQueryItem(name: "redirect_uri", value: APIConfiguration.serverURL),
       URLQueryItem(name: "state", value: state),
       URLQueryItem(name: "code_challenge_method", value: "plain"),
@@ -488,8 +514,8 @@ class AuthenticationManager: AuthenticationManaging {
       "grant_type": "authorization_code",
       "code": code,
       "redirect_uri": APIConfiguration.serverURL,
-      "client_id": APIConfiguration.oauth2ClientID,
-      "client_secret": APIConfiguration.oauth2ClientSecret,
+      "client_id": await oauth2ClientID(),
+      "client_secret": await oauth2ClientSecret(),
     ]
 
     // Encode form data
@@ -569,8 +595,8 @@ class AuthenticationManager: AuthenticationManaging {
     let formData = [
       "grant_type": "refresh_token",
       "refresh_token": oauth2RefreshToken,
-      "client_id": APIConfiguration.oauth2ClientID,
-      "client_secret": APIConfiguration.oauth2ClientSecret,
+      "client_id": await oauth2ClientID(),
+      "client_secret": await oauth2ClientSecret(),
     ]
 
     let formString = formData.map {
@@ -643,6 +669,20 @@ class AuthenticationManager: AuthenticationManaging {
     }
 
     return oauth2AccessToken.isEmpty ? nil : oauth2AccessToken
+  }
+
+  // MARK: - OAuth2 client credentials (via platform Secrets)
+
+  /// Resolves the OAuth2 client id from the platform secret source (env + Info.plist), with the
+  /// existing Info.plist accessor as a fallback. Reads are observed (never logging the value).
+  private func oauth2ClientID() async -> String {
+    (try? await PlatformServices.shared.secrets.getSecret(name: "OAuth2ClientID"))
+      ?? APIConfiguration.oauth2ClientID
+  }
+
+  private func oauth2ClientSecret() async -> String {
+    (try? await PlatformServices.shared.secrets.getSecret(name: "OAuth2ClientSecret"))
+      ?? APIConfiguration.oauth2ClientSecret
   }
 
   func register(input: RegistrationInput) async -> RegistrationResult {
@@ -768,6 +808,7 @@ class AuthenticationManager: AuthenticationManaging {
     }
 
     await DeviceTokenRegistrationService.shared.archiveCurrentDeviceToken(authManager: self)
+    await CurrentUserService.shared.clear()
     logOutFromRevenueCat()
     AnalyticsConfiguration.provideEventReporter().reset()
     self.isAuthenticated = false

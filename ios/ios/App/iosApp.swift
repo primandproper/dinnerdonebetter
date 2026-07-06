@@ -5,6 +5,7 @@
 //  Created by Jeffrey Dorrycott on 12/8/25.
 //
 
+import Observability
 import RevenueCat
 import SwiftUI
 
@@ -16,6 +17,9 @@ struct IOSApp: App {
   @State private var userSettingsService = UserSettingsService()
   @State private var deepLinkHandler = DeepLinkHandler()
 
+  /// Retained for the app's lifetime so its MetricKit subscription stays alive.
+  private let diagnostics: MetricKitDiagnostics
+
   init() {
     // Must run before any view accesses Purchases.shared. AuthManager init (during
     // @State setup) fires a Task that calls Purchases.shared; we configure here
@@ -23,6 +27,13 @@ struct IOSApp: App {
     if RevenueCatConfiguration.isConfigured {
       Purchases.configure(withAPIKey: RevenueCatConfiguration.revenueCatAPIKey)
     }
+
+    // Bootstrap observability at the composition root and subscribe to MetricKit
+    // (delivers on device only; a harmless no-op in the simulator).
+    let platform = PlatformServices.shared
+    diagnostics = MetricKitDiagnostics(logger: platform.logger("MetricKit"))
+    diagnostics.start()
+
     let am = AuthenticationManager()
     _authManager = State(initialValue: am)
     _eventReporterService = State(initialValue: EventReporterService(authManager: am))

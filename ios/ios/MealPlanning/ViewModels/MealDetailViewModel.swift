@@ -34,34 +34,17 @@ class MealDetailViewModel {
     errorMessage = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "MealDetailViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "MealDetailViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
       var request = Mealplanning_GetMealRequest()
       request.mealID = mealID
 
-      let response = try await clientManager.client.mealPlanning.getMeal(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("getMeal", idempotent: true) {
+        client, metadata, options in
+        try await client.mealPlanning.getMeal(request, metadata: metadata, options: options)
+      }
 
       self.meal = response.result
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       errorMessage = "Failed to load meal: \(error.localizedDescription)"
-      print("❌ Error loading meal: \(error)")
     }
 
     isLoading = false
@@ -73,34 +56,19 @@ class MealDetailViewModel {
     mermaidError = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "MealDetailViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "MealDetailViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
       var request = Mealplanning_GetMermaidDiagramForMealRequest()
       request.mealID = mealID
 
-      let response = try await clientManager.client.mealPlanning.getMermaidDiagramForMeal(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall(
+        "getMermaidDiagramForMeal", idempotent: true
+      ) { client, metadata, options in
+        try await client.mealPlanning.getMermaidDiagramForMeal(
+          request, metadata: metadata, options: options)
+      }
 
       self.mermaidDiagram = response.response
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       mermaidError = "Failed to load diagram: \(error.localizedDescription)"
-      print("❌ Error loading mermaid diagram: \(error)")
     }
 
     isLoadingMermaid = false

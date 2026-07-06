@@ -102,33 +102,20 @@ class CreateMealViewModel {
     searchError = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "CreateMealViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "CreateMealViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
       var request = Mealplanning_SearchForRecipesRequest()
       request.query = query
-      request.useSearchService = APIConfiguration.useSearchService
+      request.useSearchService = Features.useSearchService
 
-      let response = try await clientManager.client.mealPlanning.searchForRecipes(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("searchForRecipes", idempotent: true) {
+        client, metadata, options in
+        try await client.mealPlanning.searchForRecipes(
+          request, metadata: metadata, options: options)
+      }
 
       if searchQuery.trimmingCharacters(in: .whitespacesAndNewlines) == query {
         searchResults = response.results
       }
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       if searchQuery.trimmingCharacters(in: .whitespacesAndNewlines) == query {
         searchError = "Failed to search: \(error.localizedDescription)"
         searchResults = []
@@ -155,26 +142,13 @@ class CreateMealViewModel {
     addRecipeError = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "CreateMealViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "CreateMealViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
       var request = Mealplanning_GetRecipeRequest()
       request.recipeID = recipeID
 
-      let response = try await clientManager.client.mealPlanning.getRecipe(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("getRecipe", idempotent: true) {
+        client, metadata, options in
+        try await client.mealPlanning.getRecipe(request, metadata: metadata, options: options)
+      }
 
       let fullRecipe = response.result
       let componentType: Mealplanning_MealComponentType = hasAtLeastOneMain ? .side : .main
@@ -187,7 +161,6 @@ class CreateMealViewModel {
       )
       draftComponents.append(component)
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       addRecipeError = "Failed to add recipe: \(error.localizedDescription)"
     }
 
@@ -221,19 +194,6 @@ class CreateMealViewModel {
     creationError = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        throw NSError(
-          domain: "CreateMealViewModel", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-      }
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        throw NSError(
-          domain: "CreateMealViewModel", code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-      }
-
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
       var input = Mealplanning_MealCreationRequestInput()
       input.name = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
       input.description_p = mealDescription.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -259,17 +219,15 @@ class CreateMealViewModel {
       var request = Mealplanning_CreateMealRequest()
       request.input = input
 
-      let response = try await clientManager.client.mealPlanning.createMeal(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("createMeal") {
+        client, metadata, options in
+        try await client.mealPlanning.createMeal(request, metadata: metadata, options: options)
+      }
 
       createdMealID = response.created.id
       isCreating = false
       return true
     } catch let error as GRPCCore.RPCError {
-      await authManager.invalidateCredentialsIfSessionError(error)
       creationError =
         error.code == .alreadyExists
         ? "A meal with this name and components already exists."
@@ -277,7 +235,6 @@ class CreateMealViewModel {
       isCreating = false
       return false
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       creationError = "Failed to create meal: \(error.localizedDescription)"
       isCreating = false
       return false

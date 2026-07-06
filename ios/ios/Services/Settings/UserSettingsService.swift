@@ -74,28 +74,15 @@ class UserSettingsService {
   private func fetchUserConfigs(authManager: AuthenticationManager) async throws
     -> [Settings_ServiceSettingConfiguration]
   {
-    guard let clientManager = try? authManager.getClientManager() else {
-      throw NSError(
-        domain: "UserSettingsService", code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-    }
-
-    guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-      throw NSError(
-        domain: "UserSettingsService", code: 2,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-    }
-
-    let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
     var request = Settings_GetServiceSettingConfigurationsForUserRequest()
     request.filter = Filtering_QueryFilter()
 
-    let response = try await clientManager.client.settings.getServiceSettingConfigurationsForUser(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    let response = try await authManager.authenticatedCall(
+      "getServiceSettingConfigurationsForUser", idempotent: true
+    ) { client, metadata, options in
+      try await client.settings.getServiceSettingConfigurationsForUser(
+        request, metadata: metadata, options: options)
+    }
 
     return response.results
   }

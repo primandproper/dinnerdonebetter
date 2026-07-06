@@ -64,30 +64,16 @@ struct MealPlanByIDView: View {
     loadError = nil
 
     do {
-      guard let clientManager = try? authManager.getClientManager() else {
-        loadError = "Not signed in"
-        isLoading = false
-        return
-      }
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-        loadError = "Not signed in"
-        isLoading = false
-        return
-      }
-
       var request = Mealplanning_GetMealPlanRequest()
       request.mealPlanID = mealPlanID
 
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-      let response = try await clientManager.client.mealPlanning.getMealPlan(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      let response = try await authManager.authenticatedCall("getMealPlan", idempotent: true) {
+        client, metadata, options in
+        try await client.mealPlanning.getMealPlan(request, metadata: metadata, options: options)
+      }
 
       mealPlan = response.result
     } catch {
-      await authManager.invalidateCredentialsIfSessionError(error)
       loadError = error.localizedDescription
     }
     isLoading = false
