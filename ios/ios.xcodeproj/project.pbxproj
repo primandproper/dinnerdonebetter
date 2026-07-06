@@ -690,7 +690,7 @@
 		};
 		FADE0100000000000000AA00 /* XCRemoteSwiftPackageReference "platform-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "git@github.com:primandproper/platform-swift.git";
+			repositoryURL = "https://github.com/primandproper/platform-swift.git";
 			requirement = {
 				kind = exactVersion;
 				version = 0.0.1;

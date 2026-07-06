@@ -49,7 +49,7 @@
     {
       "identity" : "platform-swift",
       "kind" : "remoteSourceControl",
-      "location" : "git@github.com:primandproper/platform-swift.git",
+      "location" : "https://github.com/primandproper/platform-swift.git",
       "state" : {
         "revision" : "6a0d3d567dd66610f12e4aab47577593a15d5faf",
         "version" : "0.0.1"
