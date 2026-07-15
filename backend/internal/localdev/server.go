@@ -34,16 +34,16 @@ import (
 	webhooksrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v3/database"
-	databasecfg "github.com/primandproper/platform-go/v3/database/config"
-	"github.com/primandproper/platform-go/v3/httpclient"
-	"github.com/primandproper/platform-go/v3/identifiers"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	"github.com/primandproper/platform-go/v3/messagequeue/redis"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v3/random"
+	"github.com/primandproper/platform-go/v4/database"
+	databasecfg "github.com/primandproper/platform-go/v4/database/config"
+	"github.com/primandproper/platform-go/v4/httpclient"
+	"github.com/primandproper/platform-go/v4/identifiers"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	"github.com/primandproper/platform-go/v4/messagequeue/redis"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v4/random"
 
 	"github.com/testcontainers/testcontainers-go"
 	rediscontainers "github.com/testcontainers/testcontainers-go/modules/redis"
@@ -99,7 +99,7 @@ func CreatePremadeAdminUser(
 	dbClient database.Client,
 	premadeAdminUser *identity.User,
 ) (*identity.User, error) {
-	hasher := authentication.ProvideArgon2Authenticator(logger, tracerProvider)
+	hasher := authentication.NewArgon2Authenticator(logger, tracerProvider)
 
 	actuallyHashedPass, err := hasher.HashPassword(ctx, premadeAdminUser.HashedPassword)
 	if err != nil {
@@ -150,7 +150,7 @@ func CreateOAuth2ClientForService(ctx context.Context, pgc database.Client, dbCf
 }
 
 func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (server *apiserver.Server, databaseClient database.Client, dbCfg *databasecfg.Config, err error) {
-	pillars, err := cfg.Observability.ProvidePillars(ctx)
+	pillars, err := cfg.Observability.NewPillars(ctx)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("setting up observability pillars: %w", err)
 	}
@@ -174,7 +174,7 @@ func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (se
 
 	tracerProvider := tracingnoop.NewTracerProvider()
 	migrator := repositories.ProvideMigrator(&cfg.Database, logger)
-	databaseClient, err = databasecfg.ProvideDatabase(ctx, logger, tracerProvider, &cfg.Database, migrator, nil)
+	databaseClient, err = databasecfg.NewDatabase(ctx, logger, tracerProvider, &cfg.Database, migrator, nil)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("initializing database client: %w", err)
 	}
@@ -274,7 +274,7 @@ func AllInOne(ctx context.Context, cfg *config.APIServiceConfig, initFuncs ...Da
 
 	log.Printf("%sDATABASE CONNECTION URL: %s%s", strings.Repeat("\n", 10), dbCfg.ReadConnection.URI(), strings.Repeat("\n", 10))
 
-	pillars, err := cfg.Observability.ProvidePillars(ctx)
+	pillars, err := cfg.Observability.NewPillars(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting o11y pillars: %w", err)
 	}
@@ -332,7 +332,7 @@ func BuildInsecureOAuthedGRPCClient(
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Location", "localhost")
 
-	httpClient := httpclient.ProvideHTTPClient(&httpclient.Config{EnableTracing: true})
+	httpClient := httpclient.NewHTTPClient(&httpclient.Config{EnableTracing: true})
 	httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
@@ -463,7 +463,7 @@ func FetchOAuth2TokenForUser(
 	req.Header.Set("Authorization", "Bearer "+jwt)
 	req.Header.Set("Location", "localhost")
 
-	httpClient := httpclient.ProvideHTTPClient(&httpclient.Config{EnableTracing: true})
+	httpClient := httpclient.NewHTTPClient(&httpclient.Config{EnableTracing: true})
 	httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}

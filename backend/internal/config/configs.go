@@ -15,22 +15,22 @@ import (
 	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
 
-	analyticscfg "github.com/primandproper/platform-go/v3/analytics/config"
-	databasecfg "github.com/primandproper/platform-go/v3/database/config"
-	emailcfg "github.com/primandproper/platform-go/v3/email/config"
-	"github.com/primandproper/platform-go/v3/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v3/featureflags/config"
-	httpclientcfg "github.com/primandproper/platform-go/v3/httpclient"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	notificationscfg "github.com/primandproper/platform-go/v3/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v3/observability"
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
-	routingcfg "github.com/primandproper/platform-go/v3/routing/config"
-	textsearchcfg "github.com/primandproper/platform-go/v3/search/text/config"
-	"github.com/primandproper/platform-go/v3/server/grpc"
-	"github.com/primandproper/platform-go/v3/server/http"
-	"github.com/primandproper/platform-go/v3/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v4/analytics/config"
+	databasecfg "github.com/primandproper/platform-go/v4/database/config"
+	emailcfg "github.com/primandproper/platform-go/v4/email/config"
+	"github.com/primandproper/platform-go/v4/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v4/featureflags/config"
+	httpclientcfg "github.com/primandproper/platform-go/v4/httpclient"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	notificationscfg "github.com/primandproper/platform-go/v4/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v4/observability"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
+	routingcfg "github.com/primandproper/platform-go/v4/routing/config"
+	textsearchcfg "github.com/primandproper/platform-go/v4/search/text/config"
+	"github.com/primandproper/platform-go/v4/server/grpc"
+	"github.com/primandproper/platform-go/v4/server/http"
+	"github.com/primandproper/platform-go/v4/uploads/objectstorage"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -494,7 +494,7 @@ func LoadConfigFromPath[T configurations](ctx context.Context, configurationFile
 		return nil, fmt.Errorf("failed to read api configuration file: %w", err)
 	}
 
-	decoder := encoding.ProvideServerEncoderDecoder(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), encoding.ContentTypeJSON)
+	decoder := encoding.NewServerEncoderDecoder(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), encoding.ContentTypeJSON)
 
 	var x *T
 	if err = decoder.DecodeBytes(ctx, content, &x); err != nil {

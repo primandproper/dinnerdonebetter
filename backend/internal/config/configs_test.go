@@ -10,12 +10,12 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config/envvars"
 
-	databasecfg "github.com/primandproper/platform-go/v3/database/config"
-	"github.com/primandproper/platform-go/v3/encoding"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	"github.com/primandproper/platform-go/v3/observability"
-	loggingcfg "github.com/primandproper/platform-go/v3/observability/logging/config"
-	"github.com/primandproper/platform-go/v3/server/http"
+	databasecfg "github.com/primandproper/platform-go/v4/database/config"
+	"github.com/primandproper/platform-go/v4/encoding"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	"github.com/primandproper/platform-go/v4/observability"
+	loggingcfg "github.com/primandproper/platform-go/v4/observability/logging/config"
+	"github.com/primandproper/platform-go/v4/server/http"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

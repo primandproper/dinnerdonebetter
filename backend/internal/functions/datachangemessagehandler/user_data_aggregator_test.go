@@ -9,8 +9,8 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
-	"github.com/primandproper/platform-go/v3/reflection"
-	"github.com/primandproper/platform-go/v3/uploads"
+	"github.com/primandproper/platform-go/v4/reflection"
+	"github.com/primandproper/platform-go/v4/uploads"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

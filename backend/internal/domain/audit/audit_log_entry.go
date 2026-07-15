@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/primandproper/platform-go/v3/database"
-	"github.com/primandproper/platform-go/v3/database/filtering"
+	"github.com/primandproper/platform-go/v4/database"
+	"github.com/primandproper/platform-go/v4/filtering"
 )
 
 const (

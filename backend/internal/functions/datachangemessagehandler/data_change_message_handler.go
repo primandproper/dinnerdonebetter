@@ -18,17 +18,17 @@ import (
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v3/analytics"
-	"github.com/primandproper/platform-go/v3/email"
-	"github.com/primandproper/platform-go/v3/encoding"
-	"github.com/primandproper/platform-go/v3/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	platformnotifications "github.com/primandproper/platform-go/v3/notifications/mobile"
-	"github.com/primandproper/platform-go/v3/observability"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/metrics"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
-	"github.com/primandproper/platform-go/v3/uploads"
+	"github.com/primandproper/platform-go/v4/analytics"
+	"github.com/primandproper/platform-go/v4/email"
+	"github.com/primandproper/platform-go/v4/encoding"
+	"github.com/primandproper/platform-go/v4/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	platformnotifications "github.com/primandproper/platform-go/v4/notifications/mobile"
+	"github.com/primandproper/platform-go/v4/observability"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/metrics"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
+	"github.com/primandproper/platform-go/v4/uploads"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -209,22 +209,22 @@ func NewAsyncDataChangeMessageHandler(
 		return nil, fmt.Errorf("setting up bad device tokens archived counter: %w", err)
 	}
 
-	outboundEmailsPublisher, err := publisherProvider.ProvidePublisher(ctx, cfg.Queues.OutboundEmailsTopicName)
+	outboundEmailsPublisher, err := publisherProvider.NewPublisher(ctx, cfg.Queues.OutboundEmailsTopicName)
 	if err != nil {
 		return nil, fmt.Errorf("configuring outbound emails publisher: %w", err)
 	}
 
-	searchDataIndexPublisher, err := publisherProvider.ProvidePublisher(ctx, cfg.Queues.SearchIndexRequestsTopicName)
+	searchDataIndexPublisher, err := publisherProvider.NewPublisher(ctx, cfg.Queues.SearchIndexRequestsTopicName)
 	if err != nil {
 		return nil, fmt.Errorf("configuring search indexing publisher: %w", err)
 	}
 
-	webhookExecutionRequestPublisher, err := publisherProvider.ProvidePublisher(ctx, cfg.Queues.WebhookExecutionRequestsTopicName)
+	webhookExecutionRequestPublisher, err := publisherProvider.NewPublisher(ctx, cfg.Queues.WebhookExecutionRequestsTopicName)
 	if err != nil {
 		return nil, fmt.Errorf("configuring webhook execution requests publisher: %w", err)
 	}
 
-	mobileNotificationsPublisher, err := publisherProvider.ProvidePublisher(ctx, cfg.Queues.MobileNotificationsTopicName)
+	mobileNotificationsPublisher, err := publisherProvider.NewPublisher(ctx, cfg.Queues.MobileNotificationsTopicName)
 	if err != nil {
 		return nil, fmt.Errorf("configuring mobile notifications publisher: %w", err)
 	}
@@ -293,7 +293,7 @@ func (a *AsyncDataChangeMessageHandler) ConsumeMessages(
 
 	// set up myriad publishers
 
-	dataChangesConsumer, err := a.consumerProvider.ProvideConsumer(
+	dataChangesConsumer, err := a.consumerProvider.NewConsumer(
 		ctx,
 		a.queuesConfig.DataChangesTopicName,
 		a.DataChangesEventHandler(a.queuesConfig.DataChangesTopicName),
@@ -302,7 +302,7 @@ func (a *AsyncDataChangeMessageHandler) ConsumeMessages(
 		return observability.PrepareAndLogError(err, a.logger, span, "configuring data changes consumer")
 	}
 
-	outboundEmailsConsumer, err := a.consumerProvider.ProvideConsumer(
+	outboundEmailsConsumer, err := a.consumerProvider.NewConsumer(
 		ctx,
 		a.queuesConfig.OutboundEmailsTopicName,
 		a.OutboundEmailsEventHandler(a.queuesConfig.OutboundEmailsTopicName),
@@ -311,7 +311,7 @@ func (a *AsyncDataChangeMessageHandler) ConsumeMessages(
 		return observability.PrepareAndLogError(err, a.logger, span, "configuring outbound emails consumer")
 	}
 
-	searchIndexRequestsConsumer, err := a.consumerProvider.ProvideConsumer(
+	searchIndexRequestsConsumer, err := a.consumerProvider.NewConsumer(
 		ctx,
 		a.queuesConfig.SearchIndexRequestsTopicName,
 		a.SearchIndexRequestsEventHandler(a.queuesConfig.SearchIndexRequestsTopicName),
@@ -320,7 +320,7 @@ func (a *AsyncDataChangeMessageHandler) ConsumeMessages(
 		return observability.PrepareAndLogError(err, a.logger, span, "configuring search index requests consumer")
 	}
 
-	webhookExecutionRequestsConsumer, err := a.consumerProvider.ProvideConsumer(
+	webhookExecutionRequestsConsumer, err := a.consumerProvider.NewConsumer(
 		ctx,
 		a.queuesConfig.WebhookExecutionRequestsTopicName,
 		a.WebhookExecutionRequestsEventHandler(a.queuesConfig.WebhookExecutionRequestsTopicName),
@@ -329,7 +329,7 @@ func (a *AsyncDataChangeMessageHandler) ConsumeMessages(
 		return observability.PrepareAndLogError(err, a.logger, span, "configuring webhook execution requests consumer")
 	}
 
-	userDataAggregationConsumer, err := a.consumerProvider.ProvideConsumer(
+	userDataAggregationConsumer, err := a.consumerProvider.NewConsumer(
 		ctx,
 		a.queuesConfig.UserDataAggregationTopicName,
 		a.UserDataAggregationEventHandler(a.queuesConfig.UserDataAggregationTopicName),
@@ -338,7 +338,7 @@ func (a *AsyncDataChangeMessageHandler) ConsumeMessages(
 		return observability.PrepareAndLogError(err, a.logger, span, "configuring user data aggregation requests consumer")
 	}
 
-	mobileNotificationsConsumer, err := a.consumerProvider.ProvideConsumer(
+	mobileNotificationsConsumer, err := a.consumerProvider.NewConsumer(
 		ctx,
 		a.queuesConfig.MobileNotificationsTopicName,
 		a.MobileNotificationsEventHandler(a.queuesConfig.MobileNotificationsTopicName),

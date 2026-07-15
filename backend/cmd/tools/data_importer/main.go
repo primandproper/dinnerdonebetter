@@ -15,13 +15,13 @@ import (
 	identityrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
-	"github.com/primandproper/platform-go/v3/database"
-	databasecfg "github.com/primandproper/platform-go/v3/database/config"
-	"github.com/primandproper/platform-go/v3/database/postgres"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v4/database"
+	databasecfg "github.com/primandproper/platform-go/v4/database/config"
+	"github.com/primandproper/platform-go/v4/database/postgres"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )
@@ -385,7 +385,7 @@ func connectDB(ctx context.Context, logger logging.Logger, tracerProvider tracin
 	}
 
 	clientConfig := &importerClientConfig{connDetails: connDetails}
-	return postgres.ProvideDatabaseClient(ctx, logger, tracerProvider, clientConfig, nil)
+	return postgres.NewDatabaseClient(ctx, logger, tracerProvider, clientConfig, nil)
 }
 
 type importerClientConfig struct {

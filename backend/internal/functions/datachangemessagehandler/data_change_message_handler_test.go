@@ -15,20 +15,20 @@ import (
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	analyticsmock "github.com/primandproper/platform-go/v3/analytics/mock"
-	emailmock "github.com/primandproper/platform-go/v3/email/mock"
-	encodingmock "github.com/primandproper/platform-go/v3/encoding/mock"
-	"github.com/primandproper/platform-go/v3/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	msgqueuemock "github.com/primandproper/platform-go/v3/messagequeue/mock"
-	noopnotifications "github.com/primandproper/platform-go/v3/notifications/mobile/noop"
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	"github.com/primandproper/platform-go/v3/observability/metrics"
-	mockmetrics "github.com/primandproper/platform-go/v3/observability/metrics/mock"
-	metricsnoop "github.com/primandproper/platform-go/v3/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
-	uploadsmock "github.com/primandproper/platform-go/v3/uploads/mock"
+	analyticsmock "github.com/primandproper/platform-go/v4/analytics/mock"
+	emailmock "github.com/primandproper/platform-go/v4/email/mock"
+	encodingmock "github.com/primandproper/platform-go/v4/encoding/mock"
+	"github.com/primandproper/platform-go/v4/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	msgqueuemock "github.com/primandproper/platform-go/v4/messagequeue/mock"
+	noopnotifications "github.com/primandproper/platform-go/v4/notifications/mobile/noop"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	"github.com/primandproper/platform-go/v4/observability/metrics"
+	mockmetrics "github.com/primandproper/platform-go/v4/observability/metrics/mock"
+	metricsnoop "github.com/primandproper/platform-go/v4/observability/metrics/noop"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
+	uploadsmock "github.com/primandproper/platform-go/v4/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/metric"
@@ -78,7 +78,7 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		PublishAsyncFunc: func(_ context.Context, _ any) {},
 		StopFunc:         func() {},
 	}
-	publisherProvider.ProvidePublisherFunc = func(_ context.Context, _ string) (messagequeue.Publisher, error) {
+	publisherProvider.NewPublisherFunc = func(_ context.Context, _ string) (messagequeue.Publisher, error) {
 		return mockPublisher, nil
 	}
 
@@ -198,7 +198,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 			PublishAsyncFunc: func(_ context.Context, _ any) {},
 			StopFunc:         func() {},
 		}
-		publisherProvider.ProvidePublisherFunc = func(_ context.Context, _ string) (messagequeue.Publisher, error) {
+		publisherProvider.NewPublisherFunc = func(_ context.Context, _ string) (messagequeue.Publisher, error) {
 			return mockPublisher, nil
 		}
 

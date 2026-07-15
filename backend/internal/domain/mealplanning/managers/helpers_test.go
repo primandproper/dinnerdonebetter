@@ -10,13 +10,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	mealplanningworkers "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v3/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v3/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v3/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
-	textsearchcfg "github.com/primandproper/platform-go/v3/search/text/config"
+	"github.com/primandproper/platform-go/v4/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	mockpublishers "github.com/primandproper/platform-go/v4/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v4/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
+	textsearchcfg "github.com/primandproper/platform-go/v4/search/text/config"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -47,7 +47,7 @@ func buildMealPlanManagerForTest(t *testing.T) *mealPlanningManager {
 	}
 
 	mpp := &mockpublishers.PublisherProviderMock{
-		ProvidePublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
+		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
 			return &mockpublishers.PublisherMock{}, nil
 		},
 	}
@@ -78,7 +78,7 @@ func buildMealPlanManagerForTestWithWorkers(t *testing.T, groceryWorker, taskWor
 	}
 
 	mpp := &mockpublishers.PublisherProviderMock{
-		ProvidePublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
+		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
 			return &mockpublishers.PublisherMock{}, nil
 		},
 	}
@@ -128,7 +128,7 @@ func buildRecipeManagerForTest(t *testing.T) *mealPlanningManager {
 	}
 
 	mpp := &mockpublishers.PublisherProviderMock{
-		ProvidePublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
+		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
 			return &mockpublishers.PublisherMock{}, nil
 		},
 	}
@@ -195,7 +195,7 @@ func buildValidEnumerationsManagerForTest(t *testing.T) *mealPlanningManager {
 	}
 
 	mpp := &mockpublishers.PublisherProviderMock{
-		ProvidePublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
+		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
 			return &mockpublishers.PublisherMock{}, nil
 		},
 	}

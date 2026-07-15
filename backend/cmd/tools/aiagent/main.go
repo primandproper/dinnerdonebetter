@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/primandproper/platform-go/v3/httpclient"
+	"github.com/primandproper/platform-go/v4/httpclient"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/adk/agent"
@@ -331,7 +331,7 @@ func main() {
 	mcpToolset, err := mcptoolset.New(mcptoolset.Config{
 		Transport: &mcp.StreamableClientTransport{
 			Endpoint:   "http://localhost:9999",
-			HTTPClient: httpclient.ProvideHTTPClient(&httpclient.Config{EnableTracing: true}),
+			HTTPClient: httpclient.NewHTTPClient(&httpclient.Config{EnableTracing: true}),
 			MaxRetries: 5,
 		},
 	})

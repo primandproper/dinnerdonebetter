@@ -6,11 +6,11 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 
-	"github.com/primandproper/platform-go/v3/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/metrics"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
+	"github.com/primandproper/platform-go/v4/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/metrics"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

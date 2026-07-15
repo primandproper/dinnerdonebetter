@@ -8,8 +8,8 @@ import (
 	identitysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
 
-	errorsgrpc "github.com/primandproper/platform-go/v3/errors/grpc"
-	"github.com/primandproper/platform-go/v3/observability"
+	errorsgrpc "github.com/primandproper/platform-go/v4/errors/grpc"
+	"github.com/primandproper/platform-go/v4/observability"
 
 	"google.golang.org/grpc/codes"
 )

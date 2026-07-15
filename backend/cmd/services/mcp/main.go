@@ -21,12 +21,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
 	waitlistsrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 
-	"github.com/primandproper/platform-go/v3/authentication/totp"
-	"github.com/primandproper/platform-go/v3/encoding"
-	"github.com/primandproper/platform-go/v3/observability"
-	"github.com/primandproper/platform-go/v3/routing"
-	routingcfg "github.com/primandproper/platform-go/v3/routing/config"
-	"github.com/primandproper/platform-go/v3/version"
+	"github.com/primandproper/platform-go/v4/authentication/totp"
+	"github.com/primandproper/platform-go/v4/encoding"
+	"github.com/primandproper/platform-go/v4/observability"
+	"github.com/primandproper/platform-go/v4/routing"
+	routingcfg "github.com/primandproper/platform-go/v4/routing/config"
+	"github.com/primandproper/platform-go/v4/version"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -74,7 +74,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	pillars, err := cfg.Observability.ProvidePillars(ctx)
+	pillars, err := cfg.Observability.NewPillars(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -184,12 +184,12 @@ func main() {
 
 // buildRouter creates a router with OAuth2 routes (unauthenticated) and the MCP handler (authenticated).
 func buildRouter(mcpHandler http.Handler, tokens *tokenStore, pillars *observability.Pillars, routingCfg *routingcfg.Config, baseURL string, identityRepo identity.Repository, authenticator authentication.Authenticator, totpVerifier totp.Verifier) (routing.Router, error) {
-	router, err := routingCfg.ProvideRouter(pillars.Logger, pillars.TracerProvider, pillars.MetricsProvider)
+	router, err := routingCfg.NewRouter(pillars.Logger, pillars.TracerProvider, pillars.MetricsProvider)
 	if err != nil {
 		return nil, err
 	}
 
-	encoder := encoding.ProvideServerEncoderDecoder(pillars.Logger, pillars.TracerProvider, encoding.ContentTypeJSON)
+	encoder := encoding.NewServerEncoderDecoder(pillars.Logger, pillars.TracerProvider, encoding.ContentTypeJSON)
 
 	// Ops routes (unauthenticated).
 	router.Route("/_ops_", func(opsRouter routing.Router) {

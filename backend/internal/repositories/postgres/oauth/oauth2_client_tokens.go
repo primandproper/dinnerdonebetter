@@ -10,9 +10,9 @@ import (
 	oauthkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/oauth/generated"
 
-	platformerrors "github.com/primandproper/platform-go/v3/errors"
-	"github.com/primandproper/platform-go/v3/observability"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v4/errors"
+	"github.com/primandproper/platform-go/v4/observability"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
 )
 
 var _ types.OAuth2ClientTokenDataManager = (*repository)(nil)

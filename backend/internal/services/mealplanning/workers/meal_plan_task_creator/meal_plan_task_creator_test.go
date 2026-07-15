@@ -11,13 +11,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v3/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v3/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v3/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v3/reflection"
+	"github.com/primandproper/platform-go/v4/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	mockpublishers "github.com/primandproper/platform-go/v4/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v4/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v4/reflection"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -31,7 +31,7 @@ func buildNewMealPlanTaskCreatorForTest(t *testing.T) *Worker {
 	cfg := &msgconfig.QueuesConfig{DataChangesTopicName: "data_changes"}
 
 	pp := &mockpublishers.PublisherProviderMock{
-		ProvidePublisherFunc: func(_ context.Context, topic string) (messagequeue.Publisher, error) {
+		NewPublisherFunc: func(_ context.Context, topic string) (messagequeue.Publisher, error) {
 			return &mockpublishers.PublisherMock{
 				PublishFunc:      func(_ context.Context, _ any) error { return nil },
 				PublishAsyncFunc: func(_ context.Context, _ any) {},

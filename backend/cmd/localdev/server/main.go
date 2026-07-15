@@ -18,10 +18,10 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/localdev"
 	identitygenerated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v3/database"
-	"github.com/primandproper/platform-go/v3/identifiers"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
+	"github.com/primandproper/platform-go/v4/database"
+	"github.com/primandproper/platform-go/v4/identifiers"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
 )
 
 const (
@@ -87,7 +87,7 @@ func main() {
 				return fmt.Errorf("admin account ID not set")
 			}
 
-			hasher := authentication.ProvideArgon2Authenticator(logger, tracerProvider)
+			hasher := authentication.NewArgon2Authenticator(logger, tracerProvider)
 			generatedQuerier := identitygenerated.New()
 
 			// Create two member users

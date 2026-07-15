@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/primandproper/platform-go/v3/email"
-	emailmock "github.com/primandproper/platform-go/v3/email/mock"
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v4/email"
+	emailmock "github.com/primandproper/platform-go/v4/email/mock"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

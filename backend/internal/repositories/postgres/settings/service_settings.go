@@ -10,13 +10,13 @@ import (
 	settingskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/settings/generated"
 
-	"github.com/primandproper/platform-go/v3/database"
-	"github.com/primandproper/platform-go/v3/database/filtering"
-	platformerrors "github.com/primandproper/platform-go/v3/errors"
-	"github.com/primandproper/platform-go/v3/identifiers"
-	"github.com/primandproper/platform-go/v3/observability"
-	platformkeys "github.com/primandproper/platform-go/v3/observability/keys"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
+	"github.com/primandproper/platform-go/v4/database"
+	platformerrors "github.com/primandproper/platform-go/v4/errors"
+	"github.com/primandproper/platform-go/v4/filtering"
+	"github.com/primandproper/platform-go/v4/identifiers"
+	"github.com/primandproper/platform-go/v4/observability"
+	platformkeys "github.com/primandproper/platform-go/v4/observability/keys"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
 )
 
 const (

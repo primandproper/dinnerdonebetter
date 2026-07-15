@@ -8,7 +8,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v3/email"
+	"github.com/primandproper/platform-go/v4/email"
 
 	"github.com/matcornic/hermes/v2"
 )

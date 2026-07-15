@@ -8,11 +8,11 @@ import (
 	identitymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v3/reflection"
-	textsearch "github.com/primandproper/platform-go/v3/search/text"
-	mocksearch "github.com/primandproper/platform-go/v3/search/text/mock"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v4/reflection"
+	textsearch "github.com/primandproper/platform-go/v4/search/text"
+	mocksearch "github.com/primandproper/platform-go/v4/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

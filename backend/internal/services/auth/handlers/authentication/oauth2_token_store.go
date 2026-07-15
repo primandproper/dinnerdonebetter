@@ -6,10 +6,10 @@ import (
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 
-	"github.com/primandproper/platform-go/v3/identifiers"
-	"github.com/primandproper/platform-go/v3/observability"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
+	"github.com/primandproper/platform-go/v4/identifiers"
+	"github.com/primandproper/platform-go/v4/observability"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
 
 	"github.com/go-oauth2/oauth2/v4"
 )

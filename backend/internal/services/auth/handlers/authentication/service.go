@@ -9,12 +9,12 @@ import (
 	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 
-	"github.com/primandproper/platform-go/v3/authentication/totp"
-	perrors "github.com/primandproper/platform-go/v3/errors"
-	"github.com/primandproper/platform-go/v3/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
+	"github.com/primandproper/platform-go/v4/authentication/totp"
+	perrors "github.com/primandproper/platform-go/v4/errors"
+	"github.com/primandproper/platform-go/v4/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
 
 	"github.com/go-oauth2/oauth2/v4/server"
 )
@@ -53,12 +53,12 @@ func ProvideService(
 		return nil, perrors.ErrNilInputProvided
 	}
 
-	dataChangesPublisher, publisherProviderErr := publisherProvider.ProvidePublisher(ctx, queuesConfig.DataChangesTopicName)
+	dataChangesPublisher, publisherProviderErr := publisherProvider.NewPublisher(ctx, queuesConfig.DataChangesTopicName)
 	if publisherProviderErr != nil {
 		return nil, fmt.Errorf("setting up %s data changes publisher: %w", serviceName, publisherProviderErr)
 	}
 
-	signer, err := cfg.Tokens.ProvideTokenIssuer(logger, tracerProvider)
+	signer, err := cfg.Tokens.NewTokenIssuer(logger, tracerProvider)
 	if err != nil {
 		return nil, fmt.Errorf("creating json web token signer: %w", err)
 	}

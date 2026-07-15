@@ -17,18 +17,18 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	platformtotp "github.com/primandproper/platform-go/v3/authentication/totp"
-	"github.com/primandproper/platform-go/v3/database/filtering"
-	perrors "github.com/primandproper/platform-go/v3/errors"
-	"github.com/primandproper/platform-go/v3/identifiers"
-	"github.com/primandproper/platform-go/v3/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	"github.com/primandproper/platform-go/v3/observability"
-	platformkeys "github.com/primandproper/platform-go/v3/observability/keys"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
-	"github.com/primandproper/platform-go/v3/qrcodes"
-	"github.com/primandproper/platform-go/v3/random"
+	platformtotp "github.com/primandproper/platform-go/v4/authentication/totp"
+	perrors "github.com/primandproper/platform-go/v4/errors"
+	"github.com/primandproper/platform-go/v4/filtering"
+	"github.com/primandproper/platform-go/v4/identifiers"
+	"github.com/primandproper/platform-go/v4/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	"github.com/primandproper/platform-go/v4/observability"
+	platformkeys "github.com/primandproper/platform-go/v4/observability/keys"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
+	"github.com/primandproper/platform-go/v4/qrcodes"
+	"github.com/primandproper/platform-go/v4/random"
 
 	"github.com/pquerna/otp/totp"
 	passwordvalidator "github.com/wagslane/go-password-validator"
@@ -97,7 +97,7 @@ func ProvideAuthManager(
 		return nil, perrors.ErrNilInputProvided
 	}
 
-	dataChangesPublisher, err := publisherProvider.ProvidePublisher(ctx, queueConfig.DataChangesTopicName)
+	dataChangesPublisher, err := publisherProvider.NewPublisher(ctx, queueConfig.DataChangesTopicName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to provide data changes publisher: %w", err)
 	}

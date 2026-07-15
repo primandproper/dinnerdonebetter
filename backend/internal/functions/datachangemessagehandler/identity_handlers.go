@@ -13,11 +13,11 @@ import (
 	coreemails "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/emails"
 	coreindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	"github.com/primandproper/platform-go/v3/database/filtering"
-	"github.com/primandproper/platform-go/v3/email"
-	notifications "github.com/primandproper/platform-go/v3/notifications/mobile"
-	"github.com/primandproper/platform-go/v3/observability"
-	textsearch "github.com/primandproper/platform-go/v3/search/text"
+	"github.com/primandproper/platform-go/v4/email"
+	"github.com/primandproper/platform-go/v4/filtering"
+	notifications "github.com/primandproper/platform-go/v4/notifications/mobile"
+	"github.com/primandproper/platform-go/v4/observability"
+	textsearch "github.com/primandproper/platform-go/v4/search/text"
 )
 
 // handleIdentitySearchIndexUpdate handles search index updates for identity domain events.

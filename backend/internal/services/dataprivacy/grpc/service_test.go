@@ -13,12 +13,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	dataprivacysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 
-	"github.com/primandproper/platform-go/v3/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v3/uploads"
-	mockuploads "github.com/primandproper/platform-go/v3/uploads/mock"
+	"github.com/primandproper/platform-go/v4/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v4/uploads"
+	mockuploads "github.com/primandproper/platform-go/v4/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

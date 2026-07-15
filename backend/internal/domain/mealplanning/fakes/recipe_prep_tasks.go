@@ -4,8 +4,8 @@ import (
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
-	"github.com/primandproper/platform-go/v3/database/filtering"
-	"github.com/primandproper/platform-go/v3/pointer"
+	"github.com/primandproper/platform-go/v4/filtering"
+	"github.com/primandproper/platform-go/v4/pointer"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )

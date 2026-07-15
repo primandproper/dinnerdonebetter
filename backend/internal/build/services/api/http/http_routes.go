@@ -6,14 +6,14 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	paymentswebhook "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/http"
 
-	"github.com/primandproper/platform-go/v3/encoding"
-	"github.com/primandproper/platform-go/v3/healthcheck"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/metrics"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
-	"github.com/primandproper/platform-go/v3/routing"
-	routingcfg "github.com/primandproper/platform-go/v3/routing/config"
-	"github.com/primandproper/platform-go/v3/version"
+	"github.com/primandproper/platform-go/v4/encoding"
+	"github.com/primandproper/platform-go/v4/healthcheck"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/metrics"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
+	"github.com/primandproper/platform-go/v4/routing"
+	routingcfg "github.com/primandproper/platform-go/v4/routing/config"
+	"github.com/primandproper/platform-go/v4/version"
 )
 
 func ProvideAPIRouter(
@@ -25,12 +25,12 @@ func ProvideAPIRouter(
 	paymentsWebhookHandler *paymentswebhook.WebhookHandler,
 	healthRegistry healthcheck.Registry,
 ) (routing.Router, error) {
-	router, err := routingConfig.ProvideRouter(logger, tracerProvider, metricsProvider)
+	router, err := routingConfig.NewRouter(logger, tracerProvider, metricsProvider)
 	if err != nil {
 		return nil, err
 	}
 
-	encoder := encoding.ProvideServerEncoderDecoder(logger, tracerProvider, encoding.ContentTypeJSON)
+	encoder := encoding.NewServerEncoderDecoder(logger, tracerProvider, encoding.ContentTypeJSON)
 
 	router.Route("/_ops_", func(metaRouter routing.Router) {
 		// Expose a liveness check on /live

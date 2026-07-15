@@ -10,13 +10,13 @@ import (
 	settingssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
 
-	errorsgrpc "github.com/primandproper/platform-go/v3/errors/grpc"
-	"github.com/primandproper/platform-go/v3/identifiers"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	metricsnoop "github.com/primandproper/platform-go/v3/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
+	errorsgrpc "github.com/primandproper/platform-go/v4/errors/grpc"
+	"github.com/primandproper/platform-go/v4/identifiers"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	metricsnoop "github.com/primandproper/platform-go/v4/observability/metrics/noop"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
 
 	"google.golang.org/grpc/codes"
 )
@@ -87,12 +87,12 @@ func (s *serviceImpl) TestQueueMessage(ctx context.Context, request *settingssvc
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "building queue test message")
 	}
 
-	pp, err := msgconfig.ProvidePublisherProvider(ctx, s.logger, tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), s.msgConfig)
+	pp, err := msgconfig.NewPublisherProvider(ctx, s.logger, tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), s.msgConfig)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "establishing publisher provider")
 	}
 
-	publisher, err := pp.ProvidePublisher(ctx, request.QueueName)
+	publisher, err := pp.NewPublisher(ctx, request.QueueName)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "initializing publisher")
 	}

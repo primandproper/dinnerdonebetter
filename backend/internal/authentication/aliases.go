@@ -1,13 +1,13 @@
 package authentication
 
 import (
-	platformauth "github.com/primandproper/platform-go/v3/authentication"
-	"github.com/primandproper/platform-go/v3/authentication/argon2"
-	"github.com/primandproper/platform-go/v3/authentication/totp"
-	platformerrors "github.com/primandproper/platform-go/v3/errors"
+	platformauth "github.com/primandproper/platform-go/v4/authentication"
+	"github.com/primandproper/platform-go/v4/authentication/argon2"
+	"github.com/primandproper/platform-go/v4/authentication/totp"
+	platformerrors "github.com/primandproper/platform-go/v4/errors"
 )
 
-// Re-exports of types that now live in github.com/primandproper/platform-go/v3/authentication.
+// Re-exports of types that now live in github.com/primandproper/platform-go/v4/authentication.
 // These aliases let existing consumers keep using the `authentication` package while the
 // interface and argon2 provider definitions live in the shared platform module.
 type (
@@ -30,6 +30,6 @@ var (
 	// convert password mismatches into 401 responses.
 	ErrPasswordDoesNotMatch = platformerrors.New("password does not match")
 
-	// ProvideArgon2Authenticator returns an argon2 powered Authenticator.
-	ProvideArgon2Authenticator = argon2.ProvideArgon2Authenticator
+	// NewArgon2Authenticator returns an argon2 powered Authenticator.
+	NewArgon2Authenticator = argon2.NewArgon2Authenticator
 )

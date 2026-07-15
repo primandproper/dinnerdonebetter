@@ -11,7 +11,7 @@ import (
 	identityfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v3/database"
+	"github.com/primandproper/platform-go/v4/database"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

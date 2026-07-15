@@ -13,10 +13,10 @@ import (
 	mealplanningsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
 
-	platformerrors "github.com/primandproper/platform-go/v3/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v3/errors/grpc"
-	"github.com/primandproper/platform-go/v3/identifiers"
-	"github.com/primandproper/platform-go/v3/uploads"
+	platformerrors "github.com/primandproper/platform-go/v4/errors"
+	errorsgrpc "github.com/primandproper/platform-go/v4/errors/grpc"
+	"github.com/primandproper/platform-go/v4/identifiers"
+	"github.com/primandproper/platform-go/v4/uploads"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

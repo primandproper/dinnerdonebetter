@@ -17,10 +17,10 @@ import (
 	identityrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	notificationsrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/notifications"
 
-	"github.com/primandproper/platform-go/v3/database"
-	databasecfg "github.com/primandproper/platform-go/v3/database/config"
-	"github.com/primandproper/platform-go/v3/identifiers"
-	"github.com/primandproper/platform-go/v3/random"
+	"github.com/primandproper/platform-go/v4/database"
+	databasecfg "github.com/primandproper/platform-go/v4/database/config"
+	"github.com/primandproper/platform-go/v4/identifiers"
+	"github.com/primandproper/platform-go/v4/random"
 )
 
 const (
@@ -84,7 +84,7 @@ func init() {
 
 	apiServiceConfig = cfg
 
-	pillars, err := cfg.Observability.ProvidePillars(ctx)
+	pillars, err := cfg.Observability.NewPillars(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}

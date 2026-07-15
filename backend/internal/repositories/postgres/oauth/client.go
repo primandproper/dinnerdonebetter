@@ -7,12 +7,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/oauth/generated"
 
-	"github.com/primandproper/platform-go/v3/cryptography/encryption"
-	encryptioncfg "github.com/primandproper/platform-go/v3/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v3/database"
-	databasecfg "github.com/primandproper/platform-go/v3/database/config"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
+	"github.com/primandproper/platform-go/v4/cryptography/encryption"
+	encryptioncfg "github.com/primandproper/platform-go/v4/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v4/database"
+	databasecfg "github.com/primandproper/platform-go/v4/database/config"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
 )
 
 const (
@@ -40,7 +40,7 @@ func ProvideOAuthRepository(
 	cfg *databasecfg.Config,
 	client database.Client,
 ) oauth.Repository {
-	encDec, err := encryptioncfg.ProvideEncryptorDecryptor(&cfg.Encryption, tracerProvider, logger, []byte(cfg.OAuth2TokenEncryptionKey))
+	encDec, err := encryptioncfg.NewEncryptorDecryptor(&cfg.Encryption, tracerProvider, logger, []byte(cfg.OAuth2TokenEncryptionKey))
 	if err != nil {
 		return nil
 	}

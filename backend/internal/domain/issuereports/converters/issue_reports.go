@@ -3,7 +3,7 @@ package converters
 import (
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	"github.com/primandproper/platform-go/v3/identifiers"
+	"github.com/primandproper/platform-go/v4/identifiers"
 )
 
 // ConvertIssueReportToIssueReportUpdateRequestInput creates an IssueReportUpdateRequestInput from an IssueReport.

@@ -7,10 +7,10 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	mockdatabase "github.com/primandproper/platform-go/v3/database/mock"
-	"github.com/primandproper/platform-go/v3/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
+	mockdatabase "github.com/primandproper/platform-go/v4/database/mock"
+	"github.com/primandproper/platform-go/v4/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
 
 	"github.com/stretchr/testify/require"
 	pgcontainers "github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -23,7 +23,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, *pgcontainers.Postgr
 	container, db, config := pgtesting.BuildDatabaseContainerForTest(t)
 	require.NoError(t, migrations.NewMigrator(loggingnoop.NewLogger()).Migrate(ctx, db))
 
-	pgc, err := postgres.ProvideDatabaseClient(ctx, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), config, nil)
+	pgc, err := postgres.NewDatabaseClient(ctx, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), config, nil)
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
