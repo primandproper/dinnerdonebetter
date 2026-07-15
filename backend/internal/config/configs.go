@@ -1,9 +1,7 @@
 package config
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -16,6 +14,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
 
 	analyticscfg "github.com/primandproper/platform-go/v4/analytics/config"
+	platformconfig "github.com/primandproper/platform-go/v4/config"
 	databasecfg "github.com/primandproper/platform-go/v4/database/config"
 	emailcfg "github.com/primandproper/platform-go/v4/email/config"
 	"github.com/primandproper/platform-go/v4/encoding"
@@ -24,8 +23,6 @@ import (
 	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
 	notificationscfg "github.com/primandproper/platform-go/v4/notifications/mobile/config"
 	"github.com/primandproper/platform-go/v4/observability"
-	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
 	routingcfg "github.com/primandproper/platform-go/v4/routing/config"
 	textsearchcfg "github.com/primandproper/platform-go/v4/search/text/config"
 	"github.com/primandproper/platform-go/v4/server/grpc"
@@ -462,24 +459,15 @@ func LoadConfigFromEnvironment[T configurations]() (*T, error) {
 
 	configFilepath := os.Getenv(ConfigurationFilePathEnvVarKey)
 
-	configBytes, err := os.ReadFile(configFilepath) //nolint:gosec // G703: path from env var (deployer-configured)
+	cfg, err := platformconfig.LoadFromJSONFile[T](configFilepath, envVarOptions()...)
 	if err != nil {
-		return nil, fmt.Errorf("reading local config file: %w", err)
-	}
-
-	var cfg *T
-	if err = json.NewDecoder(bytes.NewReader(configBytes)).Decode(&cfg); err != nil || cfg == nil {
-		return nil, fmt.Errorf("decoding config file (%s) contents (%s): %w", configFilepath, string(configBytes), err)
-	}
-
-	if err = ApplyEnvironmentVariables(cfg); err != nil {
-		return nil, fmt.Errorf("applying environment variables: %w", err)
+		return nil, fmt.Errorf("loading config from environment: %w", err)
 	}
 
 	return cfg, nil
 }
 
-func LoadConfigFromPath[T configurations](ctx context.Context, configurationFilepath string) (*T, error) {
+func LoadConfigFromPath[T configurations](configurationFilepath string) (*T, error) {
 	// Resolve and load the appropriate .env file before applying env var overrides.
 	// godotenv.Load does not override env vars already set in the process, so
 	// priority order is: JSON config < .env file < actual process environment.
@@ -489,23 +477,12 @@ func LoadConfigFromPath[T configurations](ctx context.Context, configurationFile
 		}
 	}
 
-	content, err := os.ReadFile(configurationFilepath)
+	cfg, err := platformconfig.LoadFromJSONFile[T](configurationFilepath, envVarOptions()...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read api configuration file: %w", err)
+		return nil, fmt.Errorf("loading config from path: %w", err)
 	}
 
-	decoder := encoding.NewServerEncoderDecoder(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), encoding.ContentTypeJSON)
-
-	var x *T
-	if err = decoder.DecodeBytes(ctx, content, &x); err != nil {
-		return nil, fmt.Errorf("failed to decode api configuration file: %w", err)
-	}
-
-	if err = ApplyEnvironmentVariables(x); err != nil {
-		return nil, fmt.Errorf("applying environment variables: %w", err)
-	}
-
-	return x, nil
+	return cfg, nil
 }
 
 // LoadConfigFromDotEnvFile loads a configuration entirely from a .env file, with no JSON config file baseline.
@@ -514,20 +491,14 @@ func LoadConfigFromPath[T configurations](ctx context.Context, configurationFile
 // godotenv.Load does not override env vars already set in the process, so actual process env vars
 // still take precedence over values in the file.
 func LoadConfigFromDotEnvFile[T configurations](ctx context.Context, dotEnvFilepath string) (*T, error) {
-	if err := godotenv.Load(dotEnvFilepath); err != nil {
-		return nil, fmt.Errorf("loading .env file: %w", err)
+	cfg, err := platformconfig.LoadFromDotEnvFile[T](dotEnvFilepath, envVarOptions()...)
+	if err != nil {
+		return nil, fmt.Errorf("loading config from .env file: %w", err)
 	}
 
-	var cfg T
-	if err := ApplyEnvironmentVariables(&cfg); err != nil {
-		return nil, fmt.Errorf("applying environment variables: %w", err)
+	if err = platformconfig.Validate(ctx, cfg); err != nil {
+		return nil, fmt.Errorf("validating config loaded from .env file: %w", err)
 	}
 
-	if validator, ok := any(&cfg).(validation.ValidatableWithContext); ok {
-		if err := validator.ValidateWithContext(ctx); err != nil {
-			return nil, fmt.Errorf("validating config loaded from .env file: %w", err)
-		}
-	}
-
-	return &cfg, nil
+	return cfg, nil
 }

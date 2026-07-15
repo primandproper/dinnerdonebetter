@@ -18,7 +18,6 @@ require (
 	github.com/GuiaBolso/darwin v0.0.0-20191218124601-fd6d2aa3d244
 	github.com/boombuler/barcode v1.1.0
 	github.com/brianvoe/gofakeit/v7 v7.15.0
-	github.com/caarlos0/env/v11 v11.4.1
 	github.com/ccoveille/go-safecast v1.8.2
 	github.com/codemodus/kace v0.5.1
 	github.com/cristalhq/builq v0.15.0
@@ -36,7 +35,7 @@ require (
 	github.com/matcornic/hermes/v2 v2.1.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/pquerna/otp v1.5.0
-	github.com/primandproper/platform-go/v4 v4.0.0
+	github.com/primandproper/platform-go/v4 v4.1.0
 	github.com/samber/do/v2 v2.0.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/spf13/cobra v1.10.2
@@ -80,6 +79,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.44.1 // indirect
 	github.com/bep/godartsass/v2 v2.5.0 // indirect
 	github.com/bep/golibsass v1.2.0 // indirect
+	github.com/caarlos0/env/v11 v11.4.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect

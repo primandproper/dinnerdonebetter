@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/caarlos0/env/v11"
+	platformconfig "github.com/primandproper/platform-go/v4/config"
 )
 
 const (
@@ -33,15 +33,21 @@ func RunningInKubernetes() bool {
 	return os.Getenv(RunningInKubernetesEnvVarKey) != ""
 }
 
-func ApplyEnvironmentVariables(cfg any) error {
-	return env.ParseWithOptions(cfg, env.Options{
-		Prefix: EnvVarPrefix,
-		OnSet: func(tag string, value any, isDefault bool) {
+// envVarOptions returns the platform config options shared by every loader in
+// this package: the DINNER_DONE_BETTER_ prefix and a debug-logging OnSet hook.
+func envVarOptions() []platformconfig.Option {
+	return []platformconfig.Option{
+		platformconfig.WithPrefix(EnvVarPrefix),
+		platformconfig.WithOnSet(func(tag string, value any, isDefault bool) {
 			slog.Debug("env var set",
 				slog.String("tag", tag),
 				slog.String("value", fmt.Sprintf("%+v", value)),
 				slog.Bool("isDefault", isDefault),
 			)
-		},
-	})
+		}),
+	}
+}
+
+func ApplyEnvironmentVariables(cfg any) error {
+	return platformconfig.ApplyEnvironmentVariables(cfg, envVarOptions()...)
 }
