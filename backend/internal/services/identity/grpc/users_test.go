@@ -14,10 +14,10 @@ import (
 	uploadedmediasvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v3/database/filtering"
-	"github.com/primandproper/platform-go/v3/reflection"
-	"github.com/primandproper/platform-go/v3/uploads"
-	mockuploads "github.com/primandproper/platform-go/v3/uploads/mock"
+	"github.com/primandproper/platform-go/v4/filtering"
+	"github.com/primandproper/platform-go/v4/reflection"
+	"github.com/primandproper/platform-go/v4/uploads"
+	mockuploads "github.com/primandproper/platform-go/v4/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

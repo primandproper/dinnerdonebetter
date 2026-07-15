@@ -11,10 +11,10 @@ import (
 	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
 	authsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
-	"github.com/primandproper/platform-go/v3/encoding"
-	"github.com/primandproper/platform-go/v3/featureflags"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
+	"github.com/primandproper/platform-go/v4/encoding"
+	"github.com/primandproper/platform-go/v4/featureflags"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
 )
 
 const (
@@ -48,7 +48,7 @@ func NewAuthService(
 ) authsvc.AuthServiceServer {
 	// Passkey options are always JSON; create a dedicated encoder rather than relying on
 	// a potentially non-JSON encoder from wire.
-	passkeyJSONEncoder := encoding.ProvideServerEncoderDecoder(logger, tracerProvider, encoding.ContentTypeJSON)
+	passkeyJSONEncoder := encoding.NewServerEncoderDecoder(logger, tracerProvider, encoding.ContentTypeJSON)
 
 	return &serviceImpl{
 		logger:                logging.NewNamedLogger(logger, o11yName),

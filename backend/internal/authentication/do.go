@@ -6,13 +6,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v3/authentication/tokens"
-	tokenscfg "github.com/primandproper/platform-go/v3/authentication/tokens/config"
-	"github.com/primandproper/platform-go/v3/authentication/totp"
-	"github.com/primandproper/platform-go/v3/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
+	"github.com/primandproper/platform-go/v4/authentication/tokens"
+	tokenscfg "github.com/primandproper/platform-go/v4/authentication/tokens/config"
+	"github.com/primandproper/platform-go/v4/authentication/totp"
+	"github.com/primandproper/platform-go/v4/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -20,7 +20,7 @@ import (
 // RegisterAuth registers authentication providers with the injector.
 func RegisterAuth(i do.Injector) {
 	do.Provide[Authenticator](i, func(i do.Injector) (Authenticator, error) {
-		return ProvideArgon2Authenticator(
+		return NewArgon2Authenticator(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.TracerProvider](i),
 		), nil

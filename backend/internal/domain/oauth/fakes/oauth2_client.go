@@ -5,7 +5,7 @@ import (
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 
-	"github.com/primandproper/platform-go/v3/database/filtering"
+	"github.com/primandproper/platform-go/v4/filtering"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )

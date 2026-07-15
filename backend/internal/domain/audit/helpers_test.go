@@ -8,7 +8,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
 
 	"github.com/stretchr/testify/assert"
 )

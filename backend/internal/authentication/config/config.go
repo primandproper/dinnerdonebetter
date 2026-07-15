@@ -6,7 +6,7 @@ import (
 
 	webauthncfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/webauthn/config"
 
-	tokenscfg "github.com/primandproper/platform-go/v3/authentication/tokens/config"
+	tokenscfg "github.com/primandproper/platform-go/v4/authentication/tokens/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

@@ -25,7 +25,7 @@ func main() {
 	// only allow initialization to take so long.
 	buildCtx, cancel := context.WithTimeout(rootCtx, cfg.HTTPServer.StartupDeadline)
 
-	logger, err := cfg.Observability.Logging.ProvideLogger(rootCtx)
+	logger, err := cfg.Observability.Logging.NewLogger(rootCtx)
 	if err != nil {
 		log.Fatalf("could not create logger: %v", err)
 	}

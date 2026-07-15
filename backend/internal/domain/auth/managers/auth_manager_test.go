@@ -17,19 +17,19 @@ import (
 	identitymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	platformtotp "github.com/primandproper/platform-go/v3/authentication/totp"
-	mocktotp "github.com/primandproper/platform-go/v3/authentication/totp/mock"
-	"github.com/primandproper/platform-go/v3/database/filtering"
-	"github.com/primandproper/platform-go/v3/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v3/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v3/qrcodes"
-	"github.com/primandproper/platform-go/v3/random"
-	randommock "github.com/primandproper/platform-go/v3/random/mock"
-	"github.com/primandproper/platform-go/v3/reflection"
+	platformtotp "github.com/primandproper/platform-go/v4/authentication/totp"
+	mocktotp "github.com/primandproper/platform-go/v4/authentication/totp/mock"
+	"github.com/primandproper/platform-go/v4/filtering"
+	"github.com/primandproper/platform-go/v4/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	mockpublishers "github.com/primandproper/platform-go/v4/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v4/qrcodes"
+	"github.com/primandproper/platform-go/v4/random"
+	randommock "github.com/primandproper/platform-go/v4/random/mock"
+	"github.com/primandproper/platform-go/v4/reflection"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -124,7 +124,7 @@ func TestProvideAuthManager(t *testing.T) {
 		queueCfg := &msgconfig.QueuesConfig{DataChangesTopicName: t.Name()}
 
 		mpp := &mockpublishers.PublisherProviderMock{
-			ProvidePublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
+			NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
 				return &mockpublishers.PublisherMock{}, nil
 			},
 		}

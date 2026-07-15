@@ -11,12 +11,12 @@ import (
 	identitymanagermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	authsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
-	"github.com/primandproper/platform-go/v3/encoding"
-	"github.com/primandproper/platform-go/v3/featureflags"
-	"github.com/primandproper/platform-go/v3/featureflags/mock"
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v4/encoding"
+	"github.com/primandproper/platform-go/v4/featureflags"
+	"github.com/primandproper/platform-go/v4/featureflags/mock"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -49,7 +49,7 @@ func buildTestService(t *testing.T) (*serviceImpl, *identitymanagermock.Identity
 		CloseFunc: func() error { return nil },
 	}
 
-	jsonEncoder := encoding.ProvideServerEncoderDecoder(logger, tracerProvider, encoding.ContentTypeJSON)
+	jsonEncoder := encoding.NewServerEncoderDecoder(logger, tracerProvider, encoding.ContentTypeJSON)
 
 	service := &serviceImpl{
 		tracer:                tracer,

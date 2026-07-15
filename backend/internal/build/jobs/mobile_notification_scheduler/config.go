@@ -7,12 +7,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	databasecfg "github.com/primandproper/platform-go/v3/database/config"
-	"github.com/primandproper/platform-go/v3/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	"github.com/primandproper/platform-go/v3/observability"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
+	databasecfg "github.com/primandproper/platform-go/v4/database/config"
+	"github.com/primandproper/platform-go/v4/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	"github.com/primandproper/platform-go/v4/observability"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -66,5 +66,5 @@ func ProvideMobileNotificationsPublisher(
 	messageQueuePublisherProvider messagequeue.PublisherProvider,
 	queues *msgconfig.QueuesConfig,
 ) (messagequeue.Publisher, error) {
-	return messageQueuePublisherProvider.ProvidePublisher(ctx, queues.MobileNotificationsTopicName)
+	return messageQueuePublisherProvider.NewPublisher(ctx, queues.MobileNotificationsTopicName)
 }

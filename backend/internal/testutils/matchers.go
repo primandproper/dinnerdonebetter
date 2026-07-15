@@ -3,7 +3,7 @@ package testutils
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v3/database/filtering"
+	"github.com/primandproper/platform-go/v4/filtering"
 
 	"github.com/stretchr/testify/mock"
 )

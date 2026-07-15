@@ -8,7 +8,7 @@ import (
 	apiserver "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 
-	"github.com/primandproper/platform-go/v3/version"
+	"github.com/primandproper/platform-go/v4/version"
 
 	"github.com/spf13/cobra"
 	_ "go.uber.org/automaxprocs"
@@ -46,7 +46,7 @@ func runServe(_ *cobra.Command, _ []string) error {
 	buildCtx, cancel := context.WithTimeout(ctx, cfg.HTTPServer.StartupDeadline)
 	defer cancel()
 
-	pillars, err := cfg.Observability.ProvidePillars(buildCtx)
+	pillars, err := cfg.Observability.NewPillars(buildCtx)
 	if err != nil {
 		return fmt.Errorf("could not create observability pillars: %w", err)
 	}

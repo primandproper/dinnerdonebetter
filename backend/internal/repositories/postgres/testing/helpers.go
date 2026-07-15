@@ -16,12 +16,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	encryptioncfg "github.com/primandproper/platform-go/v3/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v3/database"
-	databasecfg "github.com/primandproper/platform-go/v3/database/config"
-	"github.com/primandproper/platform-go/v3/database/filtering"
-	"github.com/primandproper/platform-go/v3/identifiers"
-	"github.com/primandproper/platform-go/v3/retry"
+	encryptioncfg "github.com/primandproper/platform-go/v4/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v4/database"
+	databasecfg "github.com/primandproper/platform-go/v4/database/config"
+	"github.com/primandproper/platform-go/v4/filtering"
+	"github.com/primandproper/platform-go/v4/identifiers"
+	"github.com/primandproper/platform-go/v4/retry"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"
@@ -165,7 +165,7 @@ func BuildDatabaseContainer(ctx context.Context, dbName string) (*postgres.Postg
 		return nil, nil, nil, fmt.Errorf("failed to connect to postgres container: %w", err)
 	}
 	// LoadConnectionDetailsFromURL only populates ReadConnection; copy it to
-	// WriteConnection so ProvideDatabaseClient can open both handles.
+	// WriteConnection so NewDatabaseClient can open both handles.
 	dbConfig.WriteConnection = dbConfig.ReadConnection
 
 	db, err := dbConfig.ConnectToWriteDatabase()

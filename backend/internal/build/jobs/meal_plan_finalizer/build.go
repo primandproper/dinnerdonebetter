@@ -9,13 +9,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	mealplanfinalizer "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalizer"
 
-	databasecfg "github.com/primandproper/platform-go/v3/database/config"
-	"github.com/primandproper/platform-go/v3/database/postgres"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	"github.com/primandproper/platform-go/v3/observability"
-	loggingcfg "github.com/primandproper/platform-go/v3/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v3/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v3/observability/tracing/config"
+	databasecfg "github.com/primandproper/platform-go/v4/database/config"
+	"github.com/primandproper/platform-go/v4/database/postgres"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	"github.com/primandproper/platform-go/v4/observability"
+	loggingcfg "github.com/primandproper/platform-go/v4/observability/logging/config"
+	metricscfg "github.com/primandproper/platform-go/v4/observability/metrics/config"
+	tracingcfg "github.com/primandproper/platform-go/v4/observability/tracing/config"
 
 	"github.com/samber/do/v2"
 )

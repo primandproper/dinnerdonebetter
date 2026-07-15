@@ -5,7 +5,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 
-	platformerrors "github.com/primandproper/platform-go/v3/errors"
+	platformerrors "github.com/primandproper/platform-go/v4/errors"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -16,18 +16,18 @@ import (
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	databasecfg "github.com/primandproper/platform-go/v3/database/config"
-	"github.com/primandproper/platform-go/v3/database/filtering"
-	"github.com/primandproper/platform-go/v3/database/postgres"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	"github.com/primandproper/platform-go/v3/observability/metrics"
-	metricsnoop "github.com/primandproper/platform-go/v3/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
-	textsearch "github.com/primandproper/platform-go/v3/search/text"
-	"github.com/primandproper/platform-go/v3/search/text/algolia"
-	textsearchcfg "github.com/primandproper/platform-go/v3/search/text/config"
+	databasecfg "github.com/primandproper/platform-go/v4/database/config"
+	"github.com/primandproper/platform-go/v4/database/postgres"
+	"github.com/primandproper/platform-go/v4/filtering"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	"github.com/primandproper/platform-go/v4/observability/metrics"
+	metricsnoop "github.com/primandproper/platform-go/v4/observability/metrics/noop"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
+	textsearch "github.com/primandproper/platform-go/v4/search/text"
+	"github.com/primandproper/platform-go/v4/search/text/algolia"
+	textsearchcfg "github.com/primandproper/platform-go/v4/search/text/config"
 
 	"github.com/spf13/cobra"
 )
@@ -131,7 +131,7 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 	}
 	dbConfig.WriteConnection = dbConfig.ReadConnection
 
-	client, err := postgres.ProvideDatabaseClient(ctx, logger, tracerProvider, dbConfig, nil)
+	client, err := postgres.NewDatabaseClient(ctx, logger, tracerProvider, dbConfig, nil)
 	if err != nil {
 		return fmt.Errorf("initializing database client: %w", err)
 	}
@@ -180,39 +180,39 @@ func buildIndexers(
 	mealPlanningRepo mealplanning.Repository,
 	identityRepo identity.Repository,
 ) (*mealplanningindexing.MealPlanningDataIndexer, *identityindexing.UserDataIndexer, error) {
-	recipeIdx, err := textsearchcfg.ProvideIndex[mealplanningindexing.RecipeSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeRecipes)
+	recipeIdx, err := textsearchcfg.NewIndex[mealplanningindexing.RecipeSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeRecipes)
 	if err != nil {
 		return nil, nil, err
 	}
-	mealIdx, err := textsearchcfg.ProvideIndex[mealplanningindexing.MealSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeMeals)
+	mealIdx, err := textsearchcfg.NewIndex[mealplanningindexing.MealSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeMeals)
 	if err != nil {
 		return nil, nil, err
 	}
-	validIngredientIdx, err := textsearchcfg.ProvideIndex[mealplanningindexing.ValidIngredientSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeValidIngredients)
+	validIngredientIdx, err := textsearchcfg.NewIndex[mealplanningindexing.ValidIngredientSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeValidIngredients)
 	if err != nil {
 		return nil, nil, err
 	}
-	validInstrumentIdx, err := textsearchcfg.ProvideIndex[mealplanningindexing.ValidInstrumentSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeValidInstruments)
+	validInstrumentIdx, err := textsearchcfg.NewIndex[mealplanningindexing.ValidInstrumentSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeValidInstruments)
 	if err != nil {
 		return nil, nil, err
 	}
-	validMeasurementUnitIdx, err := textsearchcfg.ProvideIndex[mealplanningindexing.ValidMeasurementUnitSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeValidMeasurementUnits)
+	validMeasurementUnitIdx, err := textsearchcfg.NewIndex[mealplanningindexing.ValidMeasurementUnitSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeValidMeasurementUnits)
 	if err != nil {
 		return nil, nil, err
 	}
-	validPreparationIdx, err := textsearchcfg.ProvideIndex[mealplanningindexing.ValidPreparationSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeValidPreparations)
+	validPreparationIdx, err := textsearchcfg.NewIndex[mealplanningindexing.ValidPreparationSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeValidPreparations)
 	if err != nil {
 		return nil, nil, err
 	}
-	validIngredientStateIdx, err := textsearchcfg.ProvideIndex[mealplanningindexing.ValidIngredientStateSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeValidIngredientStates)
+	validIngredientStateIdx, err := textsearchcfg.NewIndex[mealplanningindexing.ValidIngredientStateSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeValidIngredientStates)
 	if err != nil {
 		return nil, nil, err
 	}
-	validVesselIdx, err := textsearchcfg.ProvideIndex[mealplanningindexing.ValidVesselSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeValidVessels)
+	validVesselIdx, err := textsearchcfg.NewIndex[mealplanningindexing.ValidVesselSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, mealplanningindexing.IndexTypeValidVessels)
 	if err != nil {
 		return nil, nil, err
 	}
-	userIdx, err := textsearchcfg.ProvideIndex[identityindexing.UserSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, identityindexing.IndexTypeUsers)
+	userIdx, err := textsearchcfg.NewIndex[identityindexing.UserSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, identityindexing.IndexTypeUsers)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -437,23 +437,23 @@ func getIndexManager(
 
 	switch indexType {
 	case mealplanningindexing.IndexTypeRecipes:
-		return textsearchcfg.ProvideIndex[mealplanningindexing.RecipeSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
+		return textsearchcfg.NewIndex[mealplanningindexing.RecipeSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
 	case mealplanningindexing.IndexTypeMeals:
-		return textsearchcfg.ProvideIndex[mealplanningindexing.MealSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
+		return textsearchcfg.NewIndex[mealplanningindexing.MealSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
 	case mealplanningindexing.IndexTypeValidIngredients:
-		return textsearchcfg.ProvideIndex[mealplanningindexing.ValidIngredientSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
+		return textsearchcfg.NewIndex[mealplanningindexing.ValidIngredientSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
 	case mealplanningindexing.IndexTypeValidInstruments:
-		return textsearchcfg.ProvideIndex[mealplanningindexing.ValidInstrumentSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
+		return textsearchcfg.NewIndex[mealplanningindexing.ValidInstrumentSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
 	case mealplanningindexing.IndexTypeValidMeasurementUnits:
-		return textsearchcfg.ProvideIndex[mealplanningindexing.ValidMeasurementUnitSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
+		return textsearchcfg.NewIndex[mealplanningindexing.ValidMeasurementUnitSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
 	case mealplanningindexing.IndexTypeValidPreparations:
-		return textsearchcfg.ProvideIndex[mealplanningindexing.ValidPreparationSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
+		return textsearchcfg.NewIndex[mealplanningindexing.ValidPreparationSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
 	case mealplanningindexing.IndexTypeValidIngredientStates:
-		return textsearchcfg.ProvideIndex[mealplanningindexing.ValidIngredientStateSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
+		return textsearchcfg.NewIndex[mealplanningindexing.ValidIngredientStateSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
 	case mealplanningindexing.IndexTypeValidVessels:
-		return textsearchcfg.ProvideIndex[mealplanningindexing.ValidVesselSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
+		return textsearchcfg.NewIndex[mealplanningindexing.ValidVesselSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
 	case identityindexing.IndexTypeUsers:
-		return textsearchcfg.ProvideIndex[identityindexing.UserSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
+		return textsearchcfg.NewIndex[identityindexing.UserSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchCfg, indexType)
 	default:
 		return nil, fmt.Errorf("unknown index type: %s", indexType)
 	}

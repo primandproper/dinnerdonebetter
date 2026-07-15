@@ -6,10 +6,10 @@ import (
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/metrics"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
-	textsearchcfg "github.com/primandproper/platform-go/v3/search/text/config"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/metrics"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
+	textsearchcfg "github.com/primandproper/platform-go/v4/search/text/config"
 
 	"github.com/samber/do/v2"
 )
@@ -97,7 +97,7 @@ func ProvideUserTextSearcher(
 	metricsProvider metrics.Provider,
 	cfg *textsearchcfg.Config,
 ) (identityindexing.UserTextSearcher, error) {
-	return textsearchcfg.ProvideIndex[identityindexing.UserSearchSubset](
+	return textsearchcfg.NewIndex[identityindexing.UserSearchSubset](
 		ctx,
 		logger,
 		tracerProvider, metricsProvider,
@@ -113,7 +113,7 @@ func ProvideRecipeTextSearcher(
 	metricsProvider metrics.Provider,
 	cfg *textsearchcfg.Config,
 ) (eatingindexing.RecipeTextSearcher, error) {
-	return textsearchcfg.ProvideIndex[eatingindexing.RecipeSearchSubset](
+	return textsearchcfg.NewIndex[eatingindexing.RecipeSearchSubset](
 		ctx,
 		logger,
 		tracerProvider, metricsProvider,
@@ -129,7 +129,7 @@ func ProvideMealTextSearcher(
 	metricsProvider metrics.Provider,
 	cfg *textsearchcfg.Config,
 ) (eatingindexing.MealTextSearcher, error) {
-	return textsearchcfg.ProvideIndex[eatingindexing.MealSearchSubset](
+	return textsearchcfg.NewIndex[eatingindexing.MealSearchSubset](
 		ctx,
 		logger,
 		tracerProvider, metricsProvider,
@@ -145,7 +145,7 @@ func ProvideValidIngredientTextSearcher(
 	metricsProvider metrics.Provider,
 	cfg *textsearchcfg.Config,
 ) (eatingindexing.ValidIngredientTextSearcher, error) {
-	return textsearchcfg.ProvideIndex[eatingindexing.ValidIngredientSearchSubset](
+	return textsearchcfg.NewIndex[eatingindexing.ValidIngredientSearchSubset](
 		ctx,
 		logger,
 		tracerProvider, metricsProvider,
@@ -161,7 +161,7 @@ func ProvideValidInstrumentTextSearcher(
 	metricsProvider metrics.Provider,
 	cfg *textsearchcfg.Config,
 ) (eatingindexing.ValidInstrumentTextSearcher, error) {
-	return textsearchcfg.ProvideIndex[eatingindexing.ValidInstrumentSearchSubset](
+	return textsearchcfg.NewIndex[eatingindexing.ValidInstrumentSearchSubset](
 		ctx,
 		logger,
 		tracerProvider, metricsProvider,
@@ -177,7 +177,7 @@ func ProvideValidMeasurementUnitTextSearcher(
 	metricsProvider metrics.Provider,
 	cfg *textsearchcfg.Config,
 ) (eatingindexing.ValidMeasurementUnitTextSearcher, error) {
-	return textsearchcfg.ProvideIndex[eatingindexing.ValidMeasurementUnitSearchSubset](
+	return textsearchcfg.NewIndex[eatingindexing.ValidMeasurementUnitSearchSubset](
 		ctx,
 		logger,
 		tracerProvider, metricsProvider,
@@ -193,7 +193,7 @@ func ProvideValidPreparationTextSearcher(
 	metricsProvider metrics.Provider,
 	cfg *textsearchcfg.Config,
 ) (eatingindexing.ValidPreparationTextSearcher, error) {
-	return textsearchcfg.ProvideIndex[eatingindexing.ValidPreparationSearchSubset](
+	return textsearchcfg.NewIndex[eatingindexing.ValidPreparationSearchSubset](
 		ctx,
 		logger,
 		tracerProvider, metricsProvider,
@@ -209,7 +209,7 @@ func ProvideValidIngredientStateTextSearcher(
 	metricsProvider metrics.Provider,
 	cfg *textsearchcfg.Config,
 ) (eatingindexing.ValidIngredientStateTextSearcher, error) {
-	return textsearchcfg.ProvideIndex[eatingindexing.ValidIngredientStateSearchSubset](
+	return textsearchcfg.NewIndex[eatingindexing.ValidIngredientStateSearchSubset](
 		ctx,
 		logger,
 		tracerProvider, metricsProvider,
@@ -225,7 +225,7 @@ func ProvideValidVesselTextSearcher(
 	metricsProvider metrics.Provider,
 	cfg *textsearchcfg.Config,
 ) (eatingindexing.ValidVesselTextSearcher, error) {
-	return textsearchcfg.ProvideIndex[eatingindexing.ValidVesselSearchSubset](
+	return textsearchcfg.NewIndex[eatingindexing.ValidVesselSearchSubset](
 		ctx,
 		logger,
 		tracerProvider, metricsProvider,

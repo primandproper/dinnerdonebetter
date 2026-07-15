@@ -39,13 +39,13 @@ import (
 	waitlistsgrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/waitlists/grpc"
 	webhooksgrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/webhooks/grpc"
 
-	analyticscfg "github.com/primandproper/platform-go/v3/analytics/config"
-	errorsgrpc "github.com/primandproper/platform-go/v3/errors/grpc"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/metrics"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
-	textsearchcfg "github.com/primandproper/platform-go/v3/search/text/config"
-	platformgrpc "github.com/primandproper/platform-go/v3/server/grpc"
+	analyticscfg "github.com/primandproper/platform-go/v4/analytics/config"
+	errorsgrpc "github.com/primandproper/platform-go/v4/errors/grpc"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/metrics"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
+	textsearchcfg "github.com/primandproper/platform-go/v4/search/text/config"
+	platformgrpc "github.com/primandproper/platform-go/v4/server/grpc"
 
 	"github.com/samber/do/v2"
 	grpc "google.golang.org/grpc"
@@ -205,7 +205,7 @@ func ProvideUserTextSearcher(
 	metricsProvider metrics.Provider,
 	cfg *textsearchcfg.Config,
 ) (identityindexing.UserTextSearcher, error) {
-	return textsearchcfg.ProvideIndex[identityindexing.UserSearchSubset](
+	return textsearchcfg.NewIndex[identityindexing.UserSearchSubset](
 		ctx,
 		logger,
 		tracerProvider, metricsProvider,

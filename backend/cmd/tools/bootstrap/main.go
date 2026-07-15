@@ -18,16 +18,16 @@ import (
 	identityrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	oauthrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 
-	encryptioncfg "github.com/primandproper/platform-go/v3/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v3/database"
-	databasecfg "github.com/primandproper/platform-go/v3/database/config"
-	"github.com/primandproper/platform-go/v3/database/postgres"
-	"github.com/primandproper/platform-go/v3/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v3/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v3/random"
-	"github.com/primandproper/platform-go/v3/secrets/kubectl"
+	encryptioncfg "github.com/primandproper/platform-go/v4/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v4/database"
+	databasecfg "github.com/primandproper/platform-go/v4/database/config"
+	"github.com/primandproper/platform-go/v4/database/postgres"
+	"github.com/primandproper/platform-go/v4/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v4/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v4/random"
+	"github.com/primandproper/platform-go/v4/secrets/kubectl"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
@@ -194,7 +194,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 	}
 
 	clientConfig := &bootstrapClientConfig{connDetails: connDetails}
-	client, err := postgres.ProvideDatabaseClient(ctx, logger, tracerProvider, clientConfig, nil)
+	client, err := postgres.NewDatabaseClient(ctx, logger, tracerProvider, clientConfig, nil)
 	if err != nil {
 		return fmt.Errorf("connecting to database: %w", err)
 	}
@@ -215,7 +215,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 	// --- Admin user (idempotent) ---
 	user, err := identityRepo.GetUserByUsername(ctx, adminUsername)
 	if err != nil {
-		hasher := authentication.ProvideArgon2Authenticator(logger, tracerProvider)
+		hasher := authentication.NewArgon2Authenticator(logger, tracerProvider)
 		hashedPassword, hashErr := hasher.HashPassword(ctx, adminPassword)
 		if hashErr != nil {
 			return fmt.Errorf("hashing password: %w", hashErr)

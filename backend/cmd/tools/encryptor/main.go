@@ -6,10 +6,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/primandproper/platform-go/v3/cryptography/encryption"
-	"github.com/primandproper/platform-go/v3/cryptography/encryption/config"
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v4/cryptography/encryption"
+	"github.com/primandproper/platform-go/v4/cryptography/encryption/config"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )
@@ -98,7 +98,7 @@ func newEncryptorDecryptor(key, provider string) (encryption.EncryptorDecryptor,
 		return nil, fmt.Errorf("secret must decode to 32 bytes (64 hex chars), got %d bytes", len(key))
 	}
 
-	encDec, err := config.ProvideEncryptorDecryptor(
+	encDec, err := config.NewEncryptorDecryptor(
 		&config.Config{Provider: provider},
 		tracingnoop.NewTracerProvider(),
 		loggingnoop.NewLogger(),

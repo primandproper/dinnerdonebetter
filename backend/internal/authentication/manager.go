@@ -12,15 +12,15 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	"github.com/primandproper/platform-go/v3/authentication/tokens"
-	tokenscfg "github.com/primandproper/platform-go/v3/authentication/tokens/config"
-	"github.com/primandproper/platform-go/v3/authentication/totp"
-	"github.com/primandproper/platform-go/v3/identifiers"
-	"github.com/primandproper/platform-go/v3/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	"github.com/primandproper/platform-go/v3/observability"
-	"github.com/primandproper/platform-go/v3/observability/logging"
-	"github.com/primandproper/platform-go/v3/observability/tracing"
+	"github.com/primandproper/platform-go/v4/authentication/tokens"
+	tokenscfg "github.com/primandproper/platform-go/v4/authentication/tokens/config"
+	"github.com/primandproper/platform-go/v4/authentication/totp"
+	"github.com/primandproper/platform-go/v4/identifiers"
+	"github.com/primandproper/platform-go/v4/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	"github.com/primandproper/platform-go/v4/observability"
+	"github.com/primandproper/platform-go/v4/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/tracing"
 )
 
 const (
@@ -67,7 +67,7 @@ func NewManager(
 	sessionDataManager auth.UserSessionDataManager,
 	cfg *tokenscfg.Config,
 ) (Manager, error) {
-	dataChangesPublisher, err := publisherProvider.ProvidePublisher(ctx, queuesConfig.DataChangesTopicName)
+	dataChangesPublisher, err := publisherProvider.NewPublisher(ctx, queuesConfig.DataChangesTopicName)
 	if err != nil {
 		return nil, observability.PrepareError(err, nil, "creating data changes publisher")
 	}

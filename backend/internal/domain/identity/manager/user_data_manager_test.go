@@ -12,14 +12,14 @@ import (
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v3/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v3/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v3/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v3/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v3/observability/tracing/noop"
-	randommock "github.com/primandproper/platform-go/v3/random/mock"
-	"github.com/primandproper/platform-go/v3/reflection"
-	mocksearch "github.com/primandproper/platform-go/v3/search/text/mock"
+	"github.com/primandproper/platform-go/v4/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
+	mockpublishers "github.com/primandproper/platform-go/v4/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
+	randommock "github.com/primandproper/platform-go/v4/random/mock"
+	"github.com/primandproper/platform-go/v4/reflection"
+	mocksearch "github.com/primandproper/platform-go/v4/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -35,7 +35,7 @@ func buildIdentityDataManagerForTest(t *testing.T) *manager {
 	}
 
 	mpp := &mockpublishers.PublisherProviderMock{
-		ProvidePublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
+		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
 			return &mockpublishers.PublisherMock{}, nil
 		},
 	}

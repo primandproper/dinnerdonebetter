@@ -5,7 +5,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
 
-	"github.com/primandproper/platform-go/v3/observability/logging"
+	"github.com/primandproper/platform-go/v4/observability/logging"
 )
 
 func BuildDataChangeMessageFromContext(ctx context.Context, logger logging.Logger, eventType string, metadata map[string]any) *DataChangeMessage {
