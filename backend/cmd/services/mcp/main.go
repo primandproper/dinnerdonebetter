@@ -69,7 +69,7 @@ func main() {
 		configFilepath = defaultMcpServerConfigurationFilepath
 	}
 
-	cfg, err := config.LoadConfigFromPath[config.MCPServiceConfig](ctx, configFilepath)
+	cfg, err := config.LoadConfigFromPath[config.MCPServiceConfig](configFilepath)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -63,7 +63,7 @@ func getFreePort() (int, error) {
 func init() {
 	ctx := context.Background()
 
-	cfg, err := config.LoadConfigFromPath[config.APIServiceConfig](ctx, apiConfigurationFilepath)
+	cfg, err := config.LoadConfigFromPath[config.APIServiceConfig](apiConfigurationFilepath)
 	if err != nil {
 		log.Fatal(err)
 	}

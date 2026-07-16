@@ -40,7 +40,7 @@ func main() {
 		HashedPassword:  "admin_pass",
 	}
 
-	apiConfig, err := config.LoadConfigFromPath[config.APIServiceConfig](ctx, apiConfigurationFilepath)
+	apiConfig, err := config.LoadConfigFromPath[config.APIServiceConfig](apiConfigurationFilepath)
 	if err != nil {
 		log.Fatal(err)
 	}
