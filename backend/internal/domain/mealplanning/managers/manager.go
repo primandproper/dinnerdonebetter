@@ -9,15 +9,15 @@ import (
 	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v4/filtering"
-	"github.com/primandproper/platform-go/v4/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
-	"github.com/primandproper/platform-go/v4/observability"
-	"github.com/primandproper/platform-go/v4/observability/logging"
-	"github.com/primandproper/platform-go/v4/observability/metrics"
-	"github.com/primandproper/platform-go/v4/observability/tracing"
-	textsearch "github.com/primandproper/platform-go/v4/search/text"
-	textsearchcfg "github.com/primandproper/platform-go/v4/search/text/config"
+	"github.com/primandproper/platform-go/v5/filtering"
+	"github.com/primandproper/platform-go/v5/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
+	"github.com/primandproper/platform-go/v5/observability"
+	"github.com/primandproper/platform-go/v5/observability/logging"
+	"github.com/primandproper/platform-go/v5/observability/metrics"
+	"github.com/primandproper/platform-go/v5/observability/tracing"
+	textsearch "github.com/primandproper/platform-go/v5/search/text"
+	textsearchcfg "github.com/primandproper/platform-go/v5/search/text/config"
 )
 
 const (

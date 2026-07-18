@@ -3,7 +3,7 @@ package converters
 import (
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v4/identifiers"
+	"github.com/primandproper/platform-go/v5/identifiers"
 )
 
 // ConvertValidMeasurementUnitToValidMeasurementUnitUpdateRequestInput creates a ValidMeasurementUnitUpdateRequestInput from a MeasurementUnit.

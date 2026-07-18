@@ -5,7 +5,7 @@ import (
 
 	queuetest "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
 
-	"github.com/primandproper/platform-go/v4/observability/metrics"
+	"github.com/primandproper/platform-go/v5/observability/metrics"
 )
 
 // BuildResult holds the queue test job and a cleanup that flushes metrics so

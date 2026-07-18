@@ -5,9 +5,9 @@ import (
 
 	settingssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 
-	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
-	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
+	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
+	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 )

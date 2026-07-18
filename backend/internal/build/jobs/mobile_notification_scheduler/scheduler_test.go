@@ -11,11 +11,11 @@ import (
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	mealplanningnotifications "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
 
-	msgqueuemock "github.com/primandproper/platform-go/v4/messagequeue/mock"
-	notifications "github.com/primandproper/platform-go/v4/notifications/mobile"
-	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v4/reflection"
+	msgqueuemock "github.com/primandproper/platform-go/v5/messagequeue/mock"
+	notifications "github.com/primandproper/platform-go/v5/notifications/mobile"
+	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v5/reflection"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

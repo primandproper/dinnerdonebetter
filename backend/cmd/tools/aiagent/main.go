@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/primandproper/platform-go/v4/httpclient"
+	"github.com/primandproper/platform-go/v5/httpclient"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/adk/agent"

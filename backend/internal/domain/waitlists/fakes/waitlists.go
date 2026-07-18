@@ -6,7 +6,7 @@ import (
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/converters"
 
-	"github.com/primandproper/platform-go/v4/filtering"
+	"github.com/primandproper/platform-go/v5/filtering"
 )
 
 // BuildFakeWaitlist builds a fake waitlist.

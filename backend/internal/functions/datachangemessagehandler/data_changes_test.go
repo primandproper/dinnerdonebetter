@@ -18,9 +18,9 @@ import (
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	msgqueuemock "github.com/primandproper/platform-go/v4/messagequeue/mock"
-	"github.com/primandproper/platform-go/v4/reflection"
-	textsearch "github.com/primandproper/platform-go/v4/search/text"
+	msgqueuemock "github.com/primandproper/platform-go/v5/messagequeue/mock"
+	"github.com/primandproper/platform-go/v5/reflection"
+	textsearch "github.com/primandproper/platform-go/v5/search/text"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

@@ -10,9 +10,9 @@ import (
 	domainnotifications "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications"
 	notificationsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/mock"
 
-	"github.com/primandproper/platform-go/v4/filtering"
-	notifications "github.com/primandproper/platform-go/v4/notifications/mobile"
-	"github.com/primandproper/platform-go/v4/reflection"
+	"github.com/primandproper/platform-go/v5/filtering"
+	notifications "github.com/primandproper/platform-go/v5/notifications/mobile"
+	"github.com/primandproper/platform-go/v5/reflection"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

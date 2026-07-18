@@ -3,7 +3,7 @@ package converters
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v4/identifiers"
+	"github.com/primandproper/platform-go/v5/identifiers"
 )
 
 // ConvertValidIngredientToValidIngredientUpdateRequestInput creates a ValidIngredientUpdateRequestInput from a ValidIngredient.

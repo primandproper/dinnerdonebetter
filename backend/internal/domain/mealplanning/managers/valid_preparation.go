@@ -10,11 +10,11 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	platformerrors "github.com/primandproper/platform-go/v4/errors"
-	"github.com/primandproper/platform-go/v4/filtering"
-	"github.com/primandproper/platform-go/v4/observability"
-	platformkeys "github.com/primandproper/platform-go/v4/observability/keys"
-	"github.com/primandproper/platform-go/v4/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v5/errors"
+	"github.com/primandproper/platform-go/v5/filtering"
+	"github.com/primandproper/platform-go/v5/observability"
+	platformkeys "github.com/primandproper/platform-go/v5/observability/keys"
+	"github.com/primandproper/platform-go/v5/observability/tracing"
 )
 
 func (m *mealPlanningManager) SearchValidPreparations(ctx context.Context, query string, useSearchService bool, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPreparation], error) {

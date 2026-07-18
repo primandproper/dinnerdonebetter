@@ -12,25 +12,25 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v4/authentication/totp"
-	"github.com/primandproper/platform-go/v4/routing"
+	"github.com/primandproper/platform-go/v5/authentication/totp"
+	"github.com/primandproper/platform-go/v5/routing"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/oauthex"
 )
 
 // registerOAuth2Routes adds all OAuth2 authorization server endpoints to the router.
-func registerOAuth2Routes(router routing.Router, ts *tokenStore, baseURL string, identityRepo identity.Repository, authenticator authentication.Authenticator, totpVerifier totp.Verifier) {
+func registerOAuth2Routes(router *routing.Router, ts *tokenStore, baseURL string, identityRepo identity.Repository, authenticator authentication.Authenticator, totpVerifier totp.Verifier) {
 	// Protected Resource Metadata (RFC 9728)
-	router.Get("/.well-known/oauth-protected-resource", auth.ProtectedResourceMetadataHandler(&oauthex.ProtectedResourceMetadata{
+	router.Handle(http.MethodGet, "/.well-known/oauth-protected-resource", auth.ProtectedResourceMetadataHandler(&oauthex.ProtectedResourceMetadata{
 		Resource:               baseURL,
 		AuthorizationServers:   []string{baseURL},
 		BearerMethodsSupported: []string{"header"},
 		ResourceName:           "Dinner Done Better MCP Server",
-	}).ServeHTTP)
+	}))
 
 	// Authorization Server Metadata (RFC 8414)
-	router.Get("/.well-known/oauth-authorization-server", func(w http.ResponseWriter, r *http.Request) {
+	router.Handle(http.MethodGet, "/.well-known/oauth-authorization-server", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		if err := json.NewEncoder(w).Encode(map[string]any{
@@ -45,17 +45,17 @@ func registerOAuth2Routes(router routing.Router, ts *tokenStore, baseURL string,
 		}); err != nil {
 			http.Error(w, "failed to encode metadata", http.StatusInternalServerError)
 		}
-	})
+	}))
 
 	// Authorization endpoint — serves login form and processes login
-	router.Get("/authorize", handleAuthorizeGET)
-	router.Post("/authorize", handleAuthorizePOST(ts, identityRepo, authenticator, totpVerifier))
+	router.Handle(http.MethodGet, "/authorize", http.HandlerFunc(handleAuthorizeGET))
+	router.Handle(http.MethodPost, "/authorize", handleAuthorizePOST(ts, identityRepo, authenticator, totpVerifier))
 
 	// Token endpoint — exchanges codes for tokens and handles refresh
-	router.Post("/token", handleToken(ts))
+	router.Handle(http.MethodPost, "/token", handleToken(ts))
 
 	// Dynamic Client Registration (RFC 7591)
-	router.Post("/register", handleRegister(ts))
+	router.Handle(http.MethodPost, "/register", handleRegister(ts))
 }
 
 // loginFormData is template data for the login form.

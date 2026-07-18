@@ -4,19 +4,19 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	paymentswebhook "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/http"
 
-	"github.com/primandproper/platform-go/v4/healthcheck"
-	"github.com/primandproper/platform-go/v4/observability/logging"
-	"github.com/primandproper/platform-go/v4/observability/metrics"
-	"github.com/primandproper/platform-go/v4/observability/tracing"
-	"github.com/primandproper/platform-go/v4/routing"
-	routingcfg "github.com/primandproper/platform-go/v4/routing/config"
+	"github.com/primandproper/platform-go/v5/healthcheck"
+	"github.com/primandproper/platform-go/v5/observability/logging"
+	"github.com/primandproper/platform-go/v5/observability/metrics"
+	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v5/routing"
+	routingcfg "github.com/primandproper/platform-go/v5/routing/config"
 
 	"github.com/samber/do/v2"
 )
 
 // RegisterAPIRouter registers the API router provider with the injector.
 func RegisterAPIRouter(i do.Injector) {
-	do.Provide[routing.Router](i, func(i do.Injector) (routing.Router, error) {
+	do.Provide[*routing.Router](i, func(i do.Injector) (*routing.Router, error) {
 		return ProvideAPIRouter(
 			*do.MustInvoke[*routingcfg.Config](i),
 			do.MustInvoke[logging.Logger](i),

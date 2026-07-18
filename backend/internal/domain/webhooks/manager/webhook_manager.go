@@ -9,14 +9,14 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
 	webhookkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/keys"
 
-	platformerrors "github.com/primandproper/platform-go/v4/errors"
-	"github.com/primandproper/platform-go/v4/filtering"
-	"github.com/primandproper/platform-go/v4/identifiers"
-	"github.com/primandproper/platform-go/v4/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
-	"github.com/primandproper/platform-go/v4/observability"
-	"github.com/primandproper/platform-go/v4/observability/logging"
-	"github.com/primandproper/platform-go/v4/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v5/errors"
+	"github.com/primandproper/platform-go/v5/filtering"
+	"github.com/primandproper/platform-go/v5/identifiers"
+	"github.com/primandproper/platform-go/v5/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
+	"github.com/primandproper/platform-go/v5/observability"
+	"github.com/primandproper/platform-go/v5/observability/logging"
+	"github.com/primandproper/platform-go/v5/observability/tracing"
 )
 
 const (

@@ -5,7 +5,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v4/filtering"
+	"github.com/primandproper/platform-go/v5/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )

@@ -8,12 +8,12 @@ import (
 	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 
-	"github.com/primandproper/platform-go/v4/authentication/tokens"
-	"github.com/primandproper/platform-go/v4/authentication/totp"
-	"github.com/primandproper/platform-go/v4/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
-	"github.com/primandproper/platform-go/v4/observability/logging"
-	"github.com/primandproper/platform-go/v4/observability/tracing"
+	"github.com/primandproper/platform-go/v5/authentication/tokens"
+	"github.com/primandproper/platform-go/v5/authentication/totp"
+	"github.com/primandproper/platform-go/v5/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
+	"github.com/primandproper/platform-go/v5/observability/logging"
+	"github.com/primandproper/platform-go/v5/observability/tracing"
 
 	"github.com/go-oauth2/oauth2/v4/manage"
 	"github.com/go-oauth2/oauth2/v4/server"

@@ -16,12 +16,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	encryptioncfg "github.com/primandproper/platform-go/v4/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v4/database"
-	databasecfg "github.com/primandproper/platform-go/v4/database/config"
-	"github.com/primandproper/platform-go/v4/filtering"
-	"github.com/primandproper/platform-go/v4/identifiers"
-	"github.com/primandproper/platform-go/v4/retry"
+	encryptioncfg "github.com/primandproper/platform-go/v5/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v5/database"
+	databasecfg "github.com/primandproper/platform-go/v5/database/config"
+	"github.com/primandproper/platform-go/v5/filtering"
+	"github.com/primandproper/platform-go/v5/identifiers"
+	"github.com/primandproper/platform-go/v5/retry"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"

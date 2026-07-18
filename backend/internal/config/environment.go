@@ -9,8 +9,8 @@ import (
 	"path"
 	"strings"
 
-	databasecfg "github.com/primandproper/platform-go/v4/database/config"
-	"github.com/primandproper/platform-go/v4/observability"
+	databasecfg "github.com/primandproper/platform-go/v5/database/config"
+	"github.com/primandproper/platform-go/v5/observability"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"

@@ -5,7 +5,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v4/filtering"
+	"github.com/primandproper/platform-go/v5/filtering"
 )
 
 // Valid-enumeration mock methods for MockMealPlanningManager. Struct is defined in meal_planning_manager.go.

@@ -7,14 +7,14 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	queuetest "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
 
-	databasecfg "github.com/primandproper/platform-go/v4/database/config"
-	"github.com/primandproper/platform-go/v4/database/postgres"
-	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
-	"github.com/primandproper/platform-go/v4/observability"
-	loggingcfg "github.com/primandproper/platform-go/v4/observability/logging/config"
-	"github.com/primandproper/platform-go/v4/observability/metrics"
-	metricscfg "github.com/primandproper/platform-go/v4/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v4/observability/tracing/config"
+	databasecfg "github.com/primandproper/platform-go/v5/database/config"
+	"github.com/primandproper/platform-go/v5/database/postgres"
+	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
+	"github.com/primandproper/platform-go/v5/observability"
+	loggingcfg "github.com/primandproper/platform-go/v5/observability/logging/config"
+	"github.com/primandproper/platform-go/v5/observability/metrics"
+	metricscfg "github.com/primandproper/platform-go/v5/observability/metrics/config"
+	tracingcfg "github.com/primandproper/platform-go/v5/observability/tracing/config"
 
 	"github.com/samber/do/v2"
 )

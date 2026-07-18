@@ -5,7 +5,7 @@ import (
 	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
 	auditsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 
-	"github.com/primandproper/platform-go/v4/pointer"
+	"github.com/primandproper/platform-go/v5/pointer"
 )
 
 func ConvertAuditLogEntryToGRPCAuditLogEntry(entry *audit.AuditLogEntry) *auditsvc.AuditLogEntry {

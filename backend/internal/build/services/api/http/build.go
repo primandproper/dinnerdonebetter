@@ -17,19 +17,18 @@ import (
 	paymentsadapters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/adapters"
 	paymentshttp "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/http"
 
-	analyticscfg "github.com/primandproper/platform-go/v4/analytics/config"
-	"github.com/primandproper/platform-go/v4/database"
-	databasecfg "github.com/primandproper/platform-go/v4/database/config"
-	"github.com/primandproper/platform-go/v4/encoding"
-	"github.com/primandproper/platform-go/v4/healthcheck"
-	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
-	"github.com/primandproper/platform-go/v4/observability"
-	loggingcfg "github.com/primandproper/platform-go/v4/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v4/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v4/observability/tracing/config"
-	"github.com/primandproper/platform-go/v4/random"
-	routingcfg "github.com/primandproper/platform-go/v4/routing/config"
-	"github.com/primandproper/platform-go/v4/server/http"
+	analyticscfg "github.com/primandproper/platform-go/v5/analytics/config"
+	"github.com/primandproper/platform-go/v5/database"
+	databasecfg "github.com/primandproper/platform-go/v5/database/config"
+	"github.com/primandproper/platform-go/v5/encoding"
+	"github.com/primandproper/platform-go/v5/healthcheck"
+	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
+	"github.com/primandproper/platform-go/v5/observability"
+	loggingcfg "github.com/primandproper/platform-go/v5/observability/logging/config"
+	metricscfg "github.com/primandproper/platform-go/v5/observability/metrics/config"
+	tracingcfg "github.com/primandproper/platform-go/v5/observability/tracing/config"
+	"github.com/primandproper/platform-go/v5/random"
+	"github.com/primandproper/platform-go/v5/server/http"
 
 	"github.com/samber/do/v2"
 )
@@ -65,7 +64,6 @@ func BuildInjector(
 		}
 		return registry, nil
 	})
-	routingcfg.RegisterRouteParamManager(i)
 	random.RegisterGenerator(i)
 	http.RegisterHTTPServer(i, "api_server")
 

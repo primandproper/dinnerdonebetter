@@ -5,7 +5,7 @@ import (
 	"encoding/gob"
 	"time"
 
-	"github.com/primandproper/platform-go/v4/filtering"
+	"github.com/primandproper/platform-go/v5/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
