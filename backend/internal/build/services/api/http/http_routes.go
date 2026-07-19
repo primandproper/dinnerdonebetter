@@ -6,14 +6,14 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	paymentswebhook "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/http"
 
-	"github.com/primandproper/platform-go/v4/encoding"
-	"github.com/primandproper/platform-go/v4/healthcheck"
-	"github.com/primandproper/platform-go/v4/observability/logging"
-	"github.com/primandproper/platform-go/v4/observability/metrics"
-	"github.com/primandproper/platform-go/v4/observability/tracing"
-	"github.com/primandproper/platform-go/v4/routing"
-	routingcfg "github.com/primandproper/platform-go/v4/routing/config"
-	"github.com/primandproper/platform-go/v4/version"
+	"github.com/primandproper/platform-go/v5/encoding"
+	"github.com/primandproper/platform-go/v5/healthcheck"
+	"github.com/primandproper/platform-go/v5/observability/logging"
+	"github.com/primandproper/platform-go/v5/observability/metrics"
+	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v5/routing"
+	routingcfg "github.com/primandproper/platform-go/v5/routing/config"
+	"github.com/primandproper/platform-go/v5/version"
 )
 
 func ProvideAPIRouter(
@@ -24,44 +24,48 @@ func ProvideAPIRouter(
 	authService auth.AuthDataService,
 	paymentsWebhookHandler *paymentswebhook.WebhookHandler,
 	healthRegistry healthcheck.Registry,
-) (routing.Router, error) {
-	router, err := routingConfig.NewRouter(logger, tracerProvider, metricsProvider)
+) (*routing.Router, error) {
+	encoder := encoding.NewServerEncoderDecoder(logger, tracerProvider, encoding.ContentTypeJSON)
+
+	router, err := routingcfg.NewRouter(&routingConfig, encoder, logger, tracerProvider, metricsProvider)
 	if err != nil {
 		return nil, err
 	}
 
-	encoder := encoding.NewServerEncoderDecoder(logger, tracerProvider, encoding.ContentTypeJSON)
-
-	router.Route("/_ops_", func(metaRouter routing.Router) {
+	router.Group("/_ops_", func(metaRouter *routing.Router) {
 		// Expose a liveness check on /live
-		metaRouter.Get("/live", func(res http.ResponseWriter, req *http.Request) {
+		metaRouter.Handle(http.MethodGet, "/live", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 			res.WriteHeader(http.StatusOK)
-		})
+		}))
 
 		// Expose a readiness check on /ready
-		metaRouter.Get("/ready", func(res http.ResponseWriter, req *http.Request) {
+		metaRouter.Handle(http.MethodGet, "/ready", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 			result := healthRegistry.CheckAll(req.Context())
 			status := http.StatusOK
 			if result.Status != healthcheck.StatusUp {
 				status = http.StatusServiceUnavailable
 			}
 			encoder.EncodeResponseWithStatus(req.Context(), res, result, status)
-		})
+		}))
 
-		metaRouter.Get("/version", func(res http.ResponseWriter, req *http.Request) {
+		metaRouter.Handle(http.MethodGet, "/version", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 			encoder.EncodeResponseWithStatus(req.Context(), res, version.Get(), http.StatusOK)
-		})
+		}))
 	})
 
-	router.Route("/oauth2", func(userRouter routing.Router) {
-		userRouter.Get("/authorize", authService.AuthorizeHandler)
-		userRouter.Post("/token", authService.TokenHandler)
-		userRouter.Post("/revoke", authService.RevokeHandler)
+	router.Group("/oauth2", func(userRouter *routing.Router) {
+		userRouter.Handle(http.MethodGet, "/authorize", http.HandlerFunc(authService.AuthorizeHandler))
+		userRouter.Handle(http.MethodPost, "/token", http.HandlerFunc(authService.TokenHandler))
+		userRouter.Handle(http.MethodPost, "/revoke", http.HandlerFunc(authService.RevokeHandler))
 	})
 
-	router.Route("/api/payments/webhooks", func(paymentsRouter routing.Router) {
-		paymentsRouter.Post("/{provider}", paymentsWebhookHandler.Handle)
+	router.Group("/api/payments/webhooks", func(paymentsRouter *routing.Router) {
+		paymentsRouter.Handle(http.MethodPost, "/{provider}", http.HandlerFunc(paymentsWebhookHandler.Handle))
 	})
+
+	if err = router.Err(); err != nil {
+		return nil, err
+	}
 
 	return router, nil
 }

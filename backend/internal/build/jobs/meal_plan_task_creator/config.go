@@ -3,10 +3,10 @@ package mealplantaskcreator
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v4/analytics/config"
-	databasecfg "github.com/primandproper/platform-go/v4/database/config"
-	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
-	"github.com/primandproper/platform-go/v4/observability"
+	analyticscfg "github.com/primandproper/platform-go/v5/analytics/config"
+	databasecfg "github.com/primandproper/platform-go/v5/database/config"
+	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
+	"github.com/primandproper/platform-go/v5/observability"
 
 	"github.com/samber/do/v2"
 )

@@ -1,7 +1,7 @@
 package mealplanning
 
 import (
-	platformerrors "github.com/primandproper/platform-go/v4/errors"
+	platformerrors "github.com/primandproper/platform-go/v5/errors"
 )
 
 var (

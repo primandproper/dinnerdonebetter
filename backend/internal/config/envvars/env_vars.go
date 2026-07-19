@@ -517,8 +517,44 @@ const (
 	// RoutingChiValidDomainsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.Chi.ValidDomains`.
 	RoutingChiValidDomainsEnvVarKey = "DINNER_DONE_BETTER_ROUTING_CHI_VALID_DOMAINS"
 
+	// RoutingGinEnableCorsForLocalhostEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.Gin.EnableCORSForLocalhost`.
+	RoutingGinEnableCorsForLocalhostEnvVarKey = "DINNER_DONE_BETTER_ROUTING_GIN_ENABLE_CORS_FOR_LOCALHOST"
+
+	// RoutingGinServiceNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.Gin.ServiceName`.
+	RoutingGinServiceNameEnvVarKey = "DINNER_DONE_BETTER_ROUTING_GIN_SERVICE_NAME"
+
+	// RoutingGinSilenceRouteLoggingEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.Gin.SilenceRouteLogging`.
+	RoutingGinSilenceRouteLoggingEnvVarKey = "DINNER_DONE_BETTER_ROUTING_GIN_SILENCE_ROUTE_LOGGING"
+
+	// RoutingGinValidDomainsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.Gin.ValidDomains`.
+	RoutingGinValidDomainsEnvVarKey = "DINNER_DONE_BETTER_ROUTING_GIN_VALID_DOMAINS"
+
+	// RoutingHttprouterEnableCorsForLocalhostEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.HTTPRouter.EnableCORSForLocalhost`.
+	RoutingHttprouterEnableCorsForLocalhostEnvVarKey = "DINNER_DONE_BETTER_ROUTING_HTTPROUTER_ENABLE_CORS_FOR_LOCALHOST"
+
+	// RoutingHttprouterServiceNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.HTTPRouter.ServiceName`.
+	RoutingHttprouterServiceNameEnvVarKey = "DINNER_DONE_BETTER_ROUTING_HTTPROUTER_SERVICE_NAME"
+
+	// RoutingHttprouterSilenceRouteLoggingEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.HTTPRouter.SilenceRouteLogging`.
+	RoutingHttprouterSilenceRouteLoggingEnvVarKey = "DINNER_DONE_BETTER_ROUTING_HTTPROUTER_SILENCE_ROUTE_LOGGING"
+
+	// RoutingHttprouterValidDomainsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.HTTPRouter.ValidDomains`.
+	RoutingHttprouterValidDomainsEnvVarKey = "DINNER_DONE_BETTER_ROUTING_HTTPROUTER_VALID_DOMAINS"
+
 	// RoutingProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.Provider`.
 	RoutingProviderEnvVarKey = "DINNER_DONE_BETTER_ROUTING_PROVIDER"
+
+	// RoutingStdlibEnableCorsForLocalhostEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.Stdlib.EnableCORSForLocalhost`.
+	RoutingStdlibEnableCorsForLocalhostEnvVarKey = "DINNER_DONE_BETTER_ROUTING_STDLIB_ENABLE_CORS_FOR_LOCALHOST"
+
+	// RoutingStdlibServiceNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.Stdlib.ServiceName`.
+	RoutingStdlibServiceNameEnvVarKey = "DINNER_DONE_BETTER_ROUTING_STDLIB_SERVICE_NAME"
+
+	// RoutingStdlibSilenceRouteLoggingEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.Stdlib.SilenceRouteLogging`.
+	RoutingStdlibSilenceRouteLoggingEnvVarKey = "DINNER_DONE_BETTER_ROUTING_STDLIB_SILENCE_ROUTE_LOGGING"
+
+	// RoutingStdlibValidDomainsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.Stdlib.ValidDomains`.
+	RoutingStdlibValidDomainsEnvVarKey = "DINNER_DONE_BETTER_ROUTING_STDLIB_VALID_DOMAINS"
 
 	// SearchAlgoliaAPIKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.TextSearch.Algolia.APIKey`.
 	SearchAlgoliaAPIKeyEnvVarKey = "DINNER_DONE_BETTER_SEARCH_ALGOLIA_API_KEY"

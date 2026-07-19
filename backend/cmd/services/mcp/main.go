@@ -21,12 +21,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
 	waitlistsrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 
-	"github.com/primandproper/platform-go/v4/authentication/totp"
-	"github.com/primandproper/platform-go/v4/encoding"
-	"github.com/primandproper/platform-go/v4/observability"
-	"github.com/primandproper/platform-go/v4/routing"
-	routingcfg "github.com/primandproper/platform-go/v4/routing/config"
-	"github.com/primandproper/platform-go/v4/version"
+	"github.com/primandproper/platform-go/v5/authentication/totp"
+	"github.com/primandproper/platform-go/v5/encoding"
+	"github.com/primandproper/platform-go/v5/observability"
+	"github.com/primandproper/platform-go/v5/routing"
+	routingcfg "github.com/primandproper/platform-go/v5/routing/config"
+	"github.com/primandproper/platform-go/v5/version"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -183,36 +183,45 @@ func main() {
 }
 
 // buildRouter creates a router with OAuth2 routes (unauthenticated) and the MCP handler (authenticated).
-func buildRouter(mcpHandler http.Handler, tokens *tokenStore, pillars *observability.Pillars, routingCfg *routingcfg.Config, baseURL string, identityRepo identity.Repository, authenticator authentication.Authenticator, totpVerifier totp.Verifier) (routing.Router, error) {
-	router, err := routingCfg.NewRouter(pillars.Logger, pillars.TracerProvider, pillars.MetricsProvider)
+func buildRouter(mcpHandler http.Handler, tokens *tokenStore, pillars *observability.Pillars, routingCfg *routingcfg.Config, baseURL string, identityRepo identity.Repository, authenticator authentication.Authenticator, totpVerifier totp.Verifier) (*routing.Router, error) {
+	encoder := encoding.NewServerEncoderDecoder(pillars.Logger, pillars.TracerProvider, encoding.ContentTypeJSON)
+
+	router, err := routingcfg.NewRouter(routingCfg, encoder, pillars.Logger, pillars.TracerProvider, pillars.MetricsProvider)
 	if err != nil {
 		return nil, err
 	}
 
-	encoder := encoding.NewServerEncoderDecoder(pillars.Logger, pillars.TracerProvider, encoding.ContentTypeJSON)
-
 	// Ops routes (unauthenticated).
-	router.Route("/_ops_", func(opsRouter routing.Router) {
-		opsRouter.Get("/live", func(res http.ResponseWriter, req *http.Request) {
+	router.Group("/_ops_", func(opsRouter *routing.Router) {
+		opsRouter.Handle(http.MethodGet, "/live", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 			res.WriteHeader(http.StatusOK)
-		})
-		opsRouter.Get("/ready", func(res http.ResponseWriter, req *http.Request) {
+		}))
+		opsRouter.Handle(http.MethodGet, "/ready", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 			res.WriteHeader(http.StatusOK)
-		})
-		opsRouter.Get("/version", func(res http.ResponseWriter, req *http.Request) {
+		}))
+		opsRouter.Handle(http.MethodGet, "/version", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 			res.Header().Set("Content-Type", "application/json")
 			encoder.EncodeResponseWithStatus(req.Context(), res, version.Get(), http.StatusOK)
-		})
+		}))
 	})
 
 	// Register OAuth2 routes (no auth middleware — these handle authentication themselves).
 	registerOAuth2Routes(router, tokens, baseURL, identityRepo, authenticator, totpVerifier)
 
-	// Wrap the MCP handler with bearer token auth middleware.
+	// Wrap the MCP handler with bearer token auth middleware. The MCP transport
+	// serves multiple methods (GET for streaming, POST for messages, DELETE to
+	// terminate a session), so register the handler for each.
 	authMiddleware := auth.RequireBearerToken(tokens.verifyToken, &auth.RequireBearerTokenOptions{
 		ResourceMetadataURL: baseURL + "/.well-known/oauth-protected-resource",
 	})
-	router.Handle("/mcp", authMiddleware(mcpHandler))
+	mcpWrapped := authMiddleware(mcpHandler)
+	for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodDelete} {
+		router.Handle(method, "/mcp", mcpWrapped)
+	}
+
+	if err = router.Err(); err != nil {
+		return nil, err
+	}
 
 	return router, nil
 }

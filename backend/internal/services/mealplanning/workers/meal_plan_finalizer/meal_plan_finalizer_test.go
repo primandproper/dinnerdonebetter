@@ -8,12 +8,12 @@ import (
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v4/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v4/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v4/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v4/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v4/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v4/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v5/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
+	mockpublishers "github.com/primandproper/platform-go/v5/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v5/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
