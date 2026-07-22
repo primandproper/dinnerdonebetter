@@ -6,12 +6,18 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	datachangemessagehandler "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/functions/data_change_message_handler"
+	datachangemessagehandlerbuild "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/functions/data_change_message_handler"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
 
+	"github.com/primandproper/platform-go/v5/observability/metrics"
+	"github.com/primandproper/platform-go/v5/observability/tracing"
+
+	"github.com/samber/do/v2"
 	_ "go.uber.org/automaxprocs"
 )
 
@@ -54,10 +60,22 @@ func main() {
 
 	ctx := context.Background()
 
-	dataChangeMessageHandler, err := datachangemessagehandler.Build(ctx, cfg)
-	if err != nil {
-		log.Fatalf("error building data_change_message_handler: %v", err)
-	}
+	injector := datachangemessagehandlerbuild.BuildInjector(ctx, cfg)
+
+	// Flush telemetry on exit so a short-lived pod exports its spans/metrics before terminating.
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+
+		if shutdownErr := do.MustInvoke[metrics.Provider](injector).Shutdown(shutdownCtx); shutdownErr != nil {
+			log.Printf("error shutting down metrics: %v", shutdownErr)
+		}
+		if flushErr := do.MustInvoke[tracing.TracerProvider](injector).ForceFlush(shutdownCtx); flushErr != nil {
+			log.Printf("error flushing traces: %v", flushErr)
+		}
+	}()
+
+	dataChangeMessageHandler := do.MustInvoke[*datachangemessagehandler.AsyncDataChangeMessageHandler](injector)
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(
@@ -77,12 +95,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// os.Interrupt
+	// Block until the first shutdown signal arrives.
 	<-signalChan
 
-	go func() {
-		// os.Kill
-		<-signalChan
-		stopChan <- true
-	}()
+	// Closing stopChan broadcasts to every consumer; then wait for in-flight handlers to drain
+	// before the deferred telemetry flush runs and main returns.
+	close(stopChan)
+
+	drainCtx, cancelDrain := context.WithTimeout(ctx, 30*time.Second)
+	defer cancelDrain()
+	dataChangeMessageHandler.WaitForConsumers(drainCtx)
 }

@@ -2,7 +2,9 @@ package grpcapi
 
 import (
 	"context"
+	"fmt"
 	"maps"
+	"runtime/debug"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 	analyticspb "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
@@ -26,6 +28,7 @@ import (
 	authgrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	commentsgrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/comments/grpc"
+	dataprivacygrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
 	identitygrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/grpc"
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	internalopsgrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/internalops/grpc"
@@ -49,6 +52,8 @@ import (
 
 	"github.com/samber/do/v2"
 	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // RegisterExtras registers the helper functions with the injector.
@@ -73,6 +78,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[auditgrpc.AuditMethodPermissions](i),
 			do.MustInvoke[authgrpc.AuthMethodPermissions](i),
 			do.MustInvoke[commentsgrpc.CommentsMethodPermissions](i),
+			do.MustInvoke[dataprivacygrpc.DataPrivacyMethodPermissions](i),
 			do.MustInvoke[identitygrpc.IdentityMethodPermissions](i),
 			do.MustInvoke[internalopsgrpc.InternalOpsMethodPermissions](i),
 			do.MustInvoke[issuereportsgrpc.IssueReportsMethodPermissions](i),
@@ -88,13 +94,15 @@ func RegisterExtras(i do.Injector) {
 	})
 
 	do.Provide(i, func(i do.Injector) ([]grpc.UnaryServerInterceptor, error) {
+		logger := do.MustInvoke[logging.Logger](i)
 		authInterceptor := do.MustInvoke[*interceptors.AuthInterceptor](i)
-		return BuildUnaryServerInterceptors(authInterceptor), nil
+		return BuildUnaryServerInterceptors(logger, authInterceptor), nil
 	})
 
 	do.Provide(i, func(i do.Injector) ([]grpc.StreamServerInterceptor, error) {
+		logger := do.MustInvoke[logging.Logger](i)
 		authInterceptor := do.MustInvoke[*interceptors.AuthInterceptor](i)
-		return BuildStreamServerInterceptors(authInterceptor), nil
+		return BuildStreamServerInterceptors(logger, authInterceptor), nil
 	})
 
 	do.Provide(i, func(i do.Injector) ([]platformgrpc.RegistrationFunc, error) {
@@ -179,17 +187,50 @@ func BuildRegistrationFuncs(
 	}
 }
 
-func BuildUnaryServerInterceptors(authInterceptor *interceptors.AuthInterceptor) []grpc.UnaryServerInterceptor {
+func BuildUnaryServerInterceptors(logger logging.Logger, authInterceptor *interceptors.AuthInterceptor) []grpc.UnaryServerInterceptor {
 	return []grpc.UnaryServerInterceptor{
+		// recovery must be outermost so it catches panics from downstream interceptors and handlers.
+		RecoveryUnaryServerInterceptor(logger),
 		authInterceptor.UnaryServerInterceptor(),
 		errorsgrpc.UnaryErrorEncodingInterceptor(),
 	}
 }
 
-func BuildStreamServerInterceptors(authInterceptor *interceptors.AuthInterceptor) []grpc.StreamServerInterceptor {
+func BuildStreamServerInterceptors(logger logging.Logger, authInterceptor *interceptors.AuthInterceptor) []grpc.StreamServerInterceptor {
 	return []grpc.StreamServerInterceptor{
+		// recovery must be outermost so it catches panics from downstream interceptors and handlers.
+		RecoveryStreamServerInterceptor(logger),
 		authInterceptor.StreamServerInterceptor(),
 		errorsgrpc.StreamErrorEncodingInterceptor(),
+	}
+}
+
+// RecoveryUnaryServerInterceptor recovers from panics in unary handlers, logs them, and maps them to codes.Internal
+// so a single nil-dereference degrades into a 500 rather than crashing the process.
+func RecoveryUnaryServerInterceptor(logger logging.Logger) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.WithValue("method", info.FullMethod).WithValue("stack", string(debug.Stack())).Error("recovered from panic in gRPC unary handler", fmt.Errorf("%v", r))
+				err = status.Errorf(codes.Internal, "internal server error")
+			}
+		}()
+
+		return handler(ctx, req)
+	}
+}
+
+// RecoveryStreamServerInterceptor recovers from panics in stream handlers, logs them, and maps them to codes.Internal.
+func RecoveryStreamServerInterceptor(logger logging.Logger) grpc.StreamServerInterceptor {
+	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.WithValue("method", info.FullMethod).WithValue("stack", string(debug.Stack())).Error("recovered from panic in gRPC stream handler", fmt.Errorf("%v", r))
+				err = status.Errorf(codes.Internal, "internal server error")
+			}
+		}()
+
+		return handler(srv, ss)
 	}
 }
 
@@ -220,6 +261,7 @@ func AggregateMethodPermissions(
 	auditPermissions auditgrpc.AuditMethodPermissions,
 	authPermissions authgrpc.AuthMethodPermissions,
 	commentsPermissions commentsgrpc.CommentsMethodPermissions,
+	dataprivacyPermissions dataprivacygrpc.DataPrivacyMethodPermissions,
 	identityPermissions identitygrpc.IdentityMethodPermissions,
 	internalopsPermissions internalopsgrpc.InternalOpsMethodPermissions,
 	issuereportsPermissions issuereportsgrpc.IssueReportsMethodPermissions,
@@ -238,6 +280,7 @@ func AggregateMethodPermissions(
 	maps.Copy(result, auditPermissions)
 	maps.Copy(result, authPermissions)
 	maps.Copy(result, commentsPermissions)
+	maps.Copy(result, dataprivacyPermissions)
 	maps.Copy(result, identityPermissions)
 	maps.Copy(result, internalopsPermissions)
 	maps.Copy(result, issuereportsPermissions)

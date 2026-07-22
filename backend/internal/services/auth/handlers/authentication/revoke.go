@@ -1,6 +1,7 @@
 package authentication
 
 import (
+	"crypto/subtle"
 	"net/http"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
@@ -69,7 +70,7 @@ func (s *service) RevokeHandler(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	if oauthClient.ClientSecret != clientSecret {
+	if subtle.ConstantTimeCompare([]byte(oauthClient.ClientSecret), []byte(clientSecret)) != 1 {
 		res.WriteHeader(http.StatusUnauthorized)
 		return
 	}

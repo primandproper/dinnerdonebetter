@@ -153,13 +153,13 @@ SELECT
 			AND recipe_step_products.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				recipe_step_products.last_updated_at IS NULL
-				OR recipe_step_products.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR recipe_step_products.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				recipe_step_products.last_updated_at IS NULL
-				OR recipe_step_products.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR recipe_step_products.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_step_products.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_step_products.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipe_step_products.id)
@@ -188,7 +188,7 @@ WHERE recipe_step_products.archived_at IS NULL
 		recipe_step_products.last_updated_at IS NULL
 		OR recipe_step_products.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_step_products.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_step_products.archived_at IS NULL)
 	AND recipe_step_products.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY recipe_step_products.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

@@ -354,7 +354,7 @@ SELECT
 				valid_preparation_vessels.last_updated_at IS NULL
 				OR valid_preparation_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_preparation_vessels.id)
@@ -374,11 +374,11 @@ WHERE
 	AND valid_preparation_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_vessels.last_updated_at IS NULL
-		OR valid_preparation_vessels.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparation_vessels.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparation_vessels.last_updated_at IS NULL
-		OR valid_preparation_vessels.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparation_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND valid_preparation_vessels.id > COALESCE($6, '')
 ORDER BY valid_preparation_vessels.id ASC
@@ -388,8 +388,8 @@ LIMIT COALESCE($7, 50)
 type GetValidPreparationVesselsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -464,8 +464,8 @@ func (q *Queries) GetValidPreparationVessels(ctx context.Context, db DBTX, arg *
 	rows, err := db.QueryContext(ctx, getValidPreparationVessels,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -852,7 +852,7 @@ SELECT
 				valid_preparation_vessels.last_updated_at IS NULL
 				OR valid_preparation_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_preparation_vessels.id)
@@ -873,11 +873,11 @@ WHERE
 	AND valid_preparation_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_vessels.last_updated_at IS NULL
-		OR valid_preparation_vessels.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparation_vessels.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparation_vessels.last_updated_at IS NULL
-		OR valid_preparation_vessels.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparation_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND valid_preparation_vessels.id > COALESCE($7, '')
 ORDER BY valid_preparation_vessels.id ASC
@@ -887,8 +887,8 @@ LIMIT COALESCE($8, 50)
 type GetValidPreparationVesselsForPreparationParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
 	Cursor          sql.NullString
@@ -964,8 +964,8 @@ func (q *Queries) GetValidPreparationVesselsForPreparation(ctx context.Context, 
 	rows, err := db.QueryContext(ctx, getValidPreparationVesselsForPreparation,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
 		arg.Cursor,
@@ -1132,7 +1132,7 @@ SELECT
 				valid_preparation_vessels.last_updated_at IS NULL
 				OR valid_preparation_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_preparation_vessels.id)
@@ -1153,11 +1153,11 @@ WHERE
 	AND valid_preparation_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_vessels.last_updated_at IS NULL
-		OR valid_preparation_vessels.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparation_vessels.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparation_vessels.last_updated_at IS NULL
-		OR valid_preparation_vessels.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparation_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND valid_preparation_vessels.id > COALESCE($7, '')
 ORDER BY valid_preparation_vessels.id ASC
@@ -1167,8 +1167,8 @@ LIMIT COALESCE($8, 50)
 type GetValidPreparationVesselsForVesselParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
 	Cursor          sql.NullString
@@ -1244,8 +1244,8 @@ func (q *Queries) GetValidPreparationVesselsForVessel(ctx context.Context, db DB
 	rows, err := db.QueryContext(ctx, getValidPreparationVesselsForVessel,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
 		arg.Cursor,

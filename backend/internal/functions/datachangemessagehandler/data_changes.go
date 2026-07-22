@@ -59,6 +59,7 @@ func (a *AsyncDataChangeMessageHandler) handleDataChangeMessage(
 	topicName string,
 ) error {
 	ctx, span := a.tracer.StartSpan(ctx)
+	defer span.End()
 
 	if changeMessage == nil {
 		return errRequiredDataIsNil

@@ -134,13 +134,13 @@ SELECT
 			AND meal_plan_grocery_list_items.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meal_plan_grocery_list_items.last_updated_at IS NULL
-				OR meal_plan_grocery_list_items.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR meal_plan_grocery_list_items.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				meal_plan_grocery_list_items.last_updated_at IS NULL
-				OR meal_plan_grocery_list_items.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR meal_plan_grocery_list_items.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plan_grocery_list_items.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plan_grocery_list_items.archived_at IS NULL)
 			AND valid_measurement_units.archived_at IS NULL
 			AND valid_ingredients.archived_at IS NULL
 			AND meal_plans.archived_at IS NULL
@@ -175,7 +175,7 @@ WHERE meal_plan_grocery_list_items.archived_at IS NULL
 		meal_plan_grocery_list_items.last_updated_at IS NULL
 		OR meal_plan_grocery_list_items.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plan_grocery_list_items.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plan_grocery_list_items.archived_at IS NULL)
 	AND meal_plan_grocery_list_items.belongs_to_meal_plan = sqlc.arg(meal_plan_id)
 	AND valid_measurement_units.archived_at IS NULL
 	AND valid_ingredients.archived_at IS NULL

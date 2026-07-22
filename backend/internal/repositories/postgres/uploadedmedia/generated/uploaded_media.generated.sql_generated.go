@@ -129,7 +129,7 @@ SELECT
 				uploaded_media.last_updated_at IS NULL
 				OR uploaded_media.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR uploaded_media.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR uploaded_media.archived_at IS NULL)
 			AND uploaded_media.created_by_user = $6
 	) AS filtered_count,
 	(
@@ -145,11 +145,11 @@ WHERE uploaded_media.archived_at IS NULL
 	AND uploaded_media.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		uploaded_media.last_updated_at IS NULL
-		OR uploaded_media.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR uploaded_media.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		uploaded_media.last_updated_at IS NULL
-		OR uploaded_media.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR uploaded_media.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND uploaded_media.created_by_user = $6
 	AND uploaded_media.id > COALESCE($7, '')
@@ -160,8 +160,8 @@ LIMIT COALESCE($8, 50)
 type GetUploadedMediaForUserParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	CreatedByUser   string
 	Cursor          sql.NullString
@@ -184,8 +184,8 @@ func (q *Queries) GetUploadedMediaForUser(ctx context.Context, db DBTX, arg *Get
 	rows, err := db.QueryContext(ctx, getUploadedMediaForUser,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.CreatedByUser,
 		arg.Cursor,

@@ -139,16 +139,37 @@ func (x *MealPlanOptionVote) Update(input *MealPlanOptionVoteUpdateRequestInput)
 	}
 }
 
+var _ validation.ValidatableWithContext = (*MealPlanOptionVoteCreationInput)(nil)
+
+// ValidateWithContext validates a MealPlanOptionVoteCreationInput.
+func (x *MealPlanOptionVoteCreationInput) ValidateWithContext(ctx context.Context) error {
+	return validation.ValidateStructWithContext(
+		ctx,
+		x,
+		validation.Field(&x.BelongsToMealPlanOption, validation.Required),
+	)
+}
+
 var _ validation.ValidatableWithContext = (*MealPlanOptionVoteCreationRequestInput)(nil)
 
 // ValidateWithContext validates a MealPlanOptionVoteCreationRequestInput.
 func (x *MealPlanOptionVoteCreationRequestInput) ValidateWithContext(ctx context.Context) error {
-	// LATER: we should validate the contents of each individual vote
-	return validation.ValidateStructWithContext(
+	if err := validation.ValidateStructWithContext(
 		ctx,
 		x,
 		validation.Field(&x.Votes, validation.Required),
-	)
+	); err != nil {
+		return err
+	}
+
+	// every vote must name the meal plan option it belongs to.
+	for _, vote := range x.Votes {
+		if err := vote.ValidateWithContext(ctx); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 var _ validation.ValidatableWithContext = (*MealPlanOptionVotesDatabaseCreationInput)(nil)

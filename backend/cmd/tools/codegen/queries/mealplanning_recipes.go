@@ -146,8 +146,8 @@ ORDER BY %s.%s;`,
 				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
-	FULL OUTER JOIN %s ON %s.%s=%s.%s
-	FULL OUTER JOIN %s ON %s.%s=%s.%s
+	LEFT JOIN %s ON %s.%s=%s.%s
+	LEFT JOIN %s ON %s.%s=%s.%s
 WHERE %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 	AND %s.%s = sqlc.arg(%s)

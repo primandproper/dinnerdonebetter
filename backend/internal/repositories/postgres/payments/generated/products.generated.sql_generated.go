@@ -188,7 +188,7 @@ SELECT
 				products.last_updated_at IS NULL
 				OR products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR products.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(products.id)
@@ -201,13 +201,13 @@ WHERE products.archived_at IS NULL
 	AND products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		products.last_updated_at IS NULL
-		OR products.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR products.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		products.last_updated_at IS NULL
-		OR products.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR products.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	AND products.id > COALESCE($6, '')
 ORDER BY products.id ASC
 LIMIT COALESCE($7, 50)
@@ -216,8 +216,8 @@ LIMIT COALESCE($7, 50)
 type GetProductsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -243,8 +243,8 @@ func (q *Queries) GetProducts(ctx context.Context, db DBTX, arg *GetProductsPara
 	rows, err := db.QueryContext(ctx, getProducts,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -312,7 +312,7 @@ SELECT
 				products.last_updated_at IS NULL
 				OR products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR products.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(products.id)
@@ -326,13 +326,13 @@ WHERE products.archived_at IS NULL
 	AND products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		products.last_updated_at IS NULL
-		OR products.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR products.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		products.last_updated_at IS NULL
-		OR products.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR products.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	AND products.id > COALESCE($7, '')
 ORDER BY products.id ASC
 LIMIT COALESCE($8, 50)
@@ -341,8 +341,8 @@ LIMIT COALESCE($8, 50)
 type SearchForProductsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	NameQuery       string
 	Cursor          sql.NullString
@@ -369,8 +369,8 @@ func (q *Queries) SearchForProducts(ctx context.Context, db DBTX, arg *SearchFor
 	rows, err := db.QueryContext(ctx, searchForProducts,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.NameQuery,
 		arg.Cursor,

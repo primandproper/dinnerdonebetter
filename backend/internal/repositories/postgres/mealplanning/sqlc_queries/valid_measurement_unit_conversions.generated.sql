@@ -116,13 +116,13 @@ SELECT
 			AND valid_measurement_unit_conversions.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_measurement_unit_conversions.last_updated_at IS NULL
-				OR valid_measurement_unit_conversions.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_measurement_unit_conversions.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_measurement_unit_conversions.last_updated_at IS NULL
-				OR valid_measurement_unit_conversions.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_measurement_unit_conversions.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_unit_conversions.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_unit_conversions.archived_at IS NULL)
 			AND (valid_measurement_units_from.id = sqlc.arg(id) OR valid_measurement_units_to.id = sqlc.arg(id))
 			AND valid_measurement_units_from.archived_at IS NULL
 			AND valid_measurement_units_to.archived_at IS NULL
@@ -157,7 +157,7 @@ WHERE
 		valid_measurement_unit_conversions.last_updated_at IS NULL
 		OR valid_measurement_unit_conversions.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_unit_conversions.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_unit_conversions.archived_at IS NULL)
 	AND valid_measurement_unit_conversions.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_measurement_unit_conversions.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

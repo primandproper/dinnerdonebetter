@@ -59,6 +59,11 @@ func (s *Server) Run(ctx context.Context) {
 		s.logger.Error("starting profiling provider", err)
 	}
 
+	// grpcServeExited is signaled when the gRPC serve loop returns. Because the platform Serve
+	// only logs and returns when the listener fails to bind, a dead listener would otherwise leave
+	// the pod Ready (K8s probes only hit HTTP :8000) with the primary API down.
+	grpcServeExited := make(chan struct{}, 1)
+
 	// Run servers
 	go func() {
 		defer func() {
@@ -76,12 +81,23 @@ func (s *Server) Run(ctx context.Context) {
 				panic(err)
 			}
 		}()
+		defer func() {
+			select {
+			case grpcServeExited <- struct{}{}:
+			default:
+			}
+		}()
 		s.grpcServer.Serve(ctx)
 	}()
 
-	// Wait for shutdown signal
-	sig := <-signalChan
-	s.logger.WithValue("signal", sig.String()).Info("received shutdown signal")
+	// Wait for a shutdown signal or an unexpected gRPC serve exit (e.g. bind failure).
+	select {
+	case sig := <-signalChan:
+		s.logger.WithValue("signal", sig.String()).Info("received shutdown signal")
+	case <-grpcServeExited:
+		s.logger.Error("gRPC server stopped serving unexpectedly", fmt.Errorf("gRPC serve loop exited before shutdown"))
+		os.Exit(1)
+	}
 
 	cancelCtx, cancelShutdown := context.WithTimeout(ctx, 10*time.Second)
 	defer cancelShutdown()

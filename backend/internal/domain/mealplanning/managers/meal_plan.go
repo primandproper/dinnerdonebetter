@@ -42,6 +42,10 @@ func (m *mealPlanningManager) CreateMealPlan(ctx context.Context, ownerID, creat
 		return nil, platformerrors.ErrNilInputParameter
 	}
 
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return nil, observability.PrepareError(err, span, "validating input")
+	}
+
 	if creatorID == "" {
 		return nil, platformerrors.ErrEmptyInputParameter
 	}
@@ -98,6 +102,10 @@ func (m *mealPlanningManager) UpdateMealPlan(ctx context.Context, mealPlanID, ow
 
 	if input == nil {
 		return platformerrors.ErrNilInputParameter
+	}
+
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return observability.PrepareError(err, span, "validating input")
 	}
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
@@ -162,11 +170,12 @@ func (m *mealPlanningManager) FinalizeMealPlan(ctx context.Context, mealPlanID, 
 		return false, observability.PrepareAndLogError(err, logger, span, "finalizing meal plan")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanFinalizedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanIDKey: mealPlanID,
-	}))
-
+	// only publish the finalized event and run downstream workers when the plan actually finalized.
 	if finalized {
+		m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanFinalizedServiceEventType, map[string]any{
+			mealplanningkeys.MealPlanIDKey: mealPlanID,
+		}))
+
 		m.runPostFinalizationWorkers(ctx, logger, span)
 	}
 

@@ -58,13 +58,13 @@ SELECT
 			AND comments.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				comments.last_updated_at IS NULL
-				OR comments.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR comments.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				comments.last_updated_at IS NULL
-				OR comments.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR comments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR comments.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR comments.archived_at IS NULL)
 			AND comments.target_type = sqlc.arg(target_type)
 			AND comments.referenced_id = sqlc.arg(referenced_id)
 	) AS filtered_count,
@@ -89,7 +89,7 @@ WHERE comments.archived_at IS NULL
 		comments.last_updated_at IS NULL
 		OR comments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR comments.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR comments.archived_at IS NULL)
 	AND comments.target_type = sqlc.arg(target_type)
 	AND comments.referenced_id = sqlc.arg(referenced_id)
 	AND comments.id > COALESCE(sqlc.narg(cursor), '')

@@ -188,7 +188,7 @@ SELECT
 				meal_plan_option_votes.last_updated_at IS NULL
 				OR meal_plan_option_votes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meal_plan_option_votes.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR meal_plan_option_votes.archived_at IS NULL)
 			AND meal_plan_option_votes.belongs_to_meal_plan_option = $6
 	) AS filtered_count,
 	(
@@ -214,11 +214,11 @@ WHERE meal_plan_option_votes.archived_at IS NULL
 	AND meal_plan_option_votes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meal_plan_option_votes.last_updated_at IS NULL
-		OR meal_plan_option_votes.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR meal_plan_option_votes.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		meal_plan_option_votes.last_updated_at IS NULL
-		OR meal_plan_option_votes.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR meal_plan_option_votes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND meal_plan_option_votes.id > COALESCE($9, '')
 GROUP BY
@@ -233,8 +233,8 @@ LIMIT COALESCE($10, 50)
 type GetMealPlanOptionVotesParams struct {
 	CreatedAfter     sql.NullTime
 	CreatedBefore    sql.NullTime
-	UpdatedBefore    sql.NullTime
 	UpdatedAfter     sql.NullTime
+	UpdatedBefore    sql.NullTime
 	IncludeArchived  sql.NullBool
 	MealPlanOptionID string
 	MealPlanEventID  sql.NullString
@@ -261,8 +261,8 @@ func (q *Queries) GetMealPlanOptionVotes(ctx context.Context, db DBTX, arg *GetM
 	rows, err := db.QueryContext(ctx, getMealPlanOptionVotes,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.MealPlanOptionID,
 		arg.MealPlanEventID,

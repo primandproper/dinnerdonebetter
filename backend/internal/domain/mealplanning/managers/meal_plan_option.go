@@ -45,6 +45,10 @@ func (m *mealPlanningManager) CreateMealPlanOption(ctx context.Context, input *t
 		return nil, platformerrors.ErrNilInputParameter
 	}
 
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return nil, observability.PrepareError(err, span, "validating input")
+	}
+
 	convertedInput := converters.ConvertMealPlanOptionCreationRequestInputToMealPlanOptionDatabaseCreationInput(input)
 	if convertedInput.BelongsToMealPlanEvent != "" {
 		exists, err := m.db.MealExistsAsOptionInEvent(ctx, convertedInput.BelongsToMealPlanEvent, convertedInput.MealID)
@@ -77,6 +81,10 @@ func (m *mealPlanningManager) CreateMealPlanOptionWithEventID(ctx context.Contex
 
 	if input == nil {
 		return nil, platformerrors.ErrNilInputParameter
+	}
+
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return nil, observability.PrepareError(err, span, "validating input")
 	}
 
 	if mealPlanEventID == "" {
@@ -137,6 +145,10 @@ func (m *mealPlanningManager) UpdateMealPlanOption(ctx context.Context, mealPlan
 
 	if input == nil {
 		return platformerrors.ErrNilInputParameter
+	}
+
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return observability.PrepareError(err, span, "validating input")
 	}
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{

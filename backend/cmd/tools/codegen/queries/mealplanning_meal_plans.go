@@ -164,6 +164,10 @@ GROUP BY
 	%s.%s,
 	%s.%s
 ORDER BY
+	%s.%s,
+	%s.%s,
+	%s.%s,
+	%s.%s,
 	%s.%s;`,
 					mealPlansTableName, idColumn,
 					mealPlanOptionsTableName, idColumn,
@@ -185,6 +189,10 @@ ORDER BY
 					mealPlanEventsTableName, idColumn,
 					mealComponentsTableName, recipeIDColumn,
 					mealPlansTableName, idColumn,
+					mealPlanOptionsTableName, idColumn,
+					mealsTableName, idColumn,
+					mealPlanEventsTableName, idColumn,
+					mealComponentsTableName, recipeIDColumn,
 				)),
 			},
 			{

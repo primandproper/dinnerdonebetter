@@ -30,7 +30,6 @@ import (
 	"github.com/primandproper/platform-go/v5/qrcodes"
 	"github.com/primandproper/platform-go/v5/random"
 
-	"github.com/pquerna/otp/totp"
 	passwordvalidator "github.com/wagslane/go-password-validator"
 )
 
@@ -149,6 +148,10 @@ func (l *AuthManager) CheckUserPermissions(ctx context.Context, input *auth.User
 	ctx, span := l.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if input == nil {
+		return nil, observability.PrepareError(perrors.ErrNilInputProvided, span, "nil input provided")
+	}
+
 	sessionContextData, err := l.sessionContextDataFetcher(ctx)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "failed to get session context data")
@@ -158,9 +161,14 @@ func (l *AuthManager) CheckUserPermissions(ctx context.Context, input *auth.User
 		Permissions: make(map[string]bool),
 	}
 
+	// A service-admin session may have no membership in the active account, so the account
+	// permission checker can be absent from the map; comma-ok the lookup and guard the nil
+	// interface value before calling a method on it.
+	accountChecker, hasAccountChecker := sessionContextData.AccountPermissions[sessionContextData.ActiveAccountID]
+
 	for _, perm := range input.Permissions {
 		p := authorization.Permission(perm)
-		hasAccountPerm := sessionContextData.AccountPermissions[sessionContextData.ActiveAccountID].HasPermission(p)
+		hasAccountPerm := hasAccountChecker && accountChecker != nil && accountChecker.HasPermission(p)
 		hasServicePerm := sessionContextData.Requester.ServicePermissions.HasPermission(p)
 		body.Permissions[perm] = hasAccountPerm || hasServicePerm
 	}
@@ -195,8 +203,11 @@ func (l *AuthManager) TOTPSecretVerification(ctx context.Context, input *auth.TO
 		return errors.New("two factor secret already verified")
 	}
 
-	if totpValid := totp.Validate(input.TOTPToken, user.TwoFactorSecret); !totpValid {
-		return observability.PrepareError(err, span, "TOTP code was invalid")
+	// Verify through the injected verifier (rather than calling totp.Validate directly) so the
+	// configured verifier is honored, and pass the non-nil verification error: PrepareError returns
+	// nil on a nil error, which would otherwise report success on an invalid code.
+	if verifyErr := l.totpVerifier.Verify(ctx, user.TwoFactorSecret, input.TOTPToken); verifyErr != nil {
+		return observability.PrepareError(verifyErr, span, "TOTP code was invalid")
 	}
 
 	if err = l.userDataManager.MarkUserTwoFactorSecretAsVerified(ctx, user.ID); err != nil {
@@ -229,16 +240,11 @@ func (l *AuthManager) NewTOTPSecret(ctx context.Context, input *auth.TOTPSecretR
 		return nil, observability.PrepareError(err, span, "provided input was invalid")
 	}
 
-	sessionCtxData, err := l.sessionContextDataFetcher(ctx)
-	if err != nil {
-		return nil, observability.PrepareError(err, span, "retrieving session context data")
-	}
-
-	tracing.AttachSessionContextDataToSpan(span, &sessionContextDataForTracing{sessionCtxData})
-	logger = sessionCtxData.AttachToLogger(logger)
+	tracing.AttachSessionContextDataToSpan(span, &sessionContextDataForTracing{sessionContextData})
+	logger = sessionContextData.AttachToLogger(logger)
 
 	// fetch user
-	user, err := l.userDataManager.GetUser(ctx, sessionCtxData.Requester.UserID)
+	user, err := l.userDataManager.GetUser(ctx, sessionContextData.Requester.UserID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, observability.PrepareError(err, span, "user does not exist")
@@ -265,7 +271,7 @@ func (l *AuthManager) NewTOTPSecret(ctx context.Context, input *auth.TOTPSecretR
 	}
 
 	// document who this is for.
-	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionCtxData.Requester.UserID)
+	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.Requester.UserID)
 	tracing.AttachToSpan(span, identitykeys.UsernameKey, user.Username)
 	logger = logger.WithValue(identitykeys.UserIDKey, user.ID)
 
@@ -319,18 +325,13 @@ func (l *AuthManager) UpdatePassword(ctx context.Context, input *auth.PasswordUp
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
-	sessionCtxData, err := l.sessionContextDataFetcher(ctx)
-	if err != nil {
-		return observability.PrepareError(err, span, "retrieving session context data")
-	}
-
 	// determine relevant user ID.
-	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionCtxData.Requester.UserID)
-	logger = sessionCtxData.AttachToLogger(logger)
+	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.Requester.UserID)
+	logger = sessionContextData.AttachToLogger(logger)
 
 	user, err := l.validateCredentialsForUpdateRequest(
 		ctx,
-		sessionCtxData.Requester.UserID,
+		sessionContextData.Requester.UserID,
 		input.CurrentPassword,
 		input.TOTPToken,
 	)
@@ -382,18 +383,13 @@ func (l *AuthManager) UpdateUserEmailAddress(ctx context.Context, input *auth.Us
 	}
 	tracing.AttachToSpan(span, identitykeys.UserEmailAddressKey, input.NewEmailAddress)
 
-	sessionCtxData, err := l.sessionContextDataFetcher(ctx)
-	if err != nil {
-		return observability.PrepareError(err, span, "retrieving session context data")
-	}
-
 	// determine relevant user ID.
-	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionCtxData.Requester.UserID)
-	logger = sessionCtxData.AttachToLogger(logger)
+	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.Requester.UserID)
+	logger = sessionContextData.AttachToLogger(logger)
 
 	user, err := l.validateCredentialsForUpdateRequest(
 		ctx,
-		sessionCtxData.Requester.UserID,
+		sessionContextData.Requester.UserID,
 		input.CurrentPassword,
 		input.TOTPToken,
 	)
@@ -433,18 +429,13 @@ func (l *AuthManager) UpdateUserUsername(ctx context.Context, input *auth.Userna
 	}
 	tracing.AttachToSpan(span, identitykeys.UsernameKey, input.NewUsername)
 
-	sessionCtxData, err := l.sessionContextDataFetcher(ctx)
-	if err != nil {
-		return observability.PrepareError(err, span, "retrieving session context data")
-	}
-
 	// determine relevant user ID.
-	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionCtxData.Requester.UserID)
-	logger = sessionCtxData.AttachToLogger(logger)
+	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.Requester.UserID)
+	logger = sessionContextData.AttachToLogger(logger)
 
 	user, err := l.validateCredentialsForUpdateRequest(
 		ctx,
-		sessionCtxData.Requester.UserID,
+		sessionContextData.Requester.UserID,
 		input.CurrentPassword,
 		input.TOTPToken,
 	)
@@ -473,19 +464,20 @@ func (l *AuthManager) RequestUsernameReminder(ctx context.Context, input *auth.U
 
 	logger := l.logger.WithSpan(span)
 
-	sessionContextData, err := l.sessionContextDataFetcher(ctx)
-	if err != nil {
-		return observability.PrepareError(err, span, "failed to get session context data")
+	// The session is optional: a user who forgot their username can't be authenticated, so this
+	// mirrors the password-reset flow and only decorates the logger when a session happens to exist.
+	if sessionContextData, scdErr := l.sessionContextDataFetcher(ctx); scdErr == nil {
+		logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	if err = input.ValidateWithContext(ctx); err != nil {
+	if err := input.ValidateWithContext(ctx); err != nil {
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
 	u, err := l.userDataManager.GetUserByEmail(ctx, input.EmailAddress)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return observability.PrepareError(err, span, "user not found")
+		// Do not leak user existence; return success without sending a reminder.
+		return nil
 	} else if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "fetching user")
 	}
@@ -598,12 +590,12 @@ func (l *AuthManager) PasswordResetTokenRedemption(ctx context.Context, input *a
 	}
 
 	if redemptionErr := l.passwordResetTokenDataManager.RedeemPasswordResetToken(ctx, t.ID); redemptionErr != nil {
-		observability.AcknowledgeError(err, logger, span, "redeeming password reset token")
-		if errors.Is(err, sql.ErrNoRows) {
-			return observability.PrepareError(err, span, "redeeming password reset token not found")
+		observability.AcknowledgeError(redemptionErr, logger, span, "redeeming password reset token")
+		if errors.Is(redemptionErr, sql.ErrNoRows) {
+			return observability.PrepareError(redemptionErr, span, "redeeming password reset token not found")
 		}
 
-		return observability.PrepareError(err, span, "redeeming password reset token")
+		return observability.PrepareError(redemptionErr, span, "redeeming password reset token")
 	}
 
 	dcm := &audit.DataChangeMessage{
@@ -740,7 +732,9 @@ func (l *AuthManager) validateCredentialsForUpdateRequest(ctx context.Context, u
 	}
 
 	if user.TwoFactorSecretVerifiedAt != nil && totpToken == "" {
-		return nil, observability.PrepareError(err, span, "two factor secret not provided")
+		// Pass an explicit error: PrepareError returns nil on a nil error, which would make callers
+		// treat a missing TOTP code as success and then dereference the nil *identity.User below.
+		return nil, observability.PrepareError(ErrTOTPTokenRequired, span, "two factor secret not provided")
 	}
 
 	tfs := user.TwoFactorSecret
@@ -754,7 +748,9 @@ func (l *AuthManager) validateCredentialsForUpdateRequest(ctx context.Context, u
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "error validating credentials")
 	} else if !matches {
-		return nil, observability.PrepareError(err, span, "credentials are not valid")
+		// PasswordMatches returns (false, nil) on mismatch; pass an explicit error so callers don't
+		// treat the mismatch as success and dereference the nil *identity.User.
+		return nil, observability.PrepareError(ErrInvalidCredentials, span, "credentials are not valid")
 	}
 
 	// verify TOTP code (if applicable). If TOTP is not enabled on the user, tfs is

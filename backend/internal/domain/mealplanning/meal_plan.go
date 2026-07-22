@@ -26,9 +26,9 @@ const (
 	// MealPlanFinalizedServiceEventType indicates a meal plan was finalized.
 	MealPlanFinalizedServiceEventType = "meal_plan_finalized"
 
-	// MealPlanStatusAwaitingVotes indicates an account invitation is pending.
+	// MealPlanStatusAwaitingVotes indicates a meal plan is still awaiting votes.
 	MealPlanStatusAwaitingVotes MealPlanStatus = "awaiting_votes"
-	// MealPlanStatusFinalized indicates an account invitation was accepted.
+	// MealPlanStatusFinalized indicates a meal plan has been finalized.
 	MealPlanStatusFinalized MealPlanStatus = "finalized"
 )
 
@@ -129,6 +129,10 @@ type (
 func (x *MealPlan) Update(input *MealPlanUpdateRequestInput) {
 	if input.Notes != nil && *input.Notes != x.Notes {
 		x.Notes = *input.Notes
+	}
+
+	if input.VotingDeadline != nil && !input.VotingDeadline.Equal(x.VotingDeadline) {
+		x.VotingDeadline = *input.VotingDeadline
 	}
 }
 

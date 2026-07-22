@@ -382,7 +382,7 @@ SELECT
 				recipe_step_completion_condition_ingredients.last_updated_at IS NULL
 				OR recipe_step_completion_condition_ingredients.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipe_step_completion_condition_ingredients.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR recipe_step_completion_condition_ingredients.archived_at IS NULL)
 			AND recipe_step_completion_conditions.belongs_to_recipe_step = $6
 	) AS filtered_count,
 	(
@@ -399,11 +399,11 @@ WHERE recipe_step_completion_conditions.archived_at IS NULL
 	AND recipe_step_completion_conditions.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipe_step_completion_conditions.last_updated_at IS NULL
-		OR recipe_step_completion_conditions.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipe_step_completion_conditions.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		recipe_step_completion_conditions.last_updated_at IS NULL
-		OR recipe_step_completion_conditions.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipe_step_completion_conditions.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND recipe_step_completion_conditions.belongs_to_recipe_step = $6
 	AND recipe_step_completion_conditions.id > COALESCE($7, '')
@@ -414,8 +414,8 @@ LIMIT COALESCE($8, 50)
 type GetRecipeStepCompletionConditionsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	RecipeStepID    string
 	Cursor          sql.NullString
@@ -456,8 +456,8 @@ func (q *Queries) GetRecipeStepCompletionConditions(ctx context.Context, db DBTX
 	rows, err := db.QueryContext(ctx, getRecipeStepCompletionConditions,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.RecipeStepID,
 		arg.Cursor,

@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
 	paymentskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/keys"
 	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
 	paymentssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
@@ -127,8 +128,13 @@ func (s *serviceImpl) GetSubscriptionsForAccount(ctx context.Context, request *p
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	sessionContextData, err := sessions.FetchContextDataFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "failed to get session context data")
+	}
+
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
-	results, err := s.paymentsManager.GetSubscriptionsForAccount(ctx, request.AccountId, filter)
+	results, err := s.paymentsManager.GetSubscriptionsForAccount(ctx, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Internal, "failed to retrieve subscriptions")
 	}
@@ -174,8 +180,13 @@ func (s *serviceImpl) GetPurchasesForAccount(ctx context.Context, request *payme
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	sessionContextData, err := sessions.FetchContextDataFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "failed to get session context data")
+	}
+
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
-	results, err := s.paymentsManager.GetPurchasesForAccount(ctx, request.AccountId, filter)
+	results, err := s.paymentsManager.GetPurchasesForAccount(ctx, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Internal, "failed to retrieve purchases")
 	}
@@ -194,8 +205,13 @@ func (s *serviceImpl) GetPaymentHistoryForAccount(ctx context.Context, request *
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	sessionContextData, err := sessions.FetchContextDataFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "failed to get session context data")
+	}
+
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
-	results, err := s.paymentsManager.GetPaymentTransactionsForAccount(ctx, request.AccountId, filter)
+	results, err := s.paymentsManager.GetPaymentTransactionsForAccount(ctx, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Internal, "failed to retrieve payment history")
 	}

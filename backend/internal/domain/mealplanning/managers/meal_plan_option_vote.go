@@ -47,6 +47,19 @@ func (m *mealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, cre
 		return nil, platformerrors.ErrNilInputParameter
 	}
 
+	// ValidateWithContext rejects an empty vote set and requires every vote to carry a
+	// BelongsToMealPlanOption, so a caller can no longer submit votes without naming an option.
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return nil, observability.PrepareError(err, span, "validating input")
+	}
+
+	// NOTE: rejecting votes for events that are no longer eligible for voting (e.g. after
+	// finalization) needs the meal plan and event IDs so it can call the purpose-built
+	// MealPlanEventIsEligibleForVoting repository method. Those IDs live on the gRPC request
+	// (request.MealPlanId / request.MealPlanEventId) but are not threaded into this manager
+	// method's signature, and updating the service handler is outside this change's scope.
+	// Deferred: thread the IDs through and gate creation on MealPlanEventIsEligibleForVoting.
+
 	convertedInput := converters.ConvertMealPlanOptionVoteCreationRequestInputToMealPlanOptionVotesDatabaseCreationInput(input)
 	logger := m.logger.WithSpan(span).WithValue("vote_count", len(input.Votes))
 	tracing.AttachToSpan(span, "vote_count", len(input.Votes))
@@ -97,6 +110,10 @@ func (m *mealPlanningManager) UpdateMealPlanOptionVote(ctx context.Context, meal
 
 	if input == nil {
 		return platformerrors.ErrNilInputParameter
+	}
+
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return observability.PrepareError(err, span, "validating input")
 	}
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{

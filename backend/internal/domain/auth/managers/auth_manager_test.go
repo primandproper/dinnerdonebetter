@@ -343,8 +343,18 @@ func TestAuthManager_TOTPSecretVerification_Success(t *testing.T) {
 		PublishAsyncFunc: func(_ context.Context, _ any) {},
 	}
 
+	totpVerifier := &mocktotp.VerifierMock{
+		VerifyFunc: func(_ context.Context, secret, code string) error {
+			if secret == user.TwoFactorSecret && code == token {
+				return nil
+			}
+			return platformtotp.ErrInvalidCode
+		},
+	}
+
 	manager := &AuthManager{
 		userDataManager:           userDataManager,
+		totpVerifier:              totpVerifier,
 		dataChangesPublisher:      publisher,
 		sessionContextDataFetcher: func(context.Context) (*sessions.ContextData, error) { return &sessions.ContextData{}, nil },
 		logger:                    loggingnoop.NewLogger().WithName("auth_manager"),
@@ -446,7 +456,8 @@ func TestAuthManager_RequestUsernameReminder_UserNotFound(t *testing.T) {
 
 	err := manager.RequestUsernameReminder(ctx, input)
 
-	assert.Error(t, err)
+	// A missing user must not leak existence: the flow returns success without sending a reminder.
+	assert.NoError(t, err)
 	mock.AssertExpectationsForObjects(t, userDataManager)
 }
 

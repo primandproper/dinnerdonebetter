@@ -187,7 +187,7 @@ SELECT
 				valid_measurement_units.last_updated_at IS NULL
 				OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_units.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_measurement_units.id)
@@ -202,13 +202,13 @@ WHERE
 	AND valid_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_units.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	AND valid_measurement_units.id > COALESCE($6, '')
 GROUP BY valid_measurement_units.id
 ORDER BY valid_measurement_units.id ASC
@@ -218,8 +218,8 @@ LIMIT COALESCE($7, 50)
 type GetUniversalValidMeasurementUnitsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -248,8 +248,8 @@ func (q *Queries) GetUniversalValidMeasurementUnits(ctx context.Context, db DBTX
 	rows, err := db.QueryContext(ctx, getUniversalValidMeasurementUnits,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -383,7 +383,7 @@ SELECT
 				valid_measurement_units.last_updated_at IS NULL
 				OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_units.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_measurement_units.id)
@@ -397,13 +397,13 @@ WHERE
 	AND valid_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_units.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	AND valid_measurement_units.id > COALESCE($6, '')
 GROUP BY valid_measurement_units.id
 ORDER BY valid_measurement_units.id ASC
@@ -413,8 +413,8 @@ LIMIT COALESCE($7, 50)
 type GetValidMeasurementUnitsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -443,8 +443,8 @@ func (q *Queries) GetValidMeasurementUnits(ctx context.Context, db DBTX, arg *Ge
 	rows, err := db.QueryContext(ctx, getValidMeasurementUnits,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -627,7 +627,7 @@ SELECT
 				valid_measurement_units.last_updated_at IS NULL
 				OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_units.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_measurement_units.id)
@@ -641,13 +641,13 @@ WHERE valid_measurement_units.archived_at IS NULL
 	AND valid_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_units.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	AND valid_measurement_units.id > COALESCE($7, '')
 ORDER BY valid_measurement_units.id ASC
 LIMIT COALESCE($8, 50)
@@ -656,8 +656,8 @@ LIMIT COALESCE($8, 50)
 type SearchForValidMeasurementUnitsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	NameQuery       string
 	Cursor          sql.NullString
@@ -687,8 +687,8 @@ func (q *Queries) SearchForValidMeasurementUnits(ctx context.Context, db DBTX, a
 	rows, err := db.QueryContext(ctx, searchForValidMeasurementUnits,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.NameQuery,
 		arg.Cursor,
@@ -763,7 +763,7 @@ SELECT
 				valid_measurement_units.last_updated_at IS NULL
 				OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_units.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 			AND  (
 				valid_ingredient_measurement_units.valid_ingredient_id = $6
 				OR valid_measurement_units.universal = true
@@ -789,11 +789,11 @@ WHERE
 	AND valid_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND valid_measurement_units.id > COALESCE($7, '')
 ORDER BY valid_measurement_units.id ASC
@@ -803,8 +803,8 @@ LIMIT COALESCE($8, 50)
 type SearchValidMeasurementUnitsByIngredientIDParams struct {
 	CreatedAfter      sql.NullTime
 	CreatedBefore     sql.NullTime
-	UpdatedBefore     sql.NullTime
 	UpdatedAfter      sql.NullTime
+	UpdatedBefore     sql.NullTime
 	IncludeArchived   sql.NullBool
 	ValidIngredientID string
 	Cursor            sql.NullString
@@ -834,8 +834,8 @@ func (q *Queries) SearchValidMeasurementUnitsByIngredientID(ctx context.Context,
 	rows, err := db.QueryContext(ctx, searchValidMeasurementUnitsByIngredientID,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ValidIngredientID,
 		arg.Cursor,

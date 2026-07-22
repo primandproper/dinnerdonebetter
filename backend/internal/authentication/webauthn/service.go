@@ -182,6 +182,22 @@ func (s *Service) BeginAuthenticationOptions(ctx context.Context, username strin
 	return assertion, session, nil
 }
 
+// sessionDeleter is optionally implemented by SessionStore backends that support explicit deletion.
+// It lets FinishAuthentication invalidate a challenge immediately after a successful assertion, so the
+// one-time challenge can't be replayed within its TTL (sign-count clone detection doesn't help when an
+// authenticator reports a counter of 0).
+type sessionDeleter interface {
+	DeleteSession(ctx context.Context, challenge string) error
+}
+
+// deleteSessionByChallenge best-effort deletes the ceremony session for a challenge. Backends that
+// implement sessionDeleter log their own failures, so any error here is intentionally not surfaced.
+func (s *Service) deleteSessionByChallenge(ctx context.Context, challenge string) {
+	if deleter, ok := s.sessionStore.(sessionDeleter); ok {
+		_ = deleter.DeleteSession(ctx, challenge)
+	}
+}
+
 // FinishAuthenticationResult holds the result of a successful passkey authentication.
 type FinishAuthenticationResult struct {
 	UserID       string
@@ -243,6 +259,11 @@ func (s *Service) FinishAuthentication(ctx context.Context, username string, req
 		}
 		return nil, protocol.ErrBadRequest.WithDetails("authentication failed")
 	}
+
+	// The assertion validated: delete the one-time challenge/session now so it can't be replayed
+	// within its TTL, even if the sign-count bookkeeping below fails.
+	s.deleteSessionByChallenge(ctx, parsed.Response.CollectedClientData.Challenge)
+
 	stored, err := s.credStore.GetWebAuthnCredentialByCredentialID(ctx, credential.ID)
 	if err != nil || stored == nil {
 		return nil, err

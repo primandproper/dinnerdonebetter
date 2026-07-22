@@ -96,7 +96,7 @@ SELECT
 			AND
 			user_data_disclosures.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND user_data_disclosures.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
-			AND (NOT COALESCE($3, false)::boolean OR user_data_disclosures.archived_at = NULL)
+			AND (NOT COALESCE($3, false)::boolean OR user_data_disclosures.archived_at IS NULL)
 			AND user_data_disclosures.belongs_to_user = $4
 	) AS filtered_count,
 	(

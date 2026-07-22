@@ -186,8 +186,8 @@ LIMIT COALESCE($6, 50)
 type GetMealPlanRecipeOptionSelectionsForMealPlanParams struct {
 	CreatedAfter  sql.NullTime
 	CreatedBefore sql.NullTime
-	UpdatedBefore sql.NullTime
 	UpdatedAfter  sql.NullTime
+	UpdatedBefore sql.NullTime
 	MealPlanID    string
 	ResultLimit   interface{}
 }
@@ -211,8 +211,8 @@ func (q *Queries) GetMealPlanRecipeOptionSelectionsForMealPlan(ctx context.Conte
 	rows, err := db.QueryContext(ctx, getMealPlanRecipeOptionSelectionsForMealPlan,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.MealPlanID,
 		arg.ResultLimit,
 	)
@@ -290,11 +290,11 @@ WHERE belongs_to_meal_plan_option = $5
 	AND meal_plan_recipe_option_selections.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meal_plan_recipe_option_selections.last_updated_at IS NULL
-		OR meal_plan_recipe_option_selections.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR meal_plan_recipe_option_selections.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		meal_plan_recipe_option_selections.last_updated_at IS NULL
-		OR meal_plan_recipe_option_selections.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR meal_plan_recipe_option_selections.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND meal_plan_recipe_option_selections.belongs_to_meal_plan_option = $5
 	AND meal_plan_recipe_option_selections.id > COALESCE($6, '')
@@ -305,8 +305,8 @@ LIMIT COALESCE($7, 50)
 type GetMealPlanRecipeOptionSelectionsForMealPlanOptionParams struct {
 	CreatedAfter     sql.NullTime
 	CreatedBefore    sql.NullTime
-	UpdatedBefore    sql.NullTime
 	UpdatedAfter     sql.NullTime
+	UpdatedBefore    sql.NullTime
 	MealPlanOptionID string
 	Cursor           sql.NullString
 	ResultLimit      interface{}
@@ -331,8 +331,8 @@ func (q *Queries) GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx context
 	rows, err := db.QueryContext(ctx, getMealPlanRecipeOptionSelectionsForMealPlanOption,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.MealPlanOptionID,
 		arg.Cursor,
 		arg.ResultLimit,

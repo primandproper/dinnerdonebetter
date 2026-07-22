@@ -146,7 +146,7 @@ SELECT
 				waitlist_signups.last_updated_at IS NULL
 				OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR waitlist_signups.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR waitlist_signups.archived_at IS NULL)
 			AND waitlist_signups.belongs_to_user = $6
 	) AS filtered_count,
 	(
@@ -162,11 +162,11 @@ WHERE waitlist_signups.archived_at IS NULL
 	AND waitlist_signups.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		waitlist_signups.last_updated_at IS NULL
-		OR waitlist_signups.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR waitlist_signups.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		waitlist_signups.last_updated_at IS NULL
-		OR waitlist_signups.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND waitlist_signups.belongs_to_user = $6
 	AND waitlist_signups.id > COALESCE($7, '')
@@ -177,8 +177,8 @@ LIMIT COALESCE($8, 50)
 type GetWaitlistSignupsForUserParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	BelongsToUser   sql.NullString
 	Cursor          sql.NullString
@@ -202,8 +202,8 @@ func (q *Queries) GetWaitlistSignupsForUser(ctx context.Context, db DBTX, arg *G
 	rows, err := db.QueryContext(ctx, getWaitlistSignupsForUser,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToUser,
 		arg.Cursor,
@@ -266,7 +266,7 @@ SELECT
 				waitlist_signups.last_updated_at IS NULL
 				OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR waitlist_signups.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR waitlist_signups.archived_at IS NULL)
 			AND waitlist_signups.belongs_to_waitlist = $6
 	) AS filtered_count,
 	(
@@ -282,11 +282,11 @@ WHERE waitlist_signups.archived_at IS NULL
 	AND waitlist_signups.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		waitlist_signups.last_updated_at IS NULL
-		OR waitlist_signups.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR waitlist_signups.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		waitlist_signups.last_updated_at IS NULL
-		OR waitlist_signups.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND waitlist_signups.belongs_to_waitlist = $6
 	AND waitlist_signups.id > COALESCE($7, '')
@@ -297,8 +297,8 @@ LIMIT COALESCE($8, 50)
 type GetWaitlistSignupsForWaitlistParams struct {
 	CreatedAfter      sql.NullTime
 	CreatedBefore     sql.NullTime
-	UpdatedBefore     sql.NullTime
 	UpdatedAfter      sql.NullTime
+	UpdatedBefore     sql.NullTime
 	IncludeArchived   sql.NullBool
 	BelongsToWaitlist sql.NullString
 	Cursor            sql.NullString
@@ -322,8 +322,8 @@ func (q *Queries) GetWaitlistSignupsForWaitlist(ctx context.Context, db DBTX, ar
 	rows, err := db.QueryContext(ctx, getWaitlistSignupsForWaitlist,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToWaitlist,
 		arg.Cursor,

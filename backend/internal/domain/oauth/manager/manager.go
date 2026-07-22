@@ -143,7 +143,7 @@ func (m *manager) GetOAuth2Clients(ctx context.Context, filter *filtering.QueryF
 
 	oauth2Clients, err := m.oauthRepository.GetOAuth2Clients(ctx, filter)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "getting oauth2 client by database ID")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "getting oauth2 clients")
 	}
 
 	return oauth2Clients, nil

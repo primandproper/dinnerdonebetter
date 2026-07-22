@@ -169,6 +169,7 @@ func (r *repository) markAccountAsUserDefault(ctx context.Context, querier datab
 		BelongsToUser:    userID,
 		BelongsToAccount: accountID,
 	}); err != nil {
+		r.RollbackTransaction(ctx, tx)
 		return observability.PrepareAndLogError(err, logger, span, "assigning user default account")
 	}
 
@@ -487,6 +488,7 @@ func (r *repository) removeUserFromAccount(ctx context.Context, querier database
 	if remainingAccounts == nil || len(remainingAccounts.Data) < 1 {
 		logger.Debug("user has no remaining accounts, creating a new one")
 		if _, err = r.createAccountForUser(ctx, querier, false, "", userID); err != nil {
+			r.RollbackTransaction(ctx, querier)
 			return observability.PrepareAndLogError(err, logger, span, "creating account for new user")
 		}
 		return nil

@@ -338,9 +338,11 @@ func TestServiceImpl_LoginForToken(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, response)
 
+		// Login failures return a single generic Unauthenticated status so distinct outcomes
+		// (unknown user, wrong password, banned account) can't be used to enumerate accounts.
 		grpcErr, ok := status.FromError(err)
 		assert.True(t, ok)
-		assert.Equal(t, codes.Internal, grpcErr.Code())
+		assert.Equal(t, codes.Unauthenticated, grpcErr.Code())
 
 		mock.AssertExpectationsForObjects(t, authenticationManager)
 	})
@@ -407,9 +409,11 @@ func TestServiceImpl_AdminLoginForToken(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, response)
 
+		// Login failures return a single generic Unauthenticated status so distinct outcomes
+		// (unknown user, wrong password, banned account) can't be used to enumerate accounts.
 		grpcErr, ok := status.FromError(err)
 		assert.True(t, ok)
-		assert.Equal(t, codes.Internal, grpcErr.Code())
+		assert.Equal(t, codes.Unauthenticated, grpcErr.Code())
 
 		mock.AssertExpectationsForObjects(t, authenticationManager)
 	})
@@ -989,11 +993,14 @@ func TestServiceImpl_RequestUsernameReminder(t *testing.T) {
 		mock.AssertExpectationsForObjects(t, authManager)
 	})
 
-	t.Run("error fetching session context", func(t *testing.T) {
+	t.Run("without session context", func(t *testing.T) {
 		t.Parallel()
 
-		service, _, _, _, _ := buildTestService(t)
+		service, _, authManager, _, _ := buildTestService(t)
 		ctx := t.Context() // No session context data
+
+		// The session is optional for this unauthenticated endpoint; a missing session must not error.
+		authManager.On(reflection.GetMethodName(authManager.RequestUsernameReminder), mock.Anything, mock.AnythingOfType("*auth.UsernameReminderRequestInput")).Return(nil)
 
 		request := &authsvc.RequestUsernameReminderRequest{
 			EmailAddress: "test@example.com",
@@ -1001,12 +1008,12 @@ func TestServiceImpl_RequestUsernameReminder(t *testing.T) {
 
 		response, err := service.RequestUsernameReminder(ctx, request)
 
-		assert.Error(t, err)
-		assert.Nil(t, response)
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.NotNil(t, response.ResponseDetails)
+		assert.NotEmpty(t, response.ResponseDetails.TraceId)
 
-		grpcErr, ok := status.FromError(err)
-		assert.True(t, ok)
-		assert.Equal(t, codes.Unauthenticated, grpcErr.Code())
+		mock.AssertExpectationsForObjects(t, authManager)
 	})
 
 	t.Run("error requesting username reminder", func(t *testing.T) {

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
-	"time"
 
 	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
@@ -159,34 +158,6 @@ type (
 		Events        msgconfig.Config       `envPrefix:"EVENTS_"        json:"events"`
 		Observability observability.Config   `envPrefix:"OBSERVABILITY_" json:"observability"`
 		Database      databasecfg.Config     `envPrefix:"DATABASE_"      json:"database"`
-	}
-
-	APIServiceOAuth2ConnectionConfig struct {
-		_ struct{} `json:"-"`
-
-		HTTPAPIServerURL      string `env:"HTTP_API_SERVER_URL"      json:"httpAPIServerURL"`
-		GRPCAPIServerURL      string `env:"GRPC_API_SERVER_URL"      json:"grpcAPIServerURL"`
-		OAuth2APIClientID     string `env:"OAUTH2_API_CLIENT_ID"     json:"oauth2APIClientID"`
-		OAuth2APIClientSecret string `env:"OAUTH2_API_CLIENT_SECRET" json:"oauth2APIClientSecret"`
-	}
-
-	NamedCacheConfig struct {
-		_ struct{} `json:"-"`
-
-		CacheCapacity uint64        `env:"CACHE_CAPACITY" json:"cacheCapacity"`
-		CacheTTL      time.Duration `env:"CACHE_TTL"      json:"cacheTTL"`
-	}
-
-	// AppleAppSiteAssociationConfig holds configuration for the apple-app-site-association file
-	// used by iOS for Universal Links. See: https://developer.apple.com/documentation/xcode/supporting-associated-domains
-	AppleAppSiteAssociationConfig struct {
-		_ struct{} `json:"-"`
-
-		// TeamID is the Apple Developer Team ID (e.g., "ABCD1234XY").
-		// This can be found in the Apple Developer Portal under Membership.
-		TeamID string `env:"TEAM_ID" json:"teamID,omitempty"`
-		// BundleID is the iOS app bundle identifier (e.g., "com.dinnerdonebetter.ios").
-		BundleID string `env:"BUNDLE_ID" json:"bundleID,omitempty"`
 	}
 
 	// MCPServiceConfig configures an instance of the service. It is composed of all the other setting structs.
@@ -411,7 +382,7 @@ func (cfg *MCPServiceConfig) ValidateWithContext(ctx context.Context) error {
 //  1. If DOTENV_FILEPATH is set, return it as-is (explicit override wins).
 //  2. Otherwise, derive the filename from META_RUN_MODE:
 //     - "development" → .env.dev
-//     - "testing"     → .env.qa
+//     - "testing"     → .env.testing
 //     - anything else → .env  (covers "production" and the unset case)
 //  3. If the derived file does not exist under baseDir, return "" so the
 //     caller can skip loading without treating a missing file as an error.

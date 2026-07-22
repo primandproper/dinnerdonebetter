@@ -121,13 +121,13 @@ SELECT
 			AND valid_prep_task_configs.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_prep_task_configs.last_updated_at IS NULL
-				OR valid_prep_task_configs.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_prep_task_configs.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_prep_task_configs.last_updated_at IS NULL
-				OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
@@ -239,13 +239,13 @@ SELECT
 			AND valid_prep_task_configs.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_prep_task_configs.last_updated_at IS NULL
-				OR valid_prep_task_configs.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_prep_task_configs.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_prep_task_configs.last_updated_at IS NULL
-				OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
@@ -357,13 +357,13 @@ SELECT
 			AND valid_prep_task_configs.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_prep_task_configs.last_updated_at IS NULL
-				OR valid_prep_task_configs.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_prep_task_configs.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_prep_task_configs.last_updated_at IS NULL
-				OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
@@ -476,13 +476,13 @@ SELECT
 			AND valid_prep_task_configs.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_prep_task_configs.last_updated_at IS NULL
-				OR valid_prep_task_configs.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_prep_task_configs.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_prep_task_configs.last_updated_at IS NULL
-				OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_prep_task_configs.id)

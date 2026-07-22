@@ -45,6 +45,33 @@ func (s *serviceImpl) verifyRecipeOwnership(ctx context.Context, recipeID string
 	return userID, nil
 }
 
+// verifyRecipeRatingOwnership loads a recipe rating and confirms it was authored by the requester,
+// returning a gRPC status error otherwise. Recipe ratings are user-authored, so mutation is limited
+// to the original author (mirroring the comments service).
+func (s *serviceImpl) verifyRecipeRatingOwnership(ctx context.Context, recipeID, recipeRatingID string, logger logging.Logger, span tracing.Span) error {
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
+	}
+
+	rating, err := s.mealPlanningManager.ReadRecipeRating(ctx, recipeID, recipeRatingID)
+	if err != nil || rating == nil {
+		return errorsgrpc.PrepareAndLogGRPCStatus(
+			fmt.Errorf("recipe rating not found or access denied: %w", err),
+			logger, span, codes.NotFound, "recipe rating not found or access denied",
+		)
+	}
+
+	if rating.CreatedByUser != sessionContextData.GetUserID() {
+		return errorsgrpc.PrepareAndLogGRPCStatus(
+			platformerrors.New("recipe rating does not belong to user"),
+			logger, span, codes.PermissionDenied, "recipe rating does not belong to user",
+		)
+	}
+
+	return nil
+}
+
 func (s *serviceImpl) ArchiveRecipe(ctx context.Context, request *mealplanning.ArchiveRecipeRequest) (*mealplanning.ArchiveRecipeResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
@@ -109,6 +136,10 @@ func (s *serviceImpl) ArchiveRecipeRating(ctx context.Context, request *mealplan
 		mealplanningkeys.RecipeIDKey:       request.RecipeId,
 		mealplanningkeys.RecipeRatingIDKey: request.RecipeRatingId,
 	}, span, s.logger)
+
+	if err := s.verifyRecipeRatingOwnership(ctx, request.RecipeId, request.RecipeRatingId, logger, span); err != nil {
+		return nil, err
+	}
 
 	if err := s.mealPlanningManager.ArchiveRecipeRating(ctx, request.RecipeId, request.RecipeRatingId); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving recipe rating")
@@ -1518,6 +1549,10 @@ func (s *serviceImpl) UpdateRecipeRating(ctx context.Context, request *mealplann
 		mealplanningkeys.RecipeIDKey:       request.RecipeId,
 		mealplanningkeys.RecipeRatingIDKey: request.RecipeRatingId,
 	}, span, s.logger)
+
+	if err := s.verifyRecipeRatingOwnership(ctx, request.RecipeId, request.RecipeRatingId, logger, span); err != nil {
+		return nil, err
+	}
 
 	input := converters.ConvertGRPCRecipeRatingUpdateRequestInputToRecipeRatingUpdateRequestInput(request.Input)
 

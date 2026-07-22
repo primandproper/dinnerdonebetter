@@ -306,9 +306,9 @@ func ProvideMethodPermissions() MealPlanningMethodPermissions {
 		mealplanningsvc.MealPlanningService_ArchiveMealPlanRecipeOptionSelection_FullMethodName:               {authorization.ArchiveMealPlanRecipeOptionSelectionsPermission},
 
 		// Workers
-		mealplanningsvc.MealPlanningService_RunFinalizeMealPlanWorker_FullMethodName:               {authorization.UpdateMealPlansPermission},
-		mealplanningsvc.MealPlanningService_RunMealPlanGroceryListInitializerWorker_FullMethodName: {authorization.UpdateMealPlansPermission},
-		mealplanningsvc.MealPlanningService_RunMealPlanTaskCreatorWorker_FullMethodName:            {authorization.UpdateMealPlansPermission},
+		mealplanningsvc.MealPlanningService_RunFinalizeMealPlanWorker_FullMethodName:               {authorization.RunMealPlanWorkersPermission},
+		mealplanningsvc.MealPlanningService_RunMealPlanGroceryListInitializerWorker_FullMethodName: {authorization.RunMealPlanWorkersPermission},
+		mealplanningsvc.MealPlanningService_RunMealPlanTaskCreatorWorker_FullMethodName:            {authorization.RunMealPlanWorkersPermission},
 
 		// Search helpers
 		mealplanningsvc.MealPlanningService_SearchValidIngredientsByPreparation_FullMethodName:     {authorization.ReadValidIngredientsPermission},

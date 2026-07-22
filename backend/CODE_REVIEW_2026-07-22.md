@@ -1,0 +1,186 @@
+# Backend Code Review — 2026-07-22
+
+A once-over of the Go backend (`backend/`, ~1,200 hand-written Go files, `*/generated/` excluded) across six axes: the meal-planning domain, the other domains, the data layer, the services/transport layer, auth/security, and build/config/workers. Findings were produced by parallel review agents and the load-bearing ones spot-verified against source.
+
+This is an actionable backlog for later iteration. Each item names a file:line, the concrete failure, and a one-line fix. Severities: **high** = data loss, security exposure, crash, or silently-broken core feature; **medium** = incorrect behavior in a real scenario or a latent trap; **low** = smell, drift, dead code, or hygiene.
+
+## Executive summary
+
+The layered architecture is sound — the platform/domain/service split is clean, DI is consistent, mocks carry compile-time interface assertions, migrations are well-formed, and cursor pagination is deterministic. The problems cluster in a few recurring patterns rather than being scattered randomly:
+
+1. **A footgun in the platform error helper is silently disabling security- and correctness-critical checks.** `observability.PrepareError(nil, …)` returns `nil` (verified in `vendor/…/observability/errors.go:37`). Several call sites pass a stale/nil `err` into it on a failure branch — banned-user login, invalid-TOTP verification, wrong-password credential checks, password-reset redemption, and invalid payment-webhook signatures all return `(result, nil)` = success on what should be a hard failure. This is the single highest-leverage thing to fix.
+2. **Authorization is enforced inconsistently at the service layer.** Many read/update/archive RPCs trust an account/user ID from the request body instead of the authenticated session, or skip ownership checks their siblings perform — a broad IDOR class spanning audit logs, payments/billing, accounts, meal-plan sub-resources, recipe ratings, waitlist signups, and the GDPR data export.
+3. **Domain input validation is written but never wired up** in the flagship meal-planning domain — the `ValidateWithContext` rules are dead code because no manager or handler calls them.
+4. **Workers and short-lived binaries drop telemetry, break idempotency, and finalize without emitting the routing event** that drives webhooks/notifications/search indexing.
+
+Counts: **21 high**, **28 medium**, **20 low**. Many highs are one- or two-line fixes with outsized impact.
+
+---
+
+## Cross-cutting root causes (fix these first — they retire multiple findings)
+
+### RC1 — `PrepareError(nil, …)` returns nil, so "failure" branches return success
+`observability.PrepareError` (and `PrepareAndLogError`) short-circuit to `nil` when the error argument is nil. Any branch that means "this failed" but passes a nil/stale `err` into it silently returns success. This single pattern is the root of at least six high-severity findings (H1, H3, H4, H5, H12, H13). **Recommended systemic fix:** grep for `PrepareError(err,` / `PrepareError(nil,` on branches that are logically error paths and replace with an explicit `errors.New(...)`; consider a lint rule. A defensive companion fix — a panic-recovery gRPC interceptor (see H2) — would turn the resulting nil-derefs from process crashes into 500s.
+
+### RC2 — Session identity vs. request-supplied IDs (IDOR)
+Numerous handlers pass `request.AccountId` / `request.UserId` straight to the manager while the required permission lives in the account-member or account-admin set, so any authenticated user can act on another tenant's data by supplying its ID. The fix is uniform: derive the account/user from `sessionContextData.GetActiveAccountID()` / `GetUserID()` (as the correct siblings already do), and for by-ID reads verify membership/ownership before returning. Covers H6–H10, H14, and several mediums.
+
+### RC3 — Domain validators are never invoked
+`ValidateWithContext` methods across meal-planning encode real business rules (voting deadlines, "at least one main component", `StartsAt < EndsAt`) but no manager or handler calls them. The `valid_*` managers *do* call theirs, proving the intended pattern. Wire `input.ValidateWithContext(ctx)` into every core `Create*`/`Update*`. Covers H11 and related mediums/lows.
+
+### RC4 — GDPR/CCPA export is truncated and incomplete
+Three independent collectors (`internal/repositories/postgres/dataprivacy`, `internal/domain/mealplanning/privacy`, and the dataprivacy domain struct) pass `nil` filters that resolve to a default 50-row page with no pagination loop, and omit whole domains (comments, oauth clients, payments). A data-subject export therefore silently under-discloses. Add pagination-to-exhaustion and the missing domains. Covers M-class findings across two agents; grouped here because it's one coherent defect.
+
+---
+
+## High severity
+
+**H1 — Banned-user login returns success and can crash the process.** `internal/authentication/manager.go:159-161` (and `:300-302`). The ban check does `return nil, observability.PrepareError(err, span, "user is banned")` where `err` is nil, so `ProcessLogin`/`ExchangeTokenForUser` return `(nil, nil)`; the gRPC handler then dereferences the nil token in `ConvertTokenResponseToGRPCTokenResponse`. Since the ban check runs before password validation on the unauthenticated `LoginForToken`, an attacker can crash the process with any known-banned username, and the ban control is a silent no-op. *Fix:* return `errors.New("user is banned")` as `ProcessPasskeyLogin` already does.
+
+**H2 — No panic-recovery interceptor on the gRPC server.** `internal/build/services/api/grpc/extras.go:183-188`. Several handlers can panic (nil derefs below), and there is no recovery interceptor, so any one turns into a process crash / dropped connection. *Fix:* register a `grpc_recovery` unary+stream interceptor that maps panics to `codes.Internal`.
+
+**H3 — Invalid TOTP during 2FA setup reports success.** `internal/domain/auth/managers/auth_manager.go:199`. `PrepareError(err, …)` with nil `err` on the invalid-code branch returns nil, so `TOTPSecretVerification` succeeds without marking the secret verified; the client believes 2FA is on while the account stays unverified. *Fix:* return an explicit error (pattern already correct at line 257).
+
+**H4 — Wrong-password credential validation returns `(nil, nil)` then nil-derefs.** `internal/domain/auth/managers/auth_manager.go:743,757`. Both failure branches of `validateCredentialsForUpdateRequest` return nil error; callers (`UpdatePassword`, `UpdateUserEmailAddress`, `UpdateUserUsername`) then dereference the nil `*identity.User`. Wrong-password requests crash instead of returning "invalid credentials". *Fix:* return explicit errors in both branches.
+
+**H5 — Failed password-reset redemption leaves the token live and reusable.** `internal/domain/auth/managers/auth_manager.go:600-606`. The failure branch returns/logs `err` (nil here) instead of `redemptionErr`, so redemption is reported successful, the password is changed, but the reset token is never marked redeemed and stays usable for its 30-minute window. *Fix:* use `redemptionErr`.
+
+**H6 — Any user can read any account's or user's audit trail (IDOR).** `internal/services/audit/grpc/service.go:54,81,106`. Account/user IDs come from the request with no session comparison, and `ReadAuditLogEntriesPermission` is granted to every account member. *Fix:* scope to session active-account/user ID, or gate behind service-admin.
+
+**H7 — Any member can read any account's billing history and subscriptions (IDOR).** `internal/services/payments/grpc/service_impl.go:131,178,198`. `request.AccountId` is passed straight to the manager; the read permissions are account-member level. *Fix:* use the session active-account ID.
+
+**H8 — Any user can read any account's details (IDOR).** `internal/services/identity/grpc/accounts.go:94-109`. `GetAccount` fetches by request ID with `noPerms` and no membership check (the manager doesn't check either), unlike session-scoped `GetActiveAccount`. *Fix:* verify requester membership in `request.AccountId`.
+
+**H9 — Cross-account member removal.** `internal/services/identity/grpc/accounts.go:264-279` (carries its own `// TODO: validate that the user is authorized to do this?`). `ArchiveUserMembership` removes `request.UserId` from `request.AccountId` without confirming it is the caller's active account; the permission is checked only against the caller's own roles. An admin of account A can remove members from account B. *Fix:* use `sessionContextData.GetActiveAccountID()`.
+
+**H10 — Every user's meal lists and meal-plan sub-resources are cross-tenant readable/mutable.** `internal/services/mealplanning/grpc/meal_planning.go:230-256,339-367` (lists) and the sub-resource handlers at `:90,112,135,159,478,503,758,783,810,835,1004,1030,1057,1085,1112,1137` (events, options, votes, grocery items, tasks, selections). These skip session/account scoping while their parent handlers scope by active account and the managers never check the account. *Fix:* thread the session active-account ID through, matching the meal-plan-level handlers. (Data-layer counterpart: `GetMealLists`/`GetRecipeLists` have no `belongs_to_user` predicate anywhere in the chain — `meal_lists.go:43`, codegen `mealplanning_meal_lists.go:79-96`.)
+
+**H11 — Meal-planning domain validators are never called.** `internal/domain/mealplanning/managers/meal_plan.go:37` and the other core `Create*` paths. `CreateMealPlan/Meal/MealPlanEvent/MealPlanOption/MealPlanOptionVotes` never invoke `ValidateWithContext`, so voting-deadline-in-the-future, "at least one main component", and `StartsAt < EndsAt` are all dead code. A meal plan with a past deadline or a main-less meal is accepted. *Fix:* call `input.ValidateWithContext(ctx)` at the top of each core manager method.
+
+**H12 — Forged payment-webhook signatures are acknowledged as processed.** `internal/domain/payments/manager/manager.go:297,301`. `ProcessWebhookEvent` returns `PrepareAndLogError(nil, …)` = nil for both "unknown provider" and "invalid webhook signature", so providers mark delivery successful and never retry, silently dropping billing events; signature failures are invisible to metrics. *Fix:* return real errors.
+
+**H13 — `CreateProduct`/`CreateSubscription` return `(nil, nil)` on nil input.** `internal/domain/payments/manager/manager.go:70,180`. Callers checking only the error nil-deref the "created" object. *Fix:* return `platformerrors.ErrNilInputParameter` like the other managers.
+
+**H14 — GDPR data-report fetch has no ownership check (IDOR) and the whole service is unreachable in prod.** `internal/services/dataprivacy/grpc/service.go:138-169` returns the full data dump for any report ID with no session/ownership verification. Separately, `internal/build/services/api/grpc/extras.go:234-254` has no `DataPrivacyMethodPermissions`, and the interceptor fail-closes on unlisted methods, so all three DataPrivacy RPCs currently return `PermissionDenied` for everyone. *Fix:* add and aggregate a permissions map, and verify the report belongs to the requester before returning.
+
+**H15 — Frozen-ingredient prep tasks fail the entire task batch with an FK violation.** `internal/domain/mealplanning/recipeanalysis/recipe_analyzer.go:630`. `generateMealPlanTasksForFrozenIngredients` emits an empty `RecipePrepTaskID`, but `meal_plan_tasks.belongs_to_recipe_prep_task` is `NOT NULL REFERENCES recipe_prep_tasks(id)` (migration 00021). Any finalized plan with a "frozen" ingredient makes the whole task-creation transaction fail, so no prep tasks are created for that plan. *Fix:* make the column nullable for ad-hoc thaw tasks or synthesize a real prep task.
+
+**H16 — Grocery-list update panics on the normal "I bought it" flow.** `internal/domain/mealplanning/meal_plan_grocery_list_item.go:162`. `Update` dereferences `x.PurchasedMeasurementUnit.ID`, but that field is nil until an item is purchased; the first update that sets `PurchasedMeasurementUnitID` panics. *Fix:* nil-guard before comparing IDs.
+
+**H17 — Recipe cloning corrupts prep-task→step references across recipes.** `internal/domain/mealplanning/managers/recipe.go:442`. `cloneRecipe` reassigns step IDs but never remaps `PrepTasks[i].TaskSteps[j].BelongsToRecipeStep`, which keeps the original recipe's step IDs; the FK passes because those steps exist, so every clone's prep tasks silently point at another recipe's steps. *Fix:* build an old→new step-ID map and rewrite the references (and `SatisfiesRecipeStep` targets).
+
+**H18 — Anyone can vote on any account's meal-plan options, including after finalization.** `internal/domain/mealplanning/managers/meal_plan_option_vote.go:42`. `CreateMealPlanOptionVotes` trusts `BelongsToMealPlanOption` with no account/membership/deadline check; the purpose-built `MealPlanEventIsEligibleForVoting` (`meal_plan_event.go:104`) is implemented but never called. *Fix:* resolve the option through the caller's account scope and reject ineligible events.
+
+**H19 — Meal-plan voting deadline can never be updated.** `internal/domain/mealplanning/meal_plan.go:129`. `MealPlan.Update` merges only `Notes` and drops `input.VotingDeadline` even though the field is exposed in JSON, populated by the converter, and *required* by the validator. *Fix:* apply `VotingDeadline` in `Update` with a not-in-past/before-event check.
+
+**H20 — Async message handler kills in-flight messages on shutdown (no drain).** `cmd/functions/async_message_handler/main.go:81-88`. `main` returns after the first signal, so consumers never stop gracefully and in-flight handlers are killed mid-work (Redis pub/sub has no redelivery → lost). One unbuffered `stopChan` is also shared by all six consumers (`internal/functions/datachangemessagehandler/data_change_message_handler.go:350-355`). *Fix:* close a broadcast stop channel on first signal, wait for drain, then flush telemetry and exit.
+
+**H21 — Cron-finalized meal plans emit no routing event, so downstream side effects never fire.** `internal/services/mealplanning/workers/meal_plan_finalizer/meal_plan_finalizer.go:95-103`. The published `DataChangeMessage` has no `EventType`, and the async handler routes entirely on `EventType`, so the normal expired-voting finalization path triggers no webhooks, notifications, or search indexing. *Fix:* set `EventType: mealplanning.MealPlanFinalizedServiceEventType` (with `UserID`/context parity with the manager path).
+
+**H22 — Dead gRPC listener leaves the pod Ready.** `internal/build/services/api/server.go:72-80`. If the gRPC listener fails to bind, the platform `Serve` logs and returns, the goroutine exits, and `Run` keeps blocking on the signal channel; K8s probes only hit HTTP :8000, so the pod stays Ready with the primary API dead. *Fix:* report serve failure over a channel `Run` selects on (exit non-zero), or register a gRPC readiness check.
+
+---
+
+## Medium severity
+
+**Data layer & transactions**
+- **M1** `internal/repositories/postgres/mealplanning/meal_plans.go:557,574` — `AttemptToFinalizeMealPlan` opens a tx on `writeDB` but runs `FinalizeMealPlanOption`/`FinalizeMealPlan` against `q.readDB`, so the writes bypass the tx (and hit the read replica); finalization is not atomic and a mid-loop crash leaves a plan partially finalized. *Fix:* run both on `tx`.
+- **M2** `internal/repositories/postgres/mealplanning/meal_plans.go:562,578` — both error paths in `AttemptToFinalizeMealPlan` return after `BeginTx` without `RollbackTransaction`, leaking a connection on every failure. *Fix:* add rollback before each return. (Same leak pattern at `identity/account_user_memberships.go:163-173,488-492`.)
+- **M3** `internal/repositories/postgres/mealplanning/meal_plans.go:654-657` — `GetFinalizedMealPlanIDsForTheNextWeek` starts a new group only when all four IDs differ (`&&` should be `||`), merging distinct options sharing a meal into one result with concatenated `RecipeIDs`; the backing query also only `ORDER BY meal_plans.id`, so rows aren't grouped-adjacent. Downstream workers get wrong recipe sets. *Fix:* compare with `||` and order by the full key.
+- **M4** `cmd/tools/codegen/queries/helpers.go:150-164` — in `buildFilterCountSelect` the `updated_before`/`updated_after` args are transposed vs `buildFilterConditions`, so every generated `filtered_count` disagrees with the page rows when an updated-at filter is used. *Fix:* swap the two narg names, regenerate.
+- **M5** `cmd/tools/codegen/queries/mealplanning_recipes.go:124-139,222-237` — `GetRecipeByID`/`GetRecipesWithIDs` LEFT JOIN `recipe_steps` with no `archived_at IS NULL`, so archived steps reappear in fetched recipes. *Fix:* add the filter to the join.
+- **M6** `internal/repositories/postgres/mealplanning/recipes.go:1203,1240` (and `meal_plans.go:377`) — `UpdateRecipe`/`UpdateRecipeStatus`/`UpdateMealPlan` discard the `:execrows` count, so updates against archived or non-owned rows silently "succeed" (and `UpdateMealPlan` writes a bogus audit entry). *Fix:* check rows affected, return `sql.ErrNoRows` on zero like the archive methods.
+
+**Payments**
+- **M7** `internal/domain/payments/manager/manager.go:118-143,227-240` — `UpdateProduct`/`UpdateSubscription` never nil-check input (panic on `input.Name != nil`) and never validate, so an update can set a negative amount or bogus status that creation rejects. *Fix:* add nil checks + `ValidateWithContext` for the update inputs.
+- **M8** `internal/domain/payments/manager/manager.go:411-427` — `handleRevenueCatSubscriptionActive` treats any `GetSubscriptionByExternalID` error (incl. transient DB failures) as "not found" and inserts, so a momentary error during a RENEWAL attempts a duplicate insert. *Fix:* branch only on `sql.ErrNoRows`.
+- **M9** `internal/domain/payments/manager/manager.go:382-385` — the CANCELLATION case returns nil on any lookup error, swallowing real DB failures so the cancellation is acked and lost. *Fix:* distinguish `sql.ErrNoRows`.
+
+**Auth & identity**
+- **M10** `internal/domain/auth/managers/auth_manager.go:161-165` — `CheckUserPermissions` indexes `AccountPermissions[ActiveAccountID]` and calls a method on the possibly-nil interface, panicking for a service-admin session without account membership (input also never nil-checked). *Fix:* comma-ok the lookup.
+- **M11** `internal/domain/auth/managers/auth_manager.go:476-479` + interceptor unauthenticated list (`authn_interceptor.go:82-97`) — `RequestUsernameReminder` requires a session, but someone who forgot their username can't log in; the sibling password-reset flow is correctly unauthenticated. The endpoint is unusable for its purpose. *Fix:* exempt the route, make the session fetch optional.
+- **M12** `internal/domain/identity/converters/account_user_memberships.go:15` — converter sets `AccountID: account.ID` (the membership's own ID) instead of `account.BelongsToAccount`; latent, would create memberships pointing at nonexistent accounts. *Fix:* use `BelongsToAccount`.
+- **M13** `internal/domain/identity/manager/user_data_manager.go:362-367` — `CreateUser` logs the live `InvitationToken` (a redemption secret) to log storage. *Fix:* log the invitation ID only.
+
+**Security**
+- **M14** `internal/authentication/webauthn/service.go:193-258` + `postgres_session_store.go:85-123` — the passkey challenge/session is never deleted after a successful assertion (only expired rows are GC'd), so the assertion is replayable within the 5-minute TTL; sign-count clone detection doesn't help when authenticators report counter 0. *Fix:* delete the session by challenge immediately after `ValidateLogin` succeeds.
+- **M15** `internal/services/auth/handlers/authentication/oauth2_token_store.go:33,65,80,95,110,126,142` — raw access/refresh tokens and auth codes are bound to the logger (and the full `TokenInfo` is logged at Error level on failure). *Fix:* log only IDs/hashes.
+- **M16** `internal/domain/oauth/manager/manager.go:101` + `oauth2_client_info.go:20-22` + `revoke.go:72` — OAuth2 client secrets stored in plaintext and compared with `!=` (non-constant-time). *Fix:* store a hash, compare with `crypto/subtle.ConstantTimeCompare`.
+- **M17** `internal/authentication/manager.go:149-179` → `internal/services/auth/grpc/auth.go:195-198` — distinct login failure messages ("user does not exist" vs "password did not match" vs "user is banned") are surfaced to the unauthenticated caller, enabling username/state enumeration. *Fix:* return one generic "invalid credentials" status.
+- **M18** `internal/services/auth/grpc/interceptors/authn_interceptor.go:128-142` — `X-Zuck-Mode-Account` (admin impersonation into a specific account) is read into `zuckAccountID` then unconditionally overwritten with the user's default account, so targeted impersonation always lands in the default. *Fix:* validate (membership-check) and use the requested account.
+- **M19** `internal/services/auth/grpc/interceptors/authn_interceptor.go:252-254,325-327` — every `extractSessionContextData` failure, including a genuine `Unauthenticated`, is remapped to `codes.Internal`, breaking client token-refresh retry logic. *Fix:* propagate the original status.
+
+**Services / handlers**
+- **M20** `internal/services/mealplanning/grpc/meal_planning.go:1239-1296` + `permissions.go:309-311` — the worker-trigger RPCs run *global* background jobs over all accounts but are gated only by `UpdateMealPlansPermission` (every account admin). *Fix:* gate behind a service-admin permission.
+- **M21** `internal/services/webhooks/grpc/webhooks.go:166-181` — `ArchiveWebhookTriggerConfig` skips the session/account scoping its siblings do; a user can archive another account's webhook trigger configs by ID. *Fix:* pass session active-account ID, verify ownership.
+- **M22** `internal/services/mealplanning/grpc/recipes.go:104-125,1513-1542` — `ArchiveRecipeRating`/`UpdateRecipeRating` do no ownership/author check, so any user can edit or delete another user's rating. *Fix:* load the rating, require `CreatedByUser == session user`.
+- **M23** `internal/services/waitlists/grpc/waitlists.go:233,278-311` — `Get/Update/ArchiveWaitlistSignup` never compare `BelongsToUser`, so any user can read/mutate another's signup by ID. *Fix:* ownership check after load.
+- **M24** `internal/services/mealplanning/grpc/meal_planning.go:374-380,916` and `internal/services/identity/grpc/account_invitations.go:80` — handlers dereference `request.Input.*` directly, so a request with `input` omitted panics the goroutine (no recovery interceptor — see H2). *Fix:* nil-check or use `GetXxx()` getters.
+- **M25** `internal/services/identity/grpc/accounts.go:201,228` — `UpdateAccount`/`TransferAccountOwnership` log `request.AccountId` but operate on the session's active account, silently ignoring the request's account ID. *Fix:* reject a mismatch or drop the field from the proto.
+- **M26** `internal/grpc/converters/query_filter.go:25` — `uint8(*qf.MaxResponseSize)` truncates the client's uint32 page size mod 256 (256→0, 300→44). *Fix:* clamp to a max or reject out-of-range with `InvalidArgument`.
+- **M27** `internal/services/mealplanning/grpc/meal_planning.go:788-798,1090-1100,840-850,1226-1236,1645-1655` — five list endpoints never set the response `Pagination` field though the manager returns it and siblings map it, so clients can't page them. *Fix:* map pagination like the siblings.
+
+**Workers / build**
+- **M28** `.../meal_plan_grocery_list_initializer.go:100-131` — marks a plan `GroceryListInitialized` even when some item creates failed (missing items never repaired), and a failed mark leaves a populated plan to be re-picked and fully duplicated next run. *Fix:* mark only on full success and make item creation idempotent. Companion: `meal_plan_finalizer.go:90` aborts the whole batch on one bad plan (`return -1, …`), permanently blocking all others — switch to multierror-and-continue.
+- **M29** `internal/build/services/api/server.go:28-46` — two fully independent DI containers each build their own DB pool / MQ connections / observability stack, and with `runMigrations: true` in prod the migration runner executes twice per boot; neither `RootScope` is ever `Shutdown()`. *Fix:* share one injector (or at least the DB client + observability) and call shutdown on teardown.
+- **M30** worker mains (`cmd/workers/*/main.go`, `cmd/functions/async_message_handler/main.go`) — exit without flushing the batch span processor / periodic metric readers, so cron jobs drop most telemetry (only `queue_test` flushes). *Fix:* defer tracer/metrics shutdown in every worker main.
+- **M31** `internal/functions/datachangemessagehandler/webhook_executor.go:116-133` — webhook delivery is single-attempt with errors swallowed (`return nil` on failure and non-2xx); no retry/backoff/DLQ, and line 131 logs a nil `err` instead of the status code. *Fix:* return the error for queue-level retry (or bounded retries) and log the real status.
+- **M32** `pkg/client/client.go:87-113` — `BuildClient` never exposes the `grpc.ClientConn` and the `Client` interface has no `Close()`, leaking a connection for any program that builds clients repeatedly. *Fix:* add `Close() error`.
+- **M33** `cmd/services/mcp/main.go:44,143-178` — the MCP server hardcodes `:8888` and ignores `cfg.HTTPServer.Port` while configs say `8000` and validation requires the unused HTTP config. *Fix:* bind to the configured port or drop the field.
+
+---
+
+## Low severity (grouped)
+
+**Correctness/logic smells**
+- `internal/domain/mealplanning/recipeanalysis/recipe_analyzer.go:575` — "frozen" thaw-task filter fires at `<= 3°C` (fridge temp), flagging refrigerated items; the test bakes in 2.5°C. Use `<= 0°C` (named constant).
+- `internal/domain/mealplanning/grocerylistpreparation/list_creator.go:167` — merging grocery items always sums min but only sums max when both sides have one, producing `min > max`. Treat a missing max as its min (or clear it). Related misattribution at `:150` — consolidated items keep the first option's `BelongsToMealPlanOption`/`RecipeID`.
+- `internal/domain/mealplanning/managers/meal_plan.go:165` — `FinalizeMealPlan` publishes the finalized event even when `finalized == false`. Gate the publish on success.
+- `internal/domain/mealplanning/managers/recipe.go:378` — `cloneRecipe` calls `FindStepForRecipeStepProductID(...).ID` with no nil check and converts a `-1` index via `uint64` into a huge number. Nil-check and skip cross-recipe links.
+- `internal/domain/mealplanning/meal_plan_task.go:150` — `MealPlanTask.Update` unconditionally overwrites `AssignedToUser` (nulls assignee); dead in prod, and the real status-change path never persists reassignment at all.
+- `internal/domain/identity/manager/user_data_manager.go:704-724` — search-service branch of `SearchForUsers` ignores the filter and reports `len(users)` as both counts. `internal/domain/auth/managers/auth_manager.go:198` — TOTP verify bypasses the injected `totpVerifier`.
+
+**Dropped/mis-mapped fields**
+- `internal/domain/mealplanning/meal_plan_option.go:57` — `Selections` on option creation is converted nowhere and silently dropped.
+- `internal/domain/mealplanning/converters/meal_plans.go:47` — converter sets `CreatedByUser: identifiers.New()` (random); a future caller that forgets to overwrite persists garbage. Leave empty.
+- `internal/domain/oauth/converters/oauth2_clients.go:38-45` — creation-response converter omits `ID`/`ClientID`/`ClientSecret`, the very fields it exists to return.
+
+**Error codes / observability drift**
+- `internal/services/mealplanning/grpc/meal_planning.go:625` and `internal/services/identity/grpc/admin.go:50` return `codes.Unauthenticated` for non-auth failures (server/permission errors). Use `Internal`/`PermissionDenied`.
+- `internal/services/webhooks/grpc/service.go:15` — `o11yName = "configuration_service"` copy-pasted from settings; both services log under one name. Rename.
+- Copy-pasted error strings misattribute the failing resource in logs: `meal_planning.go:1006,1032,1114,1196,1223,1550,1555`; empty `WithValue("", "")` and empty status messages in `audit/grpc/service.go:51,56,78,83,108`.
+- `internal/functions/datachangemessagehandler/data_changes.go:61` — highest-volume span never calls `span.End()`.
+- Worker/binary error messages name the wrong component: `cmd/workers/meal_plan_finalizer/main.go:25,29`, `.../meal_plan_grocery_list_initializer/main.go:25,29`, `cmd/services/api/main.go:43`.
+
+**Dead / inconsistent code**
+- `internal/config/do.go:23-97` (unused registrations, already drifted from the real ones), unused config types (`APIServiceOAuth2ConnectionConfig`, `NamedCacheConfig`, `AppleAppSiteAssociationConfig`), unused `EncodeToFile`, empty `internal/config/queues.go`.
+- `internal/domain/identity/manager/user_data_manager.go:40` (`todoRes = "TODO"`), `internal/domain/identity/converters/users.go:8-16` (`ConvertUserToUserCreationResponse`, drops fields).
+- `internal/domain/mealplanning/meal.go:274` — `Meal`/`MealComponent` update types + methods are unreachable (no update op in the interface).
+- `internal/domain/mealplanning/meal_plan_option.go:150` — `ValidateWithContext` lists `BelongsToMealPlanEvent` twice and requires client-unsettable fields.
+- Nil-input guards missing (inconsistent with sibling managers): `dataprivacy/manager/manager.go:59`, `uploadedmedia/manager/manager.go:65`, `waitlists/manager/manager.go:104,178`, `issuereports/manager/manager.go:105`, `webhooks/manager/webhook_manager.go:237`.
+
+**Security hygiene (low)**
+- `internal/services/auth/handlers/authentication/oauth2.go:38-40` — `SetValidateURIHandler` always returns nil, disabling redirect_uri host validation (open-redirect primitive; becomes code-exfiltration if a public client is ever added). Restore `DefaultValidateURI`.
+- `internal/services/auth/handlers/authentication/oauth2.go:71-73` and `pkg/client/client.go:155-205` — only plain PKCE, optional, no S256; the client advertises `code_challenge_method=plain` with no challenge/verifier. Support/require S256 or drop the param.
+- `internal/services/auth/grpc/interceptors/authn_interceptor.go:93-94` — gRPC reflection on the unauthenticated allow-list in all environments. Gate behind a dev flag.
+- `internal/services/auth/grpc/interceptors/authn_interceptor.go:189-194` — async "touch last active" goroutine assigns to the captured outer `err` (latent race). Use a local.
+- `internal/domain/identity/manager/user_data_manager.go:44,1079-1086` — QR PNG served with a `image/jpeg` data-URI prefix; also duplicates the injected `qrcodes.Builder`.
+
+**Conventions / hygiene**
+- `docs/writing_go.md` says "No `t.SkipNow()`", but 122 `t.SkipNow()` calls across 64 test files gate integration tests on `RunContainerTests`. Legitimate intent, but it conflicts with the stated convention — consider `t.Skip("...")` with a reason, or update the doc.
+- Copy-paste doc comments in `meal_plan.go:29`, `meal_plan_event.go:15-20` (describe invitations, not meal plans; stray `#nosec G101`).
+- `internal/config/configs.go:414` vs `:428` — doc comment says `.env.qa`, code uses `.env.testing`.
+- `cmd/tools/codegen/valid_env_vars/main.go:51-63` — `MobileNotificationSchedulerConfig` omitted from `structsToEvaluate` (latent: future unique fields won't generate).
+- ~19 TODO/FIXME markers in hand-written code, notably `internal/authorization/mealplanning_permissions.go:161` (missing `clone.recipes` permission) and `internal/services/identity/grpc/accounts.go:268` (the H9 auth gap).
+
+---
+
+## Suggested sequencing for follow-up agents
+
+1. **Retire RC1 first** (H1, H3, H4, H5, H12, H13): audit `PrepareError`/`PrepareAndLogError` call sites on error branches, replace nil args with explicit errors, add the panic-recovery interceptor (H2). Small diffs, closes several highs and the crash vector.
+2. **Sweep RC2 IDOR** (H6–H10, H14, M20–M25): one uniform change — session identity over request IDs, ownership checks on by-ID reads. Consider a shared helper so the pattern can't drift again.
+3. **Wire RC3 validators** (H11) and fix the meal-planning correctness bugs (H15–H19).
+4. **Workers & shutdown** (H20–H22, M28–M31): finalization event routing, graceful drain, telemetry flush, idempotency.
+5. **RC4 data-privacy completeness**, then the medium data-layer/transaction fixes (M1–M6), then lows.
+
+**Clean areas worth noting:** JWT validation (exp/aud/iss, HMAC-only), interceptor default-deny for unlisted methods, refresh-token rotation by JTI, per-request membership re-validation, migration structure and cascade rules, mock/interface compile-time assertions, and per-job DI completeness all checked out.

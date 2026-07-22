@@ -364,7 +364,7 @@ SELECT
 				recipe_step_vessels.last_updated_at IS NULL
 				OR recipe_step_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipe_step_vessels.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR recipe_step_vessels.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipe_step_vessels.id)
@@ -387,11 +387,11 @@ WHERE recipe_step_vessels.archived_at IS NULL
 	AND recipe_step_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipe_step_vessels.last_updated_at IS NULL
-		OR recipe_step_vessels.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipe_step_vessels.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		recipe_step_vessels.last_updated_at IS NULL
-		OR recipe_step_vessels.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipe_step_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND recipe_step_vessels.id > COALESCE($8, '')
 ORDER BY recipe_step_vessels.id ASC
@@ -401,8 +401,8 @@ LIMIT COALESCE($9, 50)
 type GetRecipeStepVesselsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	RecipeStepID    string
 	RecipeID        string
@@ -466,8 +466,8 @@ func (q *Queries) GetRecipeStepVessels(ctx context.Context, db DBTX, arg *GetRec
 	rows, err := db.QueryContext(ctx, getRecipeStepVessels,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.RecipeStepID,
 		arg.RecipeID,

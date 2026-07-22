@@ -90,3 +90,14 @@ func (x *ProductCreationRequestInput) ValidateWithContext(ctx context.Context) e
 		validation.Field(&x.BillingIntervalMonths, validation.When(x.Kind == ProductKindRecurring, validation.Required, validation.Min(1))),
 	)
 }
+
+var _ validation.ValidatableWithContext = (*ProductUpdateRequestInput)(nil)
+
+// ValidateWithContext validates a ProductUpdateRequestInput.
+func (x *ProductUpdateRequestInput) ValidateWithContext(ctx context.Context) error {
+	return validation.ValidateStructWithContext(ctx, x,
+		validation.Field(&x.Kind, validation.In(ProductKindRecurring, ProductKindOneTime)),
+		validation.Field(&x.AmountCents, validation.Min(0)),
+		validation.Field(&x.BillingIntervalMonths, validation.Min(1)),
+	)
+}

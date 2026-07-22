@@ -144,6 +144,9 @@ func BuildInjector(
 	auditsvc.RegisterAuditService(i)
 	commentssvc.RegisterCommentsService(i)
 	dataprivacysvc.RegisterDataPrivacyService(i)
+	do.Provide[dataprivacysvc.DataPrivacyMethodPermissions](i, func(i do.Injector) (dataprivacysvc.DataPrivacyMethodPermissions, error) {
+		return dataprivacysvc.ProvideMethodPermissions(), nil
+	})
 	identitysvc.RegisterIdentityService(i)
 	internalopssvc.RegisterInternalOpsService(i)
 	issuereportssvc.RegisterIssueReportsService(i)

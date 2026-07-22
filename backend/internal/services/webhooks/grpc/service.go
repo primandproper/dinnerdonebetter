@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	o11yName = "configuration_service"
+	o11yName = "webhooks_service"
 )
 
 var _ webhookssvc.WebhooksServiceServer = (*serviceImpl)(nil)

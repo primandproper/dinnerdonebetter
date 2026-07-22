@@ -30,9 +30,10 @@ func TestMealPlanOptionVoteCreationRequestInput_Validate(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
+		// every vote must name the meal plan option it belongs to.
 		x := &MealPlanOptionVoteCreationRequestInput{
 			Votes: []*MealPlanOptionVoteCreationInput{
-				{},
+				{BelongsToMealPlanOption: t.Name()},
 			},
 		}
 

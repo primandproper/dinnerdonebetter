@@ -339,7 +339,7 @@ SELECT
 				recipe_step_products.last_updated_at IS NULL
 				OR recipe_step_products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipe_step_products.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR recipe_step_products.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipe_step_products.id)
@@ -362,13 +362,13 @@ WHERE recipe_step_products.archived_at IS NULL
 	AND recipe_step_products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipe_step_products.last_updated_at IS NULL
-		OR recipe_step_products.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipe_step_products.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		recipe_step_products.last_updated_at IS NULL
-		OR recipe_step_products.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipe_step_products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR recipe_step_products.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR recipe_step_products.archived_at IS NULL)
 	AND recipe_step_products.id > COALESCE($8, '')
 ORDER BY recipe_step_products.id ASC
 LIMIT COALESCE($9, 50)
@@ -377,8 +377,8 @@ LIMIT COALESCE($9, 50)
 type GetRecipeStepProductsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	RecipeStepID    string
 	RecipeID        string
@@ -430,8 +430,8 @@ func (q *Queries) GetRecipeStepProducts(ctx context.Context, db DBTX, arg *GetRe
 	rows, err := db.QueryContext(ctx, getRecipeStepProducts,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.RecipeStepID,
 		arg.RecipeID,

@@ -22,6 +22,7 @@ var (
 		ImpersonateUserPermission,
 		ManageUserSessionsPermission,
 		PublishArbitraryQueueMessagePermission,
+		RunMealPlanWorkersPermission,
 		UpdateRecipesStatusPermission,
 		// only admins can arbitrarily create these via the API, this is exclusively for integration test purposes.
 		CreateServiceSettingsPermission,
@@ -265,5 +266,8 @@ var (
 		ReadPurchasesPermission,
 		ReadPaymentHistoryPermission,
 		ReadSubscriptionsPermission,
+		CreateUserDataReportsPermission,
+		ReadUserDataReportsPermission,
+		DestroyUserDataPermission,
 	}
 )

@@ -41,6 +41,10 @@ func (m *mealPlanningManager) CreateMealPlanEvent(ctx context.Context, mealPlanI
 		return nil, platformerrors.ErrNilInputParameter
 	}
 
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return nil, observability.PrepareError(err, span, "validating input")
+	}
+
 	convertedInput := converters.ConvertMealPlanEventCreationRequestInputToMealPlanEventDatabaseCreationInput(input)
 	convertedInput.BelongsToMealPlan = mealPlanID
 	logger := m.logger.WithSpan(span).WithValue(mealplanningkeys.MealPlanEventIDKey, convertedInput.ID)
@@ -83,6 +87,10 @@ func (m *mealPlanningManager) UpdateMealPlanEvent(ctx context.Context, mealPlanI
 
 	if input == nil {
 		return platformerrors.ErrNilInputParameter
+	}
+
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return observability.PrepareError(err, span, "validating input")
 	}
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{

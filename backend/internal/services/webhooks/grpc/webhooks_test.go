@@ -468,6 +468,9 @@ func TestServiceImpl_ArchiveWebhookTriggerConfig(t *testing.T) {
 		webhookID := "test-webhook-id"
 		configID := "test-config-id"
 
+		// the handler first verifies the webhook belongs to the active account.
+		fakeWebhook := webhookfakes.BuildFakeWebhook()
+		mockRepo.On(reflection.GetMethodName(mockRepo.GetWebhook), testutils.ContextMatcher, webhookID, "test-account-id").Return(fakeWebhook, nil)
 		mockRepo.On(reflection.GetMethodName(mockRepo.ArchiveWebhookTriggerConfig), testutils.ContextMatcher, webhookID, configID).Return(nil)
 
 		request := &webhookssvc.ArchiveWebhookTriggerConfigRequest{
@@ -493,6 +496,9 @@ func TestServiceImpl_ArchiveWebhookTriggerConfig(t *testing.T) {
 		webhookID := "test-webhook-id"
 		configID := "test-config-id"
 
+		// the handler first verifies the webhook belongs to the active account.
+		fakeWebhook := webhookfakes.BuildFakeWebhook()
+		mockRepo.On(reflection.GetMethodName(mockRepo.GetWebhook), testutils.ContextMatcher, webhookID, "test-account-id").Return(fakeWebhook, nil)
 		mockRepo.On(reflection.GetMethodName(mockRepo.ArchiveWebhookTriggerConfig), testutils.ContextMatcher, webhookID, configID).Return(errors.New("repository error"))
 
 		request := &webhookssvc.ArchiveWebhookTriggerConfigRequest{

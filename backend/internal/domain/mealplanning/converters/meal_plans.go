@@ -42,9 +42,10 @@ func ConvertMealPlanCreationRequestInputToMealPlanDatabaseCreationInput(input *t
 	}
 
 	x := &types.MealPlanDatabaseCreationInput{
-		ID:             mealPlanID,
-		Notes:          input.Notes,
-		CreatedByUser:  identifiers.New(),
+		ID:    mealPlanID,
+		Notes: input.Notes,
+		// CreatedByUser is intentionally left empty here; the caller (the manager) sets it from the
+		// authenticated creator ID. Generating a random ID would persist garbage if a caller forgot to.
 		VotingDeadline: input.VotingDeadline,
 		Events:         events,
 		ElectionMethod: input.ElectionMethod,

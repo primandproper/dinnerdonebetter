@@ -140,7 +140,7 @@ SELECT
 				comments.last_updated_at IS NULL
 				OR comments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR comments.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
 			AND comments.target_type = $6
 			AND comments.referenced_id = $7
 	) AS filtered_count,
@@ -159,13 +159,13 @@ WHERE comments.archived_at IS NULL
 	AND comments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		comments.last_updated_at IS NULL
-		OR comments.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR comments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		comments.last_updated_at IS NULL
-		OR comments.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR comments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR comments.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
 	AND comments.target_type = $6
 	AND comments.referenced_id = $7
 	AND comments.id > COALESCE($8, '')
@@ -176,8 +176,8 @@ LIMIT COALESCE($9, 50)
 type GetCommentsForReferenceParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	TargetType      CommentTargetType
 	ReferencedID    string
@@ -203,8 +203,8 @@ func (q *Queries) GetCommentsForReference(ctx context.Context, db DBTX, arg *Get
 	rows, err := db.QueryContext(ctx, getCommentsForReference,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.TargetType,
 		arg.ReferencedID,

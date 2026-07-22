@@ -41,13 +41,13 @@ SELECT
 			AND meal_list_items.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meal_list_items.last_updated_at IS NULL
-				OR meal_list_items.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR meal_list_items.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				meal_list_items.last_updated_at IS NULL
-				OR meal_list_items.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR meal_list_items.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_list_items.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_list_items.archived_at IS NULL)
 			AND meal_list_items.belongs_to_meal_list = sqlc.arg(meal_list_id)
 	) AS filtered_count,
 	(

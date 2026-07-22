@@ -258,6 +258,8 @@ const (
 	UpdateMealPlansPermission Permission = "update.meal_plans"
 	// ArchiveMealPlansPermission is a permission.
 	ArchiveMealPlansPermission Permission = "archive.meal_plans"
+	// RunMealPlanWorkersPermission is a service admin permission for triggering global meal-plan background jobs.
+	RunMealPlanWorkersPermission Permission = "run.meal_plan_workers"
 
 	// CreateMealPlanEventsPermission is a permission.
 	CreateMealPlanEventsPermission Permission = "create.meal_plan_events"

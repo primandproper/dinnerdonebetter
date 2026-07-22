@@ -24,6 +24,11 @@ import (
 	"gonum.org/v1/gonum/graph/topo"
 )
 
+// maxFrozenStorageTemperatureInCelsius is the storage temperature at or below which an ingredient is
+// considered frozen (and may therefore need to be thawed ahead of time). Water freezes at 0°C; the
+// previous value of 3°C is ordinary refrigerator temperature and wrongly flagged chilled ingredients.
+const maxFrozenStorageTemperatureInCelsius = 0
+
 var (
 	_ graph.Node = (*recipeStepGraphNode)(nil)
 
@@ -571,8 +576,8 @@ func frozenIngredientDefrostStepsFilter(recipe *mealplanning.Recipe) map[string]
 			if ingredient.Ingredient != nil &&
 				// if the ingredient has storage temperature set
 				ingredient.Ingredient.MinStorageTemperatureInCelsius != nil &&
-				// the ingredient's storage temperature is set to something about freezing temperature.
-				*ingredient.Ingredient.MinStorageTemperatureInCelsius <= 3 {
+				// the ingredient's storage temperature is at or below freezing.
+				*ingredient.Ingredient.MinStorageTemperatureInCelsius <= maxFrozenStorageTemperatureInCelsius {
 				ingredientIndices = append(ingredientIndices, i)
 			}
 		}
@@ -627,11 +632,19 @@ func (g *recipeAnalyzer) generateMealPlanTasksForFrozenIngredients(ctx context.C
 			continue
 		}
 
-		outputs = append(outputs, &mealplanning.MealPlanTaskDatabaseCreationInput{
-			ID:                  identifiers.New(),
-			CreationExplanation: explanation,
-			MealPlanOptionID:    mealPlanOptionID,
-		})
+		// SAFE FIX (H15): we intentionally do NOT emit a MealPlanTaskDatabaseCreationInput here.
+		// meal_plan_tasks.belongs_to_recipe_prep_task is NOT NULL and REFERENCES recipe_prep_tasks(id)
+		// (migration 00021), so an input with an empty RecipePrepTaskID triggers a foreign-key
+		// violation that fails the ENTIRE task-creation batch — meaning any finalized plan containing a
+		// frozen ingredient would get no prep tasks at all. Skipping these ad-hoc "thaw" tasks keeps the
+		// rest of the batch working.
+		//
+		// DEFERRED: proper thaw-task support requires a schema migration making
+		// belongs_to_recipe_prep_task nullable (or synthesizing a real recipe prep task) before these
+		// can be persisted. No migration is written here.
+		logger.WithValue(mealplanningkeys.RecipeStepIDKey, stepID).
+			WithValue("creation_explanation", explanation).
+			Info("skipping frozen-ingredient thaw task; nullable prep-task FK not yet available")
 	}
 
 	return outputs

@@ -105,7 +105,7 @@ SELECT
 				meal_list_items.last_updated_at IS NULL
 				OR meal_list_items.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meal_list_items.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR meal_list_items.archived_at IS NULL)
 			AND meal_list_items.belongs_to_meal_list = $6
 	) AS filtered_count,
 	(
@@ -119,11 +119,11 @@ WHERE meal_list_items.archived_at IS NULL
 	AND meal_list_items.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meal_list_items.last_updated_at IS NULL
-		OR meal_list_items.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR meal_list_items.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		meal_list_items.last_updated_at IS NULL
-		OR meal_list_items.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR meal_list_items.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND meal_list_items.belongs_to_meal_list = $6
 	AND meal_list_items.id > COALESCE($7, '')
@@ -135,8 +135,8 @@ LIMIT COALESCE($8, 50)
 type GetMealListItemsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	MealListID      string
 	Cursor          sql.NullString
@@ -159,8 +159,8 @@ func (q *Queries) GetMealListItems(ctx context.Context, db DBTX, arg *GetMealLis
 	rows, err := db.QueryContext(ctx, getMealListItems,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.MealListID,
 		arg.Cursor,

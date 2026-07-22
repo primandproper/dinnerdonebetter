@@ -12,12 +12,11 @@ import (
 )
 
 const (
-	// MealPlanEventCreatedServiceEventType indicates a meal plan was created.
+	// MealPlanEventCreatedServiceEventType indicates a meal plan event was created.
 	MealPlanEventCreatedServiceEventType = "meal_plan_event_created"
-	// MealPlanEventUpdatedServiceEventType indicates a meal plan was updated.
+	// MealPlanEventUpdatedServiceEventType indicates a meal plan event was updated.
 	MealPlanEventUpdatedServiceEventType = "meal_plan_event_updated"
-	// MealPlanEventArchivedServiceEventType indicates a meal plan was archived.
-	/* #nosec G101 */
+	// MealPlanEventArchivedServiceEventType indicates a meal plan event was archived.
 	MealPlanEventArchivedServiceEventType = "meal_plan_event_archived"
 
 	// BreakfastMealName represents breakfast.
@@ -45,7 +44,7 @@ func init() {
 }
 
 type (
-	// MealPlanEvent represents a meal plan.
+	// MealPlanEvent represents a meal plan event.
 	MealPlanEvent struct {
 		_ struct{} `json:"-"`
 
@@ -61,7 +60,7 @@ type (
 		Options           []*MealPlanOption `json:"options"`
 	}
 
-	// MealPlanEventCreationRequestInput represents what a user could set as input for creating meal plans.
+	// MealPlanEventCreationRequestInput represents what a user could set as input for creating meal plan events.
 	MealPlanEventCreationRequestInput struct {
 		_ struct{} `json:"-"`
 
@@ -72,7 +71,7 @@ type (
 		Options  []*MealPlanOptionCreationRequestInput `json:"options"`
 	}
 
-	// MealPlanEventDatabaseCreationInput represents what a user could set as input for creating meal plans.
+	// MealPlanEventDatabaseCreationInput represents what a user could set as input for creating meal plan events.
 	MealPlanEventDatabaseCreationInput struct {
 		_ struct{} `json:"-"`
 
@@ -85,7 +84,7 @@ type (
 		Options           []*MealPlanOptionDatabaseCreationInput `json:"-"`
 	}
 
-	// MealPlanEventUpdateRequestInput represents what a user could set as input for updating meal plans.
+	// MealPlanEventUpdateRequestInput represents what a user could set as input for updating meal plan events.
 	MealPlanEventUpdateRequestInput struct {
 		_ struct{} `json:"-"`
 
@@ -96,7 +95,7 @@ type (
 		BelongsToMealPlan string     `json:"-"`
 	}
 
-	// MealPlanEventDataManager describes a structure capable of storing meal plans permanently.
+	// MealPlanEventDataManager describes a structure capable of storing meal plan events permanently.
 	MealPlanEventDataManager interface {
 		MealPlanEventExists(ctx context.Context, mealPlanID, mealPlanEventID string) (bool, error)
 		GetMealPlanEvent(ctx context.Context, mealPlanID, mealPlanEventID string) (*MealPlanEvent, error)
@@ -109,7 +108,7 @@ type (
 	}
 )
 
-// Update merges an MealPlanEventUpdateRequestInput with a meal plan.
+// Update merges an MealPlanEventUpdateRequestInput with a meal plan event.
 func (x *MealPlanEvent) Update(input *MealPlanEventUpdateRequestInput) {
 	if input.Notes != nil && *input.Notes != x.Notes {
 		x.Notes = *input.Notes

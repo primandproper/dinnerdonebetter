@@ -163,7 +163,7 @@ func Test_buildFilterCountSelect(T *testing.T) {
 			AND 
 			things.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND things.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR things.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR things.archived_at IS NULL)
 	) AS filtered_count`
 		actual := buildFilterCountSelect("things", false, true, []string{})
 

@@ -2,9 +2,12 @@ package grpc
 
 import (
 	"context"
+	"errors"
 
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
 	auditkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit/keys"
 	auditmanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit/manager"
+	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
 	auditsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 	grpctypes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
@@ -20,6 +23,9 @@ import (
 const (
 	o11yName = "audit_service"
 )
+
+// errNotAuthorizedToViewAuditLogEntry is returned when a requester is not permitted to view a given audit log entry.
+var errNotAuthorizedToViewAuditLogEntry = errors.New("not authorized to view audit log entry")
 
 var _ auditsvc.AuditServiceServer = (*serviceImpl)(nil)
 
@@ -48,12 +54,20 @@ func (s *serviceImpl) GetAuditLogEntriesForAccount(ctx context.Context, request 
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := s.logger.WithValue("", "")
+	logger := s.logger.WithSpan(span)
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
-	auditLogEntries, err := s.auditManager.GetAuditLogEntriesForAccount(ctx, request.AccountId, filter)
+	sessionContextData, err := sessions.FetchContextDataFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+	}
+
+	accountID := sessionContextData.GetActiveAccountID()
+	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
+
+	auditLogEntries, err := s.auditManager.GetAuditLogEntriesForAccount(ctx, accountID, filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to get audit log entries for account")
 	}
 
 	x := &auditsvc.GetAuditLogEntriesForAccountResponse{
@@ -75,12 +89,20 @@ func (s *serviceImpl) GetAuditLogEntriesForUser(ctx context.Context, request *au
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := s.logger.WithValue("", "")
+	logger := s.logger.WithSpan(span)
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
-	auditLogEntries, err := s.auditManager.GetAuditLogEntriesForUser(ctx, request.UserId, filter)
+	sessionContextData, err := sessions.FetchContextDataFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+	}
+
+	userID := sessionContextData.GetUserID()
+	logger = logger.WithValue(identitykeys.UserIDKey, userID)
+
+	auditLogEntries, err := s.auditManager.GetAuditLogEntriesForUser(ctx, userID, filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to get audit log entries for user")
 	}
 
 	x := &auditsvc.GetAuditLogEntriesForUserResponse{
@@ -103,9 +125,22 @@ func (s *serviceImpl) GetAuditLogEntryByID(ctx context.Context, request *auditsv
 	defer span.End()
 
 	logger := s.logger.WithValue(auditkeys.AuditLogEntryIDKey, request.AuditLogEntryId)
+
+	sessionContextData, err := sessions.FetchContextDataFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+	}
+
 	auditLogEntry, err := s.auditManager.GetAuditLogEntry(ctx, request.AuditLogEntryId)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to get audit log entry")
+	}
+
+	// verify the requester is entitled to view this entry: it must belong to them or to their active account (service admins may view any).
+	belongsToUser := auditLogEntry.BelongsToUser == sessionContextData.GetUserID()
+	belongsToAccount := auditLogEntry.BelongsToAccount != nil && *auditLogEntry.BelongsToAccount == sessionContextData.GetActiveAccountID()
+	if !belongsToUser && !belongsToAccount && !sessionContextData.GetServicePermissions().IsServiceAdmin() {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedToViewAuditLogEntry, logger, span, codes.PermissionDenied, "not authorized to view audit log entry")
 	}
 
 	returnValue := converters.ConvertAuditLogEntryToGRPCAuditLogEntry(auditLogEntry)

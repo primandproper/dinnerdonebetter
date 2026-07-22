@@ -69,7 +69,7 @@ func TestRecipeGrapher_makeDAGForRecipe(T *testing.T) {
 func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 	T.Parallel()
 
-	T.Run("creates frozen thawing steps", func(t *testing.T) {
+	T.Run("does not currently create frozen thawing steps", func(t *testing.T) {
 		t.Parallel()
 
 		g := newAnalyzerForTest(t)
@@ -104,7 +104,9 @@ func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 					Ingredients: []*mealplanning.RecipeStepIngredient{
 						{
 							Ingredient: &mealplanning.ValidIngredient{
-								MinStorageTemperatureInCelsius: new(float32(2.5)),
+								// -5°C is below the corrected frozen threshold (<= 0°C), so this ingredient
+								// genuinely qualifies as frozen.
+								MinStorageTemperatureInCelsius: new(float32(-5)),
 								PluralName:                     "chicken breasts",
 								StorageInstructions:            "keep frozen",
 								Name:                           "chicken breast",
@@ -132,21 +134,17 @@ func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 			},
 		}
 
-		expected := []*mealplanning.MealPlanTaskDatabaseCreationInput{
-			{
-				CreationExplanation: buildThawStepCreationExplanation(1, 0),
-				MealPlanOptionID:    exampleMealPlanOption.ID,
-			},
-		}
-
 		actual, err := g.GenerateMealPlanTasksForRecipe(ctx, exampleMealPlanOption.ID, exampleRecipe)
 		assert.NoError(t, err)
 
-		for i := range expected {
-			expected[i].ID = actual[i].ID
-		}
-
-		assert.Equal(t, expected, actual)
+		// DEFERRED (H15): frozen-ingredient "thaw" tasks are currently NOT emitted. An input with an
+		// empty RecipePrepTaskID violates the NOT NULL foreign key on
+		// meal_plan_tasks.belongs_to_recipe_prep_task and would crash the entire finalization batch, so
+		// generateMealPlanTasksForFrozenIngredients skips them for now. Once a schema migration makes
+		// belongs_to_recipe_prep_task nullable (or a real recipe prep task is synthesized), re-enable this
+		// assertion to expect a thaw task with buildThawStepCreationExplanation(1, 0). This recipe has no
+		// prep tasks, so no tasks at all should be produced today.
+		assert.Empty(t, actual)
 	})
 }
 

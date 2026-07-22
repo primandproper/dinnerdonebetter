@@ -346,7 +346,7 @@ SELECT
 				valid_preparations.last_updated_at IS NULL
 				OR valid_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparations.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_preparations.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_preparations.id)
@@ -360,13 +360,13 @@ WHERE
 	AND valid_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_preparations.last_updated_at IS NULL
-		OR valid_preparations.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparations.last_updated_at IS NULL
-		OR valid_preparations.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparations.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_preparations.archived_at IS NULL)
 	AND valid_preparations.id > COALESCE($6, '')
 GROUP BY valid_preparations.id
 ORDER BY valid_preparations.id ASC
@@ -376,8 +376,8 @@ LIMIT COALESCE($7, 50)
 type GetValidPreparationsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -415,8 +415,8 @@ func (q *Queries) GetValidPreparations(ctx context.Context, db DBTX, arg *GetVal
 	rows, err := db.QueryContext(ctx, getValidPreparations,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -644,7 +644,7 @@ SELECT
 				valid_preparations.last_updated_at IS NULL
 				OR valid_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparations.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_preparations.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_preparations.id)
@@ -658,13 +658,13 @@ WHERE valid_preparations.archived_at IS NULL
 	AND valid_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_preparations.last_updated_at IS NULL
-		OR valid_preparations.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparations.last_updated_at IS NULL
-		OR valid_preparations.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparations.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_preparations.archived_at IS NULL)
 	AND valid_preparations.id > COALESCE($7, '')
 ORDER BY valid_preparations.id ASC
 LIMIT COALESCE($8, 50)
@@ -673,8 +673,8 @@ LIMIT COALESCE($8, 50)
 type SearchForValidPreparationsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	NameQuery       string
 	Cursor          sql.NullString
@@ -713,8 +713,8 @@ func (q *Queries) SearchForValidPreparations(ctx context.Context, db DBTX, arg *
 	rows, err := db.QueryContext(ctx, searchForValidPreparations,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.NameQuery,
 		arg.Cursor,

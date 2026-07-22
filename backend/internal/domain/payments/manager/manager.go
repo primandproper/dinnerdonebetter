@@ -2,6 +2,8 @@ package manager
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
 	paymentskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/keys"
 
+	platformerrors "github.com/primandproper/platform-go/v5/errors"
 	"github.com/primandproper/platform-go/v5/filtering"
 	"github.com/primandproper/platform-go/v5/identifiers"
 	"github.com/primandproper/platform-go/v5/messagequeue"
@@ -23,6 +26,13 @@ import (
 
 const (
 	o11yName = "payments_data_manager"
+)
+
+var (
+	// ErrUnknownPaymentProvider indicates a webhook arrived for a provider that has no registered processor.
+	ErrUnknownPaymentProvider = errors.New("unknown payment provider")
+	// ErrInvalidWebhookSignature indicates a webhook payload failed signature verification.
+	ErrInvalidWebhookSignature = errors.New("invalid webhook signature")
 )
 
 var _ PaymentsDataManager = (*paymentsManager)(nil)
@@ -67,7 +77,7 @@ func (m *paymentsManager) CreateProduct(ctx context.Context, input *payments.Pro
 	defer span.End()
 
 	if input == nil {
-		return nil, observability.PrepareError(nil, span, "nil product creation input")
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	if err := input.ValidateWithContext(ctx); err != nil {
 		return nil, observability.PrepareError(err, span, "validating product creation input")
@@ -114,6 +124,13 @@ func (m *paymentsManager) GetProducts(ctx context.Context, filter *filtering.Que
 func (m *paymentsManager) UpdateProduct(ctx context.Context, id string, input *payments.ProductUpdateRequestInput) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if input == nil {
+		return platformerrors.ErrNilInputParameter
+	}
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return observability.PrepareError(err, span, "validating product update input")
+	}
 
 	product, err := m.repo.GetProduct(ctx, id)
 	if err != nil {
@@ -177,7 +194,7 @@ func (m *paymentsManager) CreateSubscription(ctx context.Context, input *payment
 	defer span.End()
 
 	if input == nil {
-		return nil, observability.PrepareError(nil, span, "nil subscription creation input")
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	if err := input.ValidateWithContext(ctx); err != nil {
 		return nil, observability.PrepareError(err, span, "validating subscription creation input")
@@ -223,6 +240,13 @@ func (m *paymentsManager) GetSubscriptionsForAccount(ctx context.Context, accoun
 func (m *paymentsManager) UpdateSubscription(ctx context.Context, id string, input *payments.SubscriptionUpdateRequestInput) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if input == nil {
+		return platformerrors.ErrNilInputParameter
+	}
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return observability.PrepareError(err, span, "validating subscription update input")
+	}
 
 	sub, err := m.repo.GetSubscription(ctx, id)
 	if err != nil {
@@ -294,11 +318,11 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 
 	processor, ok := m.processorRegistry.GetProcessor(provider)
 	if !ok {
-		return observability.PrepareAndLogError(nil, logger, span, "unknown payment provider: %s", provider)
+		return observability.PrepareAndLogError(ErrUnknownPaymentProvider, logger, span, "unknown payment provider: %s", provider)
 	}
 
 	if !processor.VerifyWebhookSignature(ctx, payload, signature, accountID) {
-		return observability.PrepareAndLogError(nil, logger, span, "invalid webhook signature")
+		return observability.PrepareAndLogError(ErrInvalidWebhookSignature, logger, span, "invalid webhook signature")
 	}
 
 	parsed, err := processor.ParseWebhookEvent(ctx, payload)
@@ -381,7 +405,10 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 		}
 		sub, subErr := m.repo.GetSubscriptionByExternalID(ctx, subscriptionID)
 		if subErr != nil {
-			return nil // subscription may not exist yet
+			if errors.Is(subErr, sql.ErrNoRows) {
+				return nil // subscription may not exist yet
+			}
+			return observability.PrepareAndLogError(subErr, logger, span, "fetching subscription by external ID")
 		}
 		if err = m.repo.UpdateSubscriptionStatus(ctx, sub.ID, payments.SubscriptionStatusCancelled); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "updating subscription status")
@@ -410,6 +437,10 @@ func (m *paymentsManager) handleRevenueCatSubscriptionActive(
 
 	sub, err := m.repo.GetSubscriptionByExternalID(ctx, transactionID)
 	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return observability.PrepareAndLogError(err, logger, span, "fetching subscription by external ID")
+		}
+
 		// Create new subscription for INITIAL_PURCHASE
 		now := time.Now()
 		dbInput := &payments.SubscriptionDatabaseCreationInput{

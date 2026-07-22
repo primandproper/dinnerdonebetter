@@ -121,6 +121,13 @@ func (w *Worker) Work(ctx context.Context) error {
 		}
 		w.recordsProcessedCounter.Add(ctx, createdCount)
 
+		// Only mark the plan initialized once every item was created. If some items failed, leave the plan
+		// unmarked so it is retried on a later run instead of being permanently missing items.
+		if createdCount != int64(len(dbInputs)) {
+			l.WithValue("created", createdCount).Info("not marking meal plan as grocery list initialized because some items failed to create")
+			continue
+		}
+
 		if err = w.dataManager.MarkMealPlanAsGroceryListInitialized(ctx, mealPlan.ID); err != nil {
 			errorResult = multierror.Append(errorResult, err)
 			l.Error("failed to mark meal plan as grocery list initialized", err)

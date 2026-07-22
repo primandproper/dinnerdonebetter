@@ -216,7 +216,7 @@ SELECT
 				webhooks.last_updated_at IS NULL
 				OR webhooks.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR webhooks.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR webhooks.archived_at IS NULL)
 			AND webhooks.belongs_to_account = $6
 	) AS filtered_count,
 	(
@@ -232,13 +232,13 @@ WHERE webhooks.archived_at IS NULL
 	AND webhooks.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		webhooks.last_updated_at IS NULL
-		OR webhooks.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR webhooks.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		webhooks.last_updated_at IS NULL
-		OR webhooks.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR webhooks.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR webhooks.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR webhooks.archived_at IS NULL)
 	AND webhooks.belongs_to_account = $6
 	AND webhook_trigger_configs.archived_at IS NULL
 	AND webhooks.id > COALESCE($7, '')
@@ -249,8 +249,8 @@ LIMIT COALESCE($8, 50)
 type GetWebhooksForAccountParams struct {
 	CreatedAfter     sql.NullTime
 	CreatedBefore    sql.NullTime
-	UpdatedBefore    sql.NullTime
 	UpdatedAfter     sql.NullTime
+	UpdatedBefore    sql.NullTime
 	IncludeArchived  sql.NullBool
 	BelongsToAccount string
 	Cursor           sql.NullString
@@ -281,8 +281,8 @@ func (q *Queries) GetWebhooksForAccount(ctx context.Context, db DBTX, arg *GetWe
 	rows, err := db.QueryContext(ctx, getWebhooksForAccount,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToAccount,
 		arg.Cursor,

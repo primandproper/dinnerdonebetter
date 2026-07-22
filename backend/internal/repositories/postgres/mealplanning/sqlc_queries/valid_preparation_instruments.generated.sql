@@ -76,13 +76,13 @@ SELECT
 			AND valid_preparation_instruments.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
-				OR valid_preparation_instruments.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_preparation_instruments.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
-				OR valid_preparation_instruments.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_preparation_instruments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparation_instruments.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
 			AND valid_preparations.archived_at IS NULL
 			AND valid_preparation_instruments.valid_instrument_id = sqlc.arg(id)
@@ -115,7 +115,7 @@ WHERE
 		valid_preparation_instruments.last_updated_at IS NULL
 		OR valid_preparation_instruments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparation_instruments.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 	AND valid_preparation_instruments.id > COALESCE(sqlc.narg(cursor), '')
 GROUP BY
 	valid_preparation_instruments.id,
@@ -178,13 +178,13 @@ SELECT
 			AND valid_preparation_instruments.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
-				OR valid_preparation_instruments.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_preparation_instruments.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
-				OR valid_preparation_instruments.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_preparation_instruments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparation_instruments.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
 			AND valid_preparations.archived_at IS NULL
 			AND valid_preparation_instruments.valid_preparation_id = sqlc.arg(id)
@@ -217,7 +217,7 @@ WHERE
 		valid_preparation_instruments.last_updated_at IS NULL
 		OR valid_preparation_instruments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparation_instruments.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 	AND valid_preparation_instruments.id > COALESCE(sqlc.narg(cursor), '')
 GROUP BY
 	valid_preparation_instruments.id,
@@ -280,13 +280,13 @@ SELECT
 			AND valid_preparation_instruments.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
-				OR valid_preparation_instruments.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_preparation_instruments.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
-				OR valid_preparation_instruments.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_preparation_instruments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparation_instruments.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
 			AND valid_preparations.archived_at IS NULL
 	) AS filtered_count,
@@ -316,7 +316,7 @@ WHERE
 		valid_preparation_instruments.last_updated_at IS NULL
 		OR valid_preparation_instruments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparation_instruments.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 	AND valid_preparation_instruments.id > COALESCE(sqlc.narg(cursor), '')
 GROUP BY
 	valid_preparation_instruments.id,

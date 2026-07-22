@@ -375,19 +375,33 @@ func cloneRecipe(x *mealplanning.Recipe, userID string) *mealplanning.RecipeData
 	for _, step := range x.Steps {
 		for _, ingredient := range step.Ingredients {
 			if ingredient.RecipeStepProductID != nil {
-				ingredientProductIndices[ingredient.ID] = x.FindStepIndexByID(x.FindStepForRecipeStepProductID(*ingredient.RecipeStepProductID).ID)
+				// nil-check the lookup: a product ID that doesn't resolve to a step in this recipe (e.g. a
+				// cross-recipe link) would otherwise nil-deref, and a -1 index would become a huge uint64.
+				if productStep := x.FindStepForRecipeStepProductID(*ingredient.RecipeStepProductID); productStep != nil {
+					if idx := x.FindStepIndexByID(productStep.ID); idx >= 0 {
+						ingredientProductIndices[ingredient.ID] = idx
+					}
+				}
 			}
 		}
 
 		for _, instrument := range step.Instruments {
 			if instrument.RecipeStepProductID != nil {
-				instrumentProductIndices[instrument.ID] = x.FindStepIndexByID(x.FindStepForRecipeStepProductID(*instrument.RecipeStepProductID).ID)
+				if productStep := x.FindStepForRecipeStepProductID(*instrument.RecipeStepProductID); productStep != nil {
+					if idx := x.FindStepIndexByID(productStep.ID); idx >= 0 {
+						instrumentProductIndices[instrument.ID] = idx
+					}
+				}
 			}
 		}
 
 		for _, vessel := range step.Vessels {
 			if vessel.RecipeStepProductID != nil {
-				vesselProductIndices[vessel.ID] = x.FindStepIndexByID(x.FindStepForRecipeStepProductID(*vessel.RecipeStepProductID).ID)
+				if productStep := x.FindStepForRecipeStepProductID(*vessel.RecipeStepProductID); productStep != nil {
+					if idx := x.FindStepIndexByID(productStep.ID); idx >= 0 {
+						vesselProductIndices[vessel.ID] = idx
+					}
+				}
 			}
 		}
 	}
@@ -398,8 +412,13 @@ func cloneRecipe(x *mealplanning.Recipe, userID string) *mealplanning.RecipeData
 	// TODO: cloneInput.ClonedFromRecipeID = &x.ID
 
 	cloneInput.ID = identifiers.New()
+	// oldToNewStepIDs maps each original recipe step ID to the freshly-generated clone step ID so that
+	// references from other structures (notably prep-task task steps) can be rewritten to point at the
+	// clone's steps rather than silently keeping the source recipe's step IDs.
+	oldToNewStepIDs := make(map[string]string, len(cloneInput.Steps))
 	for i := range cloneInput.Steps {
 		newRecipeStepID := identifiers.New()
+		oldToNewStepIDs[x.Steps[i].ID] = newRecipeStepID
 		cloneInput.Steps[i].ID = newRecipeStepID
 		for j := range cloneInput.Steps[i].Ingredients {
 			if index, ok := ingredientProductIndices[x.Steps[i].Ingredients[j].ID]; ok {
@@ -445,6 +464,12 @@ func cloneRecipe(x *mealplanning.Recipe, userID string) *mealplanning.RecipeData
 		for j := range cloneInput.PrepTasks[i].TaskSteps {
 			cloneInput.PrepTasks[i].TaskSteps[j].ID = identifiers.New()
 			cloneInput.PrepTasks[i].TaskSteps[j].BelongsToRecipePrepTask = newPrepTaskID
+			// rewrite the task step's recipe-step reference to the cloned step ID; without this the clone's
+			// prep tasks would keep pointing at the ORIGINAL recipe's steps (the FK still passes because
+			// those steps exist, so the corruption is silent).
+			if newStepID, ok := oldToNewStepIDs[cloneInput.PrepTasks[i].TaskSteps[j].BelongsToRecipeStep]; ok {
+				cloneInput.PrepTasks[i].TaskSteps[j].BelongsToRecipeStep = newStepID
+			}
 		}
 	}
 

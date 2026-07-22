@@ -123,7 +123,7 @@ SELECT
 				permissions.last_updated_at IS NULL
 				OR permissions.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR permissions.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR permissions.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(permissions.id)
@@ -136,13 +136,13 @@ WHERE permissions.archived_at IS NULL
 	AND permissions.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		permissions.last_updated_at IS NULL
-		OR permissions.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR permissions.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		permissions.last_updated_at IS NULL
-		OR permissions.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR permissions.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR permissions.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR permissions.archived_at IS NULL)
 	AND permissions.id > COALESCE($6, '')
 ORDER BY permissions.id ASC
 LIMIT COALESCE($7, 50)
@@ -151,8 +151,8 @@ LIMIT COALESCE($7, 50)
 type GetPermissionsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -173,8 +173,8 @@ func (q *Queries) GetPermissions(ctx context.Context, db DBTX, arg *GetPermissio
 	rows, err := db.QueryContext(ctx, getPermissions,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,

@@ -76,7 +76,11 @@ GROUP BY
 	meal_plan_events.id,
 	meal_components.recipe_id
 ORDER BY
-	meal_plans.id;
+	meal_plans.id,
+	meal_plan_options.id,
+	meals.id,
+	meal_plan_events.id,
+	meal_components.recipe_id;
 
 -- name: GetFinalizedMealPlansWithoutGroceryListInit :many
 SELECT
@@ -129,13 +133,13 @@ SELECT
 			AND meal_plans.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meal_plans.last_updated_at IS NULL
-				OR meal_plans.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR meal_plans.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				meal_plans.last_updated_at IS NULL
-				OR meal_plans.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR meal_plans.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plans.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plans.archived_at IS NULL)
 			AND meal_plans.belongs_to_account = sqlc.arg(belongs_to_account)
 	) AS filtered_count,
 	(
@@ -156,7 +160,7 @@ WHERE meal_plans.archived_at IS NULL
 		meal_plans.last_updated_at IS NULL
 		OR meal_plans.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plans.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plans.archived_at IS NULL)
 	AND meal_plans.belongs_to_account = sqlc.arg(belongs_to_account)
 	AND meal_plans.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY meal_plans.id ASC

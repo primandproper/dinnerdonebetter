@@ -79,13 +79,13 @@ SELECT
 			AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(issue_reports.id)
@@ -129,13 +129,13 @@ SELECT
 			AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.belongs_to_account = sqlc.arg(belongs_to_account)
 	) AS filtered_count,
 	(
@@ -183,13 +183,13 @@ SELECT
 			AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.relevant_table = sqlc.arg(relevant_table)
 	) AS filtered_count,
 	(
@@ -237,13 +237,13 @@ SELECT
 			AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.relevant_table = sqlc.arg(relevant_table)
 			AND issue_reports.relevant_record_id = sqlc.arg(relevant_record_id)
 	) AS filtered_count,

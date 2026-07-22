@@ -38,6 +38,26 @@ func NewGroceryListCreator(logger logging.Logger, tracerProvider tracing.TracerP
 	}
 }
 
+// mergeQuantityNeeded folds an incoming ingredient quantity into an existing grocery list item.
+// A missing max on either side is treated as equal to that side's min, so the merged max is always
+// summed alongside the min and can never end up below the merged min (which the old "sum max only
+// when both sides have one" logic could produce).
+func mergeQuantityNeeded(existing *mealplanning.MealPlanGroceryListItemDatabaseCreationInput, minQty float32, maxQty *float32) {
+	existingMax := existing.MinQuantityNeeded
+	if existing.MaxQuantityNeeded != nil {
+		existingMax = *existing.MaxQuantityNeeded
+	}
+
+	incomingMax := minQty
+	if maxQty != nil {
+		incomingMax = *maxQty
+	}
+
+	existing.MinQuantityNeeded += minQty
+	mergedMax := existingMax + incomingMax
+	existing.MaxQuantityNeeded = &mergedMax
+}
+
 // processRecipeIngredients processes ingredients from a recipe (main or associated) and adds them to the grocery list.
 func (g *groceryListCreator) processRecipeIngredients(
 	recipe *mealplanning.Recipe,
@@ -99,12 +119,7 @@ func (g *groceryListCreator) processRecipeIngredients(
 				// Aggregate with existing item if same ingredient+unit (e.g. vegetable oil in step 6 and step 7)
 				aggregationKey := fmt.Sprintf("%s:%s", ingredient.Ingredient.ID, ingredient.MeasurementUnit.ID)
 				if existing, ok := aggregatedInputs[aggregationKey]; ok {
-					existing.MinQuantityNeeded += minQty
-					if existing.MaxQuantityNeeded != nil && maxQty != nil {
-						*existing.MaxQuantityNeeded += *maxQty
-					} else if maxQty != nil {
-						existing.MaxQuantityNeeded = maxQty
-					}
+					mergeQuantityNeeded(existing, minQty, maxQty)
 					continue
 				}
 				// Check optionInputs for same ingredient+unit within this option
@@ -113,12 +128,7 @@ func (g *groceryListCreator) processRecipeIngredients(
 					if existing.ValidIngredientID == ingredient.Ingredient.ID &&
 						existing.ValidMeasurementUnitID == ingredient.MeasurementUnit.ID &&
 						existing.BelongsToMealPlanOption != nil && *existing.BelongsToMealPlanOption == optionID {
-						existing.MinQuantityNeeded += minQty
-						if existing.MaxQuantityNeeded != nil && maxQty != nil {
-							*existing.MaxQuantityNeeded += *maxQty
-						} else if maxQty != nil {
-							existing.MaxQuantityNeeded = maxQty
-						}
+						mergeQuantityNeeded(existing, minQty, maxQty)
 						merged = true
 						break
 					}
@@ -162,13 +172,7 @@ func (g *groceryListCreator) processRecipeIngredients(
 						MaxQuantityNeeded:       maxQty,
 					}
 				} else {
-					existing.MinQuantityNeeded += minQty
-
-					if existing.MaxQuantityNeeded != nil && maxQty != nil {
-						*existing.MaxQuantityNeeded += *maxQty
-					} else if maxQty != nil {
-						existing.MaxQuantityNeeded = maxQty
-					}
+					mergeQuantityNeeded(existing, minQty, maxQty)
 				}
 			}
 		}

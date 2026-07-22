@@ -374,17 +374,22 @@ func (q *repository) UpdateMealPlan(ctx context.Context, updated *types.MealPlan
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, updated.ID)
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, updated.BelongsToAccount)
 
-	if _, err := q.generatedQuerier.UpdateMealPlan(ctx, q.writeDB, &generated.UpdateMealPlanParams{
+	rowsAffected, err := q.generatedQuerier.UpdateMealPlan(ctx, q.writeDB, &generated.UpdateMealPlanParams{
 		Notes:            updated.Notes,
 		Status:           generated.MealPlanStatus(updated.Status),
 		VotingDeadline:   updated.VotingDeadline,
 		BelongsToAccount: updated.BelongsToAccount,
 		ID:               updated.ID,
-	}); err != nil {
+	})
+	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan")
 	}
 
-	if _, err := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, q.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, q.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
 		BelongsToAccount: &updated.BelongsToAccount,
 		ID:               identifiers.New(),
 		ResourceType:     resourceTypeMealPlans,
@@ -554,11 +559,12 @@ func (q *repository) AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, 
 		if chosen {
 			logger = logger.WithValue("winner", winner).WithValue("tiebroken", tiebroken)
 
-			if err = q.generatedQuerier.FinalizeMealPlanOption(ctx, q.readDB, &generated.FinalizeMealPlanOptionParams{
+			if err = q.generatedQuerier.FinalizeMealPlanOption(ctx, tx, &generated.FinalizeMealPlanOptionParams{
 				MealPlanEventID: database.NullStringFromString(event.ID),
 				ID:              winner,
 				Tiebroken:       tiebroken,
 			}); err != nil {
+				q.RollbackTransaction(ctx, tx)
 				return false, observability.PrepareAndLogError(err, logger, span, "finalizing meal plan option")
 			}
 
@@ -571,10 +577,11 @@ func (q *repository) AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, 
 	if allVotesAreSubmitted || votingDeadlineHasPassed {
 		logger.Info("finalizing meal plan")
 
-		if err = q.generatedQuerier.FinalizeMealPlan(ctx, q.readDB, &generated.FinalizeMealPlanParams{
+		if err = q.generatedQuerier.FinalizeMealPlan(ctx, tx, &generated.FinalizeMealPlanParams{
 			Status: generated.MealPlanStatus(types.MealPlanStatusFinalized),
 			ID:     mealPlanID,
 		}); err != nil {
+			q.RollbackTransaction(ctx, tx)
 			return false, observability.PrepareAndLogError(err, logger, span, "finalizing meal plan option")
 		}
 
@@ -651,9 +658,9 @@ func (q *repository) GetFinalizedMealPlanIDsForTheNextWeek(ctx context.Context) 
 			databaseResult = r
 		}
 
-		if r.MealID != databaseResult.MealID &&
-			r.MealPlanOptionID != databaseResult.MealPlanOptionID &&
-			r.MealPlanEventID != databaseResult.MealPlanEventID &&
+		if r.MealID != databaseResult.MealID ||
+			r.MealPlanOptionID != databaseResult.MealPlanOptionID ||
+			r.MealPlanEventID != databaseResult.MealPlanEventID ||
 			r.MealPlanID != databaseResult.MealPlanID {
 			output = append(output, databaseResult)
 			databaseResult = r

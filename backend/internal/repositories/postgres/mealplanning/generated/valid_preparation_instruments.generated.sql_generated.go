@@ -279,7 +279,7 @@ SELECT
 				valid_preparation_instruments.last_updated_at IS NULL
 				OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
 			AND valid_preparations.archived_at IS NULL
 	) AS filtered_count,
@@ -303,13 +303,13 @@ WHERE
 	AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
-		OR valid_preparation_instruments.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
-		OR valid_preparation_instruments.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 	AND valid_preparation_instruments.id > COALESCE($6, '')
 GROUP BY
 	valid_preparation_instruments.id,
@@ -322,8 +322,8 @@ LIMIT COALESCE($7, 50)
 type GetValidPreparationInstrumentsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -379,8 +379,8 @@ func (q *Queries) GetValidPreparationInstruments(ctx context.Context, db DBTX, a
 	rows, err := db.QueryContext(ctx, getValidPreparationInstruments,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -673,7 +673,7 @@ SELECT
 				valid_preparation_instruments.last_updated_at IS NULL
 				OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
 			AND valid_preparations.archived_at IS NULL
 			AND valid_preparation_instruments.valid_instrument_id = $6
@@ -700,13 +700,13 @@ WHERE
 	AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
-		OR valid_preparation_instruments.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
-		OR valid_preparation_instruments.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 	AND valid_preparation_instruments.id > COALESCE($7, '')
 GROUP BY
 	valid_preparation_instruments.id,
@@ -719,8 +719,8 @@ LIMIT COALESCE($8, 50)
 type GetValidPreparationInstrumentsForInstrumentParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
 	Cursor          sql.NullString
@@ -777,8 +777,8 @@ func (q *Queries) GetValidPreparationInstrumentsForInstrument(ctx context.Contex
 	rows, err := db.QueryContext(ctx, getValidPreparationInstrumentsForInstrument,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
 		arg.Cursor,
@@ -909,7 +909,7 @@ SELECT
 				valid_preparation_instruments.last_updated_at IS NULL
 				OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
 			AND valid_preparations.archived_at IS NULL
 			AND valid_preparation_instruments.valid_preparation_id = $6
@@ -936,13 +936,13 @@ WHERE
 	AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
-		OR valid_preparation_instruments.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
-		OR valid_preparation_instruments.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 	AND valid_preparation_instruments.id > COALESCE($7, '')
 GROUP BY
 	valid_preparation_instruments.id,
@@ -955,8 +955,8 @@ LIMIT COALESCE($8, 50)
 type GetValidPreparationInstrumentsForPreparationParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
 	Cursor          sql.NullString
@@ -1013,8 +1013,8 @@ func (q *Queries) GetValidPreparationInstrumentsForPreparation(ctx context.Conte
 	rows, err := db.QueryContext(ctx, getValidPreparationInstrumentsForPreparation,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
 		arg.Cursor,

@@ -115,8 +115,8 @@ func (a *AsyncDataChangeMessageHandler) handleWebhookExecutionRequest(
 
 	res, err := httpclient.NewHTTPClient(&httpclient.Config{EnableTracing: true}).Do(req) //nolint:gosec // G704: webhook URL is admin-configured; webhooks intentionally deliver to external URLs
 	if err != nil {
-		observability.AcknowledgeError(err, logger, span, "executing webhook request")
-		return nil
+		// Return the error so the message is retried at the queue level rather than silently dropped.
+		return observability.PrepareAndLogError(err, logger, span, "executing webhook request")
 	}
 	defer func() {
 		if err = res.Body.Close(); err != nil {
@@ -128,8 +128,11 @@ func (a *AsyncDataChangeMessageHandler) handleWebhookExecutionRequest(
 	tracing.AttachResponseToSpan(span, res)
 
 	if res.StatusCode < 200 || res.StatusCode > 299 {
-		observability.AcknowledgeError(err, logger, span, "invalid response type")
-		return nil
+		// Log the real status code (err is nil here) and return an error so the delivery is retried.
+		return observability.PrepareAndLogError(
+			fmt.Errorf("webhook responded with unexpected status code %d", res.StatusCode),
+			logger, span, "executing webhook request",
+		)
 	}
 
 	return nil

@@ -55,6 +55,7 @@ func main() {
 		"internal/config.MealPlanFinalizerConfig",
 		"internal/config.MealPlanGroceryListInitializerConfig",
 		"internal/config.MealPlanTaskCreatorConfig",
+		"internal/config.MobileNotificationSchedulerConfig",
 		"internal/config.SearchDataIndexSchedulerConfig",
 		"internal/config.AsyncMessageHandlerConfig",
 		"internal/config.EmailDeliverabilityTestConfig",

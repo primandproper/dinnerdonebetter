@@ -145,9 +145,16 @@ func TestServiceImpl_FetchUserDataReport(t *testing.T) {
 		ctx := t.Context()
 		service, _, mockUploads := buildTestService(t)
 
+		userID := identifiers.New()
+		service.sessionContextDataFetcher = func(context.Context) (*sessions.ContextData, error) {
+			return &sessions.ContextData{
+				Requester: sessions.RequesterInfo{UserID: userID},
+			}, nil
+		}
+
 		collection := &dataprivacy.UserDataCollection{
 			Identity: identity.UserDataCollection{
-				User: identity.User{ID: identifiers.New()},
+				User: identity.User{ID: userID},
 			},
 		}
 		collectionBytes, _ := json.Marshal(collection)

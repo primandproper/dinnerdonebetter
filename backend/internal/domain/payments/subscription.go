@@ -86,3 +86,15 @@ func (x *SubscriptionCreationRequestInput) ValidateWithContext(ctx context.Conte
 		)),
 	)
 }
+
+var _ validation.ValidatableWithContext = (*SubscriptionUpdateRequestInput)(nil)
+
+// ValidateWithContext validates a SubscriptionUpdateRequestInput.
+func (x *SubscriptionUpdateRequestInput) ValidateWithContext(ctx context.Context) error {
+	return validation.ValidateStructWithContext(ctx, x,
+		validation.Field(&x.Status, validation.In(
+			SubscriptionStatusActive, SubscriptionStatusCancelled,
+			SubscriptionStatusPastDue, SubscriptionStatusTrialing, SubscriptionStatusIncomplete,
+		)),
+	)
+}

@@ -19,10 +19,12 @@ import (
 	platformerrors "github.com/primandproper/platform-go/v5/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v5/errors/grpc"
 	"github.com/primandproper/platform-go/v5/featureflags"
+	"github.com/primandproper/platform-go/v5/observability"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
 )
 
 func (s *serviceImpl) EvaluateBooleanFeatureFlag(ctx context.Context, req *authsvc.EvaluateBooleanFeatureFlagRequest) (*authsvc.EvaluateBooleanFeatureFlagResponse, error) {
@@ -194,7 +196,11 @@ func (s *serviceImpl) loginForToken(ctx context.Context, admin bool, input *auth
 
 	tokenResponse, err := s.authenticationManager.ProcessLogin(ctx, admin, input, extractLoginMetadata(ctx))
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to process login request")
+		// Log the specific failure reason server-side, but return a single generic status to the
+		// unauthenticated caller so distinct outcomes (unknown user, wrong password, banned account)
+		// can't be used to enumerate usernames or account state.
+		observability.AcknowledgeError(err, logger, span, "processing login request")
+		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
 	}
 
 	x := &authsvc.LoginForTokenResponse{
@@ -394,14 +400,14 @@ func (s *serviceImpl) RequestUsernameReminder(ctx context.Context, request *auth
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
-	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+	// A user who forgot their username can't authenticate, so this endpoint is unauthenticated
+	// (mirroring the password-reset flow); only decorate the logger if a session happens to exist.
+	if sessionContextData, scErr := s.fetchSessionContext(ctx); scErr == nil {
+		logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
 	input := converters.ConvertGRPCRequestUsernameReminderRequestToUsernameReminderRequestInput(request)
-	if err = s.authManager.RequestUsernameReminder(ctx, input); err != nil {
+	if err := s.authManager.RequestUsernameReminder(ctx, input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to issue username reminder")
 	}
 

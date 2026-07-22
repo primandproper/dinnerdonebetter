@@ -134,7 +134,7 @@ SELECT
 		WHERE oauth2_clients.archived_at IS NULL
 			AND oauth2_clients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND oauth2_clients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
-					AND (NOT COALESCE($3, false)::boolean OR oauth2_clients.archived_at = NULL)
+					AND (NOT COALESCE($3, false)::boolean OR oauth2_clients.archived_at IS NULL)
 			AND oauth2_clients.id > COALESCE($4, '')
 	) as filtered_count,
 	(
@@ -146,7 +146,7 @@ FROM oauth2_clients
 WHERE oauth2_clients.archived_at IS NULL
 	AND oauth2_clients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND oauth2_clients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
-			AND (NOT COALESCE($3, false)::boolean OR oauth2_clients.archived_at = NULL)
+			AND (NOT COALESCE($3, false)::boolean OR oauth2_clients.archived_at IS NULL)
 	AND oauth2_clients.id > COALESCE($4, '')
 ORDER BY oauth2_clients.id ASC
 LIMIT COALESCE($5, 50)

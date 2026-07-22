@@ -158,7 +158,7 @@ SELECT
 				recipe_ratings.last_updated_at IS NULL
 				OR recipe_ratings.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipe_ratings.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR recipe_ratings.archived_at IS NULL)
 			AND recipe_ratings.belongs_to_recipe = $6
 	) AS filtered_count,
 	(
@@ -175,13 +175,13 @@ WHERE
 	AND recipe_ratings.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipe_ratings.last_updated_at IS NULL
-		OR recipe_ratings.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipe_ratings.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		recipe_ratings.last_updated_at IS NULL
-		OR recipe_ratings.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipe_ratings.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR recipe_ratings.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR recipe_ratings.archived_at IS NULL)
 	AND recipe_ratings.belongs_to_recipe = $6
 	AND recipe_ratings.id > COALESCE($7, '')
 GROUP BY recipe_ratings.id
@@ -192,8 +192,8 @@ LIMIT COALESCE($8, 50)
 type GetRecipeRatingsForRecipeParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	BelongsToRecipe string
 	Cursor          sql.NullString
@@ -221,8 +221,8 @@ func (q *Queries) GetRecipeRatingsForRecipe(ctx context.Context, db DBTX, arg *G
 	rows, err := db.QueryContext(ctx, getRecipeRatingsForRecipe,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToRecipe,
 		arg.Cursor,
@@ -293,7 +293,7 @@ SELECT
 				recipe_ratings.last_updated_at IS NULL
 				OR recipe_ratings.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipe_ratings.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR recipe_ratings.archived_at IS NULL)
 			AND recipe_ratings.created_by_user = $6
 	) AS filtered_count,
 	(
@@ -310,13 +310,13 @@ WHERE
 	AND recipe_ratings.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipe_ratings.last_updated_at IS NULL
-		OR recipe_ratings.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipe_ratings.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		recipe_ratings.last_updated_at IS NULL
-		OR recipe_ratings.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipe_ratings.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR recipe_ratings.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR recipe_ratings.archived_at IS NULL)
 	AND recipe_ratings.created_by_user = $6
 	AND recipe_ratings.id > COALESCE($7, '')
 GROUP BY recipe_ratings.id
@@ -327,8 +327,8 @@ LIMIT COALESCE($8, 50)
 type GetRecipeRatingsForUserParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	CreatedByUser   string
 	Cursor          sql.NullString
@@ -356,8 +356,8 @@ func (q *Queries) GetRecipeRatingsForUser(ctx context.Context, db DBTX, arg *Get
 	rows, err := db.QueryContext(ctx, getRecipeRatingsForUser,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.CreatedByUser,
 		arg.Cursor,

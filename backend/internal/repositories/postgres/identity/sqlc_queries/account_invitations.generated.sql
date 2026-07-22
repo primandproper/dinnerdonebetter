@@ -416,13 +416,13 @@ SELECT
 			AND account_invitations.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				account_invitations.last_updated_at IS NULL
-				OR account_invitations.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR account_invitations.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				account_invitations.last_updated_at IS NULL
-				OR account_invitations.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR account_invitations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(account_invitations.id)
@@ -525,13 +525,13 @@ SELECT
 			AND account_invitations.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				account_invitations.last_updated_at IS NULL
-				OR account_invitations.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR account_invitations.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				account_invitations.last_updated_at IS NULL
-				OR account_invitations.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR account_invitations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(account_invitations.id)
@@ -556,7 +556,7 @@ WHERE account_invitations.archived_at IS NULL
 		account_invitations.last_updated_at IS NULL
 		OR account_invitations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at IS NULL)
 	AND account_invitations.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY account_invitations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

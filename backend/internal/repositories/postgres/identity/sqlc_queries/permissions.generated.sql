@@ -50,13 +50,13 @@ SELECT
 			AND permissions.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				permissions.last_updated_at IS NULL
-				OR permissions.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR permissions.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				permissions.last_updated_at IS NULL
-				OR permissions.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR permissions.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR permissions.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR permissions.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(permissions.id)
@@ -75,7 +75,7 @@ WHERE permissions.archived_at IS NULL
 		permissions.last_updated_at IS NULL
 		OR permissions.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR permissions.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR permissions.archived_at IS NULL)
 	AND permissions.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY permissions.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

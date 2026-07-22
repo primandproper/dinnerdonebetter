@@ -148,12 +148,10 @@ var _ validation.ValidatableWithContext = (*MealPlanOptionUpdateRequestInput)(ni
 
 // ValidateWithContext validates a MealPlanOptionUpdateRequestInput.
 func (x *MealPlanOptionUpdateRequestInput) ValidateWithContext(ctx context.Context) error {
+	// every field on an update is optional; BelongsToMealPlanEvent is set server-side (json:"-") and
+	// cannot be supplied by the client, so requiring any of these here would reject legitimate partial updates.
 	return validation.ValidateStructWithContext(
 		ctx,
 		x,
-		validation.Field(&x.MealID, validation.Required),
-		validation.Field(&x.BelongsToMealPlanEvent, validation.Required),
-		validation.Field(&x.Notes, validation.Required),
-		validation.Field(&x.BelongsToMealPlanEvent, validation.Required),
 	)
 }
