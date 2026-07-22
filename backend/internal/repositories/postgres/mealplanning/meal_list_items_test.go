@@ -45,14 +45,14 @@ func TestIntegration_MealListItems(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, itemInput.ID, createdItem.ID)
 
-	items, err := dbc.GetMealListItems(ctx, createdList.ID, nil)
+	items, err := dbc.GetMealListItems(ctx, createdList.ID, user.ID, nil)
 	require.NoError(t, err)
 	require.Len(t, items.Data, 1)
 	assert.Equal(t, meal.ID, items.Data[0].Meal.ID)
 
 	require.NoError(t, dbc.ArchiveMealListItem(ctx, createdItem.ID, createdList.ID))
 
-	afterArchive, err := dbc.GetMealListItems(ctx, createdList.ID, nil)
+	afterArchive, err := dbc.GetMealListItems(ctx, createdList.ID, user.ID, nil)
 	require.NoError(t, err)
 	assert.Len(t, afterArchive.Data, 0)
 

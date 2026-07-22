@@ -138,6 +138,7 @@ func TestMealPlanningManager_ListMealListItems(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		listID := fakes.BuildFakeID()
+		userID := fakes.BuildFakeID()
 		expectedItem := &types.MealListItem{
 			ID:                fakes.BuildFakeID(),
 			BelongsToMealList: listID,
@@ -149,11 +150,11 @@ func TestMealPlanningManager_ListMealListItems(T *testing.T) {
 		expectations := setupExpectationsForMealPlanningManager(
 			mpm,
 			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetMealListItems), testutils.ContextMatcher, listID, testutils.QueryFilterMatcher).Return(expected, nil)
+				db.On(reflection.GetMethodName(mpm.db.GetMealListItems), testutils.ContextMatcher, listID, userID, testutils.QueryFilterMatcher).Return(expected, nil)
 			},
 		)
 
-		actual, err := mpm.ListMealListItems(ctx, listID, nil)
+		actual, err := mpm.ListMealListItems(ctx, listID, userID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 

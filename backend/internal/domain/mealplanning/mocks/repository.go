@@ -1710,8 +1710,8 @@ func (m *Repository) ArchiveRecipeList(ctx context.Context, recipeListID, userID
 }
 
 // GetMealLists is a mock function.
-func (m *Repository) GetMealLists(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealList], error) {
-	returnValues := m.Called(ctx, filter)
+func (m *Repository) GetMealLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealList], error) {
+	returnValues := m.Called(ctx, userID, filter)
 	return returnValues.Get(0).(*filtering.QueryFilteredResult[mealplanning.MealList]), returnValues.Error(1)
 }
 
@@ -1760,8 +1760,8 @@ func (m *Repository) MealExistsInMealList(ctx context.Context, mealListID, mealI
 }
 
 // GetMealListItems is a mock function.
-func (m *Repository) GetMealListItems(ctx context.Context, mealListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealListItem], error) {
-	returnValues := m.Called(ctx, mealListID, filter)
+func (m *Repository) GetMealListItems(ctx context.Context, mealListID, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealListItem], error) {
+	returnValues := m.Called(ctx, mealListID, userID, filter)
 	return returnValues.Get(0).(*filtering.QueryFilteredResult[mealplanning.MealListItem]), returnValues.Error(1)
 }
 

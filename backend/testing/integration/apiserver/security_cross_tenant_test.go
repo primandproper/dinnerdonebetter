@@ -246,6 +246,50 @@ func TestCrossTenant_RecipeRating_Denied(T *testing.T) {
 	})
 }
 
+// TestCrossTenant_MealLists_NotLeaked asserts that meal lists are user-scoped: user B's GetMealLists
+// never returns user A's meal lists. GetMealLists filters by the session user's ID (belongs_to_user),
+// so this is a "no leak" property rather than a hard denial. Meal list items are returned nested inside
+// each meal list (there is no separately-registered GetMealListItems RPC), so scoping GetMealLists also
+// prevents leaking A's items: since B never sees A's list, it never sees A's items either.
+func TestCrossTenant_MealLists_NotLeaked(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, clientA := createUserAndClientForTest(t)
+		_, clientB := createUserAndClientForTest(t)
+
+		// A creates a meal list.
+		createRes, err := clientA.CreateMealList(ctx, &mealplanninggrpc.CreateMealListRequest{
+			Input: &mealplanninggrpc.MealListCreationRequestInput{Name: t.Name(), Description: "desc"},
+		})
+		require.NoError(t, err)
+		listAID := createRes.Created.Id
+		require.NotEmpty(t, listAID)
+
+		// positive control: A sees its own list.
+		ownLists, err := clientA.GetMealLists(ctx, &mealplanninggrpc.GetMealListsRequest{})
+		require.NoError(t, err)
+		var ownFound bool
+		for _, l := range ownLists.Results {
+			if l.Id == listAID {
+				ownFound = true
+				break
+			}
+		}
+		assert.True(t, ownFound, "A should see its own meal list")
+
+		// cross-tenant: B must not see A's list.
+		bLists, err := clientB.GetMealLists(ctx, &mealplanninggrpc.GetMealListsRequest{})
+		require.NoError(t, err)
+		for _, l := range bLists.Results {
+			assert.NotEqual(t, listAID, l.Id, "B must not see A's meal list %q", listAID)
+		}
+	})
+}
+
 // TestCrossTenant_WebhookTriggerConfig_Denied asserts that a user cannot archive a webhook trigger
 // config belonging to another account's webhook. webhooks/grpc/webhooks.go ArchiveWebhookTriggerConfig
 // enforces ownership via an account-scoped GetWebhook lookup: for a cross-account caller that lookup

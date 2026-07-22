@@ -42,7 +42,7 @@ func (q *repository) MealExistsInMealList(ctx context.Context, mealListID, mealI
 }
 
 // GetMealListItems fetches meal list items for a given list with filtering.
-func (q *repository) GetMealListItems(ctx context.Context, mealListID string, filter *filtering.QueryFilter) (x *filtering.QueryFilteredResult[types.MealListItem], err error) {
+func (q *repository) GetMealListItems(ctx context.Context, mealListID, userID string, filter *filtering.QueryFilter) (x *filtering.QueryFilteredResult[types.MealListItem], err error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -69,6 +69,7 @@ func (q *repository) GetMealListItems(ctx context.Context, mealListID string, fi
 
 	results, err := q.generatedQuerier.GetMealListItems(ctx, q.readDB, &generated.GetMealListItemsParams{
 		MealListID:      mealListID,
+		BelongsToUser:   userID,
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),

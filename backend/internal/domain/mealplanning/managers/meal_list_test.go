@@ -35,11 +35,11 @@ func TestMealPlanningManager_ListMealLists(T *testing.T) {
 		expectations := setupExpectationsForMealPlanningManager(
 			mpm,
 			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetMealLists), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(expected, nil)
+				db.On(reflection.GetMethodName(mpm.db.GetMealLists), testutils.ContextMatcher, ml.BelongsToUser, testutils.QueryFilterMatcher).Return(expected, nil)
 			},
 		)
 
-		actual, err := mpm.ListMealLists(ctx, nil)
+		actual, err := mpm.ListMealLists(ctx, ml.BelongsToUser, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 

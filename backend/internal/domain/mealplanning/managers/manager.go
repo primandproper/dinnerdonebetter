@@ -101,14 +101,14 @@ type (
 		ArchiveAccountInstrumentOwnership(ctx context.Context, ownerID, instrumentOwnershipID string) error
 
 		// Meal lists
-		ListMealLists(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealList], error)
+		ListMealLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealList], error)
 		CreateMealList(ctx context.Context, userID string, input *types.MealListCreationRequestInput) (*types.MealList, error)
 		UpdateMealList(ctx context.Context, mealListID, userID string, input *types.MealListUpdateRequestInput) error
 		ArchiveMealList(ctx context.Context, mealListID, userID string) error
 		AddMealToMealList(ctx context.Context, mealListID, mealID, notes string) (*types.MealListItem, error)
 		UpdateMealListItem(ctx context.Context, mealListItemID, mealListID, mealID string, input *types.MealListItemUpdateRequestInput) error
 		RemoveMealFromMealList(ctx context.Context, mealListID, mealListItemID string) error
-		ListMealListItems(ctx context.Context, mealListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealListItem], error)
+		ListMealListItems(ctx context.Context, mealListID, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealListItem], error)
 
 		// Recipes
 		ListRecipes(ctx context.Context, status string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Recipe], error)

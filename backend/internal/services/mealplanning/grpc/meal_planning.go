@@ -268,10 +268,15 @@ func (s *serviceImpl) GetMealLists(ctx context.Context, request *mealplanningsvc
 
 	logger := s.logger.WithSpan(span)
 
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
+	}
+
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	lists, err := s.mealPlanningManager.ListMealLists(ctx, filter)
+	lists, err := s.mealPlanningManager.ListMealLists(ctx, sessionContextData.GetUserID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching meal lists")
 	}
@@ -379,10 +384,15 @@ func (s *serviceImpl) GetMealListItems(ctx context.Context, request *mealplannin
 		mealplanningkeys.MealListIDKey: request.MealListId,
 	}, span, s.logger)
 
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
+	}
+
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	items, err := s.mealPlanningManager.ListMealListItems(ctx, request.MealListId, filter)
+	items, err := s.mealPlanningManager.ListMealListItems(ctx, request.MealListId, sessionContextData.GetUserID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching meal list items")
 	}

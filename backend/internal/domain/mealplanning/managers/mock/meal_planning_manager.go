@@ -61,8 +61,8 @@ func (m *MockMealPlanningManager) AddMealImage(ctx context.Context, mealID, uplo
 	return returnValues.Error(0)
 }
 
-func (m *MockMealPlanningManager) ListMealLists(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealList], error) {
-	returnValues := m.Called(ctx, filter)
+func (m *MockMealPlanningManager) ListMealLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealList], error) {
+	returnValues := m.Called(ctx, userID, filter)
 
 	if returnValues.Get(0) == nil {
 		return nil, returnValues.Error(1)
@@ -106,8 +106,8 @@ func (m *MockMealPlanningManager) RemoveMealFromMealList(ctx context.Context, me
 	return returnValues.Error(0)
 }
 
-func (m *MockMealPlanningManager) ListMealListItems(ctx context.Context, mealListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealListItem], error) {
-	returnValues := m.Called(ctx, mealListID, filter)
+func (m *MockMealPlanningManager) ListMealListItems(ctx context.Context, mealListID, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealListItem], error) {
+	returnValues := m.Called(ctx, mealListID, userID, filter)
 
 	if returnValues.Get(0) == nil {
 		return nil, returnValues.Error(1)

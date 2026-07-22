@@ -273,7 +273,7 @@ func TestServiceImpl_GetMealLists(T *testing.T) {
 		expected := &filtering.QueryFilteredResult[mealplanning.MealList]{Data: []*mealplanning.MealList{list}}
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
-		mmpm.On(reflection.GetMethodName(mmpm.ListMealLists), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(expected, nil)
+		mmpm.On(reflection.GetMethodName(mmpm.ListMealLists), testutils.ContextMatcher, mock.AnythingOfType("string"), testutils.QueryFilterMatcher).Return(expected, nil)
 		s.mealPlanningManager = mmpm
 
 		res, err := s.GetMealLists(ctx, &mealplanninggrpc.GetMealListsRequest{})
@@ -399,7 +399,7 @@ func TestServiceImpl_GetMealListItems(T *testing.T) {
 		expected := &filtering.QueryFilteredResult[mealplanning.MealListItem]{Data: []*mealplanning.MealListItem{item}}
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
-		mmpm.On(reflection.GetMethodName(mmpm.ListMealListItems), testutils.ContextMatcher, listID, testutils.QueryFilterMatcher).Return(expected, nil)
+		mmpm.On(reflection.GetMethodName(mmpm.ListMealListItems), testutils.ContextMatcher, listID, mock.AnythingOfType("string"), testutils.QueryFilterMatcher).Return(expected, nil)
 		s.mealPlanningManager = mmpm
 
 		res, err := s.GetMealListItems(ctx, &mealplanninggrpc.GetMealListItemsRequest{MealListId: listID})

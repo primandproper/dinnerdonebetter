@@ -21,7 +21,7 @@ var (
 )
 
 // GetMealLists fetches a list of meal lists from the database that meet a particular filter.
-func (q *repository) GetMealLists(ctx context.Context, filter *filtering.QueryFilter) (x *filtering.QueryFilteredResult[types.MealList], err error) {
+func (q *repository) GetMealLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (x *filtering.QueryFilteredResult[types.MealList], err error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -41,6 +41,7 @@ func (q *repository) GetMealLists(ctx context.Context, filter *filtering.QueryFi
 	listsByID := map[string]*types.MealList{}
 
 	results, err := q.generatedQuerier.GetMealLists(ctx, q.readDB, &generated.GetMealListsParams{
+		BelongsToUser:   userID,
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
