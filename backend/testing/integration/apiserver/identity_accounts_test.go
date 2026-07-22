@@ -15,6 +15,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -243,11 +245,15 @@ func TestAccounts_Updating(T *testing.T) {
 
 		converted := fakes.BuildFakeAccount()
 		updateInput := identityconverters.ConvertAccountToAccountUpdateRequestInput(converted)
+		// M25: UpdateAccount only ever mutates the caller's active account; a request account ID that
+		// doesn't match the active account (here, a nonexistent one) is now rejected with InvalidArgument
+		// rather than silently updating the caller's own account.
 		_, err := testClient.UpdateAccount(ctx, &identitysvc.UpdateAccountRequest{
 			AccountId: nonexistentID,
 			Input:     identitygrpcconverters.ConvertAccountUpdateRequestInputToGRPCAccountUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		assert.Error(t, err)
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 
 		updatedClient, err := testClient.GetAccount(ctx, &identitysvc.GetAccountRequest{AccountId: converted.ID})
 		assert.Error(t, err)
@@ -833,7 +839,9 @@ func TestAccounts_OwnershipTransfer(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, webhook)
 
-		AssertAuditLogContainsFuzzy(t, ctx, testClient, accountID, 15, []*ExpectedAuditEntry{
+		// The audit log for an account is only readable by a current member of that account. After the
+		// ownership transfer the original owner is no longer a member, so read the log as the new owner.
+		AssertAuditLogContainsFuzzy(t, ctx, inviteeClient, accountID, 15, []*ExpectedAuditEntry{
 			{EventType: "updated", ResourceType: "account_user_memberships"},
 		})
 	})
@@ -925,7 +933,9 @@ func TestAccounts_UsersHaveBackupAccountCreatedForThemWhenRemovedFromLastAccount
 
 		require.True(t, found)
 
-		AssertAuditLogContainsFuzzy(t, ctx, testClient, accountID, 20, []*ExpectedAuditEntry{
+		// testUser was just removed from this account, so it can no longer read the account's audit log.
+		// The invitee remains an account_admin member, so read the log through the invitee's client.
+		AssertAuditLogContainsFuzzy(t, ctx, inviteeClient, accountID, 20, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "account_invitations", RelevantID: inviteRes.Created.Id},
 			{EventType: "updated", ResourceType: "account_user_memberships"},
 			{EventType: "archived", ResourceType: "account_user_memberships"},

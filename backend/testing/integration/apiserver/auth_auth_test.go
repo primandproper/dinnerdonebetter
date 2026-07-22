@@ -466,7 +466,13 @@ func TestAuth_ChangingTOTPSecret(T *testing.T) {
 			TotpToken:       generateTOTPCodeForUserForTest(t, user),
 		})
 		require.NoError(t, err)
-		res.Result.TwoFactorSecret = user.TwoFactorSecret
+		require.NotEmpty(t, res.Result.TwoFactorSecret)
+
+		// RefreshTOTPSecret rotates the user's 2FA secret; adopt the newly issued secret so the
+		// verification code below is generated against the current secret. TOTP verification is now
+		// actually enforced (it previously no-op'd because PrepareError returned nil on a nil error),
+		// so verifying with a code from the stale secret would correctly fail.
+		user.TwoFactorSecret = res.Result.TwoFactorSecret
 
 		_, err = testClient.VerifyTOTPSecret(ctx, &authsvc.VerifyTOTPSecretRequest{
 			TotpToken: generateTOTPCodeForUserForTest(t, user),

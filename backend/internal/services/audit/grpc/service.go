@@ -62,7 +62,14 @@ func (s *serviceImpl) GetAuditLogEntriesForAccount(ctx context.Context, request 
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
 	}
 
-	accountID := sessionContextData.GetActiveAccountID()
+	// verify the requester is a member of the requested account (service admins may read any account).
+	// This mirrors the GetAccount handler: reads are scoped to the requested account ID, but only for
+	// members of that account, so there is no cross-account leak to non-members.
+	if _, isMember := sessionContextData.AccountPermissions[request.AccountId]; !isMember && !sessionContextData.GetServicePermissions().IsServiceAdmin() {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedToViewAuditLogEntry, logger, span, codes.PermissionDenied, "not authorized to view audit log entries for account")
+	}
+
+	accountID := request.AccountId
 	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
 
 	auditLogEntries, err := s.auditManager.GetAuditLogEntriesForAccount(ctx, accountID, filter)
@@ -97,7 +104,14 @@ func (s *serviceImpl) GetAuditLogEntriesForUser(ctx context.Context, request *au
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
 	}
 
-	userID := sessionContextData.GetUserID()
+	// a requester may only read their own user audit log; service admins may read any user's.
+	// This mirrors the account handler: the query is scoped to the requested user ID, but non-admins
+	// are limited to themselves, so there is no cross-user leak.
+	if request.UserId != sessionContextData.GetUserID() && !sessionContextData.GetServicePermissions().IsServiceAdmin() {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedToViewAuditLogEntry, logger, span, codes.PermissionDenied, "not authorized to view audit log entries for user")
+	}
+
+	userID := request.UserId
 	logger = logger.WithValue(identitykeys.UserIDKey, userID)
 
 	auditLogEntries, err := s.auditManager.GetAuditLogEntriesForUser(ctx, userID, filter)

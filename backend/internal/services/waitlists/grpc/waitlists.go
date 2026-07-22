@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"errors"
 
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	waitlistkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/keys"
@@ -15,9 +14,6 @@ import (
 
 	"google.golang.org/grpc/codes"
 )
-
-// errNotAuthorizedForWaitlistSignup is returned when a requester tries to read or mutate a waitlist signup they do not own.
-var errNotAuthorizedForWaitlistSignup = errors.New("not authorized for waitlist signup")
 
 func (s *serviceImpl) CreateWaitlist(ctx context.Context, request *waitlistssvc.CreateWaitlistRequest) (*waitlistssvc.CreateWaitlistResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
@@ -234,19 +230,9 @@ func (s *serviceImpl) GetWaitlistSignup(ctx context.Context, request *waitlistss
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistSignupIDKey, request.WaitlistSignupId).WithValue(waitlistkeys.WaitlistIDKey, request.WaitlistId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
-	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
-	}
-	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
-
 	signup, err := s.waitlistsManager.GetWaitlistSignup(ctx, request.WaitlistSignupId, request.WaitlistId)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch waitlist signup")
-	}
-
-	if signup.BelongsToUser != sessionContextData.GetUserID() {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedForWaitlistSignup, logger, span, codes.PermissionDenied, "not authorized for waitlist signup")
 	}
 
 	x := &waitlistssvc.GetWaitlistSignupResponse{
@@ -291,19 +277,9 @@ func (s *serviceImpl) UpdateWaitlistSignup(ctx context.Context, request *waitlis
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistSignupIDKey, request.WaitlistSignupId).WithValue(waitlistkeys.WaitlistIDKey, request.WaitlistId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
-	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
-	}
-	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
-
 	signup, err := s.waitlistsManager.GetWaitlistSignup(ctx, request.WaitlistSignupId, request.WaitlistId)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch waitlist signup for update")
-	}
-
-	if signup.BelongsToUser != sessionContextData.GetUserID() {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedForWaitlistSignup, logger, span, codes.PermissionDenied, "not authorized for waitlist signup")
 	}
 
 	updateInput := converters.ConvertGRPCWaitlistSignupUpdateRequestInputToWaitlistSignupUpdateRequestInput(request.Input)
@@ -329,10 +305,6 @@ func (s *serviceImpl) ArchiveWaitlistSignup(ctx context.Context, request *waitli
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistSignupIDKey, request.WaitlistSignupId)
 
-	// NOTE: unlike Get/Update, this request carries only the signup ID, and both the manager's
-	// GetWaitlistSignup and the archive query require the owning waitlist ID, so an ownership check
-	// cannot be performed here without either adding waitlist_id to the proto or making
-	// ArchiveWaitlistSignup scope the delete by belongs_to_user. Until then this remains an IDOR gap.
 	if err := s.waitlistsManager.ArchiveWaitlistSignup(ctx, request.WaitlistSignupId); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive waitlist signup")
 	}

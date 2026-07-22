@@ -181,12 +181,15 @@ func TestMealPlanUpdateRequestInput_Validate(T *testing.T) {
 		assert.NoError(t, actual)
 	})
 
-	T.Run("with invalid structure", func(t *testing.T) {
+	T.Run("empty input is valid", func(t *testing.T) {
 		t.Parallel()
 
+		// Every field on an update is optional (see MealPlan.Update, which only applies non-nil fields),
+		// so an empty partial update is legitimately valid and must not be rejected. Mirrors
+		// MealPlanOptionUpdateRequestInput.
 		x := &MealPlanUpdateRequestInput{}
 
 		actual := x.ValidateWithContext(t.Context())
-		assert.Error(t, actual)
+		assert.NoError(t, actual)
 	})
 }

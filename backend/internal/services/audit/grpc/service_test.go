@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	auditfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit/fakes"
 	auditmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit/mock"
@@ -86,6 +87,9 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, &sessions.ContextData{
 			Requester:       sessions.RequesterInfo{UserID: identifiers.New()},
 			ActiveAccountID: accountID,
+			AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
+				accountID: authorization.NewAccountRolePermissionChecker(nil),
+			},
 		})
 
 		mockRepo.On(reflection.GetMethodName(mockRepo.GetAuditLogEntriesForAccount), testutils.ContextMatcher, accountID, testutils.QueryFilterMatcher).Return(fakeAuditLogEntries, nil)
@@ -124,6 +128,9 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, &sessions.ContextData{
 			Requester:       sessions.RequesterInfo{UserID: identifiers.New()},
 			ActiveAccountID: accountID,
+			AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
+				accountID: authorization.NewAccountRolePermissionChecker(nil),
+			},
 		})
 
 		mockRepo.On(reflection.GetMethodName(mockRepo.GetAuditLogEntriesForAccount), testutils.ContextMatcher, accountID, testutils.QueryFilterMatcher).Return((*filtering.QueryFilteredResult[audit.AuditLogEntry])(nil), errors.New("repository error"))

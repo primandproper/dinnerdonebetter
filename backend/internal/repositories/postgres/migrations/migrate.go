@@ -64,6 +64,7 @@ func (m *Migrator) Migrate(ctx context.Context, db *sql.DB) error {
 		{Version: 19, Description: "rbac tables", Script: fetchMigration("00019_rbac")},
 		{Version: 20, Description: "per-service database users", Script: fetchMigration("00020_service_users")},
 		{Version: 21, Description: "meal planning tables", Script: fetchMigration("00021_mealplanning")},
+		{Version: 22, Description: "run meal plan workers permission", Script: fetchMigration("00022_run_meal_plan_workers_permission")},
 	}
 
 	if err := darwin.New(darwin.NewGenericDriver(db, darwin.PostgresDialect{}), migrations, nil).Migrate(); err != nil {

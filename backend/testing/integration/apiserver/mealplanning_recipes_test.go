@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mpconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
@@ -777,6 +778,7 @@ func TestRecipes_GetMealPlanTasksForRecipe(T *testing.T) {
 			PortionName:          t.Name(),
 			PluralPortionName:    t.Name(),
 			MinEstimatedPortions: 1,
+			EligibleForMeals:     true,
 
 			MaxEstimatedPortions: nil,
 			Steps: []*mealplanning.RecipeStep{
@@ -846,6 +848,7 @@ func TestRecipes_GetMealPlanTasksForRecipe(T *testing.T) {
 			PortionName:          expected.PortionName,
 			PluralPortionName:    expected.PluralPortionName,
 			MinEstimatedPortions: expected.MinEstimatedPortions,
+			EligibleForMeals:     true,
 
 			MaxEstimatedPortions: expected.MaxEstimatedPortions,
 			Steps: []*mealplanning.RecipeStepCreationRequestInput{
@@ -913,11 +916,56 @@ func TestRecipes_GetMealPlanTasksForRecipe(T *testing.T) {
 
 		created, err := adminClient.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{Input: converters.ConvertRecipeCreationRequestInputToGRPCRecipeCreationRequestInput(expectedInput)})
 		require.NoError(t, err)
-		checkRecipeEquality(t, expected, converters.ConvertGRPCRecipeToRecipe(created.Created))
+		createdRecipe := converters.ConvertGRPCRecipeToRecipe(created.Created)
+		checkRecipeEquality(t, expected, createdRecipe)
 
-		steps, err := adminClient.GetMealPlanTasks(ctx, &mealplanninggrpc.GetMealPlanTasksRequest{MealPlanId: created.Created.Id})
+		// Build a meal from the recipe and an auto-finalized single-option meal plan so that meal plan
+		// tasks are generated synchronously. GetMealPlanTasks is now account-scoped (verifyMealPlanAccess),
+		// so it must be queried with a real meal plan ID owned by the requester's account, not a recipe ID.
+		_, userClient := createUserAndClientForTest(t)
+		meal := createMealFromRecipe(t, createdRecipe, t.Name())
+		require.NotNil(t, meal)
+
+		now := time.Now()
+		mealPlan := &mealplanning.MealPlan{
+			Notes:                  t.Name(),
+			Status:                 string(mealplanning.MealPlanStatusFinalized),
+			GroceryListInitialized: true,
+			TasksCreated:           true,
+			// voting deadline must be before every event's start time; see MealPlanCreationRequestInput.ValidateWithContext.
+			VotingDeadline: now.Add(1 * time.Hour),
+			ElectionMethod: mealplanning.MealPlanElectionMethodSchulze,
+			Events: []*mealplanning.MealPlanEvent{
+				{
+					StartsAt: now.Add(24 * time.Hour),
+					EndsAt:   now.Add(72 * time.Hour),
+					MealName: mealplanning.DinnerMealName,
+					Options: []*mealplanning.MealPlanOption{
+						{Meal: mealplanning.Meal{ID: meal.ID}},
+					},
+				},
+			},
+		}
+
+		exampleMealPlanInput := mpconverters.ConvertMealPlanToMealPlanCreationRequestInput(mealPlan)
+		createMealPlanRes, err := userClient.CreateMealPlan(ctx, &mealplanninggrpc.CreateMealPlanRequest{
+			Input: converters.ConvertMealPlanCreationRequestInputToGRPCMealPlanCreationRequestInput(exampleMealPlanInput),
+		})
 		require.NoError(t, err)
-		require.NotEmpty(t, steps)
+		require.NotEmpty(t, createMealPlanRes.Created.Id)
+
+		tasksRes, err := userClient.GetMealPlanTasks(ctx, &mealplanninggrpc.GetMealPlanTasksRequest{MealPlanId: createMealPlanRes.Created.Id})
+		require.NoError(t, err)
+		require.NotNil(t, tasksRes)
+
+		// H15: frozen thaw-task generation is intentionally deferred. meal_plan_tasks.belongs_to_recipe_prep_task
+		// is NOT NULL and references recipe_prep_tasks(id), so ad-hoc thaw tasks (which have no backing prep task)
+		// cannot be persisted until a migration makes that column nullable. Until then, NO thaw task is generated.
+		// This mirrors the unit test "does not currently create frozen thawing steps".
+		for _, task := range tasksRes.Results {
+			assert.NotContains(t, task.GetCreationExplanation(), "thawed",
+				"frozen thaw-task generation is deferred (H15); no thaw task should be produced")
+		}
 	})
 }
 

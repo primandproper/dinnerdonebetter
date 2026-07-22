@@ -49,7 +49,8 @@ func TestMealPlanGroceryListItems_Getting(T *testing.T) {
 
 		mealPlan := &mealplanning.MealPlan{
 			Notes:          "get grocery list item test",
-			VotingDeadline: inOneWeek,
+			// voting deadline must be before every event's start time; see MealPlanCreationRequestInput.ValidateWithContext.
+			VotingDeadline: now.Add(5 * time.Minute),
 			ElectionMethod: mealplanning.MealPlanElectionMethodSchulze,
 			Status:         string(mealplanning.MealPlanStatusFinalized),
 			TasksCreated:   true,
@@ -148,7 +149,8 @@ func TestMealPlanGroceryListItems_Updating(T *testing.T) {
 
 		mealPlan := &mealplanning.MealPlan{
 			Notes:          "update grocery list item test",
-			VotingDeadline: inOneWeek,
+			// voting deadline must be before every event's start time; see MealPlanCreationRequestInput.ValidateWithContext.
+			VotingDeadline: now.Add(5 * time.Minute),
 			ElectionMethod: mealplanning.MealPlanElectionMethodSchulze,
 			Status:         string(mealplanning.MealPlanStatusFinalized),
 			TasksCreated:   true,
@@ -292,7 +294,8 @@ func TestMealPlanGroceryListItems_Archiving(T *testing.T) {
 
 		mealPlan := &mealplanning.MealPlan{
 			Notes:          "archive grocery list item test",
-			VotingDeadline: inOneWeek,
+			// voting deadline must be before every event's start time; see MealPlanCreationRequestInput.ValidateWithContext.
+			VotingDeadline: now.Add(5 * time.Minute),
 			ElectionMethod: mealplanning.MealPlanElectionMethodSchulze,
 			Status:         string(mealplanning.MealPlanStatusFinalized),
 			TasksCreated:   true,

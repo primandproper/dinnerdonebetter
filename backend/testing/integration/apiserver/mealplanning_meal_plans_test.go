@@ -75,12 +75,14 @@ func TestMealPlans_AutoFinalizedImmediateGroceryAndTasks(T *testing.T) {
 		meal := createMealForTest(t, userClient, nil)
 
 		now := time.Now().Truncate(time.Second).UTC()
+		inFiveMinutes := now.Add(5 * time.Minute)
 		inTenMinutes := now.Add(10 * time.Minute)
 		inOneWeek := now.Add(7 * 24 * time.Hour)
 
 		mealPlan := &mealplanning.MealPlan{
-			Notes:                  "auto-finalized test",
-			VotingDeadline:         inOneWeek,
+			Notes: "auto-finalized test",
+			// voting deadline must be before every event's start time; see MealPlanCreationRequestInput.ValidateWithContext.
+			VotingDeadline:         inFiveMinutes,
 			ElectionMethod:         mealplanning.MealPlanElectionMethodSchulze,
 			Status:                 string(mealplanning.MealPlanStatusFinalized),
 			TasksCreated:           true,

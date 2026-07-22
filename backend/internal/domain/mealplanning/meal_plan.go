@@ -183,9 +183,11 @@ var _ validation.ValidatableWithContext = (*MealPlanUpdateRequestInput)(nil)
 
 // ValidateWithContext validates a MealPlanUpdateRequestInput.
 func (x *MealPlanUpdateRequestInput) ValidateWithContext(ctx context.Context) error {
+	// Every field on an update is optional (see MealPlan.Update, which only applies non-nil fields).
+	// Now that this validator is actually invoked by the manager, requiring VotingDeadline here would
+	// reject legitimate partial updates such as changing only the notes. Mirrors MealPlanOptionUpdateRequestInput.
 	return validation.ValidateStructWithContext(
 		ctx,
 		x,
-		validation.Field(&x.VotingDeadline, validation.Required),
 	)
 }

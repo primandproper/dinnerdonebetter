@@ -655,7 +655,6 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 		service, mockRepo := buildTestService(t)
 
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		fakeSignup.BelongsToUser = "test-user-id"
 		signupID := "test-signup-id"
 		waitlistID := "test-waitlist-id"
 
@@ -771,7 +770,6 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 		service, mockRepo := buildTestService(t)
 
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		fakeSignup.BelongsToUser = "test-user-id"
 		signupID := "test-signup-id"
 		waitlistID := "test-waitlist-id"
 		newNotes := "updated notes"
@@ -830,7 +828,6 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 		service, mockRepo := buildTestService(t)
 
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		fakeSignup.BelongsToUser = "test-user-id"
 		signupID := "test-signup-id"
 		waitlistID := "test-waitlist-id"
 		newNotes := "updated notes"
