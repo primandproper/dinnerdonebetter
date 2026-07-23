@@ -65,6 +65,12 @@ func (m *Repository) GetWaitlistSignup(ctx context.Context, waitlistSignupID, wa
 	return args.Get(0).(*waitlists.WaitlistSignup), args.Error(1)
 }
 
+// GetWaitlistSignupByID is a mock function.
+func (m *Repository) GetWaitlistSignupByID(ctx context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
+	args := m.Called(ctx, waitlistSignupID)
+	return args.Get(0).(*waitlists.WaitlistSignup), args.Error(1)
+}
+
 // GetWaitlistSignupsForWaitlist is a mock function.
 func (m *Repository) GetWaitlistSignupsForWaitlist(ctx context.Context, waitlistID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.WaitlistSignup], error) {
 	args := m.Called(ctx, waitlistID, filter)

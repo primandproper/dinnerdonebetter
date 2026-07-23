@@ -148,6 +148,12 @@ func (m *waitlistManager) GetWaitlistSignup(ctx context.Context, waitlistSignupI
 	return m.repo.GetWaitlistSignup(ctx, waitlistSignupID, waitlistID)
 }
 
+func (m *waitlistManager) GetWaitlistSignupByID(ctx context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
+	ctx, span := m.tracer.StartSpan(ctx)
+	defer span.End()
+	return m.repo.GetWaitlistSignupByID(ctx, waitlistSignupID)
+}
+
 func (m *waitlistManager) GetWaitlistSignupsForWaitlist(ctx context.Context, waitlistID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.WaitlistSignup], error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()

@@ -132,6 +132,7 @@ type (
 	// WaitlistSignupDataManager describes a structure capable of storing waitlist signups.
 	WaitlistSignupDataManager interface {
 		GetWaitlistSignup(ctx context.Context, waitlistSignupID, waitlistID string) (*WaitlistSignup, error)
+		GetWaitlistSignupByID(ctx context.Context, waitlistSignupID string) (*WaitlistSignup, error)
 		GetWaitlistSignupsForWaitlist(ctx context.Context, waitlistID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[WaitlistSignup], error)
 		GetWaitlistSignupsForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[WaitlistSignup], error)
 		CreateWaitlistSignup(ctx context.Context, input *WaitlistSignupDatabaseCreationInput) (*WaitlistSignup, error)

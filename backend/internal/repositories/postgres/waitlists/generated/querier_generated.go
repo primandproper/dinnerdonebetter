@@ -26,6 +26,7 @@ type Querier interface {
 	GetIssueReportsForTable(ctx context.Context, db DBTX, arg *GetIssueReportsForTableParams) ([]*GetIssueReportsForTableRow, error)
 	GetWaitlist(ctx context.Context, db DBTX, id string) (*Waitlists, error)
 	GetWaitlistSignup(ctx context.Context, db DBTX, arg *GetWaitlistSignupParams) (*WaitlistSignups, error)
+	GetWaitlistSignupByID(ctx context.Context, db DBTX, id string) (*WaitlistSignups, error)
 	GetWaitlistSignupsForUser(ctx context.Context, db DBTX, arg *GetWaitlistSignupsForUserParams) ([]*GetWaitlistSignupsForUserRow, error)
 	GetWaitlistSignupsForWaitlist(ctx context.Context, db DBTX, arg *GetWaitlistSignupsForWaitlistParams) ([]*GetWaitlistSignupsForWaitlistRow, error)
 	GetWaitlists(ctx context.Context, db DBTX, arg *GetWaitlistsParams) ([]*GetWaitlistsRow, error)

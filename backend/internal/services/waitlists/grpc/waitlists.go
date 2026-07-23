@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	waitlistkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/keys"
@@ -14,6 +15,9 @@ import (
 
 	"google.golang.org/grpc/codes"
 )
+
+// errNotAuthorizedForWaitlistSignup is returned when a caller targets a signup that isn't theirs.
+var errNotAuthorizedForWaitlistSignup = errors.New("not authorized to access waitlist signup")
 
 func (s *serviceImpl) CreateWaitlist(ctx context.Context, request *waitlistssvc.CreateWaitlistRequest) (*waitlistssvc.CreateWaitlistResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
@@ -230,9 +234,20 @@ func (s *serviceImpl) GetWaitlistSignup(ctx context.Context, request *waitlistss
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistSignupIDKey, request.WaitlistSignupId).WithValue(waitlistkeys.WaitlistIDKey, request.WaitlistId)
 
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+	}
+	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
+
 	signup, err := s.waitlistsManager.GetWaitlistSignup(ctx, request.WaitlistSignupId, request.WaitlistId)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch waitlist signup")
+	}
+
+	// signups are user-owned: only the owner (or a service admin) may read one.
+	if signup.BelongsToUser != sessionContextData.GetUserID() && !sessionContextData.GetServicePermissions().IsServiceAdmin() {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedForWaitlistSignup, logger, span, codes.PermissionDenied, "not authorized to access waitlist signup")
 	}
 
 	x := &waitlistssvc.GetWaitlistSignupResponse{
@@ -250,6 +265,17 @@ func (s *serviceImpl) GetWaitlistSignupsForWaitlist(ctx context.Context, request
 	defer span.End()
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistIDKey, request.WaitlistId)
+
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+	}
+	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
+
+	// the waitlist-wide signup listing exposes every user's signup, so it is reserved for service admins.
+	if !sessionContextData.GetServicePermissions().IsServiceAdmin() {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedForWaitlistSignup, logger, span, codes.PermissionDenied, "not authorized to list waitlist signups")
+	}
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 	retrieved, err := s.waitlistsManager.GetWaitlistSignupsForWaitlist(ctx, request.WaitlistId, filter)
@@ -277,9 +303,20 @@ func (s *serviceImpl) UpdateWaitlistSignup(ctx context.Context, request *waitlis
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistSignupIDKey, request.WaitlistSignupId).WithValue(waitlistkeys.WaitlistIDKey, request.WaitlistId)
 
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+	}
+	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
+
 	signup, err := s.waitlistsManager.GetWaitlistSignup(ctx, request.WaitlistSignupId, request.WaitlistId)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch waitlist signup for update")
+	}
+
+	// signups are user-owned: only the owner (or a service admin) may update one.
+	if signup.BelongsToUser != sessionContextData.GetUserID() && !sessionContextData.GetServicePermissions().IsServiceAdmin() {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedForWaitlistSignup, logger, span, codes.PermissionDenied, "not authorized to update waitlist signup")
 	}
 
 	updateInput := converters.ConvertGRPCWaitlistSignupUpdateRequestInputToWaitlistSignupUpdateRequestInput(request.Input)
@@ -305,7 +342,23 @@ func (s *serviceImpl) ArchiveWaitlistSignup(ctx context.Context, request *waitli
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistSignupIDKey, request.WaitlistSignupId)
 
-	if err := s.waitlistsManager.ArchiveWaitlistSignup(ctx, request.WaitlistSignupId); err != nil {
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+	}
+	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
+
+	signup, err := s.waitlistsManager.GetWaitlistSignupByID(ctx, request.WaitlistSignupId)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch waitlist signup for archival")
+	}
+
+	// signups are user-owned: only the owner (or a service admin) may archive one.
+	if signup.BelongsToUser != sessionContextData.GetUserID() && !sessionContextData.GetServicePermissions().IsServiceAdmin() {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedForWaitlistSignup, logger, span, codes.PermissionDenied, "not authorized to archive waitlist signup")
+	}
+
+	if err = s.waitlistsManager.ArchiveWaitlistSignup(ctx, request.WaitlistSignupId); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive waitlist signup")
 	}
 

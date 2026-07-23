@@ -110,6 +110,22 @@ WHERE %s.%s IS NULL
 			},
 			{
 				Annotation: QueryAnnotation{
+					Name: "GetWaitlistSignupByID",
+					Type: OneType,
+				},
+				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+	%s
+FROM %s
+WHERE %s.%s IS NULL
+	AND %s.%s = sqlc.arg(%s);`,
+					strings.Join(fullSelectColumns, ",\n\t"),
+					waitlistSignupsTableName,
+					waitlistSignupsTableName, archivedAtColumn,
+					waitlistSignupsTableName, idColumn, idColumn,
+				)),
+			},
+			{
+				Annotation: QueryAnnotation{
 					Name: "CheckWaitlistSignupExistence",
 					Type: OneType,
 				},

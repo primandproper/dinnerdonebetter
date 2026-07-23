@@ -7,6 +7,7 @@ import (
 	authsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	identitysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	mealplanninggrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
+	waitlistssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 	webhookssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 
 	mpconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
@@ -461,6 +462,96 @@ func TestCrossTenant_MealPlanRecipeOptionSelections_Denied(T *testing.T) {
 // option-resolution check). NOTE: the companion eligibility gate (votes rejected once the plan
 // leaves 'awaiting_votes') is covered by manager unit tests; driving a plan out of awaiting_votes
 // deterministically requires the finalization worker, which this harness does not run.
+// TestCrossTenant_WaitlistSignups_Denied asserts that waitlist signups are user-owned (M23): user B
+// may not read, update, or archive user A's signup by ID, and the waitlist-wide signup listing is
+// reserved for service admins. Waitlists themselves are global, admin-managed records; signups are
+// per-user opt-ins. Positive controls prove the owner (and a service admin) still succeed.
+func TestCrossTenant_WaitlistSignups_Denied(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, clientA := createUserAndClientForTest(t)
+		_, clientB := createUserAndClientForTest(t)
+
+		waitlist := createWaitlistForTest(t, clientA)
+		signup := createWaitlistSignupForTest(t, clientA, waitlist.ID)
+
+		// cross-tenant: B may not read A's signup.
+		_, err := clientB.GetWaitlistSignup(ctx, &waitlistssvc.GetWaitlistSignupRequest{
+			WaitlistSignupId: signup.ID,
+			WaitlistId:       waitlist.ID,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+
+		// cross-tenant: B may not update A's signup.
+		hijackedNotes := "hijacked notes"
+		_, err = clientB.UpdateWaitlistSignup(ctx, &waitlistssvc.UpdateWaitlistSignupRequest{
+			WaitlistSignupId: signup.ID,
+			WaitlistId:       waitlist.ID,
+			Input: &waitlistssvc.WaitlistSignupUpdateRequestInput{
+				Notes: &hijackedNotes,
+			},
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+
+		// cross-tenant: B may not archive A's signup.
+		_, err = clientB.ArchiveWaitlistSignup(ctx, &waitlistssvc.ArchiveWaitlistSignupRequest{
+			WaitlistSignupId: signup.ID,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+
+		// the waitlist-wide listing is denied to regular users (it would expose every user's signup)...
+		_, err = clientB.GetWaitlistSignupsForWaitlist(ctx, &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
+			WaitlistId: waitlist.ID,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+
+		// ...but allowed for service admins.
+		listed, err := adminClient.GetWaitlistSignupsForWaitlist(ctx, &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
+			WaitlistId: waitlist.ID,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, listed)
+		assert.NotEmpty(t, listed.Results)
+
+		// a service admin may also read another user's signup by ID.
+		_, err = adminClient.GetWaitlistSignup(ctx, &waitlistssvc.GetWaitlistSignupRequest{
+			WaitlistSignupId: signup.ID,
+			WaitlistId:       waitlist.ID,
+		})
+		require.NoError(t, err)
+
+		// positive control: A may read, update, and archive its own signup.
+		_, err = clientA.GetWaitlistSignup(ctx, &waitlistssvc.GetWaitlistSignupRequest{
+			WaitlistSignupId: signup.ID,
+			WaitlistId:       waitlist.ID,
+		})
+		require.NoError(t, err)
+
+		ownNotes := "owner-updated notes"
+		_, err = clientA.UpdateWaitlistSignup(ctx, &waitlistssvc.UpdateWaitlistSignupRequest{
+			WaitlistSignupId: signup.ID,
+			WaitlistId:       waitlist.ID,
+			Input: &waitlistssvc.WaitlistSignupUpdateRequestInput{
+				Notes: &ownNotes,
+			},
+		})
+		require.NoError(t, err)
+
+		_, err = clientA.ArchiveWaitlistSignup(ctx, &waitlistssvc.ArchiveWaitlistSignupRequest{
+			WaitlistSignupId: signup.ID,
+		})
+		require.NoError(t, err)
+	})
+}
+
 func TestCrossTenant_MealPlanOptionVotes_Denied(T *testing.T) {
 	T.Parallel()
 

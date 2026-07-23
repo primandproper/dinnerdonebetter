@@ -330,6 +330,26 @@ func TestWaitlistDataManager_ArchiveWaitlistSignup(t *testing.T) {
 	})
 }
 
+func TestWaitlistDataManager_GetWaitlistSignupByID(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		manager, repo := buildWaitlistManagerForTest(t)
+
+		expected := fakes.BuildFakeWaitlistSignup()
+		repo.On(reflection.GetMethodName(repo.GetWaitlistSignupByID), testutils.ContextMatcher, expected.ID).Return(expected, nil)
+
+		result, err := manager.GetWaitlistSignupByID(ctx, expected.ID)
+
+		require.NoError(t, err)
+		assert.Equal(t, expected, result)
+		mock.AssertExpectationsForObjects(t, repo)
+	})
+}
+
 func TestWaitlistDataManager_GetWaitlistSignupsForUser(t *testing.T) {
 	t.Parallel()
 

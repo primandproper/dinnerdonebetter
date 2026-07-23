@@ -13,6 +13,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -67,6 +69,8 @@ func createWaitlistForTest(t *testing.T, testClient client.Client) *waitlists.Wa
 	return waitlist
 }
 
+// createWaitlistSignupForTest creates a signup as testClient's user; signups are user-owned, so the
+// creating client is the owner for subsequent reads/updates/archives.
 func createWaitlistSignupForTest(t *testing.T, testClient client.Client, waitlistID string) *waitlists.WaitlistSignup {
 	t.Helper()
 	ctx := t.Context()
@@ -82,7 +86,7 @@ func createWaitlistSignupForTest(t *testing.T, testClient client.Client, waitlis
 		BelongsToAccount:  exampleSignupInput.BelongsToAccount,
 	}
 
-	createdSignup, err := adminClient.CreateWaitlistSignup(ctx, &waitlistssvc.CreateWaitlistSignupRequest{
+	createdSignup, err := testClient.CreateWaitlistSignup(ctx, &waitlistssvc.CreateWaitlistSignupRequest{
 		Input: input,
 	})
 	require.NoError(t, err)
@@ -471,12 +475,28 @@ func TestWaitlistSignups_Listing(T *testing.T) {
 			createdSignups = append(createdSignups, createWaitlistSignupForTest(t, testClient, waitlist.ID))
 		}
 
-		results, err := testClient.GetWaitlistSignupsForWaitlist(ctx, &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
+		// the waitlist-wide signup listing is reserved for service admins.
+		results, err := adminClient.GetWaitlistSignupsForWaitlist(ctx, &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
 			WaitlistId: waitlist.ID,
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
 		assert.True(t, len(results.Results) >= len(createdSignups))
+	})
+
+	T.Run("denied for regular users", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+		waitlist := createWaitlistForTest(t, testClient)
+		createWaitlistSignupForTest(t, testClient, waitlist.ID)
+
+		_, err := testClient.GetWaitlistSignupsForWaitlist(ctx, &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
+			WaitlistId: waitlist.ID,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -502,7 +522,7 @@ func TestWaitlistSignups_Updating(T *testing.T) {
 
 		newNotes := "Updated notes"
 
-		_, err := adminClient.UpdateWaitlistSignup(ctx, &waitlistssvc.UpdateWaitlistSignupRequest{
+		_, err := testClient.UpdateWaitlistSignup(ctx, &waitlistssvc.UpdateWaitlistSignupRequest{
 			WaitlistSignupId: createdSignup.ID,
 			WaitlistId:       waitlist.ID,
 			Input: &waitlistssvc.WaitlistSignupUpdateRequestInput{
@@ -558,7 +578,7 @@ func TestWaitlistSignups_Archiving(T *testing.T) {
 		waitlist := createWaitlistForTest(t, testClient)
 		createdSignup := createWaitlistSignupForTest(t, testClient, waitlist.ID)
 
-		_, err := adminClient.ArchiveWaitlistSignup(ctx, &waitlistssvc.ArchiveWaitlistSignupRequest{
+		_, err := testClient.ArchiveWaitlistSignup(ctx, &waitlistssvc.ArchiveWaitlistSignupRequest{
 			WaitlistSignupId: createdSignup.ID,
 		})
 		assert.NoError(t, err)

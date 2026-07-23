@@ -121,6 +121,37 @@ func (q *Queries) GetWaitlistSignup(ctx context.Context, db DBTX, arg *GetWaitli
 	return &i, err
 }
 
+const getWaitlistSignupByID = `-- name: GetWaitlistSignupByID :one
+SELECT
+	waitlist_signups.id,
+	waitlist_signups.notes,
+	waitlist_signups.belongs_to_waitlist,
+	waitlist_signups.created_at,
+	waitlist_signups.last_updated_at,
+	waitlist_signups.archived_at,
+	waitlist_signups.belongs_to_user,
+	waitlist_signups.belongs_to_account
+FROM waitlist_signups
+WHERE waitlist_signups.archived_at IS NULL
+	AND waitlist_signups.id = $1
+`
+
+func (q *Queries) GetWaitlistSignupByID(ctx context.Context, db DBTX, id string) (*WaitlistSignups, error) {
+	row := db.QueryRowContext(ctx, getWaitlistSignupByID, id)
+	var i WaitlistSignups
+	err := row.Scan(
+		&i.ID,
+		&i.Notes,
+		&i.BelongsToWaitlist,
+		&i.CreatedAt,
+		&i.LastUpdatedAt,
+		&i.ArchivedAt,
+		&i.BelongsToUser,
+		&i.BelongsToAccount,
+	)
+	return &i, err
+}
+
 const getWaitlistSignupsForUser = `-- name: GetWaitlistSignupsForUser :many
 SELECT
 	waitlist_signups.id,
