@@ -15,6 +15,13 @@ Work was done on branch `code-review-fixes-2026-07`. Each item below is prefixed
 
 **Rollup:** High — 19 ✅, 3 🟡 (H10, H15, H18). Medium — 25 ✅, 1 🟡 (M16), 6 ⏸️ (M5, M12, M13, M26, M29, M33), 1 ↩️ (M23). Root causes — RC1 ✅, RC2 🟡, RC3 ✅, RC4 ⏸️. Lows — mixed (marked per item). Verification: `go build ./...`, `go vet ./...`, unit tests, and `testing/integration/apiserver` all pass.
 
+**Security test coverage:** the IDOR fixes were only implicitly covered at first (existing tests were adapted so the legitimate actor still succeeds). A new `testing/integration/apiserver/security_cross_tenant_test.go` now *positively* asserts the denials — two users in separate accounts, each test with a legitimate-owner positive control:
+- audit log for-account / for-user / entry-by-id (H6), `GetAccount` (H8), and recipe-rating update/archive (M22) → `PermissionDenied`;
+- webhook-trigger-config archive (M21) → error returned **and** the config survives (ownership enforced via an account-scoped `GetWebhook`, which surfaces `Internal`, not `PermissionDenied`);
+- meal lists (H10) → user B never sees user A's list (`TestCrossTenant_MealLists_NotLeaked`).
+
+Documented test gaps: payments reads (H7) and `ArchiveUserMembership` (H9) are session-scoped (they ignore the request's account ID rather than hard-denying), so a meaningful cross-tenant assertion needs billing/membership data seeding the harness lacks — noted in the test file rather than covered by a flaky test.
+
 ## Executive summary
 
 The layered architecture is sound — the platform/domain/service split is clean, DI is consistent, mocks carry compile-time interface assertions, migrations are well-formed, and cursor pagination is deterministic. The problems cluster in a few recurring patterns rather than being scattered randomly:
