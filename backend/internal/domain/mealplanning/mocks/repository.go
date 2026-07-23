@@ -744,6 +744,12 @@ func (m *Repository) MealPlanOptionExists(ctx context.Context, mealPlanID, mealP
 	return returnValues.Bool(0), returnValues.Error(1)
 }
 
+// MealPlanOptionBelongsToAccount is a mock function.
+func (m *Repository) MealPlanOptionBelongsToAccount(ctx context.Context, mealPlanOptionID, accountID string) (bool, error) {
+	returnValues := m.Called(ctx, mealPlanOptionID, accountID)
+	return returnValues.Bool(0), returnValues.Error(1)
+}
+
 // GetMealPlanOption is a mock function.
 func (m *Repository) GetMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string) (*mealplanning.MealPlanOption, error) {
 	returnValues := m.Called(ctx, mealPlanID, mealPlanEventID, mealPlanOptionID)

@@ -37,6 +37,27 @@ func (s *serviceImpl) verifyMealPlanAccess(ctx context.Context, mealPlanID strin
 	return accountID, nil
 }
 
+// verifyMealPlanOptionAccess fetches the session context and confirms the meal plan option resolves
+// (via its event and meal plan) to the requester's active account. It is the service-layer
+// authorization guard for the recipe-option-selection handlers, whose requests carry only an option ID.
+func (s *serviceImpl) verifyMealPlanOptionAccess(ctx context.Context, mealPlanOptionID string, logger logging.Logger, span tracing.Span) error {
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+	}
+
+	belongs, err := s.mealPlanningManager.MealPlanOptionBelongsToAccount(ctx, mealPlanOptionID, sessionContextData.GetActiveAccountID())
+	if err != nil {
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to verify meal plan option access")
+	}
+
+	if !belongs {
+		return errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("meal plan option not found for account"), logger, span, codes.NotFound, "meal plan option not found or access denied")
+	}
+
+	return nil
+}
+
 func (s *serviceImpl) ArchiveMeal(ctx context.Context, request *mealplanningsvc.ArchiveMealRequest) (*mealplanningsvc.ArchiveMealResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
@@ -944,6 +965,10 @@ func (s *serviceImpl) GetMealPlanRecipeOptionSelection(ctx context.Context, requ
 		"selection_type":                     request.SelectionType,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
+		return nil, err
+	}
+
 	selection, err := s.mealPlanningManager.GetMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, request.RecipeStepId, uint16(request.IngredientIndex), converters.ConvertMealPlanRecipeOptionSelectionTypeToString(request.SelectionType))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan recipe option selection")
@@ -969,6 +994,10 @@ func (s *serviceImpl) GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx con
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: request.MealPlanOptionId,
 	}, span, s.logger)
+
+	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
+		return nil, err
+	}
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
@@ -1003,6 +1032,10 @@ func (s *serviceImpl) CreateMealPlanRecipeOptionSelection(ctx context.Context, r
 		mealplanningkeys.MealPlanOptionIDKey: request.Input.BelongsToMealPlanOption,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
+		return nil, err
+	}
+
 	input := converters.ConvertGRPCMealPlanRecipeOptionSelectionCreationRequestInputToMealPlanRecipeOptionSelectionCreationRequestInput(request.Input)
 
 	created, err := s.mealPlanningManager.CreateMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, input)
@@ -1030,6 +1063,10 @@ func (s *serviceImpl) UpdateMealPlanRecipeOptionSelection(ctx context.Context, r
 		"ingredient_index":                   request.IngredientIndex,
 		"selection_type":                     request.SelectionType,
 	}, span, s.logger)
+
+	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
+		return nil, err
+	}
 
 	input := converters.ConvertGRPCMealPlanRecipeOptionSelectionUpdateRequestInputToMealPlanRecipeOptionSelectionUpdateRequestInput(request.Input)
 
@@ -1063,6 +1100,10 @@ func (s *serviceImpl) ArchiveMealPlanRecipeOptionSelection(ctx context.Context, 
 		"ingredient_index":                   request.IngredientIndex,
 		"selection_type":                     request.SelectionType,
 	}, span, s.logger)
+
+	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
+		return nil, err
+	}
 
 	selectionTypeStr := converters.ConvertMealPlanRecipeOptionSelectionTypeToString(request.SelectionType)
 	if err := s.mealPlanningManager.ArchiveMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, request.RecipeStepId, uint16(request.IngredientIndex), selectionTypeStr); err != nil {

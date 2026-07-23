@@ -229,6 +229,13 @@ func (m *MockMealPlanningManager) CreateMealPlanOptionWithEventID(ctx context.Co
 	return returnValues.Get(0).(*mealplanning.MealPlanOption), returnValues.Error(1)
 }
 
+// MealPlanOptionBelongsToAccount is a mock method.
+func (m *MockMealPlanningManager) MealPlanOptionBelongsToAccount(ctx context.Context, mealPlanOptionID, accountID string) (bool, error) {
+	returnValues := m.Called(ctx, mealPlanOptionID, accountID)
+
+	return returnValues.Bool(0), returnValues.Error(1)
+}
+
 // ReadMealPlanOption is a mock method.
 func (m *MockMealPlanningManager) ReadMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string) (*mealplanning.MealPlanOption, error) {
 	returnValues := m.Called(ctx, mealPlanID, mealPlanEventID, mealPlanOptionID)

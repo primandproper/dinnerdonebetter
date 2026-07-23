@@ -353,3 +353,103 @@ func TestCrossTenant_WebhookTriggerConfig_Denied(T *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+// TestCrossTenant_MealPlanRecipeOptionSelections_Denied asserts that the recipe-option-selection
+// handlers cannot be used against another account's meal plan option. The requests carry only a
+// MealPlanOptionId, so the service resolves the option through its event and meal plan to an
+// account (verifyMealPlanOptionAccess) and returns codes.NotFound when it does not belong to the
+// caller's active account.
+func TestCrossTenant_MealPlanRecipeOptionSelections_Denied(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		// A owns a meal plan whose single option supports selections.
+		setup := createMealPlanWithAlternativeIngredientsForSelectionTests(t)
+		clientA := setup.userClient
+
+		// A creates a selection on its own option (positive control for create).
+		createRes, err := clientA.CreateMealPlanRecipeOptionSelection(ctx, &mealplanninggrpc.CreateMealPlanRecipeOptionSelectionRequest{
+			MealPlanOptionId: setup.mealPlanOptionID,
+			Input: &mealplanninggrpc.MealPlanRecipeOptionSelectionCreationRequestInput{
+				RecipeId:            setup.recipe.ID,
+				RecipeStepId:        setup.recipe.Steps[0].ID,
+				IngredientIndex:     0,
+				SelectedOptionIndex: 1,
+				SelectionType:       mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
+			},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, createRes.Created)
+
+		_, clientB := createUserAndClientForTest(t)
+
+		// cross-tenant: B cannot read A's selection.
+		_, err = clientB.GetMealPlanRecipeOptionSelection(ctx, &mealplanninggrpc.GetMealPlanRecipeOptionSelectionRequest{
+			MealPlanOptionId: setup.mealPlanOptionID,
+			RecipeStepId:     setup.recipe.Steps[0].ID,
+			IngredientIndex:  0,
+			SelectionType:    mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+
+		// cross-tenant: B cannot list selections for A's option.
+		_, err = clientB.GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx, &mealplanninggrpc.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRequest{
+			MealPlanOptionId: setup.mealPlanOptionID,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+
+		// cross-tenant: B cannot create a selection on A's option.
+		_, err = clientB.CreateMealPlanRecipeOptionSelection(ctx, &mealplanninggrpc.CreateMealPlanRecipeOptionSelectionRequest{
+			MealPlanOptionId: setup.mealPlanOptionID,
+			Input: &mealplanninggrpc.MealPlanRecipeOptionSelectionCreationRequestInput{
+				RecipeId:            setup.recipe.ID,
+				RecipeStepId:        setup.recipe.Steps[0].ID,
+				IngredientIndex:     1,
+				SelectedOptionIndex: 0,
+				SelectionType:       mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
+			},
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+
+		// cross-tenant: B cannot update A's selection.
+		_, err = clientB.UpdateMealPlanRecipeOptionSelection(ctx, &mealplanninggrpc.UpdateMealPlanRecipeOptionSelectionRequest{
+			MealPlanOptionId: setup.mealPlanOptionID,
+			RecipeStepId:     setup.recipe.Steps[0].ID,
+			IngredientIndex:  0,
+			SelectionType:    mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
+			Input: &mealplanninggrpc.MealPlanRecipeOptionSelectionUpdateRequestInput{
+				SelectedOptionIndex: 0,
+			},
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+
+		// cross-tenant: B cannot archive A's selection.
+		_, err = clientB.ArchiveMealPlanRecipeOptionSelection(ctx, &mealplanninggrpc.ArchiveMealPlanRecipeOptionSelectionRequest{
+			MealPlanOptionId: setup.mealPlanOptionID,
+			RecipeStepId:     setup.recipe.Steps[0].ID,
+			IngredientIndex:  0,
+			SelectionType:    mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+
+		// security property + positive control: A's selection survives and remains readable.
+		getRes, err := clientA.GetMealPlanRecipeOptionSelection(ctx, &mealplanninggrpc.GetMealPlanRecipeOptionSelectionRequest{
+			MealPlanOptionId: setup.mealPlanOptionID,
+			RecipeStepId:     setup.recipe.Steps[0].ID,
+			IngredientIndex:  0,
+			SelectionType:    mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, getRes.Result)
+		assert.Equal(t, createRes.Created.Id, getRes.Result.Id)
+		assert.Equal(t, uint32(1), getRes.Result.SelectedOptionIndex, "B's cross-tenant update attempt must not have modified A's selection")
+	})
+}

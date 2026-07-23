@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
+	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -137,6 +138,25 @@ func (m *mealPlanningManager) ReadMealPlanOption(ctx context.Context, mealPlanID
 	}
 
 	return mealPlanOption, nil
+}
+
+func (m *mealPlanningManager) MealPlanOptionBelongsToAccount(ctx context.Context, mealPlanOptionID, accountID string) (bool, error) {
+	ctx, span := m.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := m.logger.WithSpan(span).WithValues(map[string]any{
+		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
+		identitykeys.AccountIDKey:            accountID,
+	})
+	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
+	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
+
+	belongs, err := m.db.MealPlanOptionBelongsToAccount(ctx, mealPlanOptionID, accountID)
+	if err != nil {
+		return false, observability.PrepareAndLogError(err, logger, span, "checking meal plan option account ownership")
+	}
+
+	return belongs, nil
 }
 
 func (m *mealPlanningManager) UpdateMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string, input *types.MealPlanOptionUpdateRequestInput) error {

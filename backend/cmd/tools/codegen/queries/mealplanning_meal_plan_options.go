@@ -132,6 +132,26 @@ WHERE %s IS NULL
 			},
 			{
 				Annotation: QueryAnnotation{
+					Name: "CheckMealPlanOptionBelongsToAccount",
+					Type: OneType,
+				},
+				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS (
+	SELECT %s.%s
+	FROM %s
+		JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event = meal_plan_events.id
+		JOIN meal_plans ON meal_plan_events.belongs_to_meal_plan = meal_plans.id
+	WHERE %s.%s IS NULL
+		AND meal_plan_options.id = sqlc.arg(meal_plan_option_id)
+		AND meal_plans.archived_at IS NULL
+		AND meal_plans.belongs_to_account = sqlc.arg(belongs_to_account)
+);`,
+					mealPlanOptionsTableName, idColumn,
+					mealPlanOptionsTableName,
+					mealPlanOptionsTableName, archivedAtColumn,
+				)),
+			},
+			{
+				Annotation: QueryAnnotation{
 					Name: "FinalizeMealPlanOption",
 					Type: ExecType,
 				},
