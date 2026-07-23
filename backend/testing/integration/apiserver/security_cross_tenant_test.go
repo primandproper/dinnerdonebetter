@@ -453,3 +453,75 @@ func TestCrossTenant_MealPlanRecipeOptionSelections_Denied(T *testing.T) {
 		assert.Equal(t, uint32(1), getRes.Result.SelectedOptionIndex, "B's cross-tenant update attempt must not have modified A's selection")
 	})
 }
+
+// TestCrossTenant_MealPlanOptionVotes_Denied asserts the H18 vote-scoping fix: a vote's target
+// option must belong to the meal plan event named in the request, and the meal plan must belong to
+// the caller's account. User B cannot vote on user A's option — neither by naming A's plan (denied
+// at the plan-access check) nor by smuggling A's option ID under B's own plan (denied at the
+// option-resolution check). NOTE: the companion eligibility gate (votes rejected once the plan
+// leaves 'awaiting_votes') is covered by manager unit tests; driving a plan out of awaiting_votes
+// deterministically requires the finalization worker, which this harness does not run.
+func TestCrossTenant_MealPlanOptionVotes_Denied(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		// A owns a meal plan with at least one votable option.
+		_, clientA := createUserAndClientForTest(t)
+		mealPlanA := createMealPlanForTest(t, clientA, nil)
+		require.NotEmpty(t, mealPlanA.Events)
+		require.NotEmpty(t, mealPlanA.Events[0].Options)
+		optionA := mealPlanA.Events[0].Options[0]
+
+		// B owns an unrelated meal plan of their own.
+		_, clientB := createUserAndClientForTest(t)
+		mealPlanB := createMealPlanForTest(t, clientB, nil)
+		require.NotEmpty(t, mealPlanB.Events)
+		require.NotEmpty(t, mealPlanB.Events[0].Options)
+		eventB := mealPlanB.Events[0]
+
+		// cross-tenant: B cannot vote by naming A's plan and event directly.
+		voteOnA := mpfakes.BuildFakeMealPlanOptionVote()
+		voteOnA.BelongsToMealPlanOption = optionA.ID
+		voteOnAInput := mpconverters.ConvertMealPlanOptionVoteToMealPlanOptionVoteCreationRequestInput(voteOnA)
+		_, err := clientB.CreateMealPlanOptionVote(ctx, &mealplanninggrpc.CreateMealPlanOptionVoteRequest{
+			MealPlanId:      mealPlanA.ID,
+			MealPlanEventId: mealPlanA.Events[0].ID,
+			Input:           mpgrpcconverters.ConvertMealPlanOptionVoteCreationRequestInputToGRPCMealPlanOptionVoteCreationRequestInput(voteOnAInput),
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+
+		// cross-tenant: B cannot smuggle A's option ID under B's own (accessible) plan and event.
+		_, err = clientB.CreateMealPlanOptionVote(ctx, &mealplanninggrpc.CreateMealPlanOptionVoteRequest{
+			MealPlanId:      mealPlanB.ID,
+			MealPlanEventId: eventB.ID,
+			Input:           mpgrpcconverters.ConvertMealPlanOptionVoteCreationRequestInputToGRPCMealPlanOptionVoteCreationRequestInput(voteOnAInput),
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+
+		// positive control: B voting on B's own option succeeds.
+		voteOnB := mpfakes.BuildFakeMealPlanOptionVote()
+		voteOnB.BelongsToMealPlanOption = eventB.Options[0].ID
+		voteOnBInput := mpconverters.ConvertMealPlanOptionVoteToMealPlanOptionVoteCreationRequestInput(voteOnB)
+		createRes, err := clientB.CreateMealPlanOptionVote(ctx, &mealplanninggrpc.CreateMealPlanOptionVoteRequest{
+			MealPlanId:      mealPlanB.ID,
+			MealPlanEventId: eventB.ID,
+			Input:           mpgrpcconverters.ConvertMealPlanOptionVoteCreationRequestInputToGRPCMealPlanOptionVoteCreationRequestInput(voteOnBInput),
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, createRes.Created)
+
+		// security property: no vote from B landed on A's option.
+		votesOnA, err := clientA.GetMealPlanOptionVotes(ctx, &mealplanninggrpc.GetMealPlanOptionVotesRequest{
+			MealPlanId:       mealPlanA.ID,
+			MealPlanEventId:  mealPlanA.Events[0].ID,
+			MealPlanOptionId: optionA.ID,
+		})
+		require.NoError(t, err)
+		assert.Empty(t, votesOnA.Results)
+	})
+}

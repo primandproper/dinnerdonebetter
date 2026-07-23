@@ -232,13 +232,14 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 
 		expectedMap := map[string]*mealplanning.MealPlanGroceryListItemDatabaseCreationInput{
 			onion.ID: {
-				Status:                  mealplanning.MealPlanGroceryListItemStatusNeeds,
-				ValidMeasurementUnitID:  grams.ID,
-				ValidIngredientID:       onion.ID,
-				BelongsToMealPlan:       expectedMealPlan.ID,
-				BelongsToMealPlanOption: &option1ID, // First occurrence
-				RecipeID:                &recipe1ID,
-				RecipeStepID:            &step1ID,
+				Status:                 mealplanning.MealPlanGroceryListItemStatusNeeds,
+				ValidMeasurementUnitID: grams.ID,
+				ValidIngredientID:      onion.ID,
+				BelongsToMealPlan:      expectedMealPlan.ID,
+				// consolidated across option1/recipe1/step1 and option5/recipe5/step5, so no single source attribution
+				BelongsToMealPlanOption: nil,
+				RecipeID:                nil,
+				RecipeStepID:            nil,
 				MinQuantityNeeded:       200,
 
 				MaxQuantityNeeded: new(float32(200)),
@@ -820,9 +821,11 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		onionItem, ok := actualMap[onion.ID]
 		assert.True(t, ok)
 		assert.Equal(t, float32(100), onionItem.MinQuantityNeeded, "onion should be aggregated (50 + 50)")
-		// Should have context from first occurrence
-		assert.NotNil(t, onionItem.BelongsToMealPlanOption)
-		assert.Equal(t, option1ID, *onionItem.BelongsToMealPlanOption)
+		// Consolidated across two options/recipes/steps, so attribution is cleared rather than
+		// misattributed to the first contributor.
+		assert.Nil(t, onionItem.BelongsToMealPlanOption)
+		assert.Nil(t, onionItem.RecipeID)
+		assert.Nil(t, onionItem.RecipeStepID)
 	})
 
 	T.Run("with option groups and user selection", func(t *testing.T) {
@@ -1315,6 +1318,12 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		saltItem, ok := actualMap[salt.ID]
 		assert.True(t, ok, "salt item should exist and be aggregated")
 		assert.Equal(t, float32(15), saltItem.MinQuantityNeeded, "salt should be aggregated from main recipe (10) and associated recipe (5)")
+		// Same option contributed both amounts, so option attribution survives, but the recipe/step
+		// attribution is cleared because the contributions came from different recipes/steps.
+		assert.NotNil(t, saltItem.BelongsToMealPlanOption)
+		assert.Equal(t, optionID, *saltItem.BelongsToMealPlanOption)
+		assert.Nil(t, saltItem.RecipeID)
+		assert.Nil(t, saltItem.RecipeStepID)
 	})
 
 	T.Run("rounds quantities to nearest tenth", func(t *testing.T) {

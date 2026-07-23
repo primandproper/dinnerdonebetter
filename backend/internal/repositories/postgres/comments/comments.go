@@ -205,6 +205,68 @@ func (q *repository) GetCommentsForReference(ctx context.Context, targetType, re
 	), nil
 }
 
+// GetCommentsForUser fetches every comment authored by a user.
+func (q *repository) GetCommentsForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Comment], error) {
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := q.logger.Clone()
+
+	if userID == "" {
+		return nil, platformerrors.ErrInvalidIDProvided
+	}
+	logger = logger.WithValue("user_id", userID)
+	tracing.AttachToSpan(span, "user_id", userID)
+
+	if filter == nil {
+		filter = filtering.DefaultQueryFilter()
+	}
+	logger = filter.AttachToLogger(logger)
+	tracing.AttachQueryFilterToSpan(span, filter)
+
+	results, err := q.generatedQuerier.GetCommentsForUser(ctx, q.readDB, &generated.GetCommentsForUserParams{
+		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
+		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
+		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
+		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
+		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		BelongsToUser:   userID,
+		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		ResultLimit:     database.NullInt32FromUint8Pointer(filter.MaxResponseSize),
+	})
+	if err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "executing user comments list retrieval query")
+	}
+
+	var (
+		data                      = []*types.Comment{}
+		filteredCount, totalCount uint64
+	)
+	for _, result := range results {
+		data = append(data, convertRowToComment(&generated.GetCommentsForReferenceRow{
+			ID:              result.ID,
+			Content:         result.Content,
+			TargetType:      result.TargetType,
+			ReferencedID:    result.ReferencedID,
+			ParentCommentID: result.ParentCommentID,
+			BelongsToUser:   result.BelongsToUser,
+			CreatedAt:       result.CreatedAt,
+			LastUpdatedAt:   result.LastUpdatedAt,
+			ArchivedAt:      result.ArchivedAt,
+		}))
+		filteredCount = uint64(result.FilteredCount)
+		totalCount = uint64(result.TotalCount)
+	}
+
+	return filtering.NewQueryFilteredResult(
+		data,
+		filteredCount,
+		totalCount,
+		func(t *types.Comment) string { return t.ID },
+		filter,
+	), nil
+}
+
 // UpdateComment updates a comment in the database.
 func (q *repository) UpdateComment(ctx context.Context, id, belongsToUser, content string) error {
 	ctx, span := q.tracer.StartSpan(ctx)

@@ -11,6 +11,7 @@ import (
 	issuereportsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
+	platformerrors "github.com/primandproper/platform-go/v5/errors"
 	"github.com/primandproper/platform-go/v5/filtering"
 	"github.com/primandproper/platform-go/v5/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
@@ -187,6 +188,17 @@ func TestIssueReportsDataManager_UpdateIssueReport(t *testing.T) {
 
 		require.NoError(t, err)
 		mock.AssertExpectationsForObjects(t, expectations...)
+	})
+
+	t.Run("with nil input", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		manager, _ := buildIssueReportsManagerForTest(t)
+
+		err := manager.UpdateIssueReport(ctx, nil)
+
+		require.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
 	})
 }
 

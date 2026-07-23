@@ -8,6 +8,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
 	issuereportkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/keys"
 
+	platformerrors "github.com/primandproper/platform-go/v5/errors"
 	"github.com/primandproper/platform-go/v5/filtering"
 	"github.com/primandproper/platform-go/v5/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
@@ -105,6 +106,10 @@ func (m *issueReportsManager) CreateIssueReport(ctx context.Context, input *issu
 func (m *issueReportsManager) UpdateIssueReport(ctx context.Context, issueReport *issuereports.IssueReport) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if issueReport == nil {
+		return platformerrors.ErrNilInputParameter
+	}
 
 	logger := m.logger.WithSpan(span).WithValue(issuereportkeys.IssueReportIDKey, issueReport.ID)
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, issueReport.ID)

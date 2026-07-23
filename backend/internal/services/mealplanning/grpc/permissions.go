@@ -160,7 +160,7 @@ func ProvideMethodPermissions() MealPlanningMethodPermissions {
 		mealplanningsvc.MealPlanningService_UpdateRecipeStatus_FullMethodName:                      {authorization.UpdateRecipesStatusPermission},
 		mealplanningsvc.MealPlanningService_ArchiveRecipe_FullMethodName:                           {authorization.ArchiveRecipesPermission},
 		mealplanningsvc.MealPlanningService_SearchForRecipes_FullMethodName:                        {authorization.ReadRecipesPermission},
-		mealplanningsvc.MealPlanningService_CloneRecipe_FullMethodName:                             {authorization.ReadRecipesPermission},
+		mealplanningsvc.MealPlanningService_CloneRecipe_FullMethodName:                             {authorization.CloneRecipesPermission},
 		mealplanningsvc.MealPlanningService_UploadRecipeImage_FullMethodName:                       {authorization.UpdateRecipesPermission},
 		mealplanningsvc.MealPlanningService_SearchForMealEligibleRecipes_FullMethodName:            {authorization.ReadRecipesPermission},
 		mealplanningsvc.MealPlanningService_SearchForRecipesWithInstrumentOwnership_FullMethodName: {authorization.ReadRecipesPermission},

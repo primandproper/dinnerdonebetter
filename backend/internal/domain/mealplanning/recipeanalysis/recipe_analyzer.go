@@ -632,19 +632,14 @@ func (g *recipeAnalyzer) generateMealPlanTasksForFrozenIngredients(ctx context.C
 			continue
 		}
 
-		// SAFE FIX (H15): we intentionally do NOT emit a MealPlanTaskDatabaseCreationInput here.
-		// meal_plan_tasks.belongs_to_recipe_prep_task is NOT NULL and REFERENCES recipe_prep_tasks(id)
-		// (migration 00021), so an input with an empty RecipePrepTaskID triggers a foreign-key
-		// violation that fails the ENTIRE task-creation batch — meaning any finalized plan containing a
-		// frozen ingredient would get no prep tasks at all. Skipping these ad-hoc "thaw" tasks keeps the
-		// rest of the batch working.
-		//
-		// DEFERRED: proper thaw-task support requires a schema migration making
-		// belongs_to_recipe_prep_task nullable (or synthesizing a real recipe prep task) before these
-		// can be persisted. No migration is written here.
-		logger.WithValue(mealplanningkeys.RecipeStepIDKey, stepID).
-			WithValue("creation_explanation", explanation).
-			Info("skipping frozen-ingredient thaw task; nullable prep-task FK not yet available")
+		// Ad-hoc thaw tasks have no backing recipe prep task; an empty RecipePrepTaskID is
+		// persisted as NULL (belongs_to_recipe_prep_task was made nullable in migration 00023).
+		outputs = append(outputs, &mealplanning.MealPlanTaskDatabaseCreationInput{
+			ID:                  identifiers.New(),
+			MealPlanOptionID:    mealPlanOptionID,
+			CreationExplanation: explanation,
+			RecipePrepTaskID:    "",
+		})
 	}
 
 	return outputs

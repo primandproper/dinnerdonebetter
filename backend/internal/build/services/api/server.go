@@ -16,29 +16,38 @@ import (
 	"github.com/primandproper/platform-go/v5/observability/logging"
 	"github.com/primandproper/platform-go/v5/observability/profiling"
 	"github.com/primandproper/platform-go/v5/server/http"
+
+	"github.com/samber/do/v2"
 )
 
 type Server struct {
 	logger            logging.Logger
+	injector          *do.RootScope
 	grpcServer        *grpcapi.GRPCService
 	httpServer        http.Server
 	profilingProvider profiling.Provider
 }
 
 func NewServer(ctx context.Context, pillars *observability.Pillars, cfg *config.APIServiceConfig) (*Server, error) {
-	// build our server struct.
-	httpServer, err := httpapi.Build(ctx, cfg)
+	// Both servers share one DI container, so expensive singletons (DB pool, message
+	// queue connections, observability stack) are built once and migrations run exactly
+	// once per boot.
+	injector := grpcapi.BuildInjector(ctx, cfg)
+	httpapi.RegisterHTTPServerServices(injector)
+
+	httpServer, err := do.Invoke[http.Server](injector)
 	if err != nil {
 		return nil, fmt.Errorf("could not create http server: %w", err)
 	}
 
-	grpcServer, err := grpcapi.Build(ctx, cfg)
+	grpcServer, err := do.Invoke[*grpcapi.GRPCService](injector)
 	if err != nil {
 		return nil, fmt.Errorf("could not create grpc server: %w", err)
 	}
 
 	return &Server{
 		logger:            logging.EnsureLogger(pillars.Logger),
+		injector:          injector,
 		grpcServer:        grpcServer,
 		httpServer:        httpServer,
 		profilingProvider: pillars.Profiler,
@@ -91,12 +100,13 @@ func (s *Server) Run(ctx context.Context) {
 	}()
 
 	// Wait for a shutdown signal or an unexpected gRPC serve exit (e.g. bind failure).
+	exitCode := 0
 	select {
 	case sig := <-signalChan:
 		s.logger.WithValue("signal", sig.String()).Info("received shutdown signal")
 	case <-grpcServeExited:
 		s.logger.Error("gRPC server stopped serving unexpectedly", fmt.Errorf("gRPC serve loop exited before shutdown"))
-		os.Exit(1)
+		exitCode = 1
 	}
 
 	cancelCtx, cancelShutdown := context.WithTimeout(ctx, 10*time.Second)
@@ -113,4 +123,16 @@ func (s *Server) Run(ctx context.Context) {
 	}
 
 	s.grpcServer.Shutdown(cancelCtx)
+
+	// Shut down the DI container last, so services (DB pool, message queue connections,
+	// telemetry) release their resources after the servers have stopped using them.
+	if s.injector != nil {
+		if report := s.injector.ShutdownWithContext(cancelCtx); report != nil && !report.Succeed {
+			s.logger.Error("shutting down DI container", report)
+		}
+	}
+
+	if exitCode != 0 {
+		os.Exit(exitCode)
+	}
 }

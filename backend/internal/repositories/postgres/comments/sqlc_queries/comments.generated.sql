@@ -96,6 +96,60 @@ WHERE comments.archived_at IS NULL
 ORDER BY comments.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
+-- name: GetCommentsForUser :many
+SELECT
+	comments.id,
+	comments.content,
+	comments.target_type,
+	comments.referenced_id,
+	comments.parent_comment_id,
+	comments.belongs_to_user,
+	comments.created_at,
+	comments.last_updated_at,
+	comments.archived_at,
+	(
+		SELECT COUNT(comments.id)
+		FROM comments
+		WHERE comments.archived_at IS NULL
+			AND
+			comments.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+			AND comments.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+			AND (
+				comments.last_updated_at IS NULL
+				OR comments.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+			)
+			AND (
+				comments.last_updated_at IS NULL
+				OR comments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+			)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR comments.archived_at IS NULL)
+			AND comments.belongs_to_user = sqlc.arg(belongs_to_user)
+	) AS filtered_count,
+	(
+		SELECT COUNT(comments.id)
+		FROM comments
+		WHERE comments.archived_at IS NULL
+			AND comments.belongs_to_user = sqlc.arg(belongs_to_user)
+	) AS total_count
+FROM comments
+WHERE comments.archived_at IS NULL
+	AND comments.belongs_to_user = sqlc.arg(belongs_to_user)
+	AND comments.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+	AND comments.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+	AND (
+		comments.last_updated_at IS NULL
+		OR comments.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+	)
+	AND (
+		comments.last_updated_at IS NULL
+		OR comments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+	)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR comments.archived_at IS NULL)
+	AND comments.belongs_to_user = sqlc.arg(belongs_to_user)
+	AND comments.id > COALESCE(sqlc.narg(cursor), '')
+ORDER BY comments.id ASC
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
+
 -- name: UpdateComment :execrows
 UPDATE comments SET
 	content = sqlc.arg(content),

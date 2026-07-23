@@ -71,7 +71,7 @@ func TestMyService(T *testing.T) {
 
 ### Test Reliability
 
-- **No skipped tests**: The linter explicitly forbids `t.SkipNow()` calls
+- **No skipped tests**: The linter explicitly forbids `t.SkipNow()` calls. Sanctioned exception: container-backed tests (repository/integration tests gated on `RunContainerTests`) may call `t.SkipNow()` to opt out when the container environment isn't enabled — that's an environment gate, not a disabled test.
 - **No global state**: Each test should be independent
 - **Clean up resources**: Properly tear down any created test data
 

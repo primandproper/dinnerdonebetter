@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	mockauthn "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/mock"
@@ -12,11 +13,13 @@ import (
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
+	"github.com/primandproper/platform-go/v5/filtering"
 	"github.com/primandproper/platform-go/v5/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
 	mockpublishers "github.com/primandproper/platform-go/v5/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v5/qrcodes"
 	randommock "github.com/primandproper/platform-go/v5/random/mock"
 	"github.com/primandproper/platform-go/v5/reflection"
 	mocksearch "github.com/primandproper/platform-go/v5/search/text/mock"
@@ -49,6 +52,7 @@ func buildIdentityDataManagerForTest(t *testing.T) *manager {
 		&randommock.GeneratorMock{},
 		&mockauthn.Authenticator{},
 		&mocksearch.IndexMock[identityindexing.UserSearchSubset]{},
+		qrcodes.NewBuilder(qrcodes.Issuer("test"), tracingnoop.NewTracerProvider(), loggingnoop.NewLogger()),
 		queueCfg,
 	)
 	require.NoError(t, err)
@@ -425,6 +429,7 @@ func TestIdentityDataManager_CreateUser(T *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Equal(t, expected.ID, actual.CreatedUserID)
+		assert.True(t, strings.HasPrefix(actual.TwoFactorQRCode, "data:image/png;base64,"), "two factor QR code should be a PNG data URI")
 
 		mock.AssertExpectationsForObjects(t, expectations...)
 	})
@@ -745,6 +750,53 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Len(t, actual.Data, 2)
+
+		mock.AssertExpectationsForObjects(t, expectations...)
+	})
+
+	T.Run("with search service honoring page size and reporting total hits", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		m := buildIdentityDataManagerForTest(t)
+
+		query := "test-query"
+		searchResults := []*identityindexing.UserSearchSubset{
+			{ID: fakes.BuildFakeID()},
+			{ID: fakes.BuildFakeID()},
+			{ID: fakes.BuildFakeID()},
+		}
+		users := []*identity.User{
+			fakes.BuildFakeUser(),
+			fakes.BuildFakeUser(),
+		}
+		users[0].ID = searchResults[0].ID
+		users[1].ID = searchResults[1].ID
+
+		filter := filtering.DefaultQueryFilter()
+		filter.MaxResponseSize = new(uint8(2))
+
+		expectations := setupExpectationsForIdentityDataManager(
+			m,
+			func(db *identitymock.RepositoryMock) {
+				db.On(reflection.GetMethodName(m.identityRepo.GetUsersWithIDs), testutils.ContextMatcher, []string{searchResults[0].ID, searchResults[1].ID}).Return(users, nil)
+			},
+			nil,
+			nil,
+			nil,
+			func(us *mocksearch.IndexMock[identityindexing.UserSearchSubset]) {
+				us.SearchFunc = func(_ context.Context, q string) ([]*identityindexing.UserSearchSubset, error) {
+					return searchResults, nil
+				}
+			},
+		)
+
+		actual, err := m.SearchForUsers(ctx, query, true, filter)
+		assert.NoError(t, err)
+		assert.NotNil(t, actual)
+		assert.Len(t, actual.Data, 2)
+		assert.Equal(t, uint64(2), actual.FilteredCount)
+		assert.Equal(t, uint64(3), actual.TotalCount)
 
 		mock.AssertExpectationsForObjects(t, expectations...)
 	})

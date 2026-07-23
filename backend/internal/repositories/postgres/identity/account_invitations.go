@@ -320,8 +320,6 @@ func (r *repository) GetAccountInvitationByEmailAndToken(ctx context.Context, em
 	if token == "" {
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.AccountInvitationTokenKey, token)
-	tracing.AttachToSpan(span, identitykeys.AccountInvitationTokenKey, token)
 
 	result, err := r.generatedQuerier.GetAccountInvitationByEmailAndToken(ctx, r.readDB, &generated.GetAccountInvitationByEmailAndTokenParams{
 		ToEmail: emailAddress,

@@ -40,6 +40,14 @@ func (m *Repository) GetCommentsForReference(ctx context.Context, targetType, re
 	return args.Get(0).(*filtering.QueryFilteredResult[comments.Comment]), args.Error(1)
 }
 
+func (m *Repository) GetCommentsForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[comments.Comment], error) {
+	args := m.Called(ctx, userID, filter)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*filtering.QueryFilteredResult[comments.Comment]), args.Error(1)
+}
+
 func (m *Repository) UpdateComment(ctx context.Context, id, belongsToUser, content string) error {
 	return m.Called(ctx, id, belongsToUser, content).Error(0)
 }

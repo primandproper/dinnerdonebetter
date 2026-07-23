@@ -8,6 +8,7 @@ import (
 	dataprivacymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
+	platformerrors "github.com/primandproper/platform-go/v5/errors"
 	"github.com/primandproper/platform-go/v5/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
@@ -94,6 +95,19 @@ func TestDataPrivacyManager_CreateUserDataDisclosure(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, disclosureID, result.ID)
+		mock.AssertExpectationsForObjects(t, repo)
+	})
+
+	t.Run("with nil input", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		manager, repo := buildDataPrivacyManagerForTest(t)
+
+		result, err := manager.CreateUserDataDisclosure(ctx, nil)
+
+		require.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
+		assert.Nil(t, result)
 		mock.AssertExpectationsForObjects(t, repo)
 	})
 }

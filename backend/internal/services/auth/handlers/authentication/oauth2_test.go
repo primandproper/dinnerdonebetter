@@ -427,3 +427,49 @@ func TestClientScopeHandler(T *testing.T) {
 		assert.True(t, allowed)
 	})
 }
+
+func TestValidateRedirectURI(T *testing.T) {
+	T.Parallel()
+
+	T.Run("with exact host match", func(t *testing.T) {
+		t.Parallel()
+
+		assert.NoError(t, validateRedirectURI("https://dinnerdonebetter.com", "https://dinnerdonebetter.com/callback"))
+	})
+
+	T.Run("with subdomain", func(t *testing.T) {
+		t.Parallel()
+
+		assert.NoError(t, validateRedirectURI("https://dinnerdonebetter.com", "https://api.dinnerdonebetter.com/callback"))
+	})
+
+	T.Run("with differing ports on the same host", func(t *testing.T) {
+		t.Parallel()
+
+		assert.NoError(t, validateRedirectURI("http://localhost:9000", "http://localhost:55123/callback"))
+	})
+
+	T.Run("with foreign host", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Error(t, validateRedirectURI("https://dinnerdonebetter.com", "https://evil.example.com/callback"))
+	})
+
+	T.Run("with suffix-spoofed host", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Error(t, validateRedirectURI("https://dinnerdonebetter.com", "https://evildinnerdonebetter.com/callback"))
+	})
+
+	T.Run("with empty redirect host", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Error(t, validateRedirectURI("https://dinnerdonebetter.com", "/relative/path"))
+	})
+
+	T.Run("with unparseable URI", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Error(t, validateRedirectURI("https://dinnerdonebetter.com", "://not-a-uri"))
+	})
+}

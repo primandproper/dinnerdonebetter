@@ -65,6 +65,9 @@ func (m *Migrator) Migrate(ctx context.Context, db *sql.DB) error {
 		{Version: 20, Description: "per-service database users", Script: fetchMigration("00020_service_users")},
 		{Version: 21, Description: "meal planning tables", Script: fetchMigration("00021_mealplanning")},
 		{Version: 22, Description: "run meal plan workers permission", Script: fetchMigration("00022_run_meal_plan_workers_permission")},
+		{Version: 23, Description: "nullable prep task reference for thaw tasks", Script: fetchMigration("00023_nullable_prep_task_for_thaw_tasks")},
+		{Version: 24, Description: "clone recipes permission", Script: fetchMigration("00024_clone_recipes_permission")},
+		{Version: 25, Description: "hash stored oauth2 client secrets", Script: fetchMigration("00025_hash_oauth2_client_secrets")},
 	}
 
 	if err := darwin.New(darwin.NewGenericDriver(db, darwin.PostgresDialect{}), migrations, nil).Migrate(); err != nil {

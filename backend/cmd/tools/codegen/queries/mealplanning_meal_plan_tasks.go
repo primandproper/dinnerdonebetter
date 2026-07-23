@@ -161,9 +161,9 @@ FROM %s
 	JOIN %s ON %s.%s=%s.%s
 	JOIN %s ON %s.%s=%s.%s
 	JOIN %s ON %s.%s=%s.%s
-	JOIN %s ON %s.%s=%s.%s
-	JOIN %s ON %s.%s=%s.%s
-	JOIN %s ON %s.%s=%s.%s
+	LEFT JOIN %s ON %s.%s=%s.%s
+	LEFT JOIN %s ON %s.%s=%s.%s
+	LEFT JOIN %s ON %s.%s=%s.%s
 WHERE %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s IS NULL
@@ -199,9 +199,9 @@ FROM %s
 	JOIN %s ON %s.%s=%s.%s
 	JOIN %s ON %s.%s=%s.%s
 	JOIN %s ON %s.%s=%s.%s
-	JOIN %s ON %s.%s=%s.%s
-	JOIN %s ON %s.%s=%s.%s
-	JOIN %s ON %s.%s=%s.%s
+	LEFT JOIN %s ON %s.%s=%s.%s
+	LEFT JOIN %s ON %s.%s=%s.%s
+	LEFT JOIN %s ON %s.%s=%s.%s
 WHERE %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s IS NULL

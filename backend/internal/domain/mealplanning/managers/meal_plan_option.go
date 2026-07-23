@@ -69,11 +69,35 @@ func (m *mealPlanningManager) CreateMealPlanOption(ctx context.Context, input *t
 		return nil, observability.PrepareAndLogError(err, logger, span, "created meal plan option")
 	}
 
+	if err = m.createSelectionsForNewOption(ctx, created.ID, input.Selections); err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "creating selections for meal plan option")
+	}
+
 	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanOptionCreatedServiceEventType, map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: convertedInput.ID,
 	}))
 
 	return created, nil
+}
+
+// createSelectionsForNewOption persists the recipe-option selections provided inline on an option creation input.
+func (m *mealPlanningManager) createSelectionsForNewOption(ctx context.Context, mealPlanOptionID string, selections []*types.MealPlanRecipeOptionSelectionCreationRequestInput) error {
+	for _, selection := range selections {
+		if selection == nil {
+			continue
+		}
+
+		if err := selection.ValidateWithContext(ctx); err != nil {
+			return observability.PrepareError(err, nil, "validating inline selection")
+		}
+
+		converted := converters.ConvertMealPlanRecipeOptionSelectionDatabaseCreationInputToMealPlanRecipeOptionSelectionDatabaseCreationInput(selection, mealPlanOptionID)
+		if _, err := m.db.CreateMealPlanRecipeOptionSelection(ctx, converted); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (m *mealPlanningManager) CreateMealPlanOptionWithEventID(ctx context.Context, mealPlanEventID string, input *types.MealPlanOptionCreationRequestInput) (*types.MealPlanOption, error) {
@@ -110,6 +134,10 @@ func (m *mealPlanningManager) CreateMealPlanOptionWithEventID(ctx context.Contex
 	created, err := m.db.CreateMealPlanOption(ctx, convertedInput)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "created meal plan option")
+	}
+
+	if err = m.createSelectionsForNewOption(ctx, created.ID, input.Selections); err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "creating selections for meal plan option")
 	}
 
 	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanOptionCreatedServiceEventType, map[string]any{

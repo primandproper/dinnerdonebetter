@@ -170,13 +170,14 @@ func (x *MealPlanTaskCreationRequestInput) ValidateWithContext(ctx context.Conte
 var _ validation.ValidatableWithContext = (*MealPlanTaskDatabaseCreationInput)(nil)
 
 // ValidateWithContext validates a MealPlanTaskDatabaseCreationInput.
+// RecipePrepTaskID is deliberately optional: system-generated thaw tasks for frozen
+// ingredients have no backing recipe prep task (persisted as NULL).
 func (x *MealPlanTaskDatabaseCreationInput) ValidateWithContext(ctx context.Context) error {
 	return validation.ValidateStructWithContext(
 		ctx,
 		x,
 		validation.Field(&x.ID, validation.Required),
 		validation.Field(&x.MealPlanOptionID, validation.Required),
-		validation.Field(&x.RecipePrepTaskID, validation.Required),
 	)
 }
 

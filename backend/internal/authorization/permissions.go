@@ -152,6 +152,7 @@ var (
 		UpdateMealsPermission,
 		ArchiveMealsPermission,
 		CreateRecipesPermission,
+		CloneRecipesPermission,
 		ReadRecipesPermission,
 		SearchRecipesPermission,
 		UpdateRecipesPermission,

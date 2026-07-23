@@ -95,31 +95,3 @@ func ConvertMealComponentToMealComponentDatabaseCreationInput(input *mealplannin
 	return x
 }
 
-// ConvertMealToMealUpdateRequestInput builds a faked MealUpdateRequestInput from a Meal.
-func ConvertMealToMealUpdateRequestInput(meal *mealplanning.Meal) *mealplanning.MealUpdateRequestInput {
-	convertedComponents := []*mealplanning.MealComponentUpdateRequestInput{}
-	for _, x := range meal.Components {
-		convertedComponents = append(convertedComponents, ConvertMealComponentToMealComponentUpdateRequestInput(x))
-	}
-
-	return &mealplanning.MealUpdateRequestInput{
-		Name:                 &meal.Name,
-		Description:          &meal.Description,
-		MinEstimatedPortions: &meal.MinEstimatedPortions,
-		MaxEstimatedPortions: meal.MaxEstimatedPortions,
-		CreatedByUser:        &meal.CreatedByUser,
-		Components:           convertedComponents,
-		EligibleForMealPlans: &meal.EligibleForMealPlans,
-	}
-}
-
-// ConvertMealComponentToMealComponentUpdateRequestInput creates a MealComponentUpdateRequestInput from a MealComponent.
-func ConvertMealComponentToMealComponentUpdateRequestInput(input *mealplanning.MealComponent) *mealplanning.MealComponentUpdateRequestInput {
-	x := &mealplanning.MealComponentUpdateRequestInput{
-		RecipeID:      &input.Recipe.ID,
-		RecipeScale:   &input.RecipeScale,
-		ComponentType: &input.ComponentType,
-	}
-
-	return x
-}

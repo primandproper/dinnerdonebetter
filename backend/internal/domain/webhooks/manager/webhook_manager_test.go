@@ -12,6 +12,7 @@ import (
 	webhookmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
+	platformerrors "github.com/primandproper/platform-go/v5/errors"
 	"github.com/primandproper/platform-go/v5/filtering"
 	"github.com/primandproper/platform-go/v5/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
@@ -347,6 +348,38 @@ func TestWebhookDataManager_CreateWebhookTriggerEvent(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		repo.AssertNotCalled(t, reflection.GetMethodName(repo.CreateWebhookTriggerEvent))
+	})
+}
+
+func TestWebhookDataManager_UpdateWebhookTriggerEvent(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		manager, repo := buildWebhookManagerForTest(t)
+
+		triggerEventID := fakes.BuildFakeID()
+		input := &webhooks.WebhookTriggerEventUpdateRequestInput{}
+		repo.On(reflection.GetMethodName(repo.UpdateWebhookTriggerEvent), testutils.ContextMatcher, triggerEventID, input).Return(nil)
+
+		err := manager.UpdateWebhookTriggerEvent(ctx, triggerEventID, input)
+
+		require.NoError(t, err)
+		mock.AssertExpectationsForObjects(t, repo)
+	})
+
+	t.Run("nil input", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		manager, repo := buildWebhookManagerForTest(t)
+
+		err := manager.UpdateWebhookTriggerEvent(ctx, fakes.BuildFakeID(), nil)
+
+		require.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
+		repo.AssertNotCalled(t, reflection.GetMethodName(repo.UpdateWebhookTriggerEvent))
 	})
 }
 

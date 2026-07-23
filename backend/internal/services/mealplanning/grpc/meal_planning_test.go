@@ -655,7 +655,7 @@ func TestServiceImpl_CreateMealPlanOptionVote(T *testing.T) {
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
 		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
-		mmpm.On(reflection.GetMethodName(mmpm.CreateMealPlanOptionVotes), testutils.ContextMatcher, exampleUserID, testutils.MatchType[*mealplanning.MealPlanOptionVoteCreationRequestInput]()).Return(exampleCreatedMealPlanOptionVotes, nil)
+		mmpm.On(reflection.GetMethodName(mmpm.CreateMealPlanOptionVotes), testutils.ContextMatcher, exampleMealPlanID, mock.AnythingOfType("string"), exampleUserID, testutils.MatchType[*mealplanning.MealPlanOptionVoteCreationRequestInput]()).Return(exampleCreatedMealPlanOptionVotes, nil)
 		s.mealPlanningManager = mmpm
 
 		// Override session context to return specific user ID

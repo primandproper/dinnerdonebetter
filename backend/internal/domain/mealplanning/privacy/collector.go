@@ -6,6 +6,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 
+	"github.com/primandproper/platform-go/v5/filtering"
 	"github.com/primandproper/platform-go/v5/observability"
 	"github.com/primandproper/platform-go/v5/observability/logging"
 	"github.com/primandproper/platform-go/v5/observability/tracing"
@@ -36,35 +37,43 @@ func (c *Collector) CollectUserData(ctx context.Context, collection *dataprivacy
 
 	logger := c.logger.WithValue("user_id", userID)
 
-	recipes, err := c.repo.GetRecipesCreatedByUser(ctx, userID, nil)
+	recipes, err := dataprivacy.CollectAllPages(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error) {
+		return c.repo.GetRecipesCreatedByUser(ctx, userID, filter)
+	})
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "fetching recipes")
 	}
-	for _, recipe := range recipes.Data {
+	for _, recipe := range recipes {
 		collection.MealPlanning.Recipes = append(collection.MealPlanning.Recipes, *recipe)
 	}
 
-	meals, err := c.repo.GetMealsCreatedByUser(ctx, userID, nil)
+	meals, err := dataprivacy.CollectAllPages(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Meal], error) {
+		return c.repo.GetMealsCreatedByUser(ctx, userID, filter)
+	})
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "fetching meals")
 	}
-	for _, meal := range meals.Data {
+	for _, meal := range meals {
 		collection.MealPlanning.Meals = append(collection.MealPlanning.Meals, *meal)
 	}
 
-	preferences, err := c.repo.GetUserIngredientPreferences(ctx, userID, nil)
+	preferences, err := dataprivacy.CollectAllPages(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.UserIngredientPreference], error) {
+		return c.repo.GetUserIngredientPreferences(ctx, userID, filter)
+	})
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "fetching ingredient preferences")
 	}
-	for _, pref := range preferences.Data {
+	for _, pref := range preferences {
 		collection.MealPlanning.UserIngredientPreferences = append(collection.MealPlanning.UserIngredientPreferences, *pref)
 	}
 
-	ratings, err := c.repo.GetRecipeRatingsForUser(ctx, userID, nil)
+	ratings, err := dataprivacy.CollectAllPages(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeRating], error) {
+		return c.repo.GetRecipeRatingsForUser(ctx, userID, filter)
+	})
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "fetching recipe ratings")
 	}
-	for _, rating := range ratings.Data {
+	for _, rating := range ratings {
 		collection.MealPlanning.RecipeRatings = append(collection.MealPlanning.RecipeRatings, *rating)
 	}
 
@@ -78,19 +87,23 @@ func (c *Collector) CollectAccountData(ctx context.Context, collection *datapriv
 
 	logger := c.logger.WithValue("account_id", accountID)
 
-	mealPlans, err := c.repo.GetMealPlansForAccount(ctx, accountID, nil)
+	mealPlans, err := dataprivacy.CollectAllPages(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlan], error) {
+		return c.repo.GetMealPlansForAccount(ctx, accountID, filter)
+	})
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "fetching meal plans")
 	}
-	for _, mp := range mealPlans.Data {
+	for _, mp := range mealPlans {
 		collection.MealPlanning.MealPlans = append(collection.MealPlanning.MealPlans, *mp)
 	}
 
-	ownerships, err := c.repo.GetAccountInstrumentOwnerships(ctx, accountID, nil)
+	ownerships, err := dataprivacy.CollectAllPages(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.AccountInstrumentOwnership], error) {
+		return c.repo.GetAccountInstrumentOwnerships(ctx, accountID, filter)
+	})
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "fetching instrument ownerships")
 	}
-	for _, ownership := range ownerships.Data {
+	for _, ownership := range ownerships {
 		collection.MealPlanning.AccountInstrumentOwnerships = append(collection.MealPlanning.AccountInstrumentOwnerships, *ownership)
 	}
 

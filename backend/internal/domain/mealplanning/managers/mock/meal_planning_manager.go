@@ -268,8 +268,8 @@ func (m *MockMealPlanningManager) ListMealPlanOptionVotes(ctx context.Context, m
 }
 
 // CreateMealPlanOptionVotes is a mock method.
-func (m *MockMealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, creatorID string, input *mealplanning.MealPlanOptionVoteCreationRequestInput) ([]*mealplanning.MealPlanOptionVote, error) {
-	returnValues := m.Called(ctx, creatorID, input)
+func (m *MockMealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, mealPlanID, mealPlanEventID, creatorID string, input *mealplanning.MealPlanOptionVoteCreationRequestInput) ([]*mealplanning.MealPlanOptionVote, error) {
+	returnValues := m.Called(ctx, mealPlanID, mealPlanEventID, creatorID, input)
 
 	return returnValues.Get(0).([]*mealplanning.MealPlanOptionVote), returnValues.Error(1)
 }

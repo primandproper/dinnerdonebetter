@@ -1,6 +1,7 @@
 package managers
 
 import (
+	"database/sql"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -53,6 +54,8 @@ func TestMealPlanningManager_CreateMealPlanOptionVotes(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
+		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanEventID := fakes.BuildFakeID()
 		creatorID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeMealPlanOptionVotesList().Data
 		fakeInput := fakes.BuildFakeMealPlanOptionVoteCreationRequestInput()
@@ -60,6 +63,10 @@ func TestMealPlanningManager_CreateMealPlanOptionVotes(T *testing.T) {
 		expectations := setupExpectationsForMealPlanningManager(
 			mpm,
 			func(db *mealplanningmock.Repository) {
+				db.On(reflection.GetMethodName(mpm.db.MealPlanEventIsEligibleForVoting), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanEventID).Return(true, nil)
+				for _, vote := range fakeInput.Votes {
+					db.On(reflection.GetMethodName(mpm.db.GetMealPlanOption), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanEventID, vote.BelongsToMealPlanOption).Return(fakes.BuildFakeMealPlanOption(), nil)
+				}
 				db.On(reflection.GetMethodName(mpm.db.CreateMealPlanOptionVote), testutils.ContextMatcher, testutils.MatchType[*types.MealPlanOptionVotesDatabaseCreationInput]()).Return(expected, nil)
 			},
 			map[string][]string{
@@ -67,9 +74,60 @@ func TestMealPlanningManager_CreateMealPlanOptionVotes(T *testing.T) {
 			},
 		)
 
-		actual, err := mpm.CreateMealPlanOptionVotes(ctx, creatorID, fakeInput)
+		actual, err := mpm.CreateMealPlanOptionVotes(ctx, exampleMealPlanID, exampleMealPlanEventID, creatorID, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
+
+		mock.AssertExpectationsForObjects(t, expectations...)
+	})
+
+	T.Run("with event not eligible for voting", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		mpm := buildMealPlanManagerForTest(t)
+
+		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanEventID := fakes.BuildFakeID()
+		creatorID := fakes.BuildFakeID()
+		fakeInput := fakes.BuildFakeMealPlanOptionVoteCreationRequestInput()
+
+		expectations := setupExpectationsForMealPlanningManager(
+			mpm,
+			func(db *mealplanningmock.Repository) {
+				db.On(reflection.GetMethodName(mpm.db.MealPlanEventIsEligibleForVoting), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanEventID).Return(false, nil)
+			},
+		)
+
+		actual, err := mpm.CreateMealPlanOptionVotes(ctx, exampleMealPlanID, exampleMealPlanEventID, creatorID, fakeInput)
+		assert.Nil(t, actual)
+		assert.ErrorIs(t, err, types.ErrMealPlanEventNotEligibleForVoting)
+
+		mock.AssertExpectationsForObjects(t, expectations...)
+	})
+
+	T.Run("with option not belonging to event", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		mpm := buildMealPlanManagerForTest(t)
+
+		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanEventID := fakes.BuildFakeID()
+		creatorID := fakes.BuildFakeID()
+		fakeInput := fakes.BuildFakeMealPlanOptionVoteCreationRequestInput()
+
+		expectations := setupExpectationsForMealPlanningManager(
+			mpm,
+			func(db *mealplanningmock.Repository) {
+				db.On(reflection.GetMethodName(mpm.db.MealPlanEventIsEligibleForVoting), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanEventID).Return(true, nil)
+				db.On(reflection.GetMethodName(mpm.db.GetMealPlanOption), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanEventID, mock.AnythingOfType("string")).Return((*types.MealPlanOption)(nil), sql.ErrNoRows)
+			},
+		)
+
+		actual, err := mpm.CreateMealPlanOptionVotes(ctx, exampleMealPlanID, exampleMealPlanEventID, creatorID, fakeInput)
+		assert.Nil(t, actual)
+		assert.ErrorIs(t, err, types.ErrMealPlanOptionNotFoundForEvent)
 
 		mock.AssertExpectationsForObjects(t, expectations...)
 	})

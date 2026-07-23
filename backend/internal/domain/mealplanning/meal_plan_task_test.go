@@ -86,6 +86,20 @@ func TestMealPlanTaskDatabaseCreationInput_ValidateWithContext(T *testing.T) {
 
 		require.NoError(t, x.ValidateWithContext(ctx))
 	})
+
+	T.Run("without recipe prep task reference", func(t *testing.T) {
+		t.Parallel()
+
+		// System-generated thaw tasks for frozen ingredients carry no backing recipe prep task;
+		// an empty RecipePrepTaskID must remain valid (persisted as NULL per migration 00023).
+		ctx := t.Context()
+		x := MealPlanTaskDatabaseCreationInput{
+			ID:               t.Name(),
+			MealPlanOptionID: t.Name(),
+		}
+
+		require.NoError(t, x.ValidateWithContext(ctx))
+	})
 }
 
 func TestMealPlanTaskStatusChangeRequestInput_ValidateWithContext(T *testing.T) {

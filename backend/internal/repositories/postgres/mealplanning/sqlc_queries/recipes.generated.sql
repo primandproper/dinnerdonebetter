@@ -105,7 +105,7 @@ SELECT
 	recipe_steps.archived_at as recipe_step_archived_at,
 	recipe_steps.belongs_to_recipe as recipe_step_belongs_to_recipe
 FROM recipes
-	LEFT JOIN recipe_steps ON recipes.id=recipe_steps.belongs_to_recipe
+	LEFT JOIN recipe_steps ON recipes.id=recipe_steps.belongs_to_recipe AND recipe_steps.archived_at IS NULL
 	LEFT JOIN valid_preparations ON recipe_steps.preparation_id=valid_preparations.id
 WHERE recipes.archived_at IS NULL
 	AND recipes.id = sqlc.arg(recipe_id)
@@ -172,7 +172,7 @@ SELECT
 	recipe_steps.archived_at as recipe_step_archived_at,
 	recipe_steps.belongs_to_recipe as recipe_step_belongs_to_recipe
 FROM recipes
-	LEFT JOIN recipe_steps ON recipes.id=recipe_steps.belongs_to_recipe
+	LEFT JOIN recipe_steps ON recipes.id=recipe_steps.belongs_to_recipe AND recipe_steps.archived_at IS NULL
 	LEFT JOIN valid_preparations ON recipe_steps.preparation_id=valid_preparations.id
 WHERE recipes.archived_at IS NULL
 	AND recipes.id = sqlc.arg(recipe_id)
@@ -365,7 +365,7 @@ SELECT
 	recipe_steps.archived_at as recipe_step_archived_at,
 	recipe_steps.belongs_to_recipe as recipe_step_belongs_to_recipe
 FROM recipes
-	LEFT JOIN recipe_steps ON recipes.id=recipe_steps.belongs_to_recipe
+	LEFT JOIN recipe_steps ON recipes.id=recipe_steps.belongs_to_recipe AND recipe_steps.archived_at IS NULL
 	LEFT JOIN valid_preparations ON recipe_steps.preparation_id=valid_preparations.id
 WHERE recipes.archived_at IS NULL
 	AND recipes.id = ANY(sqlc.arg(ids)::text[])

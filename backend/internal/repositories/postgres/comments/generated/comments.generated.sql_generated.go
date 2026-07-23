@@ -244,6 +244,130 @@ func (q *Queries) GetCommentsForReference(ctx context.Context, db DBTX, arg *Get
 	return items, nil
 }
 
+const getCommentsForUser = `-- name: GetCommentsForUser :many
+SELECT
+	comments.id,
+	comments.content,
+	comments.target_type,
+	comments.referenced_id,
+	comments.parent_comment_id,
+	comments.belongs_to_user,
+	comments.created_at,
+	comments.last_updated_at,
+	comments.archived_at,
+	(
+		SELECT COUNT(comments.id)
+		FROM comments
+		WHERE comments.archived_at IS NULL
+			AND
+			comments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+			AND comments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+			AND (
+				comments.last_updated_at IS NULL
+				OR comments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+			)
+			AND (
+				comments.last_updated_at IS NULL
+				OR comments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+			)
+			AND (NOT COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
+			AND comments.belongs_to_user = $6
+	) AS filtered_count,
+	(
+		SELECT COUNT(comments.id)
+		FROM comments
+		WHERE comments.archived_at IS NULL
+			AND comments.belongs_to_user = $6
+	) AS total_count
+FROM comments
+WHERE comments.archived_at IS NULL
+	AND comments.belongs_to_user = $6
+	AND comments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+	AND comments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+	AND (
+		comments.last_updated_at IS NULL
+		OR comments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+	)
+	AND (
+		comments.last_updated_at IS NULL
+		OR comments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+	)
+			AND (NOT COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
+	AND comments.belongs_to_user = $6
+	AND comments.id > COALESCE($7, '')
+ORDER BY comments.id ASC
+LIMIT COALESCE($8, 50)
+`
+
+type GetCommentsForUserParams struct {
+	CreatedAfter    sql.NullTime
+	CreatedBefore   sql.NullTime
+	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
+	IncludeArchived sql.NullBool
+	BelongsToUser   string
+	Cursor          sql.NullString
+	ResultLimit     interface{}
+}
+
+type GetCommentsForUserRow struct {
+	ID              string
+	Content         string
+	TargetType      CommentTargetType
+	ReferencedID    string
+	ParentCommentID sql.NullString
+	BelongsToUser   string
+	CreatedAt       time.Time
+	LastUpdatedAt   sql.NullTime
+	ArchivedAt      sql.NullTime
+	FilteredCount   int64
+	TotalCount      int64
+}
+
+func (q *Queries) GetCommentsForUser(ctx context.Context, db DBTX, arg *GetCommentsForUserParams) ([]*GetCommentsForUserRow, error) {
+	rows, err := db.QueryContext(ctx, getCommentsForUser,
+		arg.CreatedAfter,
+		arg.CreatedBefore,
+		arg.UpdatedAfter,
+		arg.UpdatedBefore,
+		arg.IncludeArchived,
+		arg.BelongsToUser,
+		arg.Cursor,
+		arg.ResultLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*GetCommentsForUserRow{}
+	for rows.Next() {
+		var i GetCommentsForUserRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Content,
+			&i.TargetType,
+			&i.ReferencedID,
+			&i.ParentCommentID,
+			&i.BelongsToUser,
+			&i.CreatedAt,
+			&i.LastUpdatedAt,
+			&i.ArchivedAt,
+			&i.FilteredCount,
+			&i.TotalCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateComment = `-- name: UpdateComment :execrows
 UPDATE comments SET
 	content = $1,

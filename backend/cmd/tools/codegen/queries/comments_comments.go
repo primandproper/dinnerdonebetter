@@ -138,6 +138,35 @@ WHERE %s.%s IS NULL
 			},
 			{
 				Annotation: QueryAnnotation{
+					Name: "GetCommentsForUser",
+					Type: ManyType,
+				},
+				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+	%s,
+	%s,
+	%s
+FROM %s
+WHERE %s.%s IS NULL
+	AND %s.%s = sqlc.arg(%s)
+	%s
+%s;`,
+					strings.Join(applyToEach(commentsColumns, func(i int, s string) string {
+						return fmt.Sprintf("%s.%s", commentsTableName, s)
+					}), ",\n\t"),
+					buildFilterCountSelect(commentsTableName, true, true, []string{},
+						fmt.Sprintf("%s.%s = sqlc.arg(%s)", commentsTableName, belongsToUserColumn, belongsToUserColumn)),
+					buildTotalCountSelect(commentsTableName, true, []string{},
+						fmt.Sprintf("%s.%s = sqlc.arg(%s)", commentsTableName, belongsToUserColumn, belongsToUserColumn)),
+					commentsTableName,
+					commentsTableName, archivedAtColumn,
+					commentsTableName, belongsToUserColumn, belongsToUserColumn,
+					buildFilterConditions(commentsTableName, true, true,
+						fmt.Sprintf("%s.%s = sqlc.arg(%s)", commentsTableName, belongsToUserColumn, belongsToUserColumn)),
+					buildCursorLimitClause(commentsTableName),
+				)),
+			},
+			{
+				Annotation: QueryAnnotation{
 					Name: "UpdateComment",
 					Type: ExecRowsType,
 				},

@@ -3,6 +3,7 @@ package authentication
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -34,10 +35,7 @@ func ProvideOAuth2ClientManager(
 
 	tracer := tracing.NewNamedTracer(tracerProvider, "oauth2_client_manager")
 
-	// we don't care at the moment
-	manager.SetValidateURIHandler(func(_, _ string) error {
-		return nil
-	})
+	manager.SetValidateURIHandler(validateRedirectURI)
 
 	manager.MapAuthorizeGenerate(generates.NewAuthorizeGenerate())
 	manager.MapAccessGenerate(generates.NewAccessGenerate())
@@ -69,6 +67,7 @@ func ProvideOAuth2ServerImplementation(
 			oauth2.Refreshing,
 		},
 		AllowedCodeChallengeMethods: []oauth2.CodeChallengeMethod{
+			oauth2.CodeChallengeS256,
 			oauth2.CodeChallengePlain,
 		},
 	}
@@ -89,6 +88,34 @@ func ProvideOAuth2ServerImplementation(
 	oauth2Server.ResponseErrorHandler = buildOAuth2ErrorHandler(logger)
 
 	return oauth2Server
+}
+
+// validateRedirectURI rejects redirect URIs whose hostname is neither the client's
+// registered domain nor a subdomain of it. Ports are deliberately ignored so localdev
+// setups (registered domain and callback on different local ports) keep working.
+// A plain suffix check would accept e.g. "evildinnerdonebetter.com", so the subdomain
+// match requires a dot boundary.
+func validateRedirectURI(baseURI, redirectURI string) error {
+	base, err := url.Parse(baseURI)
+	if err != nil {
+		return err
+	}
+
+	redirect, err := url.Parse(redirectURI)
+	if err != nil {
+		return err
+	}
+
+	baseHost, redirectHost := base.Hostname(), redirect.Hostname()
+	if baseHost == "" || redirectHost == "" {
+		return errors.ErrInvalidRedirectURI
+	}
+
+	if redirectHost != baseHost && !strings.HasSuffix(redirectHost, "."+baseHost) {
+		return errors.ErrInvalidRedirectURI
+	}
+
+	return nil
 }
 
 func buildOAuth2ErrorHandler(logger logging.Logger) func(*errors.Response) {

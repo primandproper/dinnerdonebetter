@@ -6,6 +6,7 @@ import (
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
+	platformerrors "github.com/primandproper/platform-go/v5/errors"
 	"github.com/primandproper/platform-go/v5/filtering"
 	"github.com/primandproper/platform-go/v5/observability"
 	"github.com/primandproper/platform-go/v5/observability/logging"
@@ -61,6 +62,10 @@ func (m *uploadedMediaManager) GetUploadedMediaForUser(ctx context.Context, user
 func (m *uploadedMediaManager) CreateUploadedMedia(ctx context.Context, input *uploadedmedia.UploadedMediaDatabaseCreationInput) (*uploadedmedia.UploadedMedia, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if input == nil {
+		return nil, platformerrors.ErrNilInputParameter
+	}
 
 	logger := m.logger.WithSpan(span).WithValue(identitykeys.UserIDKey, input.CreatedByUser)
 

@@ -1,13 +1,10 @@
 package manager
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"errors"
 	"fmt"
-	"image/png"
 	"strings"
 	"time"
 
@@ -29,19 +26,15 @@ import (
 	platformkeys "github.com/primandproper/platform-go/v5/observability/keys"
 	"github.com/primandproper/platform-go/v5/observability/logging"
 	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v5/qrcodes"
 	"github.com/primandproper/platform-go/v5/random"
 
-	"github.com/boombuler/barcode"
-	"github.com/boombuler/barcode/qr"
 	passwordvalidator "github.com/wagslane/go-password-validator"
 )
 
 const (
-	todoRes  = "TODO"
 	o11yName = "identity_data_manager"
 
-	totpIssuer             = "DinnerDoneBetter"
-	base64ImagePrefix      = "data:image/jpeg;base64,"
 	minimumPasswordEntropy = 60
 	totpSecretSize         = 64
 )
@@ -64,6 +57,7 @@ type (
 		secretGenerator      random.Generator
 		authenticator        authentication.Hasher
 		userSearchIndex      indexing.UserTextSearcher
+		qrCodeBuilder        qrcodes.Builder
 	}
 )
 
@@ -76,6 +70,7 @@ func NewIdentityDataManager(
 	secretGenerator random.Generator,
 	authenticator authentication.Hasher,
 	userSearchIndex indexing.UserTextSearcher,
+	qrCodeBuilder qrcodes.Builder,
 	cfg *msgconfig.QueuesConfig,
 ) (IdentityDataManager, error) {
 	publisher, err := publisherProvider.NewPublisher(ctx, cfg.DataChangesTopicName)
@@ -91,6 +86,7 @@ func NewIdentityDataManager(
 		secretGenerator:      secretGenerator,
 		authenticator:        authenticator,
 		userSearchIndex:      userSearchIndex,
+		qrCodeBuilder:        qrCodeBuilder,
 	}, nil
 }
 
@@ -360,10 +356,9 @@ func (m *manager) CreateUser(ctx context.Context, input *identity.UserRegistrati
 	input.Password = strings.TrimSpace(input.Password)
 
 	logger = logger.WithValues(map[string]any{
-		identitykeys.UsernameKey:               input.Username,
-		identitykeys.UserEmailAddressKey:       input.EmailAddress,
-		identitykeys.AccountInvitationIDKey:    input.InvitationID,
-		identitykeys.AccountInvitationTokenKey: input.InvitationToken,
+		identitykeys.UsernameKey:            input.Username,
+		identitykeys.UserEmailAddressKey:    input.EmailAddress,
+		identitykeys.AccountInvitationIDKey: input.InvitationID,
 	})
 
 	if err := input.ValidateWithContext(ctx); err != nil {
@@ -454,6 +449,12 @@ func (m *manager) CreateUser(ctx context.Context, input *identity.UserRegistrati
 		identitykeys.UserEmailVerificationTokenKey: emailVerificationToken,
 	}))
 
+	twoFactorQRCode, qrCodeErr := m.qrCodeBuilder.BuildQRCode(ctx, user.Username, user.TwoFactorSecret)
+	if qrCodeErr != nil {
+		// the QR code is a convenience rendering of the secret, which is still returned; don't fail the signup over it.
+		observability.AcknowledgeError(qrCodeErr, logger, span, "building two factor QR code")
+	}
+
 	// UserCreationResponse is a struct we can use to notify the user of their two factor secret, but ideally just this once and then never again.
 	ucr := &identity.UserCreationResponse{
 		CreatedUserID:   user.ID,
@@ -464,7 +465,7 @@ func (m *manager) CreateUser(ctx context.Context, input *identity.UserRegistrati
 		CreatedAt:       user.CreatedAt,
 		TwoFactorSecret: user.TwoFactorSecret,
 		Birthday:        user.Birthday,
-		TwoFactorQRCode: m.buildQRCode(ctx, user.Username, user.TwoFactorSecret),
+		TwoFactorQRCode: twoFactorQRCode,
 	}
 
 	return ucr, nil
@@ -706,9 +707,17 @@ func (m *manager) SearchForUsers(ctx context.Context, query string, useSearchSer
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching for users")
 		}
 
+		// The search index has no notion of cursor pagination, so the best we can do is
+		// honor the filter's page size and report the index's full hit count as the total.
+		totalHits := uint64(len(uss))
+
 		userIDs := []string{}
 		for _, us := range uss {
 			userIDs = append(userIDs, us.ID)
+		}
+
+		if filter.MaxResponseSize != nil && len(userIDs) > int(*filter.MaxResponseSize) {
+			userIDs = userIDs[:*filter.MaxResponseSize]
 		}
 
 		users, err := m.identityRepo.GetUsersWithIDs(ctx, userIDs)
@@ -716,7 +725,7 @@ func (m *manager) SearchForUsers(ctx context.Context, query string, useSearchSer
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching for users")
 		}
 
-		result := filtering.NewQueryFilteredResult(users, uint64(len(users)), uint64(len(users)), func(u *identity.User) string {
+		result := filtering.NewQueryFilteredResult(users, uint64(len(users)), totalHits, func(u *identity.User) string {
 			return u.ID
 		}, filter)
 
@@ -1041,47 +1050,4 @@ func (m *manager) UserRequiresPasswordChange(ctx context.Context, userID string)
 	}
 
 	return result, nil
-}
-
-// buildQRCode builds a QR code for a given username and secret.
-func (m *manager) buildQRCode(ctx context.Context, username, twoFactorSecret string) string {
-	_, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := observability.ObserveValues(map[string]any{
-		identitykeys.UsernameKey: username,
-	}, span, m.logger)
-
-	// "otpauth://totp/{{ .Issuer }}:{{ .EnsureUsername }}?secret={{ .Secret }}&issuer={{ .Issuer }}",
-	otpString := fmt.Sprintf(
-		"otpauth://totp/%s:%s?secret=%s&issuer=%s",
-		totpIssuer,
-		username,
-		twoFactorSecret,
-		totpIssuer,
-	)
-
-	// encode two factor secret as authenticator-friendly QR code
-	qrCode, err := qr.Encode(otpString, qr.L, qr.Auto)
-	if err != nil {
-		observability.AcknowledgeError(err, logger, span, "encoding OTP string")
-		return ""
-	}
-
-	// scale the QR code so that it's not a PNG for ants.
-	qrCode, err = barcode.Scale(qrCode, 256, 256)
-	if err != nil {
-		observability.AcknowledgeError(err, logger, span, "scaling QR code")
-		return ""
-	}
-
-	// encode the QR code to PNG.
-	var b bytes.Buffer
-	if err = png.Encode(&b, qrCode); err != nil {
-		observability.AcknowledgeError(err, logger, span, "encoding QR code to PNG")
-		return ""
-	}
-
-	// base64 encode the image for easy HTML use.
-	return fmt.Sprintf("%s%s", base64ImagePrefix, base64.StdEncoding.EncodeToString(b.Bytes()))
 }

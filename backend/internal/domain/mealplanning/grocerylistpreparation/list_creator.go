@@ -58,6 +58,21 @@ func mergeQuantityNeeded(existing *mealplanning.MealPlanGroceryListItemDatabaseC
 	existing.MaxQuantityNeeded = &mergedMax
 }
 
+// clearMismatchedAttribution nulls the source-attribution fields on a consolidated item when a
+// merged contribution comes from a different option/recipe/step, so the item no longer claims to
+// belong solely to its first contributor. The columns are nullable precisely for this case.
+func clearMismatchedAttribution(existing *mealplanning.MealPlanGroceryListItemDatabaseCreationInput, optionID, recipeID, stepID string) {
+	if existing.BelongsToMealPlanOption != nil && *existing.BelongsToMealPlanOption != optionID {
+		existing.BelongsToMealPlanOption = nil
+	}
+	if existing.RecipeID != nil && *existing.RecipeID != recipeID {
+		existing.RecipeID = nil
+	}
+	if existing.RecipeStepID != nil && *existing.RecipeStepID != stepID {
+		existing.RecipeStepID = nil
+	}
+}
+
 // processRecipeIngredients processes ingredients from a recipe (main or associated) and adds them to the grocery list.
 func (g *groceryListCreator) processRecipeIngredients(
 	recipe *mealplanning.Recipe,
@@ -120,6 +135,7 @@ func (g *groceryListCreator) processRecipeIngredients(
 				aggregationKey := fmt.Sprintf("%s:%s", ingredient.Ingredient.ID, ingredient.MeasurementUnit.ID)
 				if existing, ok := aggregatedInputs[aggregationKey]; ok {
 					mergeQuantityNeeded(existing, minQty, maxQty)
+					clearMismatchedAttribution(existing, optionID, recipe.ID, step.ID)
 					continue
 				}
 				// Check optionInputs for same ingredient+unit within this option
@@ -173,6 +189,7 @@ func (g *groceryListCreator) processRecipeIngredients(
 					}
 				} else {
 					mergeQuantityNeeded(existing, minQty, maxQty)
+					clearMismatchedAttribution(existing, optionID, recipe.ID, step.ID)
 				}
 			}
 		}

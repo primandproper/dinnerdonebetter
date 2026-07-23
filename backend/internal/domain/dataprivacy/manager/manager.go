@@ -6,6 +6,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 
+	platformerrors "github.com/primandproper/platform-go/v5/errors"
 	"github.com/primandproper/platform-go/v5/filtering"
 	"github.com/primandproper/platform-go/v5/observability"
 	"github.com/primandproper/platform-go/v5/observability/logging"
@@ -55,6 +56,10 @@ func (m *dataPrivacyManager) DeleteUser(ctx context.Context, userID string) erro
 func (m *dataPrivacyManager) CreateUserDataDisclosure(ctx context.Context, input *dataprivacy.UserDataDisclosureCreationInput) (*dataprivacy.UserDataDisclosure, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if input == nil {
+		return nil, platformerrors.ErrNilInputParameter
+	}
 
 	logger := m.logger.WithSpan(span).WithValue(identitykeys.UserIDKey, input.BelongsToUser)
 

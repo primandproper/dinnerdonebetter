@@ -158,10 +158,10 @@ const (
 	// ArchiveMealsPermission is a permission.
 	ArchiveMealsPermission Permission = "archive.meals"
 
-	// TODO: clone.recipes permission.
-
 	// CreateRecipesPermission is a permission.
 	CreateRecipesPermission Permission = "create.recipes"
+	// CloneRecipesPermission is a permission.
+	CloneRecipesPermission Permission = "clone.recipes"
 	// ReadRecipesPermission is a permission.
 	ReadRecipesPermission Permission = "read.recipes"
 	// SearchRecipesPermission is a permission.
@@ -438,6 +438,7 @@ var (
 		UpdateMealsPermission,
 		ArchiveMealsPermission,
 		CreateRecipesPermission,
+		CloneRecipesPermission,
 		ReadRecipesPermission,
 		SearchRecipesPermission,
 		UpdateRecipesPermission,

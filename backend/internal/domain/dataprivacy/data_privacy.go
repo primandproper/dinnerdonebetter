@@ -5,10 +5,12 @@ import (
 	"time"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists"
@@ -65,10 +67,12 @@ type (
 		Webhooks        webhooks.UserDataCollection      `json:"webhooks"`
 		Settings        settings.UserDataCollection      `json:"settings"`
 		Notifications   notifications.UserDataCollection `json:"notifications"`
+		Payments        payments.UserDataCollection      `json:"payments"`
 		AuditLogEntries []audit.AuditLogEntry            `json:"audit_log_entries,omitempty"`
 		IssueReports    []issuereports.IssueReport       `json:"issue_reports,omitempty"`
 		UploadedMedia   []uploadedmedia.UploadedMedia    `json:"uploaded_media,omitempty"`
 		WaitlistSignups []waitlists.WaitlistSignup       `json:"waitlist_signups,omitempty"`
+		Comments        []comments.Comment               `json:"comments,omitempty"`
 	}
 
 	// UserDataDisclosure represents a user data disclosure request for GDPR/CCPA compliance.

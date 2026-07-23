@@ -47,7 +47,6 @@ var (
 func init() {
 	gob.Register(new(Meal))
 	gob.Register(new(MealCreationRequestInput))
-	gob.Register(new(MealUpdateRequestInput))
 }
 
 type (
@@ -121,28 +120,6 @@ type (
 		RecipeScale   float32 `json:"-"`
 	}
 
-	// MealUpdateRequestInput represents what a user could set as input for updating meals.
-	MealUpdateRequestInput struct {
-		_ struct{} `json:"-"`
-
-		Name                 *string                            `json:"name,omitempty"`
-		Description          *string                            `json:"description,omitempty"`
-		CreatedByUser        *string                            `json:"-"`
-		MinEstimatedPortions *float32                           `json:"minEstimatedPortions,omitempty"`
-		MaxEstimatedPortions *float32                           `json:"maxEstimatedPortions,omitempty"`
-		EligibleForMealPlans *bool                              `json:"eligibleForMealPlans"`
-		Components           []*MealComponentUpdateRequestInput `json:"recipes,omitempty"`
-	}
-
-	// MealComponentUpdateRequestInput represents what a user could set as input for creating meal recipes.
-	MealComponentUpdateRequestInput struct {
-		_ struct{} `json:"-"`
-
-		RecipeID      *string  `json:"recipeID"`
-		ComponentType *string  `json:"componentType"`
-		RecipeScale   *float32 `json:"recipeScale"`
-	}
-
 	// MealDataManager describes a structure capable of storing meals permanently.
 	MealDataManager interface {
 		MealExists(ctx context.Context, mealID string) (bool, error)
@@ -159,44 +136,6 @@ type (
 		AddMealImage(ctx context.Context, mealID, uploadedMediaID, uploadedByUser string) error
 	}
 )
-
-// Update merges an MealUpdateRequestInput with a meal.
-func (x *Meal) Update(input *MealUpdateRequestInput) {
-	if input.Name != nil && *input.Name != x.Name {
-		x.Name = *input.Name
-	}
-
-	if input.Description != nil && *input.Description != x.Description {
-		x.Description = *input.Description
-	}
-
-	if input.MinEstimatedPortions != nil && *input.MinEstimatedPortions != x.MinEstimatedPortions {
-		x.MinEstimatedPortions = *input.MinEstimatedPortions
-	}
-
-	if input.MaxEstimatedPortions != nil && (x.MaxEstimatedPortions == nil || *input.MaxEstimatedPortions != *x.MaxEstimatedPortions) {
-		x.MaxEstimatedPortions = input.MaxEstimatedPortions
-	}
-
-	if input.EligibleForMealPlans != nil && *input.EligibleForMealPlans != x.EligibleForMealPlans {
-		x.EligibleForMealPlans = *input.EligibleForMealPlans
-	}
-}
-
-// Update merges an MealComponentUpdateRequestInput with a meal.
-func (x *MealComponent) Update(input *MealComponentUpdateRequestInput) {
-	if input.RecipeID != nil && *input.RecipeID != x.Recipe.ID {
-		x.Recipe = Recipe{ID: *input.RecipeID}
-	}
-
-	if input.ComponentType != nil && *input.ComponentType != x.ComponentType {
-		x.ComponentType = *input.ComponentType
-	}
-
-	if input.RecipeScale != nil && *input.RecipeScale != x.RecipeScale {
-		x.RecipeScale = *input.RecipeScale
-	}
-}
 
 var _ validation.ValidatableWithContext = (*MealCreationRequestInput)(nil)
 
@@ -268,16 +207,3 @@ func (x *MealDatabaseCreationInput) ValidateWithContext(ctx context.Context) err
 	)
 }
 
-var _ validation.ValidatableWithContext = (*MealUpdateRequestInput)(nil)
-
-// ValidateWithContext validates a MealUpdateRequestInput.
-func (x *MealUpdateRequestInput) ValidateWithContext(ctx context.Context) error {
-	return validation.ValidateStructWithContext(
-		ctx,
-		x,
-		validation.Field(&x.Name, validation.Required),
-		validation.Field(&x.Description, validation.Required),
-		validation.Field(&x.Components, validation.Required),
-		validation.Field(&x.CreatedByUser, validation.Required),
-	)
-}

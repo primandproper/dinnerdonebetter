@@ -3,6 +3,7 @@ package authentication
 import (
 	"testing"
 
+	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/fakes"
 
 	"github.com/stretchr/testify/assert"
@@ -91,5 +92,38 @@ func TestOAuth2ClientInfoImpl_GetUserID(T *testing.T) {
 
 		result := impl.GetUserID()
 		assert.Empty(t, result)
+	})
+}
+
+func TestOAuth2ClientInfoImpl_VerifyPassword(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+
+		plaintext := fakes.BuildFakeID()
+		client := fakes.BuildFakeOAuth2Client()
+		client.ClientSecret = types.HashClientSecret(plaintext)
+
+		impl := &oauth2ClientInfoImpl{
+			client: client,
+			domain: "example.com",
+		}
+
+		assert.True(t, impl.VerifyPassword(plaintext))
+	})
+
+	T.Run("with wrong secret", func(t *testing.T) {
+		t.Parallel()
+
+		client := fakes.BuildFakeOAuth2Client()
+		client.ClientSecret = types.HashClientSecret(fakes.BuildFakeID())
+
+		impl := &oauth2ClientInfoImpl{
+			client: client,
+			domain: "example.com",
+		}
+
+		assert.False(t, impl.VerifyPassword(fakes.BuildFakeID()))
 	})
 }

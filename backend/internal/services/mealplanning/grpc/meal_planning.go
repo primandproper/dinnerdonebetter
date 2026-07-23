@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -615,9 +616,16 @@ func (s *serviceImpl) CreateMealPlanOptionVote(ctx context.Context, request *mea
 		input.Votes[i].ByUser = sessionContextData.GetUserID()
 	}
 
-	created, err := s.mealPlanningManager.CreateMealPlanOptionVotes(ctx, sessionContextData.GetUserID(), input)
+	created, err := s.mealPlanningManager.CreateMealPlanOptionVotes(ctx, request.MealPlanId, request.MealPlanEventId, sessionContextData.GetUserID(), input)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create meal plan option vote")
+		switch {
+		case errors.Is(err, mealplanning.ErrMealPlanEventNotEligibleForVoting):
+			return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.FailedPrecondition, "meal plan event is not eligible for voting")
+		case errors.Is(err, mealplanning.ErrMealPlanOptionNotFoundForEvent):
+			return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "meal plan option not found for event")
+		default:
+			return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create meal plan option vote")
+		}
 	}
 
 	x := &mealplanningsvc.CreateMealPlanOptionVoteResponse{

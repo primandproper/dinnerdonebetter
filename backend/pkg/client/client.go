@@ -167,9 +167,12 @@ func WithOAuth2Credentials(
 		},
 	}
 
+	// PKCE (RFC 7636) with the S256 challenge method.
+	pkceVerifier := oauth2.GenerateVerifier()
+
 	authCodeURL := oauth2Config.AuthCodeURL(
 		state,
-		oauth2.SetAuthURLParam("code_challenge_method", "plain"),
+		oauth2.S256ChallengeOption(pkceVerifier),
 	)
 
 	req, err := http.NewRequestWithContext(
@@ -213,7 +216,7 @@ func WithOAuth2Credentials(
 		return nil, errors.New("code not returned from oauth2 redirect")
 	}
 
-	oauth2Token, err := oauth2Config.Exchange(ctx, code)
+	oauth2Token, err := oauth2Config.Exchange(ctx, code, oauth2.VerifierOption(pkceVerifier))
 	if err != nil {
 		return nil, err
 	}
