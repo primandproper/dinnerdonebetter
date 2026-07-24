@@ -633,7 +633,7 @@ func (g *recipeAnalyzer) generateMealPlanTasksForFrozenIngredients(ctx context.C
 		}
 
 		// Ad-hoc thaw tasks have no backing recipe prep task; an empty RecipePrepTaskID is
-		// persisted as NULL (belongs_to_recipe_prep_task was made nullable in migration 00023).
+		// persisted as NULL (belongs_to_recipe_prep_task is nullable).
 		outputs = append(outputs, &mealplanning.MealPlanTaskDatabaseCreationInput{
 			ID:                  identifiers.New(),
 			MealPlanOptionID:    mealPlanOptionID,

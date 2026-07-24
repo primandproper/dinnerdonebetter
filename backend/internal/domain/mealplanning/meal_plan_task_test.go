@@ -91,7 +91,7 @@ func TestMealPlanTaskDatabaseCreationInput_ValidateWithContext(T *testing.T) {
 		t.Parallel()
 
 		// System-generated thaw tasks for frozen ingredients carry no backing recipe prep task;
-		// an empty RecipePrepTaskID must remain valid (persisted as NULL per migration 00023).
+		// an empty RecipePrepTaskID must remain valid (persisted as NULL).
 		ctx := t.Context()
 		x := MealPlanTaskDatabaseCreationInput{
 			ID:               t.Name(),

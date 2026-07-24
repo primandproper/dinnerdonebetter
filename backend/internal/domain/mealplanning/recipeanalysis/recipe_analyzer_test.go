@@ -138,7 +138,7 @@ func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 		assert.NoError(t, err)
 
 		// The frozen chicken breast in step 1 yields exactly one ad-hoc thaw task. Thaw tasks have
-		// no backing recipe prep task (belongs_to_recipe_prep_task is nullable as of migration 00023).
+		// no backing recipe prep task (belongs_to_recipe_prep_task is nullable).
 		assert.Len(t, actual, 1)
 		assert.Equal(t, exampleMealPlanOption.ID, actual[0].MealPlanOptionID)
 		assert.Empty(t, actual[0].RecipePrepTaskID)

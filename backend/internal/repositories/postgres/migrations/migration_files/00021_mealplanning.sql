@@ -402,6 +402,9 @@ CREATE TABLE IF NOT EXISTS account_instrument_ownerships (
 
 
 
+-- Recipes form a shared catalog: any authenticated user may read any recipe, so there
+-- is deliberately no account scoping — created_by_user gates mutation (author-only),
+-- not visibility.
 CREATE TABLE IF NOT EXISTS recipes (
     id TEXT NOT NULL PRIMARY KEY,
     name TEXT NOT NULL,
@@ -642,6 +645,11 @@ CREATE TABLE IF NOT EXISTS meal_components (
 -- MEAL PLAN TABLES
 -- =============================================================================
 
+-- Meal plans are account-scoped (the whole household votes on them); created_by_user
+-- records provenance only. Their sub-resource tables (events, options, votes, grocery
+-- list items, tasks, option selections) intentionally carry no account column —
+-- authorization resolves each through its parent chain to this table's
+-- belongs_to_account.
 CREATE TABLE IF NOT EXISTS meal_plans (
     id TEXT NOT NULL PRIMARY KEY,
     notes TEXT NOT NULL,
@@ -738,7 +746,8 @@ CREATE TABLE IF NOT EXISTS meal_plan_recipe_option_selections (
 CREATE TABLE IF NOT EXISTS meal_plan_tasks (
     id TEXT NOT NULL PRIMARY KEY,
     belongs_to_meal_plan_option TEXT NOT NULL REFERENCES meal_plan_options("id") ON DELETE CASCADE,
-    belongs_to_recipe_prep_task TEXT NOT NULL REFERENCES recipe_prep_tasks("id") ON DELETE CASCADE,
+    -- NULL for ad-hoc tasks (e.g. thaw tasks for frozen ingredients) not derived from a recipe prep task
+    belongs_to_recipe_prep_task TEXT REFERENCES recipe_prep_tasks("id") ON DELETE CASCADE,
     creation_explanation TEXT DEFAULT ''::TEXT NOT NULL,
     status_explanation TEXT DEFAULT ''::TEXT NOT NULL,
     status prep_step_status DEFAULT 'unfinished'::prep_step_status NOT NULL,
@@ -749,6 +758,8 @@ CREATE TABLE IF NOT EXISTS meal_plan_tasks (
     completed_at TIMESTAMP WITH TIME ZONE
 );
 
+-- Meal lists (and recipe_lists below) are personal, not household, resources: unlike
+-- account-scoped meal plans they belong to a user, and reads filter on the session user.
 CREATE TABLE IF NOT EXISTS meal_lists (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL DEFAULT '',
@@ -1236,6 +1247,7 @@ INSERT INTO permissions (id, name, description) VALUES
     ('d74eqekn9qd6bj807vi0', 'update.recipes', 'Update recipes'),
     ('d74eqekn9qd6bj807vig', 'archive.recipes', 'Archive recipes'),
     ('d74eqekn9qd6bj807vj0', 'update.recipe_status', 'Update recipe status'),
+    ('d9clone0recipes00000', 'clone.recipes', 'Clone recipes'),
     -- recipe steps
     ('d74eqekn9qd6bj807vjg', 'create.recipe_steps', 'Create recipe steps'),
     ('d74eqekn9qd6bj807vk0', 'read.recipe_steps', 'Read recipe steps'),
@@ -1338,7 +1350,9 @@ INSERT INTO permissions (id, name, description) VALUES
     ('d74eqekn9qd6bj8080rg', 'create.recipe_lists', 'Create recipe lists'),
     ('d74eqekn9qd6bj8080s0', 'read.recipe_lists', 'Read recipe lists'),
     ('d74eqekn9qd6bj8080sg', 'update.recipe_lists', 'Update recipe lists'),
-    ('d74eqekn9qd6bj8080t0', 'archive.recipe_lists', 'Archive recipe lists');
+    ('d74eqekn9qd6bj8080t0', 'archive.recipe_lists', 'Archive recipe lists'),
+    -- background workers
+    ('d9run0mealplanwrkr00', 'run.meal_plan_workers', 'Trigger global meal-plan background workers');
 
 -- =============================================================================
 -- SEED DATA: mealplanning role-permission mappings
@@ -1390,7 +1404,8 @@ INSERT INTO user_role_permissions (id, role_id, permission_id) VALUES
     ('d74eqekn9qd6bpfa0mg0', 'role_service_admin', 'd74eqekn9qd6bj807vc0'),
     ('d74eqekn9qd6bpfa0mgg', 'role_service_admin', 'd74eqekn9qd6bj807vcg'),
     ('d74eqekn9qd6bpfa0mh0', 'role_service_admin', 'd74eqekn9qd6bj807vdg'),
-    ('d74eqekn9qd6bpfa0mhg', 'role_service_admin', 'd74eqekn9qd6bj807ve0');
+    ('d74eqekn9qd6bpfa0mhg', 'role_service_admin', 'd74eqekn9qd6bj807ve0'),
+    ('d9run0mealplanwrkr01', 'role_service_admin', 'd9run0mealplanwrkr00');
 
 -- service_data_admin: all mealplanning valid_* permissions
 INSERT INTO user_role_permissions (id, role_id, permission_id) VALUES
@@ -1557,7 +1572,8 @@ INSERT INTO user_role_permissions (id, role_id, permission_id) VALUES
     ('d74eqekn9qd6bpfa0ov0', 'role_account_member', 'd74eqekn9qd6bj8080o0'),
     ('d74eqekn9qd6bpfa0ovg', 'role_account_member', 'd74eqekn9qd6bj8080og'),
     ('d74eqekn9qd6bpfa0p00', 'role_account_member', 'd74eqekn9qd6bj8080p0'),
-    ('d74eqekn9qd6bpfa0p0g', 'role_account_member', 'd74eqekn9qd6bj807v10');
+    ('d74eqekn9qd6bpfa0p0g', 'role_account_member', 'd74eqekn9qd6bj807v10'),
+    ('d9clone0recipes00001', 'role_account_member', 'd9clone0recipes00000');
 
 -- =============================================================================
 -- MEAL PLANNING SERVICE USERS
