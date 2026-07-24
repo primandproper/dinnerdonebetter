@@ -232,7 +232,9 @@ func main() {
 		log.Println("dry run is enabled, skipping server run")
 		return
 	}
-	server.Run(ctx)
+	if err = server.Run(ctx); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func createExampleServiceSettings(ctx context.Context, repo settings.Repository, logger logging.Logger) error {

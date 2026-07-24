@@ -39,7 +39,7 @@ func TestConvertGRPCQueryFilterToQueryFilter(T *testing.T) {
 		// 300 used to truncate mod 256 to 44; 256 used to truncate to 0.
 		for _, oversized := range []uint32{256, 300, 1_000_000} {
 			actual := ConvertGRPCQueryFilterToQueryFilter(&grpcfiltering.QueryFilter{
-				MaxResponseSize: new(uint32(oversized)),
+				MaxResponseSize: new(oversized),
 			})
 
 			require.NotNil(t, actual.MaxResponseSize)

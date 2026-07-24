@@ -560,8 +560,8 @@ func createMealPlanWithAlternativeIngredientsForSelectionTests(t *testing.T) *se
 	// Build a single-option meal plan (auto-finalized, no voting needed)
 	now := time.Now()
 	exampleMealPlan := &mealplanning.MealPlan{
-		Notes:          t.Name(),
-		Status:         string(mealplanning.MealPlanStatusFinalized),
+		Notes:  t.Name(),
+		Status: string(mealplanning.MealPlanStatusFinalized),
 		// voting deadline must be before every event's start time (events start 24h out); see MealPlanCreationRequestInput.ValidateWithContext.
 		VotingDeadline: now.Add(1 * time.Hour),
 		ElectionMethod: mealplanning.MealPlanElectionMethodSchulze,

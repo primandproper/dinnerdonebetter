@@ -9,13 +9,11 @@ import (
 	"time"
 
 	datachangemessagehandlerbuild "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/functions/data_change_message_handler"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/telemetry"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
-
-	"github.com/primandproper/platform-go/v5/observability/metrics"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
 
 	"github.com/samber/do/v2"
 	_ "go.uber.org/automaxprocs"
@@ -58,22 +56,18 @@ func main() {
 	}
 	cfg.Database.RunMigrations = false
 
-	ctx := context.Background()
+	// run owns every defer (telemetry flush, drain cancel), so a fatal consume error can
+	// exit non-zero here without skipping them.
+	if err = run(context.Background(), cfg); err != nil {
+		log.Fatal(err)
+	}
+}
 
+func run(ctx context.Context, cfg *config.AsyncMessageHandlerConfig) error {
 	injector := datachangemessagehandlerbuild.BuildInjector(ctx, cfg)
 
 	// Flush telemetry on exit so a short-lived pod exports its spans/metrics before terminating.
-	defer func() {
-		shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-
-		if shutdownErr := do.MustInvoke[metrics.Provider](injector).Shutdown(shutdownCtx); shutdownErr != nil {
-			log.Printf("error shutting down metrics: %v", shutdownErr)
-		}
-		if flushErr := do.MustInvoke[tracing.TracerProvider](injector).ForceFlush(shutdownCtx); flushErr != nil {
-			log.Printf("error flushing traces: %v", flushErr)
-		}
-	}()
+	defer telemetry.Flush(ctx, injector)
 
 	dataChangeMessageHandler := do.MustInvoke[*datachangemessagehandler.AsyncDataChangeMessageHandler](injector)
 
@@ -91,8 +85,8 @@ func main() {
 
 	dataChangeMessageHandler.SetNonWebhookEventTypes(nonWebhookEventTypes)
 
-	if err = dataChangeMessageHandler.ConsumeMessages(ctx, stopChan, errorsChan); err != nil {
-		log.Fatal(err)
+	if err := dataChangeMessageHandler.ConsumeMessages(ctx, stopChan, errorsChan); err != nil {
+		return err
 	}
 
 	// Block until the first shutdown signal arrives.
@@ -105,4 +99,6 @@ func main() {
 	drainCtx, cancelDrain := context.WithTimeout(ctx, 30*time.Second)
 	defer cancelDrain()
 	dataChangeMessageHandler.WaitForConsumers(drainCtx)
+
+	return nil
 }

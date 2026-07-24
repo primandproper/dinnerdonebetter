@@ -21,8 +21,12 @@ import (
 )
 
 type Server struct {
-	logger            logging.Logger
-	injector          *do.RootScope
+	logger logging.Logger
+	// shutdownContainer releases the DI container's resources (DB pool, message queue
+	// connections, telemetry) at shutdown. It is the only part of the container the
+	// running server needs; storing it as a plain error-returning func keeps samber/do
+	// confined to the assembly in NewServer.
+	shutdownContainer func(ctx context.Context) error
 	grpcServer        *grpcapi.GRPCService
 	httpServer        http.Server
 	profilingProvider profiling.Provider
@@ -46,15 +50,23 @@ func NewServer(ctx context.Context, pillars *observability.Pillars, cfg *config.
 	}
 
 	return &Server{
-		logger:            logging.EnsureLogger(pillars.Logger),
-		injector:          injector,
+		logger: logging.EnsureLogger(pillars.Logger),
+		shutdownContainer: func(ctx context.Context) error {
+			if report := injector.ShutdownWithContext(ctx); report != nil && !report.Succeed {
+				return report
+			}
+			return nil
+		},
 		grpcServer:        grpcServer,
 		httpServer:        httpServer,
 		profilingProvider: pillars.Profiler,
 	}, nil
 }
 
-func (s *Server) Run(ctx context.Context) {
+// Run serves until a shutdown signal arrives or the gRPC serve loop dies, then gracefully shuts
+// everything down. A non-nil error means the server stopped on its own rather than by signal, so
+// the caller should exit non-zero.
+func (s *Server) Run(ctx context.Context) error {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(
 		signalChan,
@@ -100,13 +112,13 @@ func (s *Server) Run(ctx context.Context) {
 	}()
 
 	// Wait for a shutdown signal or an unexpected gRPC serve exit (e.g. bind failure).
-	exitCode := 0
+	var runErr error
 	select {
 	case sig := <-signalChan:
 		s.logger.WithValue("signal", sig.String()).Info("received shutdown signal")
 	case <-grpcServeExited:
-		s.logger.Error("gRPC server stopped serving unexpectedly", fmt.Errorf("gRPC serve loop exited before shutdown"))
-		exitCode = 1
+		runErr = fmt.Errorf("gRPC serve loop exited before shutdown")
+		s.logger.Error("gRPC server stopped serving unexpectedly", runErr)
 	}
 
 	cancelCtx, cancelShutdown := context.WithTimeout(ctx, 10*time.Second)
@@ -126,13 +138,11 @@ func (s *Server) Run(ctx context.Context) {
 
 	// Shut down the DI container last, so services (DB pool, message queue connections,
 	// telemetry) release their resources after the servers have stopped using them.
-	if s.injector != nil {
-		if report := s.injector.ShutdownWithContext(cancelCtx); report != nil && !report.Succeed {
-			s.logger.Error("shutting down DI container", report)
+	if s.shutdownContainer != nil {
+		if err := s.shutdownContainer(cancelCtx); err != nil {
+			s.logger.Error("shutting down DI container", err)
 		}
 	}
 
-	if exitCode != 0 {
-		os.Exit(exitCode)
-	}
+	return runErr
 }

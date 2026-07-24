@@ -11,12 +11,15 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 
 	"github.com/primandproper/platform-go/v5/identifiers"
+	"github.com/primandproper/platform-go/v5/observability/logging"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 
 const (
+	serviceO11yName = "webauthn_service"
+
 	defaultSessionTTL = 5 * time.Minute
 )
 
@@ -29,6 +32,7 @@ type Config struct {
 
 // Service provides passkey registration and authentication.
 type Service struct {
+	logger       logging.Logger
 	webauthn     *webauthn.WebAuthn
 	credStore    identity.WebAuthnCredentialDataManager
 	userStore    UserStore
@@ -42,7 +46,7 @@ type UserStore interface {
 }
 
 // NewService creates a new WebAuthn service.
-func NewService(cfg Config, credStore identity.WebAuthnCredentialDataManager, userStore UserStore, sessionStore SessionStore) (*Service, error) {
+func NewService(logger logging.Logger, cfg Config, credStore identity.WebAuthnCredentialDataManager, userStore UserStore, sessionStore SessionStore) (*Service, error) {
 	w, err := webauthn.New(&webauthn.Config{
 		RPID:          cfg.RPID,
 		RPDisplayName: cfg.RPDisplayName,
@@ -56,6 +60,7 @@ func NewService(cfg Config, credStore identity.WebAuthnCredentialDataManager, us
 		return nil, err
 	}
 	return &Service{
+		logger:       logging.NewNamedLogger(logger, serviceO11yName),
 		webauthn:     w,
 		credStore:    credStore,
 		userStore:    userStore,
@@ -190,11 +195,14 @@ type sessionDeleter interface {
 	DeleteSession(ctx context.Context, challenge string) error
 }
 
-// deleteSessionByChallenge best-effort deletes the ceremony session for a challenge. Backends that
-// implement sessionDeleter log their own failures, so any error here is intentionally not surfaced.
+// deleteSessionByChallenge best-effort deletes the ceremony session for a challenge. A failed
+// delete is logged but not surfaced: the session expires via TTL regardless, and a successful
+// authentication shouldn't fail over cleanup.
 func (s *Service) deleteSessionByChallenge(ctx context.Context, challenge string) {
 	if deleter, ok := s.sessionStore.(sessionDeleter); ok {
-		_ = deleter.DeleteSession(ctx, challenge)
+		if err := deleter.DeleteSession(ctx, challenge); err != nil {
+			s.logger.Error("deleting webauthn ceremony session", err)
+		}
 	}
 }
 

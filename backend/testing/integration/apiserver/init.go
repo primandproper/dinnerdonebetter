@@ -121,7 +121,11 @@ func init() {
 	}
 	createdClientID, createdClientSecret = createdClient.ClientID, createdClient.ClientSecret
 
-	go server.Run(ctx)
+	go func() {
+		if runErr := server.Run(ctx); runErr != nil {
+			log.Fatal(runErr)
+		}
+	}()
 
 	fmt.Printf("DB conn str: %s", dbCfg.ReadConnection.String())
 	dbConnStr = dbCfg.ReadConnection.String()

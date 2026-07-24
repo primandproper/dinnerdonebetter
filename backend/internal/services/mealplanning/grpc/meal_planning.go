@@ -21,21 +21,19 @@ import (
 )
 
 // verifyMealPlanAccess fetches the session context and confirms the meal plan belongs to the
-// requester's active account, returning the active account ID on success. It is the service-layer
-// authorization guard for meal-plan sub-resource handlers whose manager methods do not accept an
-// account-scoping argument.
-func (s *serviceImpl) verifyMealPlanAccess(ctx context.Context, mealPlanID string, logger logging.Logger, span tracing.Span) (string, error) {
+// requester's active account. It is the service-layer authorization guard for meal-plan
+// sub-resource handlers whose manager methods do not accept an account-scoping argument.
+func (s *serviceImpl) verifyMealPlanAccess(ctx context.Context, mealPlanID string, logger logging.Logger, span tracing.Span) error {
 	sessionContextData, err := s.sessionContextDataFetcher(ctx)
 	if err != nil {
-		return "", errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
 	}
 
-	accountID := sessionContextData.GetActiveAccountID()
-	if _, err = s.mealPlanningManager.ReadMealPlan(ctx, mealPlanID, accountID); err != nil {
-		return "", errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "meal plan not found or access denied")
+	if _, err = s.mealPlanningManager.ReadMealPlan(ctx, mealPlanID, sessionContextData.GetActiveAccountID()); err != nil {
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "meal plan not found or access denied")
 	}
 
-	return accountID, nil
+	return nil
 }
 
 // verifyMealPlanOptionAccess fetches the session context and confirms the meal plan option resolves
@@ -128,7 +126,7 @@ func (s *serviceImpl) ArchiveMealPlanEvent(ctx context.Context, request *mealpla
 		mealplanningkeys.MealPlanEventIDKey: request.MealPlanEventId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -154,7 +152,7 @@ func (s *serviceImpl) ArchiveMealPlanGroceryListItem(ctx context.Context, reques
 		mealplanningkeys.MealPlanGroceryListItemIDKey: request.MealPlanGroceryListItemId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -181,7 +179,7 @@ func (s *serviceImpl) ArchiveMealPlanOption(ctx context.Context, request *mealpl
 		mealplanningkeys.MealPlanOptionIDKey: request.MealPlanOptionId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -209,7 +207,7 @@ func (s *serviceImpl) ArchiveMealPlanOptionVote(ctx context.Context, request *me
 		mealplanningkeys.MealPlanIDKey:           request.MealPlanId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -544,7 +542,7 @@ func (s *serviceImpl) CreateMealPlanEvent(ctx context.Context, request *mealplan
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -573,7 +571,7 @@ func (s *serviceImpl) CreateMealPlanOption(ctx context.Context, request *mealpla
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -649,7 +647,7 @@ func (s *serviceImpl) CreateMealPlanTask(ctx context.Context, request *mealplann
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -849,7 +847,7 @@ func (s *serviceImpl) GetMealPlanEvent(ctx context.Context, request *mealplannin
 		mealplanningkeys.MealPlanEventIDKey: request.MealPlanEventId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -878,7 +876,7 @@ func (s *serviceImpl) GetMealPlanEvents(ctx context.Context, request *mealplanni
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -910,7 +908,7 @@ func (s *serviceImpl) GetMealPlanGroceryListItem(ctx context.Context, request *m
 		mealplanningkeys.MealPlanGroceryListItemIDKey: request.MealPlanGroceryListItemId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -939,7 +937,7 @@ func (s *serviceImpl) GetMealPlanGroceryListItemsForMealPlan(ctx context.Context
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -1137,7 +1135,7 @@ func (s *serviceImpl) GetMealPlanOption(ctx context.Context, request *mealplanni
 		mealplanningkeys.MealPlanOptionIDKey: request.MealPlanOptionId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -1167,7 +1165,7 @@ func (s *serviceImpl) GetMealPlanOptionVote(ctx context.Context, request *mealpl
 		mealplanningkeys.MealPlanOptionVoteIDKey: request.MealPlanOptionVoteId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -1198,7 +1196,7 @@ func (s *serviceImpl) GetMealPlanOptionVotes(ctx context.Context, request *mealp
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -1230,7 +1228,7 @@ func (s *serviceImpl) GetMealPlanOptions(ctx context.Context, request *mealplann
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -1262,7 +1260,7 @@ func (s *serviceImpl) GetMealPlanTask(ctx context.Context, request *mealplanning
 		mealplanningkeys.MealPlanTaskIDKey: request.MealPlanTaskId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -1291,7 +1289,7 @@ func (s *serviceImpl) GetMealPlanTasks(ctx context.Context, request *mealplannin
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -1527,7 +1525,7 @@ func (s *serviceImpl) UpdateMealPlanEvent(ctx context.Context, request *mealplan
 		mealplanningkeys.MealPlanEventIDKey: request.MealPlanEventId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -1561,7 +1559,7 @@ func (s *serviceImpl) SwapMealPlanEvents(ctx context.Context, request *mealplann
 		mealplanningkeys.MealPlanEventIDKey: request.MealPlanEventIdA + "," + request.MealPlanEventIdB,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -1587,7 +1585,7 @@ func (s *serviceImpl) UpdateMealPlanGroceryListItem(ctx context.Context, request
 		mealplanningkeys.MealPlanGroceryListItemIDKey: request.MealPlanGroceryListItemId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -1622,7 +1620,7 @@ func (s *serviceImpl) UpdateMealPlanOption(ctx context.Context, request *mealpla
 		mealplanningkeys.MealPlanEventIDKey:  request.MealPlanEventId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -1657,7 +1655,7 @@ func (s *serviceImpl) UpdateMealPlanOptionVote(ctx context.Context, request *mea
 		mealplanningkeys.MealPlanOptionVoteIDKey: request.MealPlanOptionVoteId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 
@@ -1691,7 +1689,7 @@ func (s *serviceImpl) UpdateMealPlanTaskStatus(ctx context.Context, request *mea
 		mealplanningkeys.MealPlanTaskIDKey: request.MealPlanTaskId,
 	}, span, s.logger)
 
-	if _, err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
 		return nil, err
 	}
 

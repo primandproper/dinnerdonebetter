@@ -5,6 +5,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 	auditmanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit/manager"
 	authmgr "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth/managers"
@@ -95,7 +96,7 @@ func BuildInjector(
 	repositories.RegisterMigrator(i)
 	databasecfg.RegisterDatabase(i)
 	grpc.RegisterGRPCServer(i)
-	do.ProvideValue(i, qrcodes.Issuer("Dinner Done Better"))
+	do.ProvideValue(i, qrcodes.Issuer(branding.CompanyName))
 	qrcodes.RegisterBuilder(i)
 	uploadscfg.RegisterStorageConfig(i)
 	objectstorage.RegisterUploadManager(i)

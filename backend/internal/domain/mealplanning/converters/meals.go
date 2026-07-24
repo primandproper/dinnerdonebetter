@@ -94,4 +94,3 @@ func ConvertMealComponentToMealComponentDatabaseCreationInput(input *mealplannin
 
 	return x
 }
-

@@ -5,6 +5,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
 	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 	identitymgr "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
 	paymentsmanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/manager"
@@ -81,7 +82,7 @@ func BuildInjector(
 	repositories.RegisterMigrator(i)
 	databasecfg.RegisterDatabase(i)
 	random.RegisterGenerator(i)
-	do.ProvideValue(i, qrcodes.Issuer("Dinner Done Better"))
+	do.ProvideValue(i, qrcodes.Issuer(branding.CompanyName))
 	qrcodes.RegisterBuilder(i)
 
 	// authentication

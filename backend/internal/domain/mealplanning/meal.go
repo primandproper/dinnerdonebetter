@@ -206,4 +206,3 @@ func (x *MealDatabaseCreationInput) ValidateWithContext(ctx context.Context) err
 		validation.Field(&x.CreatedByUser, validation.Required),
 	)
 }
-

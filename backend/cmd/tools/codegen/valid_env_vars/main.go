@@ -25,6 +25,10 @@ type structEntry struct {
 	relDir   string
 }
 
+// configurationsUnionKey identifies the generic type constraint that every loadable
+// config struct must be a member of; it drives which structs this tool evaluates.
+const configurationsUnionKey = "internal/config.configurations"
+
 // envVarInfo holds the metadata collected for a single environment variable.
 type envVarInfo struct {
 	// fieldPath is the dot-separated struct path (e.g. ".Database.ReadConnection.Host"),
@@ -45,40 +49,42 @@ func main() {
 		log.Fatal(err)
 	}
 
-	structs := parseGoFiles(dir, modulePath)
+	structs, unions := parseGoFiles(dir, modulePath)
 
 	outputLines := []string{}
 
-	structsToEvaluate := []string{
-		"internal/config.APIServiceConfig",
-		"internal/config.DBCleanerConfig",
-		"internal/config.MealPlanFinalizerConfig",
-		"internal/config.MealPlanGroceryListInitializerConfig",
-		"internal/config.MealPlanTaskCreatorConfig",
-		"internal/config.MobileNotificationSchedulerConfig",
-		"internal/config.SearchDataIndexSchedulerConfig",
-		"internal/config.AsyncMessageHandlerConfig",
-		"internal/config.EmailDeliverabilityTestConfig",
-		"internal/config.QueueTestJobConfig",
-		"internal/config.MCPServiceConfig",
+	// Every loadable config struct must be a member of the internal/config.configurations
+	// generic constraint (the Load* functions require it), so that union is the source of
+	// truth for which structs to evaluate.
+	members, found := unions[configurationsUnionKey]
+	if !found || len(members) == 0 {
+		log.Fatalf("could not find the %s type union to derive the config struct list", configurationsUnionKey)
+	}
+
+	structsToEvaluate := make([]string, 0, len(members))
+	for _, member := range members {
+		structsToEvaluate = append(structsToEvaluate, fmt.Sprintf("internal/config.%s", member))
 	}
 	generatedEnvVars := []string{}
 
 	for _, structName := range structsToEvaluate {
-		if entry, found := structs[structName]; found {
-			visited := make(map[string]bool)
-			extractedEnvVars := extractEnvVars(entry, structs, "", "", visited)
-			for envVar, info := range extractedEnvVars {
-				if slices.Contains(generatedEnvVars, kace.Pascal(envVar)) {
-					continue
-				}
-				sn := strings.ReplaceAll(structName, "internal/config.", "")
-				outputLines = append(outputLines, fmt.Sprintf(`	// %sEnvVarKey is the environment variable name to set to override `+"`"+`%s%s`+"`"+`.
+		entry, foundStruct := structs[structName]
+		if !foundStruct {
+			log.Fatalf("config struct %s is in the %s union but was not found by the parser", structName, configurationsUnionKey)
+		}
+
+		visited := make(map[string]bool)
+		extractedEnvVars := extractEnvVars(entry, structs, "", "", visited)
+		for envVar, info := range extractedEnvVars {
+			if slices.Contains(generatedEnvVars, kace.Pascal(envVar)) {
+				continue
+			}
+			sn := strings.ReplaceAll(structName, "internal/config.", "")
+			outputLines = append(outputLines, fmt.Sprintf(`	// %sEnvVarKey is the environment variable name to set to override `+"`"+`%s%s`+"`"+`.
 	%sEnvVarKey = "%s%s"
 
 `, kace.Pascal(envVar), sn, info.fieldPath, kace.Pascal(envVar), config.EnvVarPrefix, envVar))
-				generatedEnvVars = append(generatedEnvVars, kace.Pascal(envVar))
-			}
+			generatedEnvVars = append(generatedEnvVars, kace.Pascal(envVar))
 		}
 	}
 	slices.Sort(outputLines)
@@ -138,9 +144,12 @@ func writeDotEnvExample(dir string, structs map[string]*structEntry) {
 }
 
 // parseGoFiles parses all Go files in the given directory and returns a map of struct entries
-// keyed by "relativeDir.TypeName" to avoid collisions between packages with the same name.
-func parseGoFiles(dir, modulePath string) map[string]*structEntry {
+// keyed by "relativeDir.TypeName" to avoid collisions between packages with the same name,
+// plus a map of interface type unions (e.g. `A | B | C`) flattened to their member names
+// under the same key scheme.
+func parseGoFiles(dir, modulePath string) (map[string]*structEntry, map[string][]string) {
 	structs := make(map[string]*structEntry)
+	unions := make(map[string][]string)
 
 	if err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -182,12 +191,17 @@ func parseGoFiles(dir, modulePath string) map[string]*structEntry {
 					continue
 				}
 
-				if _, ok = typeSpec.Type.(*ast.StructType); ok {
-					key := fmt.Sprintf("%s.%s", relDir, typeSpec.Name.Name)
+				key := fmt.Sprintf("%s.%s", relDir, typeSpec.Name.Name)
+				switch t := typeSpec.Type.(type) {
+				case *ast.StructType:
 					structs[key] = &structEntry{
 						typeSpec: typeSpec,
 						relDir:   relDir,
 						imports:  fileImports,
+					}
+				case *ast.InterfaceType:
+					if members := flattenInterfaceUnion(t); len(members) > 0 {
+						unions[key] = members
 					}
 				}
 			}
@@ -197,7 +211,42 @@ func parseGoFiles(dir, modulePath string) map[string]*structEntry {
 		fmt.Printf("Error walking directory: %v\n", err)
 	}
 
-	return structs
+	return structs, unions
+}
+
+// flattenInterfaceUnion returns the member type names of an interface that is a pure type
+// union of same-package identifiers (e.g. `interface{ A | B | C }`), in declaration order.
+// It returns nil for method-bearing or otherwise non-union interfaces.
+func flattenInterfaceUnion(iface *ast.InterfaceType) []string {
+	var members []string
+	for _, field := range iface.Methods.List {
+		flattened := flattenUnionExpr(field.Type)
+		if flattened == nil {
+			return nil
+		}
+		members = append(members, flattened...)
+	}
+	return members
+}
+
+// flattenUnionExpr flattens a `A | B | C` constraint expression into its identifier names.
+func flattenUnionExpr(expr ast.Expr) []string {
+	switch t := expr.(type) {
+	case *ast.BinaryExpr:
+		if t.Op != token.OR {
+			return nil
+		}
+		left := flattenUnionExpr(t.X)
+		right := flattenUnionExpr(t.Y)
+		if left == nil || right == nil {
+			return nil
+		}
+		return append(left, right...)
+	case *ast.Ident:
+		return []string{t.Name}
+	default:
+		return nil
+	}
 }
 
 func mustRel(basePath, targetPath string) string {

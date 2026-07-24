@@ -56,8 +56,7 @@ func runServe(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("could not create server: %w", err)
 	}
 
-	server.Run(ctx)
-	return nil
+	return server.Run(ctx)
 }
 
 func versionCmd() *cobra.Command {

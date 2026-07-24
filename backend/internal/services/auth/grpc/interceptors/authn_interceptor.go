@@ -278,7 +278,7 @@ func (s *AuthInterceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 		if err != nil {
 			// Propagate the original status (e.g. a genuine Unauthenticated) rather than masking every
 			// failure as Internal, which breaks client token-refresh retry logic.
-			if _, ok := status.FromError(err); ok {
+			if _, isStatusErr := status.FromError(err); isStatusErr {
 				return nil, err
 			}
 			return nil, status.Error(codes.Internal, "building session context data for user")
@@ -356,7 +356,7 @@ func (s *AuthInterceptor) StreamServerInterceptor() grpc.StreamServerInterceptor
 		if err != nil {
 			// Propagate the original status (e.g. a genuine Unauthenticated) rather than masking every
 			// failure as Internal, which breaks client token-refresh retry logic.
-			if _, ok := status.FromError(err); ok {
+			if _, isStatusErr := status.FromError(err); isStatusErr {
 				return err
 			}
 			return status.Error(codes.Internal, "building session context data for user")

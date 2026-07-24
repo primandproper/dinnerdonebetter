@@ -86,4 +86,3 @@ func TestMealDatabaseCreationInput_ValidateWithContext(T *testing.T) {
 		assert.NoError(t, x.ValidateWithContext(ctx))
 	})
 }
-
