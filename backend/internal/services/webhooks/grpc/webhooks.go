@@ -167,9 +167,20 @@ func (s *serviceImpl) ArchiveWebhookTriggerConfig(ctx context.Context, request *
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := s.logger.WithValue(webhookkeys.WebhookIDKey, request.WebhookId).WithValue(webhookkeys.WebhookTriggerConfigIDKey, request.WebhookTriggerConfigId)
+	logger := s.logger.WithSpan(span).WithValue(webhookkeys.WebhookIDKey, request.WebhookId).WithValue(webhookkeys.WebhookTriggerConfigIDKey, request.WebhookTriggerConfigId)
 
-	if err := s.webhookManager.ArchiveWebhookTriggerConfig(ctx, request.WebhookId, request.WebhookTriggerConfigId); err != nil {
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+	}
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+
+	// verify the webhook belongs to the caller's active account before mutating its trigger configs.
+	if _, err = s.webhookManager.GetWebhook(ctx, request.WebhookId, sessionContextData.GetActiveAccountID()); err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch webhook")
+	}
+
+	if err = s.webhookManager.ArchiveWebhookTriggerConfig(ctx, request.WebhookId, request.WebhookTriggerConfigId); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive webhook trigger config")
 	}
 

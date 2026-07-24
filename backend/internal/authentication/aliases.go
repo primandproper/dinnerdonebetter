@@ -29,6 +29,10 @@ var (
 	// (false, nil) on mismatch); we keep a local sentinel so the HTTP/gRPC error mappers can continue to
 	// convert password mismatches into 401 responses.
 	ErrPasswordDoesNotMatch = platformerrors.New("password does not match")
+	// ErrUserBanned is returned by login flows when the user attempting to authenticate is banned.
+	// It must be an explicit non-nil error: observability.PrepareError returns nil when handed a nil
+	// error, which would otherwise turn the ban check into a silent no-op that returns success.
+	ErrUserBanned = platformerrors.New("user is banned")
 
 	// NewArgon2Authenticator returns an argon2 powered Authenticator.
 	NewArgon2Authenticator = argon2.NewArgon2Authenticator

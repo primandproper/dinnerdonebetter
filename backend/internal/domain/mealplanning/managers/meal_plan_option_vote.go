@@ -39,7 +39,7 @@ func (m *mealPlanningManager) ListMealPlanOptionVotes(ctx context.Context, mealP
 	return results, nil
 }
 
-func (m *mealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, creatorID string, input *types.MealPlanOptionVoteCreationRequestInput) ([]*types.MealPlanOptionVote, error) {
+func (m *mealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, mealPlanID, mealPlanEventID, creatorID string, input *types.MealPlanOptionVoteCreationRequestInput) ([]*types.MealPlanOptionVote, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -47,9 +47,45 @@ func (m *mealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, cre
 		return nil, platformerrors.ErrNilInputParameter
 	}
 
-	convertedInput := converters.ConvertMealPlanOptionVoteCreationRequestInputToMealPlanOptionVotesDatabaseCreationInput(input)
-	logger := m.logger.WithSpan(span).WithValue("vote_count", len(input.Votes))
+	// ValidateWithContext rejects an empty vote set and requires every vote to carry a
+	// BelongsToMealPlanOption, so a caller can no longer submit votes without naming an option.
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return nil, observability.PrepareError(err, span, "validating input")
+	}
+
+	logger := m.logger.WithSpan(span).WithValues(map[string]any{
+		mealplanningkeys.MealPlanIDKey:      mealPlanID,
+		mealplanningkeys.MealPlanEventIDKey: mealPlanEventID,
+		"vote_count":                        len(input.Votes),
+	})
+	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
+	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
 	tracing.AttachToSpan(span, "vote_count", len(input.Votes))
+
+	eligible, err := m.db.MealPlanEventIsEligibleForVoting(ctx, mealPlanID, mealPlanEventID)
+	if err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "checking meal plan event voting eligibility")
+	}
+	if !eligible {
+		return nil, observability.PrepareError(types.ErrMealPlanEventNotEligibleForVoting, span, "meal plan event %s is not eligible for voting", mealPlanEventID)
+	}
+
+	// Every vote must target an option that actually belongs to the targeted event. Resolving the
+	// option through the (mealPlanID, mealPlanEventID) pair — which the service layer has already
+	// verified belongs to the caller's active account — rejects cross-account option IDs.
+	checkedOptions := map[string]struct{}{}
+	for _, vote := range input.Votes {
+		if _, alreadyChecked := checkedOptions[vote.BelongsToMealPlanOption]; alreadyChecked {
+			continue
+		}
+		if _, optionErr := m.db.GetMealPlanOption(ctx, mealPlanID, mealPlanEventID, vote.BelongsToMealPlanOption); optionErr != nil {
+			logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, vote.BelongsToMealPlanOption).Error("fetching meal plan option for vote", optionErr)
+			return nil, observability.PrepareError(types.ErrMealPlanOptionNotFoundForEvent, span, "meal plan option %s does not belong to event %s", vote.BelongsToMealPlanOption, mealPlanEventID)
+		}
+		checkedOptions[vote.BelongsToMealPlanOption] = struct{}{}
+	}
+
+	convertedInput := converters.ConvertMealPlanOptionVoteCreationRequestInputToMealPlanOptionVotesDatabaseCreationInput(input)
 
 	for i := range input.Votes {
 		convertedInput.Votes[i].ByUser = creatorID
@@ -97,6 +133,10 @@ func (m *mealPlanningManager) UpdateMealPlanOptionVote(ctx context.Context, meal
 
 	if input == nil {
 		return platformerrors.ErrNilInputParameter
+	}
+
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return observability.PrepareError(err, span, "validating input")
 	}
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{

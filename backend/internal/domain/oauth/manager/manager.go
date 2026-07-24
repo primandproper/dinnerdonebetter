@@ -98,14 +98,19 @@ func (m *manager) CreateOAuth2Client(ctx context.Context, input *oauth.OAuth2Cli
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "generating client id")
 	}
 
-	if dbInput.ClientSecret, err = m.secretGenerator.GenerateHexEncodedString(ctx, clientSecretSize); err != nil {
+	plaintextSecret, err := m.secretGenerator.GenerateHexEncodedString(ctx, clientSecretSize)
+	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "generating client secret")
 	}
+
+	// only the SHA-256 digest is persisted; the plaintext secret is returned to the caller exactly once below.
+	dbInput.ClientSecret = oauth.HashClientSecret(plaintextSecret)
 
 	created, err := m.oauthRepository.CreateOAuth2Client(ctx, dbInput)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating oauth2 client")
 	}
+	created.ClientSecret = plaintextSecret
 
 	m.dataChangesPublisher.PublishAsync(ctx, &audit.DataChangeMessage{
 		EventType: oauth.OAuth2ClientCreatedServiceEventType,
@@ -143,7 +148,7 @@ func (m *manager) GetOAuth2Clients(ctx context.Context, filter *filtering.QueryF
 
 	oauth2Clients, err := m.oauthRepository.GetOAuth2Clients(ctx, filter)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "getting oauth2 client by database ID")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "getting oauth2 clients")
 	}
 
 	return oauth2Clients, nil

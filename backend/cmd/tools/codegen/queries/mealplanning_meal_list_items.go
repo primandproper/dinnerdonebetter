@@ -100,11 +100,11 @@ WHERE %s.%s IS NULL
 					strings.Join(applyToEach(mealListItemsColumns, func(i int, s string) string {
 						return fmt.Sprintf("%s.%s", mealListItemsTableName, s)
 					}), ",\n\t"),
-					buildFilterCountSelect(mealListItemsTableName, true, true, []string{}, fmt.Sprintf("%s.belongs_to_meal_list = sqlc.arg(%s)", mealListItemsTableName, mealListIDColumn)),
+					buildFilterCountSelect(mealListItemsTableName, true, true, []string{}, fmt.Sprintf("%s.belongs_to_meal_list = sqlc.arg(%s)", mealListItemsTableName, mealListIDColumn), fmt.Sprintf("EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.belongs_to_meal_list AND %s.%s = sqlc.arg(%s))", mealListsTableName, mealListsTableName, idColumn, mealListItemsTableName, mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
 					buildTotalCountSelect(mealListItemsTableName, true, []string{}),
 					mealListItemsTableName,
 					mealListItemsTableName, archivedAtColumn,
-					buildFilterConditions(mealListItemsTableName, true, false, fmt.Sprintf("%s.belongs_to_meal_list = sqlc.arg(%s)", mealListItemsTableName, mealListIDColumn)),
+					buildFilterConditions(mealListItemsTableName, true, false, fmt.Sprintf("%s.belongs_to_meal_list = sqlc.arg(%s)", mealListItemsTableName, mealListIDColumn), fmt.Sprintf("EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.belongs_to_meal_list AND %s.%s = sqlc.arg(%s))", mealListsTableName, mealListsTableName, idColumn, mealListItemsTableName, mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
 					mealListItemsTableName, mealListIDColumn,
 					buildCursorLimitClause(mealListItemsTableName),
 				)),

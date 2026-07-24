@@ -86,9 +86,9 @@ FROM meal_plan_tasks
 	JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event=meal_plan_events.id
 	JOIN meal_plans ON meal_plan_events.belongs_to_meal_plan=meal_plans.id
 	JOIN meals ON meal_plan_options.meal_id=meals.id
-	JOIN recipe_prep_tasks ON meal_plan_tasks.belongs_to_recipe_prep_task=recipe_prep_tasks.id
-	JOIN recipe_prep_task_steps ON recipe_prep_task_steps.belongs_to_recipe_prep_task=recipe_prep_tasks.id
-	JOIN recipe_steps ON recipe_prep_task_steps.belongs_to_recipe_step=recipe_steps.id
+	LEFT JOIN recipe_prep_tasks ON meal_plan_tasks.belongs_to_recipe_prep_task=recipe_prep_tasks.id
+	LEFT JOIN recipe_prep_task_steps ON recipe_prep_task_steps.belongs_to_recipe_prep_task=recipe_prep_tasks.id
+	LEFT JOIN recipe_steps ON recipe_prep_task_steps.belongs_to_recipe_step=recipe_steps.id
 WHERE meal_plan_options.archived_at IS NULL
 	AND meal_plan_events.archived_at IS NULL
 	AND meal_plans.archived_at IS NULL
@@ -145,9 +145,9 @@ FROM meal_plan_tasks
 	JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event=meal_plan_events.id
 	JOIN meal_plans ON meal_plan_events.belongs_to_meal_plan=meal_plans.id
 	JOIN meals ON meal_plan_options.meal_id=meals.id
-	JOIN recipe_prep_tasks ON meal_plan_tasks.belongs_to_recipe_prep_task=recipe_prep_tasks.id
-	JOIN recipe_prep_task_steps ON recipe_prep_task_steps.belongs_to_recipe_prep_task=recipe_prep_tasks.id
-	JOIN recipe_steps ON recipe_prep_task_steps.belongs_to_recipe_step=recipe_steps.id
+	LEFT JOIN recipe_prep_tasks ON meal_plan_tasks.belongs_to_recipe_prep_task=recipe_prep_tasks.id
+	LEFT JOIN recipe_prep_task_steps ON recipe_prep_task_steps.belongs_to_recipe_prep_task=recipe_prep_tasks.id
+	LEFT JOIN recipe_steps ON recipe_prep_task_steps.belongs_to_recipe_step=recipe_steps.id
 WHERE meal_plan_options.archived_at IS NULL
 	AND meal_plan_events.archived_at IS NULL
 	AND meal_plans.archived_at IS NULL

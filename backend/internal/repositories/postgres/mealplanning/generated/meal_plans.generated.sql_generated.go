@@ -282,7 +282,11 @@ GROUP BY
 	meal_plan_events.id,
 	meal_components.recipe_id
 ORDER BY
-	meal_plans.id
+	meal_plans.id,
+	meal_plan_options.id,
+	meals.id,
+	meal_plan_events.id,
+	meal_components.recipe_id
 `
 
 type GetFinalizedMealPlansForPlanningRow struct {
@@ -511,7 +515,7 @@ SELECT
 				meal_plans.last_updated_at IS NULL
 				OR meal_plans.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meal_plans.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR meal_plans.archived_at IS NULL)
 			AND meal_plans.belongs_to_account = $6
 	) AS filtered_count,
 	(
@@ -526,13 +530,13 @@ WHERE meal_plans.archived_at IS NULL
 	AND meal_plans.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meal_plans.last_updated_at IS NULL
-		OR meal_plans.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR meal_plans.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		meal_plans.last_updated_at IS NULL
-		OR meal_plans.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR meal_plans.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR meal_plans.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR meal_plans.archived_at IS NULL)
 	AND meal_plans.belongs_to_account = $6
 	AND meal_plans.id > COALESCE($7, '')
 ORDER BY meal_plans.id ASC
@@ -542,8 +546,8 @@ LIMIT COALESCE($8, 50)
 type GetMealPlansForAccountParams struct {
 	CreatedAfter     sql.NullTime
 	CreatedBefore    sql.NullTime
-	UpdatedBefore    sql.NullTime
 	UpdatedAfter     sql.NullTime
+	UpdatedBefore    sql.NullTime
 	IncludeArchived  sql.NullBool
 	BelongsToAccount string
 	Cursor           sql.NullString
@@ -571,8 +575,8 @@ func (q *Queries) GetMealPlansForAccount(ctx context.Context, db DBTX, arg *GetM
 	rows, err := db.QueryContext(ctx, getMealPlansForAccount,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToAccount,
 		arg.Cursor,

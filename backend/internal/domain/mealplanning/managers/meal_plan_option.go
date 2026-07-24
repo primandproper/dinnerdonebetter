@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
+	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -45,6 +46,10 @@ func (m *mealPlanningManager) CreateMealPlanOption(ctx context.Context, input *t
 		return nil, platformerrors.ErrNilInputParameter
 	}
 
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return nil, observability.PrepareError(err, span, "validating input")
+	}
+
 	convertedInput := converters.ConvertMealPlanOptionCreationRequestInputToMealPlanOptionDatabaseCreationInput(input)
 	if convertedInput.BelongsToMealPlanEvent != "" {
 		exists, err := m.db.MealExistsAsOptionInEvent(ctx, convertedInput.BelongsToMealPlanEvent, convertedInput.MealID)
@@ -64,11 +69,35 @@ func (m *mealPlanningManager) CreateMealPlanOption(ctx context.Context, input *t
 		return nil, observability.PrepareAndLogError(err, logger, span, "created meal plan option")
 	}
 
+	if err = m.createSelectionsForNewOption(ctx, created.ID, input.Selections); err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "creating selections for meal plan option")
+	}
+
 	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanOptionCreatedServiceEventType, map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: convertedInput.ID,
 	}))
 
 	return created, nil
+}
+
+// createSelectionsForNewOption persists the recipe-option selections provided inline on an option creation input.
+func (m *mealPlanningManager) createSelectionsForNewOption(ctx context.Context, mealPlanOptionID string, selections []*types.MealPlanRecipeOptionSelectionCreationRequestInput) error {
+	for _, selection := range selections {
+		if selection == nil {
+			continue
+		}
+
+		if err := selection.ValidateWithContext(ctx); err != nil {
+			return observability.PrepareError(err, nil, "validating inline selection")
+		}
+
+		converted := converters.ConvertMealPlanRecipeOptionSelectionDatabaseCreationInputToMealPlanRecipeOptionSelectionDatabaseCreationInput(selection, mealPlanOptionID)
+		if _, err := m.db.CreateMealPlanRecipeOptionSelection(ctx, converted); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (m *mealPlanningManager) CreateMealPlanOptionWithEventID(ctx context.Context, mealPlanEventID string, input *types.MealPlanOptionCreationRequestInput) (*types.MealPlanOption, error) {
@@ -77,6 +106,10 @@ func (m *mealPlanningManager) CreateMealPlanOptionWithEventID(ctx context.Contex
 
 	if input == nil {
 		return nil, platformerrors.ErrNilInputParameter
+	}
+
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return nil, observability.PrepareError(err, span, "validating input")
 	}
 
 	if mealPlanEventID == "" {
@@ -101,6 +134,10 @@ func (m *mealPlanningManager) CreateMealPlanOptionWithEventID(ctx context.Contex
 	created, err := m.db.CreateMealPlanOption(ctx, convertedInput)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "created meal plan option")
+	}
+
+	if err = m.createSelectionsForNewOption(ctx, created.ID, input.Selections); err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "creating selections for meal plan option")
 	}
 
 	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanOptionCreatedServiceEventType, map[string]any{
@@ -131,12 +168,35 @@ func (m *mealPlanningManager) ReadMealPlanOption(ctx context.Context, mealPlanID
 	return mealPlanOption, nil
 }
 
+func (m *mealPlanningManager) MealPlanOptionBelongsToAccount(ctx context.Context, mealPlanOptionID, accountID string) (bool, error) {
+	ctx, span := m.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := m.logger.WithSpan(span).WithValues(map[string]any{
+		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
+		identitykeys.AccountIDKey:            accountID,
+	})
+	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
+	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
+
+	belongs, err := m.db.MealPlanOptionBelongsToAccount(ctx, mealPlanOptionID, accountID)
+	if err != nil {
+		return false, observability.PrepareAndLogError(err, logger, span, "checking meal plan option account ownership")
+	}
+
+	return belongs, nil
+}
+
 func (m *mealPlanningManager) UpdateMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string, input *types.MealPlanOptionUpdateRequestInput) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
 	if input == nil {
 		return platformerrors.ErrNilInputParameter
+	}
+
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return observability.PrepareError(err, span, "validating input")
 	}
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{

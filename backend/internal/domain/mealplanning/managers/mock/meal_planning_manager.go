@@ -61,8 +61,8 @@ func (m *MockMealPlanningManager) AddMealImage(ctx context.Context, mealID, uplo
 	return returnValues.Error(0)
 }
 
-func (m *MockMealPlanningManager) ListMealLists(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealList], error) {
-	returnValues := m.Called(ctx, filter)
+func (m *MockMealPlanningManager) ListMealLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealList], error) {
+	returnValues := m.Called(ctx, userID, filter)
 
 	if returnValues.Get(0) == nil {
 		return nil, returnValues.Error(1)
@@ -106,8 +106,8 @@ func (m *MockMealPlanningManager) RemoveMealFromMealList(ctx context.Context, me
 	return returnValues.Error(0)
 }
 
-func (m *MockMealPlanningManager) ListMealListItems(ctx context.Context, mealListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealListItem], error) {
-	returnValues := m.Called(ctx, mealListID, filter)
+func (m *MockMealPlanningManager) ListMealListItems(ctx context.Context, mealListID, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealListItem], error) {
+	returnValues := m.Called(ctx, mealListID, userID, filter)
 
 	if returnValues.Get(0) == nil {
 		return nil, returnValues.Error(1)
@@ -229,6 +229,13 @@ func (m *MockMealPlanningManager) CreateMealPlanOptionWithEventID(ctx context.Co
 	return returnValues.Get(0).(*mealplanning.MealPlanOption), returnValues.Error(1)
 }
 
+// MealPlanOptionBelongsToAccount is a mock method.
+func (m *MockMealPlanningManager) MealPlanOptionBelongsToAccount(ctx context.Context, mealPlanOptionID, accountID string) (bool, error) {
+	returnValues := m.Called(ctx, mealPlanOptionID, accountID)
+
+	return returnValues.Bool(0), returnValues.Error(1)
+}
+
 // ReadMealPlanOption is a mock method.
 func (m *MockMealPlanningManager) ReadMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string) (*mealplanning.MealPlanOption, error) {
 	returnValues := m.Called(ctx, mealPlanID, mealPlanEventID, mealPlanOptionID)
@@ -261,8 +268,8 @@ func (m *MockMealPlanningManager) ListMealPlanOptionVotes(ctx context.Context, m
 }
 
 // CreateMealPlanOptionVotes is a mock method.
-func (m *MockMealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, creatorID string, input *mealplanning.MealPlanOptionVoteCreationRequestInput) ([]*mealplanning.MealPlanOptionVote, error) {
-	returnValues := m.Called(ctx, creatorID, input)
+func (m *MockMealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, mealPlanID, mealPlanEventID, creatorID string, input *mealplanning.MealPlanOptionVoteCreationRequestInput) ([]*mealplanning.MealPlanOptionVote, error) {
+	returnValues := m.Called(ctx, mealPlanID, mealPlanEventID, creatorID, input)
 
 	return returnValues.Get(0).([]*mealplanning.MealPlanOptionVote), returnValues.Error(1)
 }

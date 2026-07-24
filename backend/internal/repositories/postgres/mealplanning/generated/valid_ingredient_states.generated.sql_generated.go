@@ -163,7 +163,7 @@ SELECT
 				valid_ingredient_states.last_updated_at IS NULL
 				OR valid_ingredient_states.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_states.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_states.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredient_states.id)
@@ -177,13 +177,13 @@ WHERE
 	AND valid_ingredient_states.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_states.last_updated_at IS NULL
-		OR valid_ingredient_states.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_ingredient_states.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_ingredient_states.last_updated_at IS NULL
-		OR valid_ingredient_states.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_ingredient_states.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_states.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_states.archived_at IS NULL)
 	AND valid_ingredient_states.id > COALESCE($6, '')
 GROUP BY valid_ingredient_states.id
 ORDER BY valid_ingredient_states.id ASC
@@ -193,8 +193,8 @@ LIMIT COALESCE($7, 50)
 type GetValidIngredientStatesParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -220,8 +220,8 @@ func (q *Queries) GetValidIngredientStates(ctx context.Context, db DBTX, arg *Ge
 	rows, err := db.QueryContext(ctx, getValidIngredientStates,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -389,7 +389,7 @@ SELECT
 				valid_ingredient_states.last_updated_at IS NULL
 				OR valid_ingredient_states.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_states.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_states.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredient_states.id)
@@ -403,13 +403,13 @@ WHERE valid_ingredient_states.archived_at IS NULL
 	AND valid_ingredient_states.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_states.last_updated_at IS NULL
-		OR valid_ingredient_states.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_ingredient_states.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_ingredient_states.last_updated_at IS NULL
-		OR valid_ingredient_states.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_ingredient_states.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_states.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_states.archived_at IS NULL)
 	AND valid_ingredient_states.id > COALESCE($7, '')
 ORDER BY valid_ingredient_states.id ASC
 LIMIT COALESCE($8, 50)
@@ -418,8 +418,8 @@ LIMIT COALESCE($8, 50)
 type SearchForValidIngredientStatesParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	NameQuery       string
 	Cursor          sql.NullString
@@ -446,8 +446,8 @@ func (q *Queries) SearchForValidIngredientStates(ctx context.Context, db DBTX, a
 	rows, err := db.QueryContext(ctx, searchForValidIngredientStates,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.NameQuery,
 		arg.Cursor,

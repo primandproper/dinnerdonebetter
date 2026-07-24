@@ -46,13 +46,13 @@ SELECT
 			AND webhook_trigger_events.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				webhook_trigger_events.last_updated_at IS NULL
-				OR webhook_trigger_events.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR webhook_trigger_events.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				webhook_trigger_events.last_updated_at IS NULL
-				OR webhook_trigger_events.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR webhook_trigger_events.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR webhook_trigger_events.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR webhook_trigger_events.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(webhook_trigger_events.id)
@@ -71,7 +71,7 @@ WHERE webhook_trigger_events.archived_at IS NULL
 		webhook_trigger_events.last_updated_at IS NULL
 		OR webhook_trigger_events.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR webhook_trigger_events.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR webhook_trigger_events.archived_at IS NULL)
 	AND webhook_trigger_events.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY webhook_trigger_events.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

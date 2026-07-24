@@ -85,13 +85,13 @@ SELECT
 			AND user_ingredient_preferences.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				user_ingredient_preferences.last_updated_at IS NULL
-				OR user_ingredient_preferences.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR user_ingredient_preferences.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				user_ingredient_preferences.last_updated_at IS NULL
-				OR user_ingredient_preferences.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR user_ingredient_preferences.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR user_ingredient_preferences.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR user_ingredient_preferences.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(user_ingredient_preferences.id)

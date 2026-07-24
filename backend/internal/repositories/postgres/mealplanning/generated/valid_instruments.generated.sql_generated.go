@@ -236,7 +236,7 @@ SELECT
 				valid_instruments.last_updated_at IS NULL
 				OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_instruments.id)
@@ -250,13 +250,13 @@ WHERE
 	AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_instruments.last_updated_at IS NULL
-		OR valid_instruments.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_instruments.last_updated_at IS NULL
-		OR valid_instruments.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	AND valid_instruments.id > COALESCE($6, '')
 GROUP BY valid_instruments.id
 ORDER BY valid_instruments.id ASC
@@ -266,8 +266,8 @@ LIMIT COALESCE($7, 50)
 type GetValidInstrumentsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -295,8 +295,8 @@ func (q *Queries) GetValidInstruments(ctx context.Context, db DBTX, arg *GetVali
 	rows, err := db.QueryContext(ctx, getValidInstruments,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -474,7 +474,7 @@ SELECT
 				valid_instruments.last_updated_at IS NULL
 				OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_instruments.id)
@@ -488,13 +488,13 @@ WHERE valid_instruments.archived_at IS NULL
 	AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_instruments.last_updated_at IS NULL
-		OR valid_instruments.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_instruments.last_updated_at IS NULL
-		OR valid_instruments.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	AND valid_instruments.id > COALESCE($7, '')
 ORDER BY valid_instruments.id ASC
 LIMIT COALESCE($8, 50)
@@ -503,8 +503,8 @@ LIMIT COALESCE($8, 50)
 type SearchForValidInstrumentsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	NameQuery       string
 	Cursor          sql.NullString
@@ -533,8 +533,8 @@ func (q *Queries) SearchForValidInstruments(ctx context.Context, db DBTX, arg *S
 	rows, err := db.QueryContext(ctx, searchForValidInstruments,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.NameQuery,
 		arg.Cursor,
@@ -607,7 +607,7 @@ SELECT
 				valid_instruments.last_updated_at IS NULL
 				OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 			AND valid_instruments.id NOT IN (SELECT valid_instrument_id FROM account_instrument_ownerships WHERE account_instrument_ownerships.belongs_to_account = $6 AND account_instrument_ownerships.archived_at IS NULL)
 	) AS filtered_count,
 	(
@@ -623,13 +623,13 @@ WHERE valid_instruments.archived_at IS NULL
 	AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_instruments.last_updated_at IS NULL
-		OR valid_instruments.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_instruments.last_updated_at IS NULL
-		OR valid_instruments.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	AND valid_instruments.id NOT IN (SELECT valid_instrument_id FROM account_instrument_ownerships WHERE account_instrument_ownerships.belongs_to_account = $6 AND account_instrument_ownerships.archived_at IS NULL)
 	AND valid_instruments.id > COALESCE($8, '')
 ORDER BY valid_instruments.id ASC
@@ -639,8 +639,8 @@ LIMIT COALESCE($9, 50)
 type SearchForValidInstrumentsNotOwnedByAccountParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	AccountID       string
 	NameQuery       string
@@ -670,8 +670,8 @@ func (q *Queries) SearchForValidInstrumentsNotOwnedByAccount(ctx context.Context
 	rows, err := db.QueryContext(ctx, searchForValidInstrumentsNotOwnedByAccount,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.AccountID,
 		arg.NameQuery,

@@ -59,13 +59,13 @@ SELECT
 			AND webhooks.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				webhooks.last_updated_at IS NULL
-				OR webhooks.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR webhooks.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				webhooks.last_updated_at IS NULL
-				OR webhooks.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR webhooks.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR webhooks.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR webhooks.archived_at IS NULL)
 			AND webhooks.belongs_to_account = sqlc.arg(belongs_to_account)
 	) AS filtered_count,
 	(
@@ -87,7 +87,7 @@ WHERE webhooks.archived_at IS NULL
 		webhooks.last_updated_at IS NULL
 		OR webhooks.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR webhooks.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR webhooks.archived_at IS NULL)
 	AND webhooks.belongs_to_account = sqlc.arg(belongs_to_account)
 	AND webhook_trigger_configs.archived_at IS NULL
 	AND webhooks.id > COALESCE(sqlc.narg(cursor), '')

@@ -14,6 +14,7 @@ type Querier interface {
 	CreateComment(ctx context.Context, db DBTX, arg *CreateCommentParams) error
 	GetComment(ctx context.Context, db DBTX, id string) (*Comments, error)
 	GetCommentsForReference(ctx context.Context, db DBTX, arg *GetCommentsForReferenceParams) ([]*GetCommentsForReferenceRow, error)
+	GetCommentsForUser(ctx context.Context, db DBTX, arg *GetCommentsForUserParams) ([]*GetCommentsForUserRow, error)
 	UpdateComment(ctx context.Context, db DBTX, arg *UpdateCommentParams) (int64, error)
 }
 

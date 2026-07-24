@@ -219,7 +219,7 @@ SELECT
 				meals.last_updated_at IS NULL
 				OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(meals.id)
@@ -235,13 +235,13 @@ WHERE
 	AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meals.last_updated_at IS NULL
-		OR meals.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR meals.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		meals.last_updated_at IS NULL
-		OR meals.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	AND meals.id > COALESCE($6, '')
 ORDER BY meals.id ASC
 LIMIT COALESCE($7, 50)
@@ -250,8 +250,8 @@ LIMIT COALESCE($7, 50)
 type GetMealsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -285,8 +285,8 @@ func (q *Queries) GetMeals(ctx context.Context, db DBTX, arg *GetMealsParams) ([
 	rows, err := db.QueryContext(ctx, getMeals,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -471,7 +471,7 @@ SELECT
 				meals.last_updated_at IS NULL
 				OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 			AND meals.created_by_user = $6
 	) AS filtered_count,
 	(
@@ -490,13 +490,13 @@ WHERE
 	AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meals.last_updated_at IS NULL
-		OR meals.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR meals.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		meals.last_updated_at IS NULL
-		OR meals.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	AND meals.created_by_user = $6
 	AND meals.id > COALESCE($7, '')
 ORDER BY meals.id ASC
@@ -506,8 +506,8 @@ LIMIT COALESCE($8, 50)
 type GetMealsCreatedByUserParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	CreatedByUser   string
 	Cursor          sql.NullString
@@ -542,8 +542,8 @@ func (q *Queries) GetMealsCreatedByUser(ctx context.Context, db DBTX, arg *GetMe
 	rows, err := db.QueryContext(ctx, getMealsCreatedByUser,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.CreatedByUser,
 		arg.Cursor,
@@ -756,7 +756,7 @@ SELECT
 				meals.last_updated_at IS NULL
 				OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(meals.id)
@@ -774,13 +774,13 @@ WHERE
 	AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meals.last_updated_at IS NULL
-		OR meals.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR meals.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		meals.last_updated_at IS NULL
-		OR meals.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	AND meals.id > COALESCE($7, '')
 ORDER BY meals.id ASC
 LIMIT COALESCE($8, 50)
@@ -789,8 +789,8 @@ LIMIT COALESCE($8, 50)
 type SearchForMealsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Query           string
 	Cursor          sql.NullString
@@ -825,8 +825,8 @@ func (q *Queries) SearchForMeals(ctx context.Context, db DBTX, arg *SearchForMea
 	rows, err := db.QueryContext(ctx, searchForMeals,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Query,
 		arg.Cursor,

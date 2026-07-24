@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"maps"
 
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
@@ -1167,20 +1166,27 @@ func (q *repository) findCreatedRecipeStepProductsForVessels(ctx context.Context
 	_, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
+	logger := q.logger.WithSpan(span)
+
 	for _, step := range recipe.Steps {
 		for _, vessel := range step.Vessels {
 			if vessel.ProductOfRecipeStepIndex != nil && vessel.ProductOfRecipeStepProductIndex != nil {
 				enoughSteps := len(recipe.Steps) > int(*vessel.ProductOfRecipeStepIndex)
 				enoughRecipeStepProducts := len(recipe.Steps[int(*vessel.ProductOfRecipeStepIndex)].Products) > int(*vessel.ProductOfRecipeStepProductIndex)
+				vesselLogger := logger.
+					WithValue(mealplanningkeys.RecipeStepIDKey, step.ID).
+					WithValue("vessel_id", vessel.ID).
+					WithValue("enough_steps", enoughSteps).
+					WithValue("enough_recipe_step_products", enoughRecipeStepProducts)
 				if enoughSteps && enoughRecipeStepProducts {
 					relevantProductIsVessel := recipe.Steps[*vessel.ProductOfRecipeStepIndex].Products[*vessel.ProductOfRecipeStepProductIndex].Type == mealplanning.RecipeStepProductVesselType
 					if relevantProductIsVessel {
 						vessel.RecipeStepProductID = &recipe.Steps[*vessel.ProductOfRecipeStepIndex].Products[*vessel.ProductOfRecipeStepProductIndex].ID
 					} else {
-						log.Printf("for recipe step id %q, vessel MealPlanTaskID %q, not enough steps: %t, not enough recipe step products: %t, relevant product is vessel: %t", step.ID, vessel.ID, enoughSteps, enoughRecipeStepProducts, relevantProductIsVessel)
+						vesselLogger.WithValue("relevant_product_is_vessel", relevantProductIsVessel).Info("could not find created recipe step product for vessel")
 					}
 				} else {
-					log.Printf("for recipe step id %q, vessel MealPlanTaskID %q, not enough steps: %t, not enough recipe step products: %t", step.ID, vessel.ID, enoughSteps, enoughRecipeStepProducts)
+					vesselLogger.Info("could not find created recipe step product for vessel")
 				}
 			}
 		}
@@ -1200,7 +1206,7 @@ func (q *repository) UpdateRecipe(ctx context.Context, updated *mealplanning.Rec
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, updated.ID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, updated.CreatedByUser)
 
-	if _, err := q.generatedQuerier.UpdateRecipe(ctx, q.writeDB, &generated.UpdateRecipeParams{
+	rowsAffected, err := q.generatedQuerier.UpdateRecipe(ctx, q.writeDB, &generated.UpdateRecipeParams{
 		Name:                 updated.Name,
 		Slug:                 updated.Slug,
 		Source:               updated.Source,
@@ -1215,8 +1221,13 @@ func (q *repository) UpdateRecipe(ctx context.Context, updated *mealplanning.Rec
 		YieldsComponentType:  generated.ComponentType(updated.YieldsComponentType),
 		CreatedByUser:        updated.CreatedByUser,
 		ID:                   updated.ID,
-	}); err != nil {
+	})
+	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe")
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
 	}
 
 	logger.Info("recipe updated")
@@ -1237,11 +1248,16 @@ func (q *repository) UpdateRecipeStatus(ctx context.Context, recipeID, newStatus
 	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
-	if _, err := q.generatedQuerier.UpdateRecipeStatus(ctx, q.writeDB, &generated.UpdateRecipeStatusParams{
+	rowsAffected, err := q.generatedQuerier.UpdateRecipeStatus(ctx, q.writeDB, &generated.UpdateRecipeStatusParams{
 		Status: generated.RecipeStatus(newStatus),
 		ID:     recipeID,
-	}); err != nil {
+	})
+	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe status")
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
 	}
 
 	return nil

@@ -61,6 +61,29 @@ func buildTestServiceWithUploadMocks(t *testing.T) (*serviceImpl, *managermock.I
 	return service, identityDataManager, uploadedMediaRepo
 }
 
+// buildTestServiceWithAccountMembership returns a service whose authenticated session is a member of
+// (and has the given account as its active account) accountID, satisfying handler ownership checks.
+func buildTestServiceWithAccountMembership(t *testing.T, accountID string) (*serviceImpl, *managermock.IdentityDataManager) {
+	t.Helper()
+
+	service, identityDataManager := buildTestService(t)
+	service.sessionContextDataFetcher = func(context.Context) (*sessions.ContextData, error) {
+		return &sessions.ContextData{
+			Requester: sessions.RequesterInfo{
+				UserID:             identityfakes.BuildFakeID(),
+				AccountStatus:      identity.GoodStandingUserAccountStatus.String(),
+				ServicePermissions: authorization.NewServiceRolePermissionChecker([]string{authorization.ServiceUserRole.String()}, nil),
+			},
+			ActiveAccountID: accountID,
+			AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
+				accountID: authorization.NewAccountRolePermissionChecker(nil),
+			},
+		}, nil
+	}
+
+	return service, identityDataManager
+}
+
 func buildTestServiceWithSessionError(t *testing.T) *serviceImpl {
 	t.Helper()
 

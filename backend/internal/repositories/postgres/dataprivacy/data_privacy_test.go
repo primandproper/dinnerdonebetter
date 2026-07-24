@@ -3,6 +3,7 @@ package dataprivacy
 import (
 	"testing"
 
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
@@ -67,12 +68,30 @@ func TestQuerier_Integration_FetchUserDataCollection(t *testing.T) {
 	exampleUser.TwoFactorSecretVerifiedAt = nil
 	createdUser := createUserForTest(t, ctx, exampleUser, identityRepo)
 
+	createdComment, err := dbc.commentsRepo.CreateComment(ctx, &comments.CommentDatabaseCreationInput{
+		ID:            identifiers.New(),
+		Content:       "data privacy disclosure test comment",
+		TargetType:    "issue_reports",
+		ReferencedID:  identifiers.New(),
+		BelongsToUser: createdUser.ID,
+	})
+	require.NoError(t, err)
+
 	collection, err := dbc.FetchUserDataCollection(ctx, createdUser.ID)
 	require.NoError(t, err)
 	require.NotNil(t, collection)
 	assert.Equal(t, createdUser.ID, collection.Identity.User.ID)
 	assert.Equal(t, createdUser.Username, collection.Identity.User.Username)
 	assert.NotNil(t, collection.Webhooks.Data)
+
+	// the comments domain participates in the export
+	require.Len(t, collection.Comments, 1)
+	assert.Equal(t, createdComment.ID, collection.Comments[0].ID)
+
+	// the payments domain participates in the export (no data seeded, but the queries must succeed)
+	assert.Empty(t, collection.Payments.Subscriptions)
+	assert.Empty(t, collection.Payments.Purchases)
+	assert.Empty(t, collection.Payments.PaymentTransactions)
 }
 
 func TestQuerier_Integration_DeleteUser(t *testing.T) {

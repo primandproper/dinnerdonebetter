@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"log"
 
-	dbcleaner "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/jobs/db_cleaner"
+	dbcleanerbuild "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/jobs/db_cleaner"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/telemetry"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
+	dbcleaner "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/oauth/workers/db_cleaner"
 
+	"github.com/samber/do/v2"
 	_ "go.uber.org/automaxprocs"
 )
 
@@ -20,10 +23,12 @@ func doTheThing(ctx context.Context) error {
 	}
 	cfg.Database.RunMigrations = false
 
-	dbCleaner, err := dbcleaner.Build(ctx, cfg)
-	if err != nil {
-		return fmt.Errorf("error building db cleaner: %w", err)
-	}
+	i := dbcleanerbuild.BuildInjector(ctx, cfg)
+
+	// Flush telemetry on exit so this short-lived CronJob pod exports its spans/metrics before it exits.
+	defer telemetry.Flush(ctx, i)
+
+	dbCleaner := do.MustInvoke[*dbcleaner.Job](i)
 
 	if err = dbCleaner.Do(ctx); err != nil {
 		return fmt.Errorf("cleaning database: %w", err)

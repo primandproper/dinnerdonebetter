@@ -87,6 +87,7 @@ type (
 	MealPlanOptionDataManager interface {
 		MealExistsAsOptionInEvent(ctx context.Context, mealPlanEventID, mealID string) (bool, error)
 		MealPlanOptionExists(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string) (bool, error)
+		MealPlanOptionBelongsToAccount(ctx context.Context, mealPlanOptionID, accountID string) (bool, error)
 		GetMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string) (*MealPlanOption, error)
 		GetMealPlanOptions(ctx context.Context, mealPlanID, mealPlanEventID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[MealPlanOption], error)
 		CreateMealPlanOption(ctx context.Context, input *MealPlanOptionDatabaseCreationInput) (*MealPlanOption, error)
@@ -148,12 +149,10 @@ var _ validation.ValidatableWithContext = (*MealPlanOptionUpdateRequestInput)(ni
 
 // ValidateWithContext validates a MealPlanOptionUpdateRequestInput.
 func (x *MealPlanOptionUpdateRequestInput) ValidateWithContext(ctx context.Context) error {
+	// every field on an update is optional; BelongsToMealPlanEvent is set server-side (json:"-") and
+	// cannot be supplied by the client, so requiring any of these here would reject legitimate partial updates.
 	return validation.ValidateStructWithContext(
 		ctx,
 		x,
-		validation.Field(&x.MealID, validation.Required),
-		validation.Field(&x.BelongsToMealPlanEvent, validation.Required),
-		validation.Field(&x.Notes, validation.Required),
-		validation.Field(&x.BelongsToMealPlanEvent, validation.Required),
 	)
 }

@@ -100,7 +100,7 @@ func (m *mealPlanningManager) RemoveMealFromMealList(ctx context.Context, mealLi
 	return nil
 }
 
-func (m *mealPlanningManager) ListMealListItems(ctx context.Context, mealListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealListItem], error) {
+func (m *mealPlanningManager) ListMealListItems(ctx context.Context, mealListID, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealListItem], error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -110,7 +110,7 @@ func (m *mealPlanningManager) ListMealListItems(ctx context.Context, mealListID 
 		return nil, platformerrors.ErrEmptyInputParameter
 	}
 
-	results, err := m.db.GetMealListItems(ctx, mealListID, filter)
+	results, err := m.db.GetMealListItems(ctx, mealListID, userID, filter)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "listing meal list items")
 	}

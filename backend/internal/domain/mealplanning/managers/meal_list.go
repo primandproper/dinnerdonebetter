@@ -14,13 +14,13 @@ import (
 	"github.com/primandproper/platform-go/v5/observability/tracing"
 )
 
-func (m *mealPlanningManager) ListMealLists(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealList], error) {
+func (m *mealPlanningManager) ListMealLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealList], error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := m.logger.WithSpan(span)
 
-	results, err := m.db.GetMealLists(ctx, filter)
+	results, err := m.db.GetMealLists(ctx, userID, filter)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "listing meal lists")
 	}

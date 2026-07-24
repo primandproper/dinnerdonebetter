@@ -116,7 +116,7 @@ SELECT
 				webhook_trigger_events.last_updated_at IS NULL
 				OR webhook_trigger_events.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR webhook_trigger_events.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR webhook_trigger_events.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(webhook_trigger_events.id)
@@ -129,13 +129,13 @@ WHERE webhook_trigger_events.archived_at IS NULL
 	AND webhook_trigger_events.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		webhook_trigger_events.last_updated_at IS NULL
-		OR webhook_trigger_events.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR webhook_trigger_events.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		webhook_trigger_events.last_updated_at IS NULL
-		OR webhook_trigger_events.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR webhook_trigger_events.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR webhook_trigger_events.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR webhook_trigger_events.archived_at IS NULL)
 	AND webhook_trigger_events.id > COALESCE($6, '')
 ORDER BY webhook_trigger_events.id ASC
 LIMIT COALESCE($7, 50)
@@ -144,8 +144,8 @@ LIMIT COALESCE($7, 50)
 type GetWebhookTriggerEventsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -166,8 +166,8 @@ func (q *Queries) GetWebhookTriggerEvents(ctx context.Context, db DBTX, arg *Get
 	rows, err := db.QueryContext(ctx, getWebhookTriggerEvents,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,

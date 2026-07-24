@@ -12,11 +12,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	mealplanningprivacy "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/privacy"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
+	commentsrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/comments"
 	identityrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	issue_reports "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/notifications"
+	paymentsrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
@@ -52,6 +54,8 @@ func buildDatabaseClientForTest(t *testing.T) (repo *repository, auditRepo audit
 	uploadedMediaRepo := uploadedmedia.ProvideUploadedMediaRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc)
 	waitlistsRepo := waitlists.ProvideWaitlistsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc)
 	webhooksRepo := webhooks.ProvideWebhooksRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc)
+	commentsRepo := commentsrepo.ProvideCommentsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc)
+	paymentsRepo := paymentsrepo.ProvidePaymentsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc)
 
 	mealPlanningCollector := mealplanningprivacy.NewCollector(mealPlanningRepo, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
@@ -66,6 +70,8 @@ func buildDatabaseClientForTest(t *testing.T) (repo *repository, auditRepo audit
 		uploadedMediaRepo,
 		waitlistsRepo,
 		webhooksRepo,
+		commentsRepo,
+		paymentsRepo,
 		pgc,
 		[]dataprivacy.UserDataCollector{mealPlanningCollector},
 	)
@@ -87,6 +93,8 @@ func buildInertClientForTest(t *testing.T) *repository {
 		nil, // uploadedMediaRepo
 		nil, // waitlistsRepo
 		nil, // webhooksRepo
+		nil, // commentsRepo
+		nil, // paymentsRepo
 		&mockdatabase.ClientMock{ReadDBFunc: func() *sql.DB { return nil }, WriteDBFunc: func() *sql.DB { return nil }},
 		nil, // dataCollectors
 	)

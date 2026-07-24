@@ -1066,7 +1066,7 @@ SELECT
 				account_invitations.last_updated_at IS NULL
 				OR account_invitations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR account_invitations.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR account_invitations.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(account_invitations.id)
@@ -1085,13 +1085,13 @@ WHERE account_invitations.archived_at IS NULL
 	AND account_invitations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		account_invitations.last_updated_at IS NULL
-		OR account_invitations.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR account_invitations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		account_invitations.last_updated_at IS NULL
-		OR account_invitations.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR account_invitations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR account_invitations.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR account_invitations.archived_at IS NULL)
 	AND account_invitations.id > COALESCE($8, '')
 ORDER BY account_invitations.id ASC
 LIMIT COALESCE($9, 50)
@@ -1100,8 +1100,8 @@ LIMIT COALESCE($9, 50)
 type GetPendingInvitesForUserParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ToUser          sql.NullString
 	Status          InvitationState
@@ -1181,8 +1181,8 @@ func (q *Queries) GetPendingInvitesForUser(ctx context.Context, db DBTX, arg *Ge
 	rows, err := db.QueryContext(ctx, getPendingInvitesForUser,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ToUser,
 		arg.Status,
@@ -1356,7 +1356,7 @@ SELECT
 				account_invitations.last_updated_at IS NULL
 				OR account_invitations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR account_invitations.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR account_invitations.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(account_invitations.id)
@@ -1375,11 +1375,11 @@ WHERE account_invitations.archived_at IS NULL
 	AND account_invitations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		account_invitations.last_updated_at IS NULL
-		OR account_invitations.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR account_invitations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		account_invitations.last_updated_at IS NULL
-		OR account_invitations.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR account_invitations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND account_invitations.id > COALESCE($8, '')
 ORDER BY account_invitations.id ASC
@@ -1389,8 +1389,8 @@ LIMIT COALESCE($9, 50)
 type GetPendingInvitesFromUserParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	FromUser        string
 	Status          InvitationState
@@ -1470,8 +1470,8 @@ func (q *Queries) GetPendingInvitesFromUser(ctx context.Context, db DBTX, arg *G
 	rows, err := db.QueryContext(ctx, getPendingInvitesFromUser,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.FromUser,
 		arg.Status,

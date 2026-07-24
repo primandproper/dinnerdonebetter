@@ -2,10 +2,12 @@ package dataprivacy
 
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments"
 	domaindataprivacy "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists"
@@ -32,6 +34,8 @@ func RegisterDataPrivacyRepository(i do.Injector) {
 			do.MustInvoke[uploadedmedia.Repository](i),
 			do.MustInvoke[waitlists.Repository](i),
 			do.MustInvoke[webhooks.Repository](i),
+			do.MustInvoke[comments.Repository](i),
+			do.MustInvoke[payments.Repository](i),
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[[]domaindataprivacy.UserDataCollector](i),
 		), nil

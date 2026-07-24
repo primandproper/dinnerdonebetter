@@ -85,6 +85,7 @@ type (
 		CreateComment(ctx context.Context, input *CommentDatabaseCreationInput) (*Comment, error)
 		GetComment(ctx context.Context, id string) (*Comment, error)
 		GetCommentsForReference(ctx context.Context, targetType, referencedID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[Comment], error)
+		GetCommentsForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[Comment], error)
 		UpdateComment(ctx context.Context, id, belongsToUser, content string) error
 		ArchiveComment(ctx context.Context, id string) error
 		ArchiveCommentsForReference(ctx context.Context, targetType, referencedID string) error

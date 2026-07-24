@@ -62,6 +62,36 @@ func (q *repository) MealPlanOptionExists(ctx context.Context, mealPlanID, mealP
 	return result, nil
 }
 
+// MealPlanOptionBelongsToAccount checks whether a meal plan option resolves (via its event and meal plan) to the given account.
+func (q *repository) MealPlanOptionBelongsToAccount(ctx context.Context, mealPlanOptionID, accountID string) (belongs bool, err error) {
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := q.logger.Clone()
+
+	if mealPlanOptionID == "" {
+		return false, platformerrors.ErrInvalidIDProvided
+	}
+	logger = logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
+	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
+
+	if accountID == "" {
+		return false, platformerrors.ErrInvalidIDProvided
+	}
+	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
+	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
+
+	result, err := q.generatedQuerier.CheckMealPlanOptionBelongsToAccount(ctx, q.readDB, &generated.CheckMealPlanOptionBelongsToAccountParams{
+		MealPlanOptionID: mealPlanOptionID,
+		BelongsToAccount: accountID,
+	})
+	if err != nil {
+		return false, observability.PrepareAndLogError(err, logger, span, "performing meal plan option account ownership check")
+	}
+
+	return result, nil
+}
+
 // GetMealPlanOption fetches a meal plan option from the database.
 func (q *repository) GetMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string) (*mealplanning.MealPlanOption, error) {
 	ctx, span := q.tracer.StartSpan(ctx)

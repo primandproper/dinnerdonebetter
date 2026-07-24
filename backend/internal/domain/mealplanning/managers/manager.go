@@ -55,12 +55,13 @@ type (
 		CreateMealPlanOption(ctx context.Context, input *types.MealPlanOptionCreationRequestInput) (*types.MealPlanOption, error)
 		CreateMealPlanOptionWithEventID(ctx context.Context, mealPlanEventID string, input *types.MealPlanOptionCreationRequestInput) (*types.MealPlanOption, error)
 		ReadMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string) (*types.MealPlanOption, error)
+		MealPlanOptionBelongsToAccount(ctx context.Context, mealPlanOptionID, accountID string) (bool, error)
 		UpdateMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string, input *types.MealPlanOptionUpdateRequestInput) error
 		ArchiveMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string) error
 
 		// Meal plan option votes
 		ListMealPlanOptionVotes(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanOptionVote], error)
-		CreateMealPlanOptionVotes(ctx context.Context, creatorID string, input *types.MealPlanOptionVoteCreationRequestInput) ([]*types.MealPlanOptionVote, error)
+		CreateMealPlanOptionVotes(ctx context.Context, mealPlanID, mealPlanEventID, creatorID string, input *types.MealPlanOptionVoteCreationRequestInput) ([]*types.MealPlanOptionVote, error)
 		ReadMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID string) (*types.MealPlanOptionVote, error)
 		UpdateMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID string, input *types.MealPlanOptionVoteUpdateRequestInput) error
 		ArchiveMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID string) error
@@ -101,14 +102,14 @@ type (
 		ArchiveAccountInstrumentOwnership(ctx context.Context, ownerID, instrumentOwnershipID string) error
 
 		// Meal lists
-		ListMealLists(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealList], error)
+		ListMealLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealList], error)
 		CreateMealList(ctx context.Context, userID string, input *types.MealListCreationRequestInput) (*types.MealList, error)
 		UpdateMealList(ctx context.Context, mealListID, userID string, input *types.MealListUpdateRequestInput) error
 		ArchiveMealList(ctx context.Context, mealListID, userID string) error
 		AddMealToMealList(ctx context.Context, mealListID, mealID, notes string) (*types.MealListItem, error)
 		UpdateMealListItem(ctx context.Context, mealListItemID, mealListID, mealID string, input *types.MealListItemUpdateRequestInput) error
 		RemoveMealFromMealList(ctx context.Context, mealListID, mealListItemID string) error
-		ListMealListItems(ctx context.Context, mealListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealListItem], error)
+		ListMealListItems(ctx context.Context, mealListID, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealListItem], error)
 
 		// Recipes
 		ListRecipes(ctx context.Context, status string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Recipe], error)

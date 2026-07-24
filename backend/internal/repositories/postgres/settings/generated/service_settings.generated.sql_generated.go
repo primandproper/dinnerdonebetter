@@ -144,7 +144,7 @@ SELECT
 				service_settings.last_updated_at IS NULL
 				OR service_settings.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR service_settings.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR service_settings.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(service_settings.id)
@@ -157,13 +157,13 @@ WHERE service_settings.archived_at IS NULL
 	AND service_settings.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		service_settings.last_updated_at IS NULL
-		OR service_settings.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR service_settings.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		service_settings.last_updated_at IS NULL
-		OR service_settings.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR service_settings.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR service_settings.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR service_settings.archived_at IS NULL)
 	AND service_settings.id > COALESCE($6, '')
 ORDER BY service_settings.id ASC
 LIMIT COALESCE($7, 50)
@@ -172,8 +172,8 @@ LIMIT COALESCE($7, 50)
 type GetServiceSettingsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -198,8 +198,8 @@ func (q *Queries) GetServiceSettings(ctx context.Context, db DBTX, arg *GetServi
 	rows, err := db.QueryContext(ctx, getServiceSettings,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -265,7 +265,7 @@ SELECT
 				service_settings.last_updated_at IS NULL
 				OR service_settings.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR service_settings.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR service_settings.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(service_settings.id)
@@ -279,13 +279,13 @@ WHERE service_settings.archived_at IS NULL
 	AND service_settings.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		service_settings.last_updated_at IS NULL
-		OR service_settings.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR service_settings.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		service_settings.last_updated_at IS NULL
-		OR service_settings.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR service_settings.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR service_settings.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR service_settings.archived_at IS NULL)
 	AND service_settings.id > COALESCE($7, '')
 ORDER BY service_settings.id ASC
 LIMIT COALESCE($8, 50)
@@ -294,8 +294,8 @@ LIMIT COALESCE($8, 50)
 type SearchForServiceSettingsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	NameQuery       string
 	Cursor          sql.NullString
@@ -321,8 +321,8 @@ func (q *Queries) SearchForServiceSettings(ctx context.Context, db DBTX, arg *Se
 	rows, err := db.QueryContext(ctx, searchForServiceSettings,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.NameQuery,
 		arg.Cursor,

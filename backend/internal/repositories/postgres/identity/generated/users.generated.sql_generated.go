@@ -969,7 +969,7 @@ SELECT
 				users.last_updated_at IS NULL
 				OR users.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR users.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR users.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(users.id)
@@ -984,13 +984,13 @@ WHERE users.archived_at IS NULL
 	AND users.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR users.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR users.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR users.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR users.archived_at IS NULL)
 	AND users.id > COALESCE($6, '')
 ORDER BY users.id ASC
 LIMIT COALESCE($7, 50)
@@ -999,8 +999,8 @@ LIMIT COALESCE($7, 50)
 type GetUsersParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -1043,8 +1043,8 @@ func (q *Queries) GetUsers(ctx context.Context, db DBTX, arg *GetUsersParams) ([
 	rows, err := db.QueryContext(ctx, getUsers,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -1146,7 +1146,7 @@ SELECT
 				users.last_updated_at IS NULL
 				OR users.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR users.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR users.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(users.id)
@@ -1163,13 +1163,13 @@ WHERE users.archived_at IS NULL
 	AND users.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR users.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR users.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR users.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR users.archived_at IS NULL)
 	AND account_user_memberships.belongs_to_account = $6
 	AND account_user_memberships.archived_at IS NULL
 	AND users.id > COALESCE($7, '')
@@ -1180,8 +1180,8 @@ LIMIT COALESCE($8, 50)
 type GetUsersForAccountParams struct {
 	CreatedAfter     sql.NullTime
 	CreatedBefore    sql.NullTime
-	UpdatedBefore    sql.NullTime
 	UpdatedAfter     sql.NullTime
+	UpdatedBefore    sql.NullTime
 	IncludeArchived  sql.NullBool
 	BelongsToAccount string
 	Cursor           sql.NullString
@@ -1225,8 +1225,8 @@ func (q *Queries) GetUsersForAccount(ctx context.Context, db DBTX, arg *GetUsers
 	rows, err := db.QueryContext(ctx, getUsersForAccount,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToAccount,
 		arg.Cursor,
@@ -1515,7 +1515,7 @@ SELECT
 				users.last_updated_at IS NULL
 				OR users.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR users.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR users.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(users.id)
@@ -1531,13 +1531,13 @@ WHERE users.archived_at IS NULL
 	AND users.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR users.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR users.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR users.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR users.archived_at IS NULL)
 	AND users.id > COALESCE($7, '')
 ORDER BY users.id ASC
 LIMIT COALESCE($8, 50)
@@ -1546,8 +1546,8 @@ LIMIT COALESCE($8, 50)
 type SearchUsersByUsernameParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Username        string
 	Cursor          sql.NullString
@@ -1591,8 +1591,8 @@ func (q *Queries) SearchUsersByUsername(ctx context.Context, db DBTX, arg *Searc
 	rows, err := db.QueryContext(ctx, searchUsersByUsername,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Username,
 		arg.Cursor,

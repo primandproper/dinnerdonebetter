@@ -211,7 +211,7 @@ SELECT
 				account_instrument_ownerships.last_updated_at IS NULL
 				OR account_instrument_ownerships.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR account_instrument_ownerships.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR account_instrument_ownerships.archived_at IS NULL)
 			AND account_instrument_ownerships.belongs_to_account = $6
 	) AS filtered_count,
 	(
@@ -228,13 +228,13 @@ WHERE
 	AND account_instrument_ownerships.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		account_instrument_ownerships.last_updated_at IS NULL
-		OR account_instrument_ownerships.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR account_instrument_ownerships.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		account_instrument_ownerships.last_updated_at IS NULL
-		OR account_instrument_ownerships.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR account_instrument_ownerships.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR account_instrument_ownerships.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR account_instrument_ownerships.archived_at IS NULL)
 	AND account_instrument_ownerships.belongs_to_account = $6
 	AND account_instrument_ownerships.id > COALESCE($7, '')
 GROUP BY
@@ -247,8 +247,8 @@ LIMIT COALESCE($8, 50)
 type GetAccountInstrumentOwnershipsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	AccountID       string
 	Cursor          sql.NullString
@@ -284,8 +284,8 @@ func (q *Queries) GetAccountInstrumentOwnerships(ctx context.Context, db DBTX, a
 	rows, err := db.QueryContext(ctx, getAccountInstrumentOwnerships,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.AccountID,
 		arg.Cursor,

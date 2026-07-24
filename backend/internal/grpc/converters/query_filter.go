@@ -22,7 +22,8 @@ func ConvertGRPCQueryFilterToQueryFilter(qf *grpcfiltering.QueryFilter) *filteri
 		UpdatedBefore:   ConvertPBTimestampToTimePointer(qf.UpdatedBefore),
 	}
 	if qf.MaxResponseSize != nil {
-		filter.MaxResponseSize = new(uint8(*qf.MaxResponseSize))
+		size := min(*qf.MaxResponseSize, filtering.MaxQueryFilterLimit)
+		filter.MaxResponseSize = new(uint8(size))
 	}
 
 	return filter

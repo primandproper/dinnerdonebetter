@@ -146,6 +146,26 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, codes.Internal, grpcErr.Code())
 	})
+
+	t.Run("with insufficient permissions", func(t *testing.T) {
+		t.Parallel()
+
+		service := buildTestServiceWithInsufficientPermissions(t)
+
+		request := &identitysvc.AdminSetPasswordChangeRequiredRequest{
+			TargetUserId:           identityfakes.BuildFakeID(),
+			RequiresPasswordChange: true,
+		}
+
+		result, err := service.AdminSetPasswordChangeRequired(t.Context(), request)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+
+		grpcErr, ok := status.FromError(err)
+		assert.True(t, ok)
+		assert.Equal(t, codes.PermissionDenied, grpcErr.Code())
+	})
 }
 
 func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
@@ -216,6 +236,26 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 		grpcErr, ok := status.FromError(err)
 		assert.True(t, ok)
 		assert.Equal(t, codes.Internal, grpcErr.Code())
+	})
+
+	t.Run("with insufficient permissions", func(t *testing.T) {
+		t.Parallel()
+
+		service := buildTestServiceWithInsufficientPermissions(t)
+
+		request := &identitysvc.AdminUpdateUserStatusRequest{
+			TargetUserId: identityfakes.BuildFakeID(),
+			NewStatus:    identity.BannedUserAccountStatus.String(),
+		}
+
+		result, err := service.AdminUpdateUserStatus(t.Context(), request)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+
+		grpcErr, ok := status.FromError(err)
+		assert.True(t, ok)
+		assert.Equal(t, codes.PermissionDenied, grpcErr.Code())
 	})
 
 	t.Run("with banned status", func(t *testing.T) {

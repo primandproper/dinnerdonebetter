@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 	"sync"
@@ -35,6 +36,10 @@ const (
 	// TODO: organize this so that the API client gets the same source.
 	zuckModeUserHeader    = "X-Zuck-Mode-User"
 	zuckModeAccountHeader = "X-Zuck-Mode-Account"
+
+	// runModeEnvVarKey is the environment variable describing the current run mode (development,
+	// testing, or production). Kept as a literal here to avoid importing internal/config.
+	runModeEnvVarKey = "DINNER_DONE_BETTER_META_RUN_MODE"
 )
 
 type AuthInterceptor struct {
@@ -63,6 +68,33 @@ func ProvideAuthInterceptor(
 	tokenIssuer tokens.Issuer,
 	aggregatedPermissions MethodPermissionsMap,
 ) *AuthInterceptor {
+	// TODO: configure this elsewhere
+	unauthenticatedRoutes := []string{
+		"/auth.AuthService/AdminLoginForToken",
+		"/auth.AuthService/BeginPasskeyAuthentication",
+		"/auth.AuthService/FinishPasskeyAuthentication",
+		"/identity.IdentityService/CreateUser",
+		"/auth.AuthService/VerifyTOTPSecret",
+		"/auth.AuthService/LoginForToken",
+		"/auth.AuthService/RequestPasswordResetToken",
+		"/auth.AuthService/RedeemPasswordResetToken",
+		// A user who forgot their username can't authenticate first.
+		"/auth.AuthService/RequestUsernameReminder",
+		"/auth.AuthService/VerifyEmailAddress",
+		// Analytics proxy: anonymous events (no auth)
+		"/analytics.AnalyticsService/TrackAnonymousEvent",
+	}
+
+	// gRPC reflection exposes the full service catalog to unauthenticated callers. It's handy for
+	// local tooling (grpcurl, k6) but should not be reachable in production, so only allow-list it
+	// outside of production run mode.
+	if grpcReflectionEnabled() {
+		unauthenticatedRoutes = append(unauthenticatedRoutes,
+			"/grpc.reflection.v1.ServerReflection/ServerReflectionInfo",
+			"/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo",
+		)
+	}
+
 	return &AuthInterceptor{
 		tracer:              tracing.NewNamedTracer(tracerProvider, o11yName),
 		logger:              logging.NewNamedLogger(logger, o11yName),
@@ -78,23 +110,18 @@ func ProvideAuthInterceptor(
 			"/auth.AuthService/GetAuthStatus",
 			"/auth.AuthService/GetActiveAccount",
 		},
-		// TODO: configure this elsewhere
-		unauthenticatedRoutes: []string{
-			"/auth.AuthService/AdminLoginForToken",
-			"/auth.AuthService/BeginPasskeyAuthentication",
-			"/auth.AuthService/FinishPasskeyAuthentication",
-			"/identity.IdentityService/CreateUser",
-			"/auth.AuthService/VerifyTOTPSecret",
-			"/auth.AuthService/LoginForToken",
-			"/auth.AuthService/RequestPasswordResetToken",
-			"/auth.AuthService/RedeemPasswordResetToken",
-			"/auth.AuthService/VerifyEmailAddress",
-			// gRPC reflection (used by k6, grpcurl, etc. for service discovery)
-			"/grpc.reflection.v1.ServerReflection/ServerReflectionInfo",
-			"/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo",
-			// Analytics proxy: anonymous events (no auth)
-			"/analytics.AnalyticsService/TrackAnonymousEvent",
-		},
+		unauthenticatedRoutes: unauthenticatedRoutes,
+	}
+}
+
+// grpcReflectionEnabled reports whether gRPC reflection should be reachable without authentication.
+// It is enabled only outside of production run mode (production is the default when the env var is unset).
+func grpcReflectionEnabled() bool {
+	switch strings.TrimSpace(strings.ToLower(os.Getenv(runModeEnvVarKey))) {
+	case "development", "testing":
+		return true
+	default:
+		return false
 	}
 }
 
@@ -125,21 +152,18 @@ func (s *AuthInterceptor) determineZuckMode(ctx context.Context, metaData metada
 			return "", "", observability.PrepareError(err, span, "fetching user info")
 		}
 
-		zuckAccountIDs := metaData.Get(zuckModeAccountHeader)
-		if len(zuckAccountIDs) > 0 {
+		if zuckAccountIDs := metaData.Get(zuckModeAccountHeader); len(zuckAccountIDs) > 0 {
 			zuckAccountID = zuckAccountIDs[0]
-		}
 
-		if len(zuckAccountIDs) > 0 {
-			accountID, err = s.identityDataManager.GetDefaultAccountIDForUser(ctx, zuckUserID)
-			if err != nil {
-				return "", "", observability.PrepareError(err, span, "fetching account info")
+			// Honor the specifically requested impersonation account instead of always falling back
+			// to the user's default. BuildSessionContextDataForUser validates that the impersonated
+			// user is actually a member of the requested account and errors out otherwise.
+			if _, err = s.identityDataManager.BuildSessionContextDataForUser(ctx, zuckUserID, zuckAccountID); err != nil {
+				return "", "", observability.PrepareError(err, span, "validating impersonated account membership")
 			}
-		} else {
-			return zuckUserID, zuckAccountID, nil
 		}
 
-		return zuckUserID, accountID, nil
+		return zuckUserID, zuckAccountID, nil
 	}
 
 	return "", "", nil
@@ -184,12 +208,13 @@ func (s *AuthInterceptor) extractSessionContextData(ctx context.Context, metaDat
 					if _, sessErr := s.sessionDataManager.GetUserSessionBySessionTokenID(ctx, jti); sessErr != nil {
 						return nil, Unauthenticated("session has been revoked or expired")
 					}
-					// Touch last active asynchronously so it doesn't block the request.
+					// Touch last active asynchronously so it doesn't block the request. Use a local error
+					// variable so the goroutine doesn't race on the outer err captured by the closure.
 					touchJTI := jti
 					touchCtx := context.WithoutCancel(ctx)
 					go func() {
-						if err = s.sessionDataManager.TouchSessionLastActive(touchCtx, touchJTI); err != nil {
-							logger.Error("touch session last active failed", err)
+						if touchErr := s.sessionDataManager.TouchSessionLastActive(touchCtx, touchJTI); touchErr != nil {
+							logger.Error("touch session last active failed", touchErr)
 						}
 					}()
 				}
@@ -251,6 +276,11 @@ func (s *AuthInterceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 
 		sessionContextData, err := s.extractSessionContextData(ctx, md)
 		if err != nil {
+			// Propagate the original status (e.g. a genuine Unauthenticated) rather than masking every
+			// failure as Internal, which breaks client token-refresh retry logic.
+			if _, isStatusErr := status.FromError(err); isStatusErr {
+				return nil, err
+			}
 			return nil, status.Error(codes.Internal, "building session context data for user")
 		}
 
@@ -324,6 +354,11 @@ func (s *AuthInterceptor) StreamServerInterceptor() grpc.StreamServerInterceptor
 
 		sessionContextData, err := s.extractSessionContextData(ss.Context(), md)
 		if err != nil {
+			// Propagate the original status (e.g. a genuine Unauthenticated) rather than masking every
+			// failure as Internal, which breaks client token-refresh retry logic.
+			if _, isStatusErr := status.FromError(err); isStatusErr {
+				return err
+			}
 			return status.Error(codes.Internal, "building session context data for user")
 		}
 

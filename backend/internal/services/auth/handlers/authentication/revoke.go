@@ -69,7 +69,7 @@ func (s *service) RevokeHandler(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	if oauthClient.ClientSecret != clientSecret {
+	if !types.ClientSecretMatches(oauthClient.ClientSecret, clientSecret) {
 		res.WriteHeader(http.StatusUnauthorized)
 		return
 	}

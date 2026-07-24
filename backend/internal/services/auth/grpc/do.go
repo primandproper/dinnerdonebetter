@@ -40,6 +40,7 @@ func RegisterAuthService(i do.Injector) {
 
 	do.Provide[*webauthn.Service](i, func(i do.Injector) (*webauthn.Service, error) {
 		return ProvidePasskeyService(
+			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[webauthn.Config](i),
 			do.MustInvoke[identitymanager.IdentityDataManager](i),
 			do.MustInvoke[identity.Repository](i),

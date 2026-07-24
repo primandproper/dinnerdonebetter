@@ -324,12 +324,13 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 			Name:         want.name,
 			Description:  want.desc,
 			ClientID:     clientID,
-			ClientSecret: clientSecret,
+			ClientSecret: oauth.HashClientSecret(clientSecret),
 		})
 		if creationErr != nil {
 			return fmt.Errorf("creating OAuth2 client %s: %w", want.name, creationErr)
 		}
-		fmt.Printf("  %s: created (client_id=%s client_secret=%s)\n", want.name, created.ClientID, created.ClientSecret)
+		// print the plaintext secret: this is the only time it is recoverable.
+		fmt.Printf("  %s: created (client_id=%s client_secret=%s)\n", want.name, created.ClientID, clientSecret)
 	}
 
 	fmt.Println()

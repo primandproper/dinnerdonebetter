@@ -148,7 +148,7 @@ SELECT
 				issue_reports.last_updated_at IS NULL
 				OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR issue_reports.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(issue_reports.id)
@@ -161,11 +161,11 @@ WHERE issue_reports.archived_at IS NULL
 	AND issue_reports.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND issue_reports.id > COALESCE($6, '')
 ORDER BY issue_reports.id ASC
@@ -175,8 +175,8 @@ LIMIT COALESCE($7, 50)
 type GetIssueReportsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -201,8 +201,8 @@ func (q *Queries) GetIssueReports(ctx context.Context, db DBTX, arg *GetIssueRep
 	rows, err := db.QueryContext(ctx, getIssueReports,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -268,7 +268,7 @@ SELECT
 				issue_reports.last_updated_at IS NULL
 				OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR issue_reports.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.belongs_to_account = $6
 	) AS filtered_count,
 	(
@@ -284,11 +284,11 @@ WHERE issue_reports.archived_at IS NULL
 	AND issue_reports.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND issue_reports.belongs_to_account = $6
 	AND issue_reports.id > COALESCE($7, '')
@@ -299,8 +299,8 @@ LIMIT COALESCE($8, 50)
 type GetIssueReportsForAccountParams struct {
 	CreatedAfter     sql.NullTime
 	CreatedBefore    sql.NullTime
-	UpdatedBefore    sql.NullTime
 	UpdatedAfter     sql.NullTime
+	UpdatedBefore    sql.NullTime
 	IncludeArchived  sql.NullBool
 	BelongsToAccount string
 	Cursor           sql.NullString
@@ -326,8 +326,8 @@ func (q *Queries) GetIssueReportsForAccount(ctx context.Context, db DBTX, arg *G
 	rows, err := db.QueryContext(ctx, getIssueReportsForAccount,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToAccount,
 		arg.Cursor,
@@ -394,7 +394,7 @@ SELECT
 				issue_reports.last_updated_at IS NULL
 				OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR issue_reports.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.relevant_table = $6
 			AND issue_reports.relevant_record_id = $7
 	) AS filtered_count,
@@ -413,11 +413,11 @@ WHERE issue_reports.archived_at IS NULL
 	AND issue_reports.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND issue_reports.relevant_table = $6
 	AND issue_reports.relevant_record_id = $7
@@ -429,8 +429,8 @@ LIMIT COALESCE($9, 50)
 type GetIssueReportsForRecordParams struct {
 	CreatedAfter     sql.NullTime
 	CreatedBefore    sql.NullTime
-	UpdatedBefore    sql.NullTime
 	UpdatedAfter     sql.NullTime
+	UpdatedBefore    sql.NullTime
 	IncludeArchived  sql.NullBool
 	RelevantTable    sql.NullString
 	RelevantRecordID sql.NullString
@@ -457,8 +457,8 @@ func (q *Queries) GetIssueReportsForRecord(ctx context.Context, db DBTX, arg *Ge
 	rows, err := db.QueryContext(ctx, getIssueReportsForRecord,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.RelevantTable,
 		arg.RelevantRecordID,
@@ -526,7 +526,7 @@ SELECT
 				issue_reports.last_updated_at IS NULL
 				OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR issue_reports.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.relevant_table = $6
 	) AS filtered_count,
 	(
@@ -542,11 +542,11 @@ WHERE issue_reports.archived_at IS NULL
 	AND issue_reports.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND issue_reports.relevant_table = $6
 	AND issue_reports.id > COALESCE($7, '')
@@ -557,8 +557,8 @@ LIMIT COALESCE($8, 50)
 type GetIssueReportsForTableParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	RelevantTable   sql.NullString
 	Cursor          sql.NullString
@@ -584,8 +584,8 @@ func (q *Queries) GetIssueReportsForTable(ctx context.Context, db DBTX, arg *Get
 	rows, err := db.QueryContext(ctx, getIssueReportsForTable,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.RelevantTable,
 		arg.Cursor,

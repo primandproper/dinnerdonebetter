@@ -434,7 +434,7 @@ SELECT
 				valid_prep_task_configs.last_updated_at IS NULL
 				OR valid_prep_task_configs.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_prep_task_configs.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
@@ -450,11 +450,11 @@ WHERE
 	AND valid_prep_task_configs.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_prep_task_configs.last_updated_at IS NULL
-		OR valid_prep_task_configs.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_prep_task_configs.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_prep_task_configs.last_updated_at IS NULL
-		OR valid_prep_task_configs.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_prep_task_configs.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND valid_prep_task_configs.id > COALESCE($6, '')
 ORDER BY valid_prep_task_configs.id ASC
@@ -464,8 +464,8 @@ LIMIT COALESCE($7, 50)
 type GetValidPrepTaskConfigsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -554,8 +554,8 @@ func (q *Queries) GetValidPrepTaskConfigs(ctx context.Context, db DBTX, arg *Get
 	rows, err := db.QueryContext(ctx, getValidPrepTaskConfigs,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -749,7 +749,7 @@ SELECT
 				valid_prep_task_configs.last_updated_at IS NULL
 				OR valid_prep_task_configs.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_prep_task_configs.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
@@ -766,11 +766,11 @@ WHERE
 	AND valid_prep_task_configs.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_prep_task_configs.last_updated_at IS NULL
-		OR valid_prep_task_configs.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_prep_task_configs.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_prep_task_configs.last_updated_at IS NULL
-		OR valid_prep_task_configs.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_prep_task_configs.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND valid_prep_task_configs.id > COALESCE($7, '')
 ORDER BY valid_prep_task_configs.id ASC
@@ -780,8 +780,8 @@ LIMIT COALESCE($8, 50)
 type GetValidPrepTaskConfigsForIngredientParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
 	Cursor          sql.NullString
@@ -871,8 +871,8 @@ func (q *Queries) GetValidPrepTaskConfigsForIngredient(ctx context.Context, db D
 	rows, err := db.QueryContext(ctx, getValidPrepTaskConfigsForIngredient,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
 		arg.Cursor,
@@ -1067,7 +1067,7 @@ SELECT
 				valid_prep_task_configs.last_updated_at IS NULL
 				OR valid_prep_task_configs.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_prep_task_configs.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
@@ -1085,11 +1085,11 @@ WHERE
 	AND valid_prep_task_configs.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_prep_task_configs.last_updated_at IS NULL
-		OR valid_prep_task_configs.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_prep_task_configs.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_prep_task_configs.last_updated_at IS NULL
-		OR valid_prep_task_configs.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_prep_task_configs.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND valid_prep_task_configs.id > COALESCE($8, '')
 ORDER BY valid_prep_task_configs.id ASC
@@ -1099,8 +1099,8 @@ LIMIT COALESCE($9, 50)
 type GetValidPrepTaskConfigsForIngredientAndPreparationParams struct {
 	CreatedAfter       sql.NullTime
 	CreatedBefore      sql.NullTime
-	UpdatedBefore      sql.NullTime
 	UpdatedAfter       sql.NullTime
+	UpdatedBefore      sql.NullTime
 	IncludeArchived    sql.NullBool
 	ValidIngredientID  string
 	ValidPreparationID string
@@ -1191,8 +1191,8 @@ func (q *Queries) GetValidPrepTaskConfigsForIngredientAndPreparation(ctx context
 	rows, err := db.QueryContext(ctx, getValidPrepTaskConfigsForIngredientAndPreparation,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ValidIngredientID,
 		arg.ValidPreparationID,
@@ -1388,7 +1388,7 @@ SELECT
 				valid_prep_task_configs.last_updated_at IS NULL
 				OR valid_prep_task_configs.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_prep_task_configs.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
@@ -1405,11 +1405,11 @@ WHERE
 	AND valid_prep_task_configs.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_prep_task_configs.last_updated_at IS NULL
-		OR valid_prep_task_configs.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_prep_task_configs.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_prep_task_configs.last_updated_at IS NULL
-		OR valid_prep_task_configs.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_prep_task_configs.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND valid_prep_task_configs.id > COALESCE($7, '')
 ORDER BY valid_prep_task_configs.id ASC
@@ -1419,8 +1419,8 @@ LIMIT COALESCE($8, 50)
 type GetValidPrepTaskConfigsForPreparationParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
 	Cursor          sql.NullString
@@ -1510,8 +1510,8 @@ func (q *Queries) GetValidPrepTaskConfigsForPreparation(ctx context.Context, db 
 	rows, err := db.QueryContext(ctx, getValidPrepTaskConfigsForPreparation,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
 		arg.Cursor,

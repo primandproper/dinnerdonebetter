@@ -2,6 +2,7 @@ package mealplanning
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -72,8 +73,8 @@ func (q *repository) GetMealPlanTask(ctx context.Context, mealPlanTaskID string)
 
 	mealPlanTask := &types.MealPlanTask{
 		RecipePrepTask: types.RecipePrepTask{
-			ID:   result.PrepTaskID,
-			Name: result.PrepTaskName,
+			ID:   database.StringFromNullString(result.PrepTaskID),
+			Name: database.StringFromNullString(result.PrepTaskName),
 		},
 		CreatedAt:           result.CreatedAt,
 		LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
@@ -118,14 +119,15 @@ func (q *repository) createMealPlanTask(ctx context.Context, querier database.SQ
 	}
 	logger = logger.WithValue(mealplanningkeys.MealPlanTaskIDKey, input.ID)
 
-	// create the meal plan task.
+	// create the meal plan task. An empty RecipePrepTaskID means an ad-hoc task (e.g. a thaw
+	// task) with no backing recipe prep task, persisted as NULL.
 	if err := q.generatedQuerier.CreateMealPlanTask(ctx, querier, &generated.CreateMealPlanTaskParams{
 		ID:                      input.ID,
 		Status:                  types.MealPlanTaskStatusUnfinished,
 		StatusExplanation:       input.StatusExplanation,
 		CreationExplanation:     input.CreationExplanation,
 		BelongsToMealPlanOption: input.MealPlanOptionID,
-		BelongsToRecipePrepTask: input.RecipePrepTaskID,
+		BelongsToRecipePrepTask: sql.NullString{String: input.RecipePrepTaskID, Valid: input.RecipePrepTaskID != ""},
 		AssignedToUser:          database.NullStringFromStringPointer(input.AssignedToUser),
 	}); err != nil {
 		q.RollbackTransaction(ctx, querier)
@@ -240,19 +242,19 @@ func (q *repository) GetMealPlanTasksForMealPlan(ctx context.Context, mealPlanID
 					TieBroken: result.MealPlanOptionTiebroken,
 				},
 				RecipePrepTask: types.RecipePrepTask{
-					ID:                                 result.PrepTaskID,
-					BelongsToRecipe:                    result.PrepTaskBelongsToRecipe,
-					Name:                               result.PrepTaskName,
-					Description:                        result.PrepTaskDescription,
-					Notes:                              result.PrepTaskNotes,
-					ExplicitStorageInstructions:        result.PrepTaskExplicitStorageInstructions,
-					Optional:                           result.PrepTaskOptional,
-					CreatedAt:                          result.PrepTaskCreatedAt,
+					ID:                                 database.StringFromNullString(result.PrepTaskID),
+					BelongsToRecipe:                    database.StringFromNullString(result.PrepTaskBelongsToRecipe),
+					Name:                               database.StringFromNullString(result.PrepTaskName),
+					Description:                        database.StringFromNullString(result.PrepTaskDescription),
+					Notes:                              database.StringFromNullString(result.PrepTaskNotes),
+					ExplicitStorageInstructions:        database.StringFromNullString(result.PrepTaskExplicitStorageInstructions),
+					Optional:                           database.BoolFromNullBool(result.PrepTaskOptional),
+					CreatedAt:                          database.TimeFromNullTime(result.PrepTaskCreatedAt),
 					LastUpdatedAt:                      database.TimePointerFromNullTime(result.PrepTaskLastUpdatedAt),
 					ArchivedAt:                         database.TimePointerFromNullTime(result.PrepTaskArchivedAt),
 					MinStorageTemperatureInCelsius:     database.Float32PointerFromNullString(result.PrepTaskMinimumStorageTemperatureInCelsius),
 					MaxStorageTemperatureInCelsius:     database.Float32PointerFromNullString(result.PrepTaskMaximumStorageTemperatureInCelsius),
-					MinTimeBufferBeforeRecipeInSeconds: uint32(result.PrepTaskMinimumTimeBufferBeforeRecipeInSeconds),
+					MinTimeBufferBeforeRecipeInSeconds: uint32(result.PrepTaskMinimumTimeBufferBeforeRecipeInSeconds.Int32),
 					MaxTimeBufferBeforeRecipeInSeconds: database.Uint32PointerFromNullInt32(result.PrepTaskMaximumTimeBufferBeforeRecipeInSeconds),
 					TaskSteps:                          []*types.RecipePrepTaskStep{},
 				},
@@ -267,11 +269,11 @@ func (q *repository) GetMealPlanTasksForMealPlan(ctx context.Context, mealPlanID
 		}
 
 		// Add prep task step if it exists and hasn't been added yet
-		if result.PrepTaskStepID != "" {
+		if prepTaskStepID := database.StringFromNullString(result.PrepTaskStepID); prepTaskStepID != "" {
 			// Check if this step is already in the task steps
 			stepExists := false
 			for _, existingStep := range mealPlanTask.RecipePrepTask.TaskSteps {
-				if existingStep.ID == result.PrepTaskStepID {
+				if existingStep.ID == prepTaskStepID {
 					stepExists = true
 					break
 				}
@@ -279,10 +281,10 @@ func (q *repository) GetMealPlanTasksForMealPlan(ctx context.Context, mealPlanID
 
 			if !stepExists {
 				mealPlanTask.RecipePrepTask.TaskSteps = append(mealPlanTask.RecipePrepTask.TaskSteps, &types.RecipePrepTaskStep{
-					ID:                      result.PrepTaskStepID,
-					BelongsToRecipeStep:     result.PrepTaskStepBelongsToRecipeStep,
-					BelongsToRecipePrepTask: result.PrepTaskStepBelongsToRecipePrepTask,
-					SatisfiesRecipeStep:     result.PrepTaskStepSatisfiesRecipeStep,
+					ID:                      prepTaskStepID,
+					BelongsToRecipeStep:     database.StringFromNullString(result.PrepTaskStepBelongsToRecipeStep),
+					BelongsToRecipePrepTask: database.StringFromNullString(result.PrepTaskStepBelongsToRecipePrepTask),
+					SatisfiesRecipeStep:     database.BoolFromNullBool(result.PrepTaskStepSatisfiesRecipeStep),
 				})
 			}
 		}

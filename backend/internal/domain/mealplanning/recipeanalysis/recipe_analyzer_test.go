@@ -69,7 +69,7 @@ func TestRecipeGrapher_makeDAGForRecipe(T *testing.T) {
 func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 	T.Parallel()
 
-	T.Run("creates frozen thawing steps", func(t *testing.T) {
+	T.Run("creates thaw tasks for frozen ingredients", func(t *testing.T) {
 		t.Parallel()
 
 		g := newAnalyzerForTest(t)
@@ -104,7 +104,9 @@ func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 					Ingredients: []*mealplanning.RecipeStepIngredient{
 						{
 							Ingredient: &mealplanning.ValidIngredient{
-								MinStorageTemperatureInCelsius: new(float32(2.5)),
+								// -5°C is below the corrected frozen threshold (<= 0°C), so this ingredient
+								// genuinely qualifies as frozen.
+								MinStorageTemperatureInCelsius: new(float32(-5)),
 								PluralName:                     "chicken breasts",
 								StorageInstructions:            "keep frozen",
 								Name:                           "chicken breast",
@@ -132,21 +134,69 @@ func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 			},
 		}
 
-		expected := []*mealplanning.MealPlanTaskDatabaseCreationInput{
-			{
-				CreationExplanation: buildThawStepCreationExplanation(1, 0),
-				MealPlanOptionID:    exampleMealPlanOption.ID,
-			},
-		}
-
 		actual, err := g.GenerateMealPlanTasksForRecipe(ctx, exampleMealPlanOption.ID, exampleRecipe)
 		assert.NoError(t, err)
 
-		for i := range expected {
-			expected[i].ID = actual[i].ID
+		// The frozen chicken breast in step 1 yields exactly one ad-hoc thaw task. Thaw tasks have
+		// no backing recipe prep task (belongs_to_recipe_prep_task is nullable).
+		assert.Len(t, actual, 1)
+		assert.Equal(t, exampleMealPlanOption.ID, actual[0].MealPlanOptionID)
+		assert.Empty(t, actual[0].RecipePrepTaskID)
+		assert.Equal(t, buildThawStepCreationExplanation(1, 0), actual[0].CreationExplanation)
+		assert.NotEmpty(t, actual[0].ID)
+	})
+
+	T.Run("does not create thaw tasks for refrigerated ingredients", func(t *testing.T) {
+		t.Parallel()
+
+		g := newAnalyzerForTest(t)
+		ctx := t.Context()
+
+		exampleMealPlanOptionID := fakes.BuildFakeID()
+		recipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipe := &mealplanning.Recipe{
+			Name: "Recipe 1",
+			ID:   exampleRecipeID,
+			Steps: []*mealplanning.RecipeStep{
+				{
+					BelongsToRecipe: exampleRecipeID,
+					ID:              recipeStepID,
+					Preparation:     mealplanning.ValidPreparation{Name: "dice"},
+					Ingredients: []*mealplanning.RecipeStepIngredient{
+						{
+							Ingredient: &mealplanning.ValidIngredient{
+								// 2.5°C is fridge temperature, above the frozen threshold (<= 0°C).
+								MinStorageTemperatureInCelsius: new(float32(2.5)),
+								PluralName:                     "chicken breasts",
+								StorageInstructions:            "keep refrigerated",
+								Name:                           "chicken breast",
+								ID:                             fakes.BuildFakeID(),
+							},
+							Name:                "chicken breast",
+							ID:                  fakes.BuildFakeID(),
+							BelongsToRecipeStep: recipeStepID,
+							MeasurementUnit:     mealplanning.ValidMeasurementUnit{Name: "gram", PluralName: "grams"},
+							MinQuantity:         900,
+							MaxQuantity:         new(float32(900)),
+						},
+					},
+					Products: []*mealplanning.RecipeStepProduct{
+						{
+							Name:                "diced chicken breast",
+							Type:                mealplanning.RecipeStepProductIngredientType,
+							BelongsToRecipeStep: recipeStepID,
+							ID:                  fakes.BuildFakeID(),
+							MeasurementUnit:     &mealplanning.ValidMeasurementUnit{},
+						},
+					},
+				},
+			},
 		}
 
-		assert.Equal(t, expected, actual)
+		actual, err := g.GenerateMealPlanTasksForRecipe(ctx, exampleMealPlanOptionID, exampleRecipe)
+		assert.NoError(t, err)
+		assert.Empty(t, actual)
 	})
 }
 

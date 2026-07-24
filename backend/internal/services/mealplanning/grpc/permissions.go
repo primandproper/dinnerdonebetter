@@ -160,7 +160,7 @@ func ProvideMethodPermissions() MealPlanningMethodPermissions {
 		mealplanningsvc.MealPlanningService_UpdateRecipeStatus_FullMethodName:                      {authorization.UpdateRecipesStatusPermission},
 		mealplanningsvc.MealPlanningService_ArchiveRecipe_FullMethodName:                           {authorization.ArchiveRecipesPermission},
 		mealplanningsvc.MealPlanningService_SearchForRecipes_FullMethodName:                        {authorization.ReadRecipesPermission},
-		mealplanningsvc.MealPlanningService_CloneRecipe_FullMethodName:                             {authorization.ReadRecipesPermission},
+		mealplanningsvc.MealPlanningService_CloneRecipe_FullMethodName:                             {authorization.CloneRecipesPermission},
 		mealplanningsvc.MealPlanningService_UploadRecipeImage_FullMethodName:                       {authorization.UpdateRecipesPermission},
 		mealplanningsvc.MealPlanningService_SearchForMealEligibleRecipes_FullMethodName:            {authorization.ReadRecipesPermission},
 		mealplanningsvc.MealPlanningService_SearchForRecipesWithInstrumentOwnership_FullMethodName: {authorization.ReadRecipesPermission},
@@ -306,9 +306,9 @@ func ProvideMethodPermissions() MealPlanningMethodPermissions {
 		mealplanningsvc.MealPlanningService_ArchiveMealPlanRecipeOptionSelection_FullMethodName:               {authorization.ArchiveMealPlanRecipeOptionSelectionsPermission},
 
 		// Workers
-		mealplanningsvc.MealPlanningService_RunFinalizeMealPlanWorker_FullMethodName:               {authorization.UpdateMealPlansPermission},
-		mealplanningsvc.MealPlanningService_RunMealPlanGroceryListInitializerWorker_FullMethodName: {authorization.UpdateMealPlansPermission},
-		mealplanningsvc.MealPlanningService_RunMealPlanTaskCreatorWorker_FullMethodName:            {authorization.UpdateMealPlansPermission},
+		mealplanningsvc.MealPlanningService_RunFinalizeMealPlanWorker_FullMethodName:               {authorization.RunMealPlanWorkersPermission},
+		mealplanningsvc.MealPlanningService_RunMealPlanGroceryListInitializerWorker_FullMethodName: {authorization.RunMealPlanWorkersPermission},
+		mealplanningsvc.MealPlanningService_RunMealPlanTaskCreatorWorker_FullMethodName:            {authorization.RunMealPlanWorkersPermission},
 
 		// Search helpers
 		mealplanningsvc.MealPlanningService_SearchValidIngredientsByPreparation_FullMethodName:     {authorization.ReadValidIngredientsPermission},

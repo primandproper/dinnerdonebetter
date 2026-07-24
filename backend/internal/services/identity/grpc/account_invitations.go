@@ -77,7 +77,7 @@ func (s *serviceImpl) CancelAccountInvitation(ctx context.Context, request *iden
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
 	}
 
-	if err = s.identityDataManager.CancelAccountInvitation(ctx, sessionContextData.GetActiveAccountID(), request.AccountInvitationId, request.Input.Note); err != nil {
+	if err = s.identityDataManager.CancelAccountInvitation(ctx, sessionContextData.GetActiveAccountID(), request.AccountInvitationId, request.GetInput().GetNote()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Internal, "failed to cancel account invitation")
 	}
 

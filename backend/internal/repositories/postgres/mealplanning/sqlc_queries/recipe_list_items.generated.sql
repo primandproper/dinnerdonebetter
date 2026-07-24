@@ -32,13 +32,13 @@ SELECT
 			AND recipe_list_items.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				recipe_list_items.last_updated_at IS NULL
-				OR recipe_list_items.last_updated_at > COALESCE(sqlc.narg(updated_before), (SELECT NOW() - '999 years'::INTERVAL))
+				OR recipe_list_items.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
 			)
 			AND (
 				recipe_list_items.last_updated_at IS NULL
-				OR recipe_list_items.last_updated_at < COALESCE(sqlc.narg(updated_after), (SELECT NOW() + '999 years'::INTERVAL))
+				OR recipe_list_items.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_list_items.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_list_items.archived_at IS NULL)
 			AND recipe_list_items.belongs_to_recipe_list = sqlc.arg(recipe_list_id)
 	) AS filtered_count,
 	(

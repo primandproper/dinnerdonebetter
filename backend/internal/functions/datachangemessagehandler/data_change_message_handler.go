@@ -106,6 +106,7 @@ type AsyncDataChangeMessageHandler struct {
 	baseURL                                   string
 	nonWebhookEventTypes                      []string
 	nonWebhookEventTypesHat                   sync.RWMutex
+	consumersWG                               sync.WaitGroup
 }
 
 func (a *AsyncDataChangeMessageHandler) SetNonWebhookEventTypes(nonWebhookEventTypes []string) {
@@ -347,12 +348,25 @@ func (a *AsyncDataChangeMessageHandler) ConsumeMessages(
 		return observability.PrepareAndLogError(err, a.logger, span, "configuring mobile notifications consumer")
 	}
 
-	go dataChangesConsumer.Consume(ctx, stopChan, errorsChan)
-	go outboundEmailsConsumer.Consume(ctx, stopChan, errorsChan)
-	go searchIndexRequestsConsumer.Consume(ctx, stopChan, errorsChan)
-	go webhookExecutionRequestsConsumer.Consume(ctx, stopChan, errorsChan)
-	go userDataAggregationConsumer.Consume(ctx, stopChan, errorsChan)
-	go mobileNotificationsConsumer.Consume(ctx, stopChan, errorsChan)
+	// Every consumer shares stopChan; callers stop them by closing it (a close broadcasts to all
+	// receivers) rather than sending a single value that only one consumer would receive. The
+	// WaitGroup lets callers wait for in-flight handlers to drain before flushing telemetry and exiting.
+	consumers := []messagequeue.Consumer{
+		dataChangesConsumer,
+		outboundEmailsConsumer,
+		searchIndexRequestsConsumer,
+		webhookExecutionRequestsConsumer,
+		userDataAggregationConsumer,
+		mobileNotificationsConsumer,
+	}
+
+	for _, consumer := range consumers {
+		a.consumersWG.Add(1)
+		go func(c messagequeue.Consumer) {
+			defer a.consumersWG.Done()
+			c.Consume(ctx, stopChan, errorsChan)
+		}(consumer)
+	}
 
 	go func() {
 		for e := range errorsChan {
@@ -361,4 +375,19 @@ func (a *AsyncDataChangeMessageHandler) ConsumeMessages(
 	}()
 
 	return nil
+}
+
+// WaitForConsumers blocks until all consumer goroutines have returned or ctx is done. Consumers return
+// after their in-flight handler completes once the shared stopChan is closed, so this drains gracefully.
+func (a *AsyncDataChangeMessageHandler) WaitForConsumers(ctx context.Context) {
+	done := make(chan struct{})
+	go func() {
+		a.consumersWG.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-ctx.Done():
+	}
 }

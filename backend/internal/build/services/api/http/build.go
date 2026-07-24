@@ -5,6 +5,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
 	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 	identitymgr "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
 	paymentsmanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/manager"
@@ -27,13 +28,39 @@ import (
 	loggingcfg "github.com/primandproper/platform-go/v5/observability/logging/config"
 	metricscfg "github.com/primandproper/platform-go/v5/observability/metrics/config"
 	tracingcfg "github.com/primandproper/platform-go/v5/observability/tracing/config"
+	"github.com/primandproper/platform-go/v5/qrcodes"
 	"github.com/primandproper/platform-go/v5/random"
 	"github.com/primandproper/platform-go/v5/server/http"
 
 	"github.com/samber/do/v2"
 )
 
-// BuildInjector creates and configures the dependency injection container.
+// RegisterHTTPServerServices registers the providers the HTTP API server needs beyond
+// what the gRPC API injector already provides. It is safe to call on the shared gRPC
+// API injector: none of these registrations overlap with that container's contents.
+func RegisterHTTPServerServices(i do.Injector) {
+	encoding.RegisterServerEncoderDecoder(i)
+	analyticscfg.RegisterEventReporter(i)
+	do.Provide[healthcheck.Registry](i, func(i do.Injector) (healthcheck.Registry, error) {
+		registry := healthcheck.NewRegistry()
+		dbClient := do.MustInvoke[database.Client](i)
+		if checker, ok := dbClient.(healthcheck.DatabaseReadyChecker); ok {
+			registry.Register(healthcheck.NewDatabaseChecker("database", checker))
+		}
+		return registry, nil
+	})
+	http.RegisterHTTPServer(i, "api_server")
+
+	// services
+	paymentshttp.RegisterPaymentsHTTP(i)
+
+	// routes
+	RegisterAPIRouter(i)
+}
+
+// BuildInjector creates and configures a standalone dependency injection container for
+// the HTTP API server. The combined HTTP+gRPC server does not use this; it registers
+// RegisterHTTPServerServices onto the shared gRPC injector instead.
 func BuildInjector(
 	ctx context.Context,
 	cfg *config.APIServiceConfig,
@@ -51,21 +78,12 @@ func BuildInjector(
 	loggingcfg.RegisterLogger(i)
 	tracingcfg.RegisterTracerProvider(i)
 	metricscfg.RegisterMetricsProvider(i)
-	encoding.RegisterServerEncoderDecoder(i)
 	msgconfig.RegisterMessageQueue(i)
-	analyticscfg.RegisterEventReporter(i)
 	repositories.RegisterMigrator(i)
 	databasecfg.RegisterDatabase(i)
-	do.Provide[healthcheck.Registry](i, func(i do.Injector) (healthcheck.Registry, error) {
-		registry := healthcheck.NewRegistry()
-		dbClient := do.MustInvoke[database.Client](i)
-		if checker, ok := dbClient.(healthcheck.DatabaseReadyChecker); ok {
-			registry.Register(healthcheck.NewDatabaseChecker("database", checker))
-		}
-		return registry, nil
-	})
 	random.RegisterGenerator(i)
-	http.RegisterHTTPServer(i, "api_server")
+	do.ProvideValue(i, qrcodes.Issuer(branding.CompanyName))
+	qrcodes.RegisterBuilder(i)
 
 	// authentication
 	authentication.RegisterAuth(i)
@@ -84,11 +102,12 @@ func BuildInjector(
 
 	// services
 	authservice.RegisterAuthHTTPService(i)
-	paymentshttp.RegisterPaymentsHTTP(i)
 
-	// searchers & routes
+	// searchers
 	RegisterSearchers(i)
-	RegisterAPIRouter(i)
+
+	// HTTP-server-specific providers (shared with the combined-server path)
+	RegisterHTTPServerServices(i)
 
 	return i
 }

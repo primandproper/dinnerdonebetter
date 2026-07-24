@@ -238,6 +238,10 @@ func (m *webhookManager) UpdateWebhookTriggerEvent(ctx context.Context, id strin
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if input == nil {
+		return platformerrors.ErrNilInputParameter
+	}
+
 	return m.repo.UpdateWebhookTriggerEvent(ctx, id, input)
 }
 

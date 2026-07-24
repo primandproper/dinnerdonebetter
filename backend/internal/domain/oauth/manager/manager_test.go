@@ -104,11 +104,14 @@ func TestOAuth2Manager_CreateOAuth2Client(t *testing.T) {
 		input := fakes.BuildFakeOAuth2ClientCreationRequestInput()
 		expected := fakes.BuildFakeOAuth2Client()
 
+		const plaintextSecret = "eeddccbb55443322eeddccbb55443322"
+
 		expectations := setupExpectationsForOAuthManager(
 			om,
 			func(repo *oauthmock.RepositoryMock) {
 				repo.On(reflection.GetMethodName(repo.CreateOAuth2Client), testutils.ContextMatcher, mock.MatchedBy(func(in *oauth.OAuth2ClientDatabaseCreationInput) bool {
-					return in.Name == input.Name && in.Description == input.Description && in.ClientID != "" && in.ClientSecret != ""
+					// only the digest of the generated secret may be persisted.
+					return in.Name == input.Name && in.Description == input.Description && in.ClientID != "" && in.ClientSecret == oauth.HashClientSecret(plaintextSecret)
 				})).Return(expected, nil)
 			},
 			func(gen *randommock.GeneratorMock) {
@@ -118,7 +121,7 @@ func TestOAuth2Manager_CreateOAuth2Client(t *testing.T) {
 					if callCount == 1 {
 						return "aabbccdd11223344aabbccdd11223344", nil
 					}
-					return "eeddccbb55443322eeddccbb55443322", nil
+					return plaintextSecret, nil
 				}
 			},
 			map[string][]string{
@@ -129,6 +132,8 @@ func TestOAuth2Manager_CreateOAuth2Client(t *testing.T) {
 		actual, err := om.CreateOAuth2Client(ctx, input)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
+		// the caller gets the plaintext secret exactly once, at creation time.
+		assert.Equal(t, plaintextSecret, actual.ClientSecret)
 
 		mock.AssertExpectationsForObjects(t, expectations...)
 	})

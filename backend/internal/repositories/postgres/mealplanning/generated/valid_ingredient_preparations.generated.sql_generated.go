@@ -380,7 +380,7 @@ SELECT
 				valid_ingredient_preparations.last_updated_at IS NULL
 				OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredient_preparations.id)
@@ -396,11 +396,11 @@ WHERE
 	AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND valid_ingredient_preparations.id > COALESCE($6, '')
 ORDER BY valid_ingredient_preparations.id ASC
@@ -410,8 +410,8 @@ LIMIT COALESCE($7, 50)
 type GetValidIngredientPreparationsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -493,8 +493,8 @@ func (q *Queries) GetValidIngredientPreparations(ctx context.Context, db DBTX, a
 	rows, err := db.QueryContext(ctx, getValidIngredientPreparations,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -914,7 +914,7 @@ SELECT
 				valid_ingredient_preparations.last_updated_at IS NULL
 				OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredient_preparations.id)
@@ -931,11 +931,11 @@ WHERE
 	AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND valid_ingredient_preparations.id > COALESCE($7, '')
 ORDER BY valid_ingredient_preparations.id ASC
@@ -945,8 +945,8 @@ LIMIT COALESCE($8, 50)
 type GetValidIngredientPreparationsForIngredientParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
 	Cursor          sql.NullString
@@ -1029,8 +1029,8 @@ func (q *Queries) GetValidIngredientPreparationsForIngredient(ctx context.Contex
 	rows, err := db.QueryContext(ctx, getValidIngredientPreparationsForIngredient,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
 		arg.Cursor,
@@ -1211,7 +1211,7 @@ SELECT
 				valid_ingredient_preparations.last_updated_at IS NULL
 				OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredient_preparations.id)
@@ -1228,11 +1228,11 @@ WHERE
 	AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND valid_ingredient_preparations.id > COALESCE($7, '')
 ORDER BY valid_ingredient_preparations.id ASC
@@ -1242,8 +1242,8 @@ LIMIT COALESCE($8, 50)
 type GetValidIngredientPreparationsForPreparationParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
 	Cursor          sql.NullString
@@ -1326,8 +1326,8 @@ func (q *Queries) GetValidIngredientPreparationsForPreparation(ctx context.Conte
 	rows, err := db.QueryContext(ctx, getValidIngredientPreparationsForPreparation,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
 		arg.Cursor,
@@ -1508,7 +1508,7 @@ SELECT
 				valid_ingredient_preparations.last_updated_at IS NULL
 				OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 			AND valid_preparations.id = $6
 	) AS filtered_count,
 	(
@@ -1530,13 +1530,13 @@ WHERE
 	AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 	AND valid_preparations.id = $6
 	AND valid_ingredient_preparations.id > COALESCE($8, '')
 ORDER BY valid_ingredient_preparations.id ASC
@@ -1546,8 +1546,8 @@ LIMIT COALESCE($9, 50)
 type SearchValidIngredientPreparationsByPreparationAndIngredientNameParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
 	NameQuery       string
@@ -1631,8 +1631,8 @@ func (q *Queries) SearchValidIngredientPreparationsByPreparationAndIngredientNam
 	rows, err := db.QueryContext(ctx, searchValidIngredientPreparationsByPreparationAndIngredientName,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
 		arg.NameQuery,

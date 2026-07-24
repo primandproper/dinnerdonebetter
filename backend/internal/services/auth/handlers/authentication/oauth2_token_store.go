@@ -2,6 +2,8 @@ package authentication
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"time"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
@@ -15,6 +17,13 @@ import (
 )
 
 var _ oauth2.TokenStore = (*oauth2TokenStoreImpl)(nil)
+
+// hashForLog returns a hex-encoded SHA-256 digest of a secret value so it can be
+// referenced in logs without ever exposing the raw token/code.
+func hashForLog(secret string) string {
+	sum := sha256.Sum256([]byte(secret))
+	return hex.EncodeToString(sum[:])
+}
 
 type oauth2TokenStoreImpl struct {
 	tracer      tracing.Tracer
@@ -30,7 +39,7 @@ func (s *oauth2TokenStoreImpl) Create(ctx context.Context, info oauth2.TokenInfo
 	info.SetAccessExpiresIn(24 * time.Hour)
 	info.SetRefreshExpiresIn(72 * time.Hour)
 
-	logger := s.logger.WithValue("info", info)
+	logger := s.logger.WithValue("client_id", info.GetClientID()).WithValue("user_id", info.GetUserID())
 
 	input := &types.OAuth2ClientTokenDatabaseCreationInput{
 		RefreshCreatedAt:    info.GetRefreshCreateAt(),
@@ -62,7 +71,7 @@ func (s *oauth2TokenStoreImpl) RemoveByCode(ctx context.Context, code string) er
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := s.logger.WithValue("code", code)
+	logger := s.logger.WithValue("code_hash", hashForLog(code))
 	logger.Debug("RemoveByCode invoked")
 
 	if err := s.dataManager.DeleteOAuth2ClientTokenByCode(ctx, code); err != nil {
@@ -77,7 +86,7 @@ func (s *oauth2TokenStoreImpl) RemoveByAccess(ctx context.Context, access string
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := s.logger.WithValue("access", access)
+	logger := s.logger.WithValue("access_hash", hashForLog(access))
 	logger.Debug("RemoveByAccess invoked")
 
 	if err := s.dataManager.DeleteOAuth2ClientTokenByAccess(ctx, access); err != nil {
@@ -92,7 +101,7 @@ func (s *oauth2TokenStoreImpl) RemoveByRefresh(ctx context.Context, refresh stri
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := s.logger.WithValue("refresh", refresh)
+	logger := s.logger.WithValue("refresh_hash", hashForLog(refresh))
 	logger.Debug("RemoveByRefresh invoked")
 
 	if err := s.dataManager.DeleteOAuth2ClientTokenByRefresh(ctx, refresh); err != nil {
@@ -107,7 +116,7 @@ func (s *oauth2TokenStoreImpl) GetByCode(ctx context.Context, code string) (oaut
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := s.logger.WithValue("code", code)
+	logger := s.logger.WithValue("code_hash", hashForLog(code))
 	logger.Debug("GetByCode invoked")
 
 	token, err := s.dataManager.GetOAuth2ClientTokenByCode(ctx, code)
@@ -123,7 +132,7 @@ func (s *oauth2TokenStoreImpl) GetByAccess(ctx context.Context, access string) (
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := s.logger.WithValue("access", access)
+	logger := s.logger.WithValue("access_hash", hashForLog(access))
 	logger.Debug("GetByAccess invoked")
 
 	token, err := s.dataManager.GetOAuth2ClientTokenByAccess(ctx, access)
@@ -139,7 +148,7 @@ func (s *oauth2TokenStoreImpl) GetByRefresh(ctx context.Context, refresh string)
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := s.logger.WithValue("refresh", refresh)
+	logger := s.logger.WithValue("refresh_hash", hashForLog(refresh))
 	logger.Debug("GetByRefresh invoked")
 
 	token, err := s.dataManager.GetOAuth2ClientTokenByRefresh(ctx, refresh)

@@ -568,10 +568,9 @@ func (r *repository) CreateUser(ctx context.Context, input *identity.UserDatabas
 
 	tracing.AttachToSpan(span, identitykeys.UsernameKey, input.Username)
 	logger := r.logger.WithValues(map[string]any{
-		identitykeys.UsernameKey:               input.Username,
-		identitykeys.UserEmailAddressKey:       input.EmailAddress,
-		identitykeys.AccountInvitationTokenKey: input.InvitationToken,
-		"destination_account":                  input.DestinationAccountID,
+		identitykeys.UsernameKey:         input.Username,
+		identitykeys.UserEmailAddressKey: input.EmailAddress,
+		"destination_account":            input.DestinationAccountID,
 	})
 
 	// begin user creation transaction

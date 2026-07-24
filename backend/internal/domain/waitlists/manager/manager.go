@@ -8,6 +8,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists"
 	waitlistkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/keys"
 
+	platformerrors "github.com/primandproper/platform-go/v5/errors"
 	"github.com/primandproper/platform-go/v5/filtering"
 	"github.com/primandproper/platform-go/v5/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
@@ -105,6 +106,10 @@ func (m *waitlistManager) UpdateWaitlist(ctx context.Context, waitlist *waitlist
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if waitlist == nil {
+		return platformerrors.ErrNilInputParameter
+	}
+
 	logger := m.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistIDKey, waitlist.ID)
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistIDKey, waitlist.ID)
 
@@ -143,6 +148,12 @@ func (m *waitlistManager) GetWaitlistSignup(ctx context.Context, waitlistSignupI
 	return m.repo.GetWaitlistSignup(ctx, waitlistSignupID, waitlistID)
 }
 
+func (m *waitlistManager) GetWaitlistSignupByID(ctx context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
+	ctx, span := m.tracer.StartSpan(ctx)
+	defer span.End()
+	return m.repo.GetWaitlistSignupByID(ctx, waitlistSignupID)
+}
+
 func (m *waitlistManager) GetWaitlistSignupsForWaitlist(ctx context.Context, waitlistID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.WaitlistSignup], error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
@@ -178,6 +189,10 @@ func (m *waitlistManager) CreateWaitlistSignup(ctx context.Context, input *waitl
 func (m *waitlistManager) UpdateWaitlistSignup(ctx context.Context, signup *waitlists.WaitlistSignup) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if signup == nil {
+		return platformerrors.ErrNilInputParameter
+	}
 
 	logger := m.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistSignupIDKey, signup.ID).WithValue(waitlistkeys.WaitlistIDKey, signup.BelongsToWaitlist)
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistSignupIDKey, signup.ID)

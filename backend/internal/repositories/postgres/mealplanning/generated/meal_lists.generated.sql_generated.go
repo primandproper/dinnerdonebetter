@@ -90,12 +90,14 @@ SELECT
 				meal_lists.last_updated_at IS NULL
 				OR meal_lists.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meal_lists.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR meal_lists.archived_at IS NULL)
+			AND meal_lists.belongs_to_user = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(meal_lists.id)
 		FROM meal_lists
 		WHERE meal_lists.archived_at IS NULL
+			AND meal_lists.belongs_to_user = $6
 	) AS total_count
 FROM meal_lists
 	LEFT JOIN meal_list_items ON meal_list_items.belongs_to_meal_list = meal_lists.id AND meal_list_items.archived_at IS NULL
@@ -104,23 +106,25 @@ FROM meal_lists
 	AND meal_lists.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meal_lists.last_updated_at IS NULL
-		OR meal_lists.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR meal_lists.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		meal_lists.last_updated_at IS NULL
-		OR meal_lists.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR meal_lists.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-	AND meal_lists.id > COALESCE($6, '')
+	AND meal_lists.belongs_to_user = $6
+	AND meal_lists.id > COALESCE($7, '')
 ORDER BY meal_lists.id ASC
-LIMIT COALESCE($7, 50)
+LIMIT COALESCE($8, 50)
 `
 
 type GetMealListsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
+	BelongsToUser   string
 	Cursor          sql.NullString
 	ResultLimit     interface{}
 }
@@ -148,9 +152,10 @@ func (q *Queries) GetMealLists(ctx context.Context, db DBTX, arg *GetMealListsPa
 	rows, err := db.QueryContext(ctx, getMealLists,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
+		arg.BelongsToUser,
 		arg.Cursor,
 		arg.ResultLimit,
 	)

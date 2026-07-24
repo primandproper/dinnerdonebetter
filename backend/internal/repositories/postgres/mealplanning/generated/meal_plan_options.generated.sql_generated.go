@@ -54,6 +54,31 @@ func (q *Queries) CheckMealInMealPlanEvent(ctx context.Context, db DBTX, arg *Ch
 	return exists, err
 }
 
+const checkMealPlanOptionBelongsToAccount = `-- name: CheckMealPlanOptionBelongsToAccount :one
+SELECT EXISTS (
+	SELECT meal_plan_options.id
+	FROM meal_plan_options
+		JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event = meal_plan_events.id
+		JOIN meal_plans ON meal_plan_events.belongs_to_meal_plan = meal_plans.id
+	WHERE meal_plan_options.archived_at IS NULL
+		AND meal_plan_options.id = $1
+		AND meal_plans.archived_at IS NULL
+		AND meal_plans.belongs_to_account = $2
+)
+`
+
+type CheckMealPlanOptionBelongsToAccountParams struct {
+	MealPlanOptionID string
+	BelongsToAccount string
+}
+
+func (q *Queries) CheckMealPlanOptionBelongsToAccount(ctx context.Context, db DBTX, arg *CheckMealPlanOptionBelongsToAccountParams) (bool, error) {
+	row := db.QueryRowContext(ctx, checkMealPlanOptionBelongsToAccount, arg.MealPlanOptionID, arg.BelongsToAccount)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const checkMealPlanOptionExistence = `-- name: CheckMealPlanOptionExistence :one
 SELECT EXISTS (
 	SELECT meal_plan_options.id
@@ -498,7 +523,7 @@ SELECT
 				meal_plan_options.last_updated_at IS NULL
 				OR meal_plan_options.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meal_plan_options.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR meal_plan_options.archived_at IS NULL)
 			AND meal_plan_options.belongs_to_meal_plan_event = $6
 	) AS filtered_count,
 	(
@@ -521,11 +546,11 @@ WHERE
 	AND meal_plan_options.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meal_plan_options.last_updated_at IS NULL
-		OR meal_plan_options.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR meal_plan_options.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		meal_plan_options.last_updated_at IS NULL
-		OR meal_plan_options.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR meal_plan_options.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND meal_plan_options.belongs_to_meal_plan_event = $6
 	AND meal_plan_options.id > COALESCE($8, '')
@@ -536,8 +561,8 @@ LIMIT COALESCE($9, 50)
 type GetMealPlanOptionsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	MealPlanEventID sql.NullString
 	MealPlanID      string
@@ -577,8 +602,8 @@ func (q *Queries) GetMealPlanOptions(ctx context.Context, db DBTX, arg *GetMealP
 	rows, err := db.QueryContext(ctx, getMealPlanOptions,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.MealPlanEventID,
 		arg.MealPlanID,

@@ -6,6 +6,8 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/webauthn"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
+
+	"github.com/primandproper/platform-go/v5/observability/logging"
 )
 
 // passkeyUserStore adapts identityDataManager to webauthn.UserStore.
@@ -23,11 +25,12 @@ func (s *passkeyUserStore) GetUserByUsername(ctx context.Context, username strin
 
 // ProvidePasskeyService creates a WebAuthn passkey service.
 func ProvidePasskeyService(
+	logger logging.Logger,
 	cfg webauthn.Config,
 	identityDataManager identitymanager.IdentityDataManager,
 	identityRepo identity.Repository,
 	sessionStore webauthn.SessionStore,
 ) (*webauthn.Service, error) {
 	userStore := &passkeyUserStore{identityDataManager: identityDataManager}
-	return webauthn.NewService(cfg, identityRepo, userStore, sessionStore)
+	return webauthn.NewService(logger, cfg, identityRepo, userStore, sessionStore)
 }

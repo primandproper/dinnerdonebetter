@@ -12,6 +12,7 @@ import (
 	waitlistmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
+	platformerrors "github.com/primandproper/platform-go/v5/errors"
 	"github.com/primandproper/platform-go/v5/filtering"
 	"github.com/primandproper/platform-go/v5/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
@@ -188,6 +189,17 @@ func TestWaitlistDataManager_UpdateWaitlist(t *testing.T) {
 		require.NoError(t, err)
 		mock.AssertExpectationsForObjects(t, expectations...)
 	})
+
+	t.Run("with nil input", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		manager, _ := buildWaitlistManagerForTest(t)
+
+		err := manager.UpdateWaitlist(ctx, nil)
+
+		require.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
+	})
 }
 
 func TestWaitlistDataManager_ArchiveWaitlist(t *testing.T) {
@@ -277,6 +289,17 @@ func TestWaitlistDataManager_UpdateWaitlistSignup(t *testing.T) {
 		require.NoError(t, err)
 		mock.AssertExpectationsForObjects(t, expectations...)
 	})
+
+	t.Run("with nil input", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		manager, _ := buildWaitlistManagerForTest(t)
+
+		err := manager.UpdateWaitlistSignup(ctx, nil)
+
+		require.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
+	})
 }
 
 func TestWaitlistDataManager_ArchiveWaitlistSignup(t *testing.T) {
@@ -304,6 +327,26 @@ func TestWaitlistDataManager_ArchiveWaitlistSignup(t *testing.T) {
 
 		require.NoError(t, err)
 		mock.AssertExpectationsForObjects(t, expectations...)
+	})
+}
+
+func TestWaitlistDataManager_GetWaitlistSignupByID(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		manager, repo := buildWaitlistManagerForTest(t)
+
+		expected := fakes.BuildFakeWaitlistSignup()
+		repo.On(reflection.GetMethodName(repo.GetWaitlistSignupByID), testutils.ContextMatcher, expected.ID).Return(expected, nil)
+
+		result, err := manager.GetWaitlistSignupByID(ctx, expected.ID)
+
+		require.NoError(t, err)
+		assert.Equal(t, expected, result)
+		mock.AssertExpectationsForObjects(t, repo)
 	})
 }
 

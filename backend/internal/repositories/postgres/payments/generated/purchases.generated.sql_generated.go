@@ -116,7 +116,7 @@ SELECT
 				purchases.last_updated_at IS NULL
 				OR purchases.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR purchases.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR purchases.archived_at IS NULL)
 			AND purchases.belongs_to_account = $6
 	) AS filtered_count,
 	(
@@ -132,11 +132,11 @@ WHERE purchases.archived_at IS NULL
 	AND purchases.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		purchases.last_updated_at IS NULL
-		OR purchases.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR purchases.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		purchases.last_updated_at IS NULL
-		OR purchases.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR purchases.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND purchases.belongs_to_account = $6
 	AND purchases.id > COALESCE($7, '')
@@ -147,8 +147,8 @@ LIMIT COALESCE($8, 50)
 type GetPurchasesForAccountParams struct {
 	CreatedAfter     sql.NullTime
 	CreatedBefore    sql.NullTime
-	UpdatedBefore    sql.NullTime
 	UpdatedAfter     sql.NullTime
+	UpdatedBefore    sql.NullTime
 	IncludeArchived  sql.NullBool
 	BelongsToAccount string
 	Cursor           sql.NullString
@@ -174,8 +174,8 @@ func (q *Queries) GetPurchasesForAccount(ctx context.Context, db DBTX, arg *GetP
 	rows, err := db.QueryContext(ctx, getPurchasesForAccount,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToAccount,
 		arg.Cursor,

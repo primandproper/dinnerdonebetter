@@ -163,7 +163,7 @@ SELECT
 				subscriptions.last_updated_at IS NULL
 				OR subscriptions.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR subscriptions.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR subscriptions.archived_at IS NULL)
 			AND subscriptions.belongs_to_account = $6
 	) AS filtered_count,
 	(
@@ -179,11 +179,11 @@ WHERE subscriptions.archived_at IS NULL
 	AND subscriptions.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		subscriptions.last_updated_at IS NULL
-		OR subscriptions.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR subscriptions.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		subscriptions.last_updated_at IS NULL
-		OR subscriptions.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR subscriptions.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND subscriptions.belongs_to_account = $6
 	AND subscriptions.id > COALESCE($7, '')
@@ -194,8 +194,8 @@ LIMIT COALESCE($8, 50)
 type GetSubscriptionsForAccountParams struct {
 	CreatedAfter     sql.NullTime
 	CreatedBefore    sql.NullTime
-	UpdatedBefore    sql.NullTime
 	UpdatedAfter     sql.NullTime
+	UpdatedBefore    sql.NullTime
 	IncludeArchived  sql.NullBool
 	BelongsToAccount string
 	Cursor           sql.NullString
@@ -221,8 +221,8 @@ func (q *Queries) GetSubscriptionsForAccount(ctx context.Context, db DBTX, arg *
 	rows, err := db.QueryContext(ctx, getSubscriptionsForAccount,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToAccount,
 		arg.Cursor,

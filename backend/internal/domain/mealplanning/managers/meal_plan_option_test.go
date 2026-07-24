@@ -71,6 +71,41 @@ func TestMealPlanningManager_CreateMealPlanOption(T *testing.T) {
 
 		mock.AssertExpectationsForObjects(t, expectations...)
 	})
+
+	T.Run("with inline selections", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		mpm := buildMealPlanManagerForTest(t)
+
+		expected := fakes.BuildFakeMealPlanOption()
+		fakeInput := fakes.BuildFakeMealPlanOptionCreationRequestInput()
+		fakeInput.Selections = []*types.MealPlanRecipeOptionSelectionCreationRequestInput{
+			fakes.BuildFakeMealPlanRecipeOptionSelectionCreationRequestInput(),
+			fakes.BuildFakeMealPlanRecipeOptionSelectionCreationRequestInput(),
+		}
+
+		createdSelection := fakes.BuildFakeMealPlanRecipeOptionSelection()
+
+		expectations := setupExpectationsForMealPlanningManager(
+			mpm,
+			func(db *mealplanningmock.Repository) {
+				db.On(reflection.GetMethodName(mpm.db.CreateMealPlanOption), testutils.ContextMatcher, testutils.MatchType[*types.MealPlanOptionDatabaseCreationInput]()).Return(expected, nil)
+				db.On(reflection.GetMethodName(mpm.db.CreateMealPlanRecipeOptionSelection), testutils.ContextMatcher, mock.MatchedBy(func(in *types.MealPlanRecipeOptionSelectionDatabaseCreationInput) bool {
+					return in.BelongsToMealPlanOption == expected.ID
+				})).Return(createdSelection, nil).Times(2)
+			},
+			map[string][]string{
+				types.MealPlanOptionCreatedServiceEventType: {mealplanningkeys.MealPlanOptionIDKey},
+			},
+		)
+
+		actual, err := mpm.CreateMealPlanOption(ctx, fakeInput)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
+
+		mock.AssertExpectationsForObjects(t, expectations...)
+	})
 }
 
 func TestMealPlanningManager_CreateMealPlanOptionWithEventID(T *testing.T) {
@@ -123,6 +158,56 @@ func TestMealPlanningManager_ReadMealPlanOption(T *testing.T) {
 		actual, err := mpm.ReadMealPlanOption(ctx, exampleMealPlanID, exampleMealPlanEventID, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
+
+		mock.AssertExpectationsForObjects(t, expectations...)
+	})
+}
+
+func TestMealPlanningManager_MealPlanOptionBelongsToAccount(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		mpm := buildMealPlanManagerForTest(t)
+
+		exampleMealPlanOptionID := fakes.BuildFakeID()
+		exampleAccountID := fakes.BuildFakeID()
+
+		expectations := setupExpectationsForMealPlanningManager(
+			mpm,
+			func(db *mealplanningmock.Repository) {
+				db.On(reflection.GetMethodName(mpm.db.MealPlanOptionBelongsToAccount), testutils.ContextMatcher, exampleMealPlanOptionID, exampleAccountID).Return(true, nil)
+			},
+		)
+
+		belongs, err := mpm.MealPlanOptionBelongsToAccount(ctx, exampleMealPlanOptionID, exampleAccountID)
+		assert.NoError(t, err)
+		assert.True(t, belongs)
+
+		mock.AssertExpectationsForObjects(t, expectations...)
+	})
+
+	T.Run("with option belonging to another account", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		mpm := buildMealPlanManagerForTest(t)
+
+		exampleMealPlanOptionID := fakes.BuildFakeID()
+		exampleAccountID := fakes.BuildFakeID()
+
+		expectations := setupExpectationsForMealPlanningManager(
+			mpm,
+			func(db *mealplanningmock.Repository) {
+				db.On(reflection.GetMethodName(mpm.db.MealPlanOptionBelongsToAccount), testutils.ContextMatcher, exampleMealPlanOptionID, exampleAccountID).Return(false, nil)
+			},
+		)
+
+		belongs, err := mpm.MealPlanOptionBelongsToAccount(ctx, exampleMealPlanOptionID, exampleAccountID)
+		assert.NoError(t, err)
+		assert.False(t, belongs)
 
 		mock.AssertExpectationsForObjects(t, expectations...)
 	})

@@ -89,6 +89,30 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 	assert.NotEmpty(t, mealPlanTasks)
 	assert.Equal(t, len(createdMealPlanTasks), len(mealPlanTasks.Data))
 
+	// create an ad-hoc thaw task: no backing recipe prep task, so
+	// belongs_to_recipe_prep_task is persisted as NULL.
+	thawTaskInput := &types.MealPlanTaskDatabaseCreationInput{
+		ID:                  fakes.BuildFakeID(),
+		MealPlanOptionID:    mealPlan.Events[0].Options[0].ID,
+		CreationExplanation: "frozen ingredient might need to be thawed",
+		RecipePrepTaskID:    "",
+	}
+	createdThawTask, err := dbc.CreateMealPlanTask(ctx, thawTaskInput)
+	require.NoError(t, err)
+	require.NotNil(t, createdThawTask)
+	assert.Empty(t, createdThawTask.RecipePrepTask.ID)
+	createdMealPlanTasks = append(createdMealPlanTasks, createdThawTask)
+
+	// the thaw task reads back individually and in the list despite its NULL prep-task reference.
+	fetchedThawTask, err := dbc.GetMealPlanTask(ctx, createdThawTask.ID)
+	require.NoError(t, err)
+	assert.Empty(t, fetchedThawTask.RecipePrepTask.ID)
+	assert.Equal(t, "frozen ingredient might need to be thawed", fetchedThawTask.CreationExplanation)
+
+	mealPlanTasks, err = dbc.GetMealPlanTasksForMealPlan(ctx, mealPlan.ID, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, len(createdMealPlanTasks), len(mealPlanTasks.Data))
+
 	// delete
 	for _, mealPlanTask := range createdMealPlanTasks {
 		assert.NoError(t, dbc.ChangeMealPlanTaskStatus(ctx, &types.MealPlanTaskStatusChangeRequestInput{

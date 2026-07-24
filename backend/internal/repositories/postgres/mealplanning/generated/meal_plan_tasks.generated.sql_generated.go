@@ -101,7 +101,7 @@ type CreateMealPlanTaskParams struct {
 	StatusExplanation       string
 	CreationExplanation     string
 	BelongsToMealPlanOption string
-	BelongsToRecipePrepTask string
+	BelongsToRecipePrepTask sql.NullString
 	AssignedToUser          sql.NullString
 }
 
@@ -167,9 +167,9 @@ FROM meal_plan_tasks
 	JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event=meal_plan_events.id
 	JOIN meal_plans ON meal_plan_events.belongs_to_meal_plan=meal_plans.id
 	JOIN meals ON meal_plan_options.meal_id=meals.id
-	JOIN recipe_prep_tasks ON meal_plan_tasks.belongs_to_recipe_prep_task=recipe_prep_tasks.id
-	JOIN recipe_prep_task_steps ON recipe_prep_task_steps.belongs_to_recipe_prep_task=recipe_prep_tasks.id
-	JOIN recipe_steps ON recipe_prep_task_steps.belongs_to_recipe_step=recipe_steps.id
+	LEFT JOIN recipe_prep_tasks ON meal_plan_tasks.belongs_to_recipe_prep_task=recipe_prep_tasks.id
+	LEFT JOIN recipe_prep_task_steps ON recipe_prep_task_steps.belongs_to_recipe_prep_task=recipe_prep_tasks.id
+	LEFT JOIN recipe_steps ON recipe_prep_task_steps.belongs_to_recipe_step=recipe_steps.id
 WHERE meal_plan_options.archived_at IS NULL
 	AND meal_plan_events.archived_at IS NULL
 	AND meal_plans.archived_at IS NULL
@@ -192,30 +192,30 @@ type GetMealPlanTaskRow struct {
 	MealPlanOptionLastUpdatedAt                    sql.NullTime
 	MealPlanOptionArchivedAt                       sql.NullTime
 	MealPlanOptionBelongsToMealPlanEvent           sql.NullString
-	PrepTaskID                                     string
-	PrepTaskName                                   string
-	PrepTaskDescription                            string
-	PrepTaskNotes                                  string
-	PrepTaskOptional                               bool
-	PrepTaskExplicitStorageInstructions            string
-	PrepTaskMinimumTimeBufferBeforeRecipeInSeconds int32
+	PrepTaskID                                     sql.NullString
+	PrepTaskName                                   sql.NullString
+	PrepTaskDescription                            sql.NullString
+	PrepTaskNotes                                  sql.NullString
+	PrepTaskOptional                               sql.NullBool
+	PrepTaskExplicitStorageInstructions            sql.NullString
+	PrepTaskMinimumTimeBufferBeforeRecipeInSeconds sql.NullInt32
 	PrepTaskMaximumTimeBufferBeforeRecipeInSeconds sql.NullInt32
 	PrepTaskStorageType                            NullStorageContainerType
 	PrepTaskMinimumStorageTemperatureInCelsius     sql.NullString
 	PrepTaskMaximumStorageTemperatureInCelsius     sql.NullString
-	PrepTaskCreatedAt                              time.Time
+	PrepTaskCreatedAt                              sql.NullTime
 	PrepTaskLastUpdatedAt                          sql.NullTime
 	PrepTaskArchivedAt                             sql.NullTime
-	PrepTaskBelongsToRecipe                        string
-	PrepTaskStepID                                 string
-	PrepTaskStepBelongsToRecipeStep                string
-	PrepTaskStepBelongsToRecipePrepTask            string
-	PrepTaskStepSatisfiesRecipeStep                bool
+	PrepTaskBelongsToRecipe                        sql.NullString
+	PrepTaskStepID                                 sql.NullString
+	PrepTaskStepBelongsToRecipeStep                sql.NullString
+	PrepTaskStepBelongsToRecipePrepTask            sql.NullString
+	PrepTaskStepSatisfiesRecipeStep                sql.NullBool
 	Status                                         PrepStepStatus
 	StatusExplanation                              string
 	CreationExplanation                            string
 	BelongsToMealPlanOption                        string
-	BelongsToRecipePrepTask                        string
+	BelongsToRecipePrepTask                        sql.NullString
 	CompletedAt                                    sql.NullTime
 	NotificationSentAt                             sql.NullTime
 	CreatedAt                                      time.Time
@@ -375,9 +375,9 @@ FROM meal_plan_tasks
 	JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event=meal_plan_events.id
 	JOIN meal_plans ON meal_plan_events.belongs_to_meal_plan=meal_plans.id
 	JOIN meals ON meal_plan_options.meal_id=meals.id
-	JOIN recipe_prep_tasks ON meal_plan_tasks.belongs_to_recipe_prep_task=recipe_prep_tasks.id
-	JOIN recipe_prep_task_steps ON recipe_prep_task_steps.belongs_to_recipe_prep_task=recipe_prep_tasks.id
-	JOIN recipe_steps ON recipe_prep_task_steps.belongs_to_recipe_step=recipe_steps.id
+	LEFT JOIN recipe_prep_tasks ON meal_plan_tasks.belongs_to_recipe_prep_task=recipe_prep_tasks.id
+	LEFT JOIN recipe_prep_task_steps ON recipe_prep_task_steps.belongs_to_recipe_prep_task=recipe_prep_tasks.id
+	LEFT JOIN recipe_steps ON recipe_prep_task_steps.belongs_to_recipe_step=recipe_steps.id
 WHERE meal_plan_options.archived_at IS NULL
 	AND meal_plan_events.archived_at IS NULL
 	AND meal_plans.archived_at IS NULL
@@ -400,30 +400,30 @@ type ListAllMealPlanTasksByMealPlanRow struct {
 	MealPlanOptionLastUpdatedAt                    sql.NullTime
 	MealPlanOptionArchivedAt                       sql.NullTime
 	MealPlanOptionBelongsToMealPlanEvent           sql.NullString
-	PrepTaskID                                     string
-	PrepTaskName                                   string
-	PrepTaskDescription                            string
-	PrepTaskNotes                                  string
-	PrepTaskOptional                               bool
-	PrepTaskExplicitStorageInstructions            string
-	PrepTaskMinimumTimeBufferBeforeRecipeInSeconds int32
+	PrepTaskID                                     sql.NullString
+	PrepTaskName                                   sql.NullString
+	PrepTaskDescription                            sql.NullString
+	PrepTaskNotes                                  sql.NullString
+	PrepTaskOptional                               sql.NullBool
+	PrepTaskExplicitStorageInstructions            sql.NullString
+	PrepTaskMinimumTimeBufferBeforeRecipeInSeconds sql.NullInt32
 	PrepTaskMaximumTimeBufferBeforeRecipeInSeconds sql.NullInt32
 	PrepTaskStorageType                            NullStorageContainerType
 	PrepTaskMinimumStorageTemperatureInCelsius     sql.NullString
 	PrepTaskMaximumStorageTemperatureInCelsius     sql.NullString
-	PrepTaskCreatedAt                              time.Time
+	PrepTaskCreatedAt                              sql.NullTime
 	PrepTaskLastUpdatedAt                          sql.NullTime
 	PrepTaskArchivedAt                             sql.NullTime
-	PrepTaskBelongsToRecipe                        string
-	PrepTaskStepID                                 string
-	PrepTaskStepBelongsToRecipeStep                string
-	PrepTaskStepBelongsToRecipePrepTask            string
-	PrepTaskStepSatisfiesRecipeStep                bool
+	PrepTaskBelongsToRecipe                        sql.NullString
+	PrepTaskStepID                                 sql.NullString
+	PrepTaskStepBelongsToRecipeStep                sql.NullString
+	PrepTaskStepBelongsToRecipePrepTask            sql.NullString
+	PrepTaskStepSatisfiesRecipeStep                sql.NullBool
 	Status                                         PrepStepStatus
 	StatusExplanation                              string
 	CreationExplanation                            string
 	BelongsToMealPlanOption                        string
-	BelongsToRecipePrepTask                        string
+	BelongsToRecipePrepTask                        sql.NullString
 	CompletedAt                                    sql.NullTime
 	NotificationSentAt                             sql.NullTime
 	CreatedAt                                      time.Time

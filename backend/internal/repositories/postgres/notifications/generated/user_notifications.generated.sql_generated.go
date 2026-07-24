@@ -125,11 +125,11 @@ WHERE user_notifications.status != 'dismissed'
 	AND user_notifications.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		user_notifications.last_updated_at IS NULL
-		OR user_notifications.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR user_notifications.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		user_notifications.last_updated_at IS NULL
-		OR user_notifications.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR user_notifications.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND user_notifications.belongs_to_user = $5
 	AND user_notifications.id > COALESCE($6, '')
@@ -140,8 +140,8 @@ LIMIT COALESCE($7, 50)
 type GetUserNotificationsForUserParams struct {
 	CreatedAfter  sql.NullTime
 	CreatedBefore sql.NullTime
-	UpdatedBefore sql.NullTime
 	UpdatedAfter  sql.NullTime
+	UpdatedBefore sql.NullTime
 	UserID        string
 	Cursor        sql.NullString
 	ResultLimit   interface{}
@@ -162,8 +162,8 @@ func (q *Queries) GetUserNotificationsForUser(ctx context.Context, db DBTX, arg 
 	rows, err := db.QueryContext(ctx, getUserNotificationsForUser,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.UserID,
 		arg.Cursor,
 		arg.ResultLimit,

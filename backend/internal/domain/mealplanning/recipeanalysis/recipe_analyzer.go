@@ -24,6 +24,11 @@ import (
 	"gonum.org/v1/gonum/graph/topo"
 )
 
+// maxFrozenStorageTemperatureInCelsius is the storage temperature at or below which an ingredient is
+// considered frozen (and may therefore need to be thawed ahead of time). Water freezes at 0°C; the
+// previous value of 3°C is ordinary refrigerator temperature and wrongly flagged chilled ingredients.
+const maxFrozenStorageTemperatureInCelsius = 0
+
 var (
 	_ graph.Node = (*recipeStepGraphNode)(nil)
 
@@ -571,8 +576,8 @@ func frozenIngredientDefrostStepsFilter(recipe *mealplanning.Recipe) map[string]
 			if ingredient.Ingredient != nil &&
 				// if the ingredient has storage temperature set
 				ingredient.Ingredient.MinStorageTemperatureInCelsius != nil &&
-				// the ingredient's storage temperature is set to something about freezing temperature.
-				*ingredient.Ingredient.MinStorageTemperatureInCelsius <= 3 {
+				// the ingredient's storage temperature is at or below freezing.
+				*ingredient.Ingredient.MinStorageTemperatureInCelsius <= maxFrozenStorageTemperatureInCelsius {
 				ingredientIndices = append(ingredientIndices, i)
 			}
 		}
@@ -627,10 +632,13 @@ func (g *recipeAnalyzer) generateMealPlanTasksForFrozenIngredients(ctx context.C
 			continue
 		}
 
+		// Ad-hoc thaw tasks have no backing recipe prep task; an empty RecipePrepTaskID is
+		// persisted as NULL (belongs_to_recipe_prep_task is nullable).
 		outputs = append(outputs, &mealplanning.MealPlanTaskDatabaseCreationInput{
 			ID:                  identifiers.New(),
-			CreationExplanation: explanation,
 			MealPlanOptionID:    mealPlanOptionID,
+			CreationExplanation: explanation,
+			RecipePrepTaskID:    "",
 		})
 	}
 

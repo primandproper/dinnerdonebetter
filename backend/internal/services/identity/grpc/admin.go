@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 
 	identityconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/converters"
 	identitysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
@@ -10,6 +11,8 @@ import (
 
 	"google.golang.org/grpc/codes"
 )
+
+var errNotAuthorizedToUpdateUserStatus = errors.New("not authorized to update user account statuses")
 
 func (s *serviceImpl) AdminSetPasswordChangeRequired(ctx context.Context, request *identitysvc.AdminSetPasswordChangeRequiredRequest) (*identitysvc.AdminSetPasswordChangeRequiredResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
@@ -23,7 +26,7 @@ func (s *serviceImpl) AdminSetPasswordChangeRequired(ctx context.Context, reques
 	}
 
 	if !sessionContextData.Requester.ServicePermissions.CanUpdateUserAccountStatuses() {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(nil, logger, span, codes.PermissionDenied, "user does not have permission to set password change required")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedToUpdateUserStatus, logger, span, codes.PermissionDenied, "user does not have permission to set password change required")
 	}
 
 	if err = s.identityDataManager.AdminSetPasswordChangeRequired(ctx, request.GetTargetUserId(), request.GetRequiresPasswordChange()); err != nil {
@@ -47,7 +50,7 @@ func (s *serviceImpl) AdminUpdateUserStatus(ctx context.Context, request *identi
 	}
 
 	if !sessionContextData.Requester.ServicePermissions.CanUpdateUserAccountStatuses() {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(nil, logger, span, codes.Unauthenticated, "user account status update requester does not have permission")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedToUpdateUserStatus, logger, span, codes.PermissionDenied, "user account status update requester does not have permission")
 	}
 
 	if err = s.identityDataManager.AdminUpdateUserStatus(ctx, identityconverters.ConvertGRPCAdminUpdateUserStatusRequestToUserAccountStatusUpdateInput(request)); err != nil {

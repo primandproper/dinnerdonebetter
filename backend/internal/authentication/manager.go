@@ -157,7 +157,7 @@ func (m *manager) ProcessLogin(ctx context.Context, adminOnly bool, loginData *a
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, user.ID)
 
 	if user.IsBanned() {
-		return nil, observability.PrepareError(err, span, "user is banned")
+		return nil, observability.PrepareError(ErrUserBanned, span, "checking ban status")
 	}
 
 	loginValid, err := m.validateLogin(ctx, user, loginData)
@@ -232,7 +232,7 @@ func (m *manager) ProcessPasskeyLogin(ctx context.Context, userID, desiredAccoun
 	}
 
 	if user.IsBanned() {
-		return nil, observability.PrepareError(errors.New("user is banned"), span, "user is banned")
+		return nil, observability.PrepareError(ErrUserBanned, span, "checking ban status")
 	}
 
 	var accountID string
@@ -298,7 +298,7 @@ func (m *manager) ExchangeTokenForUser(ctx context.Context, refreshToken, desire
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, user.ID)
 
 	if user.IsBanned() {
-		return nil, observability.PrepareError(err, span, "user is banned")
+		return nil, observability.PrepareError(ErrUserBanned, span, "checking ban status")
 	}
 
 	// Validate the existing session via refresh token JTI.

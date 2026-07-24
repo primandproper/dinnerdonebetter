@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
@@ -12,6 +13,13 @@ import (
 	"github.com/primandproper/platform-go/v5/observability"
 
 	"google.golang.org/grpc/codes"
+)
+
+var (
+	// errNotAuthorizedForAccount is returned when a requester is not a member of the requested account.
+	errNotAuthorizedForAccount = errors.New("not authorized for account")
+	// errAccountIDMismatch is returned when a request's account ID does not match the session's active account.
+	errAccountIDMismatch = errors.New("request account ID does not match active account")
 )
 
 func (s *serviceImpl) ArchiveAccount(ctx context.Context, request *identitysvc.ArchiveAccountRequest) (*identitysvc.ArchiveAccountResponse, error) {
@@ -95,9 +103,23 @@ func (s *serviceImpl) GetAccount(ctx context.Context, request *identitysvc.GetAc
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	logger := observability.ObserveValues(map[string]any{
+		identitykeys.AccountIDKey: request.AccountId,
+	}, span, s.logger)
+
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+	}
+
+	// verify the requester is a member of the requested account (service admins may read any account).
+	if _, isMember := sessionContextData.AccountPermissions[request.AccountId]; !isMember && !sessionContextData.GetServicePermissions().IsServiceAdmin() {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedForAccount, logger, span, codes.PermissionDenied, "not authorized for account")
+	}
+
 	account, err := s.identityDataManager.GetAccount(ctx, request.AccountId)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Internal, "failed to get account")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to get account")
 	}
 
 	x := &identitysvc.GetAccountResponse{
@@ -196,6 +218,10 @@ func (s *serviceImpl) TransferAccountOwnership(ctx context.Context, request *ide
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
 	}
 
+	if request.AccountId != "" && request.AccountId != sessionContextData.GetActiveAccountID() {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errAccountIDMismatch, logger, span, codes.InvalidArgument, "request account ID does not match active account")
+	}
+
 	input := converters.ConvertGRPCAccountOwnershipTransferInputToAccountOwnershipTransferInput(request.Input)
 
 	if err = s.identityDataManager.TransferAccountOwnership(ctx, sessionContextData.GetActiveAccountID(), input); err != nil {
@@ -221,6 +247,10 @@ func (s *serviceImpl) UpdateAccount(ctx context.Context, request *identitysvc.Up
 	sessionContextData, err := s.sessionContextDataFetcher(ctx)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+	}
+
+	if request.AccountId != "" && request.AccountId != sessionContextData.GetActiveAccountID() {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errAccountIDMismatch, logger, span, codes.InvalidArgument, "request account ID does not match active account")
 	}
 
 	input := converters.ConvertGRPCAccountUpdateRequestInputToAccountUpdateRequestInput(request.Input)
@@ -265,10 +295,18 @@ func (s *serviceImpl) ArchiveUserMembership(ctx context.Context, request *identi
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	// TODO: validate that the user is authorized to do this?
+	logger := observability.ObserveValues(map[string]any{
+		identitykeys.UserIDKey: request.UserId,
+	}, span, s.logger)
 
-	if err := s.identityDataManager.ArchiveUserMembership(ctx, request.UserId, request.AccountId); err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Internal, "failed to archive user membership")
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+	}
+
+	// remove the member from the caller's active account only; the request's account ID is not trusted.
+	if err = s.identityDataManager.ArchiveUserMembership(ctx, request.UserId, sessionContextData.GetActiveAccountID()); err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive user membership")
 	}
 
 	x := &identitysvc.ArchiveUserMembershipResponse{

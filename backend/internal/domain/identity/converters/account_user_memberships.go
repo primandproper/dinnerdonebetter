@@ -6,12 +6,12 @@ import (
 	"github.com/primandproper/platform-go/v5/identifiers"
 )
 
-// ConvertAccountUserMembershipToAccountUserMembershipDatabaseCreationInput builds a faked AccountUserMembershipCreationRequestInput.
-func ConvertAccountUserMembershipToAccountUserMembershipDatabaseCreationInput(account *types.AccountUserMembership) *types.AccountUserMembershipDatabaseCreationInput {
+// ConvertAccountUserMembershipToAccountUserMembershipDatabaseCreationInput builds an AccountUserMembershipDatabaseCreationInput from a membership.
+func ConvertAccountUserMembershipToAccountUserMembershipDatabaseCreationInput(membership *types.AccountUserMembership) *types.AccountUserMembershipDatabaseCreationInput {
 	return &types.AccountUserMembershipDatabaseCreationInput{
 		ID:        identifiers.New(),
 		Reason:    "",
-		UserID:    account.BelongsToUser,
-		AccountID: account.ID,
+		UserID:    membership.BelongsToUser,
+		AccountID: membership.BelongsToAccount,
 	}
 }

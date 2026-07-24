@@ -14,6 +14,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/dataprivacy/grpc/converters"
 
+	platformerrors "github.com/primandproper/platform-go/v5/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v5/errors/grpc"
 	"github.com/primandproper/platform-go/v5/identifiers"
 	"github.com/primandproper/platform-go/v5/observability/logging"
@@ -139,6 +140,11 @@ func (s *serviceImpl) FetchUserDataReport(ctx context.Context, request *datapriv
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
+	}
+
 	reportID := request.GetUserDataAggregationReportId()
 	logger := s.logger.WithValue(dataprivacykeys.UserDataAggregationReportIDKey, reportID)
 	tracing.AttachToSpan(span, dataprivacykeys.UserDataAggregationReportIDKey, reportID)
@@ -155,6 +161,11 @@ func (s *serviceImpl) FetchUserDataReport(ctx context.Context, request *datapriv
 	var collection dataprivacy.UserDataCollection
 	if err = json.Unmarshal(reportBytes, &collection); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "unmarshaling report")
+	}
+
+	// Verify the report belongs to the requester before disclosing it.
+	if collection.Identity.User.ID != sessionContextData.Requester.UserID {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("report does not belong to requester"), logger, span, codes.PermissionDenied, "report does not belong to requester")
 	}
 
 	logger.Info("user data report fetched successfully")

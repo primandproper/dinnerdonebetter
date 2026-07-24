@@ -243,8 +243,18 @@ func TestServiceImpl_ArchiveRecipeRating(T *testing.T) {
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleRecipeRatingID := mealplanningfakes.BuildFakeID()
+		exampleUserID := mealplanningfakes.BuildFakeID()
+
+		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
+			return &sessions.ContextData{
+				Requester: sessions.RequesterInfo{UserID: exampleUserID},
+			}, nil
+		}
+
+		exampleRating := &mealplanning.RecipeRating{ID: exampleRecipeRatingID, CreatedByUser: exampleUserID}
 
 		mrm := &mockmanagers.MockMealPlanningManager{}
+		mrm.On(reflection.GetMethodName(mrm.ReadRecipeRating), testutils.ContextMatcher, exampleRecipeID, exampleRecipeRatingID).Return(exampleRating, nil)
 		mrm.On(reflection.GetMethodName(mrm.ArchiveRecipeRating), testutils.ContextMatcher, exampleRecipeID, exampleRecipeRatingID).Return(nil)
 		s.mealPlanningManager = mrm
 
@@ -2306,6 +2316,11 @@ func TestServiceImpl_UpdateRecipeRating(T *testing.T) {
 		exampleResponse := mealplanningfakes.BuildFakeRecipeRating()
 
 		s := buildServiceImplForRecipesTest(t)
+		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
+			return &sessions.ContextData{
+				Requester: sessions.RequesterInfo{UserID: exampleResponse.CreatedByUser},
+			}, nil
+		}
 
 		mrm := &mockmanagers.MockMealPlanningManager{}
 		mrm.On(reflection.GetMethodName(mrm.UpdateRecipeRating), testutils.ContextMatcher, exampleRequest.RecipeId, exampleRequest.RecipeRatingId, testutils.MatchType[*mealplanning.RecipeRatingUpdateRequestInput]()).Return(nil)

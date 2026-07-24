@@ -84,6 +84,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	port := cfg.HTTPServer.Port
+	if port == 0 {
+		port = defaultPort
+	}
+
 	// Build DI container with repositories and auth.
 	injector := mcpbuild.BuildInjector(ctx, cfg)
 
@@ -141,7 +146,7 @@ func main() {
 		}
 
 		srv := &http.Server{
-			Addr:              fmt.Sprintf(":%d", defaultPort),
+			Addr:              fmt.Sprintf(":%d", port),
 			Handler:           router.Handler(),
 			ReadTimeout:       15 * time.Second,
 			WriteTimeout:      15 * time.Second,
@@ -169,7 +174,7 @@ func main() {
 		}
 
 		srv := &http.Server{
-			Addr:              fmt.Sprintf(":%d", defaultPort),
+			Addr:              fmt.Sprintf(":%d", port),
 			Handler:           router.Handler(),
 			ReadTimeout:       15 * time.Second,
 			WriteTimeout:      15 * time.Second,

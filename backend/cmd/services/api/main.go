@@ -40,7 +40,7 @@ func runServe(_ *cobra.Command, _ []string) error {
 
 	cfg, err := config.LoadConfigFromEnvironment[config.APIServiceConfig]()
 	if err != nil {
-		return fmt.Errorf("could not load config from docker: %w", err)
+		return fmt.Errorf("could not load config from environment: %w", err)
 	}
 
 	buildCtx, cancel := context.WithTimeout(ctx, cfg.HTTPServer.StartupDeadline)
@@ -56,8 +56,7 @@ func runServe(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("could not create server: %w", err)
 	}
 
-	server.Run(ctx)
-	return nil
+	return server.Run(ctx)
 }
 
 func versionCmd() *cobra.Command {

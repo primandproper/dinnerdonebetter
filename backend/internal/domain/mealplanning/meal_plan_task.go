@@ -13,7 +13,7 @@ import (
 const (
 	// MealPlanTaskCreatedServiceEventType indicates a meal plan task was created.
 	MealPlanTaskCreatedServiceEventType = "meal_plan_task_created"
-	// MealPlanTaskStatusChangedServiceEventType indicates a meal plan task was created.
+	// MealPlanTaskStatusChangedServiceEventType indicates a meal plan task's status was changed.
 	MealPlanTaskStatusChangedServiceEventType = "meal_plan_task_status_changed"
 
 	// MealPlanTaskStatusUnfinished represents the unfinished enum member for meal plan task status in the DB.
@@ -146,8 +146,6 @@ func (x *MealPlanTask) Update(input *MealPlanTaskStatusChangeRequestInput) {
 			x.AssignedToUser = input.AssignedToUser
 		}
 	}
-
-	x.AssignedToUser = input.AssignedToUser
 }
 
 var _ validation.ValidatableWithContext = (*MealPlanTaskCreationRequestInput)(nil)
@@ -172,13 +170,14 @@ func (x *MealPlanTaskCreationRequestInput) ValidateWithContext(ctx context.Conte
 var _ validation.ValidatableWithContext = (*MealPlanTaskDatabaseCreationInput)(nil)
 
 // ValidateWithContext validates a MealPlanTaskDatabaseCreationInput.
+// RecipePrepTaskID is deliberately optional: system-generated thaw tasks for frozen
+// ingredients have no backing recipe prep task (persisted as NULL).
 func (x *MealPlanTaskDatabaseCreationInput) ValidateWithContext(ctx context.Context) error {
 	return validation.ValidateStructWithContext(
 		ctx,
 		x,
 		validation.Field(&x.ID, validation.Required),
 		validation.Field(&x.MealPlanOptionID, validation.Required),
-		validation.Field(&x.RecipePrepTaskID, validation.Required),
 	)
 }
 

@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -13,10 +14,48 @@ import (
 	platformerrors "github.com/primandproper/platform-go/v5/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v5/errors/grpc"
 	"github.com/primandproper/platform-go/v5/observability"
+	"github.com/primandproper/platform-go/v5/observability/logging"
 	"github.com/primandproper/platform-go/v5/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )
+
+// verifyMealPlanAccess fetches the session context and confirms the meal plan belongs to the
+// requester's active account. It is the service-layer authorization guard for meal-plan
+// sub-resource handlers whose manager methods do not accept an account-scoping argument.
+func (s *serviceImpl) verifyMealPlanAccess(ctx context.Context, mealPlanID string, logger logging.Logger, span tracing.Span) error {
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+	}
+
+	if _, err = s.mealPlanningManager.ReadMealPlan(ctx, mealPlanID, sessionContextData.GetActiveAccountID()); err != nil {
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "meal plan not found or access denied")
+	}
+
+	return nil
+}
+
+// verifyMealPlanOptionAccess fetches the session context and confirms the meal plan option resolves
+// (via its event and meal plan) to the requester's active account. It is the service-layer
+// authorization guard for the recipe-option-selection handlers, whose requests carry only an option ID.
+func (s *serviceImpl) verifyMealPlanOptionAccess(ctx context.Context, mealPlanOptionID string, logger logging.Logger, span tracing.Span) error {
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+	}
+
+	belongs, err := s.mealPlanningManager.MealPlanOptionBelongsToAccount(ctx, mealPlanOptionID, sessionContextData.GetActiveAccountID())
+	if err != nil {
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to verify meal plan option access")
+	}
+
+	if !belongs {
+		return errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("meal plan option not found for account"), logger, span, codes.NotFound, "meal plan option not found or access denied")
+	}
+
+	return nil
+}
 
 func (s *serviceImpl) ArchiveMeal(ctx context.Context, request *mealplanningsvc.ArchiveMealRequest) (*mealplanningsvc.ArchiveMealResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
@@ -87,6 +126,10 @@ func (s *serviceImpl) ArchiveMealPlanEvent(ctx context.Context, request *mealpla
 		mealplanningkeys.MealPlanEventIDKey: request.MealPlanEventId,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
+
 	if err := s.mealPlanningManager.ArchiveMealPlanEvent(ctx, request.MealPlanId, request.MealPlanEventId); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "failed to archive meal plan event")
 	}
@@ -108,6 +151,10 @@ func (s *serviceImpl) ArchiveMealPlanGroceryListItem(ctx context.Context, reques
 		mealplanningkeys.MealPlanIDKey:                request.MealPlanId,
 		mealplanningkeys.MealPlanGroceryListItemIDKey: request.MealPlanGroceryListItemId,
 	}, span, s.logger)
+
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
 
 	if err := s.mealPlanningManager.ArchiveMealPlanGroceryListItem(ctx, request.MealPlanId, request.MealPlanGroceryListItemId); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive meal plan grocery list item")
@@ -132,6 +179,10 @@ func (s *serviceImpl) ArchiveMealPlanOption(ctx context.Context, request *mealpl
 		mealplanningkeys.MealPlanOptionIDKey: request.MealPlanOptionId,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
+
 	if err := s.mealPlanningManager.ArchiveMealPlanOption(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive meal plan option")
 	}
@@ -155,6 +206,10 @@ func (s *serviceImpl) ArchiveMealPlanOptionVote(ctx context.Context, request *me
 		mealplanningkeys.MealPlanEventIDKey:      request.MealPlanEventId,
 		mealplanningkeys.MealPlanIDKey:           request.MealPlanId,
 	}, span, s.logger)
+
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
 
 	if err := s.mealPlanningManager.ArchiveMealPlanOptionVote(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, request.MealPlanOptionVoteId); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive meal plan option vote")
@@ -233,10 +288,15 @@ func (s *serviceImpl) GetMealLists(ctx context.Context, request *mealplanningsvc
 
 	logger := s.logger.WithSpan(span)
 
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
+	}
+
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	lists, err := s.mealPlanningManager.ListMealLists(ctx, filter)
+	lists, err := s.mealPlanningManager.ListMealLists(ctx, sessionContextData.GetUserID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching meal lists")
 	}
@@ -344,10 +404,15 @@ func (s *serviceImpl) GetMealListItems(ctx context.Context, request *mealplannin
 		mealplanningkeys.MealListIDKey: request.MealListId,
 	}, span, s.logger)
 
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
+	}
+
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	items, err := s.mealPlanningManager.ListMealListItems(ctx, request.MealListId, filter)
+	items, err := s.mealPlanningManager.ListMealListItems(ctx, request.MealListId, sessionContextData.GetUserID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching meal list items")
 	}
@@ -369,6 +434,10 @@ func (s *serviceImpl) GetMealListItems(ctx context.Context, request *mealplannin
 func (s *serviceImpl) CreateMealListItem(ctx context.Context, request *mealplanningsvc.CreateMealListItemRequest) (*mealplanningsvc.CreateMealListItemResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealListIDKey: request.Input.BelongsToMealList,
@@ -473,6 +542,10 @@ func (s *serviceImpl) CreateMealPlanEvent(ctx context.Context, request *mealplan
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
+
 	input := converters.ConvertGRPCMealPlanEventCreationRequestInputToMealPlanEventCreationRequestInput(request.Input)
 
 	created, err := s.mealPlanningManager.CreateMealPlanEvent(ctx, request.MealPlanId, input)
@@ -497,6 +570,10 @@ func (s *serviceImpl) CreateMealPlanOption(ctx context.Context, request *mealpla
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
+
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
 
 	input := converters.ConvertGRPCMealPlanOptionCreationRequestInputToMealPlanOptionCreationRequestInput(request.Input)
 
@@ -528,14 +605,25 @@ func (s *serviceImpl) CreateMealPlanOptionVote(ctx context.Context, request *mea
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
 	}
 
+	if _, err = s.mealPlanningManager.ReadMealPlan(ctx, request.MealPlanId, sessionContextData.GetActiveAccountID()); err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "meal plan not found or access denied")
+	}
+
 	input := converters.ConvertGRPCMealPlanOptionVoteCreationRequestInputToMealPlanOptionVoteCreationRequestInput(request.Input)
 	for i := range input.Votes {
 		input.Votes[i].ByUser = sessionContextData.GetUserID()
 	}
 
-	created, err := s.mealPlanningManager.CreateMealPlanOptionVotes(ctx, sessionContextData.GetUserID(), input)
+	created, err := s.mealPlanningManager.CreateMealPlanOptionVotes(ctx, request.MealPlanId, request.MealPlanEventId, sessionContextData.GetUserID(), input)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create meal plan option vote")
+		switch {
+		case errors.Is(err, mealplanning.ErrMealPlanEventNotEligibleForVoting):
+			return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.FailedPrecondition, "meal plan event is not eligible for voting")
+		case errors.Is(err, mealplanning.ErrMealPlanOptionNotFoundForEvent):
+			return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "meal plan option not found for event")
+		default:
+			return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create meal plan option vote")
+		}
 	}
 
 	x := &mealplanningsvc.CreateMealPlanOptionVoteResponse{
@@ -558,6 +646,10 @@ func (s *serviceImpl) CreateMealPlanTask(ctx context.Context, request *mealplann
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
+
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
 
 	input := converters.ConvertGRPCMealPlanTaskCreationRequestInputToMealPlanTaskCreationRequestInput(request.Input)
 
@@ -622,7 +714,7 @@ func (s *serviceImpl) FinalizeMealPlan(ctx context.Context, request *mealplannin
 
 	finalized, err := s.mealPlanningManager.FinalizeMealPlan(ctx, request.MealPlanId, sessionContextData.GetActiveAccountID())
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to finalize meal plan")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to finalize meal plan")
 	}
 
 	x := &mealplanningsvc.FinalizeMealPlanResponse{
@@ -755,9 +847,13 @@ func (s *serviceImpl) GetMealPlanEvent(ctx context.Context, request *mealplannin
 		mealplanningkeys.MealPlanEventIDKey: request.MealPlanEventId,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
+
 	mealPlanEvent, err := s.mealPlanningManager.ReadMealPlanEvent(ctx, request.MealPlanId, request.MealPlanEventId)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan event")
 	}
 
 	x := &mealplanningsvc.GetMealPlanEventResponse{
@@ -780,6 +876,10 @@ func (s *serviceImpl) GetMealPlanEvents(ctx context.Context, request *mealplanni
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
+
 	mealPlanEventsResult, err := s.mealPlanningManager.ListMealPlanEvents(ctx, request.MealPlanId, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch list of meal plan events")
@@ -789,6 +889,7 @@ func (s *serviceImpl) GetMealPlanEvents(ctx context.Context, request *mealplanni
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
+		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(mealPlanEventsResult.Pagination, filter),
 	}
 
 	for _, mealPlanEvent := range mealPlanEventsResult.Data {
@@ -806,6 +907,10 @@ func (s *serviceImpl) GetMealPlanGroceryListItem(ctx context.Context, request *m
 		mealplanningkeys.MealPlanIDKey:                request.MealPlanId,
 		mealplanningkeys.MealPlanGroceryListItemIDKey: request.MealPlanGroceryListItemId,
 	}, span, s.logger)
+
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
 
 	mealPlanGroceryListItem, err := s.mealPlanningManager.ReadMealPlanGroceryListItem(ctx, request.MealPlanId, request.MealPlanGroceryListItemId)
 	if err != nil {
@@ -832,6 +937,10 @@ func (s *serviceImpl) GetMealPlanGroceryListItemsForMealPlan(ctx context.Context
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
+
 	mealPlanGroceryListItems, err := s.mealPlanningManager.ListMealPlanGroceryListItemsByMealPlan(ctx, request.MealPlanId, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch list of meal plan grocery list items")
@@ -841,6 +950,7 @@ func (s *serviceImpl) GetMealPlanGroceryListItemsForMealPlan(ctx context.Context
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
+		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(mealPlanGroceryListItems.Pagination, filter),
 	}
 
 	for _, mealPlanGroceryListItem := range mealPlanGroceryListItems.Data {
@@ -860,6 +970,10 @@ func (s *serviceImpl) GetMealPlanRecipeOptionSelection(ctx context.Context, requ
 		"ingredient_index":                   request.IngredientIndex,
 		"selection_type":                     request.SelectionType,
 	}, span, s.logger)
+
+	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
+		return nil, err
+	}
 
 	selection, err := s.mealPlanningManager.GetMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, request.RecipeStepId, uint16(request.IngredientIndex), converters.ConvertMealPlanRecipeOptionSelectionTypeToString(request.SelectionType))
 	if err != nil {
@@ -887,6 +1001,10 @@ func (s *serviceImpl) GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx con
 		mealplanningkeys.MealPlanOptionIDKey: request.MealPlanOptionId,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
+		return nil, err
+	}
+
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
 	selections, err := s.mealPlanningManager.GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx, request.MealPlanOptionId, filter)
@@ -912,9 +1030,17 @@ func (s *serviceImpl) CreateMealPlanRecipeOptionSelection(ctx context.Context, r
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: request.Input.BelongsToMealPlanOption,
 	}, span, s.logger)
+
+	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
+		return nil, err
+	}
 
 	input := converters.ConvertGRPCMealPlanRecipeOptionSelectionCreationRequestInputToMealPlanRecipeOptionSelectionCreationRequestInput(request.Input)
 
@@ -943,6 +1069,10 @@ func (s *serviceImpl) UpdateMealPlanRecipeOptionSelection(ctx context.Context, r
 		"ingredient_index":                   request.IngredientIndex,
 		"selection_type":                     request.SelectionType,
 	}, span, s.logger)
+
+	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
+		return nil, err
+	}
 
 	input := converters.ConvertGRPCMealPlanRecipeOptionSelectionUpdateRequestInputToMealPlanRecipeOptionSelectionUpdateRequestInput(request.Input)
 
@@ -977,6 +1107,10 @@ func (s *serviceImpl) ArchiveMealPlanRecipeOptionSelection(ctx context.Context, 
 		"selection_type":                     request.SelectionType,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
+		return nil, err
+	}
+
 	selectionTypeStr := converters.ConvertMealPlanRecipeOptionSelectionTypeToString(request.SelectionType)
 	if err := s.mealPlanningManager.ArchiveMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, request.RecipeStepId, uint16(request.IngredientIndex), selectionTypeStr); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive meal plan recipe option selection")
@@ -1001,9 +1135,13 @@ func (s *serviceImpl) GetMealPlanOption(ctx context.Context, request *mealplanni
 		mealplanningkeys.MealPlanOptionIDKey: request.MealPlanOptionId,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
+
 	mealPlanOption, err := s.mealPlanningManager.ReadMealPlanOption(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan grocery list item")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan option")
 	}
 
 	x := &mealplanningsvc.GetMealPlanOptionResponse{
@@ -1027,9 +1165,13 @@ func (s *serviceImpl) GetMealPlanOptionVote(ctx context.Context, request *mealpl
 		mealplanningkeys.MealPlanOptionVoteIDKey: request.MealPlanOptionVoteId,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
+
 	mealPlanOptionVote, err := s.mealPlanningManager.ReadMealPlanOptionVote(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, request.MealPlanOptionVoteId)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan grocery list item")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan option vote")
 	}
 
 	x := &mealplanningsvc.GetMealPlanOptionVoteResponse{
@@ -1053,6 +1195,10 @@ func (s *serviceImpl) GetMealPlanOptionVotes(ctx context.Context, request *mealp
 	}, span, s.logger)
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
 
 	mealPlanOptionVotesResult, err := s.mealPlanningManager.ListMealPlanOptionVotes(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, filter)
 	if err != nil {
@@ -1082,6 +1228,10 @@ func (s *serviceImpl) GetMealPlanOptions(ctx context.Context, request *mealplann
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
+
 	mealPlanOptionsResult, err := s.mealPlanningManager.ListMealPlanOptions(ctx, request.MealPlanId, request.MealPlanEventId, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch list of meal plan options")
@@ -1091,6 +1241,7 @@ func (s *serviceImpl) GetMealPlanOptions(ctx context.Context, request *mealplann
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
+		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(mealPlanOptionsResult.Pagination, filter),
 	}
 
 	for _, mealPlanOption := range mealPlanOptionsResult.Data {
@@ -1109,9 +1260,13 @@ func (s *serviceImpl) GetMealPlanTask(ctx context.Context, request *mealplanning
 		mealplanningkeys.MealPlanTaskIDKey: request.MealPlanTaskId,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
+
 	mealPlanTask, err := s.mealPlanningManager.ReadMealPlanTask(ctx, request.MealPlanId, request.MealPlanTaskId)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan grocery list item")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan task")
 	}
 
 	x := &mealplanningsvc.GetMealPlanTaskResponse{
@@ -1133,6 +1288,10 @@ func (s *serviceImpl) GetMealPlanTasks(ctx context.Context, request *mealplannin
 	}, span, s.logger)
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
 
 	mealPlanTasks, err := s.mealPlanningManager.ListMealPlanTasksByMealPlan(ctx, request.MealPlanId, filter)
 	if err != nil {
@@ -1193,7 +1352,7 @@ func (s *serviceImpl) GetUserIngredientPreference(ctx context.Context, request *
 
 	userIngredientPreference, err := s.mealPlanningManager.ReadUserIngredientPreference(ctx, sessionContextData.GetUserID(), request.UserIngredientPreferenceId)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch list of meals")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read user ingredient preference")
 	}
 
 	x := &mealplanningsvc.GetUserIngredientPreferenceResponse{
@@ -1220,13 +1379,14 @@ func (s *serviceImpl) GetUserIngredientPreferences(ctx context.Context, request 
 
 	userIngredientPreferencesResult, err := s.mealPlanningManager.ListUserIngredientPreferences(ctx, sessionContextData.GetUserID(), filter)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch list of meals")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch list of user ingredient preferences")
 	}
 
 	x := &mealplanningsvc.GetUserIngredientPreferencesResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
+		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(userIngredientPreferencesResult.Pagination, filter),
 	}
 
 	for _, userIngredientPreference := range userIngredientPreferencesResult.Data {
@@ -1365,6 +1525,10 @@ func (s *serviceImpl) UpdateMealPlanEvent(ctx context.Context, request *mealplan
 		mealplanningkeys.MealPlanEventIDKey: request.MealPlanEventId,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
+
 	input := converters.ConvertGRPCMealPlanEventUpdateRequestInputToMealPlanEventUpdateRequestInput(request.Input)
 
 	if err := s.mealPlanningManager.UpdateMealPlanEvent(ctx, request.MealPlanId, request.MealPlanEventId, input); err != nil {
@@ -1395,6 +1559,10 @@ func (s *serviceImpl) SwapMealPlanEvents(ctx context.Context, request *mealplann
 		mealplanningkeys.MealPlanEventIDKey: request.MealPlanEventIdA + "," + request.MealPlanEventIdB,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
+
 	if err := s.mealPlanningManager.SwapMealPlanEvents(ctx, request.MealPlanId, request.MealPlanEventIdA, request.MealPlanEventIdB); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to swap meal plan events")
 	}
@@ -1416,6 +1584,10 @@ func (s *serviceImpl) UpdateMealPlanGroceryListItem(ctx context.Context, request
 		mealplanningkeys.MealPlanIDKey:                request.MealPlanId,
 		mealplanningkeys.MealPlanGroceryListItemIDKey: request.MealPlanGroceryListItemId,
 	}, span, s.logger)
+
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
 
 	input := converters.ConvertGRPCMealPlanGroceryListItemUpdateRequestInputToMealPlanGroceryListItemUpdateRequestInput(request.Input)
 
@@ -1448,6 +1620,10 @@ func (s *serviceImpl) UpdateMealPlanOption(ctx context.Context, request *mealpla
 		mealplanningkeys.MealPlanEventIDKey:  request.MealPlanEventId,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
+
 	input := converters.ConvertGRPCMealPlanOptionUpdateRequestInputToMealPlanOptionUpdateRequestInput(request.Input)
 
 	if err := s.mealPlanningManager.UpdateMealPlanOption(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, input); err != nil {
@@ -1479,6 +1655,10 @@ func (s *serviceImpl) UpdateMealPlanOptionVote(ctx context.Context, request *mea
 		mealplanningkeys.MealPlanOptionVoteIDKey: request.MealPlanOptionVoteId,
 	}, span, s.logger)
 
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
+
 	input := converters.ConvertGRPCMealPlanOptionVoteUpdateRequestInputToMealPlanOptionVoteUpdateRequestInput(request.Input)
 
 	if err := s.mealPlanningManager.UpdateMealPlanOptionVote(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, request.MealPlanOptionVoteId, input); err != nil {
@@ -1508,6 +1688,10 @@ func (s *serviceImpl) UpdateMealPlanTaskStatus(ctx context.Context, request *mea
 		mealplanningkeys.MealPlanIDKey:     request.MealPlanId,
 		mealplanningkeys.MealPlanTaskIDKey: request.MealPlanTaskId,
 	}, span, s.logger)
+
+	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
+		return nil, err
+	}
 
 	input := converters.ConvertGRPCMealPlanTaskStatusChangeRequestInputToMealPlanTaskStatusChangeRequestInput(request.Input)
 	input.MealPlanTaskID = request.MealPlanTaskId
@@ -1547,12 +1731,12 @@ func (s *serviceImpl) UpdateUserIngredientPreference(ctx context.Context, reques
 	input := converters.ConvertGRPCUserIngredientPreferenceUpdateRequestInputToUserIngredientPreferenceUpdateRequestInput(request.Input)
 
 	if err = s.mealPlanningManager.UpdateUserIngredientPreference(ctx, request.UserIngredientPreferenceId, sessionContextData.GetUserID(), input); err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to update meal plan task status")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to update user ingredient preference")
 	}
 
 	updated, err := s.mealPlanningManager.ReadUserIngredientPreference(ctx, sessionContextData.GetUserID(), request.UserIngredientPreferenceId)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch updated meal plan task status")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch updated user ingredient preference")
 	}
 
 	x := &mealplanningsvc.UpdateUserIngredientPreferenceResponse{
@@ -1646,6 +1830,7 @@ func (s *serviceImpl) GetAccountInstrumentOwnerships(ctx context.Context, reques
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
+		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(results.Pagination, filter),
 	}
 
 	for _, result := range results.Data {

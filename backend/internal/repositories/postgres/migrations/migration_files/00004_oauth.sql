@@ -6,6 +6,10 @@ CREATE TABLE IF NOT EXISTS oauth2_clients (
     name TEXT NOT NULL,
     description TEXT DEFAULT ''::TEXT NOT NULL,
     client_id TEXT NOT NULL,
+    -- Despite the name, this stores the SHA-256 hex digest of the secret, never the
+    -- plaintext: the plaintext is returned to the creator exactly once at creation
+    -- time, and verification compares digests (constant-time, via the oauth library's
+    -- ClientPasswordVerifier). The UNIQUE constraint below is over digests.
     client_secret TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     archived_at TIMESTAMP WITH TIME ZONE,

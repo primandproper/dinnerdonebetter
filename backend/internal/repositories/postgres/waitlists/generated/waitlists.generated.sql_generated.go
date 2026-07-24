@@ -98,7 +98,7 @@ SELECT
 				waitlists.last_updated_at IS NULL
 				OR waitlists.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR waitlists.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR waitlists.archived_at IS NULL)
 			AND waitlists.valid_until >= NOW()
 	) AS filtered_count,
 	(
@@ -114,11 +114,11 @@ WHERE waitlists.archived_at IS NULL
 	AND waitlists.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		waitlists.last_updated_at IS NULL
-		OR waitlists.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR waitlists.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		waitlists.last_updated_at IS NULL
-		OR waitlists.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR waitlists.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND waitlists.valid_until >= NOW()
 	AND waitlists.id > COALESCE($6, '')
@@ -129,8 +129,8 @@ LIMIT COALESCE($7, 50)
 type GetActiveWaitlistsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -152,8 +152,8 @@ func (q *Queries) GetActiveWaitlists(ctx context.Context, db DBTX, arg *GetActiv
 	rows, err := db.QueryContext(ctx, getActiveWaitlists,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,
@@ -242,7 +242,7 @@ SELECT
 				waitlists.last_updated_at IS NULL
 				OR waitlists.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR waitlists.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR waitlists.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(waitlists.id)
@@ -255,11 +255,11 @@ WHERE waitlists.archived_at IS NULL
 	AND waitlists.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		waitlists.last_updated_at IS NULL
-		OR waitlists.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR waitlists.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		waitlists.last_updated_at IS NULL
-		OR waitlists.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR waitlists.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND waitlists.id > COALESCE($6, '')
 ORDER BY waitlists.id ASC
@@ -269,8 +269,8 @@ LIMIT COALESCE($7, 50)
 type GetWaitlistsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Cursor          sql.NullString
 	ResultLimit     interface{}
@@ -292,8 +292,8 @@ func (q *Queries) GetWaitlists(ctx context.Context, db DBTX, arg *GetWaitlistsPa
 	rows, err := db.QueryContext(ctx, getWaitlists,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Cursor,
 		arg.ResultLimit,

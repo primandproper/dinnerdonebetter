@@ -6,12 +6,16 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	datachangemessagehandler "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/functions/data_change_message_handler"
+	datachangemessagehandlerbuild "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/functions/data_change_message_handler"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/telemetry"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
 
+	"github.com/samber/do/v2"
 	_ "go.uber.org/automaxprocs"
 )
 
@@ -52,12 +56,20 @@ func main() {
 	}
 	cfg.Database.RunMigrations = false
 
-	ctx := context.Background()
-
-	dataChangeMessageHandler, err := datachangemessagehandler.Build(ctx, cfg)
-	if err != nil {
-		log.Fatalf("error building data_change_message_handler: %v", err)
+	// run owns every defer (telemetry flush, drain cancel), so a fatal consume error can
+	// exit non-zero here without skipping them.
+	if err = run(context.Background(), cfg); err != nil {
+		log.Fatal(err)
 	}
+}
+
+func run(ctx context.Context, cfg *config.AsyncMessageHandlerConfig) error {
+	injector := datachangemessagehandlerbuild.BuildInjector(ctx, cfg)
+
+	// Flush telemetry on exit so a short-lived pod exports its spans/metrics before terminating.
+	defer telemetry.Flush(ctx, injector)
+
+	dataChangeMessageHandler := do.MustInvoke[*datachangemessagehandler.AsyncDataChangeMessageHandler](injector)
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(
@@ -73,16 +85,20 @@ func main() {
 
 	dataChangeMessageHandler.SetNonWebhookEventTypes(nonWebhookEventTypes)
 
-	if err = dataChangeMessageHandler.ConsumeMessages(ctx, stopChan, errorsChan); err != nil {
-		log.Fatal(err)
+	if err := dataChangeMessageHandler.ConsumeMessages(ctx, stopChan, errorsChan); err != nil {
+		return err
 	}
 
-	// os.Interrupt
+	// Block until the first shutdown signal arrives.
 	<-signalChan
 
-	go func() {
-		// os.Kill
-		<-signalChan
-		stopChan <- true
-	}()
+	// Closing stopChan broadcasts to every consumer; then wait for in-flight handlers to drain
+	// before the deferred telemetry flush runs and main returns.
+	close(stopChan)
+
+	drainCtx, cancelDrain := context.WithTimeout(ctx, 30*time.Second)
+	defer cancelDrain()
+	dataChangeMessageHandler.WaitForConsumers(drainCtx)
+
+	return nil
 }

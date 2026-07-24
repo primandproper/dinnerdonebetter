@@ -42,7 +42,7 @@ SELECT
 			AND
 			user_data_disclosures.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND user_data_disclosures.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR user_data_disclosures.archived_at = NULL)
+			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR user_data_disclosures.archived_at IS NULL)
 			AND user_data_disclosures.belongs_to_user = sqlc.arg(user_id)
 	) AS filtered_count,
 	(

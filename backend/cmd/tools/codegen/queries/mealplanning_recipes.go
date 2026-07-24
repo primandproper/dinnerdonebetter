@@ -124,14 +124,14 @@ func buildRecipesQueries(database string) []*Query {
 				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
-	LEFT JOIN %s ON %s.%s=%s.%s
+	LEFT JOIN %s ON %s.%s=%s.%s AND %s.%s IS NULL
 	LEFT JOIN %s ON %s.%s=%s.%s
 WHERE %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 ORDER BY %s.%s;`,
 					strings.Join(fullSelectColumns, ",\n\t"),
 					recipesTableName,
-					recipeStepsTableName, recipesTableName, idColumn, recipeStepsTableName, belongsToRecipeColumn,
+					recipeStepsTableName, recipesTableName, idColumn, recipeStepsTableName, belongsToRecipeColumn, recipeStepsTableName, archivedAtColumn,
 					validPreparationsTableName, recipeStepsTableName, preparationIDColumn, validPreparationsTableName, idColumn,
 					recipesTableName, archivedAtColumn,
 					recipesTableName, idColumn, recipeIDColumn,
@@ -146,15 +146,15 @@ ORDER BY %s.%s;`,
 				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
-	FULL OUTER JOIN %s ON %s.%s=%s.%s
-	FULL OUTER JOIN %s ON %s.%s=%s.%s
+	LEFT JOIN %s ON %s.%s=%s.%s AND %s.%s IS NULL
+	LEFT JOIN %s ON %s.%s=%s.%s
 WHERE %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 	AND %s.%s = sqlc.arg(%s)
 ORDER BY %s.%s;`,
 					strings.Join(fullSelectColumns, ",\n\t"),
 					recipesTableName,
-					recipeStepsTableName, recipesTableName, idColumn, recipeStepsTableName, belongsToRecipeColumn,
+					recipeStepsTableName, recipesTableName, idColumn, recipeStepsTableName, belongsToRecipeColumn, recipeStepsTableName, archivedAtColumn,
 					validPreparationsTableName, recipeStepsTableName, preparationIDColumn, validPreparationsTableName, idColumn,
 					recipesTableName, archivedAtColumn,
 					recipesTableName, idColumn, recipeIDColumn,
@@ -222,14 +222,14 @@ FROM %s
 				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
-	LEFT JOIN %s ON %s.%s=%s.%s
+	LEFT JOIN %s ON %s.%s=%s.%s AND %s.%s IS NULL
 	LEFT JOIN %s ON %s.%s=%s.%s
 WHERE %s.%s IS NULL
 	AND %s.%s = ANY(sqlc.arg(ids)::text[])
 ORDER BY %s.%s ASC;`,
 					strings.Join(fullSelectColumns, ",\n\t"),
 					recipesTableName,
-					recipeStepsTableName, recipesTableName, idColumn, recipeStepsTableName, belongsToRecipeColumn,
+					recipeStepsTableName, recipesTableName, idColumn, recipeStepsTableName, belongsToRecipeColumn, recipeStepsTableName, archivedAtColumn,
 					validPreparationsTableName, recipeStepsTableName, preparationIDColumn, validPreparationsTableName, idColumn,
 					recipesTableName, archivedAtColumn,
 					recipesTableName, idColumn,

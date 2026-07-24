@@ -312,10 +312,9 @@ func TestManager_ProcessLogin(T *testing.T) {
 
 		response, err := m.ProcessLogin(ctx, false, loginInput, nil)
 
-		// NOTE: the production code calls observability.PrepareError(err, ...) where err is nil
-		// from the successful GetUserByUsername call, so PrepareError returns nil. This means
-		// banned users currently get (nil, nil) back rather than an error. This is likely a bug.
-		assert.NoError(t, err)
+		// A banned user must be rejected with an error and no token response.
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, ErrUserBanned)
 		assert.Nil(t, response)
 
 		mock.AssertExpectationsForObjects(t, mocks.userAuthDataManager)
@@ -683,10 +682,9 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 
 		response, err := m.ExchangeTokenForUser(ctx, refreshToken, "")
 
-		// NOTE: same as ProcessLogin, the production code calls observability.PrepareError(err, ...)
-		// where err is nil from the successful GetUser call, so PrepareError returns nil.
-		// Banned users currently get (nil, nil) back rather than an error. This is likely a bug.
-		assert.NoError(t, err)
+		// A banned user must be rejected with an error and no token response.
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, ErrUserBanned)
 		assert.Nil(t, response)
 
 		mock.AssertExpectationsForObjects(t, mocks.userAuthDataManager)

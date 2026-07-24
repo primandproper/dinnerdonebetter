@@ -11,6 +11,7 @@ import (
 	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
 	"github.com/primandproper/platform-go/v5/observability/logging"
 	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v5/qrcodes"
 	"github.com/primandproper/platform-go/v5/random"
 
 	"github.com/samber/do/v2"
@@ -28,6 +29,7 @@ func RegisterIdentityDataManager(i do.Injector) {
 			do.MustInvoke[random.Generator](i),
 			do.MustInvoke[authentication.Hasher](i),
 			do.MustInvoke[identityindexing.UserTextSearcher](i),
+			do.MustInvoke[qrcodes.Builder](i),
 			do.MustInvoke[*msgconfig.QueuesConfig](i),
 		)
 	})

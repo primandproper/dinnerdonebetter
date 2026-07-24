@@ -61,6 +61,10 @@ type Client interface {
 	// CommentsService returns the standalone CommentsService client. Use this to call
 	// CommentsService RPCs directly instead of via MealPlanningService.
 	CommentsService() commentsgrpc.CommentsServiceClient
+
+	// Close releases the underlying gRPC connection. Callers that build clients repeatedly
+	// must call this to avoid leaking connections.
+	Close() error
 }
 
 type client struct {
@@ -81,6 +85,7 @@ type client struct {
 	webhooksgrpc.WebhooksServiceClient
 
 	commentsClient commentsgrpc.CommentsServiceClient
+	conn           *grpc.ClientConn
 }
 
 // BuildClient builds a new Client.
@@ -107,6 +112,7 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 		WaitlistsServiceClient:         waitlistsgrpc.NewWaitlistsServiceClient(conn),
 		WebhooksServiceClient:          webhooksgrpc.NewWebhooksServiceClient(conn),
 		commentsClient:                 commentsgrpc.NewCommentsServiceClient(conn),
+		conn:                           conn,
 	}
 
 	return c, nil
@@ -114,6 +120,15 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 
 func (c *client) CommentsService() commentsgrpc.CommentsServiceClient {
 	return c.commentsClient
+}
+
+// Close releases the underlying gRPC connection.
+func (c *client) Close() error {
+	if c.conn == nil {
+		return nil
+	}
+
+	return c.conn.Close()
 }
 
 // BuildUnauthenticatedGRPCClient connects without TLS or auth tokens.
@@ -152,9 +167,12 @@ func WithOAuth2Credentials(
 		},
 	}
 
+	// PKCE (RFC 7636) with the S256 challenge method.
+	pkceVerifier := oauth2.GenerateVerifier()
+
 	authCodeURL := oauth2Config.AuthCodeURL(
 		state,
-		oauth2.SetAuthURLParam("code_challenge_method", "plain"),
+		oauth2.S256ChallengeOption(pkceVerifier),
 	)
 
 	req, err := http.NewRequestWithContext(
@@ -198,7 +216,7 @@ func WithOAuth2Credentials(
 		return nil, errors.New("code not returned from oauth2 redirect")
 	}
 
-	oauth2Token, err := oauth2Config.Exchange(ctx, code)
+	oauth2Token, err := oauth2Config.Exchange(ctx, code, oauth2.VerifierOption(pkceVerifier))
 	if err != nil {
 		return nil, err
 	}

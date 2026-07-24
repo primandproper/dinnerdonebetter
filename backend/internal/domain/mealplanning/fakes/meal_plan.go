@@ -22,12 +22,14 @@ func BuildFakeMealPlan() *types.MealPlan {
 		events = append(events, event)
 	}
 
-	now := time.Now().Add(30 * time.Minute).Truncate(time.Second).UTC()
+	// The voting deadline must be in the future but before every event's start time (events start in
+	// ten minutes, see BuildFakeMealPlanEvent), so the meal plan passes MealPlanCreationRequestInput validation.
+	votingDeadline := time.Now().Add(5 * time.Minute).Truncate(time.Second).UTC()
 	return &types.MealPlan{
 		ID:                     mealPlanID,
 		Notes:                  buildUniqueString(),
 		Status:                 string(types.MealPlanStatusAwaitingVotes),
-		VotingDeadline:         now,
+		VotingDeadline:         votingDeadline,
 		CreatedAt:              BuildFakeTime(),
 		BelongsToAccount:       fake.UUID(),
 		TasksCreated:           false,

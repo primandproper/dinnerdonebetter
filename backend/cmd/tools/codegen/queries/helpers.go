@@ -114,7 +114,7 @@ func buildFilterConditions(tableName string, withUpdateColumn, withArchivedAtCol
 
 	archivedAddendum := ""
 	if withArchivedAtColumn {
-		archivedAddendum = fmt.Sprintf("\n\t\t\tAND (NOT COALESCE(sqlc.narg(%s), false)::boolean OR %s.%s = NULL)", includeArchivedArg, tableName, archivedAtColumn)
+		archivedAddendum = fmt.Sprintf("\n\t\t\tAND (NOT COALESCE(sqlc.narg(%s), false)::boolean OR %s.%s IS NULL)", includeArchivedArg, tableName, archivedAtColumn)
 	}
 
 	var allConditions strings.Builder
@@ -150,11 +150,11 @@ func buildFilterCountSelect(tableName string, withUpdateColumn, withArchivedAtCo
 		updateAddendum = fmt.Sprintf("\n\t\t\t%s", strings.TrimSpace(buildRawQuery((&builq.Builder{}).Addf(`
 			AND (
 				%s.%s IS NULL
-				OR %s.%s > COALESCE(sqlc.narg(updated_before), (SELECT %s - '999 years'::INTERVAL))
+				OR %s.%s > COALESCE(sqlc.narg(updated_after), (SELECT %s - '999 years'::INTERVAL))
 			)
 			AND (
 				%s.%s IS NULL
-				OR %s.%s < COALESCE(sqlc.narg(updated_after), (SELECT %s + '999 years'::INTERVAL))
+				OR %s.%s < COALESCE(sqlc.narg(updated_before), (SELECT %s + '999 years'::INTERVAL))
 			)
 		`,
 			tableName, lastUpdatedAtColumn,
@@ -166,7 +166,7 @@ func buildFilterCountSelect(tableName string, withUpdateColumn, withArchivedAtCo
 
 	archivedAddendum := ""
 	if withArchivedAtColumn {
-		archivedAddendum = fmt.Sprintf("\n\t\t\tAND (NOT COALESCE(sqlc.narg(%s), false)::boolean OR %s.%s = NULL)", includeArchivedArg, tableName, archivedAtColumn)
+		archivedAddendum = fmt.Sprintf("\n\t\t\tAND (NOT COALESCE(sqlc.narg(%s), false)::boolean OR %s.%s IS NULL)", includeArchivedArg, tableName, archivedAtColumn)
 	}
 
 	var allConditions strings.Builder

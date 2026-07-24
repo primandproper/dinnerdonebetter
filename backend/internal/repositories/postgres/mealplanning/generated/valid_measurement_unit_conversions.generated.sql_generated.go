@@ -758,7 +758,7 @@ SELECT
 				valid_measurement_unit_conversions.last_updated_at IS NULL
 				OR valid_measurement_unit_conversions.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_unit_conversions.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_unit_conversions.archived_at IS NULL)
 			AND (valid_measurement_units_from.id = $6 OR valid_measurement_units_to.id = $6)
 			AND valid_measurement_units_from.archived_at IS NULL
 			AND valid_measurement_units_to.archived_at IS NULL
@@ -787,13 +787,13 @@ WHERE
 	AND valid_measurement_unit_conversions.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_measurement_unit_conversions.last_updated_at IS NULL
-		OR valid_measurement_unit_conversions.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_measurement_unit_conversions.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_measurement_unit_conversions.last_updated_at IS NULL
-		OR valid_measurement_unit_conversions.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_measurement_unit_conversions.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_unit_conversions.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR valid_measurement_unit_conversions.archived_at IS NULL)
 	AND valid_measurement_unit_conversions.id > COALESCE($7, '')
 ORDER BY valid_measurement_unit_conversions.id ASC
 LIMIT COALESCE($8, 50)
@@ -802,8 +802,8 @@ LIMIT COALESCE($8, 50)
 type GetValidMeasurementUnitConversionsForMeasurementUnitParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
 	Cursor          sql.NullString
@@ -895,8 +895,8 @@ func (q *Queries) GetValidMeasurementUnitConversionsForMeasurementUnit(ctx conte
 	rows, err := db.QueryContext(ctx, getValidMeasurementUnitConversionsForMeasurementUnit,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
 		arg.Cursor,

@@ -113,6 +113,13 @@ func TestQuerier_Integration_Waitlists(t *testing.T) {
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, RelevantID: createdSignup.ID},
 	})
 
+	// fetch signup by ID alone
+	fetchedSignup, err := dbc.GetWaitlistSignupByID(ctx, createdSignup.ID)
+	assert.NoError(t, err)
+	require.NotNil(t, fetchedSignup)
+	assert.Equal(t, createdSignup.ID, fetchedSignup.ID)
+	assert.Equal(t, user.ID, fetchedSignup.BelongsToUser)
+
 	// update signup
 	createdSignup.Notes = "updated notes"
 	assert.NoError(t, dbc.UpdateWaitlistSignup(ctx, createdSignup))
@@ -237,6 +244,22 @@ func TestQuerier_GetWaitlistSignup(T *testing.T) {
 		exampleSignupID := fakes.BuildFakeID()
 
 		actual, err := c.GetWaitlistSignup(ctx, exampleSignupID, "")
+		assert.Error(t, err)
+		assert.Nil(t, actual)
+		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
+	})
+}
+
+func TestQuerier_GetWaitlistSignupByID(T *testing.T) {
+	T.Parallel()
+
+	T.Run("with invalid waitlist signup ID", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		c := buildInertClientForTest(t)
+
+		actual, err := c.GetWaitlistSignupByID(ctx, "")
 		assert.Error(t, err)
 		assert.Nil(t, actual)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)

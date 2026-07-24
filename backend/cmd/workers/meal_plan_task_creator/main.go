@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"log"
 
-	mealplantaskcreator "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/jobs/meal_plan_task_creator"
+	mealplantaskcreatorbuild "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/jobs/meal_plan_task_creator"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/telemetry"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
+	mealplantaskcreator "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_creator"
 
+	"github.com/samber/do/v2"
 	_ "go.uber.org/automaxprocs"
 )
 
@@ -20,13 +23,15 @@ func doTheThing(ctx context.Context) error {
 	}
 	cfg.Database.RunMigrations = false
 
-	worker, err := mealplantaskcreator.Build(ctx, cfg)
-	if err != nil {
-		return fmt.Errorf("error building mealplantaskcreator: %w", err)
-	}
+	i := mealplantaskcreatorbuild.BuildInjector(ctx, cfg)
+
+	// Flush telemetry on exit so this short-lived CronJob pod exports its spans/metrics before it exits.
+	defer telemetry.Flush(ctx, i)
+
+	worker := do.MustInvoke[*mealplantaskcreator.Worker](i)
 
 	if err = worker.Work(ctx); err != nil {
-		return fmt.Errorf("error building mealplantaskcreator: %w", err)
+		return fmt.Errorf("error creating meal plan tasks: %w", err)
 	}
 
 	return nil

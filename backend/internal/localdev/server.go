@@ -141,10 +141,15 @@ func CreateOAuth2ClientForService(ctx context.Context, pgc database.Client, dbCf
 	auditRepo := auditlogentries.ProvideAuditLogRepository(nil, nil, pgc)
 	oauth2ClientManager := oauthrepo.ProvideOAuthRepository(nil, nil, auditRepo, dbCfg, pgc)
 
+	// only the digest is persisted; hand the plaintext back to the caller.
+	plaintextSecret := oauth2Input.ClientSecret
+	oauth2Input.ClientSecret = oauth.HashClientSecret(plaintextSecret)
+
 	createdClient, err := oauth2ClientManager.CreateOAuth2Client(ctx, oauth2Input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create oauth2 client: %w", err)
 	}
+	createdClient.ClientSecret = plaintextSecret
 
 	return createdClient, nil
 }

@@ -81,6 +81,24 @@ func (s *PostgresSessionStore) SaveSession(ctx context.Context, challenge string
 	return nil
 }
 
+// DeleteSession removes the session data for a challenge. Called immediately after a successful
+// assertion so the one-time challenge can't be replayed within its TTL.
+func (s *PostgresSessionStore) DeleteSession(ctx context.Context, challenge string) error {
+	ctx, span := s.tracer.StartSpan(ctx)
+	defer span.End()
+
+	tracing.AttachToSpan(span, "webauthn.challenge", challenge)
+	logger := s.logger.WithValue("challenge", challenge)
+
+	db := s.client.WriteDB()
+
+	if _, err := db.ExecContext(ctx, "DELETE FROM webauthn_sessions WHERE challenge = $1", challenge); err != nil { // #nosec G701 -- challenge is parameterized via $1
+		return observability.PrepareAndLogError(err, logger, span, "deleting webauthn session")
+	}
+
+	return nil
+}
+
 // GetSession retrieves session data by challenge.
 func (s *PostgresSessionStore) GetSession(ctx context.Context, challenge string) (*webauthn.SessionData, error) {
 	ctx, span := s.tracer.StartSpan(ctx)

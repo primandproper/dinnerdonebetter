@@ -41,6 +41,10 @@ func (m *mealPlanningManager) CreateMeal(ctx context.Context, creatorID string, 
 		return nil, platformerrors.ErrNilInputParameter
 	}
 
+	if err := input.ValidateWithContext(ctx); err != nil {
+		return nil, observability.PrepareError(err, span, "validating input")
+	}
+
 	existing, err := m.db.FindMealWithSameComponents(ctx, creatorID, input)
 	if err != nil && !errors.Is(err, types.ErrNoMatchingMeal) {
 		return nil, observability.PrepareAndLogError(err, m.logger.WithSpan(span), span, "checking for duplicate meal")

@@ -1,9 +1,12 @@
 package grpc
 
 import (
+	"context"
 	"errors"
 	"testing"
 
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	auditfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit/fakes"
 	auditmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit/mock"
@@ -81,6 +84,14 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 
 		accountID := identifiers.New()
 
+		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, &sessions.ContextData{
+			Requester:       sessions.RequesterInfo{UserID: identifiers.New()},
+			ActiveAccountID: accountID,
+			AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
+				accountID: authorization.NewAccountRolePermissionChecker(nil),
+			},
+		})
+
 		mockRepo.On(reflection.GetMethodName(mockRepo.GetAuditLogEntriesForAccount), testutils.ContextMatcher, accountID, testutils.QueryFilterMatcher).Return(fakeAuditLogEntries, nil)
 
 		grpcPageSize := uint32(*filter.MaxResponseSize)
@@ -113,6 +124,14 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 		}
 
 		accountID := identifiers.New()
+
+		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, &sessions.ContextData{
+			Requester:       sessions.RequesterInfo{UserID: identifiers.New()},
+			ActiveAccountID: accountID,
+			AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
+				accountID: authorization.NewAccountRolePermissionChecker(nil),
+			},
+		})
 
 		mockRepo.On(reflection.GetMethodName(mockRepo.GetAuditLogEntriesForAccount), testutils.ContextMatcher, accountID, testutils.QueryFilterMatcher).Return((*filtering.QueryFilteredResult[audit.AuditLogEntry])(nil), errors.New("repository error"))
 
@@ -151,6 +170,11 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 
 		userID := identifiers.New()
 
+		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, &sessions.ContextData{
+			Requester:       sessions.RequesterInfo{UserID: userID},
+			ActiveAccountID: identifiers.New(),
+		})
+
 		mockRepo.On(reflection.GetMethodName(mockRepo.GetAuditLogEntriesForUser), testutils.ContextMatcher, userID, testutils.QueryFilterMatcher).Return(fakeAuditLogEntries, nil)
 
 		grpcPageSize := uint32(*filter.MaxResponseSize)
@@ -184,6 +208,11 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 
 		userID := identifiers.New()
 
+		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, &sessions.ContextData{
+			Requester:       sessions.RequesterInfo{UserID: userID},
+			ActiveAccountID: identifiers.New(),
+		})
+
 		mockRepo.On(reflection.GetMethodName(mockRepo.GetAuditLogEntriesForUser), testutils.ContextMatcher, userID, testutils.QueryFilterMatcher).Return((*filtering.QueryFilteredResult[audit.AuditLogEntry])(nil), errors.New("repository error"))
 
 		grpcPageSize := uint32(*filter.MaxResponseSize)
@@ -213,7 +242,15 @@ func TestServiceImpl_GetAuditLogEntryByID(t *testing.T) {
 		ctx := t.Context()
 		service, mockRepo := buildTestService(t)
 
+		userID := identifiers.New()
+		sessionContextData := &sessions.ContextData{
+			Requester:       sessions.RequesterInfo{UserID: userID},
+			ActiveAccountID: identifiers.New(),
+		}
+		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, sessionContextData)
+
 		fakeAuditLogEntry := auditfakes.BuildFakeAuditLogEntry()
+		fakeAuditLogEntry.BelongsToUser = userID
 		entryID := fakeAuditLogEntry.ID
 
 		mockRepo.On(reflection.GetMethodName(mockRepo.GetAuditLogEntry), testutils.ContextMatcher, entryID).Return(fakeAuditLogEntry, nil)
@@ -238,6 +275,11 @@ func TestServiceImpl_GetAuditLogEntryByID(t *testing.T) {
 
 		ctx := t.Context()
 		service, mockRepo := buildTestService(t)
+
+		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, &sessions.ContextData{
+			Requester:       sessions.RequesterInfo{UserID: identifiers.New()},
+			ActiveAccountID: identifiers.New(),
+		})
 
 		entryID := "nonexistent-entry"
 

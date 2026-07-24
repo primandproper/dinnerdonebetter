@@ -8,6 +8,7 @@ import (
 	uploadedmediamock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
+	platformerrors "github.com/primandproper/platform-go/v5/errors"
 	"github.com/primandproper/platform-go/v5/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
@@ -91,6 +92,19 @@ func TestUploadedMediaDataManager_CreateUploadedMedia(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, dbInput.ID, result.ID)
+		mock.AssertExpectationsForObjects(t, repo)
+	})
+
+	t.Run("with nil input", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		manager, repo := buildUploadedMediaManagerForTest(t)
+
+		result, err := manager.CreateUploadedMedia(ctx, nil)
+
+		require.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
+		assert.Nil(t, result)
 		mock.AssertExpectationsForObjects(t, repo)
 	})
 }

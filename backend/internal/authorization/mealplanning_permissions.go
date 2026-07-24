@@ -158,10 +158,10 @@ const (
 	// ArchiveMealsPermission is a permission.
 	ArchiveMealsPermission Permission = "archive.meals"
 
-	// TODO: clone.recipes permission.
-
 	// CreateRecipesPermission is a permission.
 	CreateRecipesPermission Permission = "create.recipes"
+	// CloneRecipesPermission is a permission.
+	CloneRecipesPermission Permission = "clone.recipes"
 	// ReadRecipesPermission is a permission.
 	ReadRecipesPermission Permission = "read.recipes"
 	// SearchRecipesPermission is a permission.
@@ -258,6 +258,8 @@ const (
 	UpdateMealPlansPermission Permission = "update.meal_plans"
 	// ArchiveMealPlansPermission is a permission.
 	ArchiveMealPlansPermission Permission = "archive.meal_plans"
+	// RunMealPlanWorkersPermission is a service admin permission for triggering global meal-plan background jobs.
+	RunMealPlanWorkersPermission Permission = "run.meal_plan_workers"
 
 	// CreateMealPlanEventsPermission is a permission.
 	CreateMealPlanEventsPermission Permission = "create.meal_plan_events"
@@ -436,6 +438,7 @@ var (
 		UpdateMealsPermission,
 		ArchiveMealsPermission,
 		CreateRecipesPermission,
+		CloneRecipesPermission,
 		ReadRecipesPermission,
 		SearchRecipesPermission,
 		UpdateRecipesPermission,

@@ -56,6 +56,7 @@ type Querier interface {
 	CheckMealPlanEventExistence(ctx context.Context, db DBTX, arg *CheckMealPlanEventExistenceParams) (bool, error)
 	CheckMealPlanExistence(ctx context.Context, db DBTX, arg *CheckMealPlanExistenceParams) (bool, error)
 	CheckMealPlanGroceryListItemExistence(ctx context.Context, db DBTX, arg *CheckMealPlanGroceryListItemExistenceParams) (bool, error)
+	CheckMealPlanOptionBelongsToAccount(ctx context.Context, db DBTX, arg *CheckMealPlanOptionBelongsToAccountParams) (bool, error)
 	CheckMealPlanOptionExistence(ctx context.Context, db DBTX, arg *CheckMealPlanOptionExistenceParams) (bool, error)
 	CheckMealPlanOptionVoteExistence(ctx context.Context, db DBTX, arg *CheckMealPlanOptionVoteExistenceParams) (bool, error)
 	CheckMealPlanTaskExistence(ctx context.Context, db DBTX, arg *CheckMealPlanTaskExistenceParams) (bool, error)

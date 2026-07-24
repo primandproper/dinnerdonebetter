@@ -159,7 +159,9 @@ func (x *MealPlanGroceryListItem) Update(input *MealPlanGroceryListItemUpdateReq
 		x.QuantityPurchased = input.QuantityPurchased
 	}
 
-	if input.PurchasedMeasurementUnitID != nil && *input.PurchasedMeasurementUnitID != x.PurchasedMeasurementUnit.ID {
+	// PurchasedMeasurementUnit is nil until an item is purchased, so guard against a nil deref
+	// on the first update that records a purchase (the normal "I bought it" flow).
+	if input.PurchasedMeasurementUnitID != nil && (x.PurchasedMeasurementUnit == nil || *input.PurchasedMeasurementUnitID != x.PurchasedMeasurementUnit.ID) {
 		x.PurchasedMeasurementUnit = &ValidMeasurementUnit{ID: *input.PurchasedMeasurementUnitID}
 	}
 

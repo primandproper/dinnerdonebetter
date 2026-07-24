@@ -16,6 +16,8 @@ import (
 	"github.com/primandproper/platform-go/v5/observability/logging"
 	"github.com/primandproper/platform-go/v5/observability/metrics"
 	"github.com/primandproper/platform-go/v5/observability/tracing"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 const (
@@ -78,6 +80,8 @@ func (w *Worker) Work(ctx context.Context) (int64, error) {
 		logger.WithValue("quantity", len(mealPlans)).Info("finalizing expired meal plans")
 	}
 
+	errorResult := &multierror.Error{}
+
 	var changedCount int64
 	for _, mealPlan := range mealPlans {
 		var changed bool
@@ -87,12 +91,17 @@ func (w *Worker) Work(ctx context.Context) (int64, error) {
 				logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlan.ID).Info("meal plan already finalized, skipping")
 				continue
 			}
-			return -1, observability.PrepareError(err, span, "finalizing meal plan")
+			// Record the failure and keep going so one bad meal plan doesn't permanently block the rest of the batch.
+			errorResult = multierror.Append(errorResult, observability.PrepareError(err, span, "finalizing meal plan"))
+			continue
 		}
 
 		if changed {
 			changedCount++
+			// EventType must be set so the async handler routes this to webhooks/notifications/search indexing,
+			// mirroring the manager path (see internal/domain/mealplanning/managers/meal_plan.go).
 			if err = w.postUpdatesPublisher.Publish(ctx, &audit.DataChangeMessage{
+				EventType: mealplanning.MealPlanFinalizedServiceEventType,
 				Context: map[string]any{
 					mealplanningkeys.MealPlanIDKey: mealPlan.ID,
 					"meal_plan":                    mealPlan,
@@ -107,5 +116,5 @@ func (w *Worker) Work(ctx context.Context) (int64, error) {
 	w.finalizedRecordsCounter.Add(ctx, changedCount)
 	logger.WithValue("changed_count", changedCount).Info("finalized expired meal plans")
 
-	return changedCount, nil
+	return changedCount, errorResult.ErrorOrNil()
 }

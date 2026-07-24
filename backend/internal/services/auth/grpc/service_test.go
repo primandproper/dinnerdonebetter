@@ -14,11 +14,17 @@ import (
 	"github.com/primandproper/platform-go/v5/encoding"
 	"github.com/primandproper/platform-go/v5/featureflags"
 	"github.com/primandproper/platform-go/v5/featureflags/mock"
+	"github.com/primandproper/platform-go/v5/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
 	"github.com/primandproper/platform-go/v5/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	testAccountID = identifiers.New()
+	testUserID    = identifiers.New()
 )
 
 func buildTestService(t *testing.T) (*serviceImpl, *identitymanagermock.IdentityDataManager, *authmock.AuthManager, *authenticationmock.Manager, *mock.FeatureFlagManagerMock) {
@@ -109,14 +115,14 @@ func TestServiceImpl_fetchSessionContext(t *testing.T) {
 
 		sessionContextData := &sessions.ContextData{
 			Requester: sessions.RequesterInfo{
-				UserID:                   "test-user-id",
+				UserID:                   testUserID,
 				AccountStatus:            "active",
 				AccountStatusExplanation: "",
 				ServicePermissions:       authorization.NewServiceRolePermissionChecker([]string{"service_admin"}, nil),
 			},
-			ActiveAccountID: "test-account-id",
+			ActiveAccountID: testAccountID,
 			AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
-				"test-account-id": authorization.NewAccountRolePermissionChecker(nil),
+				testAccountID: authorization.NewAccountRolePermissionChecker(nil),
 			},
 		}
 
@@ -127,8 +133,8 @@ func TestServiceImpl_fetchSessionContext(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, sessionContextData, result)
-		assert.Equal(t, "test-user-id", result.GetUserID())
-		assert.Equal(t, "test-account-id", result.GetActiveAccountID())
+		assert.Equal(t, testUserID, result.GetUserID())
+		assert.Equal(t, testAccountID, result.GetActiveAccountID())
 	})
 
 	t.Run("missing session context", func(t *testing.T) {

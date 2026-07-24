@@ -206,12 +206,13 @@ func main() {
 		}),
 		// Create OAuth2 client
 		localdev.WithOAuth2Repository(func(ctx context.Context, repo oauth.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
+			// the plaintext secret stays the well-known localdev value; only its digest is stored.
 			_, err = repo.CreateOAuth2Client(ctx, &oauth.OAuth2ClientDatabaseCreationInput{
 				ID:           strings.Repeat("b", 20),
 				Name:         "localdev_admin_client",
 				Description:  "localdev admin client",
 				ClientID:     strings.Repeat("A", oauth.ClientIDSize),
-				ClientSecret: strings.Repeat("A", oauth.ClientSecretSize),
+				ClientSecret: oauth.HashClientSecret(strings.Repeat("A", oauth.ClientSecretSize)),
 			})
 			return err
 		}),
@@ -231,7 +232,9 @@ func main() {
 		log.Println("dry run is enabled, skipping server run")
 		return
 	}
-	server.Run(ctx)
+	if err = server.Run(ctx); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func createExampleServiceSettings(ctx context.Context, repo settings.Repository, logger logging.Logger) error {

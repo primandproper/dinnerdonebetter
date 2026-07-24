@@ -26,9 +26,9 @@ const (
 	// MealPlanFinalizedServiceEventType indicates a meal plan was finalized.
 	MealPlanFinalizedServiceEventType = "meal_plan_finalized"
 
-	// MealPlanStatusAwaitingVotes indicates an account invitation is pending.
+	// MealPlanStatusAwaitingVotes indicates a meal plan is still awaiting votes.
 	MealPlanStatusAwaitingVotes MealPlanStatus = "awaiting_votes"
-	// MealPlanStatusFinalized indicates an account invitation was accepted.
+	// MealPlanStatusFinalized indicates a meal plan has been finalized.
 	MealPlanStatusFinalized MealPlanStatus = "finalized"
 )
 
@@ -130,6 +130,10 @@ func (x *MealPlan) Update(input *MealPlanUpdateRequestInput) {
 	if input.Notes != nil && *input.Notes != x.Notes {
 		x.Notes = *input.Notes
 	}
+
+	if input.VotingDeadline != nil && !input.VotingDeadline.Equal(x.VotingDeadline) {
+		x.VotingDeadline = *input.VotingDeadline
+	}
 }
 
 var _ validation.ValidatableWithContext = (*MealPlanCreationRequestInput)(nil)
@@ -179,9 +183,11 @@ var _ validation.ValidatableWithContext = (*MealPlanUpdateRequestInput)(nil)
 
 // ValidateWithContext validates a MealPlanUpdateRequestInput.
 func (x *MealPlanUpdateRequestInput) ValidateWithContext(ctx context.Context) error {
+	// Every field on an update is optional (see MealPlan.Update, which only applies non-nil fields).
+	// Now that this validator is actually invoked by the manager, requiring VotingDeadline here would
+	// reject legitimate partial updates such as changing only the notes. Mirrors MealPlanOptionUpdateRequestInput.
 	return validation.ValidateStructWithContext(
 		ctx,
 		x,
-		validation.Field(&x.VotingDeadline, validation.Required),
 	)
 }

@@ -120,6 +120,7 @@ func TestServiceImpl_ArchiveMealPlanEvent(T *testing.T) {
 		exampleMealPlanEventID := mealplanningfakes.BuildFakeID()
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ArchiveMealPlanEvent), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanEventID).Return(nil)
 		s.mealPlanningManager = mmpm
 
@@ -147,6 +148,7 @@ func TestServiceImpl_ArchiveMealPlanGroceryListItem(T *testing.T) {
 		exampleMealPlanGroceryListItemID := mealplanningfakes.BuildFakeID()
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ArchiveMealPlanGroceryListItem), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanGroceryListItemID).Return(nil)
 		s.mealPlanningManager = mmpm
 
@@ -175,6 +177,7 @@ func TestServiceImpl_ArchiveMealPlanOption(T *testing.T) {
 		exampleMealPlanOptionID := mealplanningfakes.BuildFakeID()
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ArchiveMealPlanOption), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanEventID, exampleMealPlanOptionID).Return(nil)
 		s.mealPlanningManager = mmpm
 
@@ -205,6 +208,7 @@ func TestServiceImpl_ArchiveMealPlanOptionVote(T *testing.T) {
 		exampleMealPlanOptionVoteID := mealplanningfakes.BuildFakeID()
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ArchiveMealPlanOptionVote), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanEventID, exampleMealPlanOptionID, exampleMealPlanOptionVoteID).Return(nil)
 		s.mealPlanningManager = mmpm
 
@@ -269,7 +273,7 @@ func TestServiceImpl_GetMealLists(T *testing.T) {
 		expected := &filtering.QueryFilteredResult[mealplanning.MealList]{Data: []*mealplanning.MealList{list}}
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
-		mmpm.On(reflection.GetMethodName(mmpm.ListMealLists), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(expected, nil)
+		mmpm.On(reflection.GetMethodName(mmpm.ListMealLists), testutils.ContextMatcher, mock.AnythingOfType("string"), testutils.QueryFilterMatcher).Return(expected, nil)
 		s.mealPlanningManager = mmpm
 
 		res, err := s.GetMealLists(ctx, &mealplanninggrpc.GetMealListsRequest{})
@@ -395,7 +399,7 @@ func TestServiceImpl_GetMealListItems(T *testing.T) {
 		expected := &filtering.QueryFilteredResult[mealplanning.MealListItem]{Data: []*mealplanning.MealListItem{item}}
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
-		mmpm.On(reflection.GetMethodName(mmpm.ListMealListItems), testutils.ContextMatcher, listID, testutils.QueryFilterMatcher).Return(expected, nil)
+		mmpm.On(reflection.GetMethodName(mmpm.ListMealListItems), testutils.ContextMatcher, listID, mock.AnythingOfType("string"), testutils.QueryFilterMatcher).Return(expected, nil)
 		s.mealPlanningManager = mmpm
 
 		res, err := s.GetMealListItems(ctx, &mealplanninggrpc.GetMealListItemsRequest{MealListId: listID})
@@ -587,6 +591,7 @@ func TestServiceImpl_CreateMealPlanEvent(T *testing.T) {
 		exampleCreatedMealPlanEvent := mealplanningfakes.BuildFakeMealPlanEvent()
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.CreateMealPlanEvent), testutils.ContextMatcher, exampleMealPlanID, testutils.MatchType[*mealplanning.MealPlanEventCreationRequestInput]()).Return(exampleCreatedMealPlanEvent, nil)
 		s.mealPlanningManager = mmpm
 
@@ -616,6 +621,7 @@ func TestServiceImpl_CreateMealPlanOption(T *testing.T) {
 		exampleCreatedMealPlanOption := mealplanningfakes.BuildFakeMealPlanOption()
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.CreateMealPlanOptionWithEventID), testutils.ContextMatcher, exampleMealPlanEventID, testutils.MatchType[*mealplanning.MealPlanOptionCreationRequestInput]()).Return(exampleCreatedMealPlanOption, nil)
 		s.mealPlanningManager = mmpm
 
@@ -648,7 +654,8 @@ func TestServiceImpl_CreateMealPlanOptionVote(T *testing.T) {
 		}
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
-		mmpm.On(reflection.GetMethodName(mmpm.CreateMealPlanOptionVotes), testutils.ContextMatcher, exampleUserID, testutils.MatchType[*mealplanning.MealPlanOptionVoteCreationRequestInput]()).Return(exampleCreatedMealPlanOptionVotes, nil)
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
+		mmpm.On(reflection.GetMethodName(mmpm.CreateMealPlanOptionVotes), testutils.ContextMatcher, exampleMealPlanID, mock.AnythingOfType("string"), exampleUserID, testutils.MatchType[*mealplanning.MealPlanOptionVoteCreationRequestInput]()).Return(exampleCreatedMealPlanOptionVotes, nil)
 		s.mealPlanningManager = mmpm
 
 		// Override session context to return specific user ID
@@ -685,6 +692,7 @@ func TestServiceImpl_CreateMealPlanTask(T *testing.T) {
 		exampleCreatedMealPlanTask := mealplanningfakes.BuildFakeMealPlanTask()
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.CreateMealPlanTask), testutils.ContextMatcher, testutils.MatchType[*mealplanning.MealPlanTaskCreationRequestInput]()).Return(exampleCreatedMealPlanTask, nil)
 		s.mealPlanningManager = mmpm
 
@@ -895,6 +903,7 @@ func TestServiceImpl_GetMealPlanEvent(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlanEvent), testutils.ContextMatcher, exampleResult.BelongsToMealPlan, exampleResult.ID).Return(exampleResult, nil)
 		s.mealPlanningManager = mmpm
 
@@ -922,6 +931,7 @@ func TestServiceImpl_GetMealPlanEvents(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ListMealPlanEvents), testutils.ContextMatcher, exampleMealPlanID, testutils.QueryFilterMatcher).Return(exampleResult, nil)
 		s.mealPlanningManager = mmpm
 
@@ -946,6 +956,7 @@ func TestServiceImpl_GetMealPlanGroceryListItem(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlanGroceryListItem), testutils.ContextMatcher, exampleResult.BelongsToMealPlan, exampleResult.ID).Return(exampleResult, nil)
 		s.mealPlanningManager = mmpm
 
@@ -973,6 +984,7 @@ func TestServiceImpl_GetMealPlanGroceryListItemsForMealPlan(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ListMealPlanGroceryListItemsByMealPlan), testutils.ContextMatcher, exampleMealPlanID, testutils.QueryFilterMatcher).Return(exampleResult, nil)
 		s.mealPlanningManager = mmpm
 
@@ -999,6 +1011,7 @@ func TestServiceImpl_GetMealPlanOption(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlanOption), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanEventID, exampleResult.ID).Return(exampleResult, nil)
 		s.mealPlanningManager = mmpm
 
@@ -1029,6 +1042,7 @@ func TestServiceImpl_GetMealPlanOptionVote(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlanOptionVote), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanEventID, exampleMealPlanOptionID, exampleResult.ID).Return(exampleResult, nil)
 		s.mealPlanningManager = mmpm
 
@@ -1060,6 +1074,7 @@ func TestServiceImpl_GetMealPlanOptionVotes(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ListMealPlanOptionVotes), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanEventID, exampleMealPlanOptionID, testutils.QueryFilterMatcher).Return(exampleResult, nil)
 		s.mealPlanningManager = mmpm
 
@@ -1090,6 +1105,7 @@ func TestServiceImpl_GetMealPlanOptions(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ListMealPlanOptions), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanEventID, testutils.QueryFilterMatcher).Return(exampleResult, nil)
 		s.mealPlanningManager = mmpm
 
@@ -1118,6 +1134,7 @@ func TestServiceImpl_GetMealPlanTask(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlanTask), testutils.ContextMatcher, exampleMealPlanID, exampleResult.ID).Return(exampleResult, nil)
 		s.mealPlanningManager = mmpm
 
@@ -1145,6 +1162,7 @@ func TestServiceImpl_GetMealPlanTasks(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ListMealPlanTasksByMealPlan), testutils.ContextMatcher, exampleMealPlanID, testutils.QueryFilterMatcher).Return(exampleResult, nil)
 		s.mealPlanningManager = mmpm
 
@@ -1321,6 +1339,7 @@ func TestServiceImpl_UpdateMealPlanEvent(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.UpdateMealPlanEvent), testutils.ContextMatcher, exampleRequest.MealPlanId, exampleRequest.MealPlanEventId, testutils.MatchType[*mealplanning.MealPlanEventUpdateRequestInput]()).Return(nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlanEvent), testutils.ContextMatcher, exampleRequest.MealPlanId, exampleRequest.MealPlanEventId).Return(exampleResponse, nil)
 		s.mealPlanningManager = mmpm
@@ -1346,6 +1365,7 @@ func TestServiceImpl_UpdateMealPlanGroceryListItem(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.UpdateMealPlanGroceryListItem), testutils.ContextMatcher, exampleRequest.MealPlanId, exampleRequest.MealPlanGroceryListItemId, testutils.MatchType[*mealplanning.MealPlanGroceryListItemUpdateRequestInput]()).Return(nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlanGroceryListItem), testutils.ContextMatcher, exampleRequest.MealPlanId, exampleRequest.MealPlanGroceryListItemId).Return(exampleResponse, nil)
 		s.mealPlanningManager = mmpm
@@ -1371,6 +1391,7 @@ func TestServiceImpl_UpdateMealPlanOption(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.UpdateMealPlanOption), testutils.ContextMatcher, exampleRequest.MealPlanId, exampleRequest.MealPlanEventId, exampleRequest.MealPlanOptionId, testutils.MatchType[*mealplanning.MealPlanOptionUpdateRequestInput]()).Return(nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlanOption), testutils.ContextMatcher, exampleRequest.MealPlanId, exampleRequest.MealPlanEventId, exampleRequest.MealPlanOptionId).Return(exampleResponse, nil)
 		s.mealPlanningManager = mmpm
@@ -1396,6 +1417,7 @@ func TestServiceImpl_UpdateMealPlanOptionVote(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.UpdateMealPlanOptionVote), testutils.ContextMatcher, exampleRequest.MealPlanId, exampleRequest.MealPlanEventId, exampleRequest.MealPlanOptionId, exampleRequest.MealPlanOptionVoteId, testutils.MatchType[*mealplanning.MealPlanOptionVoteUpdateRequestInput]()).Return(nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlanOptionVote), testutils.ContextMatcher, exampleRequest.MealPlanId, exampleRequest.MealPlanEventId, exampleRequest.MealPlanOptionId, exampleRequest.MealPlanOptionVoteId).Return(exampleResponse, nil)
 		s.mealPlanningManager = mmpm
@@ -1421,6 +1443,7 @@ func TestServiceImpl_UpdateMealPlanTaskStatus(T *testing.T) {
 		s := buildServiceImplForMealPlanningTest(t)
 
 		mmpm := &mockmanagers.MockMealPlanningManager{}
+		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlan), testutils.ContextMatcher, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&mealplanning.MealPlan{}, nil)
 		mmpm.On(reflection.GetMethodName(mmpm.MealPlanTaskStatusChange), testutils.ContextMatcher, testutils.MatchType[*mealplanning.MealPlanTaskStatusChangeRequestInput]()).Return(nil)
 		mmpm.On(reflection.GetMethodName(mmpm.ReadMealPlanTask), testutils.ContextMatcher, exampleRequest.MealPlanId, exampleRequest.MealPlanTaskId).Return(exampleResponse, nil)
 		s.mealPlanningManager = mmpm

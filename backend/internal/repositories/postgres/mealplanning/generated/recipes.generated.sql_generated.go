@@ -182,7 +182,7 @@ SELECT
 	recipe_steps.archived_at as recipe_step_archived_at,
 	recipe_steps.belongs_to_recipe as recipe_step_belongs_to_recipe
 FROM recipes
-	LEFT JOIN recipe_steps ON recipes.id=recipe_steps.belongs_to_recipe
+	LEFT JOIN recipe_steps ON recipes.id=recipe_steps.belongs_to_recipe AND recipe_steps.archived_at IS NULL
 	LEFT JOIN valid_preparations ON recipe_steps.preparation_id=valid_preparations.id
 WHERE recipes.archived_at IS NULL
 	AND recipes.id = $1
@@ -393,8 +393,8 @@ SELECT
 	recipe_steps.archived_at as recipe_step_archived_at,
 	recipe_steps.belongs_to_recipe as recipe_step_belongs_to_recipe
 FROM recipes
-	FULL OUTER JOIN recipe_steps ON recipes.id=recipe_steps.belongs_to_recipe
-	FULL OUTER JOIN valid_preparations ON recipe_steps.preparation_id=valid_preparations.id
+	LEFT JOIN recipe_steps ON recipes.id=recipe_steps.belongs_to_recipe AND recipe_steps.archived_at IS NULL
+	LEFT JOIN valid_preparations ON recipe_steps.preparation_id=valid_preparations.id
 WHERE recipes.archived_at IS NULL
 	AND recipes.id = $1
 	AND recipes.created_by_user = $2
@@ -407,26 +407,26 @@ type GetRecipeByIDAndAuthorIDParams struct {
 }
 
 type GetRecipeByIDAndAuthorIDRow struct {
-	ID                                               sql.NullString
-	Name                                             sql.NullString
-	Slug                                             sql.NullString
-	Source                                           sql.NullString
-	SourceIsbn                                       sql.NullString
-	Description                                      sql.NullString
-	Status                                           NullRecipeStatus
+	ID                                               string
+	Name                                             string
+	Slug                                             string
+	Source                                           string
+	SourceIsbn                                       string
+	Description                                      string
+	Status                                           RecipeStatus
 	InspiredByRecipeID                               sql.NullString
-	MinEstimatedPortions                             sql.NullString
+	MinEstimatedPortions                             string
 	MaxEstimatedPortions                             sql.NullString
-	PortionName                                      sql.NullString
-	PluralPortionName                                sql.NullString
-	EligibleForMeals                                 sql.NullBool
-	YieldsComponentType                              NullComponentType
+	PortionName                                      string
+	PluralPortionName                                string
+	EligibleForMeals                                 bool
+	YieldsComponentType                              ComponentType
 	LastIndexedAt                                    sql.NullTime
 	LastValidatedAt                                  sql.NullTime
-	CreatedAt                                        sql.NullTime
+	CreatedAt                                        time.Time
 	LastUpdatedAt                                    sql.NullTime
 	ArchivedAt                                       sql.NullTime
-	CreatedByUser                                    sql.NullString
+	CreatedByUser                                    string
 	RecipeStepID                                     sql.NullString
 	RecipeStepIndex                                  sql.NullInt32
 	RecipeStepPreparationID                          sql.NullString
@@ -621,7 +621,7 @@ SELECT
 				recipes.last_updated_at IS NULL
 				OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipes.id)
@@ -635,11 +635,11 @@ FROM recipes
 	AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipes.last_updated_at IS NULL
-		OR recipes.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipes.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		recipes.last_updated_at IS NULL
-		OR recipes.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND recipes.id > COALESCE($7, '')
 ORDER BY recipes.id ASC
@@ -649,8 +649,8 @@ LIMIT COALESCE($8, 50)
 type GetRecipesParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Status          NullRecipeStatus
 	Cursor          sql.NullString
@@ -686,8 +686,8 @@ func (q *Queries) GetRecipes(ctx context.Context, db DBTX, arg *GetRecipesParams
 	rows, err := db.QueryContext(ctx, getRecipes,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Status,
 		arg.Cursor,
@@ -774,7 +774,7 @@ SELECT
 				recipes.last_updated_at IS NULL
 				OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 			AND recipes.created_by_user = $6
 	) AS filtered_count,
 	(
@@ -790,11 +790,11 @@ FROM recipes
 	AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipes.last_updated_at IS NULL
-		OR recipes.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipes.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		recipes.last_updated_at IS NULL
-		OR recipes.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND recipes.created_by_user = $6
 	AND recipes.id > COALESCE($7, '')
@@ -805,8 +805,8 @@ LIMIT COALESCE($8, 50)
 type GetRecipesCreatedByUserParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	CreatedByUser   string
 	Cursor          sql.NullString
@@ -842,8 +842,8 @@ func (q *Queries) GetRecipesCreatedByUser(ctx context.Context, db DBTX, arg *Get
 	rows, err := db.QueryContext(ctx, getRecipesCreatedByUser,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.CreatedByUser,
 		arg.Cursor,
@@ -987,7 +987,7 @@ SELECT
 	recipe_steps.archived_at as recipe_step_archived_at,
 	recipe_steps.belongs_to_recipe as recipe_step_belongs_to_recipe
 FROM recipes
-	LEFT JOIN recipe_steps ON recipes.id=recipe_steps.belongs_to_recipe
+	LEFT JOIN recipe_steps ON recipes.id=recipe_steps.belongs_to_recipe AND recipe_steps.archived_at IS NULL
 	LEFT JOIN valid_preparations ON recipe_steps.preparation_id=valid_preparations.id
 WHERE recipes.archived_at IS NULL
 	AND recipes.id = ANY($1::text[])
@@ -1174,7 +1174,7 @@ SELECT
 				recipes.last_updated_at IS NULL
 				OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipes.id)
@@ -1188,11 +1188,11 @@ WHERE recipes.archived_at IS NULL
 	AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipes.last_updated_at IS NULL
-		OR recipes.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipes.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		recipes.last_updated_at IS NULL
-		OR recipes.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND recipes.id > COALESCE($7, '')
 ORDER BY recipes.id ASC
@@ -1202,8 +1202,8 @@ LIMIT COALESCE($8, 50)
 type RecipeSearchParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Query           string
 	Cursor          sql.NullString
@@ -1239,8 +1239,8 @@ func (q *Queries) RecipeSearch(ctx context.Context, db DBTX, arg *RecipeSearchPa
 	rows, err := db.QueryContext(ctx, recipeSearch,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Query,
 		arg.Cursor,
@@ -1327,7 +1327,7 @@ SELECT
 				recipes.last_updated_at IS NULL
 				OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipes.id)
@@ -1343,11 +1343,11 @@ WHERE recipes.archived_at IS NULL
 	AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipes.last_updated_at IS NULL
-		OR recipes.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipes.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		recipes.last_updated_at IS NULL
-		OR recipes.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND recipes.id > COALESCE($7, '')
 ORDER BY recipes.id ASC
@@ -1357,8 +1357,8 @@ LIMIT COALESCE($8, 50)
 type SearchForMealEligibleRecipesParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Query           string
 	Cursor          sql.NullString
@@ -1394,8 +1394,8 @@ func (q *Queries) SearchForMealEligibleRecipes(ctx context.Context, db DBTX, arg
 	rows, err := db.QueryContext(ctx, searchForMealEligibleRecipes,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Query,
 		arg.Cursor,
@@ -1482,7 +1482,7 @@ SELECT
 				recipes.last_updated_at IS NULL
 				OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at = NULL)
+			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipes.id)
@@ -1496,11 +1496,11 @@ WHERE recipes.archived_at IS NULL
 	AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipes.last_updated_at IS NULL
-		OR recipes.last_updated_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipes.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
 	)
 	AND (
 		recipes.last_updated_at IS NULL
-		OR recipes.last_updated_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
 	AND recipes.id > COALESCE($7, '')
 	AND NOT EXISTS (
@@ -1523,8 +1523,8 @@ LIMIT COALESCE($9, 50)
 type SearchForRecipesWithInstrumentOwnershipParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
-	UpdatedBefore   sql.NullTime
 	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Query           string
 	Cursor          sql.NullString
@@ -1561,8 +1561,8 @@ func (q *Queries) SearchForRecipesWithInstrumentOwnership(ctx context.Context, d
 	rows, err := db.QueryContext(ctx, searchForRecipesWithInstrumentOwnership,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
-		arg.UpdatedBefore,
 		arg.UpdatedAfter,
+		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Query,
 		arg.Cursor,

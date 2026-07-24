@@ -61,7 +61,7 @@ type (
 
 	// MealListDataManager describes a structure capable of storing meal lists permanently.
 	MealListDataManager interface {
-		GetMealLists(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[MealList], error)
+		GetMealLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[MealList], error)
 		CreateMealList(ctx context.Context, input *MealListDatabaseCreationInput) (*MealList, error)
 		UpdateMealList(ctx context.Context, updated *MealList) error
 		ArchiveMealList(ctx context.Context, mealListID, userID string) error

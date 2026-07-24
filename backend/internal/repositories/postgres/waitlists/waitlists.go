@@ -352,6 +352,38 @@ func (r *Repository) GetWaitlistSignup(ctx context.Context, waitlistSignupID, wa
 	return waitlistSignup, nil
 }
 
+// GetWaitlistSignupByID fetches a waitlist signup from the database by its ID alone.
+func (r *Repository) GetWaitlistSignupByID(ctx context.Context, waitlistSignupID string) (*types.WaitlistSignup, error) {
+	ctx, span := r.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := r.logger.Clone()
+
+	if waitlistSignupID == "" {
+		return nil, platformerrors.ErrInvalidIDProvided
+	}
+	logger = logger.WithValue(waitlistkeys.WaitlistSignupIDKey, waitlistSignupID)
+	tracing.AttachToSpan(span, waitlistkeys.WaitlistSignupIDKey, waitlistSignupID)
+
+	result, err := r.generatedQuerier.GetWaitlistSignupByID(ctx, r.readDB, waitlistSignupID)
+	if err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "fetching waitlist signup")
+	}
+
+	waitlistSignup := &types.WaitlistSignup{
+		CreatedAt:         result.CreatedAt,
+		LastUpdatedAt:     database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ArchivedAt:        database.TimePointerFromNullTime(result.ArchivedAt),
+		ID:                result.ID,
+		Notes:             result.Notes,
+		BelongsToWaitlist: database.StringFromNullString(result.BelongsToWaitlist),
+		BelongsToUser:     database.StringFromNullString(result.BelongsToUser),
+		BelongsToAccount:  database.StringFromNullString(result.BelongsToAccount),
+	}
+
+	return waitlistSignup, nil
+}
+
 // GetWaitlistSignupsForWaitlist fetches waitlist signups for a waitlist with filtering.
 func (r *Repository) GetWaitlistSignupsForWaitlist(ctx context.Context, waitlistID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.WaitlistSignup], error) {
 	ctx, span := r.tracer.StartSpan(ctx)

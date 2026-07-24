@@ -11,12 +11,15 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 
 	"github.com/primandproper/platform-go/v5/identifiers"
+	"github.com/primandproper/platform-go/v5/observability/logging"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 
 const (
+	serviceO11yName = "webauthn_service"
+
 	defaultSessionTTL = 5 * time.Minute
 )
 
@@ -29,6 +32,7 @@ type Config struct {
 
 // Service provides passkey registration and authentication.
 type Service struct {
+	logger       logging.Logger
 	webauthn     *webauthn.WebAuthn
 	credStore    identity.WebAuthnCredentialDataManager
 	userStore    UserStore
@@ -42,7 +46,7 @@ type UserStore interface {
 }
 
 // NewService creates a new WebAuthn service.
-func NewService(cfg Config, credStore identity.WebAuthnCredentialDataManager, userStore UserStore, sessionStore SessionStore) (*Service, error) {
+func NewService(logger logging.Logger, cfg Config, credStore identity.WebAuthnCredentialDataManager, userStore UserStore, sessionStore SessionStore) (*Service, error) {
 	w, err := webauthn.New(&webauthn.Config{
 		RPID:          cfg.RPID,
 		RPDisplayName: cfg.RPDisplayName,
@@ -56,6 +60,7 @@ func NewService(cfg Config, credStore identity.WebAuthnCredentialDataManager, us
 		return nil, err
 	}
 	return &Service{
+		logger:       logging.NewNamedLogger(logger, serviceO11yName),
 		webauthn:     w,
 		credStore:    credStore,
 		userStore:    userStore,
@@ -182,6 +187,25 @@ func (s *Service) BeginAuthenticationOptions(ctx context.Context, username strin
 	return assertion, session, nil
 }
 
+// sessionDeleter is optionally implemented by SessionStore backends that support explicit deletion.
+// It lets FinishAuthentication invalidate a challenge immediately after a successful assertion, so the
+// one-time challenge can't be replayed within its TTL (sign-count clone detection doesn't help when an
+// authenticator reports a counter of 0).
+type sessionDeleter interface {
+	DeleteSession(ctx context.Context, challenge string) error
+}
+
+// deleteSessionByChallenge best-effort deletes the ceremony session for a challenge. A failed
+// delete is logged but not surfaced: the session expires via TTL regardless, and a successful
+// authentication shouldn't fail over cleanup.
+func (s *Service) deleteSessionByChallenge(ctx context.Context, challenge string) {
+	if deleter, ok := s.sessionStore.(sessionDeleter); ok {
+		if err := deleter.DeleteSession(ctx, challenge); err != nil {
+			s.logger.Error("deleting webauthn ceremony session", err)
+		}
+	}
+}
+
 // FinishAuthenticationResult holds the result of a successful passkey authentication.
 type FinishAuthenticationResult struct {
 	UserID       string
@@ -243,6 +267,11 @@ func (s *Service) FinishAuthentication(ctx context.Context, username string, req
 		}
 		return nil, protocol.ErrBadRequest.WithDetails("authentication failed")
 	}
+
+	// The assertion validated: delete the one-time challenge/session now so it can't be replayed
+	// within its TTL, even if the sign-count bookkeeping below fails.
+	s.deleteSessionByChallenge(ctx, parsed.Response.CollectedClientData.Challenge)
+
 	stored, err := s.credStore.GetWebAuthnCredentialByCredentialID(ctx, credential.ID)
 	if err != nil || stored == nil {
 		return nil, err
