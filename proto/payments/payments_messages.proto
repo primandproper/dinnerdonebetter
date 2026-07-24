@@ -57,3 +57,9 @@ message PaymentTransaction {
   string status = 8;
   google.protobuf.Timestamp created_at = 9;
 }
+
+message DataCollection {
+  repeated Subscription subscriptions = 1;
+  repeated Purchase purchases = 2;
+  repeated PaymentTransaction payment_transactions = 3;
+}

@@ -95,11 +95,94 @@ public struct Dataprivacy_UserDataCollection: @unchecked Sendable {
     set {_uniqueStorage()._waitlistSignups = newValue}
   }
 
+  public var paymentsDataCollection: Payments_DataCollection {
+    get {return _storage._paymentsDataCollection ?? Payments_DataCollection()}
+    set {_uniqueStorage()._paymentsDataCollection = newValue}
+  }
+  /// Returns true if `paymentsDataCollection` has been explicitly set.
+  public var hasPaymentsDataCollection: Bool {return _storage._paymentsDataCollection != nil}
+  /// Clears the value of `paymentsDataCollection`. Subsequent reads from it will return its default value.
+  public mutating func clearPaymentsDataCollection() {_uniqueStorage()._paymentsDataCollection = nil}
+
+  public var comments: [Comments_Comment] {
+    get {return _storage._comments}
+    set {_uniqueStorage()._comments = newValue}
+  }
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _storage = _StorageClass.defaultInstance
+}
+
+public struct Dataprivacy_UserDataDisclosure: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var id: String = String()
+
+  public var belongsToUser: String = String()
+
+  public var status: String = String()
+
+  public var reportID: String = String()
+
+  public var createdAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _createdAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_createdAt = newValue}
+  }
+  /// Returns true if `createdAt` has been explicitly set.
+  public var hasCreatedAt: Bool {return self._createdAt != nil}
+  /// Clears the value of `createdAt`. Subsequent reads from it will return its default value.
+  public mutating func clearCreatedAt() {self._createdAt = nil}
+
+  public var expiresAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _expiresAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_expiresAt = newValue}
+  }
+  /// Returns true if `expiresAt` has been explicitly set.
+  public var hasExpiresAt: Bool {return self._expiresAt != nil}
+  /// Clears the value of `expiresAt`. Subsequent reads from it will return its default value.
+  public mutating func clearExpiresAt() {self._expiresAt = nil}
+
+  public var lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _lastUpdatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_lastUpdatedAt = newValue}
+  }
+  /// Returns true if `lastUpdatedAt` has been explicitly set.
+  public var hasLastUpdatedAt: Bool {return self._lastUpdatedAt != nil}
+  /// Clears the value of `lastUpdatedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearLastUpdatedAt() {self._lastUpdatedAt = nil}
+
+  public var completedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _completedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_completedAt = newValue}
+  }
+  /// Returns true if `completedAt` has been explicitly set.
+  public var hasCompletedAt: Bool {return self._completedAt != nil}
+  /// Clears the value of `completedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearCompletedAt() {self._completedAt = nil}
+
+  public var archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _archivedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_archivedAt = newValue}
+  }
+  /// Returns true if `archivedAt` has been explicitly set.
+  public var hasArchivedAt: Bool {return self._archivedAt != nil}
+  /// Clears the value of `archivedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearArchivedAt() {self._archivedAt = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _expiresAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _completedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 }
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
@@ -108,7 +191,7 @@ fileprivate let _protobuf_package = "dataprivacy"
 
 extension Dataprivacy_UserDataCollection: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".UserDataCollection"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}report_id\0\u{3}identity_data_collection\0\u{3}settings_data_collection\0\u{3}webhooks_data_collection\0\u{3}meal_planning_data_collection\0\u{3}notifications_data_collection\0\u{3}audit_log_entries\0\u{3}issue_reports\0\u{3}uploaded_media\0\u{3}waitlist_signups\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}report_id\0\u{3}identity_data_collection\0\u{3}settings_data_collection\0\u{3}webhooks_data_collection\0\u{3}meal_planning_data_collection\0\u{3}notifications_data_collection\0\u{3}audit_log_entries\0\u{3}issue_reports\0\u{3}uploaded_media\0\u{3}waitlist_signups\0\u{3}payments_data_collection\0\u{1}comments\0")
 
   fileprivate class _StorageClass {
     var _reportID: String = String()
@@ -121,6 +204,8 @@ extension Dataprivacy_UserDataCollection: SwiftProtobuf.Message, SwiftProtobuf._
     var _issueReports: [IssueReports_IssueReport] = []
     var _uploadedMedia: [UploadedMedia_UploadedMedia] = []
     var _waitlistSignups: [Waitlists_WaitlistSignup] = []
+    var _paymentsDataCollection: Payments_DataCollection? = nil
+    var _comments: [Comments_Comment] = []
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -141,6 +226,8 @@ extension Dataprivacy_UserDataCollection: SwiftProtobuf.Message, SwiftProtobuf._
       _issueReports = source._issueReports
       _uploadedMedia = source._uploadedMedia
       _waitlistSignups = source._waitlistSignups
+      _paymentsDataCollection = source._paymentsDataCollection
+      _comments = source._comments
     }
   }
 
@@ -169,6 +256,8 @@ extension Dataprivacy_UserDataCollection: SwiftProtobuf.Message, SwiftProtobuf._
         case 8: try { try decoder.decodeRepeatedMessageField(value: &_storage._issueReports) }()
         case 9: try { try decoder.decodeRepeatedMessageField(value: &_storage._uploadedMedia) }()
         case 10: try { try decoder.decodeRepeatedMessageField(value: &_storage._waitlistSignups) }()
+        case 11: try { try decoder.decodeSingularMessageField(value: &_storage._paymentsDataCollection) }()
+        case 12: try { try decoder.decodeRepeatedMessageField(value: &_storage._comments) }()
         default: break
         }
       }
@@ -211,6 +300,12 @@ extension Dataprivacy_UserDataCollection: SwiftProtobuf.Message, SwiftProtobuf._
       if !_storage._waitlistSignups.isEmpty {
         try visitor.visitRepeatedMessageField(value: _storage._waitlistSignups, fieldNumber: 10)
       }
+      try { if let v = _storage._paymentsDataCollection {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 11)
+      } }()
+      if !_storage._comments.isEmpty {
+        try visitor.visitRepeatedMessageField(value: _storage._comments, fieldNumber: 12)
+      }
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -230,10 +325,86 @@ extension Dataprivacy_UserDataCollection: SwiftProtobuf.Message, SwiftProtobuf._
         if _storage._issueReports != rhs_storage._issueReports {return false}
         if _storage._uploadedMedia != rhs_storage._uploadedMedia {return false}
         if _storage._waitlistSignups != rhs_storage._waitlistSignups {return false}
+        if _storage._paymentsDataCollection != rhs_storage._paymentsDataCollection {return false}
+        if _storage._comments != rhs_storage._comments {return false}
         return true
       }
       if !storagesAreEqual {return false}
     }
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Dataprivacy_UserDataDisclosure: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".UserDataDisclosure"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{3}belongs_to_user\0\u{1}status\0\u{3}report_id\0\u{3}created_at\0\u{3}expires_at\0\u{3}last_updated_at\0\u{3}completed_at\0\u{3}archived_at\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.id) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.belongsToUser) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.status) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.reportID) }()
+      case 5: try { try decoder.decodeSingularMessageField(value: &self._createdAt) }()
+      case 6: try { try decoder.decodeSingularMessageField(value: &self._expiresAt) }()
+      case 7: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
+      case 8: try { try decoder.decodeSingularMessageField(value: &self._completedAt) }()
+      case 9: try { try decoder.decodeSingularMessageField(value: &self._archivedAt) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    if !self.id.isEmpty {
+      try visitor.visitSingularStringField(value: self.id, fieldNumber: 1)
+    }
+    if !self.belongsToUser.isEmpty {
+      try visitor.visitSingularStringField(value: self.belongsToUser, fieldNumber: 2)
+    }
+    if !self.status.isEmpty {
+      try visitor.visitSingularStringField(value: self.status, fieldNumber: 3)
+    }
+    if !self.reportID.isEmpty {
+      try visitor.visitSingularStringField(value: self.reportID, fieldNumber: 4)
+    }
+    try { if let v = self._createdAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
+    } }()
+    try { if let v = self._expiresAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
+    } }()
+    try { if let v = self._lastUpdatedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 7)
+    } }()
+    try { if let v = self._completedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 8)
+    } }()
+    try { if let v = self._archivedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 9)
+    } }()
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Dataprivacy_UserDataDisclosure, rhs: Dataprivacy_UserDataDisclosure) -> Bool {
+    if lhs.id != rhs.id {return false}
+    if lhs.belongsToUser != rhs.belongsToUser {return false}
+    if lhs.status != rhs.status {return false}
+    if lhs.reportID != rhs.reportID {return false}
+    if lhs._createdAt != rhs._createdAt {return false}
+    if lhs._expiresAt != rhs._expiresAt {return false}
+    if lhs._lastUpdatedAt != rhs._lastUpdatedAt {return false}
+    if lhs._completedAt != rhs._completedAt {return false}
+    if lhs._archivedAt != rhs._archivedAt {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

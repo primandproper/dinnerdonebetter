@@ -4,6 +4,7 @@ package dataprivacy;
 
 import "common.proto";
 import "dataprivacy/dataprivacy_messages.proto";
+import "filtering.proto";
 
 option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy";
 
@@ -28,4 +29,23 @@ message FetchUserDataReportRequest {
 message FetchUserDataReportResponse {
   common.ResponseDetails response_details = 1;
   UserDataCollection user_data_collection = 2;
+}
+
+message GetUserDataDisclosureRequest {
+  string user_data_disclosure_id = 1;
+}
+
+message GetUserDataDisclosureResponse {
+  common.ResponseDetails response_details = 1;
+  UserDataDisclosure user_data_disclosure = 2;
+}
+
+message ListUserDataDisclosuresRequest {
+  filtering.QueryFilter filter = 1;
+}
+
+message ListUserDataDisclosuresResponse {
+  common.ResponseDetails response_details = 1;
+  repeated UserDataDisclosure data = 2;
+  filtering.Pagination pagination = 3;
 }

@@ -7,6 +7,7 @@ import (
 	dataprivacymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy/manager"
 	dataprivacysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 
+	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
 	"github.com/primandproper/platform-go/v5/observability/logging"
 	"github.com/primandproper/platform-go/v5/observability/tracing"
 	"github.com/primandproper/platform-go/v5/uploads"
@@ -23,6 +24,8 @@ func RegisterDataPrivacyService(i do.Injector) {
 			do.MustInvoke[func(context.Context) (*sessions.ContextData, error)](i),
 			do.MustInvoke[dataprivacymanager.DataPrivacyManager](i),
 			do.MustInvoke[uploads.UploadManager](i),
+			do.MustInvoke[*msgconfig.Config](i),
+			do.MustInvoke[*msgconfig.QueuesConfig](i),
 		), nil
 	})
 }

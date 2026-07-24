@@ -7,7 +7,8 @@
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { ResponseDetails } from '../common';
-import { UserDataCollection } from './dataprivacy_messages';
+import { Pagination, QueryFilter } from '../filtering';
+import { UserDataCollection, UserDataDisclosure } from './dataprivacy_messages';
 
 export const protobufPackage = 'dataprivacy';
 
@@ -32,6 +33,25 @@ export interface FetchUserDataReportRequest {
 export interface FetchUserDataReportResponse {
   responseDetails: ResponseDetails | undefined;
   userDataCollection: UserDataCollection | undefined;
+}
+
+export interface GetUserDataDisclosureRequest {
+  userDataDisclosureId: string;
+}
+
+export interface GetUserDataDisclosureResponse {
+  responseDetails: ResponseDetails | undefined;
+  userDataDisclosure: UserDataDisclosure | undefined;
+}
+
+export interface ListUserDataDisclosuresRequest {
+  filter: QueryFilter | undefined;
+}
+
+export interface ListUserDataDisclosuresResponse {
+  responseDetails: ResponseDetails | undefined;
+  data: UserDataDisclosure[];
+  pagination: Pagination | undefined;
 }
 
 function createBaseAggregateUserDataReportRequest(): AggregateUserDataReportRequest {
@@ -441,6 +461,327 @@ export const FetchUserDataReportResponse: MessageFns<FetchUserDataReportResponse
     message.userDataCollection =
       object.userDataCollection !== undefined && object.userDataCollection !== null
         ? UserDataCollection.fromPartial(object.userDataCollection)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseGetUserDataDisclosureRequest(): GetUserDataDisclosureRequest {
+  return { userDataDisclosureId: '' };
+}
+
+export const GetUserDataDisclosureRequest: MessageFns<GetUserDataDisclosureRequest> = {
+  encode(message: GetUserDataDisclosureRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userDataDisclosureId !== '') {
+      writer.uint32(10).string(message.userDataDisclosureId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserDataDisclosureRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetUserDataDisclosureRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userDataDisclosureId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetUserDataDisclosureRequest {
+    return {
+      userDataDisclosureId: isSet(object.userDataDisclosureId)
+        ? globalThis.String(object.userDataDisclosureId)
+        : isSet(object.user_data_disclosure_id)
+          ? globalThis.String(object.user_data_disclosure_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetUserDataDisclosureRequest): unknown {
+    const obj: any = {};
+    if (message.userDataDisclosureId !== '') {
+      obj.userDataDisclosureId = message.userDataDisclosureId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetUserDataDisclosureRequest>, I>>(base?: I): GetUserDataDisclosureRequest {
+    return GetUserDataDisclosureRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetUserDataDisclosureRequest>, I>>(object: I): GetUserDataDisclosureRequest {
+    const message = createBaseGetUserDataDisclosureRequest();
+    message.userDataDisclosureId = object.userDataDisclosureId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetUserDataDisclosureResponse(): GetUserDataDisclosureResponse {
+  return { responseDetails: undefined, userDataDisclosure: undefined };
+}
+
+export const GetUserDataDisclosureResponse: MessageFns<GetUserDataDisclosureResponse> = {
+  encode(message: GetUserDataDisclosureResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.responseDetails !== undefined) {
+      ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
+    }
+    if (message.userDataDisclosure !== undefined) {
+      UserDataDisclosure.encode(message.userDataDisclosure, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserDataDisclosureResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetUserDataDisclosureResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.responseDetails = ResponseDetails.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.userDataDisclosure = UserDataDisclosure.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetUserDataDisclosureResponse {
+    return {
+      responseDetails: isSet(object.responseDetails)
+        ? ResponseDetails.fromJSON(object.responseDetails)
+        : isSet(object.response_details)
+          ? ResponseDetails.fromJSON(object.response_details)
+          : undefined,
+      userDataDisclosure: isSet(object.userDataDisclosure)
+        ? UserDataDisclosure.fromJSON(object.userDataDisclosure)
+        : isSet(object.user_data_disclosure)
+          ? UserDataDisclosure.fromJSON(object.user_data_disclosure)
+          : undefined,
+    };
+  },
+
+  toJSON(message: GetUserDataDisclosureResponse): unknown {
+    const obj: any = {};
+    if (message.responseDetails !== undefined) {
+      obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
+    }
+    if (message.userDataDisclosure !== undefined) {
+      obj.userDataDisclosure = UserDataDisclosure.toJSON(message.userDataDisclosure);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetUserDataDisclosureResponse>, I>>(base?: I): GetUserDataDisclosureResponse {
+    return GetUserDataDisclosureResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetUserDataDisclosureResponse>, I>>(
+    object: I,
+  ): GetUserDataDisclosureResponse {
+    const message = createBaseGetUserDataDisclosureResponse();
+    message.responseDetails =
+      object.responseDetails !== undefined && object.responseDetails !== null
+        ? ResponseDetails.fromPartial(object.responseDetails)
+        : undefined;
+    message.userDataDisclosure =
+      object.userDataDisclosure !== undefined && object.userDataDisclosure !== null
+        ? UserDataDisclosure.fromPartial(object.userDataDisclosure)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseListUserDataDisclosuresRequest(): ListUserDataDisclosuresRequest {
+  return { filter: undefined };
+}
+
+export const ListUserDataDisclosuresRequest: MessageFns<ListUserDataDisclosuresRequest> = {
+  encode(message: ListUserDataDisclosuresRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.filter !== undefined) {
+      QueryFilter.encode(message.filter, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListUserDataDisclosuresRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListUserDataDisclosuresRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.filter = QueryFilter.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListUserDataDisclosuresRequest {
+    return { filter: isSet(object.filter) ? QueryFilter.fromJSON(object.filter) : undefined };
+  },
+
+  toJSON(message: ListUserDataDisclosuresRequest): unknown {
+    const obj: any = {};
+    if (message.filter !== undefined) {
+      obj.filter = QueryFilter.toJSON(message.filter);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListUserDataDisclosuresRequest>, I>>(base?: I): ListUserDataDisclosuresRequest {
+    return ListUserDataDisclosuresRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListUserDataDisclosuresRequest>, I>>(
+    object: I,
+  ): ListUserDataDisclosuresRequest {
+    const message = createBaseListUserDataDisclosuresRequest();
+    message.filter =
+      object.filter !== undefined && object.filter !== null ? QueryFilter.fromPartial(object.filter) : undefined;
+    return message;
+  },
+};
+
+function createBaseListUserDataDisclosuresResponse(): ListUserDataDisclosuresResponse {
+  return { responseDetails: undefined, data: [], pagination: undefined };
+}
+
+export const ListUserDataDisclosuresResponse: MessageFns<ListUserDataDisclosuresResponse> = {
+  encode(message: ListUserDataDisclosuresResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.responseDetails !== undefined) {
+      ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
+    }
+    for (const v of message.data) {
+      UserDataDisclosure.encode(v!, writer.uint32(18).fork()).join();
+    }
+    if (message.pagination !== undefined) {
+      Pagination.encode(message.pagination, writer.uint32(26).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListUserDataDisclosuresResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListUserDataDisclosuresResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.responseDetails = ResponseDetails.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.data.push(UserDataDisclosure.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.pagination = Pagination.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListUserDataDisclosuresResponse {
+    return {
+      responseDetails: isSet(object.responseDetails)
+        ? ResponseDetails.fromJSON(object.responseDetails)
+        : isSet(object.response_details)
+          ? ResponseDetails.fromJSON(object.response_details)
+          : undefined,
+      data: globalThis.Array.isArray(object?.data) ? object.data.map((e: any) => UserDataDisclosure.fromJSON(e)) : [],
+      pagination: isSet(object.pagination) ? Pagination.fromJSON(object.pagination) : undefined,
+    };
+  },
+
+  toJSON(message: ListUserDataDisclosuresResponse): unknown {
+    const obj: any = {};
+    if (message.responseDetails !== undefined) {
+      obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
+    }
+    if (message.data?.length) {
+      obj.data = message.data.map((e) => UserDataDisclosure.toJSON(e));
+    }
+    if (message.pagination !== undefined) {
+      obj.pagination = Pagination.toJSON(message.pagination);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListUserDataDisclosuresResponse>, I>>(base?: I): ListUserDataDisclosuresResponse {
+    return ListUserDataDisclosuresResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListUserDataDisclosuresResponse>, I>>(
+    object: I,
+  ): ListUserDataDisclosuresResponse {
+    const message = createBaseListUserDataDisclosuresResponse();
+    message.responseDetails =
+      object.responseDetails !== undefined && object.responseDetails !== null
+        ? ResponseDetails.fromPartial(object.responseDetails)
+        : undefined;
+    message.data = object.data?.map((e) => UserDataDisclosure.fromPartial(e)) || [];
+    message.pagination =
+      object.pagination !== undefined && object.pagination !== null
+        ? Pagination.fromPartial(object.pagination)
         : undefined;
     return message;
   },

@@ -2,6 +2,8 @@ package datachangemessagehandler
 
 import (
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
@@ -10,6 +12,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
 	webhooksfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 
+	"github.com/primandproper/platform-go/v5/identifiers"
 	"github.com/primandproper/platform-go/v5/reflection"
 
 	"github.com/stretchr/testify/assert"
@@ -38,15 +41,16 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 
 		ctx := t.Context()
 
+		accountID := identifiers.New()
 		webhookExecutionRequest := &webhooks.WebhookExecutionRequest{
-			WebhookID: "test-webhook-id",
-			AccountID: "test-account-id",
-			RequestID: "test-request-id",
+			WebhookID: identifiers.New(),
+			AccountID: accountID,
+			RequestID: identifiers.New(),
 			Payload:   &audit.DataChangeMessage{},
 		}
 
 		expectedError := errors.New("account fetch error")
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetAccount), mock.Anything, "test-account-id").Return((*identity.Account)(nil), expectedError)
+		identityRepo.On(reflection.GetMethodName(identityRepo.GetAccount), mock.Anything, accountID).Return((*identity.Account)(nil), expectedError)
 
 		err := handler.handleWebhookExecutionRequest(ctx, webhookExecutionRequest)
 		assert.Error(t, err)
@@ -63,17 +67,18 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 		ctx := t.Context()
 
 		account := identityfakes.BuildFakeAccount()
+		webhookID := identifiers.New()
 
 		webhookExecutionRequest := &webhooks.WebhookExecutionRequest{
-			WebhookID: "test-webhook-id",
+			WebhookID: webhookID,
 			AccountID: account.ID,
-			RequestID: "test-request-id",
+			RequestID: identifiers.New(),
 			Payload:   &audit.DataChangeMessage{},
 		}
 
 		expectedError := errors.New("webhook fetch error")
 		identityRepo.On(reflection.GetMethodName(identityRepo.GetAccount), mock.Anything, account.ID).Return(account, nil)
-		webhookRepo.On(reflection.GetMethodName(webhookRepo.GetWebhook), mock.Anything, "test-webhook-id", account.ID).Return((*webhooks.Webhook)(nil), expectedError)
+		webhookRepo.On(reflection.GetMethodName(webhookRepo.GetWebhook), mock.Anything, webhookID, account.ID).Return((*webhooks.Webhook)(nil), expectedError)
 
 		err := handler.handleWebhookExecutionRequest(ctx, webhookExecutionRequest)
 		assert.NoError(t, err) // Should not return error, just log it
@@ -97,7 +102,7 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 		webhookExecutionRequest := &webhooks.WebhookExecutionRequest{
 			WebhookID: webhook.ID,
 			AccountID: account.ID,
-			RequestID: "test-request-id",
+			RequestID: identifiers.New(),
 			Payload:   &audit.DataChangeMessage{},
 		}
 
@@ -118,21 +123,26 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 
 		ctx := t.Context()
 
+		webhookServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer webhookServer.Close()
+
 		account := identityfakes.BuildFakeAccount()
 		account.WebhookEncryptionKey = "deadbeefdeadbeefdeadbeefdeadbeef" // Valid 32-char hex key
 
 		webhook := webhooksfakes.BuildFakeWebhook()
 		webhook.ContentType = "application/json"
-		webhook.Method = "POST"
-		webhook.URL = "https://httpbin.org/post" // This will fail but that's expected in tests
+		webhook.Method = http.MethodPost
+		webhook.URL = webhookServer.URL
 
 		webhookExecutionRequest := &webhooks.WebhookExecutionRequest{
 			WebhookID: webhook.ID,
 			AccountID: account.ID,
-			RequestID: "test-request-id",
+			RequestID: identifiers.New(),
 			Payload: &audit.DataChangeMessage{
 				EventType: identity.UserSignedUpServiceEventType,
-				UserID:    "test-user-id",
+				UserID:    identifiers.New(),
 				AccountID: account.ID,
 			},
 		}
@@ -141,13 +151,53 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 		webhookRepo.On(reflection.GetMethodName(webhookRepo.GetWebhook), mock.Anything, webhook.ID, account.ID).Return(webhook, nil)
 
 		err := handler.handleWebhookExecutionRequest(ctx, webhookExecutionRequest)
-		// We expect no error to be returned even if HTTP request fails (it gets logged)
 		assert.NoError(t, err)
 
 		mock.AssertExpectationsForObjects(t, identityRepo, webhookRepo)
 	})
 
-	t.Run("with successful XML webhook execution", func(t *testing.T) {
+	t.Run("with non-2xx webhook response", func(t *testing.T) {
+		t.Parallel()
+
+		handler, identityRepo, webhookRepo, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+
+		ctx := t.Context()
+
+		webhookServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}))
+		defer webhookServer.Close()
+
+		account := identityfakes.BuildFakeAccount()
+		account.WebhookEncryptionKey = "deadbeefdeadbeefdeadbeefdeadbeef" // Valid 32-char hex key
+
+		webhook := webhooksfakes.BuildFakeWebhook()
+		webhook.ContentType = "application/json"
+		webhook.Method = http.MethodPost
+		webhook.URL = webhookServer.URL
+
+		webhookExecutionRequest := &webhooks.WebhookExecutionRequest{
+			WebhookID: webhook.ID,
+			AccountID: account.ID,
+			RequestID: identifiers.New(),
+			Payload: &audit.DataChangeMessage{
+				EventType: identity.UserSignedUpServiceEventType,
+				UserID:    identifiers.New(),
+				AccountID: account.ID,
+			},
+		}
+
+		identityRepo.On(reflection.GetMethodName(identityRepo.GetAccount), mock.Anything, account.ID).Return(account, nil)
+		webhookRepo.On(reflection.GetMethodName(webhookRepo.GetWebhook), mock.Anything, webhook.ID, account.ID).Return(webhook, nil)
+
+		err := handler.handleWebhookExecutionRequest(ctx, webhookExecutionRequest)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected status code")
+
+		mock.AssertExpectationsForObjects(t, identityRepo, webhookRepo)
+	})
+
+	t.Run("with XML webhook payload marshaling error", func(t *testing.T) {
 		t.Parallel()
 
 		handler, identityRepo, webhookRepo, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
@@ -159,16 +209,15 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 
 		webhook := webhooksfakes.BuildFakeWebhook()
 		webhook.ContentType = "application/xml"
-		webhook.Method = "POST"
-		webhook.URL = "https://httpbin.org/post" // This will fail but that's expected in tests
+		webhook.Method = http.MethodPost
 
 		webhookExecutionRequest := &webhooks.WebhookExecutionRequest{
 			WebhookID: webhook.ID,
 			AccountID: account.ID,
-			RequestID: "test-request-id",
+			RequestID: identifiers.New(),
 			Payload: &audit.DataChangeMessage{
 				EventType: identity.UserSignedUpServiceEventType,
-				UserID:    "test-user-id",
+				UserID:    identifiers.New(),
 				AccountID: account.ID,
 				Context:   nil, // explicit nil to avoid map[string]interface{} marshaling issues
 			},
@@ -177,8 +226,8 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 		identityRepo.On(reflection.GetMethodName(identityRepo.GetAccount), mock.Anything, account.ID).Return(account, nil)
 		webhookRepo.On(reflection.GetMethodName(webhookRepo.GetWebhook), mock.Anything, webhook.ID, account.ID).Return(webhook, nil)
 
+		// XML marshaling of the payload's map fields is not supported, so the request fails before any HTTP call.
 		err := handler.handleWebhookExecutionRequest(ctx, webhookExecutionRequest)
-		// XML marshaling of map[string]interface{} is not supported, so we expect an error
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "marshaling webhook payload")
 

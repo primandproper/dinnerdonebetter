@@ -11,6 +11,7 @@ import (
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 
 	"github.com/primandproper/platform-go/v5/observability"
+	"github.com/primandproper/platform-go/v5/observability/logging"
 	"github.com/primandproper/platform-go/v5/observability/tracing"
 	"github.com/primandproper/platform-go/v5/uploads"
 
@@ -44,6 +45,9 @@ func (a *AsyncDataChangeMessageHandler) UserDataAggregationEventHandler(topicNam
 			return a.handleQueueTestMessage(ctx, a.logger.WithSpan(span), span, userDataCollectionRequest.TestID, topicName)
 		}
 
+		// RequestID carries the disclosure record's ID so its status can be updated as the work progresses.
+		disclosureID := userDataCollectionRequest.RequestID
+
 		logger := a.logger.WithValue(dataprivacykeys.UserDataAggregationReportIDKey, userDataCollectionRequest.ReportID).
 			WithValue(identitykeys.UserIDKey, userDataCollectionRequest.UserID)
 		tracing.AttachToSpan(span, dataprivacykeys.UserDataAggregationReportIDKey, userDataCollectionRequest.ReportID)
@@ -55,6 +59,7 @@ func (a *AsyncDataChangeMessageHandler) UserDataAggregationEventHandler(topicNam
 		if err != nil {
 			a.handlerErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicUserDataAggregation)))
 			status = statusFailure
+			a.markDisclosureFailed(ctx, logger, span, disclosureID)
 			return observability.PrepareAndLogError(err, logger, span, "fetching user data collection")
 		}
 
@@ -65,6 +70,7 @@ func (a *AsyncDataChangeMessageHandler) UserDataAggregationEventHandler(topicNam
 		if err != nil {
 			a.handlerErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicUserDataAggregation)))
 			status = statusFailure
+			a.markDisclosureFailed(ctx, logger, span, disclosureID)
 			return observability.PrepareAndLogError(err, logger, span, "marshaling collection")
 		}
 
@@ -74,11 +80,33 @@ func (a *AsyncDataChangeMessageHandler) UserDataAggregationEventHandler(topicNam
 		if err = uploads.SaveFile(ctx, a.uploadManager, fmt.Sprintf("%s.json", userDataCollectionRequest.ReportID), collectionBytes); err != nil {
 			a.handlerErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicUserDataAggregation)))
 			status = statusFailure
+			a.markDisclosureFailed(ctx, logger, span, disclosureID)
 			return observability.PrepareAndLogError(err, logger, span, "saving collection")
+		}
+
+		// Mark the disclosure completed so the requesting user can fetch the report.
+		if disclosureID != "" {
+			if err = a.dataPrivacyRepo.MarkUserDataDisclosureCompleted(ctx, disclosureID, userDataCollectionRequest.ReportID); err != nil {
+				a.handlerErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicUserDataAggregation)))
+				status = statusFailure
+				return observability.PrepareAndLogError(err, logger, span, "marking disclosure completed")
+			}
 		}
 
 		logger.Info("user data aggregation complete")
 
 		return nil
+	}
+}
+
+// markDisclosureFailed best-effort flips a disclosure to the failed status. A missing disclosure ID (e.g. a legacy
+// message) is a no-op, and a failure to record the status is logged rather than returned so the original error is preserved.
+func (a *AsyncDataChangeMessageHandler) markDisclosureFailed(ctx context.Context, logger logging.Logger, span tracing.Span, disclosureID string) {
+	if disclosureID == "" {
+		return
+	}
+
+	if err := a.dataPrivacyRepo.MarkUserDataDisclosureFailed(ctx, disclosureID); err != nil {
+		observability.AcknowledgeError(err, logger, span, "marking disclosure failed")
 	}
 }

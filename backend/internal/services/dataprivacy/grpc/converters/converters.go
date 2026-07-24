@@ -4,9 +4,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	dataprivacysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	auditconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/audit/grpc/converters"
+	commentsconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/comments/grpc/converters"
 	identityconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
 	issuereportsconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/issuereports/grpc/converters"
+	mealplanningconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 	notificationsconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/notifications/grpc/converters"
+	paymentsconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/grpc/converters"
 	settingsconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/settings/grpc/converters"
 	uploadedmediaconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 	waitlistsconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/waitlists/grpc/converters"
@@ -29,7 +32,10 @@ func ConvertUserDataCollectionToGRPCUserDataCollection(collection *dataprivacy.U
 	result.WebhooksDataCollection = webhooksconverters.ConvertUserDataCollectionToGRPCDataCollection(&collection.Webhooks)
 
 	// Convert meal planning data
-	result.MealPlanningDataCollection = nil // TODO: Add when mealplanning converters are available
+	result.MealPlanningDataCollection = mealplanningconverters.ConvertUserDataCollectionToGRPCDataCollection(&collection.MealPlanning)
+
+	// Convert payments data
+	result.PaymentsDataCollection = paymentsconverters.ConvertUserDataCollectionToGRPCDataCollection(&collection.Payments)
 
 	// Convert notifications data
 	result.NotificationsDataCollection = notificationsconverters.ConvertUserDataCollectionToGRPCDataCollection(&collection.Notifications)
@@ -52,6 +58,11 @@ func ConvertUserDataCollectionToGRPCUserDataCollection(collection *dataprivacy.U
 	// Convert waitlist signups
 	for i := range collection.WaitlistSignups {
 		result.WaitlistSignups = append(result.WaitlistSignups, waitlistsconverters.ConvertWaitlistSignupToGRPCWaitlistSignup(&collection.WaitlistSignups[i]))
+	}
+
+	// Convert comments
+	for i := range collection.Comments {
+		result.Comments = append(result.Comments, commentsconverters.ConvertCommentToGRPCComment(&collection.Comments[i]))
 	}
 
 	return result

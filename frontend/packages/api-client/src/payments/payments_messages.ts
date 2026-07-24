@@ -62,6 +62,12 @@ export interface PaymentTransaction {
   createdAt: Date | undefined;
 }
 
+export interface DataCollection {
+  subscriptions: Subscription[];
+  purchases: Purchase[];
+  paymentTransactions: PaymentTransaction[];
+}
+
 function createBaseProduct(): Product {
   return {
     createdAt: undefined,
@@ -1030,6 +1036,106 @@ export const PaymentTransaction: MessageFns<PaymentTransaction> = {
     message.currency = object.currency ?? '';
     message.status = object.status ?? '';
     message.createdAt = object.createdAt ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDataCollection(): DataCollection {
+  return { subscriptions: [], purchases: [], paymentTransactions: [] };
+}
+
+export const DataCollection: MessageFns<DataCollection> = {
+  encode(message: DataCollection, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.subscriptions) {
+      Subscription.encode(v!, writer.uint32(10).fork()).join();
+    }
+    for (const v of message.purchases) {
+      Purchase.encode(v!, writer.uint32(18).fork()).join();
+    }
+    for (const v of message.paymentTransactions) {
+      PaymentTransaction.encode(v!, writer.uint32(26).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DataCollection {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDataCollection();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.subscriptions.push(Subscription.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.purchases.push(Purchase.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.paymentTransactions.push(PaymentTransaction.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DataCollection {
+    return {
+      subscriptions: globalThis.Array.isArray(object?.subscriptions)
+        ? object.subscriptions.map((e: any) => Subscription.fromJSON(e))
+        : [],
+      purchases: globalThis.Array.isArray(object?.purchases)
+        ? object.purchases.map((e: any) => Purchase.fromJSON(e))
+        : [],
+      paymentTransactions: globalThis.Array.isArray(object?.paymentTransactions)
+        ? object.paymentTransactions.map((e: any) => PaymentTransaction.fromJSON(e))
+        : globalThis.Array.isArray(object?.payment_transactions)
+          ? object.payment_transactions.map((e: any) => PaymentTransaction.fromJSON(e))
+          : [],
+    };
+  },
+
+  toJSON(message: DataCollection): unknown {
+    const obj: any = {};
+    if (message.subscriptions?.length) {
+      obj.subscriptions = message.subscriptions.map((e) => Subscription.toJSON(e));
+    }
+    if (message.purchases?.length) {
+      obj.purchases = message.purchases.map((e) => Purchase.toJSON(e));
+    }
+    if (message.paymentTransactions?.length) {
+      obj.paymentTransactions = message.paymentTransactions.map((e) => PaymentTransaction.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DataCollection>, I>>(base?: I): DataCollection {
+    return DataCollection.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DataCollection>, I>>(object: I): DataCollection {
+    const message = createBaseDataCollection();
+    message.subscriptions = object.subscriptions?.map((e) => Subscription.fromPartial(e)) || [];
+    message.purchases = object.purchases?.map((e) => Purchase.fromPartial(e)) || [];
+    message.paymentTransactions = object.paymentTransactions?.map((e) => PaymentTransaction.fromPartial(e)) || [];
     return message;
   },
 };

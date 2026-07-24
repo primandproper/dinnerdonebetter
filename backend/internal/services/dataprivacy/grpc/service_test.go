@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"testing"
 
@@ -13,11 +14,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	dataprivacysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 
+	"github.com/primandproper/platform-go/v5/filtering"
 	"github.com/primandproper/platform-go/v5/identifiers"
+	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
 	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
 	"github.com/primandproper/platform-go/v5/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v5/uploads"
 	mockuploads "github.com/primandproper/platform-go/v5/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
@@ -47,6 +49,9 @@ func buildTestService(t *testing.T) (*serviceImpl, *dataprivacymock.Repository, 
 		sessionContextDataFetcher: sessionFetcher,
 		dataPrivacyManager:        mockRepo,
 		uploadManager:             mockUploads,
+		// An empty config resolves to a noop publisher provider, so Publish succeeds without a real message queue.
+		msgConfig:    &msgconfig.Config{},
+		queuesConfig: &msgconfig.QueuesConfig{},
 	}
 
 	return service, mockRepo, mockUploads
@@ -66,7 +71,7 @@ func TestNewDataPrivacyService(t *testing.T) {
 			return &sessions.ContextData{}, nil
 		}
 
-		service := NewDataPrivacyService(logger, tracerProvider, sessionFetcher, mockRepo, mockUploads)
+		service := NewDataPrivacyService(logger, tracerProvider, sessionFetcher, mockRepo, mockUploads, &msgconfig.Config{}, &msgconfig.QueuesConfig{})
 
 		assert.NotNil(t, service)
 		assert.Implements(t, (*dataprivacysvc.DataPrivacyServiceServer)(nil), service)
@@ -86,16 +91,10 @@ func TestServiceImpl_AggregateUserDataReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo, mockUploads := buildTestService(t)
+		service, mockRepo, _ := buildTestService(t)
 
-		collection := &dataprivacy.UserDataCollection{
-			Identity: identity.UserDataCollection{
-				User: identity.User{ID: identifiers.New()},
-			},
-		}
-
-		mockRepo.On("FetchUserDataCollection", mock.Anything, mock.AnythingOfType("string")).Return(collection, nil)
-		mockUploads.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
+		disclosure := &dataprivacy.UserDataDisclosure{ID: identifiers.New()}
+		mockRepo.On("CreateUserDataDisclosure", mock.Anything, mock.AnythingOfType("*dataprivacy.UserDataDisclosureCreationInput")).Return(disclosure, nil)
 
 		request := &dataprivacysvc.AggregateUserDataReportRequest{}
 
@@ -106,6 +105,26 @@ func TestServiceImpl_AggregateUserDataReport(t *testing.T) {
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
 		assert.NotEmpty(t, response.ReportId)
+
+		// The aggregation is now performed asynchronously; the request path must not gather data inline.
+		mockRepo.AssertNotCalled(t, "FetchUserDataCollection", mock.Anything, mock.Anything)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("with error creating disclosure", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		service, mockRepo, _ := buildTestService(t)
+
+		mockRepo.On("CreateUserDataDisclosure", mock.Anything, mock.AnythingOfType("*dataprivacy.UserDataDisclosureCreationInput")).Return((*dataprivacy.UserDataDisclosure)(nil), errors.New("blah"))
+
+		request := &dataprivacysvc.AggregateUserDataReportRequest{}
+
+		response, err := service.AggregateUserDataReport(ctx, request)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
 
 		mockRepo.AssertExpectations(t)
 	})
@@ -173,5 +192,95 @@ func TestServiceImpl_FetchUserDataReport(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
+	})
+}
+
+func TestServiceImpl_GetUserDataDisclosure(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		service, mockRepo, _ := buildTestService(t)
+
+		userID := identifiers.New()
+		service.sessionContextDataFetcher = func(context.Context) (*sessions.ContextData, error) {
+			return &sessions.ContextData{Requester: sessions.RequesterInfo{UserID: userID}}, nil
+		}
+
+		disclosureID := identifiers.New()
+		disclosure := &dataprivacy.UserDataDisclosure{ID: disclosureID, BelongsToUser: userID, Status: dataprivacy.UserDataDisclosureStatusCompleted}
+		mockRepo.On("GetUserDataDisclosure", mock.Anything, disclosureID).Return(disclosure, nil)
+
+		request := &dataprivacysvc.GetUserDataDisclosureRequest{UserDataDisclosureId: disclosureID}
+
+		response, err := service.GetUserDataDisclosure(ctx, request)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.NotNil(t, response.UserDataDisclosure)
+		assert.Equal(t, disclosureID, response.UserDataDisclosure.Id)
+
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("with disclosure belonging to another user", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		service, mockRepo, _ := buildTestService(t)
+
+		userID := identifiers.New()
+		service.sessionContextDataFetcher = func(context.Context) (*sessions.ContextData, error) {
+			return &sessions.ContextData{Requester: sessions.RequesterInfo{UserID: userID}}, nil
+		}
+
+		disclosureID := identifiers.New()
+		disclosure := &dataprivacy.UserDataDisclosure{ID: disclosureID, BelongsToUser: identifiers.New()}
+		mockRepo.On("GetUserDataDisclosure", mock.Anything, disclosureID).Return(disclosure, nil)
+
+		request := &dataprivacysvc.GetUserDataDisclosureRequest{UserDataDisclosureId: disclosureID}
+
+		response, err := service.GetUserDataDisclosure(ctx, request)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
+
+		mockRepo.AssertExpectations(t)
+	})
+}
+
+func TestServiceImpl_ListUserDataDisclosures(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		service, mockRepo, _ := buildTestService(t)
+
+		userID := identifiers.New()
+		service.sessionContextDataFetcher = func(context.Context) (*sessions.ContextData, error) {
+			return &sessions.ContextData{Requester: sessions.RequesterInfo{UserID: userID}}, nil
+		}
+
+		result := &filtering.QueryFilteredResult[dataprivacy.UserDataDisclosure]{
+			Data: []*dataprivacy.UserDataDisclosure{
+				{ID: identifiers.New(), BelongsToUser: userID},
+				{ID: identifiers.New(), BelongsToUser: userID},
+			},
+		}
+		mockRepo.On("GetUserDataDisclosuresForUser", mock.Anything, userID, mock.Anything).Return(result, nil)
+
+		request := &dataprivacysvc.ListUserDataDisclosuresRequest{}
+
+		response, err := service.ListUserDataDisclosures(ctx, request)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.Len(t, response.Data, 2)
+
+		mockRepo.AssertExpectations(t)
 	})
 }

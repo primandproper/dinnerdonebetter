@@ -7,10 +7,13 @@
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { AuditLogEntry } from '../audit/audit_messages';
+import { Comment } from '../comments/comments_messages';
+import { Timestamp } from '../google/protobuf/timestamp';
 import { DataCollection } from '../identity/identity_messages';
 import { IssueReport } from '../issue_reports/issue_reports_messages';
 import { DataCollection as DataCollection3 } from '../mealplanning/mealplanning_messages';
 import { DataCollection as DataCollection4 } from '../notifications/notifications_messages';
+import { DataCollection as DataCollection5 } from '../payments/payments_messages';
 import { DataCollection as DataCollection1 } from '../settings/settings_messages';
 import { UploadedMedia } from '../uploaded_media/uploaded_media_messages';
 import { WaitlistSignup } from '../waitlists/waitlists_messages';
@@ -29,6 +32,20 @@ export interface UserDataCollection {
   issueReports: IssueReport[];
   uploadedMedia: UploadedMedia[];
   waitlistSignups: WaitlistSignup[];
+  paymentsDataCollection: DataCollection5 | undefined;
+  comments: Comment[];
+}
+
+export interface UserDataDisclosure {
+  id: string;
+  belongsToUser: string;
+  status: string;
+  reportId: string;
+  createdAt: Date | undefined;
+  expiresAt: Date | undefined;
+  lastUpdatedAt?: Date | undefined;
+  completedAt?: Date | undefined;
+  archivedAt?: Date | undefined;
 }
 
 function createBaseUserDataCollection(): UserDataCollection {
@@ -43,6 +60,8 @@ function createBaseUserDataCollection(): UserDataCollection {
     issueReports: [],
     uploadedMedia: [],
     waitlistSignups: [],
+    paymentsDataCollection: undefined,
+    comments: [],
   };
 }
 
@@ -77,6 +96,12 @@ export const UserDataCollection: MessageFns<UserDataCollection> = {
     }
     for (const v of message.waitlistSignups) {
       WaitlistSignup.encode(v!, writer.uint32(82).fork()).join();
+    }
+    if (message.paymentsDataCollection !== undefined) {
+      DataCollection5.encode(message.paymentsDataCollection, writer.uint32(90).fork()).join();
+    }
+    for (const v of message.comments) {
+      Comment.encode(v!, writer.uint32(98).fork()).join();
     }
     return writer;
   },
@@ -168,6 +193,22 @@ export const UserDataCollection: MessageFns<UserDataCollection> = {
           message.waitlistSignups.push(WaitlistSignup.decode(reader, reader.uint32()));
           continue;
         }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.paymentsDataCollection = DataCollection5.decode(reader, reader.uint32());
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.comments.push(Comment.decode(reader, reader.uint32()));
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -229,6 +270,12 @@ export const UserDataCollection: MessageFns<UserDataCollection> = {
         : globalThis.Array.isArray(object?.waitlist_signups)
           ? object.waitlist_signups.map((e: any) => WaitlistSignup.fromJSON(e))
           : [],
+      paymentsDataCollection: isSet(object.paymentsDataCollection)
+        ? DataCollection5.fromJSON(object.paymentsDataCollection)
+        : isSet(object.payments_data_collection)
+          ? DataCollection5.fromJSON(object.payments_data_collection)
+          : undefined,
+      comments: globalThis.Array.isArray(object?.comments) ? object.comments.map((e: any) => Comment.fromJSON(e)) : [],
     };
   },
 
@@ -264,6 +311,12 @@ export const UserDataCollection: MessageFns<UserDataCollection> = {
     if (message.waitlistSignups?.length) {
       obj.waitlistSignups = message.waitlistSignups.map((e) => WaitlistSignup.toJSON(e));
     }
+    if (message.paymentsDataCollection !== undefined) {
+      obj.paymentsDataCollection = DataCollection5.toJSON(message.paymentsDataCollection);
+    }
+    if (message.comments?.length) {
+      obj.comments = message.comments.map((e) => Comment.toJSON(e));
+    }
     return obj;
   },
 
@@ -297,6 +350,237 @@ export const UserDataCollection: MessageFns<UserDataCollection> = {
     message.issueReports = object.issueReports?.map((e) => IssueReport.fromPartial(e)) || [];
     message.uploadedMedia = object.uploadedMedia?.map((e) => UploadedMedia.fromPartial(e)) || [];
     message.waitlistSignups = object.waitlistSignups?.map((e) => WaitlistSignup.fromPartial(e)) || [];
+    message.paymentsDataCollection =
+      object.paymentsDataCollection !== undefined && object.paymentsDataCollection !== null
+        ? DataCollection5.fromPartial(object.paymentsDataCollection)
+        : undefined;
+    message.comments = object.comments?.map((e) => Comment.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseUserDataDisclosure(): UserDataDisclosure {
+  return {
+    id: '',
+    belongsToUser: '',
+    status: '',
+    reportId: '',
+    createdAt: undefined,
+    expiresAt: undefined,
+    lastUpdatedAt: undefined,
+    completedAt: undefined,
+    archivedAt: undefined,
+  };
+}
+
+export const UserDataDisclosure: MessageFns<UserDataDisclosure> = {
+  encode(message: UserDataDisclosure, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== '') {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.belongsToUser !== '') {
+      writer.uint32(18).string(message.belongsToUser);
+    }
+    if (message.status !== '') {
+      writer.uint32(26).string(message.status);
+    }
+    if (message.reportId !== '') {
+      writer.uint32(34).string(message.reportId);
+    }
+    if (message.createdAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(42).fork()).join();
+    }
+    if (message.expiresAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.expiresAt), writer.uint32(50).fork()).join();
+    }
+    if (message.lastUpdatedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.lastUpdatedAt), writer.uint32(58).fork()).join();
+    }
+    if (message.completedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.completedAt), writer.uint32(66).fork()).join();
+    }
+    if (message.archivedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.archivedAt), writer.uint32(74).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UserDataDisclosure {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUserDataDisclosure();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.belongsToUser = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.reportId = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.createdAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.expiresAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.lastUpdatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.completedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.archivedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UserDataDisclosure {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      belongsToUser: isSet(object.belongsToUser)
+        ? globalThis.String(object.belongsToUser)
+        : isSet(object.belongs_to_user)
+          ? globalThis.String(object.belongs_to_user)
+          : '',
+      status: isSet(object.status) ? globalThis.String(object.status) : '',
+      reportId: isSet(object.reportId)
+        ? globalThis.String(object.reportId)
+        : isSet(object.report_id)
+          ? globalThis.String(object.report_id)
+          : '',
+      createdAt: isSet(object.createdAt)
+        ? fromJsonTimestamp(object.createdAt)
+        : isSet(object.created_at)
+          ? fromJsonTimestamp(object.created_at)
+          : undefined,
+      expiresAt: isSet(object.expiresAt)
+        ? fromJsonTimestamp(object.expiresAt)
+        : isSet(object.expires_at)
+          ? fromJsonTimestamp(object.expires_at)
+          : undefined,
+      lastUpdatedAt: isSet(object.lastUpdatedAt)
+        ? fromJsonTimestamp(object.lastUpdatedAt)
+        : isSet(object.last_updated_at)
+          ? fromJsonTimestamp(object.last_updated_at)
+          : undefined,
+      completedAt: isSet(object.completedAt)
+        ? fromJsonTimestamp(object.completedAt)
+        : isSet(object.completed_at)
+          ? fromJsonTimestamp(object.completed_at)
+          : undefined,
+      archivedAt: isSet(object.archivedAt)
+        ? fromJsonTimestamp(object.archivedAt)
+        : isSet(object.archived_at)
+          ? fromJsonTimestamp(object.archived_at)
+          : undefined,
+    };
+  },
+
+  toJSON(message: UserDataDisclosure): unknown {
+    const obj: any = {};
+    if (message.id !== '') {
+      obj.id = message.id;
+    }
+    if (message.belongsToUser !== '') {
+      obj.belongsToUser = message.belongsToUser;
+    }
+    if (message.status !== '') {
+      obj.status = message.status;
+    }
+    if (message.reportId !== '') {
+      obj.reportId = message.reportId;
+    }
+    if (message.createdAt !== undefined) {
+      obj.createdAt = message.createdAt.toISOString();
+    }
+    if (message.expiresAt !== undefined) {
+      obj.expiresAt = message.expiresAt.toISOString();
+    }
+    if (message.lastUpdatedAt !== undefined) {
+      obj.lastUpdatedAt = message.lastUpdatedAt.toISOString();
+    }
+    if (message.completedAt !== undefined) {
+      obj.completedAt = message.completedAt.toISOString();
+    }
+    if (message.archivedAt !== undefined) {
+      obj.archivedAt = message.archivedAt.toISOString();
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UserDataDisclosure>, I>>(base?: I): UserDataDisclosure {
+    return UserDataDisclosure.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UserDataDisclosure>, I>>(object: I): UserDataDisclosure {
+    const message = createBaseUserDataDisclosure();
+    message.id = object.id ?? '';
+    message.belongsToUser = object.belongsToUser ?? '';
+    message.status = object.status ?? '';
+    message.reportId = object.reportId ?? '';
+    message.createdAt = object.createdAt ?? undefined;
+    message.expiresAt = object.expiresAt ?? undefined;
+    message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
+    message.completedAt = object.completedAt ?? undefined;
+    message.archivedAt = object.archivedAt ?? undefined;
     return message;
   },
 };
@@ -317,6 +601,28 @@ type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin
   ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+
+function toTimestamp(date: Date): Timestamp {
+  const seconds = Math.trunc(date.getTime() / 1_000);
+  const nanos = (date.getTime() % 1_000) * 1_000_000;
+  return { seconds, nanos };
+}
+
+function fromTimestamp(t: Timestamp): Date {
+  let millis = (t.seconds || 0) * 1_000;
+  millis += (t.nanos || 0) / 1_000_000;
+  return new globalThis.Date(millis);
+}
+
+function fromJsonTimestamp(o: any): Date {
+  if (o instanceof globalThis.Date) {
+    return o;
+  } else if (typeof o === 'string') {
+    return new globalThis.Date(o);
+  } else {
+    return fromTimestamp(Timestamp.fromJSON(o));
+  }
+}
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;

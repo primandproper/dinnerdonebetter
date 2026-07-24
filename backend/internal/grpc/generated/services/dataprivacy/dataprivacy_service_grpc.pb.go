@@ -23,6 +23,8 @@ const (
 	DataPrivacyService_AggregateUserDataReport_FullMethodName = "/dataprivacy.DataPrivacyService/AggregateUserDataReport"
 	DataPrivacyService_DestroyAllUserData_FullMethodName      = "/dataprivacy.DataPrivacyService/DestroyAllUserData"
 	DataPrivacyService_FetchUserDataReport_FullMethodName     = "/dataprivacy.DataPrivacyService/FetchUserDataReport"
+	DataPrivacyService_GetUserDataDisclosure_FullMethodName   = "/dataprivacy.DataPrivacyService/GetUserDataDisclosure"
+	DataPrivacyService_ListUserDataDisclosures_FullMethodName = "/dataprivacy.DataPrivacyService/ListUserDataDisclosures"
 )
 
 // DataPrivacyServiceClient is the client API for DataPrivacyService service.
@@ -32,6 +34,8 @@ type DataPrivacyServiceClient interface {
 	AggregateUserDataReport(ctx context.Context, in *AggregateUserDataReportRequest, opts ...grpc.CallOption) (*AggregateUserDataReportResponse, error)
 	DestroyAllUserData(ctx context.Context, in *DestroyAllUserDataRequest, opts ...grpc.CallOption) (*DestroyAllUserDataResponse, error)
 	FetchUserDataReport(ctx context.Context, in *FetchUserDataReportRequest, opts ...grpc.CallOption) (*FetchUserDataReportResponse, error)
+	GetUserDataDisclosure(ctx context.Context, in *GetUserDataDisclosureRequest, opts ...grpc.CallOption) (*GetUserDataDisclosureResponse, error)
+	ListUserDataDisclosures(ctx context.Context, in *ListUserDataDisclosuresRequest, opts ...grpc.CallOption) (*ListUserDataDisclosuresResponse, error)
 }
 
 type dataPrivacyServiceClient struct {
@@ -72,6 +76,26 @@ func (c *dataPrivacyServiceClient) FetchUserDataReport(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *dataPrivacyServiceClient) GetUserDataDisclosure(ctx context.Context, in *GetUserDataDisclosureRequest, opts ...grpc.CallOption) (*GetUserDataDisclosureResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserDataDisclosureResponse)
+	err := c.cc.Invoke(ctx, DataPrivacyService_GetUserDataDisclosure_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataPrivacyServiceClient) ListUserDataDisclosures(ctx context.Context, in *ListUserDataDisclosuresRequest, opts ...grpc.CallOption) (*ListUserDataDisclosuresResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListUserDataDisclosuresResponse)
+	err := c.cc.Invoke(ctx, DataPrivacyService_ListUserDataDisclosures_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DataPrivacyServiceServer is the server API for DataPrivacyService service.
 // All implementations must embed UnimplementedDataPrivacyServiceServer
 // for forward compatibility.
@@ -79,6 +103,8 @@ type DataPrivacyServiceServer interface {
 	AggregateUserDataReport(context.Context, *AggregateUserDataReportRequest) (*AggregateUserDataReportResponse, error)
 	DestroyAllUserData(context.Context, *DestroyAllUserDataRequest) (*DestroyAllUserDataResponse, error)
 	FetchUserDataReport(context.Context, *FetchUserDataReportRequest) (*FetchUserDataReportResponse, error)
+	GetUserDataDisclosure(context.Context, *GetUserDataDisclosureRequest) (*GetUserDataDisclosureResponse, error)
+	ListUserDataDisclosures(context.Context, *ListUserDataDisclosuresRequest) (*ListUserDataDisclosuresResponse, error)
 	mustEmbedUnimplementedDataPrivacyServiceServer()
 }
 
@@ -97,6 +123,12 @@ func (UnimplementedDataPrivacyServiceServer) DestroyAllUserData(context.Context,
 }
 func (UnimplementedDataPrivacyServiceServer) FetchUserDataReport(context.Context, *FetchUserDataReportRequest) (*FetchUserDataReportResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FetchUserDataReport not implemented")
+}
+func (UnimplementedDataPrivacyServiceServer) GetUserDataDisclosure(context.Context, *GetUserDataDisclosureRequest) (*GetUserDataDisclosureResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserDataDisclosure not implemented")
+}
+func (UnimplementedDataPrivacyServiceServer) ListUserDataDisclosures(context.Context, *ListUserDataDisclosuresRequest) (*ListUserDataDisclosuresResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListUserDataDisclosures not implemented")
 }
 func (UnimplementedDataPrivacyServiceServer) mustEmbedUnimplementedDataPrivacyServiceServer() {}
 func (UnimplementedDataPrivacyServiceServer) testEmbeddedByValue()                            {}
@@ -173,6 +205,42 @@ func _DataPrivacyService_FetchUserDataReport_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DataPrivacyService_GetUserDataDisclosure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserDataDisclosureRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataPrivacyServiceServer).GetUserDataDisclosure(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataPrivacyService_GetUserDataDisclosure_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataPrivacyServiceServer).GetUserDataDisclosure(ctx, req.(*GetUserDataDisclosureRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataPrivacyService_ListUserDataDisclosures_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUserDataDisclosuresRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataPrivacyServiceServer).ListUserDataDisclosures(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataPrivacyService_ListUserDataDisclosures_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataPrivacyServiceServer).ListUserDataDisclosures(ctx, req.(*ListUserDataDisclosuresRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DataPrivacyService_ServiceDesc is the grpc.ServiceDesc for DataPrivacyService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -191,6 +259,14 @@ var DataPrivacyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FetchUserDataReport",
 			Handler:    _DataPrivacyService_FetchUserDataReport_Handler,
+		},
+		{
+			MethodName: "GetUserDataDisclosure",
+			Handler:    _DataPrivacyService_GetUserDataDisclosure_Handler,
+		},
+		{
+			MethodName: "ListUserDataDisclosures",
+			Handler:    _DataPrivacyService_ListUserDataDisclosures_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
