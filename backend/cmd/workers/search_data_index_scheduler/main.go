@@ -9,7 +9,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/telemetry"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 
-	"github.com/primandproper/platform-go/v5/search/text/indexing"
+	"github.com/primandproper/platform-go/v6/search/text/indexing"
 
 	"github.com/samber/do/v2"
 	_ "go.uber.org/automaxprocs"

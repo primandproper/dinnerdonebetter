@@ -15,12 +15,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v5/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
-	"github.com/primandproper/platform-go/v5/reflection"
-	"github.com/primandproper/platform-go/v5/uploads"
-	mockuploads "github.com/primandproper/platform-go/v5/uploads/mock"
+	"github.com/primandproper/platform-go/v6/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/uploads"
+	mockuploads "github.com/primandproper/platform-go/v6/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

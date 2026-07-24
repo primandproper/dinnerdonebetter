@@ -12,8 +12,8 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

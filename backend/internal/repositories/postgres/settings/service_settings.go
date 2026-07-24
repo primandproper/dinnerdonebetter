@@ -10,13 +10,13 @@ import (
 	settingskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/settings/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	platformkeys "github.com/primandproper/platform-go/v5/observability/keys"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	platformkeys "github.com/primandproper/platform-go/v6/observability/keys"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -252,48 +252,45 @@ func (q *Repository) CreateServiceSetting(ctx context.Context, input *types.Serv
 	tracing.AttachToSpan(span, settingskeys.ServiceSettingIDKey, input.ID)
 	logger := q.logger.WithValue(settingskeys.ServiceSettingIDKey, input.ID)
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	var x *types.ServiceSetting
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		// create the service setting.
+		if err = q.generatedQuerier.CreateServiceSetting(ctx, tx, &generated.CreateServiceSettingParams{
+			ID:           input.ID,
+			Name:         input.Name,
+			Type:         generated.SettingType(input.Type),
+			Description:  input.Description,
+			Enumeration:  strings.Join(input.Enumeration, serviceSettingsEnumDelimiter),
+			DefaultValue: database.NullStringFromStringPointer(input.DefaultValue),
+			AdminsOnly:   input.AdminsOnly,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "performing service setting creation query")
+		}
 
-	// create the service setting.
-	if err = q.generatedQuerier.CreateServiceSetting(ctx, tx, &generated.CreateServiceSettingParams{
-		ID:           input.ID,
-		Name:         input.Name,
-		Type:         generated.SettingType(input.Type),
-		Description:  input.Description,
-		Enumeration:  strings.Join(input.Enumeration, serviceSettingsEnumDelimiter),
-		DefaultValue: database.NullStringFromStringPointer(input.DefaultValue),
-		AdminsOnly:   input.AdminsOnly,
+		x = &types.ServiceSetting{
+			ID:           input.ID,
+			Name:         input.Name,
+			Type:         input.Type,
+			Description:  input.Description,
+			DefaultValue: input.DefaultValue,
+			AdminsOnly:   input.AdminsOnly,
+			Enumeration:  input.Enumeration,
+			CreatedAt:    q.CurrentTime(),
+		}
+
+		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:           identifiers.New(),
+			ResourceType: resourceTypeServiceSettings,
+			RelevantID:   x.ID,
+			EventType:    audit.AuditLogEventTypeCreated,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		return nil
 	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareAndLogError(err, logger, span, "performing service setting creation query")
-	}
-
-	x := &types.ServiceSetting{
-		ID:           input.ID,
-		Name:         input.Name,
-		Type:         input.Type,
-		Description:  input.Description,
-		DefaultValue: input.DefaultValue,
-		AdminsOnly:   input.AdminsOnly,
-		Enumeration:  input.Enumeration,
-		CreatedAt:    q.CurrentTime(),
-	}
-
-	if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeServiceSettings,
-		RelevantID:   x.ID,
-		EventType:    audit.AuditLogEventTypeCreated,
-	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil, err
 	}
 
 	logger.Info("service setting created")
@@ -314,33 +311,28 @@ func (q *Repository) ArchiveServiceSetting(ctx context.Context, serviceSettingID
 	logger = logger.WithValue(settingskeys.ServiceSettingIDKey, serviceSettingID)
 	tracing.AttachToSpan(span, settingskeys.ServiceSettingIDKey, serviceSettingID)
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		rowsAffected, err := q.generatedQuerier.ArchiveServiceSetting(ctx, tx, serviceSettingID)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating service setting")
+		}
 
-	rowsAffected, err := q.generatedQuerier.ArchiveServiceSetting(ctx, tx, serviceSettingID)
-	if err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "updating service setting")
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:           identifiers.New(),
+			ResourceType: resourceTypeServiceSettings,
+			RelevantID:   serviceSettingID,
+			EventType:    audit.AuditLogEventTypeArchived,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeServiceSettings,
-		RelevantID:   serviceSettingID,
-		EventType:    audit.AuditLogEventTypeArchived,
+		return nil
 	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return err
 	}
 
 	return nil

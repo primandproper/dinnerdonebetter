@@ -3,8 +3,10 @@ package testing
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"hash/fnv"
+	"log"
 	"os"
 	"strings"
 	"testing"
@@ -16,12 +18,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	encryptioncfg "github.com/primandproper/platform-go/v5/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v5/database"
-	databasecfg "github.com/primandproper/platform-go/v5/database/config"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/retry"
+	encryptioncfg "github.com/primandproper/platform-go/v6/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v6/database"
+	databasecfg "github.com/primandproper/platform-go/v6/database/config"
+	mockdatabase "github.com/primandproper/platform-go/v6/database/mock"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/retry"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"
@@ -176,7 +179,7 @@ func BuildDatabaseContainer(ctx context.Context, dbName string) (*postgres.Postg
 	return container, db, dbConfig, nil
 }
 
-func CreateUserForTest(t *testing.T, exampleUser *identity.User, db *sql.DB) *identity.User {
+func CreateUserForTest(t *testing.T, exampleUser *identity.User, db database.SQLQueryExecutor) *identity.User {
 	t.Helper()
 
 	ctx := t.Context()
@@ -226,7 +229,7 @@ func CreateUserForTest(t *testing.T, exampleUser *identity.User, db *sql.DB) *id
 	return created
 }
 
-func CreateAccountForTest(t *testing.T, exampleAccount *identity.Account, userID string, db *sql.DB) *identity.Account {
+func CreateAccountForTest(t *testing.T, exampleAccount *identity.Account, userID string, db database.SQLQueryExecutor) *identity.Account {
 	t.Helper()
 
 	// create
@@ -444,5 +447,32 @@ func TestCursorBasedPagination[T any](t *testing.T, ctx context.Context, config 
 			err := config.CleanupItem(ctx, item)
 			assert.NoError(t, err, "failed to cleanup %s %s", config.ItemName, config.GetID(item))
 		}
+	}
+}
+
+// NewSQLMockDatabaseClient wraps a *sql.DB — typically one produced by sqlmock — in a
+// database.Client so repositories under test can exercise Reader, Writer, and
+// WithTransaction against it. Transactions run through database.RunInTransaction, so
+// begin/commit/rollback behave exactly as they do in production and a mock's
+// ExpectBegin/ExpectRollback expectations still apply.
+func NewSQLMockDatabaseClient(db *sql.DB) database.Client {
+	return &mockdatabase.ClientMock{
+		ReaderFunc:      func() database.SQLQueryExecutor { return db },
+		WriterFunc:      func() database.SQLQueryExecutor { return db },
+		CurrentTimeFunc: time.Now,
+		CloseFunc:       db.Close,
+		WithTransactionFunc: func(ctx context.Context, fn func(tx database.SQLQueryExecutorAndTransactionManager) error) error {
+			return database.RunInTransaction(ctx, db, rollbackTestTransaction, fn)
+		},
+	}
+}
+
+// rollbackTestTransaction mirrors the production rollback hook for tests. A transaction
+// that has already been committed or rolled back reports sql.ErrTxDone, which is not a
+// failure worth surfacing; anything else is logged so a mock's unmet ExpectRollback does
+// not vanish silently.
+func rollbackTestTransaction(_ context.Context, tx database.SQLQueryExecutorAndTransactionManager) {
+	if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+		log.Printf("rolling back test transaction: %v", err)
 	}
 }

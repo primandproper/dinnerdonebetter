@@ -13,13 +13,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
-	"github.com/primandproper/platform-go/v5/pointer"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v6/pointer"
 )
 
 var (
@@ -956,119 +956,112 @@ func (q *repository) CreateRecipe(ctx context.Context, input *mealplanning.Recip
 		return nil, observability.PrepareAndLogError(err, logger, span, "validating recipe input")
 	}
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
-
-	// create the recipe.
-	if err = q.generatedQuerier.CreateRecipe(ctx, tx, &generated.CreateRecipeParams{
-		MinEstimatedPortions: database.StringFromFloat32(input.MinEstimatedPortions),
-		ID:                   input.ID,
-		Slug:                 input.Slug,
-		Source:               input.Source,
-		SourceIsbn:           input.SourceISBN,
-		Description:          input.Description,
-		CreatedByUser:        input.CreatedByUser,
-		Name:                 input.Name,
-		YieldsComponentType:  generated.ComponentType(input.YieldsComponentType),
-		PortionName:          input.PortionName,
-		PluralPortionName:    input.PluralPortionName,
-		MaxEstimatedPortions: database.NullStringFromFloat32Pointer(input.MaxEstimatedPortions),
-		InspiredByRecipeID:   database.NullStringFromStringPointer(input.InspiredByRecipeID),
-		Status:               mealplanning.RecipeStatusSubmitted,
-		EligibleForMeals:     input.EligibleForMeals,
-	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareAndLogError(err, logger, span, "performing recipe creation query")
-	}
-
-	x := &mealplanning.Recipe{
-		ID:                   input.ID,
-		Name:                 input.Name,
-		Slug:                 input.Slug,
-		Source:               input.Source,
-		SourceISBN:           input.SourceISBN,
-		Description:          input.Description,
-		InspiredByRecipeID:   input.InspiredByRecipeID,
-		CreatedByUser:        input.CreatedByUser,
-		MinEstimatedPortions: input.MinEstimatedPortions,
-		MaxEstimatedPortions: input.MaxEstimatedPortions,
-		Status:               mealplanning.RecipeStatusSubmitted,
-		EligibleForMeals:     input.EligibleForMeals,
-		PortionName:          input.PortionName,
-		PluralPortionName:    input.PluralPortionName,
-		YieldsComponentType:  input.YieldsComponentType,
-		CreatedAt:            q.CurrentTime(),
-		PrepTasks:            []*mealplanning.RecipePrepTask{},
-		Steps:                []*mealplanning.RecipeStep{},
-		Media:                []*mealplanning.RecipeMedia{},
-	}
-
-	// Validate no circular dependencies before proceeding
-	if err = q.validateNoCircularDependencyForRecipe(ctx, input); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareAndLogError(err, logger, span, "validating recipe dependencies")
-	}
-
-	if err = q.findCreatedRecipeStepProductsForIngredients(ctx, input); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareAndLogError(err, logger, span, "finding recipe step products for ingredients")
-	}
-	q.findCreatedRecipeStepProductsForInstruments(ctx, input)
-	q.findCreatedRecipeStepProductsForVessels(ctx, input)
-
-	for i, stepInput := range input.Steps {
-		stepInput.Index = uint32(i)
-		stepInput.BelongsToRecipe = x.ID
-
-		q.logger.Info(fmt.Sprintf("creating recipe step #%d", i+1))
-
-		var s *mealplanning.RecipeStep
-		s, err = q.createRecipeStep(ctx, tx, stepInput)
-		if err != nil {
-			q.RollbackTransaction(ctx, tx)
-			return nil, observability.PrepareError(err, span, "creating recipe step #%d", i+1)
-		}
-
-		x.Steps = append(x.Steps, s)
-	}
-
-	for i, prepTaskInput := range input.PrepTasks {
-		var pt *mealplanning.RecipePrepTask
-		pt, err = q.createRecipePrepTask(ctx, tx, prepTaskInput)
-		if err != nil {
-			q.RollbackTransaction(ctx, tx)
-			return nil, observability.PrepareError(err, span, "creating recipe prep task #%d", i+1)
-		}
-
-		x.PrepTasks = append(x.PrepTasks, pt)
-	}
-
-	if input.AlsoCreateMeal {
-		if _, err = q.createMeal(ctx, tx, &mealplanning.MealDatabaseCreationInput{
-			ID:                   identifiers.New(),
-			Name:                 x.Name,
-			Description:          x.Description,
-			MinEstimatedPortions: x.MinEstimatedPortions,
-			MaxEstimatedPortions: x.MaxEstimatedPortions,
-			EligibleForMealPlans: x.EligibleForMeals,
-			CreatedByUser:        x.CreatedByUser,
-			Components: []*mealplanning.MealComponentDatabaseCreationInput{
-				{
-					RecipeID:      x.ID,
-					RecipeScale:   1.0,
-					ComponentType: mealplanning.MealComponentTypesMain,
-				},
-			},
+	var err error
+	var x *mealplanning.Recipe
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		// create the recipe.
+		if err = q.generatedQuerier.CreateRecipe(ctx, tx, &generated.CreateRecipeParams{
+			MinEstimatedPortions: database.StringFromFloat32(input.MinEstimatedPortions),
+			ID:                   input.ID,
+			Slug:                 input.Slug,
+			Source:               input.Source,
+			SourceIsbn:           input.SourceISBN,
+			Description:          input.Description,
+			CreatedByUser:        input.CreatedByUser,
+			Name:                 input.Name,
+			YieldsComponentType:  generated.ComponentType(input.YieldsComponentType),
+			PortionName:          input.PortionName,
+			PluralPortionName:    input.PluralPortionName,
+			MaxEstimatedPortions: database.NullStringFromFloat32Pointer(input.MaxEstimatedPortions),
+			InspiredByRecipeID:   database.NullStringFromStringPointer(input.InspiredByRecipeID),
+			Status:               mealplanning.RecipeStatusSubmitted,
+			EligibleForMeals:     input.EligibleForMeals,
 		}); err != nil {
-			q.RollbackTransaction(ctx, tx)
-			return nil, observability.PrepareError(err, span, "creating meal from recipe")
+			return observability.PrepareAndLogError(err, logger, span, "performing recipe creation query")
 		}
-	}
 
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		x = &mealplanning.Recipe{
+			ID:                   input.ID,
+			Name:                 input.Name,
+			Slug:                 input.Slug,
+			Source:               input.Source,
+			SourceISBN:           input.SourceISBN,
+			Description:          input.Description,
+			InspiredByRecipeID:   input.InspiredByRecipeID,
+			CreatedByUser:        input.CreatedByUser,
+			MinEstimatedPortions: input.MinEstimatedPortions,
+			MaxEstimatedPortions: input.MaxEstimatedPortions,
+			Status:               mealplanning.RecipeStatusSubmitted,
+			EligibleForMeals:     input.EligibleForMeals,
+			PortionName:          input.PortionName,
+			PluralPortionName:    input.PluralPortionName,
+			YieldsComponentType:  input.YieldsComponentType,
+			CreatedAt:            q.CurrentTime(),
+			PrepTasks:            []*mealplanning.RecipePrepTask{},
+			Steps:                []*mealplanning.RecipeStep{},
+			Media:                []*mealplanning.RecipeMedia{},
+		}
+
+		// Validate no circular dependencies before proceeding
+		if err = q.validateNoCircularDependencyForRecipe(ctx, input); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "validating recipe dependencies")
+		}
+
+		if err = q.findCreatedRecipeStepProductsForIngredients(ctx, input); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "finding recipe step products for ingredients")
+		}
+		q.findCreatedRecipeStepProductsForInstruments(ctx, input)
+		q.findCreatedRecipeStepProductsForVessels(ctx, input)
+
+		for i, stepInput := range input.Steps {
+			stepInput.Index = uint32(i)
+			stepInput.BelongsToRecipe = x.ID
+
+			q.logger.Info(fmt.Sprintf("creating recipe step #%d", i+1))
+
+			var s *mealplanning.RecipeStep
+			s, err = q.createRecipeStep(ctx, tx, stepInput)
+			if err != nil {
+				return observability.PrepareError(err, span, "creating recipe step #%d", i+1)
+			}
+
+			x.Steps = append(x.Steps, s)
+		}
+
+		for i, prepTaskInput := range input.PrepTasks {
+			var pt *mealplanning.RecipePrepTask
+			pt, err = q.createRecipePrepTask(ctx, tx, prepTaskInput)
+			if err != nil {
+				return observability.PrepareError(err, span, "creating recipe prep task #%d", i+1)
+			}
+
+			x.PrepTasks = append(x.PrepTasks, pt)
+		}
+
+		if input.AlsoCreateMeal {
+			if _, err = q.createMeal(ctx, tx, &mealplanning.MealDatabaseCreationInput{
+				ID:                   identifiers.New(),
+				Name:                 x.Name,
+				Description:          x.Description,
+				MinEstimatedPortions: x.MinEstimatedPortions,
+				MaxEstimatedPortions: x.MaxEstimatedPortions,
+				EligibleForMealPlans: x.EligibleForMeals,
+				CreatedByUser:        x.CreatedByUser,
+				Components: []*mealplanning.MealComponentDatabaseCreationInput{
+					{
+						RecipeID:      x.ID,
+						RecipeScale:   1.0,
+						ComponentType: mealplanning.MealComponentTypesMain,
+					},
+				},
+			}); err != nil {
+				return observability.PrepareError(err, span, "creating meal from recipe")
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	logger.Info("recipe created")

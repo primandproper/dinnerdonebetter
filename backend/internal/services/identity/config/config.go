@@ -3,7 +3,7 @@ package config
 import (
 	"context"
 
-	uploadscfg "github.com/primandproper/platform-go/v5/uploads/config"
+	uploadscfg "github.com/primandproper/platform-go/v6/uploads/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

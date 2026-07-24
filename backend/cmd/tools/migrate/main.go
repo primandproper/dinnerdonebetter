@@ -9,11 +9,11 @@ import (
 
 	postgresmigrations "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 
-	"github.com/primandproper/platform-go/v5/database"
-	databasecfg "github.com/primandproper/platform-go/v5/database/config"
-	"github.com/primandproper/platform-go/v5/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v6/database"
+	databasecfg "github.com/primandproper/platform-go/v6/database/config"
+	"github.com/primandproper/platform-go/v6/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )
@@ -88,8 +88,15 @@ func runMigrate(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string,
 		}
 	}()
 
+	// Migrations need the concrete *sql.DB, which lives behind the RawAccess capability
+	// rather than the safe Client surface.
+	raw, ok := client.(database.RawAccess)
+	if !ok {
+		return fmt.Errorf("database client does not expose raw access required for migrations")
+	}
+
 	migrator := postgresmigrations.NewMigrator(logger)
-	if err = migrator.Migrate(ctx, client.WriteDB()); err != nil {
+	if err = migrator.Migrate(ctx, raw.WriteDB()); err != nil {
 		return fmt.Errorf("running migrations: %w", err)
 	}
 

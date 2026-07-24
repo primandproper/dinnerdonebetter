@@ -167,7 +167,7 @@ func createFinalizedMealPlanWithTasks(t *testing.T) (string, client.Client) {
 
 	// Force voting deadline to the past
 	q := generated.New()
-	rowsAffected, err := q.UpdateMealPlan(ctx, databaseClient.WriteDB(), &generated.UpdateMealPlanParams{
+	rowsAffected, err := q.UpdateMealPlan(ctx, databaseClient.Writer(), &generated.UpdateMealPlanParams{
 		Notes:            createdMealPlan.Notes,
 		Status:           generated.MealPlanStatus(createdMealPlan.Status),
 		VotingDeadline:   time.Now().Add(-time.Minute),

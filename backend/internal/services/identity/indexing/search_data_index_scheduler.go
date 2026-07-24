@@ -3,7 +3,7 @@ package indexing
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v5/search/text/indexing"
+	"github.com/primandproper/platform-go/v6/search/text/indexing"
 )
 
 const (

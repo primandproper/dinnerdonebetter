@@ -9,12 +9,12 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 var (
@@ -262,54 +262,50 @@ func (q *repository) CreateUserIngredientPreference(ctx context.Context, input *
 		validIngredientIDs = append(validIngredientIDs, input.ValidIngredientID)
 	}
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
-
 	logger = logger.WithValue("valid_ingredient_ids", validIngredientIDs)
 	logger.Debug("creating user ingredient preferences")
 
 	output := []*mealplanning.UserIngredientPreference{}
-	for _, validIngredientID := range validIngredientIDs {
-		l := logger.WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
-		if validIngredientID == "" {
-			continue
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		for _, validIngredientID := range validIngredientIDs {
+			l := logger.WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
+			if validIngredientID == "" {
+				continue
+			}
+
+			id := identifiers.New()
+			tracing.AttachToSpan(span, mealplanningkeys.UserIngredientPreferenceIDKey, id)
+
+			// create the user ingredient preference.
+			if err := q.generatedQuerier.CreateUserIngredientPreference(ctx, tx, &generated.CreateUserIngredientPreferenceParams{
+				ID:            id,
+				Ingredient:    validIngredientID,
+				Notes:         input.Notes,
+				BelongsToUser: input.CreatedByUser,
+				Rating:        int16(input.Rating),
+				Allergy:       input.Allergy,
+			}); err != nil {
+				return observability.PrepareAndLogError(err, l, span, "performing user ingredient preference creation query")
+			}
+
+			x := &mealplanning.UserIngredientPreference{
+				ID:            id,
+				Rating:        input.Rating,
+				Notes:         input.Notes,
+				Allergy:       input.Allergy,
+				CreatedByUser: input.CreatedByUser,
+				Ingredient:    mealplanning.ValidIngredient{ID: input.ValidIngredientID},
+				CreatedAt:     q.CurrentTime(),
+			}
+
+			l.Info("user ingredient preference created")
+
+			output = append(output, x)
 		}
 
-		id := identifiers.New()
-		tracing.AttachToSpan(span, mealplanningkeys.UserIngredientPreferenceIDKey, id)
-
-		// create the user ingredient preference.
-		if err = q.generatedQuerier.CreateUserIngredientPreference(ctx, tx, &generated.CreateUserIngredientPreferenceParams{
-			ID:            id,
-			Ingredient:    validIngredientID,
-			Notes:         input.Notes,
-			BelongsToUser: input.CreatedByUser,
-			Rating:        int16(input.Rating),
-			Allergy:       input.Allergy,
-		}); err != nil {
-			q.RollbackTransaction(ctx, tx)
-			return nil, observability.PrepareAndLogError(err, l, span, "performing user ingredient preference creation query")
-		}
-
-		x := &mealplanning.UserIngredientPreference{
-			ID:            id,
-			Rating:        input.Rating,
-			Notes:         input.Notes,
-			Allergy:       input.Allergy,
-			CreatedByUser: input.CreatedByUser,
-			Ingredient:    mealplanning.ValidIngredient{ID: input.ValidIngredientID},
-			CreatedAt:     q.CurrentTime(),
-		}
-
-		l.Info("user ingredient preference created")
-
-		output = append(output, x)
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return output, nil

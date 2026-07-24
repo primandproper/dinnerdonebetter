@@ -1,16 +1,14 @@
 package identity
 
 import (
-	"database/sql"
-
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	"github.com/primandproper/platform-go/v5/observability/logging"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
-	"github.com/primandproper/platform-go/v5/random"
+	"github.com/primandproper/platform-go/v6/database"
+	"github.com/primandproper/platform-go/v6/observability/logging"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v6/random"
 )
 
 const (
@@ -27,8 +25,8 @@ type repository struct {
 	generatedQuerier  generated.Querier
 	auditLogEntryRepo audit.Repository
 	secretGenerator   random.Generator
-	readDB            *sql.DB
-	writeDB           *sql.DB
+	readDB            database.SQLQueryExecutor
+	writeDB           database.SQLQueryExecutor
 }
 
 // ProvideIdentityRepository provides a new repository.
@@ -40,8 +38,8 @@ func ProvideIdentityRepository(
 ) identity.Repository {
 	c := &repository{
 		Client:            client,
-		readDB:            client.ReadDB(),
-		writeDB:           client.WriteDB(),
+		readDB:            client.Reader(),
+		writeDB:           client.Writer(),
 		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
 		generatedQuerier:  generated.New(),
 		auditLogEntryRepo: auditLogEntryRepo,

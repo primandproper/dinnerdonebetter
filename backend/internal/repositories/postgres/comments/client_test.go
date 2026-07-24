@@ -13,12 +13,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	mockdatabase "github.com/primandproper/platform-go/v5/database/mock"
-	"github.com/primandproper/platform-go/v5/database/postgres"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v6/database"
+	mockdatabase "github.com/primandproper/platform-go/v6/database/mock"
+	"github.com/primandproper/platform-go/v6/database/postgres"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,7 +47,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository, *p
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideCommentsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReadDBFunc: func() *sql.DB { return nil }, WriteDBFunc: func() *sql.DB { return nil }})
+	c := ProvideCommentsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
 
 	return c.(*repository)
 }

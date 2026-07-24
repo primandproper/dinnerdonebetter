@@ -11,10 +11,10 @@ import (
 	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
 	authsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
-	"github.com/primandproper/platform-go/v5/encoding"
-	"github.com/primandproper/platform-go/v5/featureflags"
-	"github.com/primandproper/platform-go/v5/observability/logging"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/encoding"
+	"github.com/primandproper/platform-go/v6/featureflags"
+	"github.com/primandproper/platform-go/v6/observability/logging"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (

@@ -1,16 +1,16 @@
 package auditlogentries
 
 import (
-	"database/sql"
 	"testing"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	mockdatabase "github.com/primandproper/platform-go/v5/database/mock"
-	"github.com/primandproper/platform-go/v5/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v6/database"
+	mockdatabase "github.com/primandproper/platform-go/v6/database/mock"
+	"github.com/primandproper/platform-go/v6/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
 
 	"github.com/stretchr/testify/require"
 	pgcontainers "github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -39,7 +39,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, *pgcontainers.Postgr
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), &mockdatabase.ClientMock{ReadDBFunc: func() *sql.DB { return nil }, WriteDBFunc: func() *sql.DB { return nil }})
+	c := ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
 
 	return c.(*repository)
 }

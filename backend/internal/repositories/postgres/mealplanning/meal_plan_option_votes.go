@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 var (
@@ -259,47 +259,47 @@ func (q *repository) CreateMealPlanOptionVote(ctx context.Context, input *types.
 	logger := q.logger.WithValue("vote_count", len(input.Votes))
 
 	// begin transaction
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var (
+		err   error
+		votes []*types.MealPlanOptionVote
+	)
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		votes = []*types.MealPlanOptionVote{}
+		for _, vote := range input.Votes {
+			l := logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, vote.BelongsToMealPlanOption).
+				WithValue(mealplanningkeys.MealPlanOptionVoteIDKey, vote.ID)
 
-	votes := []*types.MealPlanOptionVote{}
-	for _, vote := range input.Votes {
-		l := logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, vote.BelongsToMealPlanOption).
-			WithValue(mealplanningkeys.MealPlanOptionVoteIDKey, vote.ID)
+			// create the meal plan option vote.
+			if err = q.generatedQuerier.CreateMealPlanOptionVote(ctx, tx, &generated.CreateMealPlanOptionVoteParams{
+				ID:                      vote.ID,
+				Notes:                   vote.Notes,
+				ByUser:                  vote.ByUser,
+				BelongsToMealPlanOption: vote.BelongsToMealPlanOption,
+				Rank:                    int32(vote.Rank),
+				Abstain:                 vote.Abstain,
+			}); err != nil {
+				return observability.PrepareAndLogError(err, l, span, "creating meal plan option vote")
+			}
 
-		// create the meal plan option vote.
-		if err = q.generatedQuerier.CreateMealPlanOptionVote(ctx, tx, &generated.CreateMealPlanOptionVoteParams{
-			ID:                      vote.ID,
-			Notes:                   vote.Notes,
-			ByUser:                  vote.ByUser,
-			BelongsToMealPlanOption: vote.BelongsToMealPlanOption,
-			Rank:                    int32(vote.Rank),
-			Abstain:                 vote.Abstain,
-		}); err != nil {
-			q.RollbackTransaction(ctx, tx)
-			return nil, observability.PrepareAndLogError(err, l, span, "creating meal plan option vote")
+			x := &types.MealPlanOptionVote{
+				ID:                      vote.ID,
+				Rank:                    vote.Rank,
+				Abstain:                 vote.Abstain,
+				Notes:                   vote.Notes,
+				ByUser:                  vote.ByUser,
+				BelongsToMealPlanOption: vote.BelongsToMealPlanOption,
+				CreatedAt:               q.CurrentTime(),
+			}
+
+			tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionVoteIDKey, x.ID)
+			l.Info("meal plan option vote created")
+
+			votes = append(votes, x)
 		}
 
-		x := &types.MealPlanOptionVote{
-			ID:                      vote.ID,
-			Rank:                    vote.Rank,
-			Abstain:                 vote.Abstain,
-			Notes:                   vote.Notes,
-			ByUser:                  vote.ByUser,
-			BelongsToMealPlanOption: vote.BelongsToMealPlanOption,
-			CreatedAt:               q.CurrentTime(),
-		}
-
-		tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionVoteIDKey, x.ID)
-		l.Info("meal plan option vote created")
-
-		votes = append(votes, x)
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return votes, nil

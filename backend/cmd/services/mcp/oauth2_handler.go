@@ -12,8 +12,8 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v5/authentication/totp"
-	"github.com/primandproper/platform-go/v5/routing"
+	"github.com/primandproper/platform-go/v6/authentication/totp"
+	"github.com/primandproper/platform-go/v6/routing"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/oauthex"

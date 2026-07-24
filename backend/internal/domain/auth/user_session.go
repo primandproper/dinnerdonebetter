@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/primandproper/platform-go/v5/filtering"
+	"github.com/primandproper/platform-go/v6/filtering"
 )
 
 const (

@@ -12,12 +12,12 @@ import (
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -714,37 +714,31 @@ func (r *repository) AcceptAccountInvitation(ctx context.Context, accountID, acc
 		return platformerrors.ErrNilInputProvided
 	}
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
-
-	invitation, err := r.GetAccountInvitationByTokenAndID(ctx, token, accountInvitationID)
-	if err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "fetching account invitation")
-	}
-
-	if err = r.setInvitationStatus(ctx, tx, accountInvitationID, note, string(identity.AcceptedAccountInvitationStatus)); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "accepting account invitation")
-	}
-
-	addUserInput := &identity.AccountUserMembershipDatabaseCreationInput{
-		ID:        identifiers.New(),
-		Reason:    fmt.Sprintf("accepted account invitation %s", accountInvitationID),
-		AccountID: invitation.DestinationAccount.ID,
-	}
-	if invitation.ToUser != nil {
-		addUserInput.UserID = *invitation.ToUser
-		if err = r.addUserToAccount(ctx, tx, addUserInput); err != nil {
-			r.RollbackTransaction(ctx, tx)
-			return observability.PrepareAndLogError(err, logger, span, "adding user to account")
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		invitation, err := r.GetAccountInvitationByTokenAndID(ctx, token, accountInvitationID)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "fetching account invitation")
 		}
-	}
 
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		if err = r.setInvitationStatus(ctx, tx, accountInvitationID, note, string(identity.AcceptedAccountInvitationStatus)); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "accepting account invitation")
+		}
+
+		addUserInput := &identity.AccountUserMembershipDatabaseCreationInput{
+			ID:        identifiers.New(),
+			Reason:    fmt.Sprintf("accepted account invitation %s", accountInvitationID),
+			AccountID: invitation.DestinationAccount.ID,
+		}
+		if invitation.ToUser != nil {
+			addUserInput.UserID = *invitation.ToUser
+			if err = r.addUserToAccount(ctx, tx, addUserInput); err != nil {
+				return observability.PrepareAndLogError(err, logger, span, "adding user to account")
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil
@@ -794,7 +788,6 @@ func (r *repository) acceptInvitationForUser(ctx context.Context, querier databa
 
 	invitation, tokenCheckErr := r.GetAccountInvitationByToken(ctx, input.InvitationToken)
 	if tokenCheckErr != nil {
-		r.RollbackTransaction(ctx, querier)
 		return observability.PrepareError(tokenCheckErr, span, "fetching account invitation")
 	}
 
@@ -804,7 +797,6 @@ func (r *repository) acceptInvitationForUser(ctx context.Context, querier databa
 		BelongsToAccount: input.DestinationAccountID,
 		DefaultAccount:   true,
 	}); err != nil {
-		r.RollbackTransaction(ctx, querier)
 		return observability.PrepareAndLogError(err, logger, span, "writing destination account membership")
 	}
 
@@ -815,14 +807,12 @@ func (r *repository) acceptInvitationForUser(ctx context.Context, querier databa
 		RoleID:    authorization.AccountMemberRoleID,
 		AccountID: sql.NullString{String: input.DestinationAccountID, Valid: true},
 	}); err != nil {
-		r.RollbackTransaction(ctx, querier)
 		return observability.PrepareAndLogError(err, logger, span, "assigning account role for invitation")
 	}
 
 	logger.Debug("created membership via invitation")
 
 	if err := r.setInvitationStatus(ctx, querier, invitation.ID, "", string(identity.AcceptedAccountInvitationStatus)); err != nil {
-		r.RollbackTransaction(ctx, querier)
 		return observability.PrepareAndLogError(err, logger, span, "accepting account invitation")
 	}
 

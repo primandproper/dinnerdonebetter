@@ -6,10 +6,10 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists"
 	waitlistsrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 
-	"github.com/primandproper/platform-go/v5/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
-	"github.com/primandproper/platform-go/v5/observability/logging"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
+	"github.com/primandproper/platform-go/v6/observability/logging"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

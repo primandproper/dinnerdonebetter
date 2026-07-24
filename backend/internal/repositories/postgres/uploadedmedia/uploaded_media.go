@@ -10,12 +10,12 @@ import (
 	uploadedmediakeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -171,43 +171,40 @@ func (r *repository) CreateUploadedMedia(ctx context.Context, input *types.Uploa
 
 	logger.Debug("CreateUploadedMedia invoked")
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	var x *types.UploadedMedia
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if err = r.generatedQuerier.CreateUploadedMedia(ctx, tx, &generated.CreateUploadedMediaParams{
+			ID:            input.ID,
+			StoragePath:   input.StoragePath,
+			MimeType:      generated.UploadedMediaMimeType(input.MimeType),
+			CreatedByUser: input.CreatedByUser,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "performing uploaded media creation query")
+		}
 
-	if err = r.generatedQuerier.CreateUploadedMedia(ctx, tx, &generated.CreateUploadedMediaParams{
-		ID:            input.ID,
-		StoragePath:   input.StoragePath,
-		MimeType:      generated.UploadedMediaMimeType(input.MimeType),
-		CreatedByUser: input.CreatedByUser,
+		x = &types.UploadedMedia{
+			ID:            input.ID,
+			StoragePath:   input.StoragePath,
+			MimeType:      input.MimeType,
+			CreatedByUser: input.CreatedByUser,
+			CreatedAt:     r.CurrentTime(),
+		}
+
+		userID := x.CreatedByUser
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToUser: userID,
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUploadedMedia,
+			RelevantID:    x.ID,
+			EventType:     audit.AuditLogEventTypeCreated,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		return nil
 	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareAndLogError(err, logger, span, "performing uploaded media creation query")
-	}
-
-	x := &types.UploadedMedia{
-		ID:            input.ID,
-		StoragePath:   input.StoragePath,
-		MimeType:      input.MimeType,
-		CreatedByUser: input.CreatedByUser,
-		CreatedAt:     r.CurrentTime(),
-	}
-
-	userID := x.CreatedByUser
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToUser: userID,
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUploadedMedia,
-		RelevantID:    x.ID,
-		EventType:     audit.AuditLogEventTypeCreated,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing database transaction")
+		return nil, err
 	}
 
 	tracing.AttachToSpan(span, uploadedmediakeys.UploadedMediaIDKey, x.ID)
@@ -228,39 +225,34 @@ func (r *repository) UpdateUploadedMedia(ctx context.Context, uploadedMedia *typ
 	logger = logger.WithValue(uploadedmediakeys.UploadedMediaIDKey, uploadedMedia.ID)
 	tracing.AttachToSpan(span, uploadedmediakeys.UploadedMediaIDKey, uploadedMedia.ID)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		rowsAffected, err := r.generatedQuerier.UpdateUploadedMedia(ctx, tx, &generated.UpdateUploadedMediaParams{
+			StoragePath: uploadedMedia.StoragePath,
+			MimeType:    generated.UploadedMediaMimeType(uploadedMedia.MimeType),
+			ID:          uploadedMedia.ID,
+		})
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating uploaded media")
+		}
 
-	rowsAffected, err := r.generatedQuerier.UpdateUploadedMedia(ctx, tx, &generated.UpdateUploadedMediaParams{
-		StoragePath: uploadedMedia.StoragePath,
-		MimeType:    generated.UploadedMediaMimeType(uploadedMedia.MimeType),
-		ID:          uploadedMedia.ID,
-	})
-	if err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "updating uploaded media")
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		userID := uploadedMedia.CreatedByUser
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToUser: userID,
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUploadedMedia,
+			RelevantID:    uploadedMedia.ID,
+			EventType:     audit.AuditLogEventTypeUpdated,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	userID := uploadedMedia.CreatedByUser
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToUser: userID,
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUploadedMedia,
-		RelevantID:    uploadedMedia.ID,
-		EventType:     audit.AuditLogEventTypeUpdated,
+		return nil
 	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing database transaction")
+		return err
 	}
 
 	logger.Info("uploaded media updated")
@@ -281,33 +273,28 @@ func (r *repository) ArchiveUploadedMedia(ctx context.Context, uploadedMediaID s
 	logger = logger.WithValue(uploadedmediakeys.UploadedMediaIDKey, uploadedMediaID)
 	tracing.AttachToSpan(span, uploadedmediakeys.UploadedMediaIDKey, uploadedMediaID)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		rowsAffected, err := r.generatedQuerier.ArchiveUploadedMedia(ctx, tx, uploadedMediaID)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "archiving uploaded media")
+		}
 
-	rowsAffected, err := r.generatedQuerier.ArchiveUploadedMedia(ctx, tx, uploadedMediaID)
-	if err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "archiving uploaded media")
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:           identifiers.New(),
+			ResourceType: resourceTypeUploadedMedia,
+			RelevantID:   uploadedMediaID,
+			EventType:    audit.AuditLogEventTypeArchived,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeUploadedMedia,
-		RelevantID:   uploadedMediaID,
-		EventType:    audit.AuditLogEventTypeArchived,
+		return nil
 	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing database transaction")
+		return err
 	}
 
 	logger.Info("uploaded media archived")

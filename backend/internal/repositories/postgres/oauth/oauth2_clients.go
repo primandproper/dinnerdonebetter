@@ -10,12 +10,12 @@ import (
 	oauthkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/oauth/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -156,36 +156,32 @@ func (q *repository) CreateOAuth2Client(ctx context.Context, input *types.OAuth2
 		oauthkeys.OAuth2ClientClientIDKey: input.ClientID,
 	})
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if writeErr := q.generatedQuerier.CreateOAuth2Client(ctx, tx, &generated.CreateOAuth2ClientParams{
+			ID:           input.ID,
+			Description:  input.Description,
+			Name:         input.Name,
+			ClientID:     input.ClientID,
+			ClientSecret: input.ClientSecret,
+		}); writeErr != nil {
+			return observability.PrepareError(writeErr, span, "creating OAuth2 client")
+		}
 
-	if writeErr := q.generatedQuerier.CreateOAuth2Client(ctx, tx, &generated.CreateOAuth2ClientParams{
-		ID:           input.ID,
-		Description:  input.Description,
-		Name:         input.Name,
-		ClientID:     input.ClientID,
-		ClientSecret: input.ClientSecret,
-	}); writeErr != nil {
-		q.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareError(writeErr, span, "creating OAuth2 client")
-	}
+		tracing.AttachToSpan(span, oauthkeys.OAuth2ClientClientIDKey, input.ID)
 
-	tracing.AttachToSpan(span, oauthkeys.OAuth2ClientClientIDKey, input.ID)
+		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:           identifiers.New(),
+			ResourceType: resourceTypeOAuth2Clients,
+			RelevantID:   input.ID,
+			EventType:    audit.AuditLogEventTypeCreated,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeOAuth2Clients,
-		RelevantID:   input.ID,
-		EventType:    audit.AuditLogEventTypeCreated,
+		return nil
 	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil, err
 	}
 
 	client := &types.OAuth2Client{

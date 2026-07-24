@@ -7,7 +7,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v5/filtering"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/mock"
 )

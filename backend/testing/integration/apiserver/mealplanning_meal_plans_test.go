@@ -352,7 +352,7 @@ func TestMealPlans_CompleteLifecycleForAllVotesReceived(T *testing.T) {
 		createdMealPlan.VotingDeadline = time.Now().Add(-time.Minute)
 
 		q := generated.New()
-		rowsAffected, err := q.UpdateMealPlan(ctx, databaseClient.WriteDB(), &generated.UpdateMealPlanParams{
+		rowsAffected, err := q.UpdateMealPlan(ctx, databaseClient.Writer(), &generated.UpdateMealPlanParams{
 			Notes:            createdMealPlan.Notes,
 			Status:           generated.MealPlanStatus(createdMealPlan.Status),
 			VotingDeadline:   time.Now().Add(-time.Minute),
@@ -590,7 +590,7 @@ func TestMealPlans_FinalizeMealPlan(T *testing.T) {
 
 		// Set voting deadline to the past so FinalizeMealPlan can finalize
 		q := generated.New()
-		rowsAffected, err := q.UpdateMealPlan(ctx, databaseClient.WriteDB(), &generated.UpdateMealPlanParams{
+		rowsAffected, err := q.UpdateMealPlan(ctx, databaseClient.Writer(), &generated.UpdateMealPlanParams{
 			Notes:            createdMealPlan.Notes,
 			Status:           generated.MealPlanStatus(createdMealPlan.Status),
 			VotingDeadline:   time.Now().Add(-time.Minute),
@@ -825,7 +825,7 @@ func TestMealPlans_CompleteLifecycleForSomeVotesReceived(T *testing.T) {
 		assert.Equal(t, string(mealplanning.MealPlanStatusAwaitingVotes), createdMealPlan.Status)
 
 		q := generated.New()
-		rowsAffected, err := q.UpdateMealPlan(ctx, databaseClient.WriteDB(), &generated.UpdateMealPlanParams{
+		rowsAffected, err := q.UpdateMealPlan(ctx, databaseClient.Writer(), &generated.UpdateMealPlanParams{
 			Notes:            createdMealPlan.Notes,
 			Status:           generated.MealPlanStatus(mealplanning.MealPlanStatusAwaitingVotes),
 			VotingDeadline:   time.Now().Add(-10 * time.Hour),

@@ -10,12 +10,12 @@ import (
 	authkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auth/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -52,39 +52,35 @@ func (r *repository) CreateUserSession(ctx context.Context, input *auth.UserSess
 	logger := r.logger.WithValue(authkeys.UserSessionIDKey, input.ID)
 	tracing.AttachToSpan(span, authkeys.UserSessionIDKey, input.ID)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if err = r.generatedQuerier.CreateUserSession(ctx, tx, &generated.CreateUserSessionParams{
+			ID:             input.ID,
+			BelongsToUser:  input.BelongsToUser,
+			SessionTokenID: input.SessionTokenID,
+			RefreshTokenID: input.RefreshTokenID,
+			ClientIp:       input.ClientIP,
+			UserAgent:      input.UserAgent,
+			DeviceName:     input.DeviceName,
+			LoginMethod:    input.LoginMethod,
+			ExpiresAt:      input.ExpiresAt,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "creating user session")
+		}
 
-	if err = r.generatedQuerier.CreateUserSession(ctx, tx, &generated.CreateUserSessionParams{
-		ID:             input.ID,
-		BelongsToUser:  input.BelongsToUser,
-		SessionTokenID: input.SessionTokenID,
-		RefreshTokenID: input.RefreshTokenID,
-		ClientIp:       input.ClientIP,
-		UserAgent:      input.UserAgent,
-		DeviceName:     input.DeviceName,
-		LoginMethod:    input.LoginMethod,
-		ExpiresAt:      input.ExpiresAt,
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUserSessions,
+			RelevantID:    input.ID,
+			EventType:     audit.AuditLogEventTypeCreated,
+			BelongsToUser: input.BelongsToUser,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		return nil
 	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareAndLogError(err, logger, span, "creating user session")
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUserSessions,
-		RelevantID:    input.ID,
-		EventType:     audit.AuditLogEventTypeCreated,
-		BelongsToUser: input.BelongsToUser,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil, err
 	}
 
 	session := &auth.UserSession{

@@ -34,16 +34,16 @@ import (
 	webhooksrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v5/database"
-	databasecfg "github.com/primandproper/platform-go/v5/database/config"
-	"github.com/primandproper/platform-go/v5/httpclient"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
-	"github.com/primandproper/platform-go/v5/messagequeue/redis"
-	"github.com/primandproper/platform-go/v5/observability/logging"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v5/random"
+	"github.com/primandproper/platform-go/v6/database"
+	databasecfg "github.com/primandproper/platform-go/v6/database/config"
+	"github.com/primandproper/platform-go/v6/httpclient"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
+	"github.com/primandproper/platform-go/v6/messagequeue/redis"
+	"github.com/primandproper/platform-go/v6/observability/logging"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v6/random"
 
 	"github.com/testcontainers/testcontainers-go"
 	rediscontainers "github.com/testcontainers/testcontainers-go/modules/redis"
@@ -118,10 +118,10 @@ func CreatePremadeAdminUser(
 	}
 
 	// Promote user to service_admin by archiving old service role and assigning new one.
-	if _, err = dbClient.WriteDB().Exec("UPDATE user_role_assignments SET archived_at = NOW() WHERE user_id = $1 AND account_id IS NULL AND archived_at IS NULL", user.ID); err != nil {
+	if _, err = dbClient.Writer().ExecContext(ctx, "UPDATE user_role_assignments SET archived_at = NOW() WHERE user_id = $1 AND account_id IS NULL AND archived_at IS NULL", user.ID); err != nil {
 		return nil, fmt.Errorf("failed to archive old service role: %w", err)
 	}
-	if _, err = dbClient.WriteDB().Exec("INSERT INTO user_role_assignments (id, user_id, role_id) VALUES ($1, $2, $3)", identifiers.New(), user.ID, authorization.ServiceAdminRoleID); err != nil {
+	if _, err = dbClient.Writer().ExecContext(ctx, "INSERT INTO user_role_assignments (id, user_id, role_id) VALUES ($1, $2, $3)", identifiers.New(), user.ID, authorization.ServiceAdminRoleID); err != nil {
 		return nil, fmt.Errorf("failed to assign service_admin role: %w", err)
 	}
 

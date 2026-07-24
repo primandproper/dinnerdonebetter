@@ -7,8 +7,8 @@ import (
 	issuereportmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/mock"
 	issuereportssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -4,7 +4,7 @@ import (
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/converters"
 
-	"github.com/primandproper/platform-go/v5/filtering"
+	"github.com/primandproper/platform-go/v6/filtering"
 )
 
 // BuildFakeServiceSetting builds a faked service setting.

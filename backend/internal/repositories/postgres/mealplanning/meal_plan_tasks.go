@@ -10,11 +10,11 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 var (
@@ -130,7 +130,6 @@ func (q *repository) createMealPlanTask(ctx context.Context, querier database.SQ
 		BelongsToRecipePrepTask: sql.NullString{String: input.RecipePrepTaskID, Valid: input.RecipePrepTaskID != ""},
 		AssignedToUser:          database.NullStringFromStringPointer(input.AssignedToUser),
 	}); err != nil {
-		q.RollbackTransaction(ctx, querier)
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating meal plan task")
 	}
 
@@ -167,19 +166,18 @@ func (q *repository) CreateMealPlanTask(ctx context.Context, input *types.MealPl
 	}
 	logger = logger.WithValue(mealplanningkeys.MealPlanTaskIDKey, input.ID)
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var x *types.MealPlanTask
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		created, err := q.createMealPlanTask(ctx, tx, input)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "creating meal plan task")
+		}
 
-	x, err := q.createMealPlanTask(ctx, tx, input)
-	if err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareAndLogError(err, logger, span, "creating meal plan task")
-	}
+		x = created
 
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	logger.Info("meal plan task created")
@@ -312,24 +310,20 @@ func (q *repository) CreateMealPlanTasksForMealPlanOption(ctx context.Context, i
 
 	logger := q.logger.Clone()
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
-
 	outputs := []*types.MealPlanTask{}
-	for _, input := range inputs {
-		mealPlanTask, createMealPlanTaskErr := q.createMealPlanTask(ctx, tx, input)
-		if createMealPlanTaskErr != nil {
-			q.RollbackTransaction(ctx, tx)
-			return nil, observability.PrepareAndLogError(createMealPlanTaskErr, logger, span, "creating meal plan task")
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		for _, input := range inputs {
+			mealPlanTask, createMealPlanTaskErr := q.createMealPlanTask(ctx, tx, input)
+			if createMealPlanTaskErr != nil {
+				return observability.PrepareAndLogError(createMealPlanTaskErr, logger, span, "creating meal plan task")
+			}
+
+			outputs = append(outputs, mealPlanTask)
 		}
 
-		outputs = append(outputs, mealPlanTask)
-	}
-
-	if commitErr := tx.Commit(); commitErr != nil {
-		return nil, observability.PrepareAndLogError(commitErr, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	logger.Info("meal plan tasks created")

@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/primandproper/platform-go/v5/database"
-	"github.com/primandproper/platform-go/v5/encoding"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/logging"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	"github.com/primandproper/platform-go/v6/encoding"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/logging"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 )
@@ -47,7 +47,7 @@ func (s *PostgresSessionStore) cleanupLoop() {
 
 	for range ticker.C {
 		ctx, span := s.tracer.StartSpan(context.Background())
-		db := s.client.WriteDB()
+		db := s.client.Writer()
 		_, err := db.ExecContext(ctx, "DELETE FROM webauthn_sessions WHERE expires_at < NOW()")
 		span.End()
 		if err != nil {
@@ -66,7 +66,7 @@ func (s *PostgresSessionStore) SaveSession(ctx context.Context, challenge string
 
 	data := s.encoder.MustEncodeJSON(ctx, session)
 	expiresAt := s.client.CurrentTime().Add(ttl)
-	db := s.client.WriteDB()
+	db := s.client.Writer()
 
 	_, err := db.ExecContext(ctx, `
 		INSERT INTO webauthn_sessions (challenge, session_data, expires_at)
@@ -90,7 +90,7 @@ func (s *PostgresSessionStore) DeleteSession(ctx context.Context, challenge stri
 	tracing.AttachToSpan(span, "webauthn.challenge", challenge)
 	logger := s.logger.WithValue("challenge", challenge)
 
-	db := s.client.WriteDB()
+	db := s.client.Writer()
 
 	if _, err := db.ExecContext(ctx, "DELETE FROM webauthn_sessions WHERE challenge = $1", challenge); err != nil { // #nosec G701 -- challenge is parameterized via $1
 		return observability.PrepareAndLogError(err, logger, span, "deleting webauthn session")
@@ -107,7 +107,7 @@ func (s *PostgresSessionStore) GetSession(ctx context.Context, challenge string)
 	tracing.AttachToSpan(span, "webauthn.challenge", challenge)
 	logger := s.logger.WithValue("challenge", challenge)
 
-	db := s.client.WriteDB()
+	db := s.client.Writer()
 
 	var data []byte
 	var expiresAt time.Time

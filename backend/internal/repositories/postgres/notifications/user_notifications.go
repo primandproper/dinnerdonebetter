@@ -9,12 +9,12 @@ import (
 	notificationkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/notifications/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -166,44 +166,41 @@ func (q *Repository) CreateUserNotification(ctx context.Context, input *types.Us
 	tracing.AttachToSpan(span, notificationkeys.UserNotificationIDKey, input.ID)
 	logger := q.logger.WithValue(notificationkeys.UserNotificationIDKey, input.ID)
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	var x *types.UserNotification
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		// create the user notification.
+		if err = q.generatedQuerier.CreateUserNotification(ctx, tx, &generated.CreateUserNotificationParams{
+			ID:            input.ID,
+			Content:       input.Content,
+			BelongsToUser: input.BelongsToUser,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "performing user notification creation query")
+		}
 
-	// create the user notification.
-	if err = q.generatedQuerier.CreateUserNotification(ctx, tx, &generated.CreateUserNotificationParams{
-		ID:            input.ID,
-		Content:       input.Content,
-		BelongsToUser: input.BelongsToUser,
+		x = &types.UserNotification{
+			ID:            input.ID,
+			CreatedAt:     q.CurrentTime(),
+			Content:       input.Content,
+			Status:        types.UserNotificationStatusTypeUnread,
+			BelongsToUser: input.BelongsToUser,
+		}
+		tracing.AttachToSpan(span, notificationkeys.UserNotificationIDKey, x.ID)
+		logger.Info("user notification created")
+
+		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUserNotifications,
+			RelevantID:    x.ID,
+			EventType:     audit.AuditLogEventTypeCreated,
+			BelongsToUser: x.BelongsToUser,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		return nil
 	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareAndLogError(err, logger, span, "performing user notification creation query")
-	}
-
-	x := &types.UserNotification{
-		ID:            input.ID,
-		CreatedAt:     q.CurrentTime(),
-		Content:       input.Content,
-		Status:        types.UserNotificationStatusTypeUnread,
-		BelongsToUser: input.BelongsToUser,
-	}
-	tracing.AttachToSpan(span, notificationkeys.UserNotificationIDKey, x.ID)
-	logger.Info("user notification created")
-
-	if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUserNotifications,
-		RelevantID:    x.ID,
-		EventType:     audit.AuditLogEventTypeCreated,
-		BelongsToUser: x.BelongsToUser,
-	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil, err
 	}
 
 	return x, nil
@@ -220,32 +217,28 @@ func (q *Repository) UpdateUserNotification(ctx context.Context, updated *types.
 	logger := q.logger.WithValue(notificationkeys.UserNotificationIDKey, updated.ID)
 	tracing.AttachToSpan(span, notificationkeys.UserNotificationIDKey, updated.ID)
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if _, err = q.generatedQuerier.UpdateUserNotification(ctx, tx, &generated.UpdateUserNotificationParams{
+			Status: generated.UserNotificationStatus(updated.Status),
+			ID:     updated.ID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating user notification")
+		}
 
-	if _, err = q.generatedQuerier.UpdateUserNotification(ctx, tx, &generated.UpdateUserNotificationParams{
-		Status: generated.UserNotificationStatus(updated.Status),
-		ID:     updated.ID,
+		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUserNotifications,
+			RelevantID:    updated.ID,
+			EventType:     audit.AuditLogEventTypeUpdated,
+			BelongsToUser: updated.BelongsToUser,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		return nil
 	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "updating user notification")
-	}
-
-	if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUserNotifications,
-		RelevantID:    updated.ID,
-		EventType:     audit.AuditLogEventTypeUpdated,
-		BelongsToUser: updated.BelongsToUser,
-	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return err
 	}
 
 	logger.Info("user notification updated")

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/logging"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/logging"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 func (a *AsyncDataChangeMessageHandler) handleQueueTestMessage(

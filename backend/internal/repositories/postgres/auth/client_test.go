@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"database/sql"
 	"testing"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
@@ -10,11 +9,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	mockdatabase "github.com/primandproper/platform-go/v5/database/mock"
-	"github.com/primandproper/platform-go/v5/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v6/database"
+	mockdatabase "github.com/primandproper/platform-go/v6/database/mock"
+	"github.com/primandproper/platform-go/v6/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
@@ -42,6 +42,7 @@ func buildMockSQLTestClient(t *testing.T) (*repository, *sqlmockExpecterWrapper)
 	require.NoError(t, err)
 
 	c := &repository{
+		Client:           pgtesting.NewSQLMockDatabaseClient(fakeDB),
 		readDB:           fakeDB,
 		writeDB:          fakeDB,
 		logger:           loggingnoop.NewLogger(),
@@ -73,7 +74,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository, *p
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideAuthRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReadDBFunc: func() *sql.DB { return nil }, WriteDBFunc: func() *sql.DB { return nil }})
+	c := ProvideAuthRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
 
 	return c.(*repository)
 }

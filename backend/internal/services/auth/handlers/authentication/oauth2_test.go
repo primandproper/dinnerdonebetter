@@ -14,11 +14,11 @@ import (
 	oauthmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v5/authentication/tokens/paseto"
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v5/random"
+	"github.com/primandproper/platform-go/v6/authentication/tokens/paseto"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v6/random"
 
 	oauth2errors "github.com/go-oauth2/oauth2/v4/errors"
 	"github.com/stretchr/testify/assert"

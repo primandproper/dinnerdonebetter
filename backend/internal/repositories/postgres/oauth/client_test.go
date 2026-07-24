@@ -1,7 +1,6 @@
 package oauth
 
 import (
-	"database/sql"
 	"testing"
 	"time"
 
@@ -10,12 +9,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	encryptioncfg "github.com/primandproper/platform-go/v5/cryptography/encryption/config"
-	databasecfg "github.com/primandproper/platform-go/v5/database/config"
-	mockdatabase "github.com/primandproper/platform-go/v5/database/mock"
-	"github.com/primandproper/platform-go/v5/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
+	encryptioncfg "github.com/primandproper/platform-go/v6/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v6/database"
+	databasecfg "github.com/primandproper/platform-go/v6/database/config"
+	mockdatabase "github.com/primandproper/platform-go/v6/database/mock"
+	"github.com/primandproper/platform-go/v6/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
 
 	"github.com/stretchr/testify/require"
 	pgcontainers "github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -59,7 +59,7 @@ func buildInertClientForTest(t *testing.T) *repository {
 		OAuth2TokenEncryptionKey: "blahblahblahblahblahblahblahblah",
 	}
 
-	c := ProvideOAuthRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, config, &mockdatabase.ClientMock{ReadDBFunc: func() *sql.DB { return nil }, WriteDBFunc: func() *sql.DB { return nil }})
+	c := ProvideOAuthRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, config, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
 
 	return c.(*repository)
 }

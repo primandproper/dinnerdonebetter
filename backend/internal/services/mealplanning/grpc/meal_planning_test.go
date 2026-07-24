@@ -11,11 +11,11 @@ import (
 	mealplanninggrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v5/fake"
-	"github.com/primandproper/platform-go/v5/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
-	"github.com/primandproper/platform-go/v5/reflection"
+	"github.com/primandproper/platform-go/v6/fake"
+	"github.com/primandproper/platform-go/v6/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

@@ -183,7 +183,7 @@ func TestMealPlans_WithRecipeOptionSelections(T *testing.T) {
 
 		// Force the voting deadline to have passed
 		q := generated.New()
-		rowsAffected, err := q.UpdateMealPlan(ctx, databaseClient.WriteDB(), &generated.UpdateMealPlanParams{
+		rowsAffected, err := q.UpdateMealPlan(ctx, databaseClient.Writer(), &generated.UpdateMealPlanParams{
 			Notes:            createdMealPlan.Notes,
 			Status:           generated.MealPlanStatus(createdMealPlan.Status),
 			VotingDeadline:   time.Now().Add(-time.Minute),

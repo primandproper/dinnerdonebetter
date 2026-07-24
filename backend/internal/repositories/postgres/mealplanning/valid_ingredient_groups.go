@@ -8,12 +8,12 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/observability"
-	platformkeys "github.com/primandproper/platform-go/v5/observability/keys"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/observability"
+	platformkeys "github.com/primandproper/platform-go/v6/observability/keys"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 var (
@@ -368,22 +368,6 @@ func (q *repository) CreateValidIngredientGroup(ctx context.Context, input *meal
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientGroupIDKey, input.ID)
 	logger := q.logger.WithValue(mealplanningkeys.ValidIngredientGroupIDKey, input.ID)
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "starting transaction")
-	}
-
-	// create the valid ingredient group.
-	if err = q.generatedQuerier.CreateValidIngredientGroup(ctx, tx, &generated.CreateValidIngredientGroupParams{
-		ID:          input.ID,
-		Name:        input.Name,
-		Description: input.Description,
-		Slug:        input.Slug,
-	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid ingredient group creation query")
-	}
-
 	x := &mealplanning.ValidIngredientGroup{
 		ID:          input.ID,
 		Name:        input.Name,
@@ -392,20 +376,29 @@ func (q *repository) CreateValidIngredientGroup(ctx context.Context, input *meal
 		CreatedAt:   q.CurrentTime(),
 	}
 
-	for i := range input.Members {
-		m := input.Members[i]
-		var member *mealplanning.ValidIngredientGroupMember
-		member, err = q.CreateValidIngredientGroupMember(ctx, tx, x.ID, m)
-		if err != nil {
-			q.RollbackTransaction(ctx, tx)
-			return nil, observability.PrepareAndLogError(err, logger, span, "creating valid ingredient group member")
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		// create the valid ingredient group.
+		if err := q.generatedQuerier.CreateValidIngredientGroup(ctx, tx, &generated.CreateValidIngredientGroupParams{
+			ID:          input.ID,
+			Name:        input.Name,
+			Description: input.Description,
+			Slug:        input.Slug,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "performing valid ingredient group creation query")
 		}
 
-		x.Members = append(x.Members, member)
-	}
+		for i := range input.Members {
+			member, err := q.CreateValidIngredientGroupMember(ctx, tx, x.ID, input.Members[i])
+			if err != nil {
+				return observability.PrepareAndLogError(err, logger, span, "creating valid ingredient group member")
+			}
 
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing transaction")
+			x.Members = append(x.Members, member)
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	logger.WithValue("member_count", len(input.Members)).Info("valid ingredient group created")

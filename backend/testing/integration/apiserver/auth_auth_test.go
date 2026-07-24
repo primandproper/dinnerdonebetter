@@ -16,9 +16,9 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 
-	"github.com/primandproper/platform-go/v5/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -529,7 +529,7 @@ func TestAuth_RequestingPasswordReset(T *testing.T) {
 
 		// boo, hiss, we're talking directly to the database in an _integration test?_ for shame, for shame.
 		var token string
-		queryErr := databaseClient.ReadDB().QueryRow(`SELECT token FROM password_reset_tokens WHERE belongs_to_user = $1`, user.ID).Scan(&token)
+		queryErr := databaseClient.Reader().QueryRowContext(ctx, `SELECT token FROM password_reset_tokens WHERE belongs_to_user = $1`, user.ID).Scan(&token)
 		require.NoError(t, queryErr)
 
 		auditLogRepo := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), databaseClient)
@@ -583,7 +583,7 @@ func TestAuth_RequestingPasswordReset(T *testing.T) {
 		assert.NotNil(t, res)
 
 		var token string
-		queryErr := databaseClient.ReadDB().QueryRow(`SELECT token FROM password_reset_tokens WHERE belongs_to_user = $1 ORDER BY created_at DESC LIMIT 1`, user.ID).Scan(&token)
+		queryErr := databaseClient.Reader().QueryRowContext(ctx, `SELECT token FROM password_reset_tokens WHERE belongs_to_user = $1 ORDER BY created_at DESC LIMIT 1`, user.ID).Scan(&token)
 		require.NoError(t, queryErr)
 
 		_, err = unauthedClient.RedeemPasswordResetToken(ctx, &authsvc.RedeemPasswordResetTokenRequest{
@@ -958,7 +958,7 @@ func insertWebAuthnCredentialForTest(t *testing.T, userID, friendlyName string) 
 	credentialIDBytes := fmt.Appendf(nil, "test-cred-%s-%d", credID, time.Now().UnixNano())
 	publicKeyBytes := []byte("test-public-key-data")
 
-	_, err := databaseClient.WriteDB().ExecContext(
+	_, err := databaseClient.Writer().ExecContext(
 		t.Context(),
 		`INSERT INTO webauthn_credentials (id, belongs_to_user, credential_id, public_key, sign_count, transports, friendly_name)
 		 VALUES ($1, $2, $3, $4, 0, '', $5)`,

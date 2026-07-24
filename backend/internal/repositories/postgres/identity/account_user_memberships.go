@@ -12,11 +12,11 @@ import (
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -160,38 +160,34 @@ func (r *repository) markAccountAsUserDefault(ctx context.Context, querier datab
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if err = r.generatedQuerier.MarkAccountUserMembershipAsUserDefault(ctx, querier, &generated.MarkAccountUserMembershipAsUserDefaultParams{
+			BelongsToUser:    userID,
+			BelongsToAccount: accountID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "assigning user default account")
+		}
 
-	if err = r.generatedQuerier.MarkAccountUserMembershipAsUserDefault(ctx, querier, &generated.MarkAccountUserMembershipAsUserDefaultParams{
-		BelongsToUser:    userID,
-		BelongsToAccount: accountID,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "assigning user default account")
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &accountID,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeAccountUserMemberships,
-		EventType:        audit.AuditLogEventTypeUpdated,
-		BelongsToUser:    userID,
-		Changes: map[string]*audit.ChangeLog{
-			"default_account": {
-				OldValue: "false",
-				NewValue: "true",
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToAccount: &accountID,
+			ID:               identifiers.New(),
+			ResourceType:     resourceTypeAccountUserMemberships,
+			EventType:        audit.AuditLogEventTypeUpdated,
+			BelongsToUser:    userID,
+			Changes: map[string]*audit.ChangeLog{
+				"default_account": {
+					OldValue: "false",
+					NewValue: "true",
+				},
 			},
-		},
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Debug("account marked as default")
@@ -254,39 +250,35 @@ func (r *repository) ModifyUserPermissions(ctx context.Context, accountID, userI
 		return observability.PrepareAndLogError(roleErr, logger, span, "fetching role by name")
 	}
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		// Update the user's account-level role assignment.
+		if err = r.generatedQuerier.UpdateAccountRoleAssignment(ctx, tx, &generated.UpdateAccountRoleAssignmentParams{
+			NewRoleID: newRole.ID,
+			UserID:    userID,
+			AccountID: sql.NullString{String: accountID, Valid: true},
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating account role assignment")
+		}
 
-	// Update the user's account-level role assignment.
-	if err = r.generatedQuerier.UpdateAccountRoleAssignment(ctx, tx, &generated.UpdateAccountRoleAssignmentParams{
-		NewRoleID: newRole.ID,
-		UserID:    userID,
-		AccountID: sql.NullString{String: accountID, Valid: true},
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "updating account role assignment")
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &accountID,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeAccountUserMemberships,
-		EventType:        audit.AuditLogEventTypeUpdated,
-		BelongsToUser:    userID,
-		Changes: map[string]*audit.ChangeLog{
-			"role": {
-				NewValue: input.NewRole,
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToAccount: &accountID,
+			ID:               identifiers.New(),
+			ResourceType:     resourceTypeAccountUserMemberships,
+			EventType:        audit.AuditLogEventTypeUpdated,
+			BelongsToUser:    userID,
+			Changes: map[string]*audit.ChangeLog{
+				"role": {
+					NewValue: input.NewRole,
+				},
 			},
-		},
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Info("user permissions modified")
@@ -316,66 +308,58 @@ func (r *repository) TransferAccountOwnership(ctx context.Context, accountID str
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, input.NewOwner)
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
-
-	// create the membership.
-	if err = r.generatedQuerier.TransferAccountOwnership(ctx, tx, &generated.TransferAccountOwnershipParams{
-		NewOwner:  input.NewOwner,
-		OldOwner:  input.CurrentOwner,
-		AccountID: accountID,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "transferring account to new owner")
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &accountID,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeAccountUserMemberships,
-		EventType:        audit.AuditLogEventTypeUpdated,
-		BelongsToUser:    input.NewOwner,
-		Changes: map[string]*audit.ChangeLog{
-			"belongs_to_user": {
-				OldValue: input.CurrentOwner,
-				NewValue: input.NewOwner,
-			},
-		},
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	isMember, err := r.UserIsMemberOfAccount(ctx, input.NewOwner, accountID)
-	if err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "checking if user is member of account")
-	}
-
-	if !isMember {
-		if err = r.addUserToAccount(ctx, tx, &identity.AccountUserMembershipDatabaseCreationInput{
-			ID:        identifiers.New(),
-			Reason:    "transferred ownership",
-			UserID:    input.NewOwner,
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		// create the membership.
+		if err := r.generatedQuerier.TransferAccountOwnership(ctx, tx, &generated.TransferAccountOwnershipParams{
+			NewOwner:  input.NewOwner,
+			OldOwner:  input.CurrentOwner,
 			AccountID: accountID,
 		}); err != nil {
-			r.RollbackTransaction(ctx, tx)
-			return observability.PrepareAndLogError(err, logger, span, "adding user to account")
+			return observability.PrepareAndLogError(err, logger, span, "transferring account to new owner")
 		}
+
+		if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToAccount: &accountID,
+			ID:               identifiers.New(),
+			ResourceType:     resourceTypeAccountUserMemberships,
+			EventType:        audit.AuditLogEventTypeUpdated,
+			BelongsToUser:    input.NewOwner,
+			Changes: map[string]*audit.ChangeLog{
+				"belongs_to_user": {
+					OldValue: input.CurrentOwner,
+					NewValue: input.NewOwner,
+				},
+			},
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		isMember, err := r.UserIsMemberOfAccount(ctx, input.NewOwner, accountID)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "checking if user is member of account")
+		}
+
+		if !isMember {
+			if err = r.addUserToAccount(ctx, tx, &identity.AccountUserMembershipDatabaseCreationInput{
+				ID:        identifiers.New(),
+				Reason:    "transferred ownership",
+				UserID:    input.NewOwner,
+				AccountID: accountID,
+			}); err != nil {
+				return observability.PrepareAndLogError(err, logger, span, "adding user to account")
+			}
+			// audit log created above
+		}
+
+		if err = r.removeUserFromAccount(ctx, tx, input.CurrentOwner, accountID); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "removing user from account")
+		}
+
 		// audit log created above
-	}
 
-	if err = r.removeUserFromAccount(ctx, tx, input.CurrentOwner, accountID); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "removing user from account")
-	}
-
-	// audit log created above
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Info("account transferred to new owner")
@@ -455,7 +439,6 @@ func (r *repository) removeUserFromAccount(ctx context.Context, querier database
 		UserID:    userID,
 		AccountID: sql.NullString{String: accountID, Valid: true},
 	}); err != nil {
-		r.RollbackTransaction(ctx, querier)
 		return observability.PrepareAndLogError(err, logger, span, "archiving role assignments")
 	}
 
@@ -464,7 +447,6 @@ func (r *repository) removeUserFromAccount(ctx context.Context, querier database
 		BelongsToAccount: accountID,
 		BelongsToUser:    userID,
 	}); err != nil {
-		r.RollbackTransaction(ctx, querier)
 		return observability.PrepareAndLogError(err, logger, span, "removing user from account")
 	}
 
@@ -475,20 +457,17 @@ func (r *repository) removeUserFromAccount(ctx context.Context, querier database
 		EventType:        audit.AuditLogEventTypeArchived,
 		BelongsToUser:    userID,
 	}); err != nil {
-		r.RollbackTransaction(ctx, querier)
 		return observability.PrepareError(err, span, "creating audit log entry")
 	}
 
 	remainingAccounts, err := r.getAccountsForUser(ctx, querier, userID, nil)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		r.RollbackTransaction(ctx, querier)
 		return observability.PrepareError(err, span, "fetching remaining accounts")
 	}
 
 	if remainingAccounts == nil || len(remainingAccounts.Data) < 1 {
 		logger.Debug("user has no remaining accounts, creating a new one")
 		if _, err = r.createAccountForUser(ctx, querier, false, "", userID); err != nil {
-			r.RollbackTransaction(ctx, querier)
 			return observability.PrepareAndLogError(err, logger, span, "creating account for new user")
 		}
 		return nil
@@ -497,7 +476,6 @@ func (r *repository) removeUserFromAccount(ctx context.Context, querier database
 	account := remainingAccounts.Data[0]
 	logger.WithValue("new_default_account", account.ID).Info("setting new default account")
 	if err = r.markAccountAsUserDefault(ctx, querier, userID, account.ID); err != nil {
-		r.RollbackTransaction(ctx, querier)
 		return observability.PrepareAndLogError(err, logger, span, "marking account as default")
 	}
 
@@ -526,19 +504,17 @@ func (r *repository) RemoveUserFromAccount(ctx context.Context, userID, accountI
 		identitykeys.AccountIDKey: accountID,
 	})
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareError(err, span, "beginning transaction")
-	}
+	var err error
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if err = r.removeUserFromAccount(ctx, tx, userID, accountID); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "removing user from account")
+		}
 
-	if err = r.removeUserFromAccount(ctx, tx, userID, accountID); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "removing user from account")
-	}
+		// audit log entry created above
 
-	// audit log entry created above
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

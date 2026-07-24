@@ -6,8 +6,8 @@ import (
 
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	"github.com/primandproper/platform-go/v5/pointer"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	"github.com/primandproper/platform-go/v6/pointer"
 
 	"github.com/stretchr/testify/require"
 )

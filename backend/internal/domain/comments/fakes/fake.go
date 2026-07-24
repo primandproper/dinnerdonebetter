@@ -3,7 +3,7 @@ package fakes
 import (
 	"time"
 
-	"github.com/primandproper/platform-go/v5/identifiers"
+	"github.com/primandproper/platform-go/v6/identifiers"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )
