@@ -16,7 +16,6 @@ tool (
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/GuiaBolso/darwin v0.0.0-20191218124601-fd6d2aa3d244
-	github.com/boombuler/barcode v1.1.0
 	github.com/brianvoe/gofakeit/v7 v7.15.0
 	github.com/ccoveille/go-safecast v1.8.2
 	github.com/codemodus/kace v0.5.1
@@ -79,6 +78,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.44.1 // indirect
 	github.com/bep/godartsass/v2 v2.5.0 // indirect
 	github.com/bep/golibsass v1.2.0 // indirect
+	github.com/boombuler/barcode v1.1.0 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
 	github.com/bytedance/sonic/loader v0.5.0 // indirect

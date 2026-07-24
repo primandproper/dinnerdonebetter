@@ -147,9 +147,9 @@ func writeDotEnvExample(dir string, structs map[string]*structEntry) {
 // keyed by "relativeDir.TypeName" to avoid collisions between packages with the same name,
 // plus a map of interface type unions (e.g. `A | B | C`) flattened to their member names
 // under the same key scheme.
-func parseGoFiles(dir, modulePath string) (map[string]*structEntry, map[string][]string) {
-	structs := make(map[string]*structEntry)
-	unions := make(map[string][]string)
+func parseGoFiles(dir, modulePath string) (structs map[string]*structEntry, unions map[string][]string) {
+	structs = make(map[string]*structEntry)
+	unions = make(map[string][]string)
 
 	if err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
