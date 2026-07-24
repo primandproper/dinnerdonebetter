@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
@@ -17,8 +18,11 @@ import (
 	platformerrors "github.com/primandproper/platform-go/v5/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v5/errors/grpc"
 	"github.com/primandproper/platform-go/v5/identifiers"
+	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
 	"github.com/primandproper/platform-go/v5/observability/logging"
+	metricsnoop "github.com/primandproper/platform-go/v5/observability/metrics/noop"
 	"github.com/primandproper/platform-go/v5/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
 	"github.com/primandproper/platform-go/v5/uploads"
 
 	"google.golang.org/grpc/codes"
@@ -26,6 +30,9 @@ import (
 
 const (
 	o11yName = "data_privacy_service"
+
+	// userDataDisclosureTTL is how long a generated user data report remains available before it expires.
+	userDataDisclosureTTL = 7 * 24 * time.Hour
 )
 
 var _ dataprivacysvc.DataPrivacyServiceServer = (*serviceImpl)(nil)
@@ -38,6 +45,8 @@ type (
 		sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error)
 		dataPrivacyManager        dataprivacymanager.DataPrivacyManager
 		uploadManager             uploads.UploadManager
+		msgConfig                 *msgconfig.Config
+		queuesConfig              *msgconfig.QueuesConfig
 	}
 )
 
@@ -48,6 +57,8 @@ func NewDataPrivacyService(
 	sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error),
 	dataPrivacyManager dataprivacymanager.DataPrivacyManager,
 	uploadManager uploads.UploadManager,
+	msgConfig *msgconfig.Config,
+	queuesConfig *msgconfig.QueuesConfig,
 ) dataprivacysvc.DataPrivacyServiceServer {
 	return &serviceImpl{
 		logger:                    logging.NewNamedLogger(logger, o11yName),
@@ -55,10 +66,15 @@ func NewDataPrivacyService(
 		sessionContextDataFetcher: sessionContextDataFetcher,
 		dataPrivacyManager:        dataPrivacyManager,
 		uploadManager:             uploadManager,
+		msgConfig:                 msgConfig,
+		queuesConfig:              queuesConfig,
 	}
 }
 
-// AggregateUserDataReport collects all user data and saves it to object storage for GDPR/CCPA disclosure.
+// AggregateUserDataReport records a user data disclosure request and enqueues the aggregation work for GDPR/CCPA
+// disclosure. The heavy cross-domain gather is performed asynchronously by the user data aggregation worker, which
+// writes the report to object storage and marks the disclosure completed or failed. The report is available via
+// FetchUserDataReport once the disclosure reports as completed.
 func (s *serviceImpl) AggregateUserDataReport(ctx context.Context, _ *dataprivacysvc.AggregateUserDataReportRequest) (*dataprivacysvc.AggregateUserDataReportResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
@@ -77,25 +93,28 @@ func (s *serviceImpl) AggregateUserDataReport(ctx context.Context, _ *dataprivac
 	logger = logger.WithValue(dataprivacykeys.UserDataAggregationReportIDKey, reportID)
 	tracing.AttachToSpan(span, dataprivacykeys.UserDataAggregationReportIDKey, reportID)
 
-	logger.Info("aggregating user data")
+	logger.Info("recording user data disclosure request")
 
-	// Fetch all user data
-	collection, err := s.dataPrivacyManager.FetchUserDataCollection(ctx, userID)
+	// Record the disclosure request so its status can be tracked and polled.
+	disclosure, err := s.dataPrivacyManager.CreateUserDataDisclosure(ctx, &dataprivacy.UserDataDisclosureCreationInput{
+		ID:            identifiers.New(),
+		BelongsToUser: userID,
+		ExpiresAt:     time.Now().Add(userDataDisclosureTTL).UTC(),
+	})
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching user data collection")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating user data disclosure")
 	}
 
-	// Marshal and save to object storage
-	collectionBytes, err := json.Marshal(collection)
-	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "marshaling user data collection")
+	// Enqueue the aggregation work for the async worker to process off the request path.
+	if err = s.publishAggregationRequest(ctx, disclosure.ID, reportID, userID); err != nil {
+		// The disclosure was created but could not be enqueued; mark it failed so it does not linger as pending.
+		if markErr := s.dataPrivacyManager.MarkUserDataDisclosureFailed(ctx, disclosure.ID); markErr != nil {
+			logger.Error("marking disclosure failed after publish failure", markErr)
+		}
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "publishing user data aggregation request")
 	}
 
-	if err = uploads.SaveFile(ctx, s.uploadManager, fmt.Sprintf("%s.json", reportID), collectionBytes); err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "saving user data report")
-	}
-
-	logger.Info("user data aggregation complete")
+	logger.Info("user data aggregation request enqueued")
 
 	return &dataprivacysvc.AggregateUserDataReportResponse{
 		ResponseDetails: &types.ResponseDetails{
@@ -103,6 +122,32 @@ func (s *serviceImpl) AggregateUserDataReport(ctx context.Context, _ *dataprivac
 		},
 		ReportId: reportID,
 	}, nil
+}
+
+// publishAggregationRequest publishes a UserDataAggregationRequest to the user data aggregation topic.
+func (s *serviceImpl) publishAggregationRequest(ctx context.Context, disclosureID, reportID, userID string) error {
+	ctx, span := s.tracer.StartSpan(ctx)
+	defer span.End()
+
+	pp, err := msgconfig.NewPublisherProvider(ctx, s.logger, tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), s.msgConfig)
+	if err != nil {
+		return fmt.Errorf("establishing publisher provider: %w", err)
+	}
+
+	publisher, err := pp.NewPublisher(ctx, s.queuesConfig.UserDataAggregationTopicName)
+	if err != nil {
+		return fmt.Errorf("initializing publisher: %w", err)
+	}
+
+	if err = publisher.Publish(ctx, &dataprivacy.UserDataAggregationRequest{
+		RequestID: disclosureID,
+		ReportID:  reportID,
+		UserID:    userID,
+	}); err != nil {
+		return fmt.Errorf("publishing user data aggregation request: %w", err)
+	}
+
+	return nil
 }
 
 // DestroyAllUserData permanently deletes a user and all associated data.
