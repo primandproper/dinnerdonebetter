@@ -11,12 +11,12 @@ import (
 	settingsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v5/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v5/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v5/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v5/reflection"
+	"github.com/primandproper/platform-go/v6/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
+	mockpublishers "github.com/primandproper/platform-go/v6/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

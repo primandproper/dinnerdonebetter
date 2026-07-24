@@ -2,7 +2,6 @@ package dataprivacy
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
@@ -25,10 +24,11 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 
-	mockdatabase "github.com/primandproper/platform-go/v5/database/mock"
-	"github.com/primandproper/platform-go/v5/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v6/database"
+	mockdatabase "github.com/primandproper/platform-go/v6/database/mock"
+	"github.com/primandproper/platform-go/v6/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
 
 	"github.com/stretchr/testify/require"
 	pgcontainers "github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -95,7 +95,7 @@ func buildInertClientForTest(t *testing.T) *repository {
 		nil, // webhooksRepo
 		nil, // commentsRepo
 		nil, // paymentsRepo
-		&mockdatabase.ClientMock{ReadDBFunc: func() *sql.DB { return nil }, WriteDBFunc: func() *sql.DB { return nil }},
+		&mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }},
 		nil, // dataCollectors
 	)
 

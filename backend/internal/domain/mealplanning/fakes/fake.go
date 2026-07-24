@@ -4,8 +4,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/pointer"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/pointer"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )

@@ -1,15 +1,13 @@
 package issue_reports
 
 import (
-	"database/sql"
-
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/issuereports/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	"github.com/primandproper/platform-go/v5/observability/logging"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	"github.com/primandproper/platform-go/v6/observability/logging"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -23,8 +21,8 @@ type repository struct {
 	logger            logging.Logger
 	generatedQuerier  generated.Querier
 	auditLogEntryRepo audit.Repository
-	readDB            *sql.DB
-	writeDB           *sql.DB
+	readDB            database.SQLQueryExecutor
+	writeDB           database.SQLQueryExecutor
 }
 
 // ProvideIssueReportsRepository provides a new repository.
@@ -36,8 +34,8 @@ func ProvideIssueReportsRepository(
 ) issuereports.Repository {
 	c := &repository{
 		Client:            client,
-		readDB:            client.ReadDB(),
-		writeDB:           client.WriteDB(),
+		readDB:            client.Reader(),
+		writeDB:           client.Writer(),
 		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
 		generatedQuerier:  generated.New(),
 		auditLogEntryRepo: auditLogEntryRepo,

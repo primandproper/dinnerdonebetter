@@ -11,12 +11,12 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -222,138 +222,132 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 		}
 	}
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
-
-	// create the meal plan.
-	if err = q.generatedQuerier.CreateMealPlan(ctx, tx, &generated.CreateMealPlanParams{
-		ID:               input.ID,
-		Notes:            input.Notes,
-		Status:           generated.MealPlanStatus(status),
-		VotingDeadline:   input.VotingDeadline,
-		BelongsToAccount: input.BelongsToAccount,
-		CreatedByUser:    input.CreatedByUser,
-	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareAndLogError(err, logger, span, "creating meal plan")
-	}
-
-	if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &input.BelongsToAccount,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeMealPlans,
-		RelevantID:       input.ID,
-		EventType:        audit.AuditLogEventTypeCreated,
-	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	x := &types.MealPlan{
-		ID:               input.ID,
-		Notes:            input.Notes,
-		Status:           string(status),
-		VotingDeadline:   input.VotingDeadline,
-		BelongsToAccount: input.BelongsToAccount,
-		ElectionMethod:   input.ElectionMethod,
-		CreatedAt:        q.CurrentTime(),
-		CreatedByUser:    input.CreatedByUser,
-	}
-
-	logger.WithValue("quantity", len(input.Events)).Info("creating events for meal plan")
-	// Map to track option ID -> meal ID for matching selections
-	optionToMealID := make(map[string]string)
-	for _, event := range input.Events {
-		event.BelongsToMealPlan = x.ID
-		opt, createErr := q.createMealPlanEvent(ctx, tx, event)
-		if createErr != nil {
-			q.RollbackTransaction(ctx, tx)
-			return nil, observability.PrepareError(createErr, span, "creating meal plan event for meal plan")
-		}
-		x.Events = append(x.Events, opt)
-
-		// Track option IDs and their meal IDs for selection matching
-		for _, option := range opt.Options {
-			optionToMealID[option.ID] = option.Meal.ID
-		}
-	}
-
-	// Create selections if provided
-	if len(input.Selections) > 0 {
-		logger.WithValue("quantity", len(input.Selections)).Info("creating selections for meal plan")
-
-		// Load all meals to check their components (deduplicate meal IDs)
-		mealIDSet := make(map[string]bool)
-		for _, mealID := range optionToMealID {
-			mealIDSet[mealID] = true
-		}
-		mealIDs := make([]string, 0, len(mealIDSet))
-		for mealID := range mealIDSet {
-			mealIDs = append(mealIDs, mealID)
+	var err error
+	var x *types.MealPlan
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		// create the meal plan.
+		if err = q.generatedQuerier.CreateMealPlan(ctx, tx, &generated.CreateMealPlanParams{
+			ID:               input.ID,
+			Notes:            input.Notes,
+			Status:           generated.MealPlanStatus(status),
+			VotingDeadline:   input.VotingDeadline,
+			BelongsToAccount: input.BelongsToAccount,
+			CreatedByUser:    input.CreatedByUser,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "creating meal plan")
 		}
 
-		meals, loadErr := q.GetMealsWithIDs(ctx, mealIDs)
-		if loadErr != nil {
-			q.RollbackTransaction(ctx, tx)
-			return nil, observability.PrepareAndLogError(loadErr, logger, span, "loading meals for selection matching")
+		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToAccount: &input.BelongsToAccount,
+			ID:               identifiers.New(),
+			ResourceType:     resourceTypeMealPlans,
+			RelevantID:       input.ID,
+			EventType:        audit.AuditLogEventTypeCreated,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
-		// Create a map of meal ID -> meal for quick lookup
-		mealsByID := make(map[string]*types.Meal)
-		for _, meal := range meals {
-			mealsByID[meal.ID] = meal
+		x = &types.MealPlan{
+			ID:               input.ID,
+			Notes:            input.Notes,
+			Status:           string(status),
+			VotingDeadline:   input.VotingDeadline,
+			BelongsToAccount: input.BelongsToAccount,
+			ElectionMethod:   input.ElectionMethod,
+			CreatedAt:        q.CurrentTime(),
+			CreatedByUser:    input.CreatedByUser,
 		}
 
-		// Match and create selections
-		for _, selection := range input.Selections {
-			// Find the option that contains the matching recipe
-			var matchedOptionID string
-			for optionID, mealID := range optionToMealID {
-				meal, exists := mealsByID[mealID]
-				if !exists {
-					continue
-				}
+		logger.WithValue("quantity", len(input.Events)).Info("creating events for meal plan")
+		// Map to track option ID -> meal ID for matching selections
+		optionToMealID := make(map[string]string)
+		for _, event := range input.Events {
+			event.BelongsToMealPlan = x.ID
+			opt, createErr := q.createMealPlanEvent(ctx, tx, event)
+			if createErr != nil {
+				return observability.PrepareError(createErr, span, "creating meal plan event for meal plan")
+			}
+			x.Events = append(x.Events, opt)
 
-				// Check if this meal has a component with the matching recipe ID
-				for _, component := range meal.Components {
-					if component.Recipe.ID == selection.RecipeID {
-						matchedOptionID = optionID
+			// Track option IDs and their meal IDs for selection matching
+			for _, option := range opt.Options {
+				optionToMealID[option.ID] = option.Meal.ID
+			}
+		}
+
+		// Create selections if provided
+		if len(input.Selections) > 0 {
+			logger.WithValue("quantity", len(input.Selections)).Info("creating selections for meal plan")
+
+			// Load all meals to check their components (deduplicate meal IDs)
+			mealIDSet := make(map[string]bool)
+			for _, mealID := range optionToMealID {
+				mealIDSet[mealID] = true
+			}
+			mealIDs := make([]string, 0, len(mealIDSet))
+			for mealID := range mealIDSet {
+				mealIDs = append(mealIDs, mealID)
+			}
+
+			meals, loadErr := q.GetMealsWithIDs(ctx, mealIDs)
+			if loadErr != nil {
+				return observability.PrepareAndLogError(loadErr, logger, span, "loading meals for selection matching")
+			}
+
+			// Create a map of meal ID -> meal for quick lookup
+			mealsByID := make(map[string]*types.Meal)
+			for _, meal := range meals {
+				mealsByID[meal.ID] = meal
+			}
+
+			// Match and create selections
+			for _, selection := range input.Selections {
+				// Find the option that contains the matching recipe
+				var matchedOptionID string
+				for optionID, mealID := range optionToMealID {
+					meal, exists := mealsByID[mealID]
+					if !exists {
+						continue
+					}
+
+					// Check if this meal has a component with the matching recipe ID
+					for _, component := range meal.Components {
+						if component.Recipe.ID == selection.RecipeID {
+							matchedOptionID = optionID
+							break
+						}
+					}
+					if matchedOptionID != "" {
 						break
 					}
 				}
-				if matchedOptionID != "" {
-					break
+
+				if matchedOptionID == "" {
+					logger.WithValue("recipe_id", selection.RecipeID).
+						WithValue("recipe_step_id", selection.RecipeStepID).
+						Info("could not find matching option for selection, skipping")
+					continue
+				}
+
+				// Create the selection
+				selectionID := identifiers.New()
+				if createErr := q.generatedQuerier.CreateMealPlanRecipeOptionSelection(ctx, tx, &generated.CreateMealPlanRecipeOptionSelectionParams{
+					ID:                      selectionID,
+					BelongsToMealPlanOption: matchedOptionID,
+					RecipeID:                selection.RecipeID,
+					RecipeStepID:            selection.RecipeStepID,
+					IngredientIndex:         int32(selection.IngredientIndex),
+					SelectedOptionIndex:     int32(selection.SelectedOptionIndex),
+					SelectionType:           selection.SelectionType,
+				}); createErr != nil {
+					return observability.PrepareAndLogError(createErr, logger, span, "creating meal plan recipe option selection")
 				}
 			}
-
-			if matchedOptionID == "" {
-				logger.WithValue("recipe_id", selection.RecipeID).
-					WithValue("recipe_step_id", selection.RecipeStepID).
-					Info("could not find matching option for selection, skipping")
-				continue
-			}
-
-			// Create the selection
-			selectionID := identifiers.New()
-			if createErr := q.generatedQuerier.CreateMealPlanRecipeOptionSelection(ctx, tx, &generated.CreateMealPlanRecipeOptionSelectionParams{
-				ID:                      selectionID,
-				BelongsToMealPlanOption: matchedOptionID,
-				RecipeID:                selection.RecipeID,
-				RecipeStepID:            selection.RecipeStepID,
-				IngredientIndex:         int32(selection.IngredientIndex),
-				SelectedOptionIndex:     int32(selection.SelectedOptionIndex),
-				SelectionType:           selection.SelectionType,
-			}); createErr != nil {
-				q.RollbackTransaction(ctx, tx)
-				return nil, observability.PrepareAndLogError(createErr, logger, span, "creating meal plan recipe option selection")
-			}
 		}
-	}
 
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, x.ID)
@@ -506,90 +500,85 @@ func (q *repository) AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, 
 	}
 
 	usersWhoHaveNotVoted := []string{}
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return false, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
-
 	allVotesAreSubmitted := true
-	for _, event := range mealPlan.Events {
-		if len(event.Options) == 0 {
-			continue
-		}
-
-		// we load this map with false for each member of the account
-		// and then iterate through the votes and mark each voter as true
-		userHasVoted := map[string]bool{}
-		for _, member := range account.Members {
-			userHasVoted[member.BelongsToUser.ID] = false
-		}
-
-		alreadyChosen := false
-		for _, opt := range event.Options {
-			if opt.Chosen {
-				alreadyChosen = true
-				break
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		for _, event := range mealPlan.Events {
+			if len(event.Options) == 0 {
+				continue
 			}
 
-			for _, vote := range opt.Votes {
-				userHasVoted[vote.ByUser] = true
+			// we load this map with false for each member of the account
+			// and then iterate through the votes and mark each voter as true
+			userHasVoted := map[string]bool{}
+			for _, member := range account.Members {
+				userHasVoted[member.BelongsToUser.ID] = false
+			}
+
+			alreadyChosen := false
+			for _, opt := range event.Options {
+				if opt.Chosen {
+					alreadyChosen = true
+					break
+				}
+
+				for _, vote := range opt.Votes {
+					userHasVoted[vote.ByUser] = true
+				}
+			}
+
+			// if we've previously marked an event option as chosen, then we don't need to do anything else
+			if alreadyChosen {
+				continue
+			}
+
+			for userID, hasVoted := range userHasVoted {
+				if !hasVoted {
+					allVotesAreSubmitted = false
+					usersWhoHaveNotVoted = append(usersWhoHaveNotVoted, userID)
+				}
+			}
+
+			// if we're missing votes from account members, and the deadline hasn't passed, then we can't finalize the meal plan.
+			if !allVotesAreSubmitted && !votingDeadlineHasPassed {
+				logger.WithValue("users_without_votes", usersWhoHaveNotVoted).Info("not all votes are submitted, and the voting deadline hasn't passed yet")
+				continue
+			}
+
+			// the ballot is ready to be tallied for this event
+			winner, tiebroken, chosen := q.decideOptionWinner(ctx, event.Options)
+			if chosen {
+				logger = logger.WithValue("winner", winner).WithValue("tiebroken", tiebroken)
+
+				if err = q.generatedQuerier.FinalizeMealPlanOption(ctx, tx, &generated.FinalizeMealPlanOptionParams{
+					MealPlanEventID: database.NullStringFromString(event.ID),
+					ID:              winner,
+					Tiebroken:       tiebroken,
+				}); err != nil {
+					return observability.PrepareAndLogError(err, logger, span, "finalizing meal plan option")
+				}
+
+				logger.Info("finalized meal plan option")
+			} else {
+				logger.Info("no winner chosen")
 			}
 		}
 
-		// if we've previously marked an event option as chosen, then we don't need to do anything else
-		if alreadyChosen {
-			continue
-		}
+		if allVotesAreSubmitted || votingDeadlineHasPassed {
+			logger.Info("finalizing meal plan")
 
-		for userID, hasVoted := range userHasVoted {
-			if !hasVoted {
-				allVotesAreSubmitted = false
-				usersWhoHaveNotVoted = append(usersWhoHaveNotVoted, userID)
-			}
-		}
-
-		// if we're missing votes from account members, and the deadline hasn't passed, then we can't finalize the meal plan.
-		if !allVotesAreSubmitted && !votingDeadlineHasPassed {
-			logger.WithValue("users_without_votes", usersWhoHaveNotVoted).Info("not all votes are submitted, and the voting deadline hasn't passed yet")
-			continue
-		}
-
-		// the ballot is ready to be tallied for this event
-		winner, tiebroken, chosen := q.decideOptionWinner(ctx, event.Options)
-		if chosen {
-			logger = logger.WithValue("winner", winner).WithValue("tiebroken", tiebroken)
-
-			if err = q.generatedQuerier.FinalizeMealPlanOption(ctx, tx, &generated.FinalizeMealPlanOptionParams{
-				MealPlanEventID: database.NullStringFromString(event.ID),
-				ID:              winner,
-				Tiebroken:       tiebroken,
+			if err = q.generatedQuerier.FinalizeMealPlan(ctx, tx, &generated.FinalizeMealPlanParams{
+				Status: generated.MealPlanStatus(types.MealPlanStatusFinalized),
+				ID:     mealPlanID,
 			}); err != nil {
-				q.RollbackTransaction(ctx, tx)
-				return false, observability.PrepareAndLogError(err, logger, span, "finalizing meal plan option")
+				return observability.PrepareAndLogError(err, logger, span, "finalizing meal plan option")
 			}
 
-			logger.Info("finalized meal plan option")
-		} else {
-			logger.Info("no winner chosen")
-		}
-	}
-
-	if allVotesAreSubmitted || votingDeadlineHasPassed {
-		logger.Info("finalizing meal plan")
-
-		if err = q.generatedQuerier.FinalizeMealPlan(ctx, tx, &generated.FinalizeMealPlanParams{
-			Status: generated.MealPlanStatus(types.MealPlanStatusFinalized),
-			ID:     mealPlanID,
-		}); err != nil {
-			q.RollbackTransaction(ctx, tx)
-			return false, observability.PrepareAndLogError(err, logger, span, "finalizing meal plan option")
+			finalized = true
 		}
 
-		finalized = true
-	}
-
-	if err = tx.Commit(); err != nil {
-		return false, observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return false, err
 	}
 
 	logger.WithValue("finalized", finalized).

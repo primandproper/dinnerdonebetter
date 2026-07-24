@@ -10,12 +10,12 @@ import (
 	notificationkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/notifications/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -214,33 +214,29 @@ func (q *Repository) UpdateUserDeviceToken(ctx context.Context, updated *types.U
 	logger := q.logger.WithValue(notificationkeys.UserDeviceTokenIDKey, updated.ID)
 	tracing.AttachToSpan(span, notificationkeys.UserDeviceTokenIDKey, updated.ID)
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if _, err = q.generatedQuerier.UpdateUserDeviceToken(ctx, tx, &generated.UpdateUserDeviceTokenParams{
+			Platform:      updated.Platform,
+			ID:            updated.ID,
+			BelongsToUser: updated.BelongsToUser,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating user device token")
+		}
 
-	if _, err = q.generatedQuerier.UpdateUserDeviceToken(ctx, tx, &generated.UpdateUserDeviceTokenParams{
-		Platform:      updated.Platform,
-		ID:            updated.ID,
-		BelongsToUser: updated.BelongsToUser,
+		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUserDeviceTokens,
+			RelevantID:    updated.ID,
+			EventType:     audit.AuditLogEventTypeUpdated,
+			BelongsToUser: updated.BelongsToUser,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		return nil
 	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "updating user device token")
-	}
-
-	if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUserDeviceTokens,
-		RelevantID:    updated.ID,
-		EventType:     audit.AuditLogEventTypeUpdated,
-		BelongsToUser: updated.BelongsToUser,
-	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return err
 	}
 
 	logger.Info("user device token updated")
@@ -261,37 +257,31 @@ func (q *Repository) ArchiveUserDeviceToken(ctx context.Context, userID, tokenID
 	logger := q.logger.WithValue(notificationkeys.UserDeviceTokenIDKey, tokenID)
 	tracing.AttachToSpan(span, notificationkeys.UserDeviceTokenIDKey, tokenID)
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		rows, err := q.generatedQuerier.ArchiveUserDeviceToken(ctx, tx, &generated.ArchiveUserDeviceTokenParams{
+			ID:            tokenID,
+			BelongsToUser: userID,
+		})
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "archiving user device token")
+		}
+		if rows == 0 {
+			return sql.ErrNoRows
+		}
 
-	rows, err := q.generatedQuerier.ArchiveUserDeviceToken(ctx, tx, &generated.ArchiveUserDeviceTokenParams{
-		ID:            tokenID,
-		BelongsToUser: userID,
-	})
-	if err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "archiving user device token")
-	}
-	if rows == 0 {
-		q.RollbackTransaction(ctx, tx)
-		return sql.ErrNoRows
-	}
+		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUserDeviceTokens,
+			RelevantID:    tokenID,
+			EventType:     audit.AuditLogEventTypeArchived,
+			BelongsToUser: userID,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUserDeviceTokens,
-		RelevantID:    tokenID,
-		EventType:     audit.AuditLogEventTypeArchived,
-		BelongsToUser: userID,
+		return nil
 	}); err != nil {
-		q.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return err
 	}
 
 	logger.Info("user device token archived")

@@ -1,8 +1,6 @@
 package dataprivacy
 
 import (
-	"database/sql"
-
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
@@ -16,9 +14,9 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/dataprivacy/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	"github.com/primandproper/platform-go/v5/observability/logging"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	"github.com/primandproper/platform-go/v6/observability/logging"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -41,8 +39,8 @@ type repository struct {
 	waitlistsRepo     waitlists.Repository
 	commentsRepo      comments.Repository
 	paymentsRepo      payments.Repository
-	readDB            *sql.DB
-	writeDB           *sql.DB
+	readDB            database.SQLQueryExecutor
+	writeDB           database.SQLQueryExecutor
 	dataCollectors    []dataprivacy.UserDataCollector
 }
 
@@ -65,8 +63,8 @@ func ProvideDataPrivacyRepository(
 ) dataprivacy.Repository {
 	c := &repository{
 		Client:            client,
-		readDB:            client.ReadDB(),
-		writeDB:           client.WriteDB(),
+		readDB:            client.Reader(),
+		writeDB:           client.Writer(),
 		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
 		logger:            logging.NewNamedLogger(logger, o11yName),
 		generatedQuerier:  generated.New(),

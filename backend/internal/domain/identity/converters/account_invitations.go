@@ -5,7 +5,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v5/identifiers"
+	"github.com/primandproper/platform-go/v6/identifiers"
 )
 
 // ConvertAccountInvitationCreationInputToAccountInvitationDatabaseCreationInput creates a AccountInvitationDatabaseCreationInput from a AccountInvitationCreationRequestInput.

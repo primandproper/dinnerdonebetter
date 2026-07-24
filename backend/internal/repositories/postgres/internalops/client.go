@@ -1,14 +1,12 @@
 package internalops
 
 import (
-	"database/sql"
-
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/internalops/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	"github.com/primandproper/platform-go/v5/observability/logging"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	"github.com/primandproper/platform-go/v6/observability/logging"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -20,16 +18,16 @@ type repository struct {
 	tracer           tracing.Tracer
 	logger           logging.Logger
 	generatedQuerier generated.Querier
-	readDB           *sql.DB
-	writeDB          *sql.DB
+	readDB           database.SQLQueryExecutor
+	writeDB          database.SQLQueryExecutor
 }
 
 // ProvideInternalOpsRepository provides a new repository.
 func ProvideInternalOpsRepository(logger logging.Logger, tracerProvider tracing.TracerProvider, client database.Client) internalops.InternalOpsDataManager {
 	c := &repository{
 		Client:           client,
-		readDB:           client.ReadDB(),
-		writeDB:          client.WriteDB(),
+		readDB:           client.Reader(),
+		writeDB:          client.Writer(),
 		tracer:           tracing.NewNamedTracer(tracerProvider, o11yName),
 		generatedQuerier: generated.New(),
 		logger:           logging.NewNamedLogger(logger, o11yName),

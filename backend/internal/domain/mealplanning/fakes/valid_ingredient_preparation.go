@@ -4,7 +4,7 @@ import (
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
-	"github.com/primandproper/platform-go/v5/filtering"
+	"github.com/primandproper/platform-go/v6/filtering"
 )
 
 // BuildFakeValidIngredientPreparation builds a faked valid ingredient preparation.

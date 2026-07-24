@@ -15,13 +15,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	platformkeys "github.com/primandproper/platform-go/v5/observability/keys"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	platformkeys "github.com/primandproper/platform-go/v6/observability/keys"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -574,111 +574,101 @@ func (r *repository) CreateUser(ctx context.Context, input *identity.UserDatabas
 	})
 
 	// begin user creation transaction
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareError(err, span, "beginning transaction")
-	}
+	var user *identity.User
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		token, err := r.secretGenerator.GenerateBase64EncodedString(ctx, 32)
+		if err != nil {
+			return observability.PrepareError(err, span, "generating email verification token")
+		}
 
-	token, err := r.secretGenerator.GenerateBase64EncodedString(ctx, 32)
-	if err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareError(err, span, "generating email verification token")
-	}
-
-	if err = r.generatedQuerier.CreateUser(ctx, tx, &generated.CreateUserParams{
-		ID:                            input.ID,
-		FirstName:                     input.FirstName,
-		LastName:                      input.LastName,
-		Username:                      input.Username,
-		EmailAddress:                  input.EmailAddress,
-		HashedPassword:                input.HashedPassword,
-		TwoFactorSecret:               input.TwoFactorSecret,
-		UserAccountStatus:             string(identity.UnverifiedAccountStatus),
-		Birthday:                      database.NullTimeFromTimePointer(input.Birthday),
-		EmailAddressVerificationToken: database.NullStringFromString(token),
-		TwoFactorSecretVerifiedAt:     sql.NullTime{},
-		UserAccountStatusExplanation:  "",
-		RequiresPasswordChange:        false,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			if pgErr.Code == postgresDuplicateEntryErrorCode {
-				return nil, database.ErrUserAlreadyExists
+		if err = r.generatedQuerier.CreateUser(ctx, tx, &generated.CreateUserParams{
+			ID:                            input.ID,
+			FirstName:                     input.FirstName,
+			LastName:                      input.LastName,
+			Username:                      input.Username,
+			EmailAddress:                  input.EmailAddress,
+			HashedPassword:                input.HashedPassword,
+			TwoFactorSecret:               input.TwoFactorSecret,
+			UserAccountStatus:             string(identity.UnverifiedAccountStatus),
+			Birthday:                      database.NullTimeFromTimePointer(input.Birthday),
+			EmailAddressVerificationToken: database.NullStringFromString(token),
+			TwoFactorSecretVerifiedAt:     sql.NullTime{},
+			UserAccountStatusExplanation:  "",
+			RequiresPasswordChange:        false,
+		}); err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) {
+				if pgErr.Code == postgresDuplicateEntryErrorCode {
+					return database.ErrUserAlreadyExists
+				}
 			}
+
+			return observability.PrepareError(err, span, "creating user")
 		}
 
-		return nil, observability.PrepareError(err, span, "creating user")
-	}
+		hasValidInvite := input.InvitationToken != "" && input.DestinationAccountID != ""
 
-	hasValidInvite := input.InvitationToken != "" && input.DestinationAccountID != ""
-
-	user := &identity.User{
-		ID:              input.ID,
-		FirstName:       input.FirstName,
-		LastName:        input.LastName,
-		Username:        input.Username,
-		EmailAddress:    input.EmailAddress,
-		HashedPassword:  input.HashedPassword,
-		TwoFactorSecret: input.TwoFactorSecret,
-		AccountStatus:   string(identity.UnverifiedAccountStatus),
-		Birthday:        input.Birthday,
-		CreatedAt:       r.CurrentTime(),
-	}
-	logger = logger.WithValue(identitykeys.UserIDKey, user.ID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, user.ID)
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUsers,
-		RelevantID:    input.ID,
-		EventType:     audit.AuditLogEventTypeCreated,
-		BelongsToUser: input.ID,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	// Assign the default service_user role.
-	if err = r.generatedQuerier.AssignRoleToUser(ctx, tx, &generated.AssignRoleToUserParams{
-		ID:        identifiers.New(),
-		UserID:    user.ID,
-		RoleID:    authorization.ServiceUserRoleID,
-		AccountID: sql.NullString{},
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareError(err, span, "assigning service role to user")
-	}
-
-	if strings.TrimSpace(input.AccountName) == "" {
-		input.AccountName = fmt.Sprintf("%s's cool account", input.Username)
-	}
-
-	account, err := r.createAccountForUser(ctx, tx, hasValidInvite, input.AccountName, user.ID)
-	if err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareAndLogError(err, logger, span, "creating account for new user")
-	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, account.ID)
-	logger.Debug("account created")
-
-	if hasValidInvite {
-		if err = r.acceptInvitationForUser(ctx, tx, input); err != nil {
-			r.RollbackTransaction(ctx, tx)
-			return nil, observability.PrepareAndLogError(err, logger, span, "accepting account invitations")
+		user = &identity.User{
+			ID:              input.ID,
+			FirstName:       input.FirstName,
+			LastName:        input.LastName,
+			Username:        input.Username,
+			EmailAddress:    input.EmailAddress,
+			HashedPassword:  input.HashedPassword,
+			TwoFactorSecret: input.TwoFactorSecret,
+			AccountStatus:   string(identity.UnverifiedAccountStatus),
+			Birthday:        input.Birthday,
+			CreatedAt:       r.CurrentTime(),
 		}
-		logger.Debug("accepted invitation and joined account for user")
-	}
+		logger = logger.WithValue(identitykeys.UserIDKey, user.ID)
+		tracing.AttachToSpan(span, identitykeys.UserIDKey, user.ID)
 
-	if err = r.attachInvitationsToUser(ctx, tx, user.EmailAddress, user.ID); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		logger = logger.WithValue("email_address", user.EmailAddress).WithValue("user_id", user.ID)
-		return nil, observability.PrepareAndLogError(err, logger, span, "attaching existing invitations to new user")
-	}
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUsers,
+			RelevantID:    input.ID,
+			EventType:     audit.AuditLogEventTypeCreated,
+			BelongsToUser: input.ID,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		// Assign the default service_user role.
+		if err = r.generatedQuerier.AssignRoleToUser(ctx, tx, &generated.AssignRoleToUserParams{
+			ID:        identifiers.New(),
+			UserID:    user.ID,
+			RoleID:    authorization.ServiceUserRoleID,
+			AccountID: sql.NullString{},
+		}); err != nil {
+			return observability.PrepareError(err, span, "assigning service role to user")
+		}
+
+		if strings.TrimSpace(input.AccountName) == "" {
+			input.AccountName = fmt.Sprintf("%s's cool account", input.Username)
+		}
+
+		account, err := r.createAccountForUser(ctx, tx, hasValidInvite, input.AccountName, user.ID)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "creating account for new user")
+		}
+		logger = logger.WithValue(identitykeys.AccountIDKey, account.ID)
+		logger.Debug("account created")
+
+		if hasValidInvite {
+			if err = r.acceptInvitationForUser(ctx, tx, input); err != nil {
+				return observability.PrepareAndLogError(err, logger, span, "accepting account invitations")
+			}
+			logger.Debug("accepted invitation and joined account for user")
+		}
+
+		if err = r.attachInvitationsToUser(ctx, tx, user.EmailAddress, user.ID); err != nil {
+			logger = logger.WithValue("email_address", user.EmailAddress).WithValue("user_id", user.ID)
+			return observability.PrepareAndLogError(err, logger, span, "attaching existing invitations to new user")
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	logger.Debug("user and account created")
@@ -722,7 +712,6 @@ func (r *repository) createAccountForUser(ctx context.Context, querier database.
 		Longitude:         database.NullStringFromFloat64Pointer(accountCreationInput.Longitude),
 		WebhookHmacSecret: accountCreationInput.WebhookEncryptionKey,
 	}); err != nil {
-		r.RollbackTransaction(ctx, querier)
 		return nil, observability.PrepareError(err, span, "creating account")
 	}
 
@@ -734,7 +723,6 @@ func (r *repository) createAccountForUser(ctx context.Context, querier database.
 		EventType:        audit.AuditLogEventTypeCreated,
 		BelongsToUser:    accountCreationInput.BelongsToUser,
 	}); err != nil {
-		r.RollbackTransaction(ctx, querier)
 		return nil, observability.PrepareError(err, span, "creating audit log entry")
 	}
 
@@ -745,7 +733,6 @@ func (r *repository) createAccountForUser(ctx context.Context, querier database.
 		BelongsToAccount: accountID,
 		DefaultAccount:   !hasValidInvite,
 	}); err != nil {
-		r.RollbackTransaction(ctx, querier)
 		return nil, observability.PrepareError(err, span, "writing account user membership")
 	}
 
@@ -756,7 +743,6 @@ func (r *repository) createAccountForUser(ctx context.Context, querier database.
 		RoleID:    authorization.AccountAdminRoleID,
 		AccountID: sql.NullString{String: accountID, Valid: true},
 	}); err != nil {
-		r.RollbackTransaction(ctx, querier)
 		return nil, observability.PrepareError(err, span, "assigning account role to user")
 	}
 
@@ -768,7 +754,6 @@ func (r *repository) createAccountForUser(ctx context.Context, querier database.
 		EventType:        audit.AuditLogEventTypeCreated,
 		BelongsToUser:    accountCreationInput.BelongsToUser,
 	}); err != nil {
-		r.RollbackTransaction(ctx, querier)
 		return nil, observability.PrepareError(err, span, "creating audit log entry")
 	}
 
@@ -813,43 +798,38 @@ func (r *repository) UpdateUserUsername(ctx context.Context, userID, newUsername
 	logger = logger.WithValue(identitykeys.UsernameKey, newUsername)
 	tracing.AttachToSpan(span, identitykeys.UsernameKey, newUsername)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		user, err := r.GetUser(ctx, userID)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "fetching user")
+		}
 
-	user, err := r.GetUser(ctx, userID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "fetching user")
-	}
+		if _, err = r.generatedQuerier.UpdateUserUsername(ctx, tx, &generated.UpdateUserUsernameParams{
+			Username: newUsername,
+			ID:       userID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating username")
+		}
 
-	if _, err = r.generatedQuerier.UpdateUserUsername(ctx, tx, &generated.UpdateUserUsernameParams{
-		Username: newUsername,
-		ID:       userID,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "updating username")
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUsers,
-		RelevantID:    userID,
-		EventType:     audit.AuditLogEventTypeUpdated,
-		BelongsToUser: userID,
-		Changes: map[string]*audit.ChangeLog{
-			"username": {
-				OldValue: user.Username,
-				NewValue: newUsername,
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUsers,
+			RelevantID:    userID,
+			EventType:     audit.AuditLogEventTypeUpdated,
+			BelongsToUser: userID,
+			Changes: map[string]*audit.ChangeLog{
+				"username": {
+					OldValue: user.Username,
+					NewValue: newUsername,
+				},
 			},
-		},
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Info("username updated")
@@ -873,43 +853,38 @@ func (r *repository) UpdateUserEmailAddress(ctx context.Context, userID, newEmai
 	}
 	tracing.AttachToSpan(span, identitykeys.UserEmailAddressKey, newEmailAddress)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		user, err := r.GetUser(ctx, userID)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "fetching user")
+		}
 
-	user, err := r.GetUser(ctx, userID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "fetching user")
-	}
+		if _, err = r.generatedQuerier.UpdateUserEmailAddress(ctx, tx, &generated.UpdateUserEmailAddressParams{
+			EmailAddress: newEmailAddress,
+			ID:           userID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating user email address")
+		}
 
-	if _, err = r.generatedQuerier.UpdateUserEmailAddress(ctx, tx, &generated.UpdateUserEmailAddressParams{
-		EmailAddress: newEmailAddress,
-		ID:           userID,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "updating user email address")
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUsers,
-		RelevantID:    userID,
-		EventType:     audit.AuditLogEventTypeUpdated,
-		BelongsToUser: userID,
-		Changes: map[string]*audit.ChangeLog{
-			"email_address": {
-				OldValue: user.EmailAddress,
-				NewValue: newEmailAddress,
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUsers,
+			RelevantID:    userID,
+			EventType:     audit.AuditLogEventTypeUpdated,
+			BelongsToUser: userID,
+			Changes: map[string]*audit.ChangeLog{
+				"email_address": {
+					OldValue: user.EmailAddress,
+					NewValue: newEmailAddress,
+				},
 			},
-		},
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Info("user email address updated")
@@ -932,53 +907,48 @@ func (r *repository) UpdateUserDetails(ctx context.Context, userID string, input
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		user, err := r.GetUser(ctx, userID)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "fetching user")
+		}
 
-	user, err := r.GetUser(ctx, userID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "fetching user")
-	}
+		if _, err = r.generatedQuerier.UpdateUserDetails(ctx, tx, &generated.UpdateUserDetailsParams{
+			FirstName: input.FirstName,
+			LastName:  input.LastName,
+			Birthday:  database.NullTimeFromTime(input.Birthday),
+			ID:        userID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating user details")
+		}
 
-	if _, err = r.generatedQuerier.UpdateUserDetails(ctx, tx, &generated.UpdateUserDetailsParams{
-		FirstName: input.FirstName,
-		LastName:  input.LastName,
-		Birthday:  database.NullTimeFromTime(input.Birthday),
-		ID:        userID,
+		changes := map[string]*audit.ChangeLog{}
+		if input.FirstName != user.FirstName {
+			changes["first_name"] = &audit.ChangeLog{NewValue: input.FirstName, OldValue: user.FirstName}
+		}
+
+		if input.LastName != user.LastName {
+			changes["last_name"] = &audit.ChangeLog{NewValue: input.LastName, OldValue: user.LastName}
+		}
+
+		if input.Birthday.Format(time.Kitchen) != user.Birthday.Format(time.Kitchen) {
+			changes["birthday"] = &audit.ChangeLog{NewValue: input.Birthday.Format(time.Kitchen), OldValue: user.Birthday.Format(time.Kitchen)}
+		}
+
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUsers,
+			RelevantID:    userID,
+			EventType:     audit.AuditLogEventTypeUpdated,
+			BelongsToUser: userID,
+			Changes:       changes,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		return nil
 	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "updating user details")
-	}
-
-	changes := map[string]*audit.ChangeLog{}
-	if input.FirstName != user.FirstName {
-		changes["first_name"] = &audit.ChangeLog{NewValue: input.FirstName, OldValue: user.FirstName}
-	}
-
-	if input.LastName != user.LastName {
-		changes["last_name"] = &audit.ChangeLog{NewValue: input.LastName, OldValue: user.LastName}
-	}
-
-	if input.Birthday.Format(time.Kitchen) != user.Birthday.Format(time.Kitchen) {
-		changes["birthday"] = &audit.ChangeLog{NewValue: input.Birthday.Format(time.Kitchen), OldValue: user.Birthday.Format(time.Kitchen)}
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUsers,
-		RelevantID:    userID,
-		EventType:     audit.AuditLogEventTypeUpdated,
-		BelongsToUser: userID,
-		Changes:       changes,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return err
 	}
 
 	logger.Info("user details updated")
@@ -1001,41 +971,36 @@ func (r *repository) SetUserAvatar(ctx context.Context, userID, uploadedMediaID 
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if err = r.generatedQuerier.ArchiveUserAvatar(ctx, tx, userID); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "archiving previous user avatar")
+		}
 
-	if err = r.generatedQuerier.ArchiveUserAvatar(ctx, tx, userID); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "archiving previous user avatar")
-	}
+		if err = r.generatedQuerier.CreateUserAvatar(ctx, tx, &generated.CreateUserAvatarParams{
+			ID:              identifiers.New(),
+			BelongsToUser:   userID,
+			UploadedMediaID: uploadedMediaID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "creating user avatar")
+		}
 
-	if err = r.generatedQuerier.CreateUserAvatar(ctx, tx, &generated.CreateUserAvatarParams{
-		ID:              identifiers.New(),
-		BelongsToUser:   userID,
-		UploadedMediaID: uploadedMediaID,
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUsers,
+			RelevantID:    userID,
+			EventType:     audit.AuditLogEventTypeUpdated,
+			BelongsToUser: userID,
+			Changes: map[string]*audit.ChangeLog{
+				"avatar": {},
+			},
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		return nil
 	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "creating user avatar")
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUsers,
-		RelevantID:    userID,
-		EventType:     audit.AuditLogEventTypeUpdated,
-		BelongsToUser: userID,
-		Changes: map[string]*audit.ChangeLog{
-			"avatar": {},
-		},
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return err
 	}
 
 	logger.Info("user avatar updated")
@@ -1058,35 +1023,31 @@ func (r *repository) UpdateUserPassword(ctx context.Context, userID, newHash str
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if _, err = r.generatedQuerier.UpdateUserPassword(ctx, tx, &generated.UpdateUserPasswordParams{
+			HashedPassword: newHash,
+			ID:             userID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating user password")
+		}
 
-	if _, err = r.generatedQuerier.UpdateUserPassword(ctx, tx, &generated.UpdateUserPasswordParams{
-		HashedPassword: newHash,
-		ID:             userID,
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUsers,
+			RelevantID:    userID,
+			EventType:     audit.AuditLogEventTypeUpdated,
+			BelongsToUser: userID,
+			Changes: map[string]*audit.ChangeLog{
+				"password": {},
+			},
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		return nil
 	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "updating user password")
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUsers,
-		RelevantID:    userID,
-		EventType:     audit.AuditLogEventTypeUpdated,
-		BelongsToUser: userID,
-		Changes: map[string]*audit.ChangeLog{
-			"password": {},
-		},
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return err
 	}
 
 	logger.Info("user password updated")
@@ -1109,35 +1070,31 @@ func (r *repository) UpdateUserTwoFactorSecret(ctx context.Context, userID, newS
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if _, err = r.generatedQuerier.UpdateUserTwoFactorSecret(ctx, tx, &generated.UpdateUserTwoFactorSecretParams{
+			TwoFactorSecret: newSecret,
+			ID:              userID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating user 2FA secret")
+		}
 
-	if _, err = r.generatedQuerier.UpdateUserTwoFactorSecret(ctx, tx, &generated.UpdateUserTwoFactorSecretParams{
-		TwoFactorSecret: newSecret,
-		ID:              userID,
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUsers,
+			RelevantID:    userID,
+			EventType:     audit.AuditLogEventTypeUpdated,
+			BelongsToUser: userID,
+			Changes: map[string]*audit.ChangeLog{
+				"two_factor_secret": {},
+			},
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		return nil
 	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "updating user 2FA secret")
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUsers,
-		RelevantID:    userID,
-		EventType:     audit.AuditLogEventTypeUpdated,
-		BelongsToUser: userID,
-		Changes: map[string]*audit.ChangeLog{
-			"two_factor_secret": {},
-		},
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return err
 	}
 
 	logger.Info("user two factor secret updated")
@@ -1156,34 +1113,31 @@ func (r *repository) MarkUserTwoFactorSecretAsVerified(ctx context.Context, user
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if err = r.generatedQuerier.MarkTwoFactorSecretAsVerified(ctx, tx, userID); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "writing verified two factor status to database")
+		}
 
-	if err = r.generatedQuerier.MarkTwoFactorSecretAsVerified(ctx, tx, userID); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "writing verified two factor status to database")
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUsers,
-		RelevantID:    userID,
-		EventType:     audit.AuditLogEventTypeUpdated,
-		BelongsToUser: userID,
-		Changes: map[string]*audit.ChangeLog{
-			"two_factor_secret": {
-				OldValue: "unverified",
-				NewValue: "verified",
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUsers,
+			RelevantID:    userID,
+			EventType:     audit.AuditLogEventTypeUpdated,
+			BelongsToUser: userID,
+			Changes: map[string]*audit.ChangeLog{
+				"two_factor_secret": {
+					OldValue: "unverified",
+					NewValue: "verified",
+				},
 			},
-		},
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Info("user two factor secret verified")
@@ -1206,48 +1160,44 @@ func (r *repository) MarkUserTwoFactorSecretAsUnverified(ctx context.Context, us
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if err = r.generatedQuerier.MarkTwoFactorSecretAsUnverified(ctx, tx, &generated.MarkTwoFactorSecretAsUnverifiedParams{
+			TwoFactorSecret: newSecret,
+			ID:              userID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "writing verified two factor status to database")
+		}
 
-	if err = r.generatedQuerier.MarkTwoFactorSecretAsUnverified(ctx, tx, &generated.MarkTwoFactorSecretAsUnverifiedParams{
-		TwoFactorSecret: newSecret,
-		ID:              userID,
-	}); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "writing verified two factor status to database")
-	}
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUsers,
+			RelevantID:    userID,
+			EventType:     audit.AuditLogEventTypeArchived,
+			BelongsToUser: userID,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUsers,
-		RelevantID:    userID,
-		EventType:     audit.AuditLogEventTypeArchived,
-		BelongsToUser: userID,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUsers,
-		RelevantID:    userID,
-		EventType:     audit.AuditLogEventTypeCreated,
-		BelongsToUser: userID,
-		Changes: map[string]*audit.ChangeLog{
-			"two_factor_secret": {
-				OldValue: "verified",
-				NewValue: "unverified",
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUsers,
+			RelevantID:    userID,
+			EventType:     audit.AuditLogEventTypeCreated,
+			BelongsToUser: userID,
+			Changes: map[string]*audit.ChangeLog{
+				"two_factor_secret": {
+					OldValue: "verified",
+					NewValue: "unverified",
+				},
 			},
-		},
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Info("user two factor secret unverified")
@@ -1267,39 +1217,33 @@ func (r *repository) ArchiveUser(ctx context.Context, userID string) error {
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 
 	// begin archive user transaction
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		changed, err := r.generatedQuerier.ArchiveUser(ctx, tx, userID)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "archiving user")
+		}
 
-	changed, err := r.generatedQuerier.ArchiveUser(ctx, tx, userID)
-	if err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "archiving user")
-	}
+		if changed == 0 {
+			return sql.ErrNoRows
+		}
 
-	if changed == 0 {
-		return sql.ErrNoRows
-	}
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUsers,
+			RelevantID:    userID,
+			EventType:     audit.AuditLogEventTypeArchived,
+			BelongsToUser: userID,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUsers,
-		RelevantID:    userID,
-		EventType:     audit.AuditLogEventTypeArchived,
-		BelongsToUser: userID,
+		if _, err = r.generatedQuerier.ArchiveUserMemberships(ctx, tx, userID); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "archiving user account memberships")
+		}
+
+		return nil
 	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if _, err = r.generatedQuerier.ArchiveUserMemberships(ctx, tx, userID); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "archiving user account memberships")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return err
 	}
 
 	return nil
@@ -1376,51 +1320,46 @@ func (r *repository) MarkUserEmailAddressAsVerified(ctx context.Context, userID,
 		return platformerrors.ErrEmptyInputProvided
 	}
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if err = r.generatedQuerier.MarkEmailAddressAsVerified(ctx, tx, &generated.MarkEmailAddressAsVerifiedParams{
+			ID:                            userID,
+			EmailAddressVerificationToken: database.NullStringFromString(token),
+		}); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return err
+			}
 
-	if err = r.generatedQuerier.MarkEmailAddressAsVerified(ctx, tx, &generated.MarkEmailAddressAsVerifiedParams{
-		ID:                            userID,
-		EmailAddressVerificationToken: database.NullStringFromString(token),
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		if errors.Is(err, sql.ErrNoRows) {
-			return err
+			return observability.PrepareAndLogError(err, logger, span, "writing verified email address status to database")
 		}
 
-		return observability.PrepareAndLogError(err, logger, span, "writing verified email address status to database")
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUsers,
-		RelevantID:    userID,
-		EventType:     audit.AuditLogEventTypeUpdated,
-		BelongsToUser: userID,
-		Changes: map[string]*audit.ChangeLog{
-			"email_address_verification": {
-				OldValue: "unverified",
-				NewValue: "verified",
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUsers,
+			RelevantID:    userID,
+			EventType:     audit.AuditLogEventTypeUpdated,
+			BelongsToUser: userID,
+			Changes: map[string]*audit.ChangeLog{
+				"email_address_verification": {
+					OldValue: "unverified",
+					NewValue: "verified",
+				},
 			},
-		},
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if _, err = r.generatedQuerier.SetUserAccountStatus(ctx, tx, &generated.SetUserAccountStatusParams{
-		UserAccountStatus:            string(identity.GoodStandingUserAccountStatus),
-		UserAccountStatusExplanation: "verified email address",
-		ID:                           userID,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "updating user account status")
-	}
+		if _, err = r.generatedQuerier.SetUserAccountStatus(ctx, tx, &generated.SetUserAccountStatusParams{
+			UserAccountStatus:            string(identity.GoodStandingUserAccountStatus),
+			UserAccountStatusExplanation: "verified email address",
+			ID:                           userID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating user account status")
+		}
 
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil
@@ -1437,49 +1376,43 @@ func (r *repository) MarkUserEmailAddressAsUnverified(ctx context.Context, userI
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, userID)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
+	var err error
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if err = r.generatedQuerier.MarkEmailAddressAsUnverified(ctx, tx, userID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return err
+			}
 
-	if err = r.generatedQuerier.MarkEmailAddressAsUnverified(ctx, tx, userID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			r.RollbackTransaction(ctx, tx)
-			return err
+			return observability.PrepareAndLogError(err, logger, span, "writing email address verification status to database")
 		}
 
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "writing email address verification status to database")
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUsers,
-		RelevantID:    userID,
-		EventType:     audit.AuditLogEventTypeUpdated,
-		BelongsToUser: userID,
-		Changes: map[string]*audit.ChangeLog{
-			"email_address_verification": {
-				OldValue: "verified",
-				NewValue: "unverified",
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUsers,
+			RelevantID:    userID,
+			EventType:     audit.AuditLogEventTypeUpdated,
+			BelongsToUser: userID,
+			Changes: map[string]*audit.ChangeLog{
+				"email_address_verification": {
+					OldValue: "verified",
+					NewValue: "unverified",
+				},
 			},
-		},
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if _, err = r.generatedQuerier.SetUserAccountStatus(ctx, tx, &generated.SetUserAccountStatusParams{
-		UserAccountStatus:            string(identity.UnverifiedAccountStatus),
-		UserAccountStatusExplanation: "unverified email address",
-		ID:                           userID,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "updating user account status")
-	}
+		if _, err = r.generatedQuerier.SetUserAccountStatus(ctx, tx, &generated.SetUserAccountStatusParams{
+			UserAccountStatus:            string(identity.UnverifiedAccountStatus),
+			UserAccountStatusExplanation: "unverified email address",
+			ID:                           userID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating user account status")
+		}
 
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

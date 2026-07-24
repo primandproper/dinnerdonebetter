@@ -18,10 +18,10 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/localdev"
 	identitygenerated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability/logging"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability/logging"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -126,14 +126,14 @@ func main() {
 					isMember, memberErr := repo.UserIsMemberOfAccount(ctx, existingUser.ID, adminAccountID)
 					if memberErr == nil && !isMember {
 						membershipID := identifiers.New()
-						if err = generatedQuerier.AddUserToAccount(ctx, dbClient.WriteDB(), &identitygenerated.AddUserToAccountParams{
+						if err = generatedQuerier.AddUserToAccount(ctx, dbClient.Writer(), &identitygenerated.AddUserToAccountParams{
 							ID:               membershipID,
 							BelongsToUser:    existingUser.ID,
 							BelongsToAccount: adminAccountID,
 						}); err != nil {
 							return fmt.Errorf("failed to add existing user %s to account: %w", memberUser.username, err)
 						}
-						if err = generatedQuerier.AssignRoleToUser(ctx, dbClient.WriteDB(), &identitygenerated.AssignRoleToUserParams{
+						if err = generatedQuerier.AssignRoleToUser(ctx, dbClient.Writer(), &identitygenerated.AssignRoleToUserParams{
 							ID:        identifiers.New(),
 							UserID:    existingUser.ID,
 							RoleID:    authorization.AccountMemberRoleID,
@@ -175,7 +175,7 @@ func main() {
 
 				// Add user to admin account as a member
 				membershipID := identifiers.New()
-				if err = generatedQuerier.AddUserToAccount(ctx, dbClient.WriteDB(), &identitygenerated.AddUserToAccountParams{
+				if err = generatedQuerier.AddUserToAccount(ctx, dbClient.Writer(), &identitygenerated.AddUserToAccountParams{
 					ID:               membershipID,
 					BelongsToUser:    user.ID,
 					BelongsToAccount: adminAccountID,
@@ -183,7 +183,7 @@ func main() {
 					return fmt.Errorf("failed to add user %s to account: %w", memberUser.username, err)
 				}
 
-				if err = generatedQuerier.AssignRoleToUser(ctx, dbClient.WriteDB(), &identitygenerated.AssignRoleToUserParams{
+				if err = generatedQuerier.AssignRoleToUser(ctx, dbClient.Writer(), &identitygenerated.AssignRoleToUserParams{
 					ID:        identifiers.New(),
 					UserID:    user.ID,
 					RoleID:    authorization.AccountMemberRoleID,
@@ -192,7 +192,7 @@ func main() {
 					return fmt.Errorf("failed to assign account role to user %s: %w", memberUser.username, err)
 				}
 
-				if err = generatedQuerier.MarkAccountUserMembershipAsUserDefault(ctx, dbClient.WriteDB(), &identitygenerated.MarkAccountUserMembershipAsUserDefaultParams{
+				if err = generatedQuerier.MarkAccountUserMembershipAsUserDefault(ctx, dbClient.Writer(), &identitygenerated.MarkAccountUserMembershipAsUserDefaultParams{
 					BelongsToUser:    user.ID,
 					BelongsToAccount: adminAccountID,
 				}); err != nil {

@@ -11,12 +11,12 @@ import (
 	webhookkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/webhooks/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -247,61 +247,57 @@ func (r *repository) CreateWebhook(ctx context.Context, input *types.WebhookData
 
 	logger.Debug("CreateWebhook invoked")
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
-
-	if err = r.generatedQuerier.CreateWebhook(ctx, tx, &generated.CreateWebhookParams{
-		ID:               input.ID,
-		Name:             input.Name,
-		ContentType:      generated.WebhookContentType(input.ContentType),
-		URL:              input.URL,
-		Method:           generated.WebhookMethod(input.Method),
-		CreatedByUser:    input.CreatedByUser,
-		BelongsToAccount: input.BelongsToAccount,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareAndLogError(err, logger, span, "performing webhook creation query")
-	}
-
-	x := &types.Webhook{
-		ID:               input.ID,
-		Name:             input.Name,
-		ContentType:      input.ContentType,
-		URL:              input.URL,
-		Method:           input.Method,
-		BelongsToAccount: input.BelongsToAccount,
-		CreatedByUser:    input.CreatedByUser,
-		CreatedAt:        r.CurrentTime(),
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &x.BelongsToAccount,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeWebhooks,
-		RelevantID:       x.ID,
-		EventType:        audit.AuditLogEventTypeCreated,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	for i := range input.TriggerConfigs {
-		cfg := input.TriggerConfigs[i]
-		cfg.BelongsToWebhook = input.ID
-
-		created, createErr := r.createWebhookTriggerConfig(ctx, tx, x.BelongsToAccount, cfg)
-		if createErr != nil {
-			r.RollbackTransaction(ctx, tx)
-			return nil, observability.PrepareAndLogError(createErr, logger, span, "performing webhook trigger config creation")
+	var err error
+	var x *types.Webhook
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if err = r.generatedQuerier.CreateWebhook(ctx, tx, &generated.CreateWebhookParams{
+			ID:               input.ID,
+			Name:             input.Name,
+			ContentType:      generated.WebhookContentType(input.ContentType),
+			URL:              input.URL,
+			Method:           generated.WebhookMethod(input.Method),
+			CreatedByUser:    input.CreatedByUser,
+			BelongsToAccount: input.BelongsToAccount,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "performing webhook creation query")
 		}
 
-		x.TriggerConfigs = append(x.TriggerConfigs, created)
-	}
+		x = &types.Webhook{
+			ID:               input.ID,
+			Name:             input.Name,
+			ContentType:      input.ContentType,
+			URL:              input.URL,
+			Method:           input.Method,
+			BelongsToAccount: input.BelongsToAccount,
+			CreatedByUser:    input.CreatedByUser,
+			CreatedAt:        r.CurrentTime(),
+		}
 
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing database transaction")
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToAccount: &x.BelongsToAccount,
+			ID:               identifiers.New(),
+			ResourceType:     resourceTypeWebhooks,
+			RelevantID:       x.ID,
+			EventType:        audit.AuditLogEventTypeCreated,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		for i := range input.TriggerConfigs {
+			cfg := input.TriggerConfigs[i]
+			cfg.BelongsToWebhook = input.ID
+
+			created, createErr := r.createWebhookTriggerConfig(ctx, tx, x.BelongsToAccount, cfg)
+			if createErr != nil {
+				return observability.PrepareAndLogError(createErr, logger, span, "performing webhook trigger config creation")
+			}
+
+			x.TriggerConfigs = append(x.TriggerConfigs, created)
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, x.ID)
@@ -374,37 +370,32 @@ func (r *repository) ArchiveWebhook(ctx context.Context, webhookID, accountID st
 		identitykeys.AccountIDKey: accountID,
 	})
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		rowsAffected, err := r.generatedQuerier.ArchiveWebhook(ctx, tx, &generated.ArchiveWebhookParams{
+			BelongsToAccount: accountID,
+			ID:               webhookID,
+		})
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "archiving webhook")
+		}
 
-	rowsAffected, err := r.generatedQuerier.ArchiveWebhook(ctx, tx, &generated.ArchiveWebhookParams{
-		BelongsToAccount: accountID,
-		ID:               webhookID,
-	})
-	if err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "archiving webhook")
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToAccount: &accountID,
+			ID:               identifiers.New(),
+			ResourceType:     resourceTypeWebhooks,
+			RelevantID:       webhookID,
+			EventType:        audit.AuditLogEventTypeArchived,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &accountID,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeWebhooks,
-		RelevantID:       webhookID,
-		EventType:        audit.AuditLogEventTypeArchived,
+		return nil
 	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing database transaction")
+		return err
 	}
 
 	return nil
@@ -431,19 +422,18 @@ func (r *repository) AddWebhookTriggerConfig(ctx context.Context, accountID stri
 		identitykeys.AccountIDKey:            accountID,
 	})
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var created *types.WebhookTriggerConfig
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		result, err := r.createWebhookTriggerConfig(ctx, tx, accountID, input)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "performing webhook trigger config creation")
+		}
 
-	created, err := r.createWebhookTriggerConfig(ctx, tx, accountID, input)
-	if err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareAndLogError(err, logger, span, "performing webhook trigger config creation")
-	}
+		created = result
 
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing database transaction")
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return created, nil
@@ -469,31 +459,27 @@ func (r *repository) ArchiveWebhookTriggerConfig(ctx context.Context, webhookID,
 		webhookkeys.WebhookTriggerEventIDKey: configID,
 	})
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if _, err = r.generatedQuerier.ArchiveWebhookTriggerConfig(ctx, tx, &generated.ArchiveWebhookTriggerConfigParams{
+			BelongsToWebhook: webhookID,
+			ID:               configID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "archiving webhook trigger config")
+		}
 
-	if _, err = r.generatedQuerier.ArchiveWebhookTriggerConfig(ctx, tx, &generated.ArchiveWebhookTriggerConfigParams{
-		BelongsToWebhook: webhookID,
-		ID:               configID,
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:           identifiers.New(),
+			ResourceType: resourceTypeWebhookTriggerConfigs,
+			RelevantID:   configID,
+			EventType:    audit.AuditLogEventTypeArchived,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		return nil
 	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "archiving webhook trigger config")
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeWebhookTriggerConfigs,
-		RelevantID:   configID,
-		EventType:    audit.AuditLogEventTypeArchived,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing database transaction")
+		return err
 	}
 
 	return nil

@@ -3,9 +3,9 @@ package repositories
 import (
 	postgresmigrations "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 
-	"github.com/primandproper/platform-go/v5/database"
-	databasecfg "github.com/primandproper/platform-go/v5/database/config"
-	"github.com/primandproper/platform-go/v5/observability/logging"
+	"github.com/primandproper/platform-go/v6/database"
+	databasecfg "github.com/primandproper/platform-go/v6/database/config"
+	"github.com/primandproper/platform-go/v6/observability/logging"
 )
 
 // ProvideMigrator returns a Migrator appropriate for the configured database provider.

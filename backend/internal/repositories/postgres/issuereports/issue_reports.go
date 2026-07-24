@@ -10,12 +10,12 @@ import (
 	issuereportkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/issuereports/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -204,48 +204,45 @@ func (r *repository) CreateIssueReport(ctx context.Context, input *types.IssueRe
 
 	logger.Debug("CreateIssueReport invoked")
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var err error
+	var x *types.IssueReport
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		if err = r.generatedQuerier.CreateIssueReport(ctx, tx, &generated.CreateIssueReportParams{
+			ID:               input.ID,
+			IssueType:        input.IssueType,
+			Details:          input.Details,
+			RelevantTable:    database.NullStringFromString(input.RelevantTable),
+			RelevantRecordID: database.NullStringFromString(input.RelevantRecordID),
+			CreatedByUser:    input.CreatedByUser,
+			BelongsToAccount: input.BelongsToAccount,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "performing issue report creation query")
+		}
 
-	if err = r.generatedQuerier.CreateIssueReport(ctx, tx, &generated.CreateIssueReportParams{
-		ID:               input.ID,
-		IssueType:        input.IssueType,
-		Details:          input.Details,
-		RelevantTable:    database.NullStringFromString(input.RelevantTable),
-		RelevantRecordID: database.NullStringFromString(input.RelevantRecordID),
-		CreatedByUser:    input.CreatedByUser,
-		BelongsToAccount: input.BelongsToAccount,
+		x = &types.IssueReport{
+			ID:               input.ID,
+			IssueType:        input.IssueType,
+			Details:          input.Details,
+			RelevantTable:    input.RelevantTable,
+			RelevantRecordID: input.RelevantRecordID,
+			CreatedByUser:    input.CreatedByUser,
+			BelongsToAccount: input.BelongsToAccount,
+			CreatedAt:        r.CurrentTime(),
+		}
+
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToAccount: &x.BelongsToAccount,
+			ID:               identifiers.New(),
+			ResourceType:     resourceTypeIssueReports,
+			RelevantID:       x.ID,
+			EventType:        audit.AuditLogEventTypeCreated,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		return nil
 	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareAndLogError(err, logger, span, "performing issue report creation query")
-	}
-
-	x := &types.IssueReport{
-		ID:               input.ID,
-		IssueType:        input.IssueType,
-		Details:          input.Details,
-		RelevantTable:    input.RelevantTable,
-		RelevantRecordID: input.RelevantRecordID,
-		CreatedByUser:    input.CreatedByUser,
-		BelongsToAccount: input.BelongsToAccount,
-		CreatedAt:        r.CurrentTime(),
-	}
-
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &x.BelongsToAccount,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeIssueReports,
-		RelevantID:       x.ID,
-		EventType:        audit.AuditLogEventTypeCreated,
-	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing database transaction")
+		return nil, err
 	}
 
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, x.ID)
@@ -266,40 +263,35 @@ func (r *repository) UpdateIssueReport(ctx context.Context, issueReport *types.I
 	logger = logger.WithValue(issuereportkeys.IssueReportIDKey, issueReport.ID)
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, issueReport.ID)
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		rowsAffected, err := r.generatedQuerier.UpdateIssueReport(ctx, tx, &generated.UpdateIssueReportParams{
+			ID:               issueReport.ID,
+			IssueType:        issueReport.IssueType,
+			Details:          issueReport.Details,
+			RelevantTable:    database.NullStringFromString(issueReport.RelevantTable),
+			RelevantRecordID: database.NullStringFromString(issueReport.RelevantRecordID),
+		})
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating issue report")
+		}
 
-	rowsAffected, err := r.generatedQuerier.UpdateIssueReport(ctx, tx, &generated.UpdateIssueReportParams{
-		ID:               issueReport.ID,
-		IssueType:        issueReport.IssueType,
-		Details:          issueReport.Details,
-		RelevantTable:    database.NullStringFromString(issueReport.RelevantTable),
-		RelevantRecordID: database.NullStringFromString(issueReport.RelevantRecordID),
-	})
-	if err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "updating issue report")
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToAccount: &issueReport.BelongsToAccount,
+			ID:               identifiers.New(),
+			ResourceType:     resourceTypeIssueReports,
+			RelevantID:       issueReport.ID,
+			EventType:        audit.AuditLogEventTypeUpdated,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &issueReport.BelongsToAccount,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeIssueReports,
-		RelevantID:       issueReport.ID,
-		EventType:        audit.AuditLogEventTypeUpdated,
+		return nil
 	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing database transaction")
+		return err
 	}
 
 	return nil
@@ -460,40 +452,34 @@ func (r *repository) ArchiveIssueReport(ctx context.Context, issueReportID strin
 
 	logger := r.logger.WithValue(issuereportkeys.IssueReportIDKey, issueReportID)
 
-	issueReport, err := r.GetIssueReport(ctx, issueReportID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "fetching issue report for archive")
+	issueReport, getErr := r.GetIssueReport(ctx, issueReportID)
+	if getErr != nil {
+		return observability.PrepareAndLogError(getErr, logger, span, "fetching issue report for archive")
 	}
 
-	tx, err := r.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		rowsAffected, err := r.generatedQuerier.ArchiveIssueReport(ctx, tx, issueReportID)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "archiving issue report")
+		}
 
-	rowsAffected, err := r.generatedQuerier.ArchiveIssueReport(ctx, tx, issueReportID)
-	if err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareAndLogError(err, logger, span, "archiving issue report")
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	if rowsAffected == 0 {
-		r.RollbackTransaction(ctx, tx)
-		return sql.ErrNoRows
-	}
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToAccount: &issueReport.BelongsToAccount,
+			ID:               identifiers.New(),
+			ResourceType:     resourceTypeIssueReports,
+			RelevantID:       issueReportID,
+			EventType:        audit.AuditLogEventTypeArchived,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &issueReport.BelongsToAccount,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeIssueReports,
-		RelevantID:       issueReportID,
-		EventType:        audit.AuditLogEventTypeArchived,
+		return nil
 	}); err != nil {
-		r.RollbackTransaction(ctx, tx)
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "committing database transaction")
+		return err
 	}
 
 	return nil

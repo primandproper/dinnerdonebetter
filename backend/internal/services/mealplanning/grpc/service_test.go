@@ -13,10 +13,10 @@ import (
 	mealplangrocerylistinitializer "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_grocery_list_initializer"
 	mealplantaskcreator "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_creator"
 
-	"github.com/primandproper/platform-go/v5/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
-	mockuploads "github.com/primandproper/platform-go/v5/uploads/mock"
+	"github.com/primandproper/platform-go/v6/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
+	mockuploads "github.com/primandproper/platform-go/v6/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 )

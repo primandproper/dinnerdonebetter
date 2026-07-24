@@ -1,14 +1,12 @@
 package auditlogentries
 
 import (
-	"database/sql"
-
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	"github.com/primandproper/platform-go/v5/observability/logging"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	"github.com/primandproper/platform-go/v6/observability/logging"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 const (
@@ -21,8 +19,8 @@ type repository struct {
 	tracer           tracing.Tracer
 	logger           logging.Logger
 	generatedQuerier generated.Querier
-	readDB           *sql.DB
-	writeDB          *sql.DB
+	readDB           database.SQLQueryExecutor
+	writeDB          database.SQLQueryExecutor
 }
 
 // ProvideAuditLogRepository provides a new repository.
@@ -33,8 +31,8 @@ func ProvideAuditLogRepository(
 ) audit.Repository {
 	c := &repository{
 		Client:           client,
-		readDB:           client.ReadDB(),
-		writeDB:          client.WriteDB(),
+		readDB:           client.Reader(),
+		writeDB:          client.Writer(),
 		tracer:           tracing.NewNamedTracer(tracerProvider, o11yName),
 		generatedQuerier: generated.New(),
 		logger:           logging.NewNamedLogger(logger, o11yName),

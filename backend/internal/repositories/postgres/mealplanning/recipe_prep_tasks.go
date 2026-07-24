@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 var (
@@ -145,7 +145,6 @@ func (q *repository) createRecipePrepTask(ctx context.Context, querier database.
 		MinimumTimeBufferBeforeRecipeInSeconds: int32(input.MinTimeBufferBeforeRecipeInSeconds),
 		Optional:                               input.Optional,
 	}); err != nil {
-		q.RollbackTransaction(ctx, querier)
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating recipe prep task")
 	}
 
@@ -169,7 +168,6 @@ func (q *repository) createRecipePrepTask(ctx context.Context, querier database.
 		recipePrepTaskStep.BelongsToRecipePrepTask = input.ID
 		s, err := q.createRecipePrepTaskStep(ctx, querier, recipePrepTaskStep)
 		if err != nil {
-			q.RollbackTransaction(ctx, querier)
 			return nil, observability.PrepareAndLogError(err, logger, span, "creating recipe prep task")
 		}
 
@@ -193,18 +191,18 @@ func (q *repository) CreateRecipePrepTask(ctx context.Context, input *mealplanni
 	}
 	logger = logger.WithValue(mealplanningkeys.RecipePrepTaskIDKey, input.ID)
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "beginning transaction")
-	}
+	var x *mealplanning.RecipePrepTask
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		created, err := q.createRecipePrepTask(ctx, tx, input)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "creating recipe prep task")
+		}
 
-	x, err := q.createRecipePrepTask(ctx, tx, input)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "creating recipe prep task")
-	}
+		x = created
 
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	logger.Info("recipe prep task created")
@@ -232,7 +230,6 @@ func (q *repository) createRecipePrepTaskStep(ctx context.Context, querier datab
 		BelongsToRecipeStep:     input.BelongsToRecipeStep,
 		SatisfiesRecipeStep:     input.SatisfiesRecipeStep,
 	}); err != nil {
-		q.RollbackTransaction(ctx, querier)
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating recipe prep task step")
 	}
 

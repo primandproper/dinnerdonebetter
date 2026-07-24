@@ -11,12 +11,12 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v5/database"
-	platformerrors "github.com/primandproper/platform-go/v5/errors"
-	"github.com/primandproper/platform-go/v5/filtering"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	"github.com/primandproper/platform-go/v5/observability"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
+	"github.com/primandproper/platform-go/v6/database"
+	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
 )
 
 var (
@@ -590,7 +590,6 @@ func (q *repository) createMeal(ctx context.Context, querier database.SQLQueryEx
 		MaxEstimatedPortions: database.NullStringFromFloat32Pointer(input.MaxEstimatedPortions),
 		EligibleForMealPlans: input.EligibleForMealPlans,
 	}); err != nil {
-		q.RollbackTransaction(ctx, querier)
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing meal creation query")
 	}
 
@@ -607,7 +606,6 @@ func (q *repository) createMeal(ctx context.Context, querier database.SQLQueryEx
 
 	for _, recipeID := range input.Components {
 		if err := q.CreateMealComponent(ctx, querier, x.ID, recipeID); err != nil {
-			q.RollbackTransaction(ctx, querier)
 			return nil, observability.PrepareAndLogError(err, logger, span, "creating meal recipe")
 		}
 	}
@@ -627,18 +625,18 @@ func (q *repository) CreateMeal(ctx context.Context, input *mealplanning.MealDat
 		return nil, platformerrors.ErrNilInputProvided
 	}
 
-	tx, err := q.writeDB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, observability.PrepareError(err, span, "beginning transaction")
-	}
+	var x *mealplanning.Meal
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+		created, err := q.createMeal(ctx, tx, input)
+		if err != nil {
+			return observability.PrepareError(err, span, "creating meal")
+		}
 
-	x, err := q.createMeal(ctx, tx, input)
-	if err != nil {
-		return nil, observability.PrepareError(err, span, "creating meal")
-	}
+		x = created
 
-	if err = tx.Commit(); err != nil {
-		return nil, observability.PrepareError(err, span, "committing transaction")
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return x, nil

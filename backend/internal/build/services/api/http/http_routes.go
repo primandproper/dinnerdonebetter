@@ -6,14 +6,14 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	paymentswebhook "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/http"
 
-	"github.com/primandproper/platform-go/v5/encoding"
-	"github.com/primandproper/platform-go/v5/healthcheck"
-	"github.com/primandproper/platform-go/v5/observability/logging"
-	"github.com/primandproper/platform-go/v5/observability/metrics"
-	"github.com/primandproper/platform-go/v5/observability/tracing"
-	"github.com/primandproper/platform-go/v5/routing"
-	routingcfg "github.com/primandproper/platform-go/v5/routing/config"
-	"github.com/primandproper/platform-go/v5/version"
+	"github.com/primandproper/platform-go/v6/encoding"
+	"github.com/primandproper/platform-go/v6/healthcheck"
+	"github.com/primandproper/platform-go/v6/observability/logging"
+	"github.com/primandproper/platform-go/v6/observability/metrics"
+	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v6/routing"
+	routingcfg "github.com/primandproper/platform-go/v6/routing/config"
+	"github.com/primandproper/platform-go/v6/version"
 )
 
 func ProvideAPIRouter(

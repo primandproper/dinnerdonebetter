@@ -18,16 +18,16 @@ import (
 	identityrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	oauthrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 
-	encryptioncfg "github.com/primandproper/platform-go/v5/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v5/database"
-	databasecfg "github.com/primandproper/platform-go/v5/database/config"
-	"github.com/primandproper/platform-go/v5/database/postgres"
-	"github.com/primandproper/platform-go/v5/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v5/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v5/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v5/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v5/random"
-	"github.com/primandproper/platform-go/v5/secrets/kubectl"
+	encryptioncfg "github.com/primandproper/platform-go/v6/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v6/database"
+	databasecfg "github.com/primandproper/platform-go/v6/database/config"
+	"github.com/primandproper/platform-go/v6/database/postgres"
+	"github.com/primandproper/platform-go/v6/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v6/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v6/random"
+	"github.com/primandproper/platform-go/v6/secrets/kubectl"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
@@ -204,7 +204,13 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 		}
 	}()
 
-	if err = client.ReadDB().PingContext(ctx); err != nil {
+	// Pinging is a driver feature off the executor seam, so it needs the concrete pool
+	// behind the RawAccess capability rather than the safe Client surface.
+	raw, hasRawAccess := client.(database.RawAccess)
+	if !hasRawAccess {
+		return fmt.Errorf("database client does not expose raw access required for pinging")
+	}
+	if err = raw.ReadDB().PingContext(ctx); err != nil {
 		return fmt.Errorf("pinging database client: %w", err)
 	}
 
@@ -244,7 +250,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 
 	// --- Service admin role (idempotent) ---
 	var hasAdminRole bool
-	err = client.ReadDB().QueryRowContext(ctx,
+	err = client.Reader().QueryRowContext(ctx,
 		"SELECT EXISTS(SELECT 1 FROM user_role_assignments WHERE user_id = $1 AND role_id = $2 AND archived_at IS NULL)",
 		user.ID, authorization.ServiceAdminRoleID,
 	).Scan(&hasAdminRole)
@@ -253,13 +259,13 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 	}
 
 	if !hasAdminRole {
-		if _, err = client.WriteDB().ExecContext(ctx,
+		if _, err = client.Writer().ExecContext(ctx,
 			"UPDATE user_role_assignments SET archived_at = NOW() WHERE user_id = $1 AND account_id IS NULL AND archived_at IS NULL",
 			user.ID,
 		); err != nil {
 			return fmt.Errorf("archiving old service role: %w", err)
 		}
-		if _, err = client.WriteDB().ExecContext(ctx,
+		if _, err = client.Writer().ExecContext(ctx,
 			"INSERT INTO user_role_assignments (id, user_id, role_id) VALUES ($1, $2, $3)",
 			identifiers.New(), user.ID, authorization.ServiceAdminRoleID,
 		); err != nil {
