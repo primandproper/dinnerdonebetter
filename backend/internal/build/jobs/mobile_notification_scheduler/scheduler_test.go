@@ -15,10 +15,8 @@ import (
 	notifications "github.com/primandproper/platform-go/v6/notifications/mobile"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,7 +34,7 @@ func TestScheduler_ScheduleNotifications_publishesMobileNotificationRequest(t *t
 	assignedUser := fakes.BuildFakeID()
 	task.AssignedToUser = &assignedUser
 
-	mealPlanRepo := &mealplanningmock.Repository{}
+	mealPlanRepo := &mealplanningmock.RepositoryMock{}
 	identityRepo := &identitymock.RepositoryMock{}
 	publisher := &msgqueuemock.PublisherMock{}
 
@@ -47,9 +45,19 @@ func TestScheduler_ScheduleNotifications_publishesMobileNotificationRequest(t *t
 		StartsAt:            time.Date(2025, 3, 3, 18, 0, 0, 0, time.UTC), // Monday
 	}
 
-	mealPlanRepo.On(reflection.GetMethodName(mealPlanRepo.GetMealPlanTaskIDsThatNeedNotification), mock.Anything).Return([]string{taskID}, nil).Once()
-	mealPlanRepo.On(reflection.GetMethodName(mealPlanRepo.GetMealPlanTask), mock.Anything, taskID).Return(task, nil).Once()
-	mealPlanRepo.On(reflection.GetMethodName(mealPlanRepo.GetMealPlanTaskNotificationContext), mock.Anything, taskID).Return(notificationCtx, nil).Once()
+	mealPlanRepo.GetMealPlanTaskIDsThatNeedNotificationFunc = func(_ context.Context) ([]string, error) {
+		return []string{taskID}, nil
+	}
+	mealPlanRepo.GetMealPlanTaskFunc = func(_ context.Context, mealPlanTaskID string) (*mealplanning.MealPlanTask, error) {
+		assert.Equal(t, taskID, mealPlanTaskID)
+
+		return task, nil
+	}
+	mealPlanRepo.GetMealPlanTaskNotificationContextFunc = func(_ context.Context, mealPlanTaskID string) (*mealplanning.MealPlanTaskNotificationContext, error) {
+		assert.Equal(t, taskID, mealPlanTaskID)
+
+		return notificationCtx, nil
+	}
 	// With AssignedToUser set, GetMealPlanTaskAccountID and GetUsersForAccount are not called
 
 	var publishedPayload any
@@ -63,7 +71,9 @@ func TestScheduler_ScheduleNotifications_publishesMobileNotificationRequest(t *t
 	err := scheduler.ScheduleNotifications(ctx)
 
 	require.NoError(t, err)
-	mock.AssertExpectationsForObjects(t, mealPlanRepo)
+	assert.Len(t, mealPlanRepo.GetMealPlanTaskIDsThatNeedNotificationCalls(), 1)
+	assert.Len(t, mealPlanRepo.GetMealPlanTaskCalls(), 1)
+	assert.Len(t, mealPlanRepo.GetMealPlanTaskNotificationContextCalls(), 1)
 
 	req, ok := publishedPayload.(*notifications.MobileNotificationRequest)
 	require.True(t, ok, "expected MobileNotificationRequest to be published")

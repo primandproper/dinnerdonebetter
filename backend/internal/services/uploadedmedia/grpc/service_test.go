@@ -21,7 +21,7 @@ func TestNewService(t *testing.T) {
 
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
-		uploadedMediaManager := &uploadedmediamock.Repository{}
+		uploadedMediaManager := &uploadedmediamock.RepositoryMock{}
 
 		service := NewService(logger, tracerProvider, uploadedMediaManager, &mockuploads.UploadManagerMock{})
 

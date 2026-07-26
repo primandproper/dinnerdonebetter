@@ -8,9 +8,7 @@ import (
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/converters"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
-	waitlistkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/keys"
 	waitlistmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	platformerrors "github.com/primandproper/platform-go/v6/errors"
 	"github.com/primandproper/platform-go/v6/filtering"
@@ -19,18 +17,21 @@ import (
 	mockpublishers "github.com/primandproper/platform-go/v6/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func buildWaitlistManagerForTest(t *testing.T) (*waitlistManager, *waitlistmock.Repository) {
+// buildWaitlistManagerForTest builds a manager backed by the given repository mock. A nil repo gets
+// an unconfigured mock, which panics if any of its methods are called.
+func buildWaitlistManagerForTest(t *testing.T, repo *waitlistmock.RepositoryMock) *waitlistManager {
 	t.Helper()
 
+	if repo == nil {
+		repo = &waitlistmock.RepositoryMock{}
+	}
+
 	ctx := t.Context()
-	repo := &waitlistmock.Repository{}
 	queueCfg := &msgconfig.QueuesConfig{DataChangesTopicName: t.Name()}
 
 	mpp := &mockpublishers.PublisherProviderMock{
@@ -44,26 +45,12 @@ func buildWaitlistManagerForTest(t *testing.T) (*waitlistManager, *waitlistmock.
 	m, err := NewWaitlistDataManager(ctx, tracingnoop.NewTracerProvider(), loggingnoop.NewLogger(), repo, queueCfg, mpp)
 	require.NoError(t, err)
 
-	return m.(*waitlistManager), repo
-}
-
-func setupExpectationsForWaitlistManager(
-	manager *waitlistManager,
-	repoSetupFunc func(repo *waitlistmock.Repository),
-	eventTypeMaps ...map[string][]string,
-) []any {
-	repo := &waitlistmock.Repository{}
-	if repoSetupFunc != nil {
-		repoSetupFunc(repo)
-	}
-	manager.repo = repo
-
-	mp := &mockpublishers.PublisherMock{
+	manager := m.(*waitlistManager)
+	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
 		PublishAsyncFunc: func(_ context.Context, _ any) {},
 	}
-	manager.dataChangesPublisher = mp
 
-	return []any{repo}
+	return manager
 }
 
 func TestWaitlistDataManager_CreateWaitlist(t *testing.T) {
@@ -73,52 +60,49 @@ func TestWaitlistDataManager_CreateWaitlist(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildWaitlistManagerForTest(t)
 
 		exampleWaitlist := fakes.BuildFakeWaitlist()
 		dbInput := converters.ConvertWaitlistToWaitlistDatabaseCreationInput(exampleWaitlist)
 
-		expectations := setupExpectationsForWaitlistManager(
-			manager,
-			func(repo *waitlistmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.CreateWaitlist), testutils.ContextMatcher, mock.MatchedBy(func(in *types.WaitlistDatabaseCreationInput) bool {
-					return in.ID == dbInput.ID && in.Name == dbInput.Name && in.Description == dbInput.Description
-				})).Return(exampleWaitlist, nil)
+		repo := &waitlistmock.RepositoryMock{
+			CreateWaitlistFunc: func(_ context.Context, in *types.WaitlistDatabaseCreationInput) (*types.Waitlist, error) {
+				assert.Equal(t, dbInput.ID, in.ID)
+				assert.Equal(t, dbInput.Name, in.Name)
+				assert.Equal(t, dbInput.Description, in.Description)
+
+				return exampleWaitlist, nil
 			},
-			map[string][]string{
-				types.WaitlistCreatedServiceEventType: {waitlistkeys.WaitlistIDKey},
-			},
-		)
+		}
+		manager := buildWaitlistManagerForTest(t, repo)
 
 		created, err := manager.CreateWaitlist(ctx, dbInput)
 
 		require.NoError(t, err)
 		assert.NotNil(t, created)
 		assert.Equal(t, exampleWaitlist.ID, created.ID)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateWaitlistCalls(), 1)
 	})
 
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildWaitlistManagerForTest(t)
 
 		exampleWaitlist := fakes.BuildFakeWaitlist()
 		dbInput := converters.ConvertWaitlistToWaitlistDatabaseCreationInput(exampleWaitlist)
 
-		expectations := setupExpectationsForWaitlistManager(
-			manager,
-			func(repo *waitlistmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.CreateWaitlist), testutils.ContextMatcher, mock.Anything).Return((*types.Waitlist)(nil), errors.New("db error"))
+		repo := &waitlistmock.RepositoryMock{
+			CreateWaitlistFunc: func(_ context.Context, _ *types.WaitlistDatabaseCreationInput) (*types.Waitlist, error) {
+				return nil, errors.New("db error")
 			},
-		)
+		}
+		manager := buildWaitlistManagerForTest(t, repo)
 
 		created, err := manager.CreateWaitlist(ctx, dbInput)
 
 		assert.Error(t, err)
 		assert.Nil(t, created)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateWaitlistCalls(), 1)
 	})
 }
 
@@ -129,16 +113,23 @@ func TestWaitlistDataManager_GetWaitlist(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildWaitlistManagerForTest(t)
 
 		expected := fakes.BuildFakeWaitlist()
-		repo.On(reflection.GetMethodName(repo.GetWaitlist), testutils.ContextMatcher, expected.ID).Return(expected, nil)
+
+		repo := &waitlistmock.RepositoryMock{
+			GetWaitlistFunc: func(_ context.Context, waitlistID string) (*types.Waitlist, error) {
+				assert.Equal(t, expected.ID, waitlistID)
+
+				return expected, nil
+			},
+		}
+		manager := buildWaitlistManagerForTest(t, repo)
 
 		result, err := manager.GetWaitlist(ctx, expected.ID)
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.GetWaitlistCalls(), 1)
 	})
 }
 
@@ -149,17 +140,24 @@ func TestWaitlistDataManager_GetWaitlists(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildWaitlistManagerForTest(t)
 
 		filter := filtering.DefaultQueryFilter()
 		expected := fakes.BuildFakeWaitlistsList()
-		repo.On(reflection.GetMethodName(repo.GetWaitlists), testutils.ContextMatcher, filter).Return(expected, nil)
+
+		repo := &waitlistmock.RepositoryMock{
+			GetWaitlistsFunc: func(_ context.Context, actualFilter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Waitlist], error) {
+				assert.Equal(t, filter, actualFilter)
+
+				return expected, nil
+			},
+		}
+		manager := buildWaitlistManagerForTest(t, repo)
 
 		result, err := manager.GetWaitlists(ctx, filter)
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.GetWaitlistsCalls(), 1)
 	})
 }
 
@@ -170,31 +168,29 @@ func TestWaitlistDataManager_UpdateWaitlist(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildWaitlistManagerForTest(t)
 
 		waitlist := fakes.BuildFakeWaitlist()
 
-		expectations := setupExpectationsForWaitlistManager(
-			manager,
-			func(repo *waitlistmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.UpdateWaitlist), testutils.ContextMatcher, waitlist).Return(nil)
+		repo := &waitlistmock.RepositoryMock{
+			UpdateWaitlistFunc: func(_ context.Context, actual *types.Waitlist) error {
+				assert.Equal(t, waitlist, actual)
+
+				return nil
 			},
-			map[string][]string{
-				types.WaitlistUpdatedServiceEventType: {waitlistkeys.WaitlistIDKey},
-			},
-		)
+		}
+		manager := buildWaitlistManagerForTest(t, repo)
 
 		err := manager.UpdateWaitlist(ctx, waitlist)
 
 		require.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.UpdateWaitlistCalls(), 1)
 	})
 
 	t.Run("with nil input", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildWaitlistManagerForTest(t)
+		manager := buildWaitlistManagerForTest(t, nil)
 
 		err := manager.UpdateWaitlist(ctx, nil)
 
@@ -209,24 +205,22 @@ func TestWaitlistDataManager_ArchiveWaitlist(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildWaitlistManagerForTest(t)
 
 		waitlistID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForWaitlistManager(
-			manager,
-			func(repo *waitlistmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.ArchiveWaitlist), testutils.ContextMatcher, waitlistID).Return(nil)
+		repo := &waitlistmock.RepositoryMock{
+			ArchiveWaitlistFunc: func(_ context.Context, actualID string) error {
+				assert.Equal(t, waitlistID, actualID)
+
+				return nil
 			},
-			map[string][]string{
-				types.WaitlistArchivedServiceEventType: {waitlistkeys.WaitlistIDKey},
-			},
-		)
+		}
+		manager := buildWaitlistManagerForTest(t, repo)
 
 		err := manager.ArchiveWaitlist(ctx, waitlistID)
 
 		require.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.ArchiveWaitlistCalls(), 1)
 	})
 }
 
@@ -237,29 +231,26 @@ func TestWaitlistDataManager_CreateWaitlistSignup(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildWaitlistManagerForTest(t)
 
 		exampleSignup := fakes.BuildFakeWaitlistSignup()
 		dbInput := converters.ConvertWaitlistSignupToWaitlistSignupDatabaseCreationInput(exampleSignup)
 
-		expectations := setupExpectationsForWaitlistManager(
-			manager,
-			func(repo *waitlistmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.CreateWaitlistSignup), testutils.ContextMatcher, mock.MatchedBy(func(in *types.WaitlistSignupDatabaseCreationInput) bool {
-					return in.ID == dbInput.ID && in.BelongsToWaitlist == dbInput.BelongsToWaitlist
-				})).Return(exampleSignup, nil)
+		repo := &waitlistmock.RepositoryMock{
+			CreateWaitlistSignupFunc: func(_ context.Context, in *types.WaitlistSignupDatabaseCreationInput) (*types.WaitlistSignup, error) {
+				assert.Equal(t, dbInput.ID, in.ID)
+				assert.Equal(t, dbInput.BelongsToWaitlist, in.BelongsToWaitlist)
+
+				return exampleSignup, nil
 			},
-			map[string][]string{
-				types.WaitlistSignupCreatedServiceEventType: {waitlistkeys.WaitlistSignupIDKey, waitlistkeys.WaitlistIDKey},
-			},
-		)
+		}
+		manager := buildWaitlistManagerForTest(t, repo)
 
 		created, err := manager.CreateWaitlistSignup(ctx, dbInput)
 
 		require.NoError(t, err)
 		assert.NotNil(t, created)
 		assert.Equal(t, exampleSignup.ID, created.ID)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateWaitlistSignupCalls(), 1)
 	})
 }
 
@@ -270,31 +261,29 @@ func TestWaitlistDataManager_UpdateWaitlistSignup(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildWaitlistManagerForTest(t)
 
 		signup := fakes.BuildFakeWaitlistSignup()
 
-		expectations := setupExpectationsForWaitlistManager(
-			manager,
-			func(repo *waitlistmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.UpdateWaitlistSignup), testutils.ContextMatcher, signup).Return(nil)
+		repo := &waitlistmock.RepositoryMock{
+			UpdateWaitlistSignupFunc: func(_ context.Context, actual *types.WaitlistSignup) error {
+				assert.Equal(t, signup, actual)
+
+				return nil
 			},
-			map[string][]string{
-				types.WaitlistSignupUpdatedServiceEventType: {waitlistkeys.WaitlistSignupIDKey, waitlistkeys.WaitlistIDKey},
-			},
-		)
+		}
+		manager := buildWaitlistManagerForTest(t, repo)
 
 		err := manager.UpdateWaitlistSignup(ctx, signup)
 
 		require.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.UpdateWaitlistSignupCalls(), 1)
 	})
 
 	t.Run("with nil input", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildWaitlistManagerForTest(t)
+		manager := buildWaitlistManagerForTest(t, nil)
 
 		err := manager.UpdateWaitlistSignup(ctx, nil)
 
@@ -309,24 +298,22 @@ func TestWaitlistDataManager_ArchiveWaitlistSignup(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildWaitlistManagerForTest(t)
 
 		waitlistSignupID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForWaitlistManager(
-			manager,
-			func(repo *waitlistmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.ArchiveWaitlistSignup), testutils.ContextMatcher, waitlistSignupID).Return(nil)
+		repo := &waitlistmock.RepositoryMock{
+			ArchiveWaitlistSignupFunc: func(_ context.Context, actualID string) error {
+				assert.Equal(t, waitlistSignupID, actualID)
+
+				return nil
 			},
-			map[string][]string{
-				types.WaitlistSignupArchivedServiceEventType: {waitlistkeys.WaitlistSignupIDKey},
-			},
-		)
+		}
+		manager := buildWaitlistManagerForTest(t, repo)
 
 		err := manager.ArchiveWaitlistSignup(ctx, waitlistSignupID)
 
 		require.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.ArchiveWaitlistSignupCalls(), 1)
 	})
 }
 
@@ -337,16 +324,23 @@ func TestWaitlistDataManager_GetWaitlistSignupByID(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildWaitlistManagerForTest(t)
 
 		expected := fakes.BuildFakeWaitlistSignup()
-		repo.On(reflection.GetMethodName(repo.GetWaitlistSignupByID), testutils.ContextMatcher, expected.ID).Return(expected, nil)
+
+		repo := &waitlistmock.RepositoryMock{
+			GetWaitlistSignupByIDFunc: func(_ context.Context, signupID string) (*types.WaitlistSignup, error) {
+				assert.Equal(t, expected.ID, signupID)
+
+				return expected, nil
+			},
+		}
+		manager := buildWaitlistManagerForTest(t, repo)
 
 		result, err := manager.GetWaitlistSignupByID(ctx, expected.ID)
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.GetWaitlistSignupByIDCalls(), 1)
 	})
 }
 
@@ -357,17 +351,25 @@ func TestWaitlistDataManager_GetWaitlistSignupsForUser(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildWaitlistManagerForTest(t)
 
 		userID := fakes.BuildFakeID()
 		filter := filtering.DefaultQueryFilter()
 		expected := fakes.BuildFakeWaitlistSignupsList()
-		repo.On(reflection.GetMethodName(repo.GetWaitlistSignupsForUser), testutils.ContextMatcher, userID, filter).Return(expected, nil)
+
+		repo := &waitlistmock.RepositoryMock{
+			GetWaitlistSignupsForUserFunc: func(_ context.Context, actualUserID string, actualFilter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.WaitlistSignup], error) {
+				assert.Equal(t, userID, actualUserID)
+				assert.Equal(t, filter, actualFilter)
+
+				return expected, nil
+			},
+		}
+		manager := buildWaitlistManagerForTest(t, repo)
 
 		result, err := manager.GetWaitlistSignupsForUser(ctx, userID, filter)
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.GetWaitlistSignupsForUserCalls(), 1)
 	})
 }

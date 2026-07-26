@@ -10,11 +10,9 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
 	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/reflection"
 	"github.com/primandproper/platform-go/v6/uploads"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testing.T) {
@@ -42,14 +40,18 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 			return nil
 		}
 
-		dataPrivacyRepo.On(reflection.GetMethodName(dataPrivacyRepo.FetchUserDataCollection), mock.Anything, userID).Return(&dataprivacy.UserDataCollection{}, nil)
+		dataPrivacyRepo.FetchUserDataCollectionFunc = func(_ context.Context, actualUserID string) (*dataprivacy.UserDataCollection, error) {
+			assert.Equal(t, userID, actualUserID)
+
+			return &dataprivacy.UserDataCollection{}, nil
+		}
 
 		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
 
 		err = handler.UserDataAggregationEventHandler("user_data_aggregation")(ctx, rawMsg)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, dataPrivacyRepo)
+		assert.Len(t, dataPrivacyRepo.FetchUserDataCollectionCalls(), 1)
 	})
 
 	t.Run("marks disclosure completed when request carries a disclosure ID", func(t *testing.T) {
@@ -77,15 +79,25 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 			return nil
 		}
 
-		dataPrivacyRepo.On(reflection.GetMethodName(dataPrivacyRepo.FetchUserDataCollection), mock.Anything, userID).Return(&dataprivacy.UserDataCollection{}, nil)
-		dataPrivacyRepo.On(reflection.GetMethodName(dataPrivacyRepo.MarkUserDataDisclosureCompleted), mock.Anything, disclosureID, reportID).Return(nil)
+		dataPrivacyRepo.FetchUserDataCollectionFunc = func(_ context.Context, actualUserID string) (*dataprivacy.UserDataCollection, error) {
+			assert.Equal(t, userID, actualUserID)
+
+			return &dataprivacy.UserDataCollection{}, nil
+		}
+		dataPrivacyRepo.MarkUserDataDisclosureCompletedFunc = func(_ context.Context, actualDisclosureID string, actualReportID string) error {
+			assert.Equal(t, disclosureID, actualDisclosureID)
+			assert.Equal(t, reportID, actualReportID)
+
+			return nil
+		}
 
 		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
 
 		err = handler.UserDataAggregationEventHandler("user_data_aggregation")(ctx, rawMsg)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, dataPrivacyRepo)
+		assert.Len(t, dataPrivacyRepo.FetchUserDataCollectionCalls(), 1)
+		assert.Len(t, dataPrivacyRepo.MarkUserDataDisclosureCompletedCalls(), 1)
 	})
 
 	t.Run("marks disclosure failed when aggregation fails", func(t *testing.T) {
@@ -113,14 +125,23 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 		}
 
 		expectedError := errors.New("fetch error")
-		dataPrivacyRepo.On(reflection.GetMethodName(dataPrivacyRepo.FetchUserDataCollection), mock.Anything, userID).Return((*dataprivacy.UserDataCollection)(nil), expectedError)
-		dataPrivacyRepo.On(reflection.GetMethodName(dataPrivacyRepo.MarkUserDataDisclosureFailed), mock.Anything, disclosureID).Return(nil)
+		dataPrivacyRepo.FetchUserDataCollectionFunc = func(_ context.Context, actualUserID string) (*dataprivacy.UserDataCollection, error) {
+			assert.Equal(t, userID, actualUserID)
+
+			return nil, expectedError
+		}
+		dataPrivacyRepo.MarkUserDataDisclosureFailedFunc = func(_ context.Context, actualDisclosureID string) error {
+			assert.Equal(t, disclosureID, actualDisclosureID)
+
+			return nil
+		}
 
 		err = handler.UserDataAggregationEventHandler("user_data_aggregation")(ctx, rawMsg)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "fetching user data collection")
 
-		mock.AssertExpectationsForObjects(t, dataPrivacyRepo)
+		assert.Len(t, dataPrivacyRepo.FetchUserDataCollectionCalls(), 1)
+		assert.Len(t, dataPrivacyRepo.MarkUserDataDisclosureFailedCalls(), 1)
 	})
 
 	t.Run("with decode error", func(t *testing.T) {
@@ -163,13 +184,17 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 		}
 
 		expectedError := errors.New("fetch error")
-		dataPrivacyRepo.On(reflection.GetMethodName(dataPrivacyRepo.FetchUserDataCollection), mock.Anything, userID).Return((*dataprivacy.UserDataCollection)(nil), expectedError)
+		dataPrivacyRepo.FetchUserDataCollectionFunc = func(_ context.Context, actualUserID string) (*dataprivacy.UserDataCollection, error) {
+			assert.Equal(t, userID, actualUserID)
+
+			return nil, expectedError
+		}
 
 		err = handler.UserDataAggregationEventHandler("user_data_aggregation")(ctx, rawMsg)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "fetching user data collection")
 
-		mock.AssertExpectationsForObjects(t, dataPrivacyRepo)
+		assert.Len(t, dataPrivacyRepo.FetchUserDataCollectionCalls(), 1)
 	})
 
 	t.Run("with upload error", func(t *testing.T) {
@@ -194,7 +219,11 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 			return nil
 		}
 
-		dataPrivacyRepo.On(reflection.GetMethodName(dataPrivacyRepo.FetchUserDataCollection), mock.Anything, userID).Return(&dataprivacy.UserDataCollection{}, nil)
+		dataPrivacyRepo.FetchUserDataCollectionFunc = func(_ context.Context, actualUserID string) (*dataprivacy.UserDataCollection, error) {
+			assert.Equal(t, userID, actualUserID)
+
+			return &dataprivacy.UserDataCollection{}, nil
+		}
 
 		expectedError := errors.New("upload error")
 		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return expectedError }
@@ -203,7 +232,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "saving collection")
 
-		mock.AssertExpectationsForObjects(t, dataPrivacyRepo)
+		assert.Len(t, dataPrivacyRepo.FetchUserDataCollectionCalls(), 1)
 	})
 
 	t.Run("with empty report ID", func(t *testing.T) {
@@ -228,13 +257,17 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 			return nil
 		}
 
-		dataPrivacyRepo.On(reflection.GetMethodName(dataPrivacyRepo.FetchUserDataCollection), mock.Anything, userID).Return(&dataprivacy.UserDataCollection{}, nil)
+		dataPrivacyRepo.FetchUserDataCollectionFunc = func(_ context.Context, actualUserID string) (*dataprivacy.UserDataCollection, error) {
+			assert.Equal(t, userID, actualUserID)
+
+			return &dataprivacy.UserDataCollection{}, nil
+		}
 
 		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
 
 		err = handler.UserDataAggregationEventHandler("user_data_aggregation")(ctx, rawMsg)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, dataPrivacyRepo)
+		assert.Len(t, dataPrivacyRepo.FetchUserDataCollectionCalls(), 1)
 	})
 }

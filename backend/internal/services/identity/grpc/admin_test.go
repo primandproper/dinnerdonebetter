@@ -11,24 +11,21 @@ import (
 	identityfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	managermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	identitysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	"github.com/primandproper/platform-go/v6/observability/tracing"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func buildTestServiceWithAdminPermissions(t *testing.T) (*serviceImpl, *managermock.IdentityDataManager) {
+func buildTestServiceWithAdminPermissions(t *testing.T) (*serviceImpl, *managermock.IdentityDataManagerMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
-	identityDataManager := &managermock.IdentityDataManager{}
+	identityDataManager := &managermock.IdentityDataManagerMock{}
 
 	service := &serviceImpl{
 		tracer:              tracer,
@@ -57,7 +54,7 @@ func buildTestServiceWithInsufficientPermissions(t *testing.T) *serviceImpl {
 
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
-	identityDataManager := &managermock.IdentityDataManager{}
+	identityDataManager := &managermock.IdentityDataManagerMock{}
 
 	service := &serviceImpl{
 		tracer:              tracer,
@@ -91,7 +88,12 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 
 		exampleUserID := identityfakes.BuildFakeID()
 
-		identityDataManager.On(reflection.GetMethodName(identityDataManager.AdminSetPasswordChangeRequired), testutils.ContextMatcher, exampleUserID, true).Return(nil)
+		identityDataManager.AdminSetPasswordChangeRequiredFunc = func(_ context.Context, userID string, requiresChange bool) error {
+			assert.Equal(t, exampleUserID, userID)
+			assert.Equal(t, true, requiresChange)
+
+			return nil
+		}
 
 		request := &identitysvc.AdminSetPasswordChangeRequiredRequest{
 			TargetUserId:           exampleUserID,
@@ -130,7 +132,11 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 
 		service, identityDataManager := buildTestServiceWithAdminPermissions(t)
 
-		identityDataManager.On(reflection.GetMethodName(identityDataManager.AdminSetPasswordChangeRequired), testutils.ContextMatcher, mock.AnythingOfType("string"), true).Return(errors.New("update error"))
+		identityDataManager.AdminSetPasswordChangeRequiredFunc = func(_ context.Context, _ string, requiresChange bool) error {
+			assert.Equal(t, true, requiresChange)
+
+			return errors.New("update error")
+		}
 
 		request := &identitysvc.AdminSetPasswordChangeRequiredRequest{
 			TargetUserId:           identityfakes.BuildFakeID(),
@@ -178,10 +184,11 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 
 		exampleUserID := identityfakes.BuildFakeID()
 
-		identityDataManager.On(reflection.GetMethodName(identityDataManager.AdminUpdateUserStatus), testutils.ContextMatcher, mock.MatchedBy(func(input *identity.UserAccountStatusUpdateInput) bool {
-			return input.TargetUserID == exampleUserID &&
-				input.NewStatus == identity.GoodStandingUserAccountStatus.String()
-		})).Return(nil)
+		identityDataManager.AdminUpdateUserStatusFunc = func(_ context.Context, input *identity.UserAccountStatusUpdateInput) error {
+			assert.True(t, input.TargetUserID == exampleUserID && input.NewStatus == identity.GoodStandingUserAccountStatus.String())
+
+			return nil
+		}
 
 		request := &identitysvc.AdminUpdateUserStatusRequest{
 			TargetUserId: exampleUserID,
@@ -221,7 +228,9 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 
 		service, identityDataManager := buildTestServiceWithAdminPermissions(t)
 
-		identityDataManager.On(reflection.GetMethodName(identityDataManager.AdminUpdateUserStatus), testutils.ContextMatcher, mock.AnythingOfType("*identity.UserAccountStatusUpdateInput")).Return(errors.New("update error"))
+		identityDataManager.AdminUpdateUserStatusFunc = func(_ context.Context, _ *identity.UserAccountStatusUpdateInput) error {
+			return errors.New("update error")
+		}
 
 		request := &identitysvc.AdminUpdateUserStatusRequest{
 			TargetUserId: identityfakes.BuildFakeID(),
@@ -265,10 +274,11 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 
 		exampleUserID := identityfakes.BuildFakeID()
 
-		identityDataManager.On(reflection.GetMethodName(identityDataManager.AdminUpdateUserStatus), testutils.ContextMatcher, mock.MatchedBy(func(input *identity.UserAccountStatusUpdateInput) bool {
-			return input.TargetUserID == exampleUserID &&
-				input.NewStatus == identity.BannedUserAccountStatus.String()
-		})).Return(nil)
+		identityDataManager.AdminUpdateUserStatusFunc = func(_ context.Context, input *identity.UserAccountStatusUpdateInput) error {
+			assert.True(t, input.TargetUserID == exampleUserID && input.NewStatus == identity.BannedUserAccountStatus.String())
+
+			return nil
+		}
 
 		request := &identitysvc.AdminUpdateUserStatusRequest{
 			TargetUserId: exampleUserID,
@@ -290,10 +300,11 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 
 		exampleUserID := identityfakes.BuildFakeID()
 
-		identityDataManager.On(reflection.GetMethodName(identityDataManager.AdminUpdateUserStatus), testutils.ContextMatcher, mock.MatchedBy(func(input *identity.UserAccountStatusUpdateInput) bool {
-			return input.TargetUserID == exampleUserID &&
-				input.NewStatus == identity.UnverifiedAccountStatus.String()
-		})).Return(nil)
+		identityDataManager.AdminUpdateUserStatusFunc = func(_ context.Context, input *identity.UserAccountStatusUpdateInput) error {
+			assert.True(t, input.TargetUserID == exampleUserID && input.NewStatus == identity.UnverifiedAccountStatus.String())
+
+			return nil
+		}
 
 		request := &identitysvc.AdminUpdateUserStatusRequest{
 			TargetUserId: exampleUserID,

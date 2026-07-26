@@ -14,15 +14,12 @@ import (
 	waitlistmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/mock"
 	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	waitlistssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	"github.com/primandproper/platform-go/v6/observability/tracing"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -33,12 +30,12 @@ var (
 	testSessionAccountID = identityfakes.BuildFakeID()
 )
 
-func buildTestService(t *testing.T) (*serviceImpl, *waitlistmock.Repository) {
+func buildTestService(t *testing.T) (*serviceImpl, *waitlistmock.RepositoryMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
-	waitlistRepo := &waitlistmock.Repository{}
+	waitlistRepo := &waitlistmock.RepositoryMock{}
 
 	service := &serviceImpl{
 		tracer: tracer,
@@ -58,7 +55,7 @@ func buildTestService(t *testing.T) (*serviceImpl, *waitlistmock.Repository) {
 	return service, waitlistRepo
 }
 
-func buildTestServiceAsAdmin(t *testing.T) (*serviceImpl, *waitlistmock.Repository) {
+func buildTestServiceAsAdmin(t *testing.T) (*serviceImpl, *waitlistmock.RepositoryMock) {
 	t.Helper()
 
 	service, waitlistRepo := buildTestService(t)
@@ -87,7 +84,7 @@ func buildTestServiceWithSessionError(t *testing.T) *serviceImpl {
 		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
 			return nil, errors.New("session error")
 		},
-		waitlistsManager: &waitlistmock.Repository{},
+		waitlistsManager: &waitlistmock.RepositoryMock{},
 	}
 
 	return service
@@ -105,7 +102,9 @@ func TestServiceImpl_CreateWaitlist(t *testing.T) {
 		fakeWaitlist := waitlistfakes.BuildFakeWaitlist()
 		fakeInput := waitlistfakes.BuildFakeWaitlistCreationRequestInput()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.CreateWaitlist), testutils.ContextMatcher, mock.AnythingOfType("*waitlists.WaitlistDatabaseCreationInput")).Return(fakeWaitlist, nil)
+		mockRepo.CreateWaitlistFunc = func(_ context.Context, _ *waitlists.WaitlistDatabaseCreationInput) (*waitlists.Waitlist, error) {
+			return fakeWaitlist, nil
+		}
 
 		request := &waitlistssvc.CreateWaitlistRequest{
 			Input: &waitlistssvc.WaitlistCreationRequestInput{
@@ -125,7 +124,7 @@ func TestServiceImpl_CreateWaitlist(t *testing.T) {
 		assert.Equal(t, fakeWaitlist.Name, response.Created.Name)
 		assert.Equal(t, fakeWaitlist.Description, response.Created.Description)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.CreateWaitlistCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -179,7 +178,9 @@ func TestServiceImpl_CreateWaitlist(t *testing.T) {
 
 		fakeInput := waitlistfakes.BuildFakeWaitlistCreationRequestInput()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.CreateWaitlist), testutils.ContextMatcher, mock.AnythingOfType("*waitlists.WaitlistDatabaseCreationInput")).Return((*waitlists.Waitlist)(nil), errors.New("repository error"))
+		mockRepo.CreateWaitlistFunc = func(_ context.Context, _ *waitlists.WaitlistDatabaseCreationInput) (*waitlists.Waitlist, error) {
+			return nil, errors.New("repository error")
+		}
 
 		request := &waitlistssvc.CreateWaitlistRequest{
 			Input: &waitlistssvc.WaitlistCreationRequestInput{
@@ -195,7 +196,7 @@ func TestServiceImpl_CreateWaitlist(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.CreateWaitlistCalls(), 1)
 	})
 }
 
@@ -211,7 +212,11 @@ func TestServiceImpl_GetWaitlist(t *testing.T) {
 		fakeWaitlist := waitlistfakes.BuildFakeWaitlist()
 		waitlistID := "test-waitlist-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlist), testutils.ContextMatcher, waitlistID).Return(fakeWaitlist, nil)
+		mockRepo.GetWaitlistFunc = func(_ context.Context, actualWaitlistID string) (*waitlists.Waitlist, error) {
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return fakeWaitlist, nil
+		}
 
 		request := &waitlistssvc.GetWaitlistRequest{
 			WaitlistId: waitlistID,
@@ -226,7 +231,7 @@ func TestServiceImpl_GetWaitlist(t *testing.T) {
 		assert.Equal(t, fakeWaitlist.ID, response.Result.Id)
 		assert.Equal(t, fakeWaitlist.Name, response.Result.Name)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistCalls(), 1)
 	})
 
 	t.Run("repository error", func(t *testing.T) {
@@ -237,7 +242,11 @@ func TestServiceImpl_GetWaitlist(t *testing.T) {
 
 		waitlistID := "test-waitlist-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlist), testutils.ContextMatcher, waitlistID).Return((*waitlists.Waitlist)(nil), errors.New("repository error"))
+		mockRepo.GetWaitlistFunc = func(_ context.Context, actualWaitlistID string) (*waitlists.Waitlist, error) {
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return nil, errors.New("repository error")
+		}
 
 		request := &waitlistssvc.GetWaitlistRequest{
 			WaitlistId: waitlistID,
@@ -249,7 +258,7 @@ func TestServiceImpl_GetWaitlist(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistCalls(), 1)
 	})
 }
 
@@ -264,7 +273,9 @@ func TestServiceImpl_GetWaitlists(t *testing.T) {
 
 		fakeWaitlists := waitlistfakes.BuildFakeWaitlistsList()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlists), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(fakeWaitlists, nil)
+		mockRepo.GetWaitlistsFunc = func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.Waitlist], error) {
+			return fakeWaitlists, nil
+		}
 
 		request := &waitlistssvc.GetWaitlistsRequest{
 			Filter: &grpcfiltering.QueryFilter{},
@@ -280,7 +291,7 @@ func TestServiceImpl_GetWaitlists(t *testing.T) {
 			assert.Equal(t, fakeWaitlists.Data[0].ID, response.Results[0].Id)
 		}
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistsCalls(), 1)
 	})
 
 	t.Run("repository error", func(t *testing.T) {
@@ -289,7 +300,9 @@ func TestServiceImpl_GetWaitlists(t *testing.T) {
 		ctx := t.Context()
 		service, mockRepo := buildTestService(t)
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlists), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return((*filtering.QueryFilteredResult[waitlists.Waitlist])(nil), errors.New("repository error"))
+		mockRepo.GetWaitlistsFunc = func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.Waitlist], error) {
+			return nil, errors.New("repository error")
+		}
 
 		request := &waitlistssvc.GetWaitlistsRequest{
 			Filter: &grpcfiltering.QueryFilter{},
@@ -301,7 +314,7 @@ func TestServiceImpl_GetWaitlists(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistsCalls(), 1)
 	})
 }
 
@@ -316,7 +329,9 @@ func TestServiceImpl_GetActiveWaitlists(t *testing.T) {
 
 		fakeWaitlists := waitlistfakes.BuildFakeWaitlistsList()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetActiveWaitlists), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(fakeWaitlists, nil)
+		mockRepo.GetActiveWaitlistsFunc = func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.Waitlist], error) {
+			return fakeWaitlists, nil
+		}
 
 		request := &waitlistssvc.GetActiveWaitlistsRequest{
 			Filter: &grpcfiltering.QueryFilter{},
@@ -332,7 +347,7 @@ func TestServiceImpl_GetActiveWaitlists(t *testing.T) {
 			assert.Equal(t, fakeWaitlists.Data[0].ID, response.Results[0].Id)
 		}
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetActiveWaitlistsCalls(), 1)
 	})
 
 	t.Run("repository error", func(t *testing.T) {
@@ -341,7 +356,9 @@ func TestServiceImpl_GetActiveWaitlists(t *testing.T) {
 		ctx := t.Context()
 		service, mockRepo := buildTestService(t)
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetActiveWaitlists), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return((*filtering.QueryFilteredResult[waitlists.Waitlist])(nil), errors.New("repository error"))
+		mockRepo.GetActiveWaitlistsFunc = func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.Waitlist], error) {
+			return nil, errors.New("repository error")
+		}
 
 		request := &waitlistssvc.GetActiveWaitlistsRequest{
 			Filter: &grpcfiltering.QueryFilter{},
@@ -353,7 +370,7 @@ func TestServiceImpl_GetActiveWaitlists(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetActiveWaitlistsCalls(), 1)
 	})
 }
 
@@ -370,8 +387,14 @@ func TestServiceImpl_UpdateWaitlist(t *testing.T) {
 		waitlistID := "test-waitlist-id"
 		newName := "updated name"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlist), testutils.ContextMatcher, waitlistID).Return(fakeWaitlist, nil)
-		mockRepo.On(reflection.GetMethodName(mockRepo.UpdateWaitlist), testutils.ContextMatcher, mock.AnythingOfType("*waitlists.Waitlist")).Return(nil)
+		mockRepo.GetWaitlistFunc = func(_ context.Context, actualWaitlistID string) (*waitlists.Waitlist, error) {
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return fakeWaitlist, nil
+		}
+		mockRepo.UpdateWaitlistFunc = func(_ context.Context, _ *waitlists.Waitlist) error {
+			return nil
+		}
 
 		request := &waitlistssvc.UpdateWaitlistRequest{
 			WaitlistId: waitlistID,
@@ -387,7 +410,8 @@ func TestServiceImpl_UpdateWaitlist(t *testing.T) {
 		assert.NotNil(t, response.Updated)
 		assert.NotNil(t, response.ResponseDetails)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistCalls(), 1)
+		assert.Len(t, mockRepo.UpdateWaitlistCalls(), 1)
 	})
 
 	t.Run("get waitlist error", func(t *testing.T) {
@@ -398,7 +422,11 @@ func TestServiceImpl_UpdateWaitlist(t *testing.T) {
 
 		waitlistID := "test-waitlist-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlist), testutils.ContextMatcher, waitlistID).Return((*waitlists.Waitlist)(nil), errors.New("repository error"))
+		mockRepo.GetWaitlistFunc = func(_ context.Context, actualWaitlistID string) (*waitlists.Waitlist, error) {
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return nil, errors.New("repository error")
+		}
 
 		request := &waitlistssvc.UpdateWaitlistRequest{
 			WaitlistId: waitlistID,
@@ -411,7 +439,7 @@ func TestServiceImpl_UpdateWaitlist(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistCalls(), 1)
 	})
 
 	t.Run("update error", func(t *testing.T) {
@@ -424,8 +452,14 @@ func TestServiceImpl_UpdateWaitlist(t *testing.T) {
 		waitlistID := "test-waitlist-id"
 		newName := "updated name"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlist), testutils.ContextMatcher, waitlistID).Return(fakeWaitlist, nil)
-		mockRepo.On(reflection.GetMethodName(mockRepo.UpdateWaitlist), testutils.ContextMatcher, mock.AnythingOfType("*waitlists.Waitlist")).Return(errors.New("update error"))
+		mockRepo.GetWaitlistFunc = func(_ context.Context, actualWaitlistID string) (*waitlists.Waitlist, error) {
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return fakeWaitlist, nil
+		}
+		mockRepo.UpdateWaitlistFunc = func(_ context.Context, _ *waitlists.Waitlist) error {
+			return errors.New("update error")
+		}
 
 		request := &waitlistssvc.UpdateWaitlistRequest{
 			WaitlistId: waitlistID,
@@ -440,7 +474,8 @@ func TestServiceImpl_UpdateWaitlist(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistCalls(), 1)
+		assert.Len(t, mockRepo.UpdateWaitlistCalls(), 1)
 	})
 }
 
@@ -455,7 +490,11 @@ func TestServiceImpl_ArchiveWaitlist(t *testing.T) {
 
 		waitlistID := "test-waitlist-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.ArchiveWaitlist), testutils.ContextMatcher, waitlistID).Return(nil)
+		mockRepo.ArchiveWaitlistFunc = func(_ context.Context, actualWaitlistID string) error {
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return nil
+		}
 
 		request := &waitlistssvc.ArchiveWaitlistRequest{
 			WaitlistId: waitlistID,
@@ -467,7 +506,7 @@ func TestServiceImpl_ArchiveWaitlist(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.ArchiveWaitlistCalls(), 1)
 	})
 
 	t.Run("repository error", func(t *testing.T) {
@@ -478,7 +517,11 @@ func TestServiceImpl_ArchiveWaitlist(t *testing.T) {
 
 		waitlistID := "test-waitlist-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.ArchiveWaitlist), testutils.ContextMatcher, waitlistID).Return(errors.New("repository error"))
+		mockRepo.ArchiveWaitlistFunc = func(_ context.Context, actualWaitlistID string) error {
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return errors.New("repository error")
+		}
 
 		request := &waitlistssvc.ArchiveWaitlistRequest{
 			WaitlistId: waitlistID,
@@ -490,7 +533,7 @@ func TestServiceImpl_ArchiveWaitlist(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.ArchiveWaitlistCalls(), 1)
 	})
 }
 
@@ -505,7 +548,11 @@ func TestServiceImpl_WaitlistIsNotExpired(t *testing.T) {
 
 		waitlistID := "test-waitlist-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.WaitlistIsNotExpired), testutils.ContextMatcher, waitlistID).Return(true, nil)
+		mockRepo.WaitlistIsNotExpiredFunc = func(_ context.Context, actualWaitlistID string) (bool, error) {
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return true, nil
+		}
 
 		request := &waitlistssvc.WaitlistIsNotExpiredRequest{
 			WaitlistId: waitlistID,
@@ -518,7 +565,7 @@ func TestServiceImpl_WaitlistIsNotExpired(t *testing.T) {
 		assert.NotNil(t, response.ResponseDetails)
 		assert.True(t, response.IsNotExpired)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.WaitlistIsNotExpiredCalls(), 1)
 	})
 
 	t.Run("success - expired", func(t *testing.T) {
@@ -529,7 +576,11 @@ func TestServiceImpl_WaitlistIsNotExpired(t *testing.T) {
 
 		waitlistID := "test-waitlist-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.WaitlistIsNotExpired), testutils.ContextMatcher, waitlistID).Return(false, nil)
+		mockRepo.WaitlistIsNotExpiredFunc = func(_ context.Context, actualWaitlistID string) (bool, error) {
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return false, nil
+		}
 
 		request := &waitlistssvc.WaitlistIsNotExpiredRequest{
 			WaitlistId: waitlistID,
@@ -542,7 +593,7 @@ func TestServiceImpl_WaitlistIsNotExpired(t *testing.T) {
 		assert.NotNil(t, response.ResponseDetails)
 		assert.False(t, response.IsNotExpired)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.WaitlistIsNotExpiredCalls(), 1)
 	})
 
 	t.Run("repository error", func(t *testing.T) {
@@ -553,7 +604,11 @@ func TestServiceImpl_WaitlistIsNotExpired(t *testing.T) {
 
 		waitlistID := "test-waitlist-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.WaitlistIsNotExpired), testutils.ContextMatcher, waitlistID).Return(false, errors.New("repository error"))
+		mockRepo.WaitlistIsNotExpiredFunc = func(_ context.Context, actualWaitlistID string) (bool, error) {
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return false, errors.New("repository error")
+		}
 
 		request := &waitlistssvc.WaitlistIsNotExpiredRequest{
 			WaitlistId: waitlistID,
@@ -565,7 +620,7 @@ func TestServiceImpl_WaitlistIsNotExpired(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.WaitlistIsNotExpiredCalls(), 1)
 	})
 }
 
@@ -581,7 +636,9 @@ func TestServiceImpl_CreateWaitlistSignup(t *testing.T) {
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
 		fakeInput := waitlistfakes.BuildFakeWaitlistSignupCreationRequestInput()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.CreateWaitlistSignup), testutils.ContextMatcher, mock.AnythingOfType("*waitlists.WaitlistSignupDatabaseCreationInput")).Return(fakeSignup, nil)
+		mockRepo.CreateWaitlistSignupFunc = func(_ context.Context, _ *waitlists.WaitlistSignupDatabaseCreationInput) (*waitlists.WaitlistSignup, error) {
+			return fakeSignup, nil
+		}
 
 		request := &waitlistssvc.CreateWaitlistSignupRequest{
 			Input: &waitlistssvc.WaitlistSignupCreationRequestInput{
@@ -599,7 +656,7 @@ func TestServiceImpl_CreateWaitlistSignup(t *testing.T) {
 		assert.Equal(t, fakeSignup.ID, response.Created.Id)
 		assert.Equal(t, fakeSignup.Notes, response.Created.Notes)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.CreateWaitlistSignupCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -651,7 +708,9 @@ func TestServiceImpl_CreateWaitlistSignup(t *testing.T) {
 
 		fakeInput := waitlistfakes.BuildFakeWaitlistSignupCreationRequestInput()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.CreateWaitlistSignup), testutils.ContextMatcher, mock.AnythingOfType("*waitlists.WaitlistSignupDatabaseCreationInput")).Return((*waitlists.WaitlistSignup)(nil), errors.New("repository error"))
+		mockRepo.CreateWaitlistSignupFunc = func(_ context.Context, _ *waitlists.WaitlistSignupDatabaseCreationInput) (*waitlists.WaitlistSignup, error) {
+			return nil, errors.New("repository error")
+		}
 
 		request := &waitlistssvc.CreateWaitlistSignupRequest{
 			Input: &waitlistssvc.WaitlistSignupCreationRequestInput{
@@ -666,7 +725,7 @@ func TestServiceImpl_CreateWaitlistSignup(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.CreateWaitlistSignupCalls(), 1)
 	})
 }
 
@@ -684,7 +743,12 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 		signupID := identityfakes.BuildFakeID()
 		waitlistID := identityfakes.BuildFakeID()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignup), testutils.ContextMatcher, signupID, waitlistID).Return(fakeSignup, nil)
+		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
+			assert.Equal(t, signupID, waitlistSignupID)
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return fakeSignup, nil
+		}
 
 		request := &waitlistssvc.GetWaitlistSignupRequest{
 			WaitlistSignupId: signupID,
@@ -700,7 +764,7 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 		assert.Equal(t, fakeSignup.ID, response.Result.Id)
 		assert.Equal(t, fakeSignup.Notes, response.Result.Notes)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
 	})
 
 	t.Run("as service admin for another user's signup", func(t *testing.T) {
@@ -713,7 +777,12 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 		signupID := identityfakes.BuildFakeID()
 		waitlistID := identityfakes.BuildFakeID()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignup), testutils.ContextMatcher, signupID, waitlistID).Return(fakeSignup, nil)
+		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
+			assert.Equal(t, signupID, waitlistSignupID)
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return fakeSignup, nil
+		}
 
 		request := &waitlistssvc.GetWaitlistSignupRequest{
 			WaitlistSignupId: signupID,
@@ -725,7 +794,7 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
 	})
 
 	t.Run("as another user", func(t *testing.T) {
@@ -738,7 +807,12 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 		signupID := identityfakes.BuildFakeID()
 		waitlistID := identityfakes.BuildFakeID()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignup), testutils.ContextMatcher, signupID, waitlistID).Return(fakeSignup, nil)
+		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
+			assert.Equal(t, signupID, waitlistSignupID)
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return fakeSignup, nil
+		}
 
 		request := &waitlistssvc.GetWaitlistSignupRequest{
 			WaitlistSignupId: signupID,
@@ -751,7 +825,7 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -781,7 +855,12 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 		signupID := identityfakes.BuildFakeID()
 		waitlistID := identityfakes.BuildFakeID()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignup), testutils.ContextMatcher, signupID, waitlistID).Return((*waitlists.WaitlistSignup)(nil), errors.New("repository error"))
+		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
+			assert.Equal(t, signupID, waitlistSignupID)
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return nil, errors.New("repository error")
+		}
 
 		request := &waitlistssvc.GetWaitlistSignupRequest{
 			WaitlistSignupId: signupID,
@@ -794,7 +873,7 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
 	})
 }
 
@@ -810,7 +889,11 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 		fakeSignups := waitlistfakes.BuildFakeWaitlistSignupsList()
 		waitlistID := identityfakes.BuildFakeID()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignupsForWaitlist), testutils.ContextMatcher, waitlistID, testutils.QueryFilterMatcher).Return(fakeSignups, nil)
+		mockRepo.GetWaitlistSignupsForWaitlistFunc = func(_ context.Context, actualWaitlistID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.WaitlistSignup], error) {
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return fakeSignups, nil
+		}
 
 		request := &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
 			WaitlistId: waitlistID,
@@ -827,14 +910,14 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 			assert.Equal(t, fakeSignups.Data[0].ID, response.Results[0].Id)
 		}
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupsForWaitlistCalls(), 1)
 	})
 
 	t.Run("as regular user", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
+		service, _ := buildTestService(t)
 
 		request := &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
 			WaitlistId: identityfakes.BuildFakeID(),
@@ -846,8 +929,6 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-
-		mock.AssertExpectationsForObjects(t, mockRepo)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -876,7 +957,11 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 
 		waitlistID := identityfakes.BuildFakeID()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignupsForWaitlist), testutils.ContextMatcher, waitlistID, testutils.QueryFilterMatcher).Return((*filtering.QueryFilteredResult[waitlists.WaitlistSignup])(nil), errors.New("repository error"))
+		mockRepo.GetWaitlistSignupsForWaitlistFunc = func(_ context.Context, actualWaitlistID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.WaitlistSignup], error) {
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return nil, errors.New("repository error")
+		}
 
 		request := &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
 			WaitlistId: waitlistID,
@@ -889,7 +974,7 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupsForWaitlistCalls(), 1)
 	})
 }
 
@@ -908,8 +993,15 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 		waitlistID := identityfakes.BuildFakeID()
 		newNotes := "updated notes"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignup), testutils.ContextMatcher, signupID, waitlistID).Return(fakeSignup, nil)
-		mockRepo.On(reflection.GetMethodName(mockRepo.UpdateWaitlistSignup), testutils.ContextMatcher, mock.AnythingOfType("*waitlists.WaitlistSignup")).Return(nil)
+		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
+			assert.Equal(t, signupID, waitlistSignupID)
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return fakeSignup, nil
+		}
+		mockRepo.UpdateWaitlistSignupFunc = func(_ context.Context, _ *waitlists.WaitlistSignup) error {
+			return nil
+		}
 
 		request := &waitlistssvc.UpdateWaitlistSignupRequest{
 			WaitlistSignupId: signupID,
@@ -926,7 +1018,8 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 		assert.NotNil(t, response.Updated)
 		assert.NotNil(t, response.ResponseDetails)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
+		assert.Len(t, mockRepo.UpdateWaitlistSignupCalls(), 1)
 	})
 
 	t.Run("as another user", func(t *testing.T) {
@@ -940,7 +1033,12 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 		waitlistID := identityfakes.BuildFakeID()
 		newNotes := "updated notes"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignup), testutils.ContextMatcher, signupID, waitlistID).Return(fakeSignup, nil)
+		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
+			assert.Equal(t, signupID, waitlistSignupID)
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return fakeSignup, nil
+		}
 
 		request := &waitlistssvc.UpdateWaitlistSignupRequest{
 			WaitlistSignupId: signupID,
@@ -956,7 +1054,7 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -987,7 +1085,12 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 		signupID := identityfakes.BuildFakeID()
 		waitlistID := identityfakes.BuildFakeID()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignup), testutils.ContextMatcher, signupID, waitlistID).Return((*waitlists.WaitlistSignup)(nil), errors.New("repository error"))
+		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
+			assert.Equal(t, signupID, waitlistSignupID)
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return nil, errors.New("repository error")
+		}
 
 		request := &waitlistssvc.UpdateWaitlistSignupRequest{
 			WaitlistSignupId: signupID,
@@ -1001,7 +1104,7 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
 	})
 
 	t.Run("update error", func(t *testing.T) {
@@ -1016,8 +1119,15 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 		waitlistID := identityfakes.BuildFakeID()
 		newNotes := "updated notes"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignup), testutils.ContextMatcher, signupID, waitlistID).Return(fakeSignup, nil)
-		mockRepo.On(reflection.GetMethodName(mockRepo.UpdateWaitlistSignup), testutils.ContextMatcher, mock.AnythingOfType("*waitlists.WaitlistSignup")).Return(errors.New("update error"))
+		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
+			assert.Equal(t, signupID, waitlistSignupID)
+			assert.Equal(t, waitlistID, actualWaitlistID)
+
+			return fakeSignup, nil
+		}
+		mockRepo.UpdateWaitlistSignupFunc = func(_ context.Context, _ *waitlists.WaitlistSignup) error {
+			return errors.New("update error")
+		}
 
 		request := &waitlistssvc.UpdateWaitlistSignupRequest{
 			WaitlistSignupId: signupID,
@@ -1033,7 +1143,8 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
+		assert.Len(t, mockRepo.UpdateWaitlistSignupCalls(), 1)
 	})
 }
 
@@ -1050,8 +1161,16 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 		fakeSignup.BelongsToUser = testSessionUserID
 		signupID := identityfakes.BuildFakeID()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignupByID), testutils.ContextMatcher, signupID).Return(fakeSignup, nil)
-		mockRepo.On(reflection.GetMethodName(mockRepo.ArchiveWaitlistSignup), testutils.ContextMatcher, signupID).Return(nil)
+		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
+			assert.Equal(t, signupID, waitlistSignupID)
+
+			return fakeSignup, nil
+		}
+		mockRepo.ArchiveWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string) error {
+			assert.Equal(t, signupID, waitlistSignupID)
+
+			return nil
+		}
 
 		request := &waitlistssvc.ArchiveWaitlistSignupRequest{
 			WaitlistSignupId: signupID,
@@ -1063,7 +1182,8 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupByIDCalls(), 1)
+		assert.Len(t, mockRepo.ArchiveWaitlistSignupCalls(), 1)
 	})
 
 	t.Run("as service admin for another user's signup", func(t *testing.T) {
@@ -1075,8 +1195,16 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
 		signupID := identityfakes.BuildFakeID()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignupByID), testutils.ContextMatcher, signupID).Return(fakeSignup, nil)
-		mockRepo.On(reflection.GetMethodName(mockRepo.ArchiveWaitlistSignup), testutils.ContextMatcher, signupID).Return(nil)
+		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
+			assert.Equal(t, signupID, waitlistSignupID)
+
+			return fakeSignup, nil
+		}
+		mockRepo.ArchiveWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string) error {
+			assert.Equal(t, signupID, waitlistSignupID)
+
+			return nil
+		}
 
 		request := &waitlistssvc.ArchiveWaitlistSignupRequest{
 			WaitlistSignupId: signupID,
@@ -1087,7 +1215,8 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupByIDCalls(), 1)
+		assert.Len(t, mockRepo.ArchiveWaitlistSignupCalls(), 1)
 	})
 
 	t.Run("as another user", func(t *testing.T) {
@@ -1099,7 +1228,11 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
 		signupID := identityfakes.BuildFakeID()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignupByID), testutils.ContextMatcher, signupID).Return(fakeSignup, nil)
+		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
+			assert.Equal(t, signupID, waitlistSignupID)
+
+			return fakeSignup, nil
+		}
 
 		request := &waitlistssvc.ArchiveWaitlistSignupRequest{
 			WaitlistSignupId: signupID,
@@ -1111,7 +1244,7 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupByIDCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -1139,7 +1272,11 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 
 		signupID := identityfakes.BuildFakeID()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignupByID), testutils.ContextMatcher, signupID).Return((*waitlists.WaitlistSignup)(nil), errors.New("repository error"))
+		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
+			assert.Equal(t, signupID, waitlistSignupID)
+
+			return nil, errors.New("repository error")
+		}
 
 		request := &waitlistssvc.ArchiveWaitlistSignupRequest{
 			WaitlistSignupId: signupID,
@@ -1151,7 +1288,7 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupByIDCalls(), 1)
 	})
 
 	t.Run("repository error", func(t *testing.T) {
@@ -1164,8 +1301,16 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 		fakeSignup.BelongsToUser = testSessionUserID
 		signupID := identityfakes.BuildFakeID()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWaitlistSignupByID), testutils.ContextMatcher, signupID).Return(fakeSignup, nil)
-		mockRepo.On(reflection.GetMethodName(mockRepo.ArchiveWaitlistSignup), testutils.ContextMatcher, signupID).Return(errors.New("repository error"))
+		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
+			assert.Equal(t, signupID, waitlistSignupID)
+
+			return fakeSignup, nil
+		}
+		mockRepo.ArchiveWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string) error {
+			assert.Equal(t, signupID, waitlistSignupID)
+
+			return errors.New("repository error")
+		}
 
 		request := &waitlistssvc.ArchiveWaitlistSignupRequest{
 			WaitlistSignupId: signupID,
@@ -1177,7 +1322,8 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWaitlistSignupByIDCalls(), 1)
+		assert.Len(t, mockRepo.ArchiveWaitlistSignupCalls(), 1)
 	})
 }
 

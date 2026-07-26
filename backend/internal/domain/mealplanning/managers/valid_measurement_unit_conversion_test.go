@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestValidEnumerationManager_ValidMeasurementUnitConversionsForMeasurementUnit(T *testing.T) {
@@ -27,18 +25,20 @@ func TestValidEnumerationManager_ValidMeasurementUnitConversionsForMeasurementUn
 		expected := fakes.BuildFakeValidMeasurementUnitConversionsList()
 		exampleQuery := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidMeasurementUnitConversionsForUnit), testutils.ContextMatcher, exampleQuery, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidMeasurementUnitConversionsForUnitFunc: func(_ context.Context, validMeasurementUnitID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidMeasurementUnitConversion], error) {
+				assert.Equal(t, exampleQuery, validMeasurementUnitID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ValidMeasurementUnitConversionsForMeasurementUnit(ctx, exampleQuery, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidMeasurementUnitConversionsForUnitCalls(), 1)
 	})
 }
 
@@ -54,21 +54,18 @@ func TestValidEnumerationManager_CreateValidMeasurementUnitConversion(T *testing
 		expected := fakes.BuildFakeValidMeasurementUnitConversion()
 		fakeInput := fakes.BuildFakeValidMeasurementUnitConversionCreationRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.CreateValidMeasurementUnitConversion), testutils.ContextMatcher, testutils.MatchType[*types.ValidMeasurementUnitConversionDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateValidMeasurementUnitConversionFunc: func(_ context.Context, _ *types.ValidMeasurementUnitConversionDatabaseCreationInput) (*types.ValidMeasurementUnitConversion, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				types.ValidMeasurementUnitConversionCreatedServiceEventType: {mealplanningkeys.ValidMeasurementUnitConversionIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidMeasurementUnitConversion(ctx, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateValidMeasurementUnitConversionCalls(), 1)
 	})
 }
 
@@ -83,18 +80,20 @@ func TestValidEnumerationManager_ReadValidMeasurementUnitConversion(T *testing.T
 
 		expected := fakes.BuildFakeValidMeasurementUnitConversion()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidMeasurementUnitConversion), testutils.ContextMatcher, expected.ID).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidMeasurementUnitConversionFunc: func(_ context.Context, validMeasurementUnitConversionID string) (*types.ValidMeasurementUnitConversion, error) {
+				assert.Equal(t, expected.ID, validMeasurementUnitConversionID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidMeasurementUnitConversion(ctx, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidMeasurementUnitConversionCalls(), 1)
 	})
 }
 
@@ -110,22 +109,24 @@ func TestValidEnumerationManager_UpdateValidMeasurementUnitConversion(T *testing
 		exampleValidMeasurementUnitConversion := fakes.BuildFakeValidMeasurementUnitConversion()
 		exampleInput := fakes.BuildFakeValidMeasurementUnitConversionUpdateRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetValidMeasurementUnitConversion), testutils.ContextMatcher, exampleValidMeasurementUnitConversion.ID).Return(exampleValidMeasurementUnitConversion, nil)
-				db.On(reflection.GetMethodName(mpm.db.UpdateValidMeasurementUnitConversion), testutils.ContextMatcher, testutils.MatchType[*types.ValidMeasurementUnitConversion]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidMeasurementUnitConversionFunc: func(_ context.Context, validMeasurementUnitConversionID string) (*types.ValidMeasurementUnitConversion, error) {
+				assert.Equal(t, exampleValidMeasurementUnitConversion.ID, validMeasurementUnitConversionID)
+
+				return exampleValidMeasurementUnitConversion, nil
 			},
-			map[string][]string{
-				types.ValidMeasurementUnitConversionUpdatedServiceEventType: {mealplanningkeys.ValidMeasurementUnitConversionIDKey},
+			UpdateValidMeasurementUnitConversionFunc: func(_ context.Context, _ *types.ValidMeasurementUnitConversion) error {
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		result, err := mpm.UpdateValidMeasurementUnitConversion(ctx, exampleValidMeasurementUnitConversion.ID, exampleInput)
 		assert.NotNil(t, result)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidMeasurementUnitConversionCalls(), 2) // the manager re-reads the record after updating it
+		assert.Len(t, db.UpdateValidMeasurementUnitConversionCalls(), 1)
 	})
 }
 
@@ -140,18 +141,17 @@ func TestValidEnumerationManager_ArchiveValidMeasurementUnitConversion(T *testin
 
 		expected := fakes.BuildFakeValidMeasurementUnitConversion()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.ArchiveValidMeasurementUnitConversion), testutils.ContextMatcher, expected.ID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveValidMeasurementUnitConversionFunc: func(_ context.Context, validMeasurementUnitConversionID string) error {
+				assert.Equal(t, expected.ID, validMeasurementUnitConversionID)
+
+				return nil
 			},
-			map[string][]string{
-				types.ValidMeasurementUnitConversionArchivedServiceEventType: {mealplanningkeys.ValidMeasurementUnitConversionIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		assert.NoError(t, vem.ArchiveValidMeasurementUnitConversion(ctx, expected.ID))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveValidMeasurementUnitConversionCalls(), 1)
 	})
 }

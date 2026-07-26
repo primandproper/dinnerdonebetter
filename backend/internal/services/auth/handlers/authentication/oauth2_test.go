@@ -1,6 +1,7 @@
 package authentication
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/url"
@@ -12,7 +13,6 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitymanagermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	oauthmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/authentication/tokens/paseto"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
@@ -22,7 +22,6 @@ import (
 
 	oauth2errors "github.com/go-oauth2/oauth2/v4/errors"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -53,8 +52,8 @@ func TestProvideOAuth2ServerImplementation(T *testing.T) {
 
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
-		identityDataManager := &identitymanagermock.IdentityDataManager{}
-		authenticator := &mockauthn.Authenticator{}
+		identityDataManager := &identitymanagermock.IdentityDataManagerMock{}
+		authenticator := &mockauthn.AuthenticatorMock{}
 
 		ctx := t.Context()
 		signingKey := random.MustGenerateRawBytes(ctx, 32)
@@ -187,20 +186,20 @@ func TestBuildPasswordAuthorizationHandler(T *testing.T) {
 		logger := loggingnoop.NewLogger()
 		user := fakes.BuildFakeUser()
 
-		authenticator := &mockauthn.Authenticator{}
-		authenticator.On(
-			"PasswordMatches",
-			testutils.ContextMatcher,
-			user.HashedPassword,
-			"password",
-		).Return(true, nil)
+		authenticator := &mockauthn.AuthenticatorMock{
+			PasswordMatchesFunc: func(_ context.Context, hash, password string) (bool, error) {
+				assert.Equal(t, user.HashedPassword, hash)
+				assert.Equal(t, "password", password)
+				return true, nil
+			},
+		}
 
-		dataManager := &identitymanagermock.IdentityDataManager{}
-		dataManager.On(
-			"GetUserByUsername",
-			testutils.ContextMatcher,
-			user.Username,
-		).Return(user, nil)
+		dataManager := &identitymanagermock.IdentityDataManagerMock{
+			GetUserByUsernameFunc: func(_ context.Context, username string) (*identity.User, error) {
+				assert.Equal(t, user.Username, username)
+				return user, nil
+			},
+		}
 
 		handler := buildPasswordAuthorizationHandler(logger, authenticator, dataManager)
 		assert.NotNil(t, handler)
@@ -210,7 +209,8 @@ func TestBuildPasswordAuthorizationHandler(T *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, user.ID, userID)
 
-		mock.AssertExpectationsForObjects(t, authenticator, dataManager)
+		assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
+		assert.Len(t, dataManager.GetUserByUsernameCalls(), 1)
 	})
 
 	T.Run("with invalid username", func(t *testing.T) {
@@ -219,13 +219,13 @@ func TestBuildPasswordAuthorizationHandler(T *testing.T) {
 		ctx := t.Context()
 		logger := loggingnoop.NewLogger()
 
-		authenticator := &mockauthn.Authenticator{}
-		dataManager := &identitymanagermock.IdentityDataManager{}
-		dataManager.On(
-			"GetUserByUsername",
-			testutils.ContextMatcher,
-			"unknown-user",
-		).Return((*identity.User)(nil), errors.New("user not found"))
+		authenticator := &mockauthn.AuthenticatorMock{}
+		dataManager := &identitymanagermock.IdentityDataManagerMock{
+			GetUserByUsernameFunc: func(_ context.Context, username string) (*identity.User, error) {
+				assert.Equal(t, "unknown-user", username)
+				return nil, errors.New("user not found")
+			},
+		}
 
 		handler := buildPasswordAuthorizationHandler(logger, authenticator, dataManager)
 		assert.NotNil(t, handler)
@@ -236,7 +236,8 @@ func TestBuildPasswordAuthorizationHandler(T *testing.T) {
 		assert.Empty(t, userID)
 		assert.Contains(t, err.Error(), "invalid username or password")
 
-		mock.AssertExpectationsForObjects(t, authenticator, dataManager)
+		assert.Empty(t, authenticator.PasswordMatchesCalls())
+		assert.Len(t, dataManager.GetUserByUsernameCalls(), 1)
 	})
 
 	T.Run("with invalid credentials", func(t *testing.T) {
@@ -246,20 +247,20 @@ func TestBuildPasswordAuthorizationHandler(T *testing.T) {
 		logger := loggingnoop.NewLogger()
 		user := fakes.BuildFakeUser()
 
-		authenticator := &mockauthn.Authenticator{}
-		authenticator.On(
-			"PasswordMatches",
-			testutils.ContextMatcher,
-			user.HashedPassword,
-			"wrong-password",
-		).Return(false, nil)
+		authenticator := &mockauthn.AuthenticatorMock{
+			PasswordMatchesFunc: func(_ context.Context, hash, password string) (bool, error) {
+				assert.Equal(t, user.HashedPassword, hash)
+				assert.Equal(t, "wrong-password", password)
+				return false, nil
+			},
+		}
 
-		dataManager := &identitymanagermock.IdentityDataManager{}
-		dataManager.On(
-			"GetUserByUsername",
-			testutils.ContextMatcher,
-			user.Username,
-		).Return(user, nil)
+		dataManager := &identitymanagermock.IdentityDataManagerMock{
+			GetUserByUsernameFunc: func(_ context.Context, username string) (*identity.User, error) {
+				assert.Equal(t, user.Username, username)
+				return user, nil
+			},
+		}
 
 		handler := buildPasswordAuthorizationHandler(logger, authenticator, dataManager)
 		assert.NotNil(t, handler)
@@ -270,7 +271,8 @@ func TestBuildPasswordAuthorizationHandler(T *testing.T) {
 		assert.Empty(t, userID)
 		assert.Contains(t, err.Error(), "invalid username or password")
 
-		mock.AssertExpectationsForObjects(t, authenticator, dataManager)
+		assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
+		assert.Len(t, dataManager.GetUserByUsernameCalls(), 1)
 	})
 
 	T.Run("with validation error", func(t *testing.T) {
@@ -280,20 +282,20 @@ func TestBuildPasswordAuthorizationHandler(T *testing.T) {
 		logger := loggingnoop.NewLogger()
 		user := fakes.BuildFakeUser()
 
-		authenticator := &mockauthn.Authenticator{}
-		authenticator.On(
-			"PasswordMatches",
-			testutils.ContextMatcher,
-			user.HashedPassword,
-			"password",
-		).Return(false, errors.New("validation error"))
+		authenticator := &mockauthn.AuthenticatorMock{
+			PasswordMatchesFunc: func(_ context.Context, hash, password string) (bool, error) {
+				assert.Equal(t, user.HashedPassword, hash)
+				assert.Equal(t, "password", password)
+				return false, errors.New("validation error")
+			},
+		}
 
-		dataManager := &identitymanagermock.IdentityDataManager{}
-		dataManager.On(
-			"GetUserByUsername",
-			testutils.ContextMatcher,
-			user.Username,
-		).Return(user, nil)
+		dataManager := &identitymanagermock.IdentityDataManagerMock{
+			GetUserByUsernameFunc: func(_ context.Context, username string) (*identity.User, error) {
+				assert.Equal(t, user.Username, username)
+				return user, nil
+			},
+		}
 
 		handler := buildPasswordAuthorizationHandler(logger, authenticator, dataManager)
 		assert.NotNil(t, handler)
@@ -304,7 +306,8 @@ func TestBuildPasswordAuthorizationHandler(T *testing.T) {
 		assert.Empty(t, userID)
 		assert.Contains(t, err.Error(), "invalid username or password")
 
-		mock.AssertExpectationsForObjects(t, authenticator, dataManager)
+		assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
+		assert.Len(t, dataManager.GetUserByUsernameCalls(), 1)
 	})
 }
 

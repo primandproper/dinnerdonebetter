@@ -22,19 +22,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func buildTestService(t *testing.T) (*serviceImpl, *managermock.IdentityDataManager) {
+func buildTestService(t *testing.T) (*serviceImpl, *managermock.IdentityDataManagerMock) {
 	t.Helper()
 	service, identityDataManager, _ := buildTestServiceWithUploadMocks(t)
 	return service, identityDataManager
 }
 
-func buildTestServiceWithUploadMocks(t *testing.T) (*serviceImpl, *managermock.IdentityDataManager, *uploadedmediamock.Repository) {
+func buildTestServiceWithUploadMocks(t *testing.T) (*serviceImpl, *managermock.IdentityDataManagerMock, *uploadedmediamock.RepositoryMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
-	identityDataManager := &managermock.IdentityDataManager{}
-	uploadedMediaRepo := &uploadedmediamock.Repository{}
+	identityDataManager := &managermock.IdentityDataManagerMock{}
+	uploadedMediaRepo := &uploadedmediamock.RepositoryMock{}
 	uploadManager := &mockuploads.UploadManagerMock{}
 
 	service := &serviceImpl{
@@ -63,7 +63,7 @@ func buildTestServiceWithUploadMocks(t *testing.T) (*serviceImpl, *managermock.I
 
 // buildTestServiceWithAccountMembership returns a service whose authenticated session is a member of
 // (and has the given account as its active account) accountID, satisfying handler ownership checks.
-func buildTestServiceWithAccountMembership(t *testing.T, accountID string) (*serviceImpl, *managermock.IdentityDataManager) {
+func buildTestServiceWithAccountMembership(t *testing.T, accountID string) (*serviceImpl, *managermock.IdentityDataManagerMock) {
 	t.Helper()
 
 	service, identityDataManager := buildTestService(t)
@@ -89,13 +89,13 @@ func buildTestServiceWithSessionError(t *testing.T) *serviceImpl {
 
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
-	identityDataManager := &managermock.IdentityDataManager{}
+	identityDataManager := &managermock.IdentityDataManagerMock{}
 
 	service := &serviceImpl{
 		tracer:               tracer,
 		logger:               logger,
 		identityDataManager:  identityDataManager,
-		uploadedMediaManager: &uploadedmediamock.Repository{},
+		uploadedMediaManager: &uploadedmediamock.RepositoryMock{},
 		uploadManager:        &mockuploads.UploadManagerMock{},
 		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
 			return nil, errors.New("session error")
@@ -116,9 +116,9 @@ func TestNewService(t *testing.T) {
 		sessionContextDataFetcher := func(ctx context.Context) (*sessions.ContextData, error) {
 			return &sessions.ContextData{}, nil
 		}
-		identityDataManager := &managermock.IdentityDataManager{}
+		identityDataManager := &managermock.IdentityDataManagerMock{}
 
-		uploadedMediaManager := &uploadedmediamock.Repository{}
+		uploadedMediaManager := &uploadedmediamock.RepositoryMock{}
 		uploadManager := &mockuploads.UploadManagerMock{}
 		service := NewService(logger, tracerProvider, sessionContextDataFetcher, identityDataManager, uploadedMediaManager, uploadManager)
 

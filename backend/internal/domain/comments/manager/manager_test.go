@@ -6,19 +6,15 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/fakes"
-	commentskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/keys"
 	commentsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
 	mockpublishers "github.com/primandproper/platform-go/v6/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -42,7 +38,7 @@ func buildCommentsManagerForTest(t *testing.T) *commentsManager {
 		ctx,
 		tracingnoop.NewTracerProvider(),
 		loggingnoop.NewLogger(),
-		&commentsmock.Repository{},
+		&commentsmock.RepositoryMock{},
 		queueCfg,
 		mpp,
 	)
@@ -51,23 +47,13 @@ func buildCommentsManagerForTest(t *testing.T) *commentsManager {
 	return m.(*commentsManager)
 }
 
-func setupExpectationsForCommentsManager(
-	manager *commentsManager,
-	repoSetupFunc func(repo *commentsmock.Repository),
-	eventTypeMaps ...map[string][]string,
-) []any {
-	repo := &commentsmock.Repository{}
-	if repoSetupFunc != nil {
-		repoSetupFunc(repo)
-	}
+// attachRepositoryToCommentsManager wires a configured repository mock and a no-op data changes
+// publisher into the manager under test.
+func attachRepositoryToCommentsManager(manager *commentsManager, repo *commentsmock.RepositoryMock) {
 	manager.repo = repo
-
-	mp := &mockpublishers.PublisherMock{
+	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
 		PublishAsyncFunc: func(_ context.Context, _ any) {},
 	}
-	manager.dataChangesPublisher = mp
-
-	return []any{repo}
 }
 
 func TestCommentsManager_CreateComment(t *testing.T) {
@@ -82,21 +68,18 @@ func TestCommentsManager_CreateComment(t *testing.T) {
 		input := fakes.BuildFakeCommentCreationRequestInput()
 		expected := fakes.BuildFakeComment()
 
-		expectations := setupExpectationsForCommentsManager(
-			cm,
-			func(repo *commentsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.CreateComment), testutils.ContextMatcher, testutils.MatchType[*comments.CommentDatabaseCreationInput]()).Return(expected, nil)
+		repo := &commentsmock.RepositoryMock{
+			CreateCommentFunc: func(_ context.Context, _ *comments.CommentDatabaseCreationInput) (*comments.Comment, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				comments.CommentCreatedServiceEventType: {commentskeys.CommentIDKey},
-			},
-		)
+		}
+		attachRepositoryToCommentsManager(cm, repo)
 
 		actual, err := cm.CreateComment(ctx, input)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateCommentCalls(), 1)
 	})
 }
 
@@ -114,20 +97,21 @@ func TestCommentsManager_UpdateComment(t *testing.T) {
 		belongsToUser := comment.BelongsToUser
 		input := &comments.CommentUpdateRequestInput{Content: "Updated content"}
 
-		expectations := setupExpectationsForCommentsManager(
-			cm,
-			func(repo *commentsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.UpdateComment), testutils.ContextMatcher, commentID, belongsToUser, input.Content).Return(nil)
+		repo := &commentsmock.RepositoryMock{
+			UpdateCommentFunc: func(_ context.Context, id, updatedBy, content string) error {
+				assert.Equal(t, commentID, id)
+				assert.Equal(t, belongsToUser, updatedBy)
+				assert.Equal(t, input.Content, content)
+
+				return nil
 			},
-			map[string][]string{
-				comments.CommentUpdatedServiceEventType: {commentskeys.CommentIDKey},
-			},
-		)
+		}
+		attachRepositoryToCommentsManager(cm, repo)
 
 		err := cm.UpdateComment(ctx, commentID, belongsToUser, input)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.UpdateCommentCalls(), 1)
 	})
 }
 
@@ -142,19 +126,18 @@ func TestCommentsManager_ArchiveComment(t *testing.T) {
 
 		commentID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForCommentsManager(
-			cm,
-			func(repo *commentsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.ArchiveComment), testutils.ContextMatcher, commentID).Return(nil)
+		repo := &commentsmock.RepositoryMock{
+			ArchiveCommentFunc: func(_ context.Context, id string) error {
+				assert.Equal(t, commentID, id)
+
+				return nil
 			},
-			map[string][]string{
-				comments.CommentArchivedServiceEventType: {commentskeys.CommentIDKey},
-			},
-		)
+		}
+		attachRepositoryToCommentsManager(cm, repo)
 
 		err := cm.ArchiveComment(ctx, commentID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.ArchiveCommentCalls(), 1)
 	})
 }

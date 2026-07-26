@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestMealPlanningManager_GetMealPlanRecipeOptionSelection(T *testing.T) {
@@ -30,18 +28,23 @@ func TestMealPlanningManager_GetMealPlanRecipeOptionSelection(T *testing.T) {
 		selectionType := types.MealPlanRecipeOptionSelectionTypeIngredient
 		expected := fakes.BuildFakeMealPlanRecipeOptionSelection()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetMealPlanRecipeOptionSelection), testutils.ContextMatcher, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetMealPlanRecipeOptionSelectionFunc: func(_ context.Context, actualMealPlanOptionID string, actualRecipeStepID string, actualIngredientIndex uint16, actualSelectionType string) (*types.MealPlanRecipeOptionSelection, error) {
+				assert.Equal(t, mealPlanOptionID, actualMealPlanOptionID)
+				assert.Equal(t, recipeStepID, actualRecipeStepID)
+				assert.Equal(t, ingredientIndex, actualIngredientIndex)
+				assert.Equal(t, selectionType, actualSelectionType)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.GetMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetMealPlanRecipeOptionSelectionCalls(), 1)
 	})
 }
 
@@ -57,18 +60,20 @@ func TestMealPlanningManager_GetMealPlanRecipeOptionSelectionsForMealPlanOption(
 		expected := fakes.BuildFakeMealPlanRecipeOptionSelectionsList()
 		mealPlanOptionID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetSelectionsForMealPlanOption), testutils.ContextMatcher, mealPlanOptionID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetSelectionsForMealPlanOptionFunc: func(_ context.Context, actualMealPlanOptionID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanRecipeOptionSelection], error) {
+				assert.Equal(t, mealPlanOptionID, actualMealPlanOptionID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx, mealPlanOptionID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetSelectionsForMealPlanOptionCalls(), 1)
 	})
 }
 
@@ -85,21 +90,18 @@ func TestMealPlanningManager_CreateMealPlanRecipeOptionSelection(T *testing.T) {
 		expected := fakes.BuildFakeMealPlanRecipeOptionSelection()
 		fakeInput := fakes.BuildFakeMealPlanRecipeOptionSelectionCreationRequestInput()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.CreateMealPlanRecipeOptionSelection), testutils.ContextMatcher, testutils.MatchType[*types.MealPlanRecipeOptionSelectionDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateMealPlanRecipeOptionSelectionFunc: func(_ context.Context, _ *types.MealPlanRecipeOptionSelectionDatabaseCreationInput) (*types.MealPlanRecipeOptionSelection, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				types.MealPlanRecipeOptionSelectionCreatedServiceEventType: {"meal_plan_recipe_option_selection_id", mealplanningkeys.MealPlanOptionIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateMealPlanRecipeOptionSelectionCalls(), 1)
 	})
 }
 
@@ -119,21 +121,31 @@ func TestMealPlanningManager_UpdateMealPlanRecipeOptionSelection(T *testing.T) {
 		selectionType := types.MealPlanRecipeOptionSelectionTypeIngredient
 		fakeInput := fakes.BuildFakeMealPlanRecipeOptionSelectionUpdateRequestInput()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetMealPlanRecipeOptionSelection), testutils.ContextMatcher, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType).Return(existing, nil)
-				db.On(reflection.GetMethodName(mpm.db.UpdateMealPlanRecipeOptionSelection), testutils.ContextMatcher, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType, testutils.MatchType[*types.MealPlanRecipeOptionSelectionUpdateRequestInput]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetMealPlanRecipeOptionSelectionFunc: func(_ context.Context, actualMealPlanOptionID string, actualRecipeStepID string, actualIngredientIndex uint16, actualSelectionType string) (*types.MealPlanRecipeOptionSelection, error) {
+				assert.Equal(t, mealPlanOptionID, actualMealPlanOptionID)
+				assert.Equal(t, recipeStepID, actualRecipeStepID)
+				assert.Equal(t, ingredientIndex, actualIngredientIndex)
+				assert.Equal(t, selectionType, actualSelectionType)
+
+				return existing, nil
 			},
-			map[string][]string{
-				types.MealPlanRecipeOptionSelectionUpdatedServiceEventType: {"meal_plan_recipe_option_selection_id", mealplanningkeys.MealPlanOptionIDKey},
+			UpdateMealPlanRecipeOptionSelectionFunc: func(_ context.Context, actualMealPlanOptionID string, actualRecipeStepID string, actualIngredientIndex uint16, actualSelectionType string, _ *types.MealPlanRecipeOptionSelectionUpdateRequestInput) error {
+				assert.Equal(t, mealPlanOptionID, actualMealPlanOptionID)
+				assert.Equal(t, recipeStepID, actualRecipeStepID)
+				assert.Equal(t, ingredientIndex, actualIngredientIndex)
+				assert.Equal(t, selectionType, actualSelectionType)
+
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		err := mpm.UpdateMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType, fakeInput)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetMealPlanRecipeOptionSelectionCalls(), 1)
+		assert.Len(t, db.UpdateMealPlanRecipeOptionSelectionCalls(), 1)
 	})
 }
 
@@ -151,24 +163,21 @@ func TestMealPlanningManager_ArchiveMealPlanRecipeOptionSelection(T *testing.T) 
 		ingredientIndex := uint16(0)
 		selectionType := types.MealPlanRecipeOptionSelectionTypeIngredient
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.ArchiveMealPlanRecipeOptionSelection), testutils.ContextMatcher, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveMealPlanRecipeOptionSelectionFunc: func(_ context.Context, actualMealPlanOptionID string, actualRecipeStepID string, actualIngredientIndex uint16, actualSelectionType string) error {
+				assert.Equal(t, mealPlanOptionID, actualMealPlanOptionID)
+				assert.Equal(t, recipeStepID, actualRecipeStepID)
+				assert.Equal(t, ingredientIndex, actualIngredientIndex)
+				assert.Equal(t, selectionType, actualSelectionType)
+
+				return nil
 			},
-			map[string][]string{
-				types.MealPlanRecipeOptionSelectionArchivedServiceEventType: {
-					mealplanningkeys.MealPlanOptionIDKey,
-					"recipe_step_id",
-					"ingredient_index",
-					"selection_type",
-				},
-			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		err := mpm.ArchiveMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveMealPlanRecipeOptionSelectionCalls(), 1)
 	})
 }

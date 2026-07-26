@@ -1,6 +1,7 @@
 package datachangemessagehandler
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -8,10 +9,8 @@ import (
 
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	"github.com/primandproper/platform-go/v6/observability/tracing"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
@@ -26,16 +25,25 @@ func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
 		_, span := tracing.NewTracerForTest(t.Name()).StartSpan(ctx)
 		logger := loggingnoop.NewLogger()
 
-		repo := &internalopsmock.InternalOpsDataManager{}
+		repo := &internalopsmock.InternalOpsDataManagerMock{}
 		handler.internalOpsRepo = repo
 
-		repo.On(reflection.GetMethodName(repo.AcknowledgeQueueTestMessage), mock.Anything, "test-123").Return(nil).Once()
-		repo.On(reflection.GetMethodName(repo.PruneQueueTestMessages), mock.Anything, "data-changes").Return(nil).Once()
+		repo.AcknowledgeQueueTestMessageFunc = func(_ context.Context, id string) error {
+			assert.Equal(t, "test-123", id)
+
+			return nil
+		}
+		repo.PruneQueueTestMessagesFunc = func(_ context.Context, queueName string) error {
+			assert.Equal(t, "data-changes", queueName)
+
+			return nil
+		}
 
 		err := handler.handleQueueTestMessage(ctx, logger, span, "test-123", "data-changes")
 
 		assert.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.AcknowledgeQueueTestMessageCalls(), 1)
+		assert.Len(t, repo.PruneQueueTestMessagesCalls(), 1)
 	})
 
 	t.Run("empty test_id", func(t *testing.T) {
@@ -62,15 +70,19 @@ func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
 		_, span := tracing.NewTracerForTest(t.Name()).StartSpan(ctx)
 		logger := loggingnoop.NewLogger()
 
-		repo := &internalopsmock.InternalOpsDataManager{}
+		repo := &internalopsmock.InternalOpsDataManagerMock{}
 		handler.internalOpsRepo = repo
 
-		repo.On(reflection.GetMethodName(repo.AcknowledgeQueueTestMessage), mock.Anything, "test-123").Return(nil).Once()
+		repo.AcknowledgeQueueTestMessageFunc = func(_ context.Context, id string) error {
+			assert.Equal(t, "test-123", id)
+
+			return nil
+		}
 
 		err := handler.handleQueueTestMessage(ctx, logger, span, "test-123", "")
 
 		assert.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.AcknowledgeQueueTestMessageCalls(), 1)
 	})
 
 	t.Run("acknowledge error", func(t *testing.T) {
@@ -82,15 +94,19 @@ func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
 		_, span := tracing.NewTracerForTest(t.Name()).StartSpan(ctx)
 		logger := loggingnoop.NewLogger()
 
-		repo := &internalopsmock.InternalOpsDataManager{}
+		repo := &internalopsmock.InternalOpsDataManagerMock{}
 		handler.internalOpsRepo = repo
 
-		repo.On(reflection.GetMethodName(repo.AcknowledgeQueueTestMessage), mock.Anything, "test-123").Return(errors.New("db error")).Once()
+		repo.AcknowledgeQueueTestMessageFunc = func(_ context.Context, id string) error {
+			assert.Equal(t, "test-123", id)
+
+			return errors.New("db error")
+		}
 
 		err := handler.handleQueueTestMessage(ctx, logger, span, "test-123", "data-changes")
 
 		assert.Error(t, err)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.AcknowledgeQueueTestMessageCalls(), 1)
 	})
 
 	t.Run("prune error is not fatal", func(t *testing.T) {
@@ -102,15 +118,24 @@ func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
 		_, span := tracing.NewTracerForTest(t.Name()).StartSpan(ctx)
 		logger := loggingnoop.NewLogger()
 
-		repo := &internalopsmock.InternalOpsDataManager{}
+		repo := &internalopsmock.InternalOpsDataManagerMock{}
 		handler.internalOpsRepo = repo
 
-		repo.On(reflection.GetMethodName(repo.AcknowledgeQueueTestMessage), mock.Anything, "test-123").Return(nil).Once()
-		repo.On(reflection.GetMethodName(repo.PruneQueueTestMessages), mock.Anything, "data-changes").Return(errors.New("prune error")).Once()
+		repo.AcknowledgeQueueTestMessageFunc = func(_ context.Context, id string) error {
+			assert.Equal(t, "test-123", id)
+
+			return nil
+		}
+		repo.PruneQueueTestMessagesFunc = func(_ context.Context, queueName string) error {
+			assert.Equal(t, "data-changes", queueName)
+
+			return errors.New("prune error")
+		}
 
 		err := handler.handleQueueTestMessage(ctx, logger, span, "test-123", "data-changes")
 
 		assert.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.AcknowledgeQueueTestMessageCalls(), 1)
+		assert.Len(t, repo.PruneQueueTestMessagesCalls(), 1)
 	})
 }

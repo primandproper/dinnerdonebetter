@@ -53,12 +53,12 @@ func TestNewService(t *testing.T) {
 
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
-		mealPlanningManager := &mockmanagers.MockMealPlanningManager{}
+		mealPlanningManager := &mockmanagers.MealPlanningManagerMock{}
 		mealPlanFinalizerWorker := &mealplanfinalizer.Worker{}
 		mealPlanGroceryListInitializerWorker := &mealplangrocerylistinitializer.Worker{}
 		mealPlanTaskCreatorWorker := &mealplantaskcreator.Worker{}
 		commentsManager := &noopCommentsManager{}
-		uploadedMediaManager := &uploadedmediamock.Repository{}
+		uploadedMediaManager := &uploadedmediamock.RepositoryMock{}
 		uploadManager := &mockuploads.UploadManagerMock{}
 
 		service := NewService(

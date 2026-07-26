@@ -1,19 +1,18 @@
 package authentication
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/fakes"
 	oauthmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	"github.com/primandproper/platform-go/v6/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestNewOAuth2ClientStore(T *testing.T) {
@@ -51,12 +50,12 @@ func TestOAuth2ClientStoreImpl_GetByID(T *testing.T) {
 		tracer := tracing.NewTracerForTest("test")
 
 		client := fakes.BuildFakeOAuth2Client()
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"GetOAuth2ClientByClientID",
-			testutils.ContextMatcher,
-			client.ID,
-		).Return(client, nil)
+		dataManager := &oauthmock.RepositoryMock{
+			GetOAuth2ClientByClientIDFunc: func(_ context.Context, clientID string) (*types.OAuth2Client, error) {
+				assert.Equal(t, client.ID, clientID)
+				return client, nil
+			},
+		}
 
 		store := &oauth2ClientStoreImpl{
 			domain:      domain,
@@ -74,7 +73,7 @@ func TestOAuth2ClientStoreImpl_GetByID(T *testing.T) {
 		assert.Equal(t, domain, result.GetDomain())
 		assert.False(t, result.IsPublic())
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.GetOAuth2ClientByClientIDCalls(), 1)
 	})
 
 	T.Run("with error getting client", func(t *testing.T) {
@@ -86,12 +85,12 @@ func TestOAuth2ClientStoreImpl_GetByID(T *testing.T) {
 		tracer := tracing.NewTracerForTest("test")
 
 		clientID := "test-client-id"
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"GetOAuth2ClientByClientID",
-			testutils.ContextMatcher,
-			clientID,
-		).Return((*types.OAuth2Client)(nil), errors.New("database error"))
+		dataManager := &oauthmock.RepositoryMock{
+			GetOAuth2ClientByClientIDFunc: func(_ context.Context, actualClientID string) (*types.OAuth2Client, error) {
+				assert.Equal(t, clientID, actualClientID)
+				return nil, errors.New("database error")
+			},
+		}
 
 		store := &oauth2ClientStoreImpl{
 			domain:      domain,
@@ -105,6 +104,6 @@ func TestOAuth2ClientStoreImpl_GetByID(T *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, result)
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.GetOAuth2ClientByClientIDCalls(), 1)
 	})
 }

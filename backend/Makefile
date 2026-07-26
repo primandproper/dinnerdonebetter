@@ -137,8 +137,13 @@ env_vars:
 	$(SCRIPTS_DIR)/env_vars.sh $(THIS)
 	$(MAKE) format_golang
 
+.PHONY: mocks
+mocks:
+	go generate ./...
+	$(MAKE) format_golang
+
 .PHONY: generated_files
-generated_files: configs queries env_vars format_golang
+generated_files: configs queries env_vars mocks format_golang
 
 ## INTEGRATION TESTING
 

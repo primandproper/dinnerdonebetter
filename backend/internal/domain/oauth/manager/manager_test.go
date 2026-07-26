@@ -7,9 +7,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/fakes"
-	oauthkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/keys"
 	oauthmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
@@ -18,10 +16,8 @@ import (
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
 	"github.com/primandproper/platform-go/v6/random"
 	randommock "github.com/primandproper/platform-go/v6/random/mock"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -62,34 +58,22 @@ func buildOAuthManagerForTest(t *testing.T) *manager {
 	return m.(*manager)
 }
 
-func setupExpectationsForOAuthManager(
-	manager *manager,
-	repoSetupFunc func(repo *oauthmock.RepositoryMock),
-	secretGenSetupFunc func(gen *randommock.GeneratorMock),
-	eventTypeMaps ...map[string][]string,
-) []any {
-	repo := &oauthmock.RepositoryMock{}
-	if repoSetupFunc != nil {
-		repoSetupFunc(repo)
-	}
+// attachMocksToOAuthManager wires a configured repository mock, secret generator and a no-op data
+// changes publisher into the manager under test. A nil secretGenerator gets a stub that returns an
+// empty string.
+func attachMocksToOAuthManager(manager *manager, repo *oauthmock.RepositoryMock, secretGenerator *randommock.GeneratorMock) {
 	manager.oauthRepository = repo
 
-	expectations := []any{repo}
-
-	sg := &randommock.GeneratorMock{
-		GenerateHexEncodedStringFunc: func(_ context.Context, _ int) (string, error) { return "", nil },
+	if secretGenerator == nil {
+		secretGenerator = &randommock.GeneratorMock{
+			GenerateHexEncodedStringFunc: func(_ context.Context, _ int) (string, error) { return "", nil },
+		}
 	}
-	if secretGenSetupFunc != nil {
-		secretGenSetupFunc(sg)
-	}
-	manager.secretGenerator = sg
+	manager.secretGenerator = secretGenerator
 
-	mp := &mockpublishers.PublisherMock{
+	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
 		PublishAsyncFunc: func(_ context.Context, _ any) {},
 	}
-	manager.dataChangesPublisher = mp
-
-	return expectations
 }
 
 func TestOAuth2Manager_CreateOAuth2Client(t *testing.T) {
@@ -106,28 +90,31 @@ func TestOAuth2Manager_CreateOAuth2Client(t *testing.T) {
 
 		const plaintextSecret = "eeddccbb55443322eeddccbb55443322"
 
-		expectations := setupExpectationsForOAuthManager(
-			om,
-			func(repo *oauthmock.RepositoryMock) {
-				repo.On(reflection.GetMethodName(repo.CreateOAuth2Client), testutils.ContextMatcher, mock.MatchedBy(func(in *oauth.OAuth2ClientDatabaseCreationInput) bool {
-					// only the digest of the generated secret may be persisted.
-					return in.Name == input.Name && in.Description == input.Description && in.ClientID != "" && in.ClientSecret == oauth.HashClientSecret(plaintextSecret)
-				})).Return(expected, nil)
+		repo := &oauthmock.RepositoryMock{
+			CreateOAuth2ClientFunc: func(_ context.Context, in *oauth.OAuth2ClientDatabaseCreationInput) (*oauth.OAuth2Client, error) {
+				assert.Equal(t, input.Name, in.Name)
+				assert.Equal(t, input.Description, in.Description)
+				assert.NotEmpty(t, in.ClientID)
+				// only the digest of the generated secret may be persisted.
+				assert.Equal(t, oauth.HashClientSecret(plaintextSecret), in.ClientSecret)
+
+				return expected, nil
 			},
-			func(gen *randommock.GeneratorMock) {
-				callCount := 0
-				gen.GenerateHexEncodedStringFunc = func(_ context.Context, _ int) (string, error) {
-					callCount++
-					if callCount == 1 {
-						return "aabbccdd11223344aabbccdd11223344", nil
-					}
-					return plaintextSecret, nil
+		}
+
+		callCount := 0
+		secretGenerator := &randommock.GeneratorMock{
+			GenerateHexEncodedStringFunc: func(_ context.Context, _ int) (string, error) {
+				callCount++
+				if callCount == 1 {
+					return "aabbccdd11223344aabbccdd11223344", nil
 				}
+
+				return plaintextSecret, nil
 			},
-			map[string][]string{
-				oauth.OAuth2ClientCreatedServiceEventType: {oauthkeys.OAuth2ClientIDKey},
-			},
-		)
+		}
+
+		attachMocksToOAuthManager(om, repo, secretGenerator)
 
 		actual, err := om.CreateOAuth2Client(ctx, input)
 		assert.NoError(t, err)
@@ -135,7 +122,7 @@ func TestOAuth2Manager_CreateOAuth2Client(t *testing.T) {
 		// the caller gets the plaintext secret exactly once, at creation time.
 		assert.Equal(t, plaintextSecret, actual.ClientSecret)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateOAuth2ClientCalls(), 1)
 	})
 }
 
@@ -150,20 +137,18 @@ func TestOAuth2Manager_ArchiveOAuth2Client(t *testing.T) {
 
 		oauth2ClientID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForOAuthManager(
-			om,
-			func(repo *oauthmock.RepositoryMock) {
-				repo.On(reflection.GetMethodName(repo.ArchiveOAuth2Client), testutils.ContextMatcher, oauth2ClientID).Return(nil)
+		repo := &oauthmock.RepositoryMock{
+			ArchiveOAuth2ClientFunc: func(_ context.Context, clientID string) error {
+				assert.Equal(t, oauth2ClientID, clientID)
+
+				return nil
 			},
-			nil,
-			map[string][]string{
-				oauth.OAuth2ClientArchivedServiceEventType: {oauthkeys.OAuth2ClientIDKey},
-			},
-		)
+		}
+		attachMocksToOAuthManager(om, repo, nil)
 
 		err := om.ArchiveOAuth2Client(ctx, oauth2ClientID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.ArchiveOAuth2ClientCalls(), 1)
 	})
 }

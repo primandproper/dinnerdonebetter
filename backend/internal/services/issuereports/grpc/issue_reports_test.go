@@ -12,30 +12,29 @@ import (
 	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	issuereportssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/issuereports/grpc/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	"github.com/primandproper/platform-go/v6/observability/tracing"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func buildTestService(t *testing.T) (*serviceImpl, *issuereportmock.Repository) {
+// buildTestService builds a service backed by the given repository mock. A nil repo gets an
+// unconfigured mock, which panics if any of its methods are called.
+func buildTestService(t *testing.T, issueReportRepo *issuereportmock.RepositoryMock) *serviceImpl {
 	t.Helper()
 
-	logger := loggingnoop.NewLogger()
-	tracer := tracing.NewTracerForTest(t.Name())
-	issueReportRepo := &issuereportmock.Repository{}
+	if issueReportRepo == nil {
+		issueReportRepo = &issuereportmock.RepositoryMock{}
+	}
 
-	service := &serviceImpl{
-		tracer: tracer,
-		logger: logger,
-		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
+	return &serviceImpl{
+		tracer: tracing.NewTracerForTest(t.Name()),
+		logger: loggingnoop.NewLogger(),
+		sessionContextDataFetcher: func(context.Context) (*sessions.ContextData, error) {
 			return &sessions.ContextData{
 				ActiveAccountID: "test-account-id",
 				Requester: sessions.RequesterInfo{
@@ -45,26 +44,19 @@ func buildTestService(t *testing.T) (*serviceImpl, *issuereportmock.Repository) 
 		},
 		issueReportsManager: issueReportRepo,
 	}
-
-	return service, issueReportRepo
 }
 
 func buildTestServiceWithSessionError(t *testing.T) *serviceImpl {
 	t.Helper()
 
-	logger := loggingnoop.NewLogger()
-	tracer := tracing.NewTracerForTest(t.Name())
-
-	service := &serviceImpl{
-		tracer: tracer,
-		logger: logger,
-		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
+	return &serviceImpl{
+		tracer: tracing.NewTracerForTest(t.Name()),
+		logger: loggingnoop.NewLogger(),
+		sessionContextDataFetcher: func(context.Context) (*sessions.ContextData, error) {
 			return nil, errors.New("session error")
 		},
-		issueReportsManager: &issuereportmock.Repository{},
+		issueReportsManager: &issuereportmock.RepositoryMock{},
 	}
-
-	return service
 }
 
 func TestServiceImpl_CreateIssueReport(t *testing.T) {
@@ -74,12 +66,18 @@ func TestServiceImpl_CreateIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeIssueReport := issuereportfakes.BuildFakeIssueReport()
 		fakeInput := issuereportfakes.BuildFakeIssueReportCreationRequestInput()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.CreateIssueReport), testutils.ContextMatcher, mock.AnythingOfType("*issuereports.IssueReportDatabaseCreationInput")).Return(fakeIssueReport, nil)
+		mockRepo := &issuereportmock.RepositoryMock{
+			CreateIssueReportFunc: func(_ context.Context, input *issuereports.IssueReportDatabaseCreationInput) (*issuereports.IssueReport, error) {
+				assert.NotNil(t, input)
+
+				return fakeIssueReport, nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &issuereportssvc.CreateIssueReportRequest{
 			Input: converters.ConvertIssueReportCreationRequestInputToGRPCIssueReportCreationRequestInput(fakeInput),
@@ -95,7 +93,7 @@ func TestServiceImpl_CreateIssueReport(t *testing.T) {
 		assert.Equal(t, fakeIssueReport.IssueType, response.Created.IssueType)
 		assert.Equal(t, fakeIssueReport.Details, response.Created.Details)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.CreateIssueReportCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -119,11 +117,15 @@ func TestServiceImpl_CreateIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeInput := issuereportfakes.BuildFakeIssueReportCreationRequestInput()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.CreateIssueReport), testutils.ContextMatcher, mock.AnythingOfType("*issuereports.IssueReportDatabaseCreationInput")).Return(nil, errors.New("repository error"))
+		mockRepo := &issuereportmock.RepositoryMock{
+			CreateIssueReportFunc: func(_ context.Context, _ *issuereports.IssueReportDatabaseCreationInput) (*issuereports.IssueReport, error) {
+				return nil, errors.New("repository error")
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &issuereportssvc.CreateIssueReportRequest{
 			Input: converters.ConvertIssueReportCreationRequestInputToGRPCIssueReportCreationRequestInput(fakeInput),
@@ -135,7 +137,7 @@ func TestServiceImpl_CreateIssueReport(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.CreateIssueReportCalls(), 1)
 	})
 }
 
@@ -146,12 +148,18 @@ func TestServiceImpl_GetIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeIssueReport := issuereportfakes.BuildFakeIssueReport()
 		fakeIssueReport.BelongsToAccount = "test-account-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetIssueReport), testutils.ContextMatcher, fakeIssueReport.ID).Return(fakeIssueReport, nil)
+		mockRepo := &issuereportmock.RepositoryMock{
+			GetIssueReportFunc: func(_ context.Context, issueReportID string) (*issuereports.IssueReport, error) {
+				assert.Equal(t, fakeIssueReport.ID, issueReportID)
+
+				return fakeIssueReport, nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &issuereportssvc.GetIssueReportRequest{
 			IssueReportId: fakeIssueReport.ID,
@@ -164,7 +172,7 @@ func TestServiceImpl_GetIssueReport(t *testing.T) {
 		assert.NotNil(t, response.Result)
 		assert.Equal(t, fakeIssueReport.ID, response.Result.Id)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetIssueReportCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -188,12 +196,18 @@ func TestServiceImpl_GetIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeIssueReport := issuereportfakes.BuildFakeIssueReport()
 		fakeIssueReport.BelongsToAccount = "different-account-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetIssueReport), testutils.ContextMatcher, fakeIssueReport.ID).Return(fakeIssueReport, nil)
+		mockRepo := &issuereportmock.RepositoryMock{
+			GetIssueReportFunc: func(_ context.Context, issueReportID string) (*issuereports.IssueReport, error) {
+				assert.Equal(t, fakeIssueReport.ID, issueReportID)
+
+				return fakeIssueReport, nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &issuereportssvc.GetIssueReportRequest{
 			IssueReportId: fakeIssueReport.ID,
@@ -205,7 +219,7 @@ func TestServiceImpl_GetIssueReport(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetIssueReportCalls(), 1)
 	})
 }
 
@@ -216,7 +230,6 @@ func TestServiceImpl_GetIssueReports(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeIssueReports := &filtering.QueryFilteredResult[issuereports.IssueReport]{
 			Data: []*issuereports.IssueReport{
@@ -229,7 +242,14 @@ func TestServiceImpl_GetIssueReports(t *testing.T) {
 			},
 		}
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetIssueReports), testutils.ContextMatcher, mock.AnythingOfType("*filtering.QueryFilter")).Return(fakeIssueReports, nil)
+		mockRepo := &issuereportmock.RepositoryMock{
+			GetIssueReportsFunc: func(_ context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[issuereports.IssueReport], error) {
+				assert.NotNil(t, filter)
+
+				return fakeIssueReports, nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &issuereportssvc.GetIssueReportsRequest{
 			Filter: &grpcfiltering.QueryFilter{},
@@ -241,7 +261,7 @@ func TestServiceImpl_GetIssueReports(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.Len(t, response.Results, 2)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetIssueReportsCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -269,7 +289,6 @@ func TestServiceImpl_GetIssueReportsForAccount(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeIssueReports := &filtering.QueryFilteredResult[issuereports.IssueReport]{
 			Data: []*issuereports.IssueReport{
@@ -282,7 +301,15 @@ func TestServiceImpl_GetIssueReportsForAccount(t *testing.T) {
 			},
 		}
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetIssueReportsForAccount), testutils.ContextMatcher, "test-account-id", mock.AnythingOfType("*filtering.QueryFilter")).Return(fakeIssueReports, nil)
+		mockRepo := &issuereportmock.RepositoryMock{
+			GetIssueReportsForAccountFunc: func(_ context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[issuereports.IssueReport], error) {
+				assert.Equal(t, "test-account-id", accountID)
+				assert.NotNil(t, filter)
+
+				return fakeIssueReports, nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &issuereportssvc.GetIssueReportsForAccountRequest{
 			AccountId: "test-account-id",
@@ -295,7 +322,7 @@ func TestServiceImpl_GetIssueReportsForAccount(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.Len(t, response.Results, 2)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetIssueReportsForAccountCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -324,7 +351,6 @@ func TestServiceImpl_GetIssueReportsForTable(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeIssueReports := &filtering.QueryFilteredResult[issuereports.IssueReport]{
 			Data: []*issuereports.IssueReport{
@@ -336,7 +362,15 @@ func TestServiceImpl_GetIssueReportsForTable(t *testing.T) {
 			},
 		}
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetIssueReportsForTable), testutils.ContextMatcher, "recipes", mock.AnythingOfType("*filtering.QueryFilter")).Return(fakeIssueReports, nil)
+		mockRepo := &issuereportmock.RepositoryMock{
+			GetIssueReportsForTableFunc: func(_ context.Context, tableName string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[issuereports.IssueReport], error) {
+				assert.Equal(t, "recipes", tableName)
+				assert.NotNil(t, filter)
+
+				return fakeIssueReports, nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &issuereportssvc.GetIssueReportsForTableRequest{
 			TableName: "recipes",
@@ -349,7 +383,7 @@ func TestServiceImpl_GetIssueReportsForTable(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.Len(t, response.Results, 1)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetIssueReportsForTableCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -378,7 +412,6 @@ func TestServiceImpl_GetIssueReportsForRecord(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeIssueReports := &filtering.QueryFilteredResult[issuereports.IssueReport]{
 			Data: []*issuereports.IssueReport{
@@ -390,7 +423,16 @@ func TestServiceImpl_GetIssueReportsForRecord(t *testing.T) {
 			},
 		}
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetIssueReportsForRecord), testutils.ContextMatcher, "recipes", "some-record-id", mock.AnythingOfType("*filtering.QueryFilter")).Return(fakeIssueReports, nil)
+		mockRepo := &issuereportmock.RepositoryMock{
+			GetIssueReportsForRecordFunc: func(_ context.Context, tableName, recordID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[issuereports.IssueReport], error) {
+				assert.Equal(t, "recipes", tableName)
+				assert.Equal(t, "some-record-id", recordID)
+				assert.NotNil(t, filter)
+
+				return fakeIssueReports, nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &issuereportssvc.GetIssueReportsForRecordRequest{
 			TableName: "recipes",
@@ -404,7 +446,7 @@ func TestServiceImpl_GetIssueReportsForRecord(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.Len(t, response.Results, 1)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetIssueReportsForRecordCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -434,13 +476,23 @@ func TestServiceImpl_UpdateIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeIssueReport := issuereportfakes.BuildFakeIssueReport()
 		fakeIssueReport.BelongsToAccount = "test-account-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetIssueReport), testutils.ContextMatcher, fakeIssueReport.ID).Return(fakeIssueReport, nil)
-		mockRepo.On(reflection.GetMethodName(mockRepo.UpdateIssueReport), testutils.ContextMatcher, mock.AnythingOfType("*issuereports.IssueReport")).Return(nil)
+		mockRepo := &issuereportmock.RepositoryMock{
+			GetIssueReportFunc: func(_ context.Context, issueReportID string) (*issuereports.IssueReport, error) {
+				assert.Equal(t, fakeIssueReport.ID, issueReportID)
+
+				return fakeIssueReport, nil
+			},
+			UpdateIssueReportFunc: func(_ context.Context, issueReport *issuereports.IssueReport) error {
+				assert.NotNil(t, issueReport)
+
+				return nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		newDetails := "Updated details"
 		request := &issuereportssvc.UpdateIssueReportRequest{
@@ -456,7 +508,8 @@ func TestServiceImpl_UpdateIssueReport(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Updated)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetIssueReportCalls(), 1)
+		assert.Len(t, mockRepo.UpdateIssueReportCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -481,12 +534,18 @@ func TestServiceImpl_UpdateIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeIssueReport := issuereportfakes.BuildFakeIssueReport()
 		fakeIssueReport.BelongsToAccount = "different-account-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetIssueReport), testutils.ContextMatcher, fakeIssueReport.ID).Return(fakeIssueReport, nil)
+		mockRepo := &issuereportmock.RepositoryMock{
+			GetIssueReportFunc: func(_ context.Context, issueReportID string) (*issuereports.IssueReport, error) {
+				assert.Equal(t, fakeIssueReport.ID, issueReportID)
+
+				return fakeIssueReport, nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &issuereportssvc.UpdateIssueReportRequest{
 			IssueReportId: fakeIssueReport.ID,
@@ -499,7 +558,8 @@ func TestServiceImpl_UpdateIssueReport(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetIssueReportCalls(), 1)
+		assert.Empty(t, mockRepo.UpdateIssueReportCalls())
 	})
 }
 
@@ -510,13 +570,23 @@ func TestServiceImpl_ArchiveIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeIssueReport := issuereportfakes.BuildFakeIssueReport()
 		fakeIssueReport.BelongsToAccount = "test-account-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetIssueReport), testutils.ContextMatcher, fakeIssueReport.ID).Return(fakeIssueReport, nil)
-		mockRepo.On(reflection.GetMethodName(mockRepo.ArchiveIssueReport), testutils.ContextMatcher, fakeIssueReport.ID).Return(nil)
+		mockRepo := &issuereportmock.RepositoryMock{
+			GetIssueReportFunc: func(_ context.Context, issueReportID string) (*issuereports.IssueReport, error) {
+				assert.Equal(t, fakeIssueReport.ID, issueReportID)
+
+				return fakeIssueReport, nil
+			},
+			ArchiveIssueReportFunc: func(_ context.Context, issueReportID string) error {
+				assert.Equal(t, fakeIssueReport.ID, issueReportID)
+
+				return nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &issuereportssvc.ArchiveIssueReportRequest{
 			IssueReportId: fakeIssueReport.ID,
@@ -527,7 +597,8 @@ func TestServiceImpl_ArchiveIssueReport(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetIssueReportCalls(), 1)
+		assert.Len(t, mockRepo.ArchiveIssueReportCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -551,12 +622,18 @@ func TestServiceImpl_ArchiveIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeIssueReport := issuereportfakes.BuildFakeIssueReport()
 		fakeIssueReport.BelongsToAccount = "different-account-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetIssueReport), testutils.ContextMatcher, fakeIssueReport.ID).Return(fakeIssueReport, nil)
+		mockRepo := &issuereportmock.RepositoryMock{
+			GetIssueReportFunc: func(_ context.Context, issueReportID string) (*issuereports.IssueReport, error) {
+				assert.Equal(t, fakeIssueReport.ID, issueReportID)
+
+				return fakeIssueReport, nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &issuereportssvc.ArchiveIssueReportRequest{
 			IssueReportId: fakeIssueReport.ID,
@@ -568,6 +645,7 @@ func TestServiceImpl_ArchiveIssueReport(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetIssueReportCalls(), 1)
+		assert.Empty(t, mockRepo.ArchiveIssueReportCalls())
 	})
 }

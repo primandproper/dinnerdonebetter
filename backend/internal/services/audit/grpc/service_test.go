@@ -12,35 +12,32 @@ import (
 	auditmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit/mock"
 	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	auditsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/filtering"
 	"github.com/primandproper/platform-go/v6/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	"github.com/primandproper/platform-go/v6/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func buildTestService(t *testing.T) (*serviceImpl, *auditmock.Repository) {
+// buildTestService builds a service backed by the given repository mock. A nil repo gets an
+// unconfigured mock, which panics if any of its methods are called.
+func buildTestService(t *testing.T, auditManager *auditmock.RepositoryMock) *serviceImpl {
 	t.Helper()
 
-	logger := loggingnoop.NewLogger()
-	tracer := tracing.NewTracerForTest(t.Name())
-	auditManager := &auditmock.Repository{}
-
-	service := &serviceImpl{
-		tracer:       tracer,
-		logger:       logger,
-		auditManager: auditManager,
+	if auditManager == nil {
+		auditManager = &auditmock.RepositoryMock{}
 	}
 
-	return service, auditManager
+	return &serviceImpl{
+		tracer:       tracing.NewTracerForTest(t.Name()),
+		logger:       loggingnoop.NewLogger(),
+		auditManager: auditManager,
+	}
 }
 
 func TestNewService(t *testing.T) {
@@ -51,7 +48,7 @@ func TestNewService(t *testing.T) {
 
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
-		auditManager := &auditmock.Repository{}
+		auditManager := &auditmock.RepositoryMock{}
 
 		service := NewService(logger, tracerProvider, auditManager)
 
@@ -74,7 +71,6 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeAuditLogEntries := auditfakes.BuildFakeAuditLogEntriesList()
 		pageSize := uint8(20)
@@ -92,7 +88,15 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 			},
 		})
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetAuditLogEntriesForAccount), testutils.ContextMatcher, accountID, testutils.QueryFilterMatcher).Return(fakeAuditLogEntries, nil)
+		mockRepo := &auditmock.RepositoryMock{
+			GetAuditLogEntriesForAccountFunc: func(_ context.Context, actualAccountID string, actualFilter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
+				assert.Equal(t, accountID, actualAccountID)
+				assert.NotNil(t, actualFilter)
+
+				return fakeAuditLogEntries, nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &auditsvc.GetAuditLogEntriesForAccountRequest{
@@ -109,14 +113,13 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Len(t, response.Results, len(fakeAuditLogEntries.Data))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetAuditLogEntriesForAccountCalls(), 1)
 	})
 
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		pageSize := uint8(20)
 		filter := &filtering.QueryFilter{
@@ -133,7 +136,14 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 			},
 		})
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetAuditLogEntriesForAccount), testutils.ContextMatcher, accountID, testutils.QueryFilterMatcher).Return((*filtering.QueryFilteredResult[audit.AuditLogEntry])(nil), errors.New("repository error"))
+		mockRepo := &auditmock.RepositoryMock{
+			GetAuditLogEntriesForAccountFunc: func(_ context.Context, actualAccountID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
+				assert.Equal(t, accountID, actualAccountID)
+
+				return nil, errors.New("repository error")
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &auditsvc.GetAuditLogEntriesForAccountRequest{
@@ -149,7 +159,7 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetAuditLogEntriesForAccountCalls(), 1)
 	})
 }
 
@@ -160,7 +170,6 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeAuditLogEntries := auditfakes.BuildFakeAuditLogEntriesList()
 		pageSize := uint8(20)
@@ -175,7 +184,15 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 			ActiveAccountID: identifiers.New(),
 		})
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetAuditLogEntriesForUser), testutils.ContextMatcher, userID, testutils.QueryFilterMatcher).Return(fakeAuditLogEntries, nil)
+		mockRepo := &auditmock.RepositoryMock{
+			GetAuditLogEntriesForUserFunc: func(_ context.Context, actualUserID string, actualFilter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
+				assert.Equal(t, userID, actualUserID)
+				assert.NotNil(t, actualFilter)
+
+				return fakeAuditLogEntries, nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &auditsvc.GetAuditLogEntriesForUserRequest{
@@ -192,14 +209,13 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Len(t, response.Results, len(fakeAuditLogEntries.Data))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetAuditLogEntriesForUserCalls(), 1)
 	})
 
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		pageSize := uint8(20)
 		filter := &filtering.QueryFilter{
@@ -213,7 +229,14 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 			ActiveAccountID: identifiers.New(),
 		})
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetAuditLogEntriesForUser), testutils.ContextMatcher, userID, testutils.QueryFilterMatcher).Return((*filtering.QueryFilteredResult[audit.AuditLogEntry])(nil), errors.New("repository error"))
+		mockRepo := &auditmock.RepositoryMock{
+			GetAuditLogEntriesForUserFunc: func(_ context.Context, actualUserID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
+				assert.Equal(t, userID, actualUserID)
+
+				return nil, errors.New("repository error")
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &auditsvc.GetAuditLogEntriesForUserRequest{
@@ -229,7 +252,7 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetAuditLogEntriesForUserCalls(), 1)
 	})
 }
 
@@ -240,7 +263,6 @@ func TestServiceImpl_GetAuditLogEntryByID(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		userID := identifiers.New()
 		sessionContextData := &sessions.ContextData{
@@ -253,7 +275,14 @@ func TestServiceImpl_GetAuditLogEntryByID(t *testing.T) {
 		fakeAuditLogEntry.BelongsToUser = userID
 		entryID := fakeAuditLogEntry.ID
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetAuditLogEntry), testutils.ContextMatcher, entryID).Return(fakeAuditLogEntry, nil)
+		mockRepo := &auditmock.RepositoryMock{
+			GetAuditLogEntryFunc: func(_ context.Context, auditLogID string) (*audit.AuditLogEntry, error) {
+				assert.Equal(t, entryID, auditLogID)
+
+				return fakeAuditLogEntry, nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &auditsvc.GetAuditLogEntryByIDRequest{
 			AuditLogEntryId: entryID,
@@ -267,14 +296,13 @@ func TestServiceImpl_GetAuditLogEntryByID(t *testing.T) {
 		assert.NotNil(t, response.Result)
 		assert.Equal(t, fakeAuditLogEntry.ID, response.Result.Id)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetAuditLogEntryCalls(), 1)
 	})
 
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, &sessions.ContextData{
 			Requester:       sessions.RequesterInfo{UserID: identifiers.New()},
@@ -283,7 +311,14 @@ func TestServiceImpl_GetAuditLogEntryByID(t *testing.T) {
 
 		entryID := "nonexistent-entry"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetAuditLogEntry), testutils.ContextMatcher, entryID).Return((*audit.AuditLogEntry)(nil), errors.New("repository error"))
+		mockRepo := &auditmock.RepositoryMock{
+			GetAuditLogEntryFunc: func(_ context.Context, auditLogID string) (*audit.AuditLogEntry, error) {
+				assert.Equal(t, entryID, auditLogID)
+
+				return nil, errors.New("repository error")
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &auditsvc.GetAuditLogEntryByIDRequest{
 			AuditLogEntryId: entryID,
@@ -295,6 +330,6 @@ func TestServiceImpl_GetAuditLogEntryByID(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetAuditLogEntryCalls(), 1)
 	})
 }

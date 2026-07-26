@@ -51,14 +51,14 @@ func (noopPasswordResetTokenDataManager) RedeemPasswordResetToken(context.Contex
 }
 
 //nolint:gocritic // I know this returns too many things
-func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessageHandler, *identitymock.RepositoryMock, *webhooksmock.Repository, *msgqueuemock.ConsumerProviderMock, *msgqueuemock.PublisherProviderMock, *analyticsmock.EventReporterMock, *emailmock.EmailerMock, *uploadsmock.UploadManagerMock, *mockmetrics.ProviderMock, *encodingmock.ServerEncoderDecoderMock, *dataprivacymock.Repository) {
+func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessageHandler, *identitymock.RepositoryMock, *webhooksmock.RepositoryMock, *msgqueuemock.ConsumerProviderMock, *msgqueuemock.PublisherProviderMock, *analyticsmock.EventReporterMock, *emailmock.EmailerMock, *uploadsmock.UploadManagerMock, *mockmetrics.ProviderMock, *encodingmock.ServerEncoderDecoderMock, *dataprivacymock.RepositoryMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
 
 	identityRepo := &identitymock.RepositoryMock{}
-	webhookRepo := &webhooksmock.Repository{}
+	webhookRepo := &webhooksmock.RepositoryMock{}
 	consumerProvider := &msgqueuemock.ConsumerProviderMock{}
 	publisherProvider := &msgqueuemock.PublisherProviderMock{}
 	analyticsEventReporter := &analyticsmock.EventReporterMock{}
@@ -66,7 +66,7 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 	uploadManager := &uploadsmock.UploadManagerMock{}
 	metricsProvider := &mockmetrics.ProviderMock{}
 	decoder := &encodingmock.ServerEncoderDecoderMock{}
-	dataPrivacyRepo := &dataprivacymock.Repository{}
+	dataPrivacyRepo := &dataprivacymock.RepositoryMock{}
 
 	// Create mock indexers with noop implementations for testing
 	userDataIndexer := &identityindexing.UserDataIndexer{}
@@ -93,9 +93,9 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		return noopCounter, nil
 	}
 
-	internalOpsRepo := &internalopsmock.InternalOpsDataManager{}
-	mealPlanRepo := &mealplanningmock.Repository{}
-	notificationsRepo := &notificationsmock.Repository{}
+	internalOpsRepo := &internalopsmock.InternalOpsDataManagerMock{}
+	mealPlanRepo := &mealplanningmock.RepositoryMock{}
+	notificationsRepo := &notificationsmock.RepositoryMock{}
 	pushNotificationSender := noopnotifications.NewPushNotificationSender()
 
 	handler := &AsyncDataChangeMessageHandler{
@@ -169,8 +169,8 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 			},
 		}
 		identityRepo := &identitymock.RepositoryMock{}
-		dataPrivacyRepo := &dataprivacymock.Repository{}
-		webhookRepo := &webhooksmock.Repository{}
+		dataPrivacyRepo := &dataprivacymock.RepositoryMock{}
+		webhookRepo := &webhooksmock.RepositoryMock{}
 		consumerProvider := &msgqueuemock.ConsumerProviderMock{}
 		publisherProvider := &msgqueuemock.PublisherProviderMock{}
 		analyticsEventReporter := &analyticsmock.EventReporterMock{}
@@ -202,10 +202,10 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 			return mockPublisher, nil
 		}
 
-		internalOpsRepo := &internalopsmock.InternalOpsDataManager{}
-		mealPlanRepo := &mealplanningmock.Repository{}
+		internalOpsRepo := &internalopsmock.InternalOpsDataManagerMock{}
+		mealPlanRepo := &mealplanningmock.RepositoryMock{}
 		prtManager := noopPasswordResetTokenDataManager{}
-		notificationsRepo := &notificationsmock.Repository{}
+		notificationsRepo := &notificationsmock.RepositoryMock{}
 		pushNotificationSender := noopnotifications.NewPushNotificationSender()
 
 		handler, err := NewAsyncDataChangeMessageHandler(

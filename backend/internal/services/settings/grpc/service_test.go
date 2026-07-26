@@ -19,7 +19,7 @@ func TestNewService(t *testing.T) {
 
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
-		settingsManager := &mock.Repository{}
+		settingsManager := &mock.RepositoryMock{}
 
 		service := NewService(
 			logger,

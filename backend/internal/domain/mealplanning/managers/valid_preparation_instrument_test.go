@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestValidEnumerationManager_ListValidPreparationInstruments(T *testing.T) {
@@ -26,18 +24,18 @@ func TestValidEnumerationManager_ListValidPreparationInstruments(T *testing.T) {
 
 		expected := fakes.BuildFakeValidPreparationInstrumentsList()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPreparationInstruments), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationInstrumentsFunc: func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPreparationInstrument], error) {
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidPreparationInstruments(ctx, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationInstrumentsCalls(), 1)
 	})
 }
 
@@ -53,21 +51,18 @@ func TestValidEnumerationManager_CreateValidPreparationInstrument(T *testing.T) 
 		expected := fakes.BuildFakeValidPreparationInstrument()
 		fakeInput := fakes.BuildFakeValidPreparationInstrumentCreationRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.CreateValidPreparationInstrument), testutils.ContextMatcher, testutils.MatchType[*types.ValidPreparationInstrumentDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateValidPreparationInstrumentFunc: func(_ context.Context, _ *types.ValidPreparationInstrumentDatabaseCreationInput) (*types.ValidPreparationInstrument, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				types.ValidPreparationInstrumentCreatedServiceEventType: {mealplanningkeys.ValidPreparationInstrumentIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidPreparationInstrument(ctx, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateValidPreparationInstrumentCalls(), 1)
 	})
 }
 
@@ -82,18 +77,20 @@ func TestValidEnumerationManager_ReadValidPreparationInstrument(T *testing.T) {
 
 		expected := fakes.BuildFakeValidPreparationInstrument()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPreparationInstrument), testutils.ContextMatcher, expected.ID).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationInstrumentFunc: func(_ context.Context, validPreparationInstrumentID string) (*types.ValidPreparationInstrument, error) {
+				assert.Equal(t, expected.ID, validPreparationInstrumentID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidPreparationInstrument(ctx, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationInstrumentCalls(), 1)
 	})
 }
 
@@ -109,22 +106,24 @@ func TestValidEnumerationManager_UpdateValidPreparationInstrument(T *testing.T) 
 		exampleValidPreparationInstrument := fakes.BuildFakeValidPreparationInstrument()
 		exampleInput := fakes.BuildFakeValidPreparationInstrumentUpdateRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetValidPreparationInstrument), testutils.ContextMatcher, exampleValidPreparationInstrument.ID).Return(exampleValidPreparationInstrument, nil)
-				db.On(reflection.GetMethodName(mpm.db.UpdateValidPreparationInstrument), testutils.ContextMatcher, testutils.MatchType[*types.ValidPreparationInstrument]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationInstrumentFunc: func(_ context.Context, validPreparationInstrumentID string) (*types.ValidPreparationInstrument, error) {
+				assert.Equal(t, exampleValidPreparationInstrument.ID, validPreparationInstrumentID)
+
+				return exampleValidPreparationInstrument, nil
 			},
-			map[string][]string{
-				types.ValidPreparationInstrumentUpdatedServiceEventType: {mealplanningkeys.ValidPreparationInstrumentIDKey},
+			UpdateValidPreparationInstrumentFunc: func(_ context.Context, _ *types.ValidPreparationInstrument) error {
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		result, err := mpm.UpdateValidPreparationInstrument(ctx, exampleValidPreparationInstrument.ID, exampleInput)
 		assert.NotNil(t, result)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationInstrumentCalls(), 2) // the manager re-reads the record after updating it
+		assert.Len(t, db.UpdateValidPreparationInstrumentCalls(), 1)
 	})
 }
 
@@ -139,19 +138,18 @@ func TestValidEnumerationManager_ArchiveValidPreparationInstrument(T *testing.T)
 
 		expected := fakes.BuildFakeValidPreparationInstrument()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.ArchiveValidPreparationInstrument), testutils.ContextMatcher, expected.ID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveValidPreparationInstrumentFunc: func(_ context.Context, validPreparationInstrumentID string) error {
+				assert.Equal(t, expected.ID, validPreparationInstrumentID)
+
+				return nil
 			},
-			map[string][]string{
-				types.ValidPreparationInstrumentArchivedServiceEventType: {mealplanningkeys.ValidPreparationInstrumentIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		assert.NoError(t, vem.ArchiveValidPreparationInstrument(ctx, expected.ID))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveValidPreparationInstrumentCalls(), 1)
 	})
 }
 
@@ -167,18 +165,20 @@ func TestValidEnumerationManager_SearchValidPreparationInstrumentsByPreparation(
 		expected := fakes.BuildFakeValidPreparationInstrumentsList()
 		exampleQuery := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPreparationInstrumentsForPreparation), testutils.ContextMatcher, exampleQuery, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationInstrumentsForPreparationFunc: func(_ context.Context, preparationID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPreparationInstrument], error) {
+				assert.Equal(t, exampleQuery, preparationID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidPreparationInstrumentsByPreparation(ctx, exampleQuery, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationInstrumentsForPreparationCalls(), 1)
 	})
 }
 
@@ -194,17 +194,19 @@ func TestValidEnumerationManager_SearchValidPreparationInstrumentsByInstrument(T
 		expected := fakes.BuildFakeValidPreparationInstrumentsList()
 		exampleQuery := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPreparationInstrumentsForInstrument), testutils.ContextMatcher, exampleQuery, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationInstrumentsForInstrumentFunc: func(_ context.Context, instrumentID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPreparationInstrument], error) {
+				assert.Equal(t, exampleQuery, instrumentID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidPreparationInstrumentsByInstrument(ctx, exampleQuery, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationInstrumentsForInstrumentCalls(), 1)
 	})
 }

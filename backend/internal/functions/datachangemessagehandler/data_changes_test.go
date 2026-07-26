@@ -19,11 +19,9 @@ import (
 	mealplanningindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	msgqueuemock "github.com/primandproper/platform-go/v6/messagequeue/mock"
-	"github.com/primandproper/platform-go/v6/reflection"
 	textsearch "github.com/primandproper/platform-go/v6/search/text"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(t *testing.T) {
@@ -59,12 +57,21 @@ func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(t *testing.T) {
 		// Set up mock expectations
 		analyticsReporter.EventOccurredFunc = func(_ context.Context, _ string, _ string, _ map[string]any) error { return nil }
 		analyticsReporter.AddUserFunc = func(_ context.Context, _ string, _ map[string]any) error { return nil }
-		webhookRepo.On(reflection.GetMethodName(webhookRepo.GetWebhooksForAccountAndEvent), mock.Anything, dataChangeMessage.AccountID, dataChangeMessage.EventType).Return([]*webhooks.Webhook{}, nil).Once()
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetUser), mock.Anything, dataChangeMessage.UserID).Return(identityfakes.BuildFakeUser(), nil).Maybe()
+		webhookRepo.GetWebhooksForAccountAndEventFunc = func(_ context.Context, accountID string, triggerEventID string) ([]*webhooks.Webhook, error) {
+			assert.Equal(t, dataChangeMessage.AccountID, accountID)
+			assert.Equal(t, dataChangeMessage.EventType, triggerEventID)
+
+			return []*webhooks.Webhook{}, nil
+		}
+		identityRepo.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+			assert.Equal(t, dataChangeMessage.UserID, userID)
+
+			return identityfakes.BuildFakeUser(), nil
+		}
 
 		assert.NoError(t, handler.DataChangesEventHandler("data_changes")(ctx, rawMsg))
 
-		mock.AssertExpectationsForObjects(t, webhookRepo, identityRepo)
+		assert.Len(t, webhookRepo.GetWebhooksForAccountAndEventCalls(), 1)
 	})
 
 	t.Run("with invalid JSON", func(t *testing.T) {
@@ -119,12 +126,14 @@ func TestAsyncDataChangeMessageHandler_handleDataChangeMessage(t *testing.T) {
 
 		analyticsEventReporter.EventOccurredFunc = func(_ context.Context, _ string, _ string, _ map[string]any) error { return nil }
 		analyticsEventReporter.AddUserFunc = func(_ context.Context, _ string, _ map[string]any) error { return nil }
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetUser), mock.Anything, dataChangeMessage.UserID).Return(identityfakes.BuildFakeUser(), nil).Maybe()
+		identityRepo.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+			assert.Equal(t, dataChangeMessage.UserID, userID)
+
+			return identityfakes.BuildFakeUser(), nil
+		}
 
 		err := handler.handleDataChangeMessage(ctx, dataChangeMessage, "data_changes")
 		assert.NoError(t, err)
-
-		mock.AssertExpectationsForObjects(t, identityRepo)
 	})
 
 	t.Run("with webhook execution", func(t *testing.T) {
@@ -148,13 +157,22 @@ func TestAsyncDataChangeMessageHandler_handleDataChangeMessage(t *testing.T) {
 
 		analyticsEventReporter.EventOccurredFunc = func(_ context.Context, _ string, _ string, _ map[string]any) error { return nil }
 		analyticsEventReporter.AddUserFunc = func(_ context.Context, _ string, _ map[string]any) error { return nil }
-		webhookRepo.On(reflection.GetMethodName(webhookRepo.GetWebhooksForAccountAndEvent), mock.Anything, dataChangeMessage.AccountID, dataChangeMessage.EventType).Return([]*webhooks.Webhook{webhook}, nil)
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetUser), mock.Anything, dataChangeMessage.UserID).Return(identityfakes.BuildFakeUser(), nil).Maybe()
+		webhookRepo.GetWebhooksForAccountAndEventFunc = func(_ context.Context, accountID string, triggerEventID string) ([]*webhooks.Webhook, error) {
+			assert.Equal(t, dataChangeMessage.AccountID, accountID)
+			assert.Equal(t, dataChangeMessage.EventType, triggerEventID)
+
+			return []*webhooks.Webhook{webhook}, nil
+		}
+		identityRepo.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+			assert.Equal(t, dataChangeMessage.UserID, userID)
+
+			return identityfakes.BuildFakeUser(), nil
+		}
 
 		err := handler.handleDataChangeMessage(ctx, dataChangeMessage, "data_changes")
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, webhookRepo, identityRepo)
+		assert.Len(t, webhookRepo.GetWebhooksForAccountAndEventCalls(), 1)
 	})
 }
 
@@ -335,13 +353,17 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 			},
 		}
 
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetUser), mock.Anything, user.ID).Return(user, nil)
+		identityRepo.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+			assert.Equal(t, user.ID, userID)
+
+			return user, nil
+		}
 		analyticsEventReporter.AddUserFunc = func(_ context.Context, _ string, _ map[string]any) error { return nil }
 
 		err := handler.handleOutboundNotifications(ctx, dataChangeMessage)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, identityRepo)
+		assert.Len(t, identityRepo.GetUserCalls(), 1)
 	})
 
 	T.Run("with user fetch error", func(t *testing.T) {
@@ -360,13 +382,17 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 		}
 
 		expectedError := errors.New("user fetch error")
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetUser), mock.Anything, "test-user-id").Return((*identity.User)(nil), expectedError)
+		identityRepo.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+			assert.Equal(t, "test-user-id", userID)
+
+			return nil, expectedError
+		}
 
 		err := handler.handleOutboundNotifications(ctx, dataChangeMessage)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "getting user")
 
-		mock.AssertExpectationsForObjects(t, identityRepo)
+		assert.Len(t, identityRepo.GetUserCalls(), 1)
 	})
 
 	T.Run("unhandled event type", func(t *testing.T) {
@@ -386,11 +412,15 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 			Context:   nil,
 		}
 
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetUser), mock.Anything, user.ID).Return(user, nil)
+		identityRepo.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+			assert.Equal(t, user.ID, userID)
+
+			return user, nil
+		}
 
 		err := handler.handleOutboundNotifications(ctx, dataChangeMessage)
 		assert.NoError(t, err) // Should handle gracefully with no outbound emails
 
-		mock.AssertExpectationsForObjects(t, identityRepo)
+		assert.Len(t, identityRepo.GetUserCalls(), 1)
 	})
 }

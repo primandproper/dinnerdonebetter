@@ -20,7 +20,7 @@ func TestNewService(t *testing.T) {
 
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
-		oauthManager := &managermock.OAuth2Manager{}
+		oauthManager := &managermock.OAuth2ManagerMock{}
 
 		service := NewService(logger, tracerProvider, oauthManager)
 

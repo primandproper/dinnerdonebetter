@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestMealPlanningManager_ListAccountInstrumentOwnerships(T *testing.T) {
@@ -27,18 +25,20 @@ func TestMealPlanningManager_ListAccountInstrumentOwnerships(T *testing.T) {
 		expected := fakes.BuildFakeAccountInstrumentOwnershipsList()
 		exampleOwnerID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetAccountInstrumentOwnerships), testutils.ContextMatcher, exampleOwnerID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetAccountInstrumentOwnershipsFunc: func(_ context.Context, accountID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.AccountInstrumentOwnership], error) {
+				assert.Equal(t, exampleOwnerID, accountID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ListAccountInstrumentOwnerships(ctx, exampleOwnerID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetAccountInstrumentOwnershipsCalls(), 1)
 	})
 }
 
@@ -55,18 +55,21 @@ func TestMealPlanningManager_SearchValidInstrumentsNotOwnedByAccount(T *testing.
 		exampleAccountID := fakes.BuildFakeID()
 		exampleQuery := "knife"
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.SearchForValidInstrumentsNotOwnedByAccount), testutils.ContextMatcher, exampleAccountID, exampleQuery, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			SearchForValidInstrumentsNotOwnedByAccountFunc: func(_ context.Context, accountID string, query string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidInstrument], error) {
+				assert.Equal(t, exampleAccountID, accountID)
+				assert.Equal(t, exampleQuery, query)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.SearchValidInstrumentsNotOwnedByAccount(ctx, exampleAccountID, exampleQuery, false, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.SearchForValidInstrumentsNotOwnedByAccountCalls(), 1)
 	})
 }
 
@@ -83,21 +86,18 @@ func TestMealPlanningManager_CreateAccountInstrumentOwnership(T *testing.T) {
 		expected := fakes.BuildFakeAccountInstrumentOwnership()
 		fakeInput := fakes.BuildFakeAccountInstrumentOwnershipCreationRequestInput()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.CreateAccountInstrumentOwnership), testutils.ContextMatcher, testutils.MatchType[*types.AccountInstrumentOwnershipDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateAccountInstrumentOwnershipFunc: func(_ context.Context, _ *types.AccountInstrumentOwnershipDatabaseCreationInput) (*types.AccountInstrumentOwnership, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				types.AccountInstrumentOwnershipCreatedServiceEventType: {mealplanningkeys.AccountInstrumentOwnershipIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateAccountInstrumentOwnership(ctx, fakeOwnerID, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateAccountInstrumentOwnershipCalls(), 1)
 	})
 }
 
@@ -113,18 +113,21 @@ func TestMealPlanningManager_ReadAccountInstrumentOwnership(T *testing.T) {
 		ownerID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeAccountInstrumentOwnership()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetAccountInstrumentOwnership), testutils.ContextMatcher, expected.ID, ownerID).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetAccountInstrumentOwnershipFunc: func(_ context.Context, accountInstrumentOwnershipID string, accountID string) (*types.AccountInstrumentOwnership, error) {
+				assert.Equal(t, expected.ID, accountInstrumentOwnershipID)
+				assert.Equal(t, ownerID, accountID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ReadAccountInstrumentOwnership(ctx, ownerID, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetAccountInstrumentOwnershipCalls(), 1)
 	})
 }
 
@@ -141,22 +144,23 @@ func TestMealPlanningManager_UpdateAccountInstrumentOwnership(T *testing.T) {
 		ownerID := fakes.BuildFakeID()
 		exampleInput := fakes.BuildFakeAccountInstrumentOwnershipUpdateRequestInput()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetAccountInstrumentOwnership), testutils.ContextMatcher, exampleAccountInstrumentOwnership.ID, ownerID).Return(exampleAccountInstrumentOwnership, nil)
-				db.On(reflection.GetMethodName(mpm.db.UpdateAccountInstrumentOwnership), testutils.ContextMatcher, testutils.MatchType[*types.AccountInstrumentOwnership]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetAccountInstrumentOwnershipFunc: func(_ context.Context, accountInstrumentOwnershipID string, accountID string) (*types.AccountInstrumentOwnership, error) {
+				assert.Equal(t, exampleAccountInstrumentOwnership.ID, accountInstrumentOwnershipID)
+				assert.Equal(t, ownerID, accountID)
+
+				return exampleAccountInstrumentOwnership, nil
 			},
-			map[string][]string{
-				types.AccountInstrumentOwnershipUpdatedServiceEventType: {
-					mealplanningkeys.AccountInstrumentOwnershipIDKey,
-				},
+			UpdateAccountInstrumentOwnershipFunc: func(_ context.Context, _ *types.AccountInstrumentOwnership) error {
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		assert.NoError(t, mpm.UpdateAccountInstrumentOwnership(ctx, exampleAccountInstrumentOwnership.ID, ownerID, exampleInput))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetAccountInstrumentOwnershipCalls(), 1)
+		assert.Len(t, db.UpdateAccountInstrumentOwnershipCalls(), 1)
 	})
 }
 
@@ -172,21 +176,19 @@ func TestMealPlanningManager_ArchiveAccountInstrumentOwnership(T *testing.T) {
 		ownershipID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeAccountInstrumentOwnership()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.ArchiveAccountInstrumentOwnership), testutils.ContextMatcher, expected.ID, ownershipID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveAccountInstrumentOwnershipFunc: func(_ context.Context, accountInstrumentOwnershipID string, accountID string) error {
+				assert.Equal(t, expected.ID, accountInstrumentOwnershipID)
+				assert.Equal(t, ownershipID, accountID)
+
+				return nil
 			},
-			map[string][]string{
-				types.AccountInstrumentOwnershipArchivedServiceEventType: {
-					mealplanningkeys.AccountInstrumentOwnershipIDKey,
-				},
-			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		err := mpm.ArchiveAccountInstrumentOwnership(ctx, ownershipID, expected.ID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveAccountInstrumentOwnershipCalls(), 1)
 	})
 }
