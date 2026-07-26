@@ -20,7 +20,7 @@ func TestNewService(t *testing.T) {
 
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
-		webhookManager := &webhookmgrmock.WebhookDataManager{}
+		webhookManager := &webhookmgrmock.WebhookDataManagerMock{}
 
 		service := NewService(logger, tracerProvider, webhookManager)
 

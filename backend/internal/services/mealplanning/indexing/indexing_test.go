@@ -4,13 +4,12 @@ import (
 	"context"
 	"testing"
 
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 	textsearch "github.com/primandproper/platform-go/v6/search/text"
 	mocksearch "github.com/primandproper/platform-go/v6/search/text/mock"
 
@@ -28,9 +27,16 @@ func TestHandleIndexRequest(T *testing.T) {
 		ctx := t.Context()
 		logger := loggingnoop.NewLogger()
 
-		mealPlanningRepo := &mealplanningmock.Repository{}
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.GetRecipe), testutils.ContextMatcher, exampleRecipe.ID).Return(exampleRecipe, nil)
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.MarkRecipeAsIndexed), testutils.ContextMatcher, exampleRecipe.ID).Return(nil)
+		mealPlanningRepo := &mealplanningmock.RepositoryMock{
+			GetRecipeFunc: func(_ context.Context, id string) (*mealplanning.Recipe, error) {
+				assert.Equal(t, exampleRecipe.ID, id)
+				return exampleRecipe, nil
+			},
+			MarkRecipeAsIndexedFunc: func(_ context.Context, id string) error {
+				assert.Equal(t, exampleRecipe.ID, id)
+				return nil
+			},
+		}
 
 		rim := &mocksearch.IndexMock[RecipeSearchSubset]{
 			IndexFunc: func(_ context.Context, _ string, _ any) error { return nil },
@@ -65,6 +71,9 @@ func TestHandleIndexRequest(T *testing.T) {
 		}
 
 		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+
+		assert.Len(t, mealPlanningRepo.GetRecipeCalls(), 1)
+		assert.Len(t, mealPlanningRepo.MarkRecipeAsIndexedCalls(), 1)
 	})
 
 	T.Run("meal index type", func(t *testing.T) {
@@ -75,9 +84,16 @@ func TestHandleIndexRequest(T *testing.T) {
 		ctx := t.Context()
 		logger := loggingnoop.NewLogger()
 
-		mealPlanningRepo := &mealplanningmock.Repository{}
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.GetMeal), testutils.ContextMatcher, exampleMeal.ID).Return(exampleMeal, nil)
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.MarkMealAsIndexed), testutils.ContextMatcher, exampleMeal.ID).Return(nil)
+		mealPlanningRepo := &mealplanningmock.RepositoryMock{
+			GetMealFunc: func(_ context.Context, id string) (*mealplanning.Meal, error) {
+				assert.Equal(t, exampleMeal.ID, id)
+				return exampleMeal, nil
+			},
+			MarkMealAsIndexedFunc: func(_ context.Context, id string) error {
+				assert.Equal(t, exampleMeal.ID, id)
+				return nil
+			},
+		}
 
 		rim := &mocksearch.IndexMock[RecipeSearchSubset]{}
 
@@ -113,6 +129,9 @@ func TestHandleIndexRequest(T *testing.T) {
 		}
 
 		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+
+		assert.Len(t, mealPlanningRepo.GetMealCalls(), 1)
+		assert.Len(t, mealPlanningRepo.MarkMealAsIndexedCalls(), 1)
 	})
 
 	T.Run("valid vessel index type", func(t *testing.T) {
@@ -123,9 +142,16 @@ func TestHandleIndexRequest(T *testing.T) {
 		ctx := t.Context()
 		logger := loggingnoop.NewLogger()
 
-		mealPlanningRepo := &mealplanningmock.Repository{}
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.GetValidVessel), testutils.ContextMatcher, exampleValidVessel.ID).Return(exampleValidVessel, nil)
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.MarkValidVesselAsIndexed), testutils.ContextMatcher, exampleValidVessel.ID).Return(nil)
+		mealPlanningRepo := &mealplanningmock.RepositoryMock{
+			GetValidVesselFunc: func(_ context.Context, id string) (*mealplanning.ValidVessel, error) {
+				assert.Equal(t, exampleValidVessel.ID, id)
+				return exampleValidVessel, nil
+			},
+			MarkValidVesselAsIndexedFunc: func(_ context.Context, id string) error {
+				assert.Equal(t, exampleValidVessel.ID, id)
+				return nil
+			},
+		}
 
 		rim := &mocksearch.IndexMock[RecipeSearchSubset]{}
 		mim := &mocksearch.IndexMock[MealSearchSubset]{}
@@ -160,6 +186,9 @@ func TestHandleIndexRequest(T *testing.T) {
 		}
 
 		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+
+		assert.Len(t, mealPlanningRepo.GetValidVesselCalls(), 1)
+		assert.Len(t, mealPlanningRepo.MarkValidVesselAsIndexedCalls(), 1)
 	})
 
 	T.Run("valid ingredient index type", func(t *testing.T) {
@@ -170,9 +199,16 @@ func TestHandleIndexRequest(T *testing.T) {
 		ctx := t.Context()
 		logger := loggingnoop.NewLogger()
 
-		mealPlanningRepo := &mealplanningmock.Repository{}
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.GetValidIngredient), testutils.ContextMatcher, exampleValidIngredient.ID).Return(exampleValidIngredient, nil)
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.MarkValidIngredientAsIndexed), testutils.ContextMatcher, exampleValidIngredient.ID).Return(nil)
+		mealPlanningRepo := &mealplanningmock.RepositoryMock{
+			GetValidIngredientFunc: func(_ context.Context, id string) (*mealplanning.ValidIngredient, error) {
+				assert.Equal(t, exampleValidIngredient.ID, id)
+				return exampleValidIngredient, nil
+			},
+			MarkValidIngredientAsIndexedFunc: func(_ context.Context, id string) error {
+				assert.Equal(t, exampleValidIngredient.ID, id)
+				return nil
+			},
+		}
 
 		rim := &mocksearch.IndexMock[RecipeSearchSubset]{}
 		mim := &mocksearch.IndexMock[MealSearchSubset]{}
@@ -207,6 +243,9 @@ func TestHandleIndexRequest(T *testing.T) {
 		}
 
 		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+
+		assert.Len(t, mealPlanningRepo.GetValidIngredientCalls(), 1)
+		assert.Len(t, mealPlanningRepo.MarkValidIngredientAsIndexedCalls(), 1)
 	})
 
 	T.Run("valid instrument index type", func(t *testing.T) {
@@ -217,9 +256,16 @@ func TestHandleIndexRequest(T *testing.T) {
 		ctx := t.Context()
 		logger := loggingnoop.NewLogger()
 
-		mealPlanningRepo := &mealplanningmock.Repository{}
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.GetValidInstrument), testutils.ContextMatcher, exampleValidInstrument.ID).Return(exampleValidInstrument, nil)
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.MarkValidInstrumentAsIndexed), testutils.ContextMatcher, exampleValidInstrument.ID).Return(nil)
+		mealPlanningRepo := &mealplanningmock.RepositoryMock{
+			GetValidInstrumentFunc: func(_ context.Context, id string) (*mealplanning.ValidInstrument, error) {
+				assert.Equal(t, exampleValidInstrument.ID, id)
+				return exampleValidInstrument, nil
+			},
+			MarkValidInstrumentAsIndexedFunc: func(_ context.Context, id string) error {
+				assert.Equal(t, exampleValidInstrument.ID, id)
+				return nil
+			},
+		}
 
 		rim := &mocksearch.IndexMock[RecipeSearchSubset]{}
 		mim := &mocksearch.IndexMock[MealSearchSubset]{}
@@ -255,6 +301,9 @@ func TestHandleIndexRequest(T *testing.T) {
 		}
 
 		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+
+		assert.Len(t, mealPlanningRepo.GetValidInstrumentCalls(), 1)
+		assert.Len(t, mealPlanningRepo.MarkValidInstrumentAsIndexedCalls(), 1)
 	})
 
 	T.Run("valid preparation index type", func(t *testing.T) {
@@ -265,9 +314,16 @@ func TestHandleIndexRequest(T *testing.T) {
 		ctx := t.Context()
 		logger := loggingnoop.NewLogger()
 
-		mealPlanningRepo := &mealplanningmock.Repository{}
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.GetValidPreparation), testutils.ContextMatcher, exampleValidPreparation.ID).Return(exampleValidPreparation, nil)
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.MarkValidPreparationAsIndexed), testutils.ContextMatcher, exampleValidPreparation.ID).Return(nil)
+		mealPlanningRepo := &mealplanningmock.RepositoryMock{
+			GetValidPreparationFunc: func(_ context.Context, id string) (*mealplanning.ValidPreparation, error) {
+				assert.Equal(t, exampleValidPreparation.ID, id)
+				return exampleValidPreparation, nil
+			},
+			MarkValidPreparationAsIndexedFunc: func(_ context.Context, id string) error {
+				assert.Equal(t, exampleValidPreparation.ID, id)
+				return nil
+			},
+		}
 
 		rim := &mocksearch.IndexMock[RecipeSearchSubset]{}
 		mim := &mocksearch.IndexMock[MealSearchSubset]{}
@@ -303,6 +359,9 @@ func TestHandleIndexRequest(T *testing.T) {
 		}
 
 		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+
+		assert.Len(t, mealPlanningRepo.GetValidPreparationCalls(), 1)
+		assert.Len(t, mealPlanningRepo.MarkValidPreparationAsIndexedCalls(), 1)
 	})
 
 	T.Run("valid measurement unit index type", func(t *testing.T) {
@@ -313,9 +372,16 @@ func TestHandleIndexRequest(T *testing.T) {
 		ctx := t.Context()
 		logger := loggingnoop.NewLogger()
 
-		mealPlanningRepo := &mealplanningmock.Repository{}
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.GetValidMeasurementUnit), testutils.ContextMatcher, exampleValidMeasurementUnit.ID).Return(exampleValidMeasurementUnit, nil)
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.MarkValidMeasurementUnitAsIndexed), testutils.ContextMatcher, exampleValidMeasurementUnit.ID).Return(nil)
+		mealPlanningRepo := &mealplanningmock.RepositoryMock{
+			GetValidMeasurementUnitFunc: func(_ context.Context, id string) (*mealplanning.ValidMeasurementUnit, error) {
+				assert.Equal(t, exampleValidMeasurementUnit.ID, id)
+				return exampleValidMeasurementUnit, nil
+			},
+			MarkValidMeasurementUnitAsIndexedFunc: func(_ context.Context, id string) error {
+				assert.Equal(t, exampleValidMeasurementUnit.ID, id)
+				return nil
+			},
+		}
 
 		rim := &mocksearch.IndexMock[RecipeSearchSubset]{}
 		mim := &mocksearch.IndexMock[MealSearchSubset]{}
@@ -351,6 +417,9 @@ func TestHandleIndexRequest(T *testing.T) {
 		}
 
 		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+
+		assert.Len(t, mealPlanningRepo.GetValidMeasurementUnitCalls(), 1)
+		assert.Len(t, mealPlanningRepo.MarkValidMeasurementUnitAsIndexedCalls(), 1)
 	})
 
 	T.Run("valid ingredient state index type", func(t *testing.T) {
@@ -361,9 +430,16 @@ func TestHandleIndexRequest(T *testing.T) {
 		ctx := t.Context()
 		logger := loggingnoop.NewLogger()
 
-		mealPlanningRepo := &mealplanningmock.Repository{}
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.GetValidIngredientState), testutils.ContextMatcher, exampleValidIngredientState.ID).Return(exampleValidIngredientState, nil)
-		mealPlanningRepo.On(reflection.GetMethodName(mealPlanningRepo.MarkValidIngredientStateAsIndexed), testutils.ContextMatcher, exampleValidIngredientState.ID).Return(nil)
+		mealPlanningRepo := &mealplanningmock.RepositoryMock{
+			GetValidIngredientStateFunc: func(_ context.Context, id string) (*mealplanning.ValidIngredientState, error) {
+				assert.Equal(t, exampleValidIngredientState.ID, id)
+				return exampleValidIngredientState, nil
+			},
+			MarkValidIngredientStateAsIndexedFunc: func(_ context.Context, id string) error {
+				assert.Equal(t, exampleValidIngredientState.ID, id)
+				return nil
+			},
+		}
 
 		rim := &mocksearch.IndexMock[RecipeSearchSubset]{}
 		mim := &mocksearch.IndexMock[MealSearchSubset]{}
@@ -399,5 +475,8 @@ func TestHandleIndexRequest(T *testing.T) {
 		}
 
 		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+
+		assert.Len(t, mealPlanningRepo.GetValidIngredientStateCalls(), 1)
+		assert.Len(t, mealPlanningRepo.MarkValidIngredientStateAsIndexedCalls(), 1)
 	})
 }

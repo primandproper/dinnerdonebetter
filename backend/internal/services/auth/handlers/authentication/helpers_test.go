@@ -8,13 +8,11 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
 	mockauthn "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/authentication/totp"
 	mocktotp "github.com/primandproper/platform-go/v6/authentication/totp/mock"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestAuthenticationService_validateLogin(T *testing.T) {
@@ -25,13 +23,13 @@ func TestAuthenticationService_validateLogin(T *testing.T) {
 
 		helper := buildTestHelper(t)
 
-		authenticator := &mockauthn.Authenticator{}
-		authenticator.On(
-			"PasswordMatches",
-			testutils.ContextMatcher,
-			helper.exampleUser.HashedPassword,
-			helper.exampleLoginInput.Password,
-		).Return(true, nil)
+		authenticator := &mockauthn.AuthenticatorMock{
+			PasswordMatchesFunc: func(_ context.Context, hash, password string) (bool, error) {
+				assert.Equal(t, helper.exampleUser.HashedPassword, hash)
+				assert.Equal(t, helper.exampleLoginInput.Password, password)
+				return true, nil
+			},
+		}
 		helper.service.authenticator = authenticator
 		helper.service.totpVerifier = &mocktotp.VerifierMock{
 			VerifyFunc: func(_ context.Context, _, _ string) error { return nil },
@@ -41,7 +39,7 @@ func TestAuthenticationService_validateLogin(T *testing.T) {
 		assert.True(t, actual)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, authenticator)
+		assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
 	})
 
 	T.Run("with invalid two factor code", func(t *testing.T) {
@@ -49,13 +47,13 @@ func TestAuthenticationService_validateLogin(T *testing.T) {
 
 		helper := buildTestHelper(t)
 
-		authenticator := &mockauthn.Authenticator{}
-		authenticator.On(
-			"PasswordMatches",
-			testutils.ContextMatcher,
-			helper.exampleUser.HashedPassword,
-			helper.exampleLoginInput.Password,
-		).Return(true, nil)
+		authenticator := &mockauthn.AuthenticatorMock{
+			PasswordMatchesFunc: func(_ context.Context, hash, password string) (bool, error) {
+				assert.Equal(t, helper.exampleUser.HashedPassword, hash)
+				assert.Equal(t, helper.exampleLoginInput.Password, password)
+				return true, nil
+			},
+		}
 		helper.service.authenticator = authenticator
 
 		// Force the TOTP path: user has a verified 2FA secret and the verifier returns ErrInvalidCode.
@@ -70,7 +68,7 @@ func TestAuthenticationService_validateLogin(T *testing.T) {
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, totp.ErrInvalidCode)
 
-		mock.AssertExpectationsForObjects(t, authenticator)
+		assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
 	})
 
 	T.Run("with error returned from validator", func(t *testing.T) {
@@ -80,20 +78,20 @@ func TestAuthenticationService_validateLogin(T *testing.T) {
 
 		expectedErr := errors.New("arbitrary")
 
-		authenticator := &mockauthn.Authenticator{}
-		authenticator.On(
-			"PasswordMatches",
-			testutils.ContextMatcher,
-			helper.exampleUser.HashedPassword,
-			helper.exampleLoginInput.Password,
-		).Return(false, expectedErr)
+		authenticator := &mockauthn.AuthenticatorMock{
+			PasswordMatchesFunc: func(_ context.Context, hash, password string) (bool, error) {
+				assert.Equal(t, helper.exampleUser.HashedPassword, hash)
+				assert.Equal(t, helper.exampleLoginInput.Password, password)
+				return false, expectedErr
+			},
+		}
 		helper.service.authenticator = authenticator
 
 		actual, err := helper.service.validateLogin(helper.ctx, helper.exampleUser, helper.exampleLoginInput)
 		assert.False(t, actual)
 		assert.Error(t, err)
 
-		mock.AssertExpectationsForObjects(t, authenticator)
+		assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
 	})
 
 	T.Run("with invalid login", func(t *testing.T) {
@@ -101,13 +99,13 @@ func TestAuthenticationService_validateLogin(T *testing.T) {
 
 		helper := buildTestHelper(t)
 
-		authenticator := &mockauthn.Authenticator{}
-		authenticator.On(
-			"PasswordMatches",
-			testutils.ContextMatcher,
-			helper.exampleUser.HashedPassword,
-			helper.exampleLoginInput.Password,
-		).Return(false, nil)
+		authenticator := &mockauthn.AuthenticatorMock{
+			PasswordMatchesFunc: func(_ context.Context, hash, password string) (bool, error) {
+				assert.Equal(t, helper.exampleUser.HashedPassword, hash)
+				assert.Equal(t, helper.exampleLoginInput.Password, password)
+				return false, nil
+			},
+		}
 		helper.service.authenticator = authenticator
 
 		actual, err := helper.service.validateLogin(helper.ctx, helper.exampleUser, helper.exampleLoginInput)
@@ -115,6 +113,6 @@ func TestAuthenticationService_validateLogin(T *testing.T) {
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, authentication.ErrPasswordDoesNotMatch)
 
-		mock.AssertExpectationsForObjects(t, authenticator)
+		assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
 	})
 }

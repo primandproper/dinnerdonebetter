@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestRecipeManager_ListRecipeStepVessels(T *testing.T) {
@@ -28,18 +26,21 @@ func TestRecipeManager_ListRecipeStepVessels(T *testing.T) {
 		exampleRecipeID := fakes.BuildFakeID()
 		exampleRecipeStepID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetRecipeStepVessels), testutils.ContextMatcher, exampleRecipeID, exampleRecipeStepID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeStepVesselsFunc: func(_ context.Context, recipeID string, recipeStepID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeStepVessel], error) {
+				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ListRecipeStepVessels(ctx, exampleRecipeID, exampleRecipeStepID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRecipeStepVesselsCalls(), 1)
 	})
 }
 
@@ -60,26 +61,24 @@ func TestRecipeManager_CreateRecipeStepVessel(T *testing.T) {
 
 		fakeValidPreparationVessel := fakes.BuildFakeValidPreparationVessel()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetValidPreparationVessel), testutils.ContextMatcher, *fakeInput.ValidPreparationVesselID).Return(fakeValidPreparationVessel, nil)
-				db.On(reflection.GetMethodName(rm.db.CreateRecipeStepVessel), testutils.ContextMatcher, testutils.MatchType[*types.RecipeStepVesselDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationVesselFunc: func(_ context.Context, validPreparationVesselID string) (*types.ValidPreparationVessel, error) {
+				assert.Equal(t, *fakeInput.ValidPreparationVesselID, validPreparationVesselID)
+
+				return fakeValidPreparationVessel, nil
 			},
-			map[string][]string{
-				types.RecipeStepVesselCreatedServiceEventType: {
-					mealplanningkeys.RecipeIDKey,
-					mealplanningkeys.RecipeStepIDKey,
-					mealplanningkeys.RecipeStepVesselIDKey,
-				},
+			CreateRecipeStepVesselFunc: func(_ context.Context, _ *types.RecipeStepVesselDatabaseCreationInput) (*types.RecipeStepVessel, error) {
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.CreateRecipeStepVessel(ctx, exampleRecipeID, exampleRecipeStepID, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationVesselCalls(), 1)
+		assert.Len(t, db.CreateRecipeStepVesselCalls(), 1)
 	})
 }
 
@@ -96,18 +95,22 @@ func TestRecipeManager_ReadRecipeStepVessel(T *testing.T) {
 		exampleRecipeStepID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepVessel()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetRecipeStepVessel), testutils.ContextMatcher, exampleRecipeID, exampleRecipeStepID, expected.ID).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeStepVesselFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string) (*types.RecipeStepVessel, error) {
+				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, expected.ID, recipeStepInstrumentID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ReadRecipeStepVessel(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRecipeStepVesselCalls(), 1)
 	})
 }
 
@@ -125,24 +128,24 @@ func TestRecipeManager_UpdateRecipeStepVessel(T *testing.T) {
 		exampleRecipeStepVessel := fakes.BuildFakeRecipeStepVessel()
 		exampleInput := fakes.BuildFakeRecipeStepVesselUpdateRequestInput()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetRecipeStepVessel), testutils.ContextMatcher, exampleRecipeID, exampleRecipeStepID, exampleRecipeStepVessel.ID).Return(exampleRecipeStepVessel, nil)
-				db.On(reflection.GetMethodName(rm.db.UpdateRecipeStepVessel), testutils.ContextMatcher, testutils.MatchType[*types.RecipeStepVessel]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeStepVesselFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string) (*types.RecipeStepVessel, error) {
+				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleRecipeStepVessel.ID, recipeStepInstrumentID)
+
+				return exampleRecipeStepVessel, nil
 			},
-			map[string][]string{
-				types.RecipeStepVesselUpdatedServiceEventType: {
-					mealplanningkeys.RecipeIDKey,
-					mealplanningkeys.RecipeStepIDKey,
-					mealplanningkeys.RecipeStepVesselIDKey,
-				},
+			UpdateRecipeStepVesselFunc: func(_ context.Context, _ *types.RecipeStepVessel) error {
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		assert.NoError(t, rm.UpdateRecipeStepVessel(ctx, exampleRecipeID, exampleRecipeStepID, exampleRecipeStepVessel.ID, exampleInput))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRecipeStepVesselCalls(), 1)
+		assert.Len(t, db.UpdateRecipeStepVesselCalls(), 1)
 	})
 }
 
@@ -159,22 +162,18 @@ func TestRecipeManager_ArchiveRecipeStepVessel(T *testing.T) {
 		exampleRecipeStepID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepVessel()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.ArchiveRecipeStepVessel), testutils.ContextMatcher, exampleRecipeStepID, expected.ID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveRecipeStepVesselFunc: func(_ context.Context, recipeStepID string, recipeStepInstrumentID string) error {
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, expected.ID, recipeStepInstrumentID)
+
+				return nil
 			},
-			map[string][]string{
-				types.RecipeStepVesselArchivedServiceEventType: {
-					mealplanningkeys.RecipeIDKey,
-					mealplanningkeys.RecipeStepIDKey,
-					mealplanningkeys.RecipeStepVesselIDKey,
-				},
-			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		assert.NoError(t, rm.ArchiveRecipeStepVessel(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveRecipeStepVesselCalls(), 1)
 	})
 }

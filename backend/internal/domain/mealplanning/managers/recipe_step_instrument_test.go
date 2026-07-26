@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestRecipeManager_ListRecipeStepInstruments(T *testing.T) {
@@ -28,18 +26,21 @@ func TestRecipeManager_ListRecipeStepInstruments(T *testing.T) {
 		exampleRecipeID := fakes.BuildFakeID()
 		exampleRecipeStepID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetRecipeStepInstruments), testutils.ContextMatcher, exampleRecipeID, exampleRecipeStepID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeStepInstrumentsFunc: func(_ context.Context, recipeID string, recipeStepID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeStepInstrument], error) {
+				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ListRecipeStepInstruments(ctx, exampleRecipeID, exampleRecipeStepID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRecipeStepInstrumentsCalls(), 1)
 	})
 }
 
@@ -60,26 +61,24 @@ func TestRecipeManager_CreateRecipeStepInstrument(T *testing.T) {
 
 		fakeValidPreparationInstrument := fakes.BuildFakeValidPreparationInstrument()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetValidPreparationInstrument), testutils.ContextMatcher, *fakeInput.ValidPreparationInstrumentID).Return(fakeValidPreparationInstrument, nil)
-				db.On(reflection.GetMethodName(rm.db.CreateRecipeStepInstrument), testutils.ContextMatcher, testutils.MatchType[*types.RecipeStepInstrumentDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationInstrumentFunc: func(_ context.Context, validPreparationInstrumentID string) (*types.ValidPreparationInstrument, error) {
+				assert.Equal(t, *fakeInput.ValidPreparationInstrumentID, validPreparationInstrumentID)
+
+				return fakeValidPreparationInstrument, nil
 			},
-			map[string][]string{
-				types.RecipeStepInstrumentCreatedServiceEventType: {
-					mealplanningkeys.RecipeIDKey,
-					mealplanningkeys.RecipeStepIDKey,
-					mealplanningkeys.RecipeStepInstrumentIDKey,
-				},
+			CreateRecipeStepInstrumentFunc: func(_ context.Context, _ *types.RecipeStepInstrumentDatabaseCreationInput) (*types.RecipeStepInstrument, error) {
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.CreateRecipeStepInstrument(ctx, exampleRecipeID, exampleRecipeStepID, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationInstrumentCalls(), 1)
+		assert.Len(t, db.CreateRecipeStepInstrumentCalls(), 1)
 	})
 }
 
@@ -96,18 +95,22 @@ func TestRecipeManager_ReadRecipeStepInstrument(T *testing.T) {
 		exampleRecipeStepID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepInstrument()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetRecipeStepInstrument), testutils.ContextMatcher, exampleRecipeID, exampleRecipeStepID, expected.ID).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeStepInstrumentFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string) (*types.RecipeStepInstrument, error) {
+				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, expected.ID, recipeStepInstrumentID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ReadRecipeStepInstrument(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRecipeStepInstrumentCalls(), 1)
 	})
 }
 
@@ -125,24 +128,24 @@ func TestRecipeManager_UpdateRecipeStepInstrument(T *testing.T) {
 		exampleRecipeStepInstrument := fakes.BuildFakeRecipeStepInstrument()
 		exampleInput := fakes.BuildFakeRecipeStepInstrumentUpdateRequestInput()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetRecipeStepInstrument), testutils.ContextMatcher, exampleRecipeID, exampleRecipeStepID, exampleRecipeStepInstrument.ID).Return(exampleRecipeStepInstrument, nil)
-				db.On(reflection.GetMethodName(rm.db.UpdateRecipeStepInstrument), testutils.ContextMatcher, testutils.MatchType[*types.RecipeStepInstrument]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeStepInstrumentFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string) (*types.RecipeStepInstrument, error) {
+				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleRecipeStepInstrument.ID, recipeStepInstrumentID)
+
+				return exampleRecipeStepInstrument, nil
 			},
-			map[string][]string{
-				types.RecipeStepInstrumentUpdatedServiceEventType: {
-					mealplanningkeys.RecipeIDKey,
-					mealplanningkeys.RecipeStepIDKey,
-					mealplanningkeys.RecipeStepInstrumentIDKey,
-				},
+			UpdateRecipeStepInstrumentFunc: func(_ context.Context, _ *types.RecipeStepInstrument) error {
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		assert.NoError(t, rm.UpdateRecipeStepInstrument(ctx, exampleRecipeID, exampleRecipeStepID, exampleRecipeStepInstrument.ID, exampleInput))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRecipeStepInstrumentCalls(), 1)
+		assert.Len(t, db.UpdateRecipeStepInstrumentCalls(), 1)
 	})
 }
 
@@ -159,22 +162,18 @@ func TestRecipeManager_ArchiveRecipeStepInstrument(T *testing.T) {
 		exampleRecipeStepID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepInstrument()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.ArchiveRecipeStepInstrument), testutils.ContextMatcher, exampleRecipeStepID, expected.ID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveRecipeStepInstrumentFunc: func(_ context.Context, recipeStepID string, recipeStepInstrumentID string) error {
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, expected.ID, recipeStepInstrumentID)
+
+				return nil
 			},
-			map[string][]string{
-				types.RecipeStepInstrumentArchivedServiceEventType: {
-					mealplanningkeys.RecipeIDKey,
-					mealplanningkeys.RecipeStepIDKey,
-					mealplanningkeys.RecipeStepInstrumentIDKey,
-				},
-			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		assert.NoError(t, rm.ArchiveRecipeStepInstrument(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveRecipeStepInstrumentCalls(), 1)
 	})
 }

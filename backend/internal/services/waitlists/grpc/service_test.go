@@ -20,7 +20,7 @@ func TestNewService(t *testing.T) {
 
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
-		waitlistsManager := &waitlistmock.Repository{}
+		waitlistsManager := &waitlistmock.RepositoryMock{}
 
 		service := NewService(logger, tracerProvider, waitlistsManager)
 

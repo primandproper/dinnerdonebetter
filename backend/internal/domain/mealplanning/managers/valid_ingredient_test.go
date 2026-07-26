@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestValidEnumerationManager_SearchValidIngredients(T *testing.T) {
@@ -27,22 +25,32 @@ func TestValidEnumerationManager_SearchValidIngredients(T *testing.T) {
 		expected := fakes.BuildFakeValidIngredientsList()
 		exampleQuery := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.SearchForValidIngredients), testutils.ContextMatcher, exampleQuery, testutils.QueryFilterMatcher).Return(expected, nil)
+		// media is looked up once per returned record.
+		expectedIDs := map[string]bool{}
+		for _, ing := range expected.Data {
+			expectedIDs[ing.ID] = true
+		}
 
-				for _, ing := range expected.Data {
-					db.On(reflection.GetMethodName(vem.db.GetIngredientMediaByIngredient), testutils.ContextMatcher, ing.ID).Return([]*types.IngredientMediaRow{}, nil)
-				}
+		db := &mealplanningmock.RepositoryMock{
+			SearchForValidIngredientsFunc: func(_ context.Context, query string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidIngredient], error) {
+				assert.Equal(t, exampleQuery, query)
+
+				return expected, nil
 			},
-		)
+			GetIngredientMediaByIngredientFunc: func(_ context.Context, id string) ([]*types.IngredientMediaRow, error) {
+				assert.True(t, expectedIDs[id], "unexpected media lookup for %s", id)
+
+				return []*types.IngredientMediaRow{}, nil
+			},
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidIngredients(ctx, exampleQuery, false, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.SearchForValidIngredientsCalls(), 1)
+		assert.Len(t, db.GetIngredientMediaByIngredientCalls(), len(expected.Data))
 	})
 }
 
@@ -57,22 +65,30 @@ func TestValidEnumerationManager_ListValidIngredients(T *testing.T) {
 
 		expected := fakes.BuildFakeValidIngredientsList()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidIngredients), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(expected, nil)
+		// media is looked up once per returned record.
+		expectedIDs := map[string]bool{}
+		for _, ing := range expected.Data {
+			expectedIDs[ing.ID] = true
+		}
 
-				for _, ing := range expected.Data {
-					db.On(reflection.GetMethodName(vem.db.GetIngredientMediaByIngredient), testutils.ContextMatcher, ing.ID).Return([]*types.IngredientMediaRow{}, nil)
-				}
+		db := &mealplanningmock.RepositoryMock{
+			GetValidIngredientsFunc: func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidIngredient], error) {
+				return expected, nil
 			},
-		)
+			GetIngredientMediaByIngredientFunc: func(_ context.Context, id string) ([]*types.IngredientMediaRow, error) {
+				assert.True(t, expectedIDs[id], "unexpected media lookup for %s", id)
+
+				return []*types.IngredientMediaRow{}, nil
+			},
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidIngredients(ctx, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidIngredientsCalls(), 1)
+		assert.Len(t, db.GetIngredientMediaByIngredientCalls(), len(expected.Data))
 	})
 }
 
@@ -88,21 +104,18 @@ func TestValidEnumerationManager_CreateValidIngredient(T *testing.T) {
 		expected := fakes.BuildFakeValidIngredient()
 		fakeInput := fakes.BuildFakeValidIngredientCreationRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.CreateValidIngredient), testutils.ContextMatcher, testutils.MatchType[*types.ValidIngredientDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateValidIngredientFunc: func(_ context.Context, _ *types.ValidIngredientDatabaseCreationInput) (*types.ValidIngredient, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				types.ValidIngredientCreatedServiceEventType: {mealplanningkeys.ValidIngredientIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidIngredient(ctx, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateValidIngredientCalls(), 1)
 	})
 }
 
@@ -117,20 +130,26 @@ func TestValidEnumerationManager_ReadValidIngredient(T *testing.T) {
 
 		expected := fakes.BuildFakeValidIngredient()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidIngredient), testutils.ContextMatcher, expected.ID).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidIngredientFunc: func(_ context.Context, validIngredientID string) (*types.ValidIngredient, error) {
+				assert.Equal(t, expected.ID, validIngredientID)
 
-				db.On(reflection.GetMethodName(vem.db.GetIngredientMediaByIngredient), testutils.ContextMatcher, expected.ID).Return([]*types.IngredientMediaRow{}, nil)
+				return expected, nil
 			},
-		)
+			GetIngredientMediaByIngredientFunc: func(_ context.Context, validIngredientID string) ([]*types.IngredientMediaRow, error) {
+				assert.Equal(t, expected.ID, validIngredientID)
+
+				return []*types.IngredientMediaRow{}, nil
+			},
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidIngredient(ctx, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidIngredientCalls(), 1)
+		assert.Len(t, db.GetIngredientMediaByIngredientCalls(), 1)
 	})
 }
 
@@ -145,20 +164,24 @@ func TestValidEnumerationManager_RandomValidIngredient(T *testing.T) {
 
 		expected := fakes.BuildFakeValidIngredient()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetRandomValidIngredient), testutils.ContextMatcher).Return(expected, nil)
-
-				db.On(reflection.GetMethodName(vem.db.GetIngredientMediaByIngredient), testutils.ContextMatcher, expected.ID).Return([]*types.IngredientMediaRow{}, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRandomValidIngredientFunc: func(_ context.Context) (*types.ValidIngredient, error) {
+				return expected, nil
 			},
-		)
+			GetIngredientMediaByIngredientFunc: func(_ context.Context, validIngredientID string) ([]*types.IngredientMediaRow, error) {
+				assert.Equal(t, expected.ID, validIngredientID)
+
+				return []*types.IngredientMediaRow{}, nil
+			},
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.RandomValidIngredient(ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRandomValidIngredientCalls(), 1)
+		assert.Len(t, db.GetIngredientMediaByIngredientCalls(), 1)
 	})
 }
 
@@ -174,24 +197,30 @@ func TestValidEnumerationManager_UpdateValidIngredient(T *testing.T) {
 		exampleValidIngredient := fakes.BuildFakeValidIngredient()
 		exampleInput := fakes.BuildFakeValidIngredientUpdateRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetValidIngredient), testutils.ContextMatcher, exampleValidIngredient.ID).Return(exampleValidIngredient, nil)
-				db.On(reflection.GetMethodName(mpm.db.UpdateValidIngredient), testutils.ContextMatcher, testutils.MatchType[*types.ValidIngredient]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidIngredientFunc: func(_ context.Context, validIngredientID string) (*types.ValidIngredient, error) {
+				assert.Equal(t, exampleValidIngredient.ID, validIngredientID)
 
-				db.On(reflection.GetMethodName(mpm.db.GetIngredientMediaByIngredient), testutils.ContextMatcher, exampleValidIngredient.ID).Return([]*types.IngredientMediaRow{}, nil)
+				return exampleValidIngredient, nil
 			},
-			map[string][]string{
-				types.ValidIngredientUpdatedServiceEventType: {mealplanningkeys.ValidIngredientIDKey},
+			UpdateValidIngredientFunc: func(_ context.Context, _ *types.ValidIngredient) error {
+				return nil
 			},
-		)
+			GetIngredientMediaByIngredientFunc: func(_ context.Context, validIngredientID string) ([]*types.IngredientMediaRow, error) {
+				assert.Equal(t, exampleValidIngredient.ID, validIngredientID)
+
+				return []*types.IngredientMediaRow{}, nil
+			},
+		}
+		attachRepositoryToManager(mpm, db)
 
 		result, err := mpm.UpdateValidIngredient(ctx, exampleValidIngredient.ID, exampleInput)
 		assert.NotNil(t, result)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidIngredientCalls(), 2) // the manager re-reads the record after updating it
+		assert.Len(t, db.UpdateValidIngredientCalls(), 1)
+		assert.Len(t, db.GetIngredientMediaByIngredientCalls(), 1)
 	})
 }
 
@@ -206,19 +235,18 @@ func TestValidEnumerationManager_ArchiveValidIngredient(T *testing.T) {
 
 		expected := fakes.BuildFakeValidIngredient()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.ArchiveValidIngredient), testutils.ContextMatcher, expected.ID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveValidIngredientFunc: func(_ context.Context, validIngredientID string) error {
+				assert.Equal(t, expected.ID, validIngredientID)
+
+				return nil
 			},
-			map[string][]string{
-				types.ValidIngredientArchivedServiceEventType: {mealplanningkeys.ValidIngredientIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		assert.NoError(t, vem.ArchiveValidIngredient(ctx, expected.ID))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveValidIngredientCalls(), 1)
 	})
 }
 
@@ -235,21 +263,32 @@ func TestValidEnumerationManager_SearchValidIngredientsByPreparationAndIngredien
 		preparationID := fakes.BuildFakeID()
 		exampleQuery := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.SearchForValidIngredientsForPreparation), testutils.ContextMatcher, preparationID, exampleQuery, testutils.QueryFilterMatcher).Return(expected, nil)
+		// media is looked up once per returned record.
+		expectedIDs := map[string]bool{}
+		for _, ing := range expected.Data {
+			expectedIDs[ing.ID] = true
+		}
 
-				for _, ing := range expected.Data {
-					db.On(reflection.GetMethodName(vem.db.GetIngredientMediaByIngredient), testutils.ContextMatcher, ing.ID).Return([]*types.IngredientMediaRow{}, nil)
-				}
+		db := &mealplanningmock.RepositoryMock{
+			SearchForValidIngredientsForPreparationFunc: func(_ context.Context, preparationID string, query string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidIngredient], error) {
+				assert.Equal(t, preparationID, preparationID)
+				assert.Equal(t, exampleQuery, query)
+
+				return expected, nil
 			},
-		)
+			GetIngredientMediaByIngredientFunc: func(_ context.Context, id string) ([]*types.IngredientMediaRow, error) {
+				assert.True(t, expectedIDs[id], "unexpected media lookup for %s", id)
+
+				return []*types.IngredientMediaRow{}, nil
+			},
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidIngredientsByPreparationAndIngredientName(ctx, preparationID, exampleQuery, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.SearchForValidIngredientsForPreparationCalls(), 1)
+		assert.Len(t, db.GetIngredientMediaByIngredientCalls(), len(expected.Data))
 	})
 }

@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
@@ -16,7 +16,6 @@ import (
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,7 +26,7 @@ func buildNewMealPlanFinalizerForTest(t *testing.T) *Worker {
 	cfg := &msgconfig.QueuesConfig{DataChangesTopicName: "data_changes"}
 
 	pp := &mockpublishers.PublisherProviderMock{
-		NewPublisherFunc: func(_ context.Context, topic string) (messagequeue.Publisher, error) {
+		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
 			return &mockpublishers.PublisherMock{
 				PublishFunc:      func(_ context.Context, _ any) error { return nil },
 				PublishAsyncFunc: func(_ context.Context, _ any) {},
@@ -40,7 +39,7 @@ func buildNewMealPlanFinalizerForTest(t *testing.T) *Worker {
 		ctx,
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
-		&mealplanningmock.Repository{},
+		&mealplanningmock.RepositoryMock{},
 		pp,
 		metricsnoop.NewMetricsProvider(),
 		cfg,
@@ -59,23 +58,27 @@ func TestWorker_Work(T *testing.T) {
 		ctx := t.Context()
 		exampleMealPlans := fakes.BuildFakeMealPlansList().Data
 
-		dbm := &mealplanningmock.Repository{}
-		dbm.On(
-			"GetUnfinalizedMealPlansWithExpiredVotingPeriods",
-			testutils.ContextMatcher,
-		).Return(exampleMealPlans, nil)
+		// every returned meal plan must be finalized with its own ID and owning account.
+		expectedFinalizations := map[string]string{}
+		for _, mealPlan := range exampleMealPlans {
+			expectedFinalizations[mealPlan.ID] = mealPlan.BelongsToAccount
+		}
+
+		dbm := &mealplanningmock.RepositoryMock{
+			GetUnfinalizedMealPlansWithExpiredVotingPeriodsFunc: func(context.Context) ([]*mealplanning.MealPlan, error) {
+				return exampleMealPlans, nil
+			},
+			AttemptToFinalizeMealPlanFunc: func(_ context.Context, mealPlanID, accountID string) (bool, error) {
+				expectedAccountID, ok := expectedFinalizations[mealPlanID]
+				assert.True(t, ok, "unexpected meal plan finalized: %s", mealPlanID)
+				assert.Equal(t, expectedAccountID, accountID)
+
+				return true, nil
+			},
+		}
 
 		pup := &mockpublishers.PublisherMock{
 			PublishFunc: func(_ context.Context, _ any) error { return nil },
-		}
-
-		for _, mealPlan := range exampleMealPlans {
-			dbm.On(
-				"AttemptToFinalizeMealPlan",
-				testutils.ContextMatcher,
-				mealPlan.ID,
-				mealPlan.BelongsToAccount,
-			).Return(true, nil)
 		}
 
 		worker := buildNewMealPlanFinalizerForTest(t)
@@ -88,6 +91,7 @@ func TestWorker_Work(T *testing.T) {
 		assert.Equal(t, expected, actual)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, dbm)
+		assert.Len(t, dbm.GetUnfinalizedMealPlansWithExpiredVotingPeriodsCalls(), 1)
+		assert.Len(t, dbm.AttemptToFinalizeMealPlanCalls(), len(exampleMealPlans))
 	})
 }

@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestValidEnumerationManager_ListValidIngredientStateIngredients(T *testing.T) {
@@ -26,18 +24,18 @@ func TestValidEnumerationManager_ListValidIngredientStateIngredients(T *testing.
 
 		expected := fakes.BuildFakeValidIngredientStateIngredientsList()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidIngredientStateIngredients), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidIngredientStateIngredientsFunc: func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidIngredientStateIngredient], error) {
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidIngredientStateIngredients(ctx, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidIngredientStateIngredientsCalls(), 1)
 	})
 }
 
@@ -53,21 +51,18 @@ func TestValidEnumerationManager_CreateValidIngredientStateIngredient(T *testing
 		expected := fakes.BuildFakeValidIngredientStateIngredient()
 		fakeInput := fakes.BuildFakeValidIngredientStateIngredientCreationRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.CreateValidIngredientStateIngredient), testutils.ContextMatcher, testutils.MatchType[*types.ValidIngredientStateIngredientDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateValidIngredientStateIngredientFunc: func(_ context.Context, _ *types.ValidIngredientStateIngredientDatabaseCreationInput) (*types.ValidIngredientStateIngredient, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				types.ValidIngredientStateIngredientCreatedServiceEventType: {mealplanningkeys.ValidIngredientStateIngredientIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidIngredientStateIngredient(ctx, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateValidIngredientStateIngredientCalls(), 1)
 	})
 }
 
@@ -82,18 +77,20 @@ func TestValidEnumerationManager_ReadValidIngredientStateIngredient(T *testing.T
 
 		expected := fakes.BuildFakeValidIngredientStateIngredient()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidIngredientStateIngredient), testutils.ContextMatcher, expected.ID).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidIngredientStateIngredientFunc: func(_ context.Context, validIngredientPreparationID string) (*types.ValidIngredientStateIngredient, error) {
+				assert.Equal(t, expected.ID, validIngredientPreparationID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidIngredientStateIngredient(ctx, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidIngredientStateIngredientCalls(), 1)
 	})
 }
 
@@ -109,22 +106,24 @@ func TestValidEnumerationManager_UpdateValidIngredientStateIngredient(T *testing
 		exampleValidIngredientStateIngredient := fakes.BuildFakeValidIngredientStateIngredient()
 		exampleInput := fakes.BuildFakeValidIngredientStateIngredientUpdateRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetValidIngredientStateIngredient), testutils.ContextMatcher, exampleValidIngredientStateIngredient.ID).Return(exampleValidIngredientStateIngredient, nil)
-				db.On(reflection.GetMethodName(mpm.db.UpdateValidIngredientStateIngredient), testutils.ContextMatcher, testutils.MatchType[*types.ValidIngredientStateIngredient]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidIngredientStateIngredientFunc: func(_ context.Context, validIngredientPreparationID string) (*types.ValidIngredientStateIngredient, error) {
+				assert.Equal(t, exampleValidIngredientStateIngredient.ID, validIngredientPreparationID)
+
+				return exampleValidIngredientStateIngredient, nil
 			},
-			map[string][]string{
-				types.ValidIngredientStateIngredientUpdatedServiceEventType: {mealplanningkeys.ValidIngredientStateIngredientIDKey},
+			UpdateValidIngredientStateIngredientFunc: func(_ context.Context, _ *types.ValidIngredientStateIngredient) error {
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		result, err := mpm.UpdateValidIngredientStateIngredient(ctx, exampleValidIngredientStateIngredient.ID, exampleInput)
 		assert.NotNil(t, result)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidIngredientStateIngredientCalls(), 2) // the manager re-reads the record after updating it
+		assert.Len(t, db.UpdateValidIngredientStateIngredientCalls(), 1)
 	})
 }
 
@@ -139,19 +138,18 @@ func TestValidEnumerationManager_ArchiveValidIngredientStateIngredient(T *testin
 
 		expected := fakes.BuildFakeValidIngredientStateIngredient()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.ArchiveValidIngredientStateIngredient), testutils.ContextMatcher, expected.ID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveValidIngredientStateIngredientFunc: func(_ context.Context, validIngredientPreparationID string) error {
+				assert.Equal(t, expected.ID, validIngredientPreparationID)
+
+				return nil
 			},
-			map[string][]string{
-				types.ValidIngredientStateIngredientArchivedServiceEventType: {mealplanningkeys.ValidIngredientStateIngredientIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		assert.NoError(t, vem.ArchiveValidIngredientStateIngredient(ctx, expected.ID))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveValidIngredientStateIngredientCalls(), 1)
 	})
 }
 
@@ -167,18 +165,20 @@ func TestValidEnumerationManager_SearchValidIngredientStateIngredientsByIngredie
 		expected := fakes.BuildFakeValidIngredientStateIngredientsList()
 		exampleQuery := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidIngredientStateIngredientsForIngredient), testutils.ContextMatcher, exampleQuery, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidIngredientStateIngredientsForIngredientFunc: func(_ context.Context, ingredientID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidIngredientStateIngredient], error) {
+				assert.Equal(t, exampleQuery, ingredientID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidIngredientStateIngredientsByIngredient(ctx, exampleQuery, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidIngredientStateIngredientsForIngredientCalls(), 1)
 	})
 }
 
@@ -194,17 +194,19 @@ func TestValidEnumerationManager_SearchValidIngredientStateIngredientsByIngredie
 		expected := fakes.BuildFakeValidIngredientStateIngredientsList()
 		exampleQuery := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidIngredientStateIngredientsForIngredientState), testutils.ContextMatcher, exampleQuery, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidIngredientStateIngredientsForIngredientStateFunc: func(_ context.Context, ingredientStateID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidIngredientStateIngredient], error) {
+				assert.Equal(t, exampleQuery, ingredientStateID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidIngredientStateIngredientsByIngredientState(ctx, exampleQuery, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidIngredientStateIngredientsForIngredientStateCalls(), 1)
 	})
 }

@@ -18,7 +18,6 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	pgcontainers "github.com/testcontainers/testcontainers-go/modules/postgres"
 )
@@ -31,7 +30,7 @@ type sqlmockExpecterWrapper struct {
 	sqlmock.Sqlmock
 }
 
-func (e *sqlmockExpecterWrapper) AssertExpectations(t mock.TestingT) bool {
+func (e *sqlmockExpecterWrapper) AssertExpectations(t assert.TestingT) bool {
 	return assert.NoError(t, e.ExpectationsWereMet(), "not all database expectations were met")
 }
 

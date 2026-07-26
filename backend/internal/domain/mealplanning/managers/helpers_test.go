@@ -2,10 +2,8 @@ package managers
 
 import (
 	"context"
-	"slices"
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	mealplanningworkers "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers"
@@ -18,28 +16,12 @@ import (
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
 	textsearchcfg "github.com/primandproper/platform-go/v6/search/text/config"
 
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func eventMatches(eventType string, keys []string) any {
-	return mock.MatchedBy(func(message *audit.DataChangeMessage) bool {
-		allContextKeys := []string{}
-		for k := range message.Context {
-			allContextKeys = append(allContextKeys, k)
-		}
-
-		slices.Sort(keys)
-		slices.Sort(allContextKeys)
-		allKeysMatch := slices.Equal(keys, allContextKeys)
-		eventTypeMatches := message.EventType == eventType
-		result := allKeysMatch && eventTypeMatches
-
-		return result
-	})
-}
-
-func buildMealPlanManagerForTest(t *testing.T) *mealPlanningManager {
+// newManagerForTest constructs a manager wired to unconfigured mocks. Tests swap in their own
+// configured repository via attachRepositoryToManager.
+func newManagerForTest(t *testing.T, groceryWorker, taskWorker mealplanningworkers.Worker) *mealPlanningManager {
 	t.Helper()
 
 	queueCfg := &msgconfig.QueuesConfig{
@@ -56,41 +38,10 @@ func buildMealPlanManagerForTest(t *testing.T) *mealPlanningManager {
 		t.Context(),
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
-		&mealplanningmock.Repository{},
+		&mealplanningmock.RepositoryMock{},
 		queueCfg,
 		mpp,
-		&recipeanalysis.MockRecipeAnalyzer{},
-		&textsearchcfg.Config{},
-		metricsnoop.NewMetricsProvider(),
-		nil,
-		nil,
-	)
-	require.NoError(t, err)
-
-	return m.(*mealPlanningManager)
-}
-
-func buildMealPlanManagerForTestWithWorkers(t *testing.T, groceryWorker, taskWorker *mealplanningworkers.MockWorker) *mealPlanningManager {
-	t.Helper()
-
-	queueCfg := &msgconfig.QueuesConfig{
-		DataChangesTopicName: t.Name(),
-	}
-
-	mpp := &mockpublishers.PublisherProviderMock{
-		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
-			return &mockpublishers.PublisherMock{}, nil
-		},
-	}
-
-	m, err := NewMealPlanningManager(
-		t.Context(),
-		loggingnoop.NewLogger(),
-		tracingnoop.NewTracerProvider(),
-		&mealplanningmock.Repository{},
-		queueCfg,
-		mpp,
-		&recipeanalysis.MockRecipeAnalyzer{},
+		&recipeanalysis.RecipeAnalyzerMock{},
 		&textsearchcfg.Config{},
 		metricsnoop.NewMetricsProvider(),
 		groceryWorker,
@@ -101,138 +52,46 @@ func buildMealPlanManagerForTestWithWorkers(t *testing.T, groceryWorker, taskWor
 	return m.(*mealPlanningManager)
 }
 
-func setupExpectationsForMealPlanningManager(
-	manager *mealPlanningManager,
-	dbSetupFunc func(db *mealplanningmock.Repository),
-	eventTypeMaps ...map[string][]string,
-) []any {
-	db := &mealplanningmock.Repository{}
-	if dbSetupFunc != nil {
-		dbSetupFunc(db)
-	}
-	manager.db = db
+func buildMealPlanManagerForTest(t *testing.T) *mealPlanningManager {
+	t.Helper()
 
-	mp := &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
-	}
-	manager.dataChangesPublisher = mp
+	return newManagerForTest(t, nil, nil)
+}
 
-	return []any{db}
+func buildMealPlanManagerForTestWithWorkers(t *testing.T, groceryWorker, taskWorker *mealplanningworkers.WorkerMock) *mealPlanningManager {
+	t.Helper()
+
+	return newManagerForTest(t, groceryWorker, taskWorker)
 }
 
 func buildRecipeManagerForTest(t *testing.T) *mealPlanningManager {
 	t.Helper()
 
-	queueCfg := &msgconfig.QueuesConfig{
-		DataChangesTopicName: t.Name(),
-	}
-
-	mpp := &mockpublishers.PublisherProviderMock{
-		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
-			return &mockpublishers.PublisherMock{}, nil
-		},
-	}
-
-	m, err := NewMealPlanningManager(
-		t.Context(),
-		loggingnoop.NewLogger(),
-		tracingnoop.NewTracerProvider(),
-		&mealplanningmock.Repository{},
-		queueCfg,
-		mpp,
-		&recipeanalysis.MockRecipeAnalyzer{},
-		&textsearchcfg.Config{},
-		metricsnoop.NewMetricsProvider(),
-		nil,
-		nil,
-	)
-	require.NoError(t, err)
-
-	return m.(*mealPlanningManager)
-}
-
-func setupExpectationsForRecipeManager(
-	manager *mealPlanningManager,
-	dbSetupFunc func(db *mealplanningmock.Repository),
-	eventTypeMaps ...map[string][]string,
-) []any {
-	db := &mealplanningmock.Repository{}
-	if dbSetupFunc != nil {
-		dbSetupFunc(db)
-	}
-	manager.db = db
-
-	mp := &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
-	}
-	manager.dataChangesPublisher = mp
-
-	return []any{db}
-}
-
-func setupExpectationsForRecipeManagerWithAnalyzer(
-	manager *mealPlanningManager,
-	dbSetupFunc func(db *mealplanningmock.Repository),
-	analyzerSetupFunc func(analyzer *recipeanalysis.MockRecipeAnalyzer),
-	eventTypeMaps ...map[string][]string,
-) []any {
-	expectations := setupExpectationsForRecipeManager(manager, dbSetupFunc, eventTypeMaps...)
-
-	ra := &recipeanalysis.MockRecipeAnalyzer{}
-	if analyzerSetupFunc != nil {
-		analyzerSetupFunc(ra)
-	}
-	manager.recipeAnalyzer = ra
-
-	return expectations
+	return newManagerForTest(t, nil, nil)
 }
 
 func buildValidEnumerationsManagerForTest(t *testing.T) *mealPlanningManager {
 	t.Helper()
 
-	queueCfg := &msgconfig.QueuesConfig{
-		DataChangesTopicName: t.Name(),
-	}
-
-	mpp := &mockpublishers.PublisherProviderMock{
-		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
-			return &mockpublishers.PublisherMock{}, nil
-		},
-	}
-
-	m, err := NewMealPlanningManager(
-		t.Context(),
-		loggingnoop.NewLogger(),
-		tracingnoop.NewTracerProvider(),
-		&mealplanningmock.Repository{},
-		queueCfg,
-		mpp,
-		&recipeanalysis.MockRecipeAnalyzer{},
-		&textsearchcfg.Config{},
-		metricsnoop.NewMetricsProvider(),
-		nil,
-		nil,
-	)
-	require.NoError(t, err)
-
-	return m.(*mealPlanningManager)
+	return newManagerForTest(t, nil, nil)
 }
 
-func setupExpectationsForValidEnumerationManager(
-	manager *mealPlanningManager,
-	dbSetupFunc func(db *mealplanningmock.Repository),
-	eventTypeMaps ...map[string][]string,
-) []any {
-	db := &mealplanningmock.Repository{}
-	if dbSetupFunc != nil {
-		dbSetupFunc(db)
-	}
+// attachRepositoryToManager wires a configured repository mock and a no-op data changes publisher
+// into the manager under test.
+func attachRepositoryToManager(manager *mealPlanningManager, db *mealplanningmock.RepositoryMock) {
 	manager.db = db
-
-	mp := &mockpublishers.PublisherMock{
+	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
 		PublishAsyncFunc: func(_ context.Context, _ any) {},
 	}
-	manager.dataChangesPublisher = mp
+}
 
-	return []any{db}
+// attachRepositoryAndAnalyzerToManager additionally swaps in a configured recipe analyzer. A nil
+// analyzer gets an unconfigured mock, which panics if any of its methods are called.
+func attachRepositoryAndAnalyzerToManager(manager *mealPlanningManager, db *mealplanningmock.RepositoryMock, analyzer *recipeanalysis.RecipeAnalyzerMock) {
+	attachRepositoryToManager(manager, db)
+
+	if analyzer == nil {
+		analyzer = &recipeanalysis.RecipeAnalyzerMock{}
+	}
+	manager.recipeAnalyzer = analyzer
 }

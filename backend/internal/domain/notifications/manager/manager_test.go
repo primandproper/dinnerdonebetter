@@ -7,19 +7,15 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/converters"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/fakes"
-	notificationkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/keys"
 	notificationsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
 	mockpublishers "github.com/primandproper/platform-go/v6/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,7 +39,7 @@ func buildNotificationsManagerForTest(t *testing.T) *notificationsManager {
 		ctx,
 		tracingnoop.NewTracerProvider(),
 		loggingnoop.NewLogger(),
-		&notificationsmock.Repository{},
+		&notificationsmock.RepositoryMock{},
 		queueCfg,
 		mpp,
 	)
@@ -52,23 +48,13 @@ func buildNotificationsManagerForTest(t *testing.T) *notificationsManager {
 	return m.(*notificationsManager)
 }
 
-func setupExpectationsForNotificationsManager(
-	manager *notificationsManager,
-	repoSetupFunc func(repo *notificationsmock.Repository),
-	eventTypeMaps ...map[string][]string,
-) []any {
-	repo := &notificationsmock.Repository{}
-	if repoSetupFunc != nil {
-		repoSetupFunc(repo)
-	}
+// attachRepositoryToNotificationsManager wires a configured repository mock and a no-op data changes
+// publisher into the manager under test.
+func attachRepositoryToNotificationsManager(manager *notificationsManager, repo *notificationsmock.RepositoryMock) {
 	manager.repo = repo
-
-	mp := &mockpublishers.PublisherMock{
+	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
 		PublishAsyncFunc: func(_ context.Context, _ any) {},
 	}
-	manager.dataChangesPublisher = mp
-
-	return []any{repo}
 }
 
 func TestNotificationsManager_CreateUserNotification(t *testing.T) {
@@ -83,21 +69,18 @@ func TestNotificationsManager_CreateUserNotification(t *testing.T) {
 		expected := fakes.BuildFakeUserNotification()
 		input := converters.ConvertUserNotificationToUserNotificationDatabaseCreationInput(expected)
 
-		expectations := setupExpectationsForNotificationsManager(
-			nm,
-			func(repo *notificationsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.CreateUserNotification), testutils.ContextMatcher, testutils.MatchType[*notifications.UserNotificationDatabaseCreationInput]()).Return(expected, nil)
+		repo := &notificationsmock.RepositoryMock{
+			CreateUserNotificationFunc: func(_ context.Context, _ *notifications.UserNotificationDatabaseCreationInput) (*notifications.UserNotification, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				notifications.UserNotificationCreatedServiceEventType: {notificationkeys.UserNotificationIDKey},
-			},
-		)
+		}
+		attachRepositoryToNotificationsManager(nm, repo)
 
 		actual, err := nm.CreateUserNotification(ctx, input)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateUserNotificationCalls(), 1)
 	})
 }
 
@@ -113,20 +96,19 @@ func TestNotificationsManager_UpdateUserNotification(t *testing.T) {
 		updated := fakes.BuildFakeUserNotification()
 		updated.Status = notifications.UserNotificationStatusTypeRead
 
-		expectations := setupExpectationsForNotificationsManager(
-			nm,
-			func(repo *notificationsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.UpdateUserNotification), testutils.ContextMatcher, updated).Return(nil)
+		repo := &notificationsmock.RepositoryMock{
+			UpdateUserNotificationFunc: func(_ context.Context, input *notifications.UserNotification) error {
+				assert.Equal(t, updated, input)
+
+				return nil
 			},
-			map[string][]string{
-				notifications.UserNotificationUpdatedServiceEventType: {notificationkeys.UserNotificationIDKey},
-			},
-		)
+		}
+		attachRepositoryToNotificationsManager(nm, repo)
 
 		err := nm.UpdateUserNotification(ctx, updated)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.UpdateUserNotificationCalls(), 1)
 	})
 }
 
@@ -142,21 +124,18 @@ func TestNotificationsManager_CreateUserDeviceToken(t *testing.T) {
 		expected := fakes.BuildFakeUserDeviceToken()
 		input := converters.ConvertUserDeviceTokenToUserDeviceTokenDatabaseCreationInput(expected)
 
-		expectations := setupExpectationsForNotificationsManager(
-			nm,
-			func(repo *notificationsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.CreateUserDeviceToken), testutils.ContextMatcher, testutils.MatchType[*notifications.UserDeviceTokenDatabaseCreationInput]()).Return(expected, nil)
+		repo := &notificationsmock.RepositoryMock{
+			CreateUserDeviceTokenFunc: func(_ context.Context, _ *notifications.UserDeviceTokenDatabaseCreationInput) (*notifications.UserDeviceToken, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				notifications.UserDeviceTokenCreatedServiceEventType: {notificationkeys.UserDeviceTokenIDKey},
-			},
-		)
+		}
+		attachRepositoryToNotificationsManager(nm, repo)
 
 		actual, err := nm.CreateUserDeviceToken(ctx, input)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateUserDeviceTokenCalls(), 1)
 	})
 }
 
@@ -172,20 +151,20 @@ func TestNotificationsManager_ArchiveUserDeviceToken(t *testing.T) {
 		userID := fakes.BuildFakeID()
 		tokenID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForNotificationsManager(
-			nm,
-			func(repo *notificationsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.ArchiveUserDeviceToken), testutils.ContextMatcher, userID, tokenID).Return(nil)
+		repo := &notificationsmock.RepositoryMock{
+			ArchiveUserDeviceTokenFunc: func(_ context.Context, archivedUserID, archivedTokenID string) error {
+				assert.Equal(t, userID, archivedUserID)
+				assert.Equal(t, tokenID, archivedTokenID)
+
+				return nil
 			},
-			map[string][]string{
-				notifications.UserDeviceTokenArchivedServiceEventType: {notificationkeys.UserDeviceTokenIDKey},
-			},
-		)
+		}
+		attachRepositoryToNotificationsManager(nm, repo)
 
 		err := nm.ArchiveUserDeviceToken(ctx, userID, tokenID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.ArchiveUserDeviceTokenCalls(), 1)
 	})
 
 	t.Run("with empty user ID", func(t *testing.T) {

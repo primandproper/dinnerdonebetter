@@ -7,20 +7,16 @@ import (
 	identitymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/fakes"
-	paymentskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/keys"
 	paymentsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/adapters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
 	mockpublishers "github.com/primandproper/platform-go/v6/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,9 +45,9 @@ func buildPaymentsManagerForTest(t *testing.T) *paymentsManager {
 		ctx,
 		tracingnoop.NewTracerProvider(),
 		loggingnoop.NewLogger(),
-		&paymentsmock.Repository{},
+		&paymentsmock.RepositoryMock{},
 		registry,
-		&identitymock.IdentityDataManager{},
+		&identitymock.IdentityDataManagerMock{},
 		queueCfg,
 		mpp,
 	)
@@ -60,23 +56,13 @@ func buildPaymentsManagerForTest(t *testing.T) *paymentsManager {
 	return m.(*paymentsManager)
 }
 
-func setupExpectationsForPaymentsManager(
-	manager *paymentsManager,
-	repoSetupFunc func(repo *paymentsmock.Repository),
-	eventTypeMaps ...map[string][]string,
-) []any {
-	repo := &paymentsmock.Repository{}
-	if repoSetupFunc != nil {
-		repoSetupFunc(repo)
-	}
+// attachRepositoryToPaymentsManager wires a configured repository mock and a no-op data changes
+// publisher into the manager under test.
+func attachRepositoryToPaymentsManager(manager *paymentsManager, repo *paymentsmock.RepositoryMock) {
 	manager.repo = repo
-
-	mp := &mockpublishers.PublisherMock{
+	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
 		PublishAsyncFunc: func(_ context.Context, _ any) {},
 	}
-	manager.dataChangesPublisher = mp
-
-	return []any{repo}
 }
 
 func TestPaymentsManager_CreateProduct(t *testing.T) {
@@ -91,21 +77,18 @@ func TestPaymentsManager_CreateProduct(t *testing.T) {
 		input := fakes.BuildFakeProductCreationRequestInput()
 		expected := fakes.BuildFakeProduct()
 
-		expectations := setupExpectationsForPaymentsManager(
-			pm,
-			func(repo *paymentsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.CreateProduct), testutils.ContextMatcher, testutils.MatchType[*payments.ProductDatabaseCreationInput]()).Return(expected, nil)
+		repo := &paymentsmock.RepositoryMock{
+			CreateProductFunc: func(_ context.Context, _ *payments.ProductDatabaseCreationInput) (*payments.Product, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				payments.ProductCreatedServiceEventType: {paymentskeys.ProductIDKey},
-			},
-		)
+		}
+		attachRepositoryToPaymentsManager(pm, repo)
 
 		actual, err := pm.CreateProduct(ctx, input)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateProductCalls(), 1)
 	})
 }
 
@@ -123,23 +106,26 @@ func TestPaymentsManager_UpdateProduct(t *testing.T) {
 		name := "Updated Name"
 		input := &payments.ProductUpdateRequestInput{Name: &name}
 
-		expectations := setupExpectationsForPaymentsManager(
-			pm,
-			func(repo *paymentsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.GetProduct), testutils.ContextMatcher, productID).Return(product, nil)
-				repo.On(reflection.GetMethodName(repo.UpdateProduct), testutils.ContextMatcher, mock.MatchedBy(func(p *payments.Product) bool {
-					return p.ID == productID && p.Name == name
-				})).Return(nil)
+		repo := &paymentsmock.RepositoryMock{
+			GetProductFunc: func(_ context.Context, id string) (*payments.Product, error) {
+				assert.Equal(t, productID, id)
+
+				return product, nil
 			},
-			map[string][]string{
-				payments.ProductUpdatedServiceEventType: {paymentskeys.ProductIDKey},
+			UpdateProductFunc: func(_ context.Context, p *payments.Product) error {
+				assert.Equal(t, productID, p.ID)
+				assert.Equal(t, name, p.Name)
+
+				return nil
 			},
-		)
+		}
+		attachRepositoryToPaymentsManager(pm, repo)
 
 		err := pm.UpdateProduct(ctx, productID, input)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.GetProductCalls(), 1)
+		assert.Len(t, repo.UpdateProductCalls(), 1)
 	})
 }
 
@@ -154,20 +140,19 @@ func TestPaymentsManager_ArchiveProduct(t *testing.T) {
 
 		productID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForPaymentsManager(
-			pm,
-			func(repo *paymentsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.ArchiveProduct), testutils.ContextMatcher, productID).Return(nil)
+		repo := &paymentsmock.RepositoryMock{
+			ArchiveProductFunc: func(_ context.Context, id string) error {
+				assert.Equal(t, productID, id)
+
+				return nil
 			},
-			map[string][]string{
-				payments.ProductArchivedServiceEventType: {paymentskeys.ProductIDKey},
-			},
-		)
+		}
+		attachRepositoryToPaymentsManager(pm, repo)
 
 		err := pm.ArchiveProduct(ctx, productID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.ArchiveProductCalls(), 1)
 	})
 }
 
@@ -185,21 +170,18 @@ func TestPaymentsManager_CreateSubscription(t *testing.T) {
 		input := fakes.BuildFakeSubscriptionCreationRequestInput(accountID, productID)
 		expected := fakes.BuildFakeSubscription(accountID, productID)
 
-		expectations := setupExpectationsForPaymentsManager(
-			pm,
-			func(repo *paymentsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.CreateSubscription), testutils.ContextMatcher, testutils.MatchType[*payments.SubscriptionDatabaseCreationInput]()).Return(expected, nil)
+		repo := &paymentsmock.RepositoryMock{
+			CreateSubscriptionFunc: func(_ context.Context, _ *payments.SubscriptionDatabaseCreationInput) (*payments.Subscription, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				payments.SubscriptionCreatedServiceEventType: {paymentskeys.SubscriptionIDKey},
-			},
-		)
+		}
+		attachRepositoryToPaymentsManager(pm, repo)
 
 		actual, err := pm.CreateSubscription(ctx, input)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateSubscriptionCalls(), 1)
 	})
 }
 
@@ -219,23 +201,26 @@ func TestPaymentsManager_UpdateSubscription(t *testing.T) {
 		status := payments.SubscriptionStatusCancelled
 		input := &payments.SubscriptionUpdateRequestInput{Status: &status}
 
-		expectations := setupExpectationsForPaymentsManager(
-			pm,
-			func(repo *paymentsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.GetSubscription), testutils.ContextMatcher, subID).Return(sub, nil)
-				repo.On(reflection.GetMethodName(repo.UpdateSubscription), testutils.ContextMatcher, mock.MatchedBy(func(s *payments.Subscription) bool {
-					return s.ID == subID && s.Status == status
-				})).Return(nil)
+		repo := &paymentsmock.RepositoryMock{
+			GetSubscriptionFunc: func(_ context.Context, id string) (*payments.Subscription, error) {
+				assert.Equal(t, subID, id)
+
+				return sub, nil
 			},
-			map[string][]string{
-				payments.SubscriptionUpdatedServiceEventType: {paymentskeys.SubscriptionIDKey},
+			UpdateSubscriptionFunc: func(_ context.Context, s *payments.Subscription) error {
+				assert.Equal(t, subID, s.ID)
+				assert.Equal(t, status, s.Status)
+
+				return nil
 			},
-		)
+		}
+		attachRepositoryToPaymentsManager(pm, repo)
 
 		err := pm.UpdateSubscription(ctx, subID, input)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.GetSubscriptionCalls(), 1)
+		assert.Len(t, repo.UpdateSubscriptionCalls(), 1)
 	})
 }
 
@@ -250,19 +235,18 @@ func TestPaymentsManager_ArchiveSubscription(t *testing.T) {
 
 		subID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForPaymentsManager(
-			pm,
-			func(repo *paymentsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.ArchiveSubscription), testutils.ContextMatcher, subID).Return(nil)
+		repo := &paymentsmock.RepositoryMock{
+			ArchiveSubscriptionFunc: func(_ context.Context, id string) error {
+				assert.Equal(t, subID, id)
+
+				return nil
 			},
-			map[string][]string{
-				payments.SubscriptionArchivedServiceEventType: {paymentskeys.SubscriptionIDKey},
-			},
-		)
+		}
+		attachRepositoryToPaymentsManager(pm, repo)
 
 		err := pm.ArchiveSubscription(ctx, subID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.ArchiveSubscriptionCalls(), 1)
 	})
 }

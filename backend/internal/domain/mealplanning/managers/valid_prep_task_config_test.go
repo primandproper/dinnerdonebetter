@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestValidEnumerationManager_ListValidPrepTaskConfigs(T *testing.T) {
@@ -26,18 +24,18 @@ func TestValidEnumerationManager_ListValidPrepTaskConfigs(T *testing.T) {
 
 		expected := fakes.BuildFakeValidPrepTaskConfigsList()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPrepTaskConfigs), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPrepTaskConfigsFunc: func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPrepTaskConfig], error) {
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidPrepTaskConfigs(ctx, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPrepTaskConfigsCalls(), 1)
 	})
 }
 
@@ -53,21 +51,18 @@ func TestValidEnumerationManager_CreateValidPrepTaskConfig(T *testing.T) {
 		expected := fakes.BuildFakeValidPrepTaskConfig()
 		fakeInput := fakes.BuildFakeValidPrepTaskConfigCreationRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.CreateValidPrepTaskConfig), testutils.ContextMatcher, testutils.MatchType[*types.ValidPrepTaskConfigDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateValidPrepTaskConfigFunc: func(_ context.Context, _ *types.ValidPrepTaskConfigDatabaseCreationInput) (*types.ValidPrepTaskConfig, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				types.ValidPrepTaskConfigCreatedServiceEventType: {mealplanningkeys.ValidPrepTaskConfigIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidPrepTaskConfig(ctx, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateValidPrepTaskConfigCalls(), 1)
 	})
 }
 
@@ -82,18 +77,20 @@ func TestValidEnumerationManager_ReadValidPrepTaskConfig(T *testing.T) {
 
 		expected := fakes.BuildFakeValidPrepTaskConfig()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPrepTaskConfig), testutils.ContextMatcher, expected.ID).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPrepTaskConfigFunc: func(_ context.Context, validIngredientPreparationStorageConfigID string) (*types.ValidPrepTaskConfig, error) {
+				assert.Equal(t, expected.ID, validIngredientPreparationStorageConfigID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidPrepTaskConfig(ctx, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPrepTaskConfigCalls(), 1)
 	})
 }
 
@@ -109,22 +106,24 @@ func TestValidEnumerationManager_UpdateValidPrepTaskConfig(T *testing.T) {
 		exampleValidPrepTaskConfig := fakes.BuildFakeValidPrepTaskConfig()
 		exampleInput := fakes.BuildFakeValidPrepTaskConfigUpdateRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetValidPrepTaskConfig), testutils.ContextMatcher, exampleValidPrepTaskConfig.ID).Return(exampleValidPrepTaskConfig, nil)
-				db.On(reflection.GetMethodName(mpm.db.UpdateValidPrepTaskConfig), testutils.ContextMatcher, testutils.MatchType[*types.ValidPrepTaskConfig]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPrepTaskConfigFunc: func(_ context.Context, validIngredientPreparationStorageConfigID string) (*types.ValidPrepTaskConfig, error) {
+				assert.Equal(t, exampleValidPrepTaskConfig.ID, validIngredientPreparationStorageConfigID)
+
+				return exampleValidPrepTaskConfig, nil
 			},
-			map[string][]string{
-				types.ValidPrepTaskConfigUpdatedServiceEventType: {mealplanningkeys.ValidPrepTaskConfigIDKey},
+			UpdateValidPrepTaskConfigFunc: func(_ context.Context, _ *types.ValidPrepTaskConfig) error {
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		result, err := mpm.UpdateValidPrepTaskConfig(ctx, exampleValidPrepTaskConfig.ID, exampleInput)
 		assert.NotNil(t, result)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPrepTaskConfigCalls(), 2) // the manager re-reads the record after updating it
+		assert.Len(t, db.UpdateValidPrepTaskConfigCalls(), 1)
 	})
 }
 
@@ -139,19 +138,18 @@ func TestValidEnumerationManager_ArchiveValidPrepTaskConfig(T *testing.T) {
 
 		expected := fakes.BuildFakeValidPrepTaskConfig()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.ArchiveValidPrepTaskConfig), testutils.ContextMatcher, expected.ID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveValidPrepTaskConfigFunc: func(_ context.Context, validIngredientPreparationStorageConfigID string) error {
+				assert.Equal(t, expected.ID, validIngredientPreparationStorageConfigID)
+
+				return nil
 			},
-			map[string][]string{
-				types.ValidPrepTaskConfigArchivedServiceEventType: {mealplanningkeys.ValidPrepTaskConfigIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		assert.NoError(t, vem.ArchiveValidPrepTaskConfig(ctx, expected.ID))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveValidPrepTaskConfigCalls(), 1)
 	})
 }
 
@@ -167,18 +165,20 @@ func TestValidEnumerationManager_SearchValidPrepTaskConfigsByIngredient(T *testi
 		expected := fakes.BuildFakeValidPrepTaskConfigsList()
 		exampleIngredientID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPrepTaskConfigsForIngredient), testutils.ContextMatcher, exampleIngredientID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPrepTaskConfigsForIngredientFunc: func(_ context.Context, ingredientID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPrepTaskConfig], error) {
+				assert.Equal(t, exampleIngredientID, ingredientID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidPrepTaskConfigsByIngredient(ctx, exampleIngredientID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPrepTaskConfigsForIngredientCalls(), 1)
 	})
 }
 
@@ -194,18 +194,20 @@ func TestValidEnumerationManager_SearchValidPrepTaskConfigsByPreparation(T *test
 		expected := fakes.BuildFakeValidPrepTaskConfigsList()
 		examplePreparationID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPrepTaskConfigsForPreparation), testutils.ContextMatcher, examplePreparationID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPrepTaskConfigsForPreparationFunc: func(_ context.Context, preparationID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPrepTaskConfig], error) {
+				assert.Equal(t, examplePreparationID, preparationID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidPrepTaskConfigsByPreparation(ctx, examplePreparationID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPrepTaskConfigsForPreparationCalls(), 1)
 	})
 }
 
@@ -222,17 +224,20 @@ func TestValidEnumerationManager_SearchValidPrepTaskConfigsByIngredientAndPrepar
 		exampleIngredientID := fakes.BuildFakeID()
 		examplePreparationID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPrepTaskConfigsForIngredientAndPreparation), testutils.ContextMatcher, exampleIngredientID, examplePreparationID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPrepTaskConfigsForIngredientAndPreparationFunc: func(_ context.Context, ingredientID string, preparationID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPrepTaskConfig], error) {
+				assert.Equal(t, exampleIngredientID, ingredientID)
+				assert.Equal(t, examplePreparationID, preparationID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidPrepTaskConfigsByIngredientAndPreparation(ctx, exampleIngredientID, examplePreparationID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPrepTaskConfigsForIngredientAndPreparationCalls(), 1)
 	})
 }

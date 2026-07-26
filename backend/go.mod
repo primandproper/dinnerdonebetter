@@ -6,6 +6,7 @@ tool (
 	github.com/4meepo/tagalign/cmd/tagalign
 	github.com/air-verse/air
 	github.com/daixiang0/gci
+	github.com/matryer/moq
 	github.com/verygoodsoftwarenotvirus/rollcall/cmd/rollcall
 	golang.org/x/tools/cmd/goimports
 	golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment
@@ -149,6 +150,7 @@ require (
 	github.com/luna-duclos/instrumentedsql v1.1.3 // indirect
 	github.com/mailgun/mailgun-go/v4 v4.23.0 // indirect
 	github.com/mailjet/mailjet-apiv3-go/v4 v4.0.8 // indirect
+	github.com/matryer/moq v0.7.1 // indirect
 	github.com/mdelapenya/tlscert v0.2.0 // indirect
 	github.com/mitchellh/go-server-timing v1.0.1 // indirect
 	github.com/moby/go-archive v0.2.0 // indirect

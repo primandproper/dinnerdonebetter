@@ -4,18 +4,16 @@ import (
 	"context"
 	"testing"
 
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 	textsearch "github.com/primandproper/platform-go/v6/search/text"
 	mocksearch "github.com/primandproper/platform-go/v6/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestHandleIndexRequest(T *testing.T) {
@@ -29,9 +27,18 @@ func TestHandleIndexRequest(T *testing.T) {
 		ctx := t.Context()
 		logger := loggingnoop.NewLogger()
 
-		identityRepo := &identitymock.RepositoryMock{}
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetUser), testutils.ContextMatcher, exampleUser.ID).Return(exampleUser, nil)
-		identityRepo.On(reflection.GetMethodName(identityRepo.MarkUserAsIndexed), testutils.ContextMatcher, exampleUser.ID).Return(nil)
+		identityRepo := &identitymock.RepositoryMock{
+			GetUserFunc: func(_ context.Context, userID string) (*identity.User, error) {
+				assert.Equal(t, exampleUser.ID, userID)
+
+				return exampleUser, nil
+			},
+			MarkUserAsIndexedFunc: func(_ context.Context, userID string) error {
+				assert.Equal(t, exampleUser.ID, userID)
+
+				return nil
+			},
+		}
 
 		mim := &mocksearch.IndexMock[UserSearchSubset]{
 			IndexFunc: func(_ context.Context, _ string, _ any) error { return nil },
@@ -52,7 +59,8 @@ func TestHandleIndexRequest(T *testing.T) {
 
 		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
 
-		mock.AssertExpectationsForObjects(t, identityRepo)
+		assert.Len(t, identityRepo.GetUserCalls(), 1)
+		assert.Len(t, identityRepo.MarkUserAsIndexedCalls(), 1)
 	})
 
 	T.Run("deleting user index type", func(t *testing.T) {
@@ -63,8 +71,13 @@ func TestHandleIndexRequest(T *testing.T) {
 		ctx := t.Context()
 		logger := loggingnoop.NewLogger()
 
-		identityRepo := &identitymock.RepositoryMock{}
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetUser), testutils.ContextMatcher, exampleUser.ID).Return(exampleUser, nil)
+		identityRepo := &identitymock.RepositoryMock{
+			GetUserFunc: func(_ context.Context, userID string) (*identity.User, error) {
+				assert.Equal(t, exampleUser.ID, userID)
+
+				return exampleUser, nil
+			},
+		}
 
 		mim := &mocksearch.IndexMock[UserSearchSubset]{
 			DeleteFunc: func(_ context.Context, _ string) error { return nil },
@@ -85,6 +98,7 @@ func TestHandleIndexRequest(T *testing.T) {
 
 		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
 
-		mock.AssertExpectationsForObjects(t, identityRepo)
+		assert.Len(t, identityRepo.GetUserCalls(), 1)
+		assert.Empty(t, identityRepo.MarkUserAsIndexedCalls())
 	})
 }

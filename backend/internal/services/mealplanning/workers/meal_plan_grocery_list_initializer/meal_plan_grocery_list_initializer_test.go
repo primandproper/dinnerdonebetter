@@ -8,7 +8,6 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	grocerylistpreparation2 "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
@@ -16,10 +15,8 @@ import (
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	metricsnoop "github.com/primandproper/platform-go/v6/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,7 +42,7 @@ func buildNewMealPlanGroceryListInitializerForTest(t *testing.T) *Worker {
 		tracingnoop.NewTracerProvider(),
 		metricsnoop.NewMetricsProvider(),
 		pp,
-		&mealplanningmock.Repository{},
+		&mealplanningmock.RepositoryMock{},
 		grocerylistpreparation2.NewGroceryListCreator(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider()),
 		cfg,
 	)
@@ -219,9 +216,6 @@ func TestMealPlanGroceryListInitializer_HandleMessage(T *testing.T) {
 		}
 
 		ctx := t.Context()
-		mdm := &mealplanningmock.Repository{}
-
-		mdm.On(reflection.GetMethodName(mdm.GetFinalizedMealPlansWithUninitializedGroceryLists), testutils.ContextMatcher).Return(expectedMealPlans, nil)
 
 		firstMealPlanExpectedGroceryListItemInputs := []*mealplanning.MealPlanGroceryListItemDatabaseCreationInput{
 			{
@@ -262,33 +256,49 @@ func TestMealPlanGroceryListInitializer_HandleMessage(T *testing.T) {
 			},
 		}
 
-		expectedInputSets := map[string][]*mealplanning.MealPlanGroceryListItemDatabaseCreationInput{
-			expectedMealPlans[0].ID: firstMealPlanExpectedGroceryListItemInputs,
+		// every generated input must be persisted exactly as the grocery list creator produced it.
+		expectedInputs := map[*mealplanning.MealPlanGroceryListItemDatabaseCreationInput]bool{}
+		for _, input := range firstMealPlanExpectedGroceryListItemInputs {
+			expectedInputs[input] = true
 		}
 
-		mglm := &grocerylistpreparation2.MockGroceryListCreator{}
-		mglm.On(
-			"GenerateGroceryListInputs",
-			testutils.ContextMatcher,
-			expectedMealPlans[0],
-		).Return(firstMealPlanExpectedGroceryListItemInputs, nil)
+		mglm := &grocerylistpreparation2.GroceryListCreatorMock{
+			GenerateGroceryListInputsFunc: func(_ context.Context, mealPlan *mealplanning.MealPlan) ([]*mealplanning.MealPlanGroceryListItemDatabaseCreationInput, error) {
+				assert.Equal(t, expectedMealPlans[0], mealPlan)
+
+				return firstMealPlanExpectedGroceryListItemInputs, nil
+			},
+		}
 		w.groceryListCreator = mglm
+
+		mdm := &mealplanningmock.RepositoryMock{
+			GetFinalizedMealPlansWithUninitializedGroceryListsFunc: func(context.Context) ([]*mealplanning.MealPlan, error) {
+				return expectedMealPlans, nil
+			},
+			CreateMealPlanGroceryListItemFunc: func(_ context.Context, input *mealplanning.MealPlanGroceryListItemDatabaseCreationInput) (*mealplanning.MealPlanGroceryListItem, error) {
+				assert.True(t, expectedInputs[input], "unexpected grocery list item input persisted")
+
+				return fakes.BuildFakeMealPlanGroceryListItem(), nil
+			},
+			MarkMealPlanAsGroceryListInitializedFunc: func(_ context.Context, mealPlanID string) error {
+				assert.Equal(t, expectedMealPlans[0].ID, mealPlanID)
+
+				return nil
+			},
+		}
 
 		pup := &mockpublishers.PublisherMock{
 			PublishFunc: func(_ context.Context, _ any) error { return nil },
 		}
-		for _, inputs := range expectedInputSets {
-			for _, input := range inputs {
-				mdm.On(reflection.GetMethodName(mdm.CreateMealPlanGroceryListItem), testutils.ContextMatcher, input).Return(fakes.BuildFakeMealPlanGroceryListItem(), nil)
-			}
-		}
-
-		mdm.On(reflection.GetMethodName(mdm.MarkMealPlanAsGroceryListInitialized), testutils.ContextMatcher, expectedMealPlans[0].ID).Return(nil)
 
 		w.postUpdatesPublisher = pup
 		w.dataManager = mdm
 
 		assert.NoError(t, w.Work(ctx))
-		mock.AssertExpectationsForObjects(t, mdm)
+
+		assert.Len(t, mdm.GetFinalizedMealPlansWithUninitializedGroceryListsCalls(), 1)
+		assert.Len(t, mdm.CreateMealPlanGroceryListItemCalls(), len(firstMealPlanExpectedGroceryListItemInputs))
+		assert.Len(t, mdm.MarkMealPlanAsGroceryListInitializedCalls(), 1)
+		assert.Len(t, mglm.GenerateGroceryListInputsCalls(), 1)
 	})
 }

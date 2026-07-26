@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestValidEnumerationManager_ListValidPreparationVessels(T *testing.T) {
@@ -26,18 +24,18 @@ func TestValidEnumerationManager_ListValidPreparationVessels(T *testing.T) {
 
 		expected := fakes.BuildFakeValidPreparationVesselsList()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPreparationVessels), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationVesselsFunc: func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPreparationVessel], error) {
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidPreparationVessels(ctx, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationVesselsCalls(), 1)
 	})
 }
 
@@ -53,21 +51,18 @@ func TestValidEnumerationManager_CreateValidPreparationVessel(T *testing.T) {
 		expected := fakes.BuildFakeValidPreparationVessel()
 		fakeInput := fakes.BuildFakeValidPreparationVesselCreationRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.CreateValidPreparationVessel), testutils.ContextMatcher, testutils.MatchType[*types.ValidPreparationVesselDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateValidPreparationVesselFunc: func(_ context.Context, _ *types.ValidPreparationVesselDatabaseCreationInput) (*types.ValidPreparationVessel, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				types.ValidPreparationVesselCreatedServiceEventType: {mealplanningkeys.ValidPreparationVesselIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidPreparationVessel(ctx, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateValidPreparationVesselCalls(), 1)
 	})
 }
 
@@ -82,18 +77,20 @@ func TestValidEnumerationManager_ReadValidPreparationVessel(T *testing.T) {
 
 		expected := fakes.BuildFakeValidPreparationVessel()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPreparationVessel), testutils.ContextMatcher, expected.ID).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationVesselFunc: func(_ context.Context, validPreparationVesselID string) (*types.ValidPreparationVessel, error) {
+				assert.Equal(t, expected.ID, validPreparationVesselID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidPreparationVessel(ctx, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationVesselCalls(), 1)
 	})
 }
 
@@ -109,22 +106,24 @@ func TestValidEnumerationManager_UpdateValidPreparationVessel(T *testing.T) {
 		exampleValidPreparationVessel := fakes.BuildFakeValidPreparationVessel()
 		exampleInput := fakes.BuildFakeValidPreparationVesselUpdateRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetValidPreparationVessel), testutils.ContextMatcher, exampleValidPreparationVessel.ID).Return(exampleValidPreparationVessel, nil)
-				db.On(reflection.GetMethodName(mpm.db.UpdateValidPreparationVessel), testutils.ContextMatcher, testutils.MatchType[*types.ValidPreparationVessel]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationVesselFunc: func(_ context.Context, validPreparationVesselID string) (*types.ValidPreparationVessel, error) {
+				assert.Equal(t, exampleValidPreparationVessel.ID, validPreparationVesselID)
+
+				return exampleValidPreparationVessel, nil
 			},
-			map[string][]string{
-				types.ValidPreparationVesselUpdatedServiceEventType: {mealplanningkeys.ValidPreparationVesselIDKey},
+			UpdateValidPreparationVesselFunc: func(_ context.Context, _ *types.ValidPreparationVessel) error {
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		result, err := mpm.UpdateValidPreparationVessel(ctx, exampleValidPreparationVessel.ID, exampleInput)
 		assert.NotNil(t, result)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationVesselCalls(), 2) // the manager re-reads the record after updating it
+		assert.Len(t, db.UpdateValidPreparationVesselCalls(), 1)
 	})
 }
 
@@ -139,19 +138,18 @@ func TestValidEnumerationManager_ArchiveValidPreparationVessel(T *testing.T) {
 
 		expected := fakes.BuildFakeValidPreparationVessel()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.ArchiveValidPreparationVessel), testutils.ContextMatcher, expected.ID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveValidPreparationVesselFunc: func(_ context.Context, validPreparationVesselID string) error {
+				assert.Equal(t, expected.ID, validPreparationVesselID)
+
+				return nil
 			},
-			map[string][]string{
-				types.ValidPreparationVesselArchivedServiceEventType: {mealplanningkeys.ValidPreparationVesselIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		assert.NoError(t, vem.ArchiveValidPreparationVessel(ctx, expected.ID))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveValidPreparationVesselCalls(), 1)
 	})
 }
 
@@ -167,18 +165,20 @@ func TestValidEnumerationManager_SearchValidPreparationVesselsByPreparation(T *t
 		expected := fakes.BuildFakeValidPreparationVesselsList()
 		exampleQuery := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPreparationVesselsForPreparation), testutils.ContextMatcher, exampleQuery, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationVesselsForPreparationFunc: func(_ context.Context, preparationID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPreparationVessel], error) {
+				assert.Equal(t, exampleQuery, preparationID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidPreparationVesselsByPreparation(ctx, exampleQuery, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationVesselsForPreparationCalls(), 1)
 	})
 }
 
@@ -194,17 +194,19 @@ func TestValidEnumerationManager_SearchValidPreparationVesselsByVessel(T *testin
 		expected := fakes.BuildFakeValidPreparationVesselsList()
 		exampleQuery := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPreparationVesselsForVessel), testutils.ContextMatcher, exampleQuery, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationVesselsForVesselFunc: func(_ context.Context, instrumentID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPreparationVessel], error) {
+				assert.Equal(t, exampleQuery, instrumentID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidPreparationVesselsByVessel(ctx, exampleQuery, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationVesselsForVesselCalls(), 1)
 	})
 }

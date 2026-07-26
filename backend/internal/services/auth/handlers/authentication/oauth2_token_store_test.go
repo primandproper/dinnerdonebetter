@@ -1,6 +1,7 @@
 package authentication
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -8,13 +9,11 @@ import (
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/fakes"
 	oauthmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	"github.com/primandproper/platform-go/v6/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestOAuth2TokenStoreImpl_Create(T *testing.T) {
@@ -30,12 +29,12 @@ func TestOAuth2TokenStoreImpl_Create(T *testing.T) {
 		token := fakes.BuildFakeOAuth2ClientToken()
 		tokenInfo := convertTokenToImpl(token)
 
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"CreateOAuth2ClientToken",
-			testutils.ContextMatcher,
-			testutils.MatchType[*types.OAuth2ClientTokenDatabaseCreationInput](),
-		).Return(token, nil)
+		dataManager := &oauthmock.RepositoryMock{
+			CreateOAuth2ClientTokenFunc: func(_ context.Context, input *types.OAuth2ClientTokenDatabaseCreationInput) (*types.OAuth2ClientToken, error) {
+				assert.NotNil(t, input)
+				return token, nil
+			},
+		}
 
 		store := &oauth2TokenStoreImpl{
 			tracer:      tracer,
@@ -50,7 +49,7 @@ func TestOAuth2TokenStoreImpl_Create(T *testing.T) {
 		assert.Equal(t, 24*time.Hour, tokenInfo.GetAccessExpiresIn())
 		assert.Equal(t, 72*time.Hour, tokenInfo.GetRefreshExpiresIn())
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.CreateOAuth2ClientTokenCalls(), 1)
 	})
 
 	T.Run("with database error", func(t *testing.T) {
@@ -63,12 +62,12 @@ func TestOAuth2TokenStoreImpl_Create(T *testing.T) {
 		token := fakes.BuildFakeOAuth2ClientToken()
 		tokenInfo := convertTokenToImpl(token)
 
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"CreateOAuth2ClientToken",
-			testutils.ContextMatcher,
-			testutils.MatchType[*types.OAuth2ClientTokenDatabaseCreationInput](),
-		).Return((*types.OAuth2ClientToken)(nil), errors.New("database error"))
+		dataManager := &oauthmock.RepositoryMock{
+			CreateOAuth2ClientTokenFunc: func(_ context.Context, input *types.OAuth2ClientTokenDatabaseCreationInput) (*types.OAuth2ClientToken, error) {
+				assert.NotNil(t, input)
+				return nil, errors.New("database error")
+			},
+		}
 
 		store := &oauth2TokenStoreImpl{
 			tracer:      tracer,
@@ -80,7 +79,7 @@ func TestOAuth2TokenStoreImpl_Create(T *testing.T) {
 
 		assert.Error(t, err)
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.CreateOAuth2ClientTokenCalls(), 1)
 	})
 }
 
@@ -96,12 +95,12 @@ func TestOAuth2TokenStoreImpl_RemoveByCode(T *testing.T) {
 
 		code := "test-code"
 
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"DeleteOAuth2ClientTokenByCode",
-			testutils.ContextMatcher,
-			code,
-		).Return(nil)
+		dataManager := &oauthmock.RepositoryMock{
+			DeleteOAuth2ClientTokenByCodeFunc: func(_ context.Context, actual string) error {
+				assert.Equal(t, code, actual)
+				return nil
+			},
+		}
 
 		store := &oauth2TokenStoreImpl{
 			tracer:      tracer,
@@ -113,7 +112,7 @@ func TestOAuth2TokenStoreImpl_RemoveByCode(T *testing.T) {
 
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.DeleteOAuth2ClientTokenByCodeCalls(), 1)
 	})
 
 	T.Run("with database error", func(t *testing.T) {
@@ -125,12 +124,12 @@ func TestOAuth2TokenStoreImpl_RemoveByCode(T *testing.T) {
 
 		code := "test-code"
 
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"DeleteOAuth2ClientTokenByCode",
-			testutils.ContextMatcher,
-			code,
-		).Return(errors.New("database error"))
+		dataManager := &oauthmock.RepositoryMock{
+			DeleteOAuth2ClientTokenByCodeFunc: func(_ context.Context, actual string) error {
+				assert.Equal(t, code, actual)
+				return errors.New("database error")
+			},
+		}
 
 		store := &oauth2TokenStoreImpl{
 			tracer:      tracer,
@@ -142,7 +141,7 @@ func TestOAuth2TokenStoreImpl_RemoveByCode(T *testing.T) {
 
 		assert.Error(t, err)
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.DeleteOAuth2ClientTokenByCodeCalls(), 1)
 	})
 }
 
@@ -158,12 +157,12 @@ func TestOAuth2TokenStoreImpl_RemoveByAccess(T *testing.T) {
 
 		access := "test-access"
 
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"DeleteOAuth2ClientTokenByAccess",
-			testutils.ContextMatcher,
-			access,
-		).Return(nil)
+		dataManager := &oauthmock.RepositoryMock{
+			DeleteOAuth2ClientTokenByAccessFunc: func(_ context.Context, actual string) error {
+				assert.Equal(t, access, actual)
+				return nil
+			},
+		}
 
 		store := &oauth2TokenStoreImpl{
 			tracer:      tracer,
@@ -175,7 +174,7 @@ func TestOAuth2TokenStoreImpl_RemoveByAccess(T *testing.T) {
 
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.DeleteOAuth2ClientTokenByAccessCalls(), 1)
 	})
 
 	T.Run("with database error", func(t *testing.T) {
@@ -187,12 +186,12 @@ func TestOAuth2TokenStoreImpl_RemoveByAccess(T *testing.T) {
 
 		access := "test-access"
 
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"DeleteOAuth2ClientTokenByAccess",
-			testutils.ContextMatcher,
-			access,
-		).Return(errors.New("database error"))
+		dataManager := &oauthmock.RepositoryMock{
+			DeleteOAuth2ClientTokenByAccessFunc: func(_ context.Context, actual string) error {
+				assert.Equal(t, access, actual)
+				return errors.New("database error")
+			},
+		}
 
 		store := &oauth2TokenStoreImpl{
 			tracer:      tracer,
@@ -204,7 +203,7 @@ func TestOAuth2TokenStoreImpl_RemoveByAccess(T *testing.T) {
 
 		assert.Error(t, err)
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.DeleteOAuth2ClientTokenByAccessCalls(), 1)
 	})
 }
 
@@ -220,12 +219,12 @@ func TestOAuth2TokenStoreImpl_RemoveByRefresh(T *testing.T) {
 
 		refresh := "test-refresh"
 
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"DeleteOAuth2ClientTokenByRefresh",
-			testutils.ContextMatcher,
-			refresh,
-		).Return(nil)
+		dataManager := &oauthmock.RepositoryMock{
+			DeleteOAuth2ClientTokenByRefreshFunc: func(_ context.Context, actual string) error {
+				assert.Equal(t, refresh, actual)
+				return nil
+			},
+		}
 
 		store := &oauth2TokenStoreImpl{
 			tracer:      tracer,
@@ -237,7 +236,7 @@ func TestOAuth2TokenStoreImpl_RemoveByRefresh(T *testing.T) {
 
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.DeleteOAuth2ClientTokenByRefreshCalls(), 1)
 	})
 
 	T.Run("with database error", func(t *testing.T) {
@@ -249,12 +248,12 @@ func TestOAuth2TokenStoreImpl_RemoveByRefresh(T *testing.T) {
 
 		refresh := "test-refresh"
 
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"DeleteOAuth2ClientTokenByRefresh",
-			testutils.ContextMatcher,
-			refresh,
-		).Return(errors.New("database error"))
+		dataManager := &oauthmock.RepositoryMock{
+			DeleteOAuth2ClientTokenByRefreshFunc: func(_ context.Context, actual string) error {
+				assert.Equal(t, refresh, actual)
+				return errors.New("database error")
+			},
+		}
 
 		store := &oauth2TokenStoreImpl{
 			tracer:      tracer,
@@ -266,7 +265,7 @@ func TestOAuth2TokenStoreImpl_RemoveByRefresh(T *testing.T) {
 
 		assert.Error(t, err)
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.DeleteOAuth2ClientTokenByRefreshCalls(), 1)
 	})
 }
 
@@ -282,12 +281,12 @@ func TestOAuth2TokenStoreImpl_GetByCode(T *testing.T) {
 
 		token := fakes.BuildFakeOAuth2ClientToken()
 
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"GetOAuth2ClientTokenByCode",
-			testutils.ContextMatcher,
-			token.Code,
-		).Return(token, nil)
+		dataManager := &oauthmock.RepositoryMock{
+			GetOAuth2ClientTokenByCodeFunc: func(_ context.Context, actual string) (*types.OAuth2ClientToken, error) {
+				assert.Equal(t, token.Code, actual)
+				return token, nil
+			},
+		}
 
 		store := &oauth2TokenStoreImpl{
 			tracer:      tracer,
@@ -302,7 +301,7 @@ func TestOAuth2TokenStoreImpl_GetByCode(T *testing.T) {
 		assert.Equal(t, token.ClientID, result.GetClientID())
 		assert.Equal(t, token.Code, result.GetCode())
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.GetOAuth2ClientTokenByCodeCalls(), 1)
 	})
 
 	T.Run("with database error", func(t *testing.T) {
@@ -314,12 +313,12 @@ func TestOAuth2TokenStoreImpl_GetByCode(T *testing.T) {
 
 		code := "test-code"
 
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"GetOAuth2ClientTokenByCode",
-			testutils.ContextMatcher,
-			code,
-		).Return((*types.OAuth2ClientToken)(nil), errors.New("database error"))
+		dataManager := &oauthmock.RepositoryMock{
+			GetOAuth2ClientTokenByCodeFunc: func(_ context.Context, actual string) (*types.OAuth2ClientToken, error) {
+				assert.Equal(t, code, actual)
+				return nil, errors.New("database error")
+			},
+		}
 
 		store := &oauth2TokenStoreImpl{
 			tracer:      tracer,
@@ -332,7 +331,7 @@ func TestOAuth2TokenStoreImpl_GetByCode(T *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, result)
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.GetOAuth2ClientTokenByCodeCalls(), 1)
 	})
 }
 
@@ -348,12 +347,12 @@ func TestOAuth2TokenStoreImpl_GetByAccess(T *testing.T) {
 
 		token := fakes.BuildFakeOAuth2ClientToken()
 
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"GetOAuth2ClientTokenByAccess",
-			testutils.ContextMatcher,
-			token.Access,
-		).Return(token, nil)
+		dataManager := &oauthmock.RepositoryMock{
+			GetOAuth2ClientTokenByAccessFunc: func(_ context.Context, actual string) (*types.OAuth2ClientToken, error) {
+				assert.Equal(t, token.Access, actual)
+				return token, nil
+			},
+		}
 
 		store := &oauth2TokenStoreImpl{
 			tracer:      tracer,
@@ -368,7 +367,7 @@ func TestOAuth2TokenStoreImpl_GetByAccess(T *testing.T) {
 		assert.Equal(t, token.ClientID, result.GetClientID())
 		assert.Equal(t, token.Access, result.GetAccess())
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.GetOAuth2ClientTokenByAccessCalls(), 1)
 	})
 
 	T.Run("with database error", func(t *testing.T) {
@@ -380,12 +379,12 @@ func TestOAuth2TokenStoreImpl_GetByAccess(T *testing.T) {
 
 		access := "test-access"
 
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"GetOAuth2ClientTokenByAccess",
-			testutils.ContextMatcher,
-			access,
-		).Return((*types.OAuth2ClientToken)(nil), errors.New("database error"))
+		dataManager := &oauthmock.RepositoryMock{
+			GetOAuth2ClientTokenByAccessFunc: func(_ context.Context, actual string) (*types.OAuth2ClientToken, error) {
+				assert.Equal(t, access, actual)
+				return nil, errors.New("database error")
+			},
+		}
 
 		store := &oauth2TokenStoreImpl{
 			tracer:      tracer,
@@ -398,7 +397,7 @@ func TestOAuth2TokenStoreImpl_GetByAccess(T *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, result)
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.GetOAuth2ClientTokenByAccessCalls(), 1)
 	})
 }
 
@@ -414,12 +413,12 @@ func TestOAuth2TokenStoreImpl_GetByRefresh(T *testing.T) {
 
 		token := fakes.BuildFakeOAuth2ClientToken()
 
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"GetOAuth2ClientTokenByRefresh",
-			testutils.ContextMatcher,
-			token.Refresh,
-		).Return(token, nil)
+		dataManager := &oauthmock.RepositoryMock{
+			GetOAuth2ClientTokenByRefreshFunc: func(_ context.Context, actual string) (*types.OAuth2ClientToken, error) {
+				assert.Equal(t, token.Refresh, actual)
+				return token, nil
+			},
+		}
 
 		store := &oauth2TokenStoreImpl{
 			tracer:      tracer,
@@ -434,7 +433,7 @@ func TestOAuth2TokenStoreImpl_GetByRefresh(T *testing.T) {
 		assert.Equal(t, token.ClientID, result.GetClientID())
 		assert.Equal(t, token.Refresh, result.GetRefresh())
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.GetOAuth2ClientTokenByRefreshCalls(), 1)
 	})
 
 	T.Run("with database error", func(t *testing.T) {
@@ -446,12 +445,12 @@ func TestOAuth2TokenStoreImpl_GetByRefresh(T *testing.T) {
 
 		refresh := "test-refresh"
 
-		dataManager := &oauthmock.RepositoryMock{}
-		dataManager.On(
-			"GetOAuth2ClientTokenByRefresh",
-			testutils.ContextMatcher,
-			refresh,
-		).Return((*types.OAuth2ClientToken)(nil), errors.New("database error"))
+		dataManager := &oauthmock.RepositoryMock{
+			GetOAuth2ClientTokenByRefreshFunc: func(_ context.Context, actual string) (*types.OAuth2ClientToken, error) {
+				assert.Equal(t, refresh, actual)
+				return nil, errors.New("database error")
+			},
+		}
 
 		store := &oauth2TokenStoreImpl{
 			tracer:      tracer,
@@ -464,6 +463,6 @@ func TestOAuth2TokenStoreImpl_GetByRefresh(T *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, result)
 
-		mock.AssertExpectationsForObjects(t, dataManager)
+		assert.Len(t, dataManager.GetOAuth2ClientTokenByRefreshCalls(), 1)
 	})
 }

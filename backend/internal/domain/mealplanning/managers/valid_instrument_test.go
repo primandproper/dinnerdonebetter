@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestValidEnumerationManager_SearchValidInstruments(T *testing.T) {
@@ -27,18 +25,20 @@ func TestValidEnumerationManager_SearchValidInstruments(T *testing.T) {
 		expected := fakes.BuildFakeValidInstrumentsList()
 		exampleQuery := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.SearchForValidInstruments), testutils.ContextMatcher, exampleQuery, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			SearchForValidInstrumentsFunc: func(_ context.Context, query string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidInstrument], error) {
+				assert.Equal(t, exampleQuery, query)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidInstruments(ctx, exampleQuery, false, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.SearchForValidInstrumentsCalls(), 1)
 	})
 }
 
@@ -53,18 +53,18 @@ func TestValidEnumerationManager_ListValidInstruments(T *testing.T) {
 
 		expected := fakes.BuildFakeValidInstrumentsList()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidInstruments), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidInstrumentsFunc: func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidInstrument], error) {
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidInstruments(ctx, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidInstrumentsCalls(), 1)
 	})
 }
 
@@ -80,21 +80,18 @@ func TestValidEnumerationManager_CreateValidInstrument(T *testing.T) {
 		expected := fakes.BuildFakeValidInstrument()
 		fakeInput := fakes.BuildFakeValidInstrumentCreationRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.CreateValidInstrument), testutils.ContextMatcher, testutils.MatchType[*types.ValidInstrumentDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateValidInstrumentFunc: func(_ context.Context, _ *types.ValidInstrumentDatabaseCreationInput) (*types.ValidInstrument, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				types.ValidInstrumentCreatedServiceEventType: {mealplanningkeys.ValidInstrumentIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidInstrument(ctx, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateValidInstrumentCalls(), 1)
 	})
 }
 
@@ -109,18 +106,20 @@ func TestValidEnumerationManager_ReadValidInstrument(T *testing.T) {
 
 		expected := fakes.BuildFakeValidInstrument()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidInstrument), testutils.ContextMatcher, expected.ID).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidInstrumentFunc: func(_ context.Context, validInstrumentID string) (*types.ValidInstrument, error) {
+				assert.Equal(t, expected.ID, validInstrumentID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidInstrument(ctx, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidInstrumentCalls(), 1)
 	})
 }
 
@@ -135,18 +134,18 @@ func TestValidEnumerationManager_RandomValidInstrument(T *testing.T) {
 
 		expected := fakes.BuildFakeValidInstrument()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetRandomValidInstrument), testutils.ContextMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRandomValidInstrumentFunc: func(_ context.Context) (*types.ValidInstrument, error) {
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.RandomValidInstrument(ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRandomValidInstrumentCalls(), 1)
 	})
 }
 
@@ -162,22 +161,24 @@ func TestValidEnumerationManager_UpdateValidInstrument(T *testing.T) {
 		exampleValidInstrument := fakes.BuildFakeValidInstrument()
 		exampleInput := fakes.BuildFakeValidInstrumentUpdateRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetValidInstrument), testutils.ContextMatcher, exampleValidInstrument.ID).Return(exampleValidInstrument, nil)
-				db.On(reflection.GetMethodName(mpm.db.UpdateValidInstrument), testutils.ContextMatcher, testutils.MatchType[*types.ValidInstrument]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidInstrumentFunc: func(_ context.Context, validInstrumentID string) (*types.ValidInstrument, error) {
+				assert.Equal(t, exampleValidInstrument.ID, validInstrumentID)
+
+				return exampleValidInstrument, nil
 			},
-			map[string][]string{
-				types.ValidInstrumentUpdatedServiceEventType: {mealplanningkeys.ValidInstrumentIDKey},
+			UpdateValidInstrumentFunc: func(_ context.Context, _ *types.ValidInstrument) error {
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		result, err := mpm.UpdateValidInstrument(ctx, exampleValidInstrument.ID, exampleInput)
 		assert.NotNil(t, result)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidInstrumentCalls(), 2) // the manager re-reads the record after updating it
+		assert.Len(t, db.UpdateValidInstrumentCalls(), 1)
 	})
 }
 
@@ -192,18 +193,17 @@ func TestValidEnumerationManager_ArchiveValidInstrument(T *testing.T) {
 
 		expected := fakes.BuildFakeValidInstrument()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.ArchiveValidInstrument), testutils.ContextMatcher, expected.ID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveValidInstrumentFunc: func(_ context.Context, validInstrumentID string) error {
+				assert.Equal(t, expected.ID, validInstrumentID)
+
+				return nil
 			},
-			map[string][]string{
-				types.ValidInstrumentArchivedServiceEventType: {mealplanningkeys.ValidInstrumentIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		assert.NoError(t, vem.ArchiveValidInstrument(ctx, expected.ID))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveValidInstrumentCalls(), 1)
 	})
 }

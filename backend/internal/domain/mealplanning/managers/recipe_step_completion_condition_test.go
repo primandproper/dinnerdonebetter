@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestRecipeManager_ListRecipeStepCompletionConditions(T *testing.T) {
@@ -28,18 +26,21 @@ func TestRecipeManager_ListRecipeStepCompletionConditions(T *testing.T) {
 		exampleRecipeID := fakes.BuildFakeID()
 		exampleRecipeStepID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetRecipeStepCompletionConditions), testutils.ContextMatcher, exampleRecipeID, exampleRecipeStepID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeStepCompletionConditionsFunc: func(_ context.Context, recipeID string, recipeStepID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeStepCompletionCondition], error) {
+				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ListRecipeStepCompletionConditions(ctx, exampleRecipeID, exampleRecipeStepID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRecipeStepCompletionConditionsCalls(), 1)
 	})
 }
 
@@ -57,25 +58,18 @@ func TestRecipeManager_CreateRecipeStepCompletionCondition(T *testing.T) {
 		expected := fakes.BuildFakeRecipeStepCompletionCondition()
 		fakeInput := fakes.BuildFakeRecipeStepCompletionConditionForExistingRecipeCreationRequestInput()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.CreateRecipeStepCompletionCondition), testutils.ContextMatcher, testutils.MatchType[*types.RecipeStepCompletionConditionDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateRecipeStepCompletionConditionFunc: func(_ context.Context, _ *types.RecipeStepCompletionConditionDatabaseCreationInput) (*types.RecipeStepCompletionCondition, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				types.RecipeStepCompletionConditionCreatedServiceEventType: {
-					mealplanningkeys.RecipeIDKey,
-					mealplanningkeys.RecipeStepIDKey,
-					mealplanningkeys.RecipeStepCompletionConditionIDKey,
-				},
-			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.CreateRecipeStepCompletionCondition(ctx, exampleRecipeID, exampleRecipeStepID, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateRecipeStepCompletionConditionCalls(), 1)
 	})
 }
 
@@ -92,18 +86,22 @@ func TestRecipeManager_ReadRecipeStepCompletionCondition(T *testing.T) {
 		exampleRecipeStepID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepCompletionCondition()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetRecipeStepCompletionCondition), testutils.ContextMatcher, exampleRecipeID, exampleRecipeStepID, expected.ID).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeStepCompletionConditionFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepIngredientID string) (*types.RecipeStepCompletionCondition, error) {
+				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, expected.ID, recipeStepIngredientID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ReadRecipeStepCompletionCondition(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRecipeStepCompletionConditionCalls(), 1)
 	})
 }
 
@@ -121,24 +119,24 @@ func TestRecipeManager_UpdateRecipeStepCompletionCondition(T *testing.T) {
 		exampleRecipeStepCompletionCondition := fakes.BuildFakeRecipeStepCompletionCondition()
 		exampleInput := fakes.BuildFakeRecipeStepCompletionConditionUpdateRequestInput()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetRecipeStepCompletionCondition), testutils.ContextMatcher, exampleRecipeID, exampleRecipeStepID, exampleRecipeStepCompletionCondition.ID).Return(exampleRecipeStepCompletionCondition, nil)
-				db.On(reflection.GetMethodName(rm.db.UpdateRecipeStepCompletionCondition), testutils.ContextMatcher, testutils.MatchType[*types.RecipeStepCompletionCondition]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeStepCompletionConditionFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepIngredientID string) (*types.RecipeStepCompletionCondition, error) {
+				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleRecipeStepCompletionCondition.ID, recipeStepIngredientID)
+
+				return exampleRecipeStepCompletionCondition, nil
 			},
-			map[string][]string{
-				types.RecipeStepCompletionConditionUpdatedServiceEventType: {
-					mealplanningkeys.RecipeIDKey,
-					mealplanningkeys.RecipeStepIDKey,
-					mealplanningkeys.RecipeStepCompletionConditionIDKey,
-				},
+			UpdateRecipeStepCompletionConditionFunc: func(_ context.Context, _ *types.RecipeStepCompletionCondition) error {
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		assert.NoError(t, rm.UpdateRecipeStepCompletionCondition(ctx, exampleRecipeID, exampleRecipeStepID, exampleRecipeStepCompletionCondition.ID, exampleInput))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRecipeStepCompletionConditionCalls(), 1)
+		assert.Len(t, db.UpdateRecipeStepCompletionConditionCalls(), 1)
 	})
 }
 
@@ -155,22 +153,18 @@ func TestRecipeManager_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 		exampleRecipeStepID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepCompletionCondition()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.ArchiveRecipeStepCompletionCondition), testutils.ContextMatcher, exampleRecipeStepID, expected.ID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveRecipeStepCompletionConditionFunc: func(_ context.Context, recipeStepID string, recipeStepIngredientID string) error {
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, expected.ID, recipeStepIngredientID)
+
+				return nil
 			},
-			map[string][]string{
-				types.RecipeStepCompletionConditionArchivedServiceEventType: {
-					mealplanningkeys.RecipeIDKey,
-					mealplanningkeys.RecipeStepIDKey,
-					mealplanningkeys.RecipeStepCompletionConditionIDKey,
-				},
-			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		assert.NoError(t, rm.ArchiveRecipeStepCompletionCondition(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveRecipeStepCompletionConditionCalls(), 1)
 	})
 }

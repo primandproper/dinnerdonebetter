@@ -20,7 +20,7 @@ func TestNewService(t *testing.T) {
 
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
-		notificationsManager := &notificationsmock.Repository{}
+		notificationsManager := &notificationsmock.RepositoryMock{}
 
 		service := NewService(logger, tracerProvider, notificationsManager)
 

@@ -8,10 +8,8 @@ import (
 	mockauthn "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	identitymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/mock"
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/filtering"
 	"github.com/primandproper/platform-go/v6/messagequeue"
@@ -21,11 +19,9 @@ import (
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
 	"github.com/primandproper/platform-go/v6/qrcodes"
 	randommock "github.com/primandproper/platform-go/v6/random/mock"
-	"github.com/primandproper/platform-go/v6/reflection"
 	mocksearch "github.com/primandproper/platform-go/v6/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,7 +46,7 @@ func buildIdentityDataManagerForTest(t *testing.T) *manager {
 		mpp,
 		&identitymock.RepositoryMock{},
 		&randommock.GeneratorMock{},
-		&mockauthn.Authenticator{},
+		&mockauthn.AuthenticatorMock{},
 		&mocksearch.IndexMock[identityindexing.UserSearchSubset]{},
 		qrcodes.NewBuilder(qrcodes.Issuer("test"), tracingnoop.NewTracerProvider(), loggingnoop.NewLogger()),
 		queueCfg,
@@ -60,48 +56,45 @@ func buildIdentityDataManagerForTest(t *testing.T) *manager {
 	return m.(*manager)
 }
 
-func setupExpectationsForIdentityDataManager(
-	manager *manager,
-	dbSetupFunc func(db *identitymock.RepositoryMock),
-	publisherSetupFunc func(mp *mockpublishers.PublisherMock),
-	secretGenSetupFunc func(sg *randommock.GeneratorMock),
-	authSetupFunc func(auth *mockauthn.Authenticator),
-	searchSetupFunc func(us *mocksearch.IndexMock[identityindexing.UserSearchSubset]),
-	eventTypeMaps ...map[string][]string,
-) []any {
-	db := &identitymock.RepositoryMock{}
-	if dbSetupFunc != nil {
-		dbSetupFunc(db)
-	}
-	manager.identityRepo = db
+// attachRepositoryToIdentityDataManager wires a configured repository mock and a no-op data changes
+// publisher into the manager under test.
+func attachRepositoryToIdentityDataManager(m *manager, db *identitymock.RepositoryMock) {
+	attachMocksToIdentityDataManager(m, db, nil, nil, nil)
+}
 
-	mp := &mockpublishers.PublisherMock{
+// attachMocksToIdentityDataManager wires configured collaborator mocks and a no-op data changes
+// publisher into the manager under test. A nil argument gets an unconfigured mock, which panics if
+// any of its methods are called.
+func attachMocksToIdentityDataManager(
+	m *manager,
+	db *identitymock.RepositoryMock,
+	secretGenerator *randommock.GeneratorMock,
+	authenticator *mockauthn.AuthenticatorMock,
+	searchIndex *mocksearch.IndexMock[identityindexing.UserSearchSubset],
+) {
+	if db == nil {
+		db = &identitymock.RepositoryMock{}
+	}
+	m.identityRepo = db
+
+	if secretGenerator == nil {
+		secretGenerator = &randommock.GeneratorMock{}
+	}
+	m.secretGenerator = secretGenerator
+
+	if authenticator == nil {
+		authenticator = &mockauthn.AuthenticatorMock{}
+	}
+	m.authenticator = authenticator
+
+	if searchIndex == nil {
+		searchIndex = &mocksearch.IndexMock[identityindexing.UserSearchSubset]{}
+	}
+	m.userSearchIndex = searchIndex
+
+	m.dataChangesPublisher = &mockpublishers.PublisherMock{
 		PublishAsyncFunc: func(_ context.Context, _ any) {},
 	}
-	if publisherSetupFunc != nil {
-		publisherSetupFunc(mp)
-	}
-	manager.dataChangesPublisher = mp
-
-	sg := &randommock.GeneratorMock{}
-	if secretGenSetupFunc != nil {
-		secretGenSetupFunc(sg)
-	}
-	manager.secretGenerator = sg
-
-	auth := &mockauthn.Authenticator{}
-	if authSetupFunc != nil {
-		authSetupFunc(auth)
-	}
-	manager.authenticator = auth
-
-	us := &mocksearch.IndexMock[identityindexing.UserSearchSubset]{}
-	if searchSetupFunc != nil {
-		searchSetupFunc(us)
-	}
-	manager.userSearchIndex = us
-
-	return []any{db, auth}
 }
 
 func TestIdentityDataManager_AcceptAccountInvitation(T *testing.T) {
@@ -120,25 +113,27 @@ func TestIdentityDataManager_AcceptAccountInvitation(T *testing.T) {
 		invitation.ID = accountInvitationID
 		invitation.Token = input.Token
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.GetAccountInvitationByTokenAndID), testutils.ContextMatcher, input.Token, accountInvitationID).Return(invitation, nil)
-				db.On(reflection.GetMethodName(m.identityRepo.AcceptAccountInvitation), testutils.ContextMatcher, accountID, accountInvitationID, input.Token, input.Note).Return(nil)
+		db := &identitymock.RepositoryMock{
+			GetAccountInvitationByTokenAndIDFunc: func(_ context.Context, token, invitationID string) (*identity.AccountInvitation, error) {
+				assert.Equal(t, input.Token, token)
+				assert.Equal(t, accountInvitationID, invitationID)
+				return invitation, nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.AccountInvitationAcceptedServiceEventType: {identitykeys.AccountInvitationIDKey, "destination_account"},
+			AcceptAccountInvitationFunc: func(_ context.Context, actualAccountID, invitationID, token, note string) error {
+				assert.Equal(t, accountID, actualAccountID)
+				assert.Equal(t, accountInvitationID, invitationID)
+				assert.Equal(t, input.Token, token)
+				assert.Equal(t, input.Note, note)
+				return nil
 			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.AcceptAccountInvitation(ctx, accountID, accountInvitationID, input)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetAccountInvitationByTokenAndIDCalls(), 1)
+		assert.Len(t, db.AcceptAccountInvitationCalls(), 1)
 	})
 }
 
@@ -158,25 +153,26 @@ func TestIdentityDataManager_RejectAccountInvitation(T *testing.T) {
 		invitation.ID = accountInvitationID
 		invitation.Token = input.Token
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.GetAccountInvitationByTokenAndID), testutils.ContextMatcher, input.Token, accountInvitationID).Return(invitation, nil)
-				db.On(reflection.GetMethodName(m.identityRepo.RejectAccountInvitation), testutils.ContextMatcher, accountID, invitation.ID, input.Note).Return(nil)
+		db := &identitymock.RepositoryMock{
+			GetAccountInvitationByTokenAndIDFunc: func(_ context.Context, token, invitationID string) (*identity.AccountInvitation, error) {
+				assert.Equal(t, input.Token, token)
+				assert.Equal(t, accountInvitationID, invitationID)
+				return invitation, nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.AccountInvitationRejectedServiceEventType: {identitykeys.AccountInvitationIDKey},
+			RejectAccountInvitationFunc: func(_ context.Context, actualAccountID, invitationID, note string) error {
+				assert.Equal(t, accountID, actualAccountID)
+				assert.Equal(t, invitation.ID, invitationID)
+				assert.Equal(t, input.Note, note)
+				return nil
 			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.RejectAccountInvitation(ctx, accountID, accountInvitationID, input)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetAccountInvitationByTokenAndIDCalls(), 1)
+		assert.Len(t, db.RejectAccountInvitationCalls(), 1)
 	})
 }
 
@@ -193,24 +189,20 @@ func TestIdentityDataManager_CancelAccountInvitation(T *testing.T) {
 		accountInvitationID := fakes.BuildFakeID()
 		note := "test note"
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.CancelAccountInvitation), testutils.ContextMatcher, accountID, accountInvitationID, note).Return(nil)
+		db := &identitymock.RepositoryMock{
+			CancelAccountInvitationFunc: func(_ context.Context, actualAccountID, invitationID, actualNote string) error {
+				assert.Equal(t, accountID, actualAccountID)
+				assert.Equal(t, accountInvitationID, invitationID)
+				assert.Equal(t, note, actualNote)
+				return nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.AccountInvitationCanceledServiceEventType: {identitykeys.AccountInvitationIDKey},
-			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.CancelAccountInvitation(ctx, accountID, accountInvitationID, note)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CancelAccountInvitationCalls(), 1)
 	})
 }
 
@@ -226,24 +218,19 @@ func TestIdentityDataManager_ArchiveAccount(T *testing.T) {
 		accountID := fakes.BuildFakeID()
 		ownerID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.ArchiveAccount), testutils.ContextMatcher, accountID, ownerID).Return(nil)
+		db := &identitymock.RepositoryMock{
+			ArchiveAccountFunc: func(_ context.Context, actualAccountID, userID string) error {
+				assert.Equal(t, accountID, actualAccountID)
+				assert.Equal(t, ownerID, userID)
+				return nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.AccountArchivedServiceEventType: {identitykeys.AccountIDKey, identitykeys.UserIDKey},
-			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.ArchiveAccount(ctx, accountID, ownerID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveAccountCalls(), 1)
 	})
 }
 
@@ -259,24 +246,19 @@ func TestIdentityDataManager_ArchiveUserMembership(T *testing.T) {
 		userID := fakes.BuildFakeID()
 		accountID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.RemoveUserFromAccount), testutils.ContextMatcher, userID, accountID).Return(nil)
+		db := &identitymock.RepositoryMock{
+			RemoveUserFromAccountFunc: func(_ context.Context, actualUserID, actualAccountID string) error {
+				assert.Equal(t, userID, actualUserID)
+				assert.Equal(t, accountID, actualAccountID)
+				return nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.AccountMemberRemovedServiceEventType: {identitykeys.AccountIDKey, identitykeys.UserIDKey},
-			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.ArchiveUserMembership(ctx, userID, accountID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.RemoveUserFromAccountCalls(), 1)
 	})
 }
 
@@ -291,24 +273,18 @@ func TestIdentityDataManager_ArchiveUser(T *testing.T) {
 
 		userID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.ArchiveUser), testutils.ContextMatcher, userID).Return(nil)
+		db := &identitymock.RepositoryMock{
+			ArchiveUserFunc: func(_ context.Context, actualUserID string) error {
+				assert.Equal(t, userID, actualUserID)
+				return nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.UserArchivedServiceEventType: {identitykeys.UserIDKey},
-			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.ArchiveUser(ctx, userID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveUserCalls(), 1)
 	})
 }
 
@@ -324,25 +300,19 @@ func TestIdentityDataManager_CreateAccount(T *testing.T) {
 		input := fakes.BuildFakeAccountCreationRequestInput()
 		expected := fakes.BuildFakeAccount()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.CreateAccount), testutils.ContextMatcher, testutils.MatchType[*identity.AccountDatabaseCreationInput]()).Return(expected, nil)
+		db := &identitymock.RepositoryMock{
+			CreateAccountFunc: func(_ context.Context, dbInput *identity.AccountDatabaseCreationInput) (*identity.Account, error) {
+				assert.NotNil(t, dbInput)
+				return expected, nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.AccountCreatedServiceEventType: {identitykeys.AccountIDKey},
-			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.CreateAccount(ctx, input)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateAccountCalls(), 1)
 	})
 }
 
@@ -359,31 +329,27 @@ func TestIdentityDataManager_CreateAccountInvitation(T *testing.T) {
 		accountID := fakes.BuildFakeID()
 		input := fakes.BuildFakeAccountInvitationCreationRequestInput()
 		expected := fakes.BuildFakeAccountInvitation()
-		token := "test-token"
+		token := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.CreateAccountInvitation), testutils.ContextMatcher, testutils.MatchType[*identity.AccountInvitationDatabaseCreationInput]()).Return(expected, nil)
+		db := &identitymock.RepositoryMock{
+			CreateAccountInvitationFunc: func(_ context.Context, dbInput *identity.AccountInvitationDatabaseCreationInput) (*identity.AccountInvitation, error) {
+				assert.NotNil(t, dbInput)
+				return expected, nil
 			},
-			nil,
-			func(sg *randommock.GeneratorMock) {
-				sg.GenerateBase64EncodedStringFunc = func(_ context.Context, _ int) (string, error) {
-					return token, nil
-				}
+		}
+		secretGenerator := &randommock.GeneratorMock{
+			GenerateBase64EncodedStringFunc: func(_ context.Context, _ int) (string, error) {
+				return token, nil
 			},
-			nil,
-			nil,
-			map[string][]string{
-				identity.AccountInvitationCreatedServiceEventType: {identitykeys.AccountInvitationIDKey, identitykeys.UserIDKey, "destination_account"},
-			},
-		)
+		}
+		attachMocksToIdentityDataManager(m, db, secretGenerator, nil, nil)
 
 		actual, err := m.CreateAccountInvitation(ctx, userID, accountID, input)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateAccountInvitationCalls(), 1)
+		assert.Len(t, secretGenerator.GenerateBase64EncodedStringCalls(), 1)
 	})
 }
 
@@ -401,29 +367,34 @@ func TestIdentityDataManager_CreateUser(T *testing.T) {
 		hashedPassword := "hashed-password"
 		twoFactorSecret := "two-factor-secret"
 		defaultAccountID := fakes.BuildFakeID()
-		emailVerificationToken := "email-verification-token"
+		emailVerificationToken := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.CreateUser), testutils.ContextMatcher, testutils.MatchType[*identity.UserDatabaseCreationInput]()).Return(expected, nil)
-				db.On(reflection.GetMethodName(m.identityRepo.GetDefaultAccountIDForUser), testutils.ContextMatcher, expected.ID).Return(defaultAccountID, nil)
-				db.On(reflection.GetMethodName(m.identityRepo.GetEmailAddressVerificationTokenForUser), testutils.ContextMatcher, expected.ID).Return(emailVerificationToken, nil)
+		db := &identitymock.RepositoryMock{
+			CreateUserFunc: func(_ context.Context, dbInput *identity.UserDatabaseCreationInput) (*identity.User, error) {
+				assert.NotNil(t, dbInput)
+				return expected, nil
 			},
-			nil,
-			func(sg *randommock.GeneratorMock) {
-				sg.GenerateBase32EncodedStringFunc = func(_ context.Context, _ int) (string, error) {
-					return twoFactorSecret, nil
-				}
+			GetDefaultAccountIDForUserFunc: func(_ context.Context, userID string) (string, error) {
+				assert.Equal(t, expected.ID, userID)
+				return defaultAccountID, nil
 			},
-			func(auth *mockauthn.Authenticator) {
-				auth.On(reflection.GetMethodName(m.authenticator.HashPassword), testutils.ContextMatcher, mock.AnythingOfType("string")).Return(hashedPassword, nil)
+			GetEmailAddressVerificationTokenForUserFunc: func(_ context.Context, userID string) (string, error) {
+				assert.Equal(t, expected.ID, userID)
+				return emailVerificationToken, nil
 			},
-			nil,
-			map[string][]string{
-				identity.UserSignedUpServiceEventType: {identitykeys.AccountIDKey, identitykeys.UserIDKey, identitykeys.UserEmailVerificationTokenKey},
+		}
+		secretGenerator := &randommock.GeneratorMock{
+			GenerateBase32EncodedStringFunc: func(_ context.Context, _ int) (string, error) {
+				return twoFactorSecret, nil
 			},
-		)
+		}
+		authenticator := &mockauthn.AuthenticatorMock{
+			HashPasswordFunc: func(_ context.Context, password string) (string, error) {
+				assert.NotEmpty(t, password)
+				return hashedPassword, nil
+			},
+		}
+		attachMocksToIdentityDataManager(m, db, secretGenerator, authenticator, nil)
 
 		actual, err := m.CreateUser(ctx, input)
 		assert.NoError(t, err)
@@ -431,7 +402,11 @@ func TestIdentityDataManager_CreateUser(T *testing.T) {
 		assert.Equal(t, expected.ID, actual.CreatedUserID)
 		assert.True(t, strings.HasPrefix(actual.TwoFactorQRCode, "data:image/png;base64,"), "two factor QR code should be a PNG data URI")
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateUserCalls(), 1)
+		assert.Len(t, db.GetDefaultAccountIDForUserCalls(), 1)
+		assert.Len(t, db.GetEmailAddressVerificationTokenForUserCalls(), 1)
+		assert.Len(t, secretGenerator.GenerateBase32EncodedStringCalls(), 1)
+		assert.Len(t, authenticator.HashPasswordCalls(), 1)
 	})
 }
 
@@ -447,22 +422,19 @@ func TestIdentityDataManager_GetAccount(T *testing.T) {
 		accountID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeAccount()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.GetAccount), testutils.ContextMatcher, accountID).Return(expected, nil)
+		db := &identitymock.RepositoryMock{
+			GetAccountFunc: func(_ context.Context, actualAccountID string) (*identity.Account, error) {
+				assert.Equal(t, accountID, actualAccountID)
+				return expected, nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetAccount(ctx, accountID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetAccountCalls(), 1)
 	})
 }
 
@@ -479,22 +451,20 @@ func TestIdentityDataManager_GetAccountInvitation(T *testing.T) {
 		accountInvitationID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeAccountInvitation()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.GetAccountInvitationByAccountAndID), testutils.ContextMatcher, accountID, accountInvitationID).Return(expected, nil)
+		db := &identitymock.RepositoryMock{
+			GetAccountInvitationByAccountAndIDFunc: func(_ context.Context, actualAccountID, invitationID string) (*identity.AccountInvitation, error) {
+				assert.Equal(t, accountID, actualAccountID)
+				assert.Equal(t, accountInvitationID, invitationID)
+				return expected, nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetAccountInvitation(ctx, accountID, accountInvitationID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetAccountInvitationByAccountAndIDCalls(), 1)
 	})
 }
 
@@ -510,22 +480,20 @@ func TestIdentityDataManager_GetAccounts(T *testing.T) {
 		userID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeAccountsList()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.GetAccounts), testutils.ContextMatcher, userID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &identitymock.RepositoryMock{
+			GetAccountsFunc: func(_ context.Context, actualUserID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.Account], error) {
+				assert.Equal(t, userID, actualUserID)
+				assert.NotNil(t, filter)
+				return expected, nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetAccounts(ctx, userID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetAccountsCalls(), 1)
 	})
 }
 
@@ -541,22 +509,20 @@ func TestIdentityDataManager_GetReceivedAccountInvitations(T *testing.T) {
 		userID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeAccountInvitationsList()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.GetPendingAccountInvitationsForUser), testutils.ContextMatcher, userID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &identitymock.RepositoryMock{
+			GetPendingAccountInvitationsForUserFunc: func(_ context.Context, actualUserID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.AccountInvitation], error) {
+				assert.Equal(t, userID, actualUserID)
+				assert.NotNil(t, filter)
+				return expected, nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetReceivedAccountInvitations(ctx, userID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetPendingAccountInvitationsForUserCalls(), 1)
 	})
 }
 
@@ -572,22 +538,20 @@ func TestIdentityDataManager_GetSentAccountInvitations(T *testing.T) {
 		userID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeAccountInvitationsList()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.GetPendingAccountInvitationsFromUser), testutils.ContextMatcher, userID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &identitymock.RepositoryMock{
+			GetPendingAccountInvitationsFromUserFunc: func(_ context.Context, actualUserID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.AccountInvitation], error) {
+				assert.Equal(t, userID, actualUserID)
+				assert.NotNil(t, filter)
+				return expected, nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetSentAccountInvitations(ctx, userID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetPendingAccountInvitationsFromUserCalls(), 1)
 	})
 }
 
@@ -603,22 +567,19 @@ func TestIdentityDataManager_GetUser(T *testing.T) {
 		userID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeUser()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.GetUser), testutils.ContextMatcher, userID).Return(expected, nil)
+		db := &identitymock.RepositoryMock{
+			GetUserFunc: func(_ context.Context, actualUserID string) (*identity.User, error) {
+				assert.Equal(t, userID, actualUserID)
+				return expected, nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetUser(ctx, userID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetUserCalls(), 1)
 	})
 }
 
@@ -633,22 +594,19 @@ func TestIdentityDataManager_GetUsers(T *testing.T) {
 
 		expected := fakes.BuildFakeUsersList()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.GetUsers), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &identitymock.RepositoryMock{
+			GetUsersFunc: func(_ context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.User], error) {
+				assert.NotNil(t, filter)
+				return expected, nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetUsers(ctx, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetUsersCalls(), 1)
 	})
 }
 
@@ -664,22 +622,20 @@ func TestIdentityDataManager_GetUsersForAccount(T *testing.T) {
 		accountID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeUsersList()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.GetUsersForAccount), testutils.ContextMatcher, accountID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &identitymock.RepositoryMock{
+			GetUsersForAccountFunc: func(_ context.Context, actualAccountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.User], error) {
+				assert.Equal(t, accountID, actualAccountID)
+				assert.NotNil(t, filter)
+				return expected, nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetUsersForAccount(ctx, accountID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetUsersForAccountCalls(), 1)
 	})
 }
 
@@ -695,22 +651,20 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 		query := "test-query"
 		expected := fakes.BuildFakeUsersList()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.SearchForUsersByUsername), testutils.ContextMatcher, query, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &identitymock.RepositoryMock{
+			SearchForUsersByUsernameFunc: func(_ context.Context, usernameQuery string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.User], error) {
+				assert.Equal(t, query, usernameQuery)
+				assert.NotNil(t, filter)
+				return expected, nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.SearchForUsers(ctx, query, false, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.SearchForUsersByUsernameCalls(), 1)
 	})
 
 	T.Run("with search service", func(t *testing.T) {
@@ -731,27 +685,27 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 		users[0].ID = searchResults[0].ID
 		users[1].ID = searchResults[1].ID
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.GetUsersWithIDs), testutils.ContextMatcher, mock.AnythingOfType("[]string")).Return(users, nil)
+		db := &identitymock.RepositoryMock{
+			GetUsersWithIDsFunc: func(_ context.Context, ids []string) ([]*identity.User, error) {
+				assert.Equal(t, []string{searchResults[0].ID, searchResults[1].ID}, ids)
+				return users, nil
 			},
-			nil,
-			nil,
-			nil,
-			func(us *mocksearch.IndexMock[identityindexing.UserSearchSubset]) {
-				us.SearchFunc = func(_ context.Context, q string) ([]*identityindexing.UserSearchSubset, error) {
-					return searchResults, nil
-				}
+		}
+		searchIndex := &mocksearch.IndexMock[identityindexing.UserSearchSubset]{
+			SearchFunc: func(_ context.Context, q string) ([]*identityindexing.UserSearchSubset, error) {
+				assert.Equal(t, query, q)
+				return searchResults, nil
 			},
-		)
+		}
+		attachMocksToIdentityDataManager(m, db, nil, nil, searchIndex)
 
 		actual, err := m.SearchForUsers(ctx, query, true, nil)
 		assert.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Len(t, actual.Data, 2)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetUsersWithIDsCalls(), 1)
+		assert.Len(t, searchIndex.SearchCalls(), 1)
 	})
 
 	T.Run("with search service honoring page size and reporting total hits", func(t *testing.T) {
@@ -776,20 +730,19 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 		filter := filtering.DefaultQueryFilter()
 		filter.MaxResponseSize = new(uint8(2))
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.GetUsersWithIDs), testutils.ContextMatcher, []string{searchResults[0].ID, searchResults[1].ID}).Return(users, nil)
+		db := &identitymock.RepositoryMock{
+			GetUsersWithIDsFunc: func(_ context.Context, ids []string) ([]*identity.User, error) {
+				assert.Equal(t, []string{searchResults[0].ID, searchResults[1].ID}, ids)
+				return users, nil
 			},
-			nil,
-			nil,
-			nil,
-			func(us *mocksearch.IndexMock[identityindexing.UserSearchSubset]) {
-				us.SearchFunc = func(_ context.Context, q string) ([]*identityindexing.UserSearchSubset, error) {
-					return searchResults, nil
-				}
+		}
+		searchIndex := &mocksearch.IndexMock[identityindexing.UserSearchSubset]{
+			SearchFunc: func(_ context.Context, q string) ([]*identityindexing.UserSearchSubset, error) {
+				assert.Equal(t, query, q)
+				return searchResults, nil
 			},
-		)
+		}
+		attachMocksToIdentityDataManager(m, db, nil, nil, searchIndex)
 
 		actual, err := m.SearchForUsers(ctx, query, true, filter)
 		assert.NoError(t, err)
@@ -798,7 +751,8 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 		assert.Equal(t, uint64(2), actual.FilteredCount)
 		assert.Equal(t, uint64(3), actual.TotalCount)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetUsersWithIDsCalls(), 1)
+		assert.Len(t, searchIndex.SearchCalls(), 1)
 	})
 }
 
@@ -814,24 +768,19 @@ func TestIdentityDataManager_SetDefaultAccount(T *testing.T) {
 		userID := fakes.BuildFakeID()
 		accountID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.MarkAccountAsUserDefault), testutils.ContextMatcher, userID, accountID).Return(nil)
+		db := &identitymock.RepositoryMock{
+			MarkAccountAsUserDefaultFunc: func(_ context.Context, actualUserID, actualAccountID string) error {
+				assert.Equal(t, userID, actualUserID)
+				assert.Equal(t, accountID, actualAccountID)
+				return nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.AccountSetAsDefaultServiceEventType: {identitykeys.AccountIDKey, identitykeys.UserIDKey},
-			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.SetDefaultAccount(ctx, userID, accountID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.MarkAccountAsUserDefaultCalls(), 1)
 	})
 }
 
@@ -847,24 +796,19 @@ func TestIdentityDataManager_TransferAccountOwnership(T *testing.T) {
 		accountID := fakes.BuildFakeID()
 		input := fakes.BuildFakeAccountOwnershipTransferInput()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.TransferAccountOwnership), testutils.ContextMatcher, accountID, input).Return(nil)
+		db := &identitymock.RepositoryMock{
+			TransferAccountOwnershipFunc: func(_ context.Context, actualAccountID string, actualInput *identity.AccountOwnershipTransferInput) error {
+				assert.Equal(t, accountID, actualAccountID)
+				assert.Equal(t, input, actualInput)
+				return nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.AccountOwnershipTransferredServiceEventType: {identitykeys.AccountIDKey},
-			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.TransferAccountOwnership(ctx, accountID, input)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.TransferAccountOwnershipCalls(), 1)
 	})
 }
 
@@ -882,25 +826,23 @@ func TestIdentityDataManager_UpdateAccount(T *testing.T) {
 		account := fakes.BuildFakeAccount()
 		account.ID = accountID
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.GetAccount), testutils.ContextMatcher, accountID).Return(account, nil)
-				db.On(reflection.GetMethodName(m.identityRepo.UpdateAccount), testutils.ContextMatcher, testutils.MatchType[*identity.Account]()).Return(nil)
+		db := &identitymock.RepositoryMock{
+			GetAccountFunc: func(_ context.Context, actualAccountID string) (*identity.Account, error) {
+				assert.Equal(t, accountID, actualAccountID)
+				return account, nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.AccountUpdatedServiceEventType: {identitykeys.AccountIDKey},
+			UpdateAccountFunc: func(_ context.Context, updated *identity.Account) error {
+				assert.NotNil(t, updated)
+				return nil
 			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.UpdateAccount(ctx, accountID, input)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetAccountCalls(), 1)
+		assert.Len(t, db.UpdateAccountCalls(), 1)
 	})
 }
 
@@ -917,24 +859,20 @@ func TestIdentityDataManager_UpdateAccountMemberPermissions(T *testing.T) {
 		accountID := fakes.BuildFakeID()
 		input := fakes.BuildFakeUserPermissionModificationInput()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.ModifyUserPermissions), testutils.ContextMatcher, accountID, userID, input).Return(nil)
+		db := &identitymock.RepositoryMock{
+			ModifyUserPermissionsFunc: func(_ context.Context, actualAccountID, actualUserID string, actualInput *identity.ModifyUserPermissionsInput) error {
+				assert.Equal(t, accountID, actualAccountID)
+				assert.Equal(t, userID, actualUserID)
+				assert.Equal(t, input, actualInput)
+				return nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.AccountMembershipPermissionsUpdatedServiceEventType: {identitykeys.AccountIDKey},
-			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
-		err := m.UpdateAccountMemberPermissions(ctx, userID, accountID, input)
+		err := m.UpdateAccountMemberPermissions(ctx, accountID, userID, input)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ModifyUserPermissionsCalls(), 1)
 	})
 }
 
@@ -950,24 +888,19 @@ func TestIdentityDataManager_UpdateUserDetails(T *testing.T) {
 		userID := fakes.BuildFakeID()
 		input := fakes.BuildFakeUserDetailsUpdateRequestInput()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.UpdateUserDetails), testutils.ContextMatcher, userID, testutils.MatchType[*identity.UserDetailsDatabaseUpdateInput]()).Return(nil)
+		db := &identitymock.RepositoryMock{
+			UpdateUserDetailsFunc: func(_ context.Context, actualUserID string, dbInput *identity.UserDetailsDatabaseUpdateInput) error {
+				assert.Equal(t, userID, actualUserID)
+				assert.NotNil(t, dbInput)
+				return nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.UserDetailsChangedEventType: {identitykeys.UserIDKey},
-			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.UpdateUserDetails(ctx, userID, input)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.UpdateUserDetailsCalls(), 1)
 	})
 }
 
@@ -983,24 +916,19 @@ func TestIdentityDataManager_UpdateUserEmailAddress(T *testing.T) {
 		userID := fakes.BuildFakeID()
 		newEmail := "newemail@example.com"
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.UpdateUserEmailAddress), testutils.ContextMatcher, userID, newEmail).Return(nil)
+		db := &identitymock.RepositoryMock{
+			UpdateUserEmailAddressFunc: func(_ context.Context, actualUserID, newEmailAddress string) error {
+				assert.Equal(t, userID, actualUserID)
+				assert.Equal(t, newEmail, newEmailAddress)
+				return nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.EmailAddressChangedEventType: {identitykeys.UserIDKey},
-			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.UpdateUserEmailAddress(ctx, userID, newEmail)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.UpdateUserEmailAddressCalls(), 1)
 	})
 }
 
@@ -1016,24 +944,19 @@ func TestIdentityDataManager_UpdateUserUsername(T *testing.T) {
 		userID := fakes.BuildFakeID()
 		newUsername := "newusername"
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.UpdateUserUsername), testutils.ContextMatcher, userID, newUsername).Return(nil)
+		db := &identitymock.RepositoryMock{
+			UpdateUserUsernameFunc: func(_ context.Context, actualUserID, actualNewUsername string) error {
+				assert.Equal(t, userID, actualUserID)
+				assert.Equal(t, newUsername, actualNewUsername)
+				return nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.UsernameChangedEventType: {identitykeys.UserIDKey},
-			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.UpdateUserUsername(ctx, userID, newUsername)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.UpdateUserUsernameCalls(), 1)
 	})
 }
 
@@ -1049,24 +972,19 @@ func TestIdentityDataManager_SetUserAvatar(T *testing.T) {
 		userID := fakes.BuildFakeID()
 		uploadedMediaID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.SetUserAvatar), testutils.ContextMatcher, userID, uploadedMediaID).Return(nil)
+		db := &identitymock.RepositoryMock{
+			SetUserAvatarFunc: func(_ context.Context, actualUserID, actualUploadedMediaID string) error {
+				assert.Equal(t, userID, actualUserID)
+				assert.Equal(t, uploadedMediaID, actualUploadedMediaID)
+				return nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.UserAvatarChangedEventType: {identitykeys.UserIDKey},
-			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.SetUserAvatar(ctx, userID, uploadedMediaID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.SetUserAvatarCalls(), 1)
 	})
 }
 
@@ -1084,23 +1002,18 @@ func TestIdentityDataManager_AdminUpdateUserStatus(T *testing.T) {
 			Reason:       "test reason",
 		}
 
-		expectations := setupExpectationsForIdentityDataManager(
-			m,
-			func(db *identitymock.RepositoryMock) {
-				db.On(reflection.GetMethodName(m.identityRepo.UpdateUserAccountStatus), testutils.ContextMatcher, input.TargetUserID, input).Return(nil)
+		db := &identitymock.RepositoryMock{
+			UpdateUserAccountStatusFunc: func(_ context.Context, userID string, actualInput *identity.UserAccountStatusUpdateInput) error {
+				assert.Equal(t, input.TargetUserID, userID)
+				assert.Equal(t, input, actualInput)
+				return nil
 			},
-			nil,
-			nil,
-			nil,
-			nil,
-			map[string][]string{
-				identity.UserStatusChangedServiceEventType: {identitykeys.UserIDKey},
-			},
-		)
+		}
+		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.AdminUpdateUserStatus(ctx, input)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.UpdateUserAccountStatusCalls(), 1)
 	})
 }

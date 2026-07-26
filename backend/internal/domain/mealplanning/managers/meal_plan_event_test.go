@@ -1,19 +1,17 @@
 package managers
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestMealPlanningManager_ListMealPlanEvents(T *testing.T) {
@@ -28,18 +26,20 @@ func TestMealPlanningManager_ListMealPlanEvents(T *testing.T) {
 		expected := fakes.BuildFakeMealPlanEventsList()
 		exampleMealPlanID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetMealPlanEvents), testutils.ContextMatcher, exampleMealPlanID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetMealPlanEventsFunc: func(_ context.Context, mealPlanID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanEvent], error) {
+				assert.Equal(t, exampleMealPlanID, mealPlanID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ListMealPlanEvents(ctx, exampleMealPlanID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetMealPlanEventsCalls(), 1)
 	})
 }
 
@@ -55,21 +55,18 @@ func TestMealPlanningManager_CreateMealPlanEvent(T *testing.T) {
 		expected := fakes.BuildFakeMealPlanEvent()
 		fakeInput := fakes.BuildFakeMealPlanEventCreationRequestInput()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.CreateMealPlanEvent), testutils.ContextMatcher, testutils.MatchType[*types.MealPlanEventDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateMealPlanEventFunc: func(_ context.Context, _ *types.MealPlanEventDatabaseCreationInput) (*types.MealPlanEvent, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				types.MealPlanEventCreatedServiceEventType: {mealplanningkeys.MealPlanEventIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMealPlanEvent(ctx, expected.BelongsToMealPlan, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateMealPlanEventCalls(), 1)
 	})
 }
 
@@ -85,18 +82,21 @@ func TestMealPlanningManager_ReadMealPlanEvent(T *testing.T) {
 		exampleMealPlanID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeMealPlanEvent()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetMealPlanEvent), testutils.ContextMatcher, exampleMealPlanID, expected.ID).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetMealPlanEventFunc: func(_ context.Context, mealPlanID string, mealPlanEventID string) (*types.MealPlanEvent, error) {
+				assert.Equal(t, exampleMealPlanID, mealPlanID)
+				assert.Equal(t, expected.ID, mealPlanEventID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ReadMealPlanEvent(ctx, exampleMealPlanID, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetMealPlanEventCalls(), 1)
 	})
 }
 
@@ -114,23 +114,23 @@ func TestMealPlanningManager_UpdateMealPlanEvent(T *testing.T) {
 		exampleInput := fakes.BuildFakeMealPlanEventUpdateRequestInput()
 		exampleInput.StartsAt = &exampleMealPlanEvent.StartsAt
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetMealPlanEvent), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanEvent.ID).Return(exampleMealPlanEvent, nil)
-				db.On(reflection.GetMethodName(mpm.db.UpdateMealPlanEvent), testutils.ContextMatcher, testutils.MatchType[*types.MealPlanEvent]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetMealPlanEventFunc: func(_ context.Context, mealPlanID string, mealPlanEventID string) (*types.MealPlanEvent, error) {
+				assert.Equal(t, exampleMealPlanID, mealPlanID)
+				assert.Equal(t, exampleMealPlanEvent.ID, mealPlanEventID)
+
+				return exampleMealPlanEvent, nil
 			},
-			map[string][]string{
-				types.MealPlanEventUpdatedServiceEventType: {
-					mealplanningkeys.MealPlanIDKey,
-					mealplanningkeys.MealPlanEventIDKey,
-				},
+			UpdateMealPlanEventFunc: func(_ context.Context, _ *types.MealPlanEvent) error {
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		assert.NoError(t, mpm.UpdateMealPlanEvent(ctx, exampleMealPlanID, exampleMealPlanEvent.ID, exampleInput))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetMealPlanEventCalls(), 1)
+		assert.Len(t, db.UpdateMealPlanEventCalls(), 1)
 	})
 
 	T.Run("when start time changes clears notification sent for event", func(t *testing.T) {
@@ -145,24 +145,29 @@ func TestMealPlanningManager_UpdateMealPlanEvent(T *testing.T) {
 		newStartsAt := exampleMealPlanEvent.StartsAt.Add(time.Hour)
 		exampleInput.StartsAt = &newStartsAt
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetMealPlanEvent), testutils.ContextMatcher, exampleMealPlanID, exampleMealPlanEvent.ID).Return(exampleMealPlanEvent, nil)
-				db.On(reflection.GetMethodName(mpm.db.UpdateMealPlanEvent), testutils.ContextMatcher, testutils.MatchType[*types.MealPlanEvent]()).Return(nil)
-				db.On(reflection.GetMethodName(mpm.db.ClearMealPlanTaskNotificationSentForEvent), testutils.ContextMatcher, exampleMealPlanEvent.ID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetMealPlanEventFunc: func(_ context.Context, mealPlanID string, mealPlanEventID string) (*types.MealPlanEvent, error) {
+				assert.Equal(t, exampleMealPlanID, mealPlanID)
+				assert.Equal(t, exampleMealPlanEvent.ID, mealPlanEventID)
+
+				return exampleMealPlanEvent, nil
 			},
-			map[string][]string{
-				types.MealPlanEventUpdatedServiceEventType: {
-					mealplanningkeys.MealPlanIDKey,
-					mealplanningkeys.MealPlanEventIDKey,
-				},
+			UpdateMealPlanEventFunc: func(_ context.Context, _ *types.MealPlanEvent) error {
+				return nil
 			},
-		)
+			ClearMealPlanTaskNotificationSentForEventFunc: func(_ context.Context, mealPlanEventID string) error {
+				assert.Equal(t, exampleMealPlanEvent.ID, mealPlanEventID)
+
+				return nil
+			},
+		}
+		attachRepositoryToManager(mpm, db)
 
 		assert.NoError(t, mpm.UpdateMealPlanEvent(ctx, exampleMealPlanID, exampleMealPlanEvent.ID, exampleInput))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetMealPlanEventCalls(), 1)
+		assert.Len(t, db.UpdateMealPlanEventCalls(), 1)
+		assert.Len(t, db.ClearMealPlanTaskNotificationSentForEventCalls(), 1)
 	})
 }
 
@@ -179,24 +184,28 @@ func TestMealPlanningManager_SwapMealPlanEvents(T *testing.T) {
 		eventIDA := fakes.BuildFakeID()
 		eventIDB := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.SwapMealPlanEvents), testutils.ContextMatcher, mealPlanID, eventIDA, eventIDB).Return(nil)
-				db.On(reflection.GetMethodName(mpm.db.ClearMealPlanTaskNotificationSentForEvent), testutils.ContextMatcher, eventIDA).Return(nil)
-				db.On(reflection.GetMethodName(mpm.db.ClearMealPlanTaskNotificationSentForEvent), testutils.ContextMatcher, eventIDB).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			SwapMealPlanEventsFunc: func(_ context.Context, actualMealPlanID string, mealPlanEventIDA string, mealPlanEventIDB string) error {
+				assert.Equal(t, mealPlanID, actualMealPlanID)
+				assert.Equal(t, eventIDA, mealPlanEventIDA)
+				assert.Equal(t, eventIDB, mealPlanEventIDB)
+
+				return nil
 			},
-			map[string][]string{
-				types.MealPlanEventUpdatedServiceEventType: {
-					mealplanningkeys.MealPlanIDKey,
-				},
+			// both swapped events have their notification flag cleared.
+			ClearMealPlanTaskNotificationSentForEventFunc: func(_ context.Context, mealPlanEventID string) error {
+				assert.Contains(t, []string{eventIDA, eventIDB}, mealPlanEventID)
+
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		err := mpm.SwapMealPlanEvents(ctx, mealPlanID, eventIDA, eventIDB)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.SwapMealPlanEventsCalls(), 1)
+		assert.Len(t, db.ClearMealPlanTaskNotificationSentForEventCalls(), 2)
 	})
 }
 
@@ -212,22 +221,19 @@ func TestMealPlanningManager_ArchiveMealPlanEvent(T *testing.T) {
 		mealPlanID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeMealPlanEvent()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.ArchiveMealPlanEvent), testutils.ContextMatcher, mealPlanID, expected.ID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveMealPlanEventFunc: func(_ context.Context, actualMealPlanID string, mealPlanEventID string) error {
+				assert.Equal(t, mealPlanID, actualMealPlanID)
+				assert.Equal(t, expected.ID, mealPlanEventID)
+
+				return nil
 			},
-			map[string][]string{
-				types.MealPlanEventArchivedServiceEventType: {
-					mealplanningkeys.MealPlanIDKey,
-					mealplanningkeys.MealPlanEventIDKey,
-				},
-			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		err := mpm.ArchiveMealPlanEvent(ctx, mealPlanID, expected.ID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveMealPlanEventCalls(), 1)
 	})
 }

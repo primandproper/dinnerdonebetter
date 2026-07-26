@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -9,33 +10,30 @@ import (
 	managermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/manager/mock"
 	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	oauthsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	"github.com/primandproper/platform-go/v6/observability/tracing"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func buildTestService(t *testing.T) (*serviceImpl, *managermock.OAuth2Manager) {
+// buildTestService builds a service backed by the given manager mock. A nil manager gets an
+// unconfigured mock, which panics if any of its methods are called.
+func buildTestService(t *testing.T, oauthManager *managermock.OAuth2ManagerMock) *serviceImpl {
 	t.Helper()
 
-	logger := loggingnoop.NewLogger()
-	tracer := tracing.NewTracerForTest(t.Name())
-	oauthManager := &managermock.OAuth2Manager{}
-
-	service := &serviceImpl{
-		tracer:           tracer,
-		logger:           logger,
-		oauthDataManager: oauthManager,
+	if oauthManager == nil {
+		oauthManager = &managermock.OAuth2ManagerMock{}
 	}
 
-	return service, oauthManager
+	return &serviceImpl{
+		tracer:           tracing.NewTracerForTest(t.Name()),
+		logger:           loggingnoop.NewLogger(),
+		oauthDataManager: oauthManager,
+	}
 }
 
 func TestServiceImpl_CreateOAuth2Client(t *testing.T) {
@@ -45,12 +43,18 @@ func TestServiceImpl_CreateOAuth2Client(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockManager := buildTestService(t)
 
 		fakeClient := oauthfakes.BuildFakeOAuth2Client()
 		fakeInput := oauthfakes.BuildFakeOAuth2ClientCreationRequestInput()
 
-		mockManager.On(reflection.GetMethodName(mockManager.CreateOAuth2Client), testutils.ContextMatcher, mock.AnythingOfType("*oauth.OAuth2ClientCreationRequestInput")).Return(fakeClient, nil)
+		mockManager := &managermock.OAuth2ManagerMock{
+			CreateOAuth2ClientFunc: func(_ context.Context, input *oauth.OAuth2ClientCreationRequestInput) (*oauth.OAuth2Client, error) {
+				assert.NotNil(t, input)
+
+				return fakeClient, nil
+			},
+		}
+		service := buildTestService(t, mockManager)
 
 		request := &oauthsvc.CreateOAuth2ClientRequest{
 			Input: &oauthsvc.OAuth2ClientCreationRequestInput{
@@ -67,18 +71,22 @@ func TestServiceImpl_CreateOAuth2Client(t *testing.T) {
 		assert.Equal(t, fakeClient.ID, response.Created.Id)
 		assert.Equal(t, fakeClient.Name, response.Created.Name)
 
-		mock.AssertExpectationsForObjects(t, mockManager)
+		assert.Len(t, mockManager.CreateOAuth2ClientCalls(), 1)
 	})
 
 	t.Run("manager error", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockManager := buildTestService(t)
 
 		fakeInput := oauthfakes.BuildFakeOAuth2ClientCreationRequestInput()
 
-		mockManager.On(reflection.GetMethodName(mockManager.CreateOAuth2Client), testutils.ContextMatcher, mock.AnythingOfType("*oauth.OAuth2ClientCreationRequestInput")).Return((*oauth.OAuth2Client)(nil), errors.New("manager error"))
+		mockManager := &managermock.OAuth2ManagerMock{
+			CreateOAuth2ClientFunc: func(_ context.Context, _ *oauth.OAuth2ClientCreationRequestInput) (*oauth.OAuth2Client, error) {
+				return nil, errors.New("manager error")
+			},
+		}
+		service := buildTestService(t, mockManager)
 
 		request := &oauthsvc.CreateOAuth2ClientRequest{
 			Input: &oauthsvc.OAuth2ClientCreationRequestInput{
@@ -92,7 +100,7 @@ func TestServiceImpl_CreateOAuth2Client(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockManager)
+		assert.Len(t, mockManager.CreateOAuth2ClientCalls(), 1)
 	})
 }
 
@@ -103,12 +111,18 @@ func TestServiceImpl_GetOAuth2Client(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockManager := buildTestService(t)
 
 		fakeClient := oauthfakes.BuildFakeOAuth2Client()
 		clientID := fakeClient.ID
 
-		mockManager.On(reflection.GetMethodName(mockManager.GetOAuth2Client), testutils.ContextMatcher, clientID).Return(fakeClient, nil)
+		mockManager := &managermock.OAuth2ManagerMock{
+			GetOAuth2ClientFunc: func(_ context.Context, oauth2ClientID string) (*oauth.OAuth2Client, error) {
+				assert.Equal(t, clientID, oauth2ClientID)
+
+				return fakeClient, nil
+			},
+		}
+		service := buildTestService(t, mockManager)
 
 		request := &oauthsvc.GetOAuth2ClientRequest{
 			Oauth2ClientId: clientID,
@@ -122,18 +136,24 @@ func TestServiceImpl_GetOAuth2Client(t *testing.T) {
 		assert.NotNil(t, response.Result)
 		assert.Equal(t, fakeClient.ID, response.Result.Id)
 
-		mock.AssertExpectationsForObjects(t, mockManager)
+		assert.Len(t, mockManager.GetOAuth2ClientCalls(), 1)
 	})
 
 	t.Run("manager error", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockManager := buildTestService(t)
 
 		clientID := "nonexistent-client"
 
-		mockManager.On(reflection.GetMethodName(mockManager.GetOAuth2Client), testutils.ContextMatcher, clientID).Return((*oauth.OAuth2Client)(nil), errors.New("manager error"))
+		mockManager := &managermock.OAuth2ManagerMock{
+			GetOAuth2ClientFunc: func(_ context.Context, oauth2ClientID string) (*oauth.OAuth2Client, error) {
+				assert.Equal(t, clientID, oauth2ClientID)
+
+				return nil, errors.New("manager error")
+			},
+		}
+		service := buildTestService(t, mockManager)
 
 		request := &oauthsvc.GetOAuth2ClientRequest{
 			Oauth2ClientId: clientID,
@@ -145,7 +165,7 @@ func TestServiceImpl_GetOAuth2Client(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockManager)
+		assert.Len(t, mockManager.GetOAuth2ClientCalls(), 1)
 	})
 }
 
@@ -156,7 +176,6 @@ func TestServiceImpl_GetOAuth2Clients(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockManager := buildTestService(t)
 
 		fakeClients := oauthfakes.BuildFakeOAuth2ClientsList()
 		pageSize := uint8(20)
@@ -164,7 +183,14 @@ func TestServiceImpl_GetOAuth2Clients(t *testing.T) {
 			MaxResponseSize: &pageSize,
 		}
 
-		mockManager.On(reflection.GetMethodName(mockManager.GetOAuth2Clients), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(fakeClients, nil)
+		mockManager := &managermock.OAuth2ManagerMock{
+			GetOAuth2ClientsFunc: func(_ context.Context, actualFilter *filtering.QueryFilter) (*filtering.QueryFilteredResult[oauth.OAuth2Client], error) {
+				assert.NotNil(t, actualFilter)
+
+				return fakeClients, nil
+			},
+		}
+		service := buildTestService(t, mockManager)
 
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &oauthsvc.GetOAuth2ClientsRequest{
@@ -180,21 +206,25 @@ func TestServiceImpl_GetOAuth2Clients(t *testing.T) {
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Len(t, response.Results, len(fakeClients.Data))
 
-		mock.AssertExpectationsForObjects(t, mockManager)
+		assert.Len(t, mockManager.GetOAuth2ClientsCalls(), 1)
 	})
 
 	t.Run("manager error", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockManager := buildTestService(t)
 
 		pageSize := uint8(20)
 		filter := &filtering.QueryFilter{
 			MaxResponseSize: &pageSize,
 		}
 
-		mockManager.On(reflection.GetMethodName(mockManager.GetOAuth2Clients), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return((*filtering.QueryFilteredResult[oauth.OAuth2Client])(nil), errors.New("manager error"))
+		mockManager := &managermock.OAuth2ManagerMock{
+			GetOAuth2ClientsFunc: func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[oauth.OAuth2Client], error) {
+				return nil, errors.New("manager error")
+			},
+		}
+		service := buildTestService(t, mockManager)
 
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &oauthsvc.GetOAuth2ClientsRequest{
@@ -209,7 +239,7 @@ func TestServiceImpl_GetOAuth2Clients(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockManager)
+		assert.Len(t, mockManager.GetOAuth2ClientsCalls(), 1)
 	})
 }
 
@@ -220,11 +250,17 @@ func TestServiceImpl_ArchiveOAuth2Client(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockManager := buildTestService(t)
 
 		clientID := "test-client-id"
 
-		mockManager.On(reflection.GetMethodName(mockManager.ArchiveOAuth2Client), testutils.ContextMatcher, clientID).Return(nil)
+		mockManager := &managermock.OAuth2ManagerMock{
+			ArchiveOAuth2ClientFunc: func(_ context.Context, oauth2ClientID string) error {
+				assert.Equal(t, clientID, oauth2ClientID)
+
+				return nil
+			},
+		}
+		service := buildTestService(t, mockManager)
 
 		request := &oauthsvc.ArchiveOAuth2ClientRequest{
 			Oauth2ClientId: clientID,
@@ -236,18 +272,24 @@ func TestServiceImpl_ArchiveOAuth2Client(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 
-		mock.AssertExpectationsForObjects(t, mockManager)
+		assert.Len(t, mockManager.ArchiveOAuth2ClientCalls(), 1)
 	})
 
 	t.Run("manager error", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockManager := buildTestService(t)
 
 		clientID := "nonexistent-client"
 
-		mockManager.On(reflection.GetMethodName(mockManager.ArchiveOAuth2Client), testutils.ContextMatcher, clientID).Return(errors.New("manager error"))
+		mockManager := &managermock.OAuth2ManagerMock{
+			ArchiveOAuth2ClientFunc: func(_ context.Context, oauth2ClientID string) error {
+				assert.Equal(t, clientID, oauth2ClientID)
+
+				return errors.New("manager error")
+			},
+		}
+		service := buildTestService(t, mockManager)
 
 		request := &oauthsvc.ArchiveOAuth2ClientRequest{
 			Oauth2ClientId: clientID,
@@ -259,6 +301,6 @@ func TestServiceImpl_ArchiveOAuth2Client(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockManager)
+		assert.Len(t, mockManager.ArchiveOAuth2ClientCalls(), 1)
 	})
 }

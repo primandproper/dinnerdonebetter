@@ -11,25 +11,22 @@ import (
 	settingsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/mock"
 	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	settingssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	"github.com/primandproper/platform-go/v6/observability/tracing"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func buildTestService(t *testing.T) (*serviceImpl, *settingsmock.Repository) {
+func buildTestService(t *testing.T) (*serviceImpl, *settingsmock.RepositoryMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
-	settingsRepo := &settingsmock.Repository{}
+	settingsRepo := &settingsmock.RepositoryMock{}
 
 	service := &serviceImpl{
 		tracer: tracer,
@@ -48,12 +45,12 @@ func buildTestService(t *testing.T) (*serviceImpl, *settingsmock.Repository) {
 	return service, settingsRepo
 }
 
-func buildTestServiceWithSessionError(t *testing.T) (*serviceImpl, *settingsmock.Repository) {
+func buildTestServiceWithSessionError(t *testing.T) (*serviceImpl, *settingsmock.RepositoryMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
-	settingsRepo := &settingsmock.Repository{}
+	settingsRepo := &settingsmock.RepositoryMock{}
 
 	service := &serviceImpl{
 		tracer: tracer,
@@ -90,9 +87,11 @@ func TestServiceImpl_CreateServiceSetting(t *testing.T) {
 			},
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.CreateServiceSetting), testutils.ContextMatcher, mock.MatchedBy(func(input any) bool {
-			return input != nil
-		})).Return(exampleServiceSetting, nil)
+		settingsRepo.CreateServiceSettingFunc = func(_ context.Context, input *settings.ServiceSettingDatabaseCreationInput) (*settings.ServiceSetting, error) {
+			assert.True(t, input != nil)
+
+			return exampleServiceSetting, nil
+		}
 
 		actual, err := service.CreateServiceSetting(ctx, request)
 
@@ -102,14 +101,14 @@ func TestServiceImpl_CreateServiceSetting(t *testing.T) {
 		assert.NotNil(t, actual.Created)
 		assert.Equal(t, exampleServiceSetting.ID, actual.Created.Id)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.CreateServiceSettingCalls(), 1)
 	})
 
 	t.Run("with invalid input", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, settingsRepo := buildTestService(t)
+		service, _ := buildTestService(t)
 
 		request := &settingssvc.CreateServiceSettingRequest{
 			Input: &settingssvc.ServiceSettingCreationRequestInput{
@@ -123,8 +122,6 @@ func TestServiceImpl_CreateServiceSetting(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.InvalidArgument)
-
-		mock.AssertExpectationsForObjects(t, settingsRepo)
 	})
 
 	t.Run("with repository error", func(t *testing.T) {
@@ -146,9 +143,11 @@ func TestServiceImpl_CreateServiceSetting(t *testing.T) {
 			},
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.CreateServiceSetting), testutils.ContextMatcher, mock.MatchedBy(func(input *settings.ServiceSettingDatabaseCreationInput) bool {
-			return input != nil
-		})).Return((*settings.ServiceSetting)(nil), errors.New("repository error"))
+		settingsRepo.CreateServiceSettingFunc = func(_ context.Context, input *settings.ServiceSettingDatabaseCreationInput) (*settings.ServiceSetting, error) {
+			assert.True(t, input != nil)
+
+			return nil, errors.New("repository error")
+		}
 
 		actual, err := service.CreateServiceSetting(ctx, request)
 
@@ -156,7 +155,7 @@ func TestServiceImpl_CreateServiceSetting(t *testing.T) {
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.CreateServiceSettingCalls(), 1)
 	})
 }
 
@@ -175,7 +174,11 @@ func TestServiceImpl_GetServiceSetting(t *testing.T) {
 			ServiceSettingId: exampleServiceSetting.ID,
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.GetServiceSetting), testutils.ContextMatcher, exampleServiceSetting.ID).Return(exampleServiceSetting, nil)
+		settingsRepo.GetServiceSettingFunc = func(_ context.Context, serviceSettingID string) (*settings.ServiceSetting, error) {
+			assert.Equal(t, exampleServiceSetting.ID, serviceSettingID)
+
+			return exampleServiceSetting, nil
+		}
 
 		actual, err := service.GetServiceSetting(ctx, request)
 
@@ -185,7 +188,7 @@ func TestServiceImpl_GetServiceSetting(t *testing.T) {
 		assert.NotNil(t, actual.Result)
 		assert.Equal(t, exampleServiceSetting.ID, actual.Result.Id)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.GetServiceSettingCalls(), 1)
 	})
 
 	t.Run("with repository error", func(t *testing.T) {
@@ -200,7 +203,11 @@ func TestServiceImpl_GetServiceSetting(t *testing.T) {
 			ServiceSettingId: exampleServiceSetting.ID,
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.GetServiceSetting), testutils.ContextMatcher, exampleServiceSetting.ID).Return((*settings.ServiceSetting)(nil), errors.New("repository error"))
+		settingsRepo.GetServiceSettingFunc = func(_ context.Context, serviceSettingID string) (*settings.ServiceSetting, error) {
+			assert.Equal(t, exampleServiceSetting.ID, serviceSettingID)
+
+			return nil, errors.New("repository error")
+		}
 
 		actual, err := service.GetServiceSetting(ctx, request)
 
@@ -208,7 +215,7 @@ func TestServiceImpl_GetServiceSetting(t *testing.T) {
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.GetServiceSettingCalls(), 1)
 	})
 }
 
@@ -230,9 +237,11 @@ func TestServiceImpl_GetServiceSettings(t *testing.T) {
 			},
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.GetServiceSettings), testutils.ContextMatcher, mock.MatchedBy(func(filter *filtering.QueryFilter) bool {
-			return filter != nil
-		})).Return(exampleServiceSettingsList, nil)
+		settingsRepo.GetServiceSettingsFunc = func(_ context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSetting], error) {
+			assert.True(t, filter != nil)
+
+			return exampleServiceSettingsList, nil
+		}
 
 		actual, err := service.GetServiceSettings(ctx, request)
 
@@ -241,7 +250,7 @@ func TestServiceImpl_GetServiceSettings(t *testing.T) {
 		assert.NotNil(t, actual.ResponseDetails)
 		assert.Len(t, actual.Results, len(exampleServiceSettingsList.Data))
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.GetServiceSettingsCalls(), 1)
 	})
 
 	t.Run("with repository error", func(t *testing.T) {
@@ -258,7 +267,9 @@ func TestServiceImpl_GetServiceSettings(t *testing.T) {
 			},
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.GetServiceSettings), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return((*filtering.QueryFilteredResult[settings.ServiceSetting])(nil), errors.New("repository error"))
+		settingsRepo.GetServiceSettingsFunc = func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSetting], error) {
+			return nil, errors.New("repository error")
+		}
 
 		actual, err := service.GetServiceSettings(ctx, request)
 
@@ -266,7 +277,7 @@ func TestServiceImpl_GetServiceSettings(t *testing.T) {
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.GetServiceSettingsCalls(), 1)
 	})
 }
 
@@ -288,7 +299,11 @@ func TestServiceImpl_SearchForServiceSettings(t *testing.T) {
 			Query: query,
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.SearchForServiceSettings), testutils.ContextMatcher, query, testutils.QueryFilterMatcher).Return(exampleServiceSettings, nil)
+		settingsRepo.SearchForServiceSettingsFunc = func(_ context.Context, actualQuery string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSetting], error) {
+			assert.Equal(t, query, actualQuery)
+
+			return exampleServiceSettings, nil
+		}
 
 		actual, err := service.SearchForServiceSettings(ctx, request)
 
@@ -297,7 +312,7 @@ func TestServiceImpl_SearchForServiceSettings(t *testing.T) {
 		assert.NotNil(t, actual.ResponseDetails)
 		assert.Len(t, actual.Results, len(exampleServiceSettings.Data))
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.SearchForServiceSettingsCalls(), 1)
 	})
 
 	t.Run("with repository error", func(t *testing.T) {
@@ -312,7 +327,11 @@ func TestServiceImpl_SearchForServiceSettings(t *testing.T) {
 			Query: query,
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.SearchForServiceSettings), testutils.ContextMatcher, query, testutils.QueryFilterMatcher).Return((*filtering.QueryFilteredResult[settings.ServiceSetting])(nil), errors.New("repository error"))
+		settingsRepo.SearchForServiceSettingsFunc = func(_ context.Context, actualQuery string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSetting], error) {
+			assert.Equal(t, query, actualQuery)
+
+			return nil, errors.New("repository error")
+		}
 
 		actual, err := service.SearchForServiceSettings(ctx, request)
 
@@ -320,7 +339,7 @@ func TestServiceImpl_SearchForServiceSettings(t *testing.T) {
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.SearchForServiceSettingsCalls(), 1)
 	})
 }
 
@@ -339,7 +358,11 @@ func TestServiceImpl_ArchiveServiceSetting(t *testing.T) {
 			ServiceSettingId: exampleServiceSetting.ID,
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.ArchiveServiceSetting), testutils.ContextMatcher, exampleServiceSetting.ID).Return(nil)
+		settingsRepo.ArchiveServiceSettingFunc = func(_ context.Context, serviceSettingID string) error {
+			assert.Equal(t, exampleServiceSetting.ID, serviceSettingID)
+
+			return nil
+		}
 
 		actual, err := service.ArchiveServiceSetting(ctx, request)
 
@@ -347,7 +370,7 @@ func TestServiceImpl_ArchiveServiceSetting(t *testing.T) {
 		assert.NotNil(t, actual)
 		assert.NotNil(t, actual.ResponseDetails)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.ArchiveServiceSettingCalls(), 1)
 	})
 
 	t.Run("with repository error", func(t *testing.T) {
@@ -362,7 +385,11 @@ func TestServiceImpl_ArchiveServiceSetting(t *testing.T) {
 			ServiceSettingId: exampleServiceSetting.ID,
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.ArchiveServiceSetting), testutils.ContextMatcher, exampleServiceSetting.ID).Return(errors.New("repository error"))
+		settingsRepo.ArchiveServiceSettingFunc = func(_ context.Context, serviceSettingID string) error {
+			assert.Equal(t, exampleServiceSetting.ID, serviceSettingID)
+
+			return errors.New("repository error")
+		}
 
 		actual, err := service.ArchiveServiceSetting(ctx, request)
 
@@ -370,7 +397,7 @@ func TestServiceImpl_ArchiveServiceSetting(t *testing.T) {
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.ArchiveServiceSettingCalls(), 1)
 	})
 }
 

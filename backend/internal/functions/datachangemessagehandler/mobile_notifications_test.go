@@ -1,6 +1,7 @@
 package datachangemessagehandler
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -12,10 +13,8 @@ import (
 
 	"github.com/primandproper/platform-go/v6/filtering"
 	notifications "github.com/primandproper/platform-go/v6/notifications/mobile"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestMobileNotificationsEventHandler(t *testing.T) {
@@ -130,7 +129,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 		t.Parallel()
 
 		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-		mealPlanRepo := &mealplanningmock.Repository{}
+		mealPlanRepo := &mealplanningmock.RepositoryMock{}
 		handler.mealPlanRepo = mealPlanRepo
 
 		req := notifications.MobileNotificationRequest{
@@ -144,19 +143,23 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 		}
 		raw, _ := json.Marshal(req)
 
-		mealPlanRepo.On(reflection.GetMethodName(mealPlanRepo.MealPlanTaskNotificationHasBeenSent), mock.Anything, "task-123").Return(true, nil).Once()
+		mealPlanRepo.MealPlanTaskNotificationHasBeenSentFunc = func(_ context.Context, mealPlanTaskID string) (bool, error) {
+			assert.Equal(t, "task-123", mealPlanTaskID)
+
+			return true, nil
+		}
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), raw)
 
 		assert.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, mealPlanRepo)
+		assert.Len(t, mealPlanRepo.MealPlanTaskNotificationHasBeenSentCalls(), 1)
 	})
 
 	t.Run("no recipients with meal plan task ID marks sent", func(t *testing.T) {
 		t.Parallel()
 
 		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-		mealPlanRepo := &mealplanningmock.Repository{}
+		mealPlanRepo := &mealplanningmock.RepositoryMock{}
 		handler.mealPlanRepo = mealPlanRepo
 
 		req := notifications.MobileNotificationRequest{
@@ -170,21 +173,30 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 		}
 		raw, _ := json.Marshal(req)
 
-		mealPlanRepo.On(reflection.GetMethodName(mealPlanRepo.MealPlanTaskNotificationHasBeenSent), mock.Anything, "task-123").Return(false, nil).Once()
-		mealPlanRepo.On(reflection.GetMethodName(mealPlanRepo.MarkMealPlanTaskNotificationSent), mock.Anything, "task-123").Return(nil).Once()
+		mealPlanRepo.MealPlanTaskNotificationHasBeenSentFunc = func(_ context.Context, mealPlanTaskID string) (bool, error) {
+			assert.Equal(t, "task-123", mealPlanTaskID)
+
+			return false, nil
+		}
+		mealPlanRepo.MarkMealPlanTaskNotificationSentFunc = func(_ context.Context, mealPlanTaskID string) error {
+			assert.Equal(t, "task-123", mealPlanTaskID)
+
+			return nil
+		}
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), raw)
 
 		assert.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, mealPlanRepo)
+		assert.Len(t, mealPlanRepo.MealPlanTaskNotificationHasBeenSentCalls(), 1)
+		assert.Len(t, mealPlanRepo.MarkMealPlanTaskNotificationSentCalls(), 1)
 	})
 
 	t.Run("no device tokens with meal plan task ID marks sent", func(t *testing.T) {
 		t.Parallel()
 
 		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-		mealPlanRepo := &mealplanningmock.Repository{}
-		notificationsRepo := &notificationsmock.Repository{}
+		mealPlanRepo := &mealplanningmock.RepositoryMock{}
+		notificationsRepo := &notificationsmock.RepositoryMock{}
 		handler.mealPlanRepo = mealPlanRepo
 		handler.notificationsRepo = notificationsRepo
 
@@ -199,22 +211,37 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 		}
 		raw, _ := json.Marshal(req)
 
-		mealPlanRepo.On(reflection.GetMethodName(mealPlanRepo.MealPlanTaskNotificationHasBeenSent), mock.Anything, "task-123").Return(false, nil).Once()
-		notificationsRepo.On(reflection.GetMethodName(notificationsRepo.GetUserDeviceTokens), mock.Anything, "user-1", mock.Anything, (*string)(nil)).Return(&filtering.QueryFilteredResult[domainnotifications.UserDeviceToken]{Data: []*domainnotifications.UserDeviceToken{}}, nil).Once()
-		mealPlanRepo.On(reflection.GetMethodName(mealPlanRepo.MarkMealPlanTaskNotificationSent), mock.Anything, "task-123").Return(nil).Once()
+		mealPlanRepo.MealPlanTaskNotificationHasBeenSentFunc = func(_ context.Context, mealPlanTaskID string) (bool, error) {
+			assert.Equal(t, "task-123", mealPlanTaskID)
+
+			return false, nil
+		}
+		notificationsRepo.GetUserDeviceTokensFunc = func(_ context.Context, userID string, _ *filtering.QueryFilter, platformFilter *string) (*filtering.QueryFilteredResult[domainnotifications.UserDeviceToken], error) {
+			assert.Equal(t, "user-1", userID)
+			assert.Equal(t, (*string)(nil), platformFilter)
+
+			return &filtering.QueryFilteredResult[domainnotifications.UserDeviceToken]{Data: []*domainnotifications.UserDeviceToken{}}, nil
+		}
+		mealPlanRepo.MarkMealPlanTaskNotificationSentFunc = func(_ context.Context, mealPlanTaskID string) error {
+			assert.Equal(t, "task-123", mealPlanTaskID)
+
+			return nil
+		}
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), raw)
 
 		assert.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, mealPlanRepo, notificationsRepo)
+		assert.Len(t, mealPlanRepo.MealPlanTaskNotificationHasBeenSentCalls(), 1)
+		assert.Len(t, mealPlanRepo.MarkMealPlanTaskNotificationSentCalls(), 1)
+		assert.Len(t, notificationsRepo.GetUserDeviceTokensCalls(), 1)
 	})
 
 	t.Run("success sends push and marks meal plan task sent", func(t *testing.T) {
 		t.Parallel()
 
 		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-		mealPlanRepo := &mealplanningmock.Repository{}
-		notificationsRepo := &notificationsmock.Repository{}
+		mealPlanRepo := &mealplanningmock.RepositoryMock{}
+		notificationsRepo := &notificationsmock.RepositoryMock{}
 		handler.mealPlanRepo = mealPlanRepo
 		handler.notificationsRepo = notificationsRepo
 
@@ -236,15 +263,28 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 			BelongsToUser: "user-1",
 		}
 
-		mealPlanRepo.On(reflection.GetMethodName(mealPlanRepo.MealPlanTaskNotificationHasBeenSent), mock.Anything, "task-123").Return(false, nil).Once()
-		notificationsRepo.On(reflection.GetMethodName(notificationsRepo.GetUserDeviceTokens), mock.Anything, "user-1", mock.Anything, (*string)(nil)).Return(&filtering.QueryFilteredResult[domainnotifications.UserDeviceToken]{
-			Data: []*domainnotifications.UserDeviceToken{deviceToken},
-		}, nil).Once()
-		mealPlanRepo.On(reflection.GetMethodName(mealPlanRepo.MarkMealPlanTaskNotificationSent), mock.Anything, "task-123").Return(nil).Once()
+		mealPlanRepo.MealPlanTaskNotificationHasBeenSentFunc = func(_ context.Context, mealPlanTaskID string) (bool, error) {
+			assert.Equal(t, "task-123", mealPlanTaskID)
+
+			return false, nil
+		}
+		notificationsRepo.GetUserDeviceTokensFunc = func(_ context.Context, userID string, _ *filtering.QueryFilter, platformFilter *string) (*filtering.QueryFilteredResult[domainnotifications.UserDeviceToken], error) {
+			assert.Equal(t, "user-1", userID)
+			assert.Equal(t, (*string)(nil), platformFilter)
+
+			return &filtering.QueryFilteredResult[domainnotifications.UserDeviceToken]{Data: []*domainnotifications.UserDeviceToken{deviceToken}}, nil
+		}
+		mealPlanRepo.MarkMealPlanTaskNotificationSentFunc = func(_ context.Context, mealPlanTaskID string) error {
+			assert.Equal(t, "task-123", mealPlanTaskID)
+
+			return nil
+		}
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), raw)
 
 		assert.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, mealPlanRepo, notificationsRepo)
+		assert.Len(t, mealPlanRepo.MealPlanTaskNotificationHasBeenSentCalls(), 1)
+		assert.Len(t, mealPlanRepo.MarkMealPlanTaskNotificationSentCalls(), 1)
+		assert.Len(t, notificationsRepo.GetUserDeviceTokensCalls(), 1)
 	})
 }

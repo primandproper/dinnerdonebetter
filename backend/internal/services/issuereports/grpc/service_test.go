@@ -21,8 +21,8 @@ func TestNewService(t *testing.T) {
 
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
-		issueReportsManager := &issuereportmock.Repository{}
-		commentsManager := &commentsmanagermock.MockCommentsDataManager{}
+		issueReportsManager := &issuereportmock.RepositoryMock{}
+		commentsManager := &commentsmanagermock.CommentsDataManagerMock{}
 
 		service := NewService(logger, tracerProvider, issueReportsManager, commentsManager)
 

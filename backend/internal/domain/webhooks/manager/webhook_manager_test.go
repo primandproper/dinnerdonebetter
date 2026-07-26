@@ -8,9 +8,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
-	webhookkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/keys"
 	webhookmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	platformerrors "github.com/primandproper/platform-go/v6/errors"
 	"github.com/primandproper/platform-go/v6/filtering"
@@ -19,18 +17,21 @@ import (
 	mockpublishers "github.com/primandproper/platform-go/v6/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func buildWebhookManagerForTest(t *testing.T) (*webhookManager, *webhookmock.Repository) {
+// buildWebhookManagerForTest builds a manager backed by the given repository mock. A nil repo gets
+// an unconfigured mock, which panics if any of its methods are called.
+func buildWebhookManagerForTest(t *testing.T, repo *webhookmock.RepositoryMock) *webhookManager {
 	t.Helper()
 
+	if repo == nil {
+		repo = &webhookmock.RepositoryMock{}
+	}
+
 	ctx := t.Context()
-	repo := &webhookmock.Repository{}
 	queueCfg := &msgconfig.QueuesConfig{DataChangesTopicName: t.Name()}
 
 	mpp := &mockpublishers.PublisherProviderMock{
@@ -44,26 +45,12 @@ func buildWebhookManagerForTest(t *testing.T) (*webhookManager, *webhookmock.Rep
 	m, err := NewWebhookDataManager(ctx, tracingnoop.NewTracerProvider(), loggingnoop.NewLogger(), repo, queueCfg, mpp)
 	require.NoError(t, err)
 
-	return m.(*webhookManager), repo
-}
-
-func setupExpectationsForWebhookManager(
-	manager *webhookManager,
-	repoSetupFunc func(repo *webhookmock.Repository),
-	eventTypeMaps ...map[string][]string,
-) []any {
-	repo := &webhookmock.Repository{}
-	if repoSetupFunc != nil {
-		repoSetupFunc(repo)
-	}
-	manager.repo = repo
-
-	mp := &mockpublishers.PublisherMock{
+	manager := m.(*webhookManager)
+	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
 		PublishAsyncFunc: func(_ context.Context, _ any) {},
 	}
-	manager.dataChangesPublisher = mp
 
-	return []any{repo}
+	return manager
 }
 
 func TestWebhookDataManager_CreateWebhook(t *testing.T) {
@@ -73,7 +60,6 @@ func TestWebhookDataManager_CreateWebhook(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildWebhookManagerForTest(t)
 
 		userID := "user-1"
 		accountID := "account-1"
@@ -87,44 +73,48 @@ func TestWebhookDataManager_CreateWebhook(t *testing.T) {
 
 		expectedWebhook := fakes.BuildFakeWebhook()
 
-		expectations := setupExpectationsForWebhookManager(
-			manager,
-			func(repo *webhookmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.CreateWebhook), testutils.ContextMatcher, mock.MatchedBy(func(in *webhooks.WebhookDatabaseCreationInput) bool {
-					return in.Name == input.Name && in.URL == input.URL && in.CreatedByUser == userID && in.BelongsToAccount == accountID && len(in.TriggerConfigs) == 1 && in.TriggerConfigs[0].TriggerEventID == "event-id-1"
-				})).Return(expectedWebhook, nil)
+		repo := &webhookmock.RepositoryMock{
+			CreateWebhookFunc: func(_ context.Context, in *webhooks.WebhookDatabaseCreationInput) (*webhooks.Webhook, error) {
+				assert.Equal(t, input.Name, in.Name)
+				assert.Equal(t, input.URL, in.URL)
+				assert.Equal(t, userID, in.CreatedByUser)
+				assert.Equal(t, accountID, in.BelongsToAccount)
+				require.Len(t, in.TriggerConfigs, 1)
+				assert.Equal(t, "event-id-1", in.TriggerConfigs[0].TriggerEventID)
+
+				return expectedWebhook, nil
 			},
-			map[string][]string{
-				webhooks.WebhookCreatedServiceEventType: {webhookkeys.WebhookIDKey},
-			},
-		)
+		}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		created, err := manager.CreateWebhook(ctx, userID, accountID, input)
 
 		require.NoError(t, err)
 		assert.NotNil(t, created)
 		assert.Equal(t, expectedWebhook.ID, created.ID)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateWebhookCalls(), 1)
 	})
 
 	t.Run("nil input", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildWebhookManagerForTest(t)
+		repo := &webhookmock.RepositoryMock{}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		created, err := manager.CreateWebhook(ctx, "user-1", "account-1", nil)
 
 		assert.Error(t, err)
 		assert.Nil(t, created)
-		repo.AssertNotCalled(t, reflection.GetMethodName(repo.CreateWebhook))
+		assert.Empty(t, repo.CreateWebhookCalls())
 	})
 
 	t.Run("validation error", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildWebhookManagerForTest(t)
+		repo := &webhookmock.RepositoryMock{}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		input := &webhooks.WebhookCreationRequestInput{
 			Name:   "", // invalid
@@ -137,29 +127,28 @@ func TestWebhookDataManager_CreateWebhook(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, created)
-		repo.AssertNotCalled(t, reflection.GetMethodName(repo.CreateWebhook))
+		assert.Empty(t, repo.CreateWebhookCalls())
 	})
 
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildWebhookManagerForTest(t)
 
 		input := fakes.BuildFakeWebhookCreationRequestInput()
 
-		expectations := setupExpectationsForWebhookManager(
-			manager,
-			func(repo *webhookmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.CreateWebhook), testutils.ContextMatcher, mock.Anything).Return(nil, errors.New("db error"))
+		repo := &webhookmock.RepositoryMock{
+			CreateWebhookFunc: func(_ context.Context, _ *webhooks.WebhookDatabaseCreationInput) (*webhooks.Webhook, error) {
+				return nil, errors.New("db error")
 			},
-		)
+		}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		created, err := manager.CreateWebhook(ctx, "user-1", "account-1", input)
 
 		assert.Error(t, err)
 		assert.Nil(t, created)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateWebhookCalls(), 1)
 	})
 }
 
@@ -170,16 +159,24 @@ func TestWebhookDataManager_GetWebhook(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildWebhookManagerForTest(t)
 
 		expected := fakes.BuildFakeWebhook()
-		repo.On(reflection.GetMethodName(repo.GetWebhook), testutils.ContextMatcher, expected.ID, expected.BelongsToAccount).Return(expected, nil)
+
+		repo := &webhookmock.RepositoryMock{
+			GetWebhookFunc: func(_ context.Context, webhookID, accountID string) (*webhooks.Webhook, error) {
+				assert.Equal(t, expected.ID, webhookID)
+				assert.Equal(t, expected.BelongsToAccount, accountID)
+
+				return expected, nil
+			},
+		}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		result, err := manager.GetWebhook(ctx, expected.ID, expected.BelongsToAccount)
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.GetWebhookCalls(), 1)
 	})
 }
 
@@ -190,18 +187,26 @@ func TestWebhookDataManager_GetWebhooks(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildWebhookManagerForTest(t)
 
 		accountID := "account-1"
 		filter := filtering.DefaultQueryFilter()
 		expected := fakes.BuildFakeWebhooksList()
-		repo.On(reflection.GetMethodName(repo.GetWebhooks), testutils.ContextMatcher, accountID, filter).Return(expected, nil)
+
+		repo := &webhookmock.RepositoryMock{
+			GetWebhooksFunc: func(_ context.Context, actualAccountID string, actualFilter *filtering.QueryFilter) (*filtering.QueryFilteredResult[webhooks.Webhook], error) {
+				assert.Equal(t, accountID, actualAccountID)
+				assert.Equal(t, filter, actualFilter)
+
+				return expected, nil
+			},
+		}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		result, err := manager.GetWebhooks(ctx, accountID, filter)
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.GetWebhooksCalls(), 1)
 	})
 }
 
@@ -212,25 +217,24 @@ func TestWebhookDataManager_ArchiveWebhook(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildWebhookManagerForTest(t)
 
 		webhookID := "wh-1"
 		accountID := "account-1"
 
-		expectations := setupExpectationsForWebhookManager(
-			manager,
-			func(repo *webhookmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.ArchiveWebhook), testutils.ContextMatcher, webhookID, accountID).Return(nil)
+		repo := &webhookmock.RepositoryMock{
+			ArchiveWebhookFunc: func(_ context.Context, actualWebhookID, actualAccountID string) error {
+				assert.Equal(t, webhookID, actualWebhookID)
+				assert.Equal(t, accountID, actualAccountID)
+
+				return nil
 			},
-			map[string][]string{
-				webhooks.WebhookArchivedServiceEventType: {webhookkeys.WebhookIDKey},
-			},
-		)
+		}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		err := manager.ArchiveWebhook(ctx, webhookID, accountID)
 
 		require.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.ArchiveWebhookCalls(), 1)
 	})
 }
 
@@ -241,7 +245,6 @@ func TestWebhookDataManager_AddWebhookTriggerConfig(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildWebhookManagerForTest(t)
 
 		accountID := "account-1"
 		input := &webhooks.WebhookTriggerConfigCreationRequestInput{
@@ -250,36 +253,36 @@ func TestWebhookDataManager_AddWebhookTriggerConfig(t *testing.T) {
 		}
 		expectedConfig := fakes.BuildFakeWebhookTriggerConfig()
 
-		expectations := setupExpectationsForWebhookManager(
-			manager,
-			func(repo *webhookmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.AddWebhookTriggerConfig), testutils.ContextMatcher, accountID, mock.MatchedBy(func(in *webhooks.WebhookTriggerConfigDatabaseCreationInput) bool {
-					return in.BelongsToWebhook == input.BelongsToWebhook && in.TriggerEventID == input.TriggerEventID
-				})).Return(expectedConfig, nil)
+		repo := &webhookmock.RepositoryMock{
+			AddWebhookTriggerConfigFunc: func(_ context.Context, actualAccountID string, in *webhooks.WebhookTriggerConfigDatabaseCreationInput) (*webhooks.WebhookTriggerConfig, error) {
+				assert.Equal(t, accountID, actualAccountID)
+				assert.Equal(t, input.BelongsToWebhook, in.BelongsToWebhook)
+				assert.Equal(t, input.TriggerEventID, in.TriggerEventID)
+
+				return expectedConfig, nil
 			},
-			map[string][]string{
-				webhooks.WebhookTriggerConfigCreatedServiceEventType: {webhookkeys.WebhookIDKey, webhookkeys.WebhookTriggerConfigIDKey},
-			},
-		)
+		}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		result, err := manager.AddWebhookTriggerConfig(ctx, accountID, input)
 
 		require.NoError(t, err)
 		assert.Equal(t, expectedConfig, result)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.AddWebhookTriggerConfigCalls(), 1)
 	})
 
 	t.Run("nil input", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildWebhookManagerForTest(t)
+		repo := &webhookmock.RepositoryMock{}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		result, err := manager.AddWebhookTriggerConfig(ctx, "account-1", nil)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
-		repo.AssertNotCalled(t, reflection.GetMethodName(repo.AddWebhookTriggerConfig))
+		assert.Empty(t, repo.AddWebhookTriggerConfigCalls())
 	})
 }
 
@@ -290,25 +293,24 @@ func TestWebhookDataManager_ArchiveWebhookTriggerConfig(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildWebhookManagerForTest(t)
 
 		webhookID := "wh-1"
 		configID := "config-1"
 
-		expectations := setupExpectationsForWebhookManager(
-			manager,
-			func(repo *webhookmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.ArchiveWebhookTriggerConfig), testutils.ContextMatcher, webhookID, configID).Return(nil)
+		repo := &webhookmock.RepositoryMock{
+			ArchiveWebhookTriggerConfigFunc: func(_ context.Context, actualWebhookID, actualConfigID string) error {
+				assert.Equal(t, webhookID, actualWebhookID)
+				assert.Equal(t, configID, actualConfigID)
+
+				return nil
 			},
-			map[string][]string{
-				webhooks.WebhookTriggerConfigArchivedServiceEventType: {webhookkeys.WebhookIDKey, webhookkeys.WebhookTriggerConfigIDKey},
-			},
-		)
+		}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		err := manager.ArchiveWebhookTriggerConfig(ctx, webhookID, configID)
 
 		require.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.ArchiveWebhookTriggerConfigCalls(), 1)
 	})
 }
 
@@ -319,35 +321,42 @@ func TestWebhookDataManager_CreateWebhookTriggerEvent(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildWebhookManagerForTest(t)
 
 		input := &webhooks.WebhookTriggerEventCreationRequestInput{
 			Name:        "webhook_created",
 			Description: "Fired when a webhook is created",
 		}
 		expected := fakes.BuildFakeWebhookTriggerEvent()
-		repo.On(reflection.GetMethodName(repo.CreateWebhookTriggerEvent), testutils.ContextMatcher, mock.MatchedBy(func(in *webhooks.WebhookTriggerEventDatabaseCreationInput) bool {
-			return in.Name == input.Name && in.Description == input.Description
-		})).Return(expected, nil)
+
+		repo := &webhookmock.RepositoryMock{
+			CreateWebhookTriggerEventFunc: func(_ context.Context, in *webhooks.WebhookTriggerEventDatabaseCreationInput) (*webhooks.WebhookTriggerEvent, error) {
+				assert.Equal(t, input.Name, in.Name)
+				assert.Equal(t, input.Description, in.Description)
+
+				return expected, nil
+			},
+		}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		result, err := manager.CreateWebhookTriggerEvent(ctx, input)
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.CreateWebhookTriggerEventCalls(), 1)
 	})
 
 	t.Run("nil input", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildWebhookManagerForTest(t)
+		repo := &webhookmock.RepositoryMock{}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		result, err := manager.CreateWebhookTriggerEvent(ctx, nil)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
-		repo.AssertNotCalled(t, reflection.GetMethodName(repo.CreateWebhookTriggerEvent))
+		assert.Empty(t, repo.CreateWebhookTriggerEventCalls())
 	})
 }
 
@@ -358,28 +367,37 @@ func TestWebhookDataManager_UpdateWebhookTriggerEvent(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildWebhookManagerForTest(t)
 
 		triggerEventID := fakes.BuildFakeID()
 		input := &webhooks.WebhookTriggerEventUpdateRequestInput{}
-		repo.On(reflection.GetMethodName(repo.UpdateWebhookTriggerEvent), testutils.ContextMatcher, triggerEventID, input).Return(nil)
+
+		repo := &webhookmock.RepositoryMock{
+			UpdateWebhookTriggerEventFunc: func(_ context.Context, id string, in *webhooks.WebhookTriggerEventUpdateRequestInput) error {
+				assert.Equal(t, triggerEventID, id)
+				assert.Equal(t, input, in)
+
+				return nil
+			},
+		}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		err := manager.UpdateWebhookTriggerEvent(ctx, triggerEventID, input)
 
 		require.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.UpdateWebhookTriggerEventCalls(), 1)
 	})
 
 	t.Run("nil input", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildWebhookManagerForTest(t)
+		repo := &webhookmock.RepositoryMock{}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		err := manager.UpdateWebhookTriggerEvent(ctx, fakes.BuildFakeID(), nil)
 
 		require.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
-		repo.AssertNotCalled(t, reflection.GetMethodName(repo.UpdateWebhookTriggerEvent))
+		assert.Empty(t, repo.UpdateWebhookTriggerEventCalls())
 	})
 }
 
@@ -390,14 +408,21 @@ func TestWebhookDataManager_WebhookExists(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildWebhookManagerForTest(t)
 
-		repo.On(reflection.GetMethodName(repo.WebhookExists), testutils.ContextMatcher, "wh-1", "account-1").Return(true, nil)
+		repo := &webhookmock.RepositoryMock{
+			WebhookExistsFunc: func(_ context.Context, webhookID, accountID string) (bool, error) {
+				assert.Equal(t, "wh-1", webhookID)
+				assert.Equal(t, "account-1", accountID)
+
+				return true, nil
+			},
+		}
+		manager := buildWebhookManagerForTest(t, repo)
 
 		exists, err := manager.WebhookExists(ctx, "wh-1", "account-1")
 
 		require.NoError(t, err)
 		assert.True(t, exists)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.WebhookExistsCalls(), 1)
 	})
 }

@@ -7,60 +7,47 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments"
 	commentsfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/fakes"
-	commentsmanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/manager"
 	commentsmanagermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/manager/mock"
 	commentssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	"github.com/primandproper/platform-go/v6/observability/tracing"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-// noopCommentsManager is a stub implementation for tests that only need service construction.
-type noopCommentsManager struct{}
-
-func (n *noopCommentsManager) CreateComment(_ context.Context, _ *comments.CommentCreationRequestInput) (*comments.Comment, error) {
-	return nil, nil
-}
-func (n *noopCommentsManager) GetComment(_ context.Context, _ string) (*comments.Comment, error) {
-	return nil, nil
-}
-func (n *noopCommentsManager) GetCommentsForReference(_ context.Context, _, _ string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[comments.Comment], error) {
-	return nil, nil
-}
-func (n *noopCommentsManager) UpdateComment(_ context.Context, _, _ string, _ *comments.CommentUpdateRequestInput) error {
-	return nil
-}
-func (n *noopCommentsManager) ArchiveComment(_ context.Context, _ string) error {
-	return nil
-}
-func (n *noopCommentsManager) ArchiveCommentsForReference(_ context.Context, _, _ string) error {
-	return nil
-}
-
-var _ commentsmanager.CommentsDataManager = (*noopCommentsManager)(nil)
-
-func buildCommentsServiceImplForTest(t *testing.T) *serviceImpl {
+// buildCommentsServiceImplForTest builds a service backed by the given manager mock. A nil manager
+// gets an unconfigured mock, which panics if any of its methods are called.
+func buildCommentsServiceImplForTest(t *testing.T, commentsManager *commentsmanagermock.CommentsDataManagerMock) *serviceImpl {
 	t.Helper()
+
+	if commentsManager == nil {
+		commentsManager = &commentsmanagermock.CommentsDataManagerMock{}
+	}
 
 	return &serviceImpl{
 		tracer:          tracing.NewTracerForTest(t.Name()),
 		logger:          loggingnoop.NewLogger(),
-		commentsManager: &noopCommentsManager{},
-		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
+		commentsManager: commentsManager,
+		sessionContextDataFetcher: func(context.Context) (*sessions.ContextData, error) {
 			return &sessions.ContextData{
 				Requester: sessions.RequesterInfo{
 					UserID: commentsfakes.BuildFakeID(),
 				},
 			}, nil
 		},
+	}
+}
+
+// sessionFetcherForUser returns a session context data fetcher that reports the given user.
+func sessionFetcherForUser(userID string) func(context.Context) (*sessions.ContextData, error) {
+	return func(context.Context) (*sessions.ContextData, error) {
+		return &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: userID},
+		}, nil
 	}
 }
 
@@ -71,24 +58,21 @@ func TestServiceImpl_CreateComment(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		s := buildCommentsServiceImplForTest(t)
 
 		userID := commentsfakes.BuildFakeID()
 		recipeID := commentsfakes.BuildFakeID()
 
-		mcm := &commentsmanagermock.MockCommentsDataManager{}
 		fakeComment := commentsfakes.BuildFakeComment()
 		fakeComment.TargetType = "recipes"
 		fakeComment.ReferencedID = recipeID
 
-		mcm.On(reflection.GetMethodName(mcm.CreateComment), testutils.ContextMatcher, mock.Anything).Return(fakeComment, nil)
-		s.commentsManager = mcm
-
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: userID},
-			}, nil
+		mcm := &commentsmanagermock.CommentsDataManagerMock{
+			CreateCommentFunc: func(_ context.Context, _ *comments.CommentCreationRequestInput) (*comments.Comment, error) {
+				return fakeComment, nil
+			},
 		}
+		s := buildCommentsServiceImplForTest(t, mcm)
+		s.sessionContextDataFetcher = sessionFetcherForUser(userID)
 
 		res, err := s.CreateComment(ctx, &commentssvc.CreateCommentRequest{
 			Input: &commentssvc.CommentCreationRequestInput{
@@ -101,14 +85,14 @@ func TestServiceImpl_CreateComment(T *testing.T) {
 		assert.NotNil(t, res)
 		assert.Equal(t, fakeComment.ID, res.Comment.Id)
 
-		mock.AssertExpectationsForObjects(t, mcm)
+		assert.Len(t, mcm.CreateCommentCalls(), 1)
 	})
 
 	T.Run("missing input", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		s := buildCommentsServiceImplForTest(t)
+		s := buildCommentsServiceImplForTest(t, nil)
 
 		res, err := s.CreateComment(ctx, &commentssvc.CreateCommentRequest{})
 		assert.Error(t, err)
@@ -122,7 +106,7 @@ func TestServiceImpl_CreateComment(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		s := buildCommentsServiceImplForTest(t)
+		s := buildCommentsServiceImplForTest(t, nil)
 
 		res, err := s.CreateComment(ctx, &commentssvc.CreateCommentRequest{
 			Input: &commentssvc.CommentCreationRequestInput{
@@ -145,14 +129,20 @@ func TestServiceImpl_GetCommentsForReference(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		s := buildCommentsServiceImplForTest(t)
 
 		recipeID := commentsfakes.BuildFakeID()
 		expected := commentsfakes.BuildFakeCommentList("recipes", recipeID)
 
-		mcm := &commentsmanagermock.MockCommentsDataManager{}
-		mcm.On(reflection.GetMethodName(mcm.GetCommentsForReference), testutils.ContextMatcher, "recipes", recipeID, testutils.QueryFilterMatcher).Return(expected, nil)
-		s.commentsManager = mcm
+		mcm := &commentsmanagermock.CommentsDataManagerMock{
+			GetCommentsForReferenceFunc: func(_ context.Context, targetType, referencedID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[comments.Comment], error) {
+				assert.Equal(t, "recipes", targetType)
+				assert.Equal(t, recipeID, referencedID)
+				assert.NotNil(t, filter)
+
+				return expected, nil
+			},
+		}
+		s := buildCommentsServiceImplForTest(t, mcm)
 
 		res, err := s.GetCommentsForReference(ctx, &commentssvc.GetCommentsForReferenceRequest{
 			TargetType:   "recipes",
@@ -162,7 +152,7 @@ func TestServiceImpl_GetCommentsForReference(T *testing.T) {
 		assert.NotNil(t, res)
 		assert.Len(t, res.Data, len(expected.Data))
 
-		mock.AssertExpectationsForObjects(t, mcm)
+		assert.Len(t, mcm.GetCommentsForReferenceCalls(), 1)
 	})
 }
 
@@ -173,7 +163,6 @@ func TestServiceImpl_UpdateComment(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		s := buildCommentsServiceImplForTest(t)
 
 		commentID := commentsfakes.BuildFakeID()
 		userID := commentsfakes.BuildFakeID()
@@ -183,16 +172,21 @@ func TestServiceImpl_UpdateComment(T *testing.T) {
 		fakeComment.ID = commentID
 		fakeComment.BelongsToUser = userID
 
-		mcm := &commentsmanagermock.MockCommentsDataManager{}
-		mcm.On(reflection.GetMethodName(mcm.GetComment), testutils.ContextMatcher, commentID).Return(fakeComment, nil).Twice()
-		mcm.On(reflection.GetMethodName(mcm.UpdateComment), testutils.ContextMatcher, commentID, userID, mock.Anything).Return(nil)
-		s.commentsManager = mcm
+		mcm := &commentsmanagermock.CommentsDataManagerMock{
+			GetCommentFunc: func(_ context.Context, id string) (*comments.Comment, error) {
+				assert.Equal(t, commentID, id)
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: userID},
-			}, nil
+				return fakeComment, nil
+			},
+			UpdateCommentFunc: func(_ context.Context, id, belongsToUser string, _ *comments.CommentUpdateRequestInput) error {
+				assert.Equal(t, commentID, id)
+				assert.Equal(t, userID, belongsToUser)
+
+				return nil
+			},
 		}
+		s := buildCommentsServiceImplForTest(t, mcm)
+		s.sessionContextDataFetcher = sessionFetcherForUser(userID)
 
 		res, err := s.UpdateComment(ctx, &commentssvc.UpdateCommentRequest{
 			CommentId: commentID,
@@ -202,14 +196,14 @@ func TestServiceImpl_UpdateComment(T *testing.T) {
 		assert.NotNil(t, res)
 		assert.Equal(t, commentID, res.Comment.Id)
 
-		mock.AssertExpectationsForObjects(t, mcm)
+		assert.Len(t, mcm.GetCommentCalls(), 2)
+		assert.Len(t, mcm.UpdateCommentCalls(), 1)
 	})
 
 	T.Run("permission_denied_when_different_user", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		s := buildCommentsServiceImplForTest(t)
 
 		commentID := commentsfakes.BuildFakeID()
 		ownerID := commentsfakes.BuildFakeID()
@@ -219,15 +213,15 @@ func TestServiceImpl_UpdateComment(T *testing.T) {
 		fakeComment.ID = commentID
 		fakeComment.BelongsToUser = ownerID
 
-		mcm := &commentsmanagermock.MockCommentsDataManager{}
-		mcm.On(reflection.GetMethodName(mcm.GetComment), testutils.ContextMatcher, commentID).Return(fakeComment, nil)
-		s.commentsManager = mcm
+		mcm := &commentsmanagermock.CommentsDataManagerMock{
+			GetCommentFunc: func(_ context.Context, id string) (*comments.Comment, error) {
+				assert.Equal(t, commentID, id)
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: requestingUserID},
-			}, nil
+				return fakeComment, nil
+			},
 		}
+		s := buildCommentsServiceImplForTest(t, mcm)
+		s.sessionContextDataFetcher = sessionFetcherForUser(requestingUserID)
 
 		res, err := s.UpdateComment(ctx, &commentssvc.UpdateCommentRequest{
 			CommentId: commentID,
@@ -239,7 +233,8 @@ func TestServiceImpl_UpdateComment(T *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, codes.PermissionDenied, st.Code())
 
-		mock.AssertExpectationsForObjects(t, mcm)
+		assert.Len(t, mcm.GetCommentCalls(), 1)
+		assert.Empty(t, mcm.UpdateCommentCalls())
 	})
 }
 
@@ -250,7 +245,6 @@ func TestServiceImpl_ArchiveComment(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		s := buildCommentsServiceImplForTest(t)
 
 		commentID := commentsfakes.BuildFakeID()
 		userID := commentsfakes.BuildFakeID()
@@ -259,16 +253,20 @@ func TestServiceImpl_ArchiveComment(T *testing.T) {
 		fakeComment.ID = commentID
 		fakeComment.BelongsToUser = userID
 
-		mcm := &commentsmanagermock.MockCommentsDataManager{}
-		mcm.On(reflection.GetMethodName(mcm.GetComment), testutils.ContextMatcher, commentID).Return(fakeComment, nil)
-		mcm.On(reflection.GetMethodName(mcm.ArchiveComment), testutils.ContextMatcher, commentID).Return(nil)
-		s.commentsManager = mcm
+		mcm := &commentsmanagermock.CommentsDataManagerMock{
+			GetCommentFunc: func(_ context.Context, id string) (*comments.Comment, error) {
+				assert.Equal(t, commentID, id)
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: userID},
-			}, nil
+				return fakeComment, nil
+			},
+			ArchiveCommentFunc: func(_ context.Context, id string) error {
+				assert.Equal(t, commentID, id)
+
+				return nil
+			},
 		}
+		s := buildCommentsServiceImplForTest(t, mcm)
+		s.sessionContextDataFetcher = sessionFetcherForUser(userID)
 
 		res, err := s.ArchiveComment(ctx, &commentssvc.ArchiveCommentRequest{
 			CommentId: commentID,
@@ -276,14 +274,14 @@ func TestServiceImpl_ArchiveComment(T *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
 
-		mock.AssertExpectationsForObjects(t, mcm)
+		assert.Len(t, mcm.GetCommentCalls(), 1)
+		assert.Len(t, mcm.ArchiveCommentCalls(), 1)
 	})
 
 	T.Run("permission_denied_when_different_user", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		s := buildCommentsServiceImplForTest(t)
 
 		commentID := commentsfakes.BuildFakeID()
 		ownerID := commentsfakes.BuildFakeID()
@@ -293,15 +291,15 @@ func TestServiceImpl_ArchiveComment(T *testing.T) {
 		fakeComment.ID = commentID
 		fakeComment.BelongsToUser = ownerID
 
-		mcm := &commentsmanagermock.MockCommentsDataManager{}
-		mcm.On(reflection.GetMethodName(mcm.GetComment), testutils.ContextMatcher, commentID).Return(fakeComment, nil)
-		s.commentsManager = mcm
+		mcm := &commentsmanagermock.CommentsDataManagerMock{
+			GetCommentFunc: func(_ context.Context, id string) (*comments.Comment, error) {
+				assert.Equal(t, commentID, id)
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: requestingUserID},
-			}, nil
+				return fakeComment, nil
+			},
 		}
+		s := buildCommentsServiceImplForTest(t, mcm)
+		s.sessionContextDataFetcher = sessionFetcherForUser(requestingUserID)
 
 		res, err := s.ArchiveComment(ctx, &commentssvc.ArchiveCommentRequest{
 			CommentId: commentID,
@@ -312,6 +310,7 @@ func TestServiceImpl_ArchiveComment(T *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, codes.PermissionDenied, st.Code())
 
-		mock.AssertExpectationsForObjects(t, mcm)
+		assert.Len(t, mcm.GetCommentCalls(), 1)
+		assert.Empty(t, mcm.ArchiveCommentCalls())
 	})
 }

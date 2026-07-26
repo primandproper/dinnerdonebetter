@@ -1,30 +1,34 @@
 package manager
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	dataprivacymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	platformerrors "github.com/primandproper/platform-go/v6/errors"
 	"github.com/primandproper/platform-go/v6/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func buildDataPrivacyManagerForTest(t *testing.T) (*dataPrivacyManager, *dataprivacymock.Repository) {
+// buildDataPrivacyManagerForTest builds a manager backed by the given repository mock. A nil repo
+// gets an unconfigured mock, which panics if any of its methods are called.
+func buildDataPrivacyManagerForTest(t *testing.T, repo *dataprivacymock.RepositoryMock) *dataPrivacyManager {
 	t.Helper()
 
-	repo := &dataprivacymock.Repository{}
+	if repo == nil {
+		repo = &dataprivacymock.RepositoryMock{}
+	}
+
 	m := NewDataPrivacyManager(tracingnoop.NewTracerProvider(), loggingnoop.NewLogger(), repo)
-	return m.(*dataPrivacyManager), repo
+
+	return m.(*dataPrivacyManager)
 }
 
 func TestDataPrivacyManager_FetchUserDataCollection(t *testing.T) {
@@ -34,17 +38,24 @@ func TestDataPrivacyManager_FetchUserDataCollection(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildDataPrivacyManagerForTest(t)
 
 		userID := identifiers.New()
 		expected := &dataprivacy.UserDataCollection{}
-		repo.On(reflection.GetMethodName(repo.FetchUserDataCollection), testutils.ContextMatcher, userID).Return(expected, nil)
+
+		repo := &dataprivacymock.RepositoryMock{
+			FetchUserDataCollectionFunc: func(_ context.Context, actualUserID string) (*dataprivacy.UserDataCollection, error) {
+				assert.Equal(t, userID, actualUserID)
+
+				return expected, nil
+			},
+		}
+		manager := buildDataPrivacyManagerForTest(t, repo)
 
 		result, err := manager.FetchUserDataCollection(ctx, userID)
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.FetchUserDataCollectionCalls(), 1)
 	})
 }
 
@@ -55,15 +66,22 @@ func TestDataPrivacyManager_DeleteUser(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildDataPrivacyManagerForTest(t)
 
 		userID := identifiers.New()
-		repo.On(reflection.GetMethodName(repo.DeleteUser), testutils.ContextMatcher, userID).Return(nil)
+
+		repo := &dataprivacymock.RepositoryMock{
+			DeleteUserFunc: func(_ context.Context, actualUserID string) error {
+				assert.Equal(t, userID, actualUserID)
+
+				return nil
+			},
+		}
+		manager := buildDataPrivacyManagerForTest(t, repo)
 
 		err := manager.DeleteUser(ctx, userID)
 
 		require.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.DeleteUserCalls(), 1)
 	})
 }
 
@@ -74,7 +92,6 @@ func TestDataPrivacyManager_CreateUserDataDisclosure(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildDataPrivacyManagerForTest(t)
 
 		disclosureID := identifiers.New()
 		userID := identifiers.New()
@@ -88,26 +105,35 @@ func TestDataPrivacyManager_CreateUserDataDisclosure(t *testing.T) {
 			ID:            disclosureID,
 			BelongsToUser: userID,
 		}
-		repo.On(reflection.GetMethodName(repo.CreateUserDataDisclosure), testutils.ContextMatcher, mock.Anything).Return(created, nil)
+
+		repo := &dataprivacymock.RepositoryMock{
+			CreateUserDataDisclosureFunc: func(_ context.Context, in *dataprivacy.UserDataDisclosureCreationInput) (*dataprivacy.UserDataDisclosure, error) {
+				assert.NotNil(t, in)
+
+				return created, nil
+			},
+		}
+		manager := buildDataPrivacyManagerForTest(t, repo)
 
 		result, err := manager.CreateUserDataDisclosure(ctx, input)
 
 		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, disclosureID, result.ID)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.CreateUserDataDisclosureCalls(), 1)
 	})
 
 	t.Run("with nil input", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildDataPrivacyManagerForTest(t)
+		repo := &dataprivacymock.RepositoryMock{}
+		manager := buildDataPrivacyManagerForTest(t, repo)
 
 		result, err := manager.CreateUserDataDisclosure(ctx, nil)
 
 		require.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
 		assert.Nil(t, result)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Empty(t, repo.CreateUserDataDisclosureCalls())
 	})
 }

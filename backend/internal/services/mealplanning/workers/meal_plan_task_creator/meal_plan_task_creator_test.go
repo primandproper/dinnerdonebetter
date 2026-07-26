@@ -9,7 +9,6 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
@@ -17,10 +16,8 @@ import (
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	metricsnoop "github.com/primandproper/platform-go/v6/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,7 +28,7 @@ func buildNewMealPlanTaskCreatorForTest(t *testing.T) *Worker {
 	cfg := &msgconfig.QueuesConfig{DataChangesTopicName: "data_changes"}
 
 	pp := &mockpublishers.PublisherProviderMock{
-		NewPublisherFunc: func(_ context.Context, topic string) (messagequeue.Publisher, error) {
+		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
 			return &mockpublishers.PublisherMock{
 				PublishFunc:      func(_ context.Context, _ any) error { return nil },
 				PublishAsyncFunc: func(_ context.Context, _ any) {},
@@ -44,8 +41,8 @@ func buildNewMealPlanTaskCreatorForTest(t *testing.T) *Worker {
 		ctx,
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
-		&recipeanalysis.MockRecipeAnalyzer{},
-		&mealplanningmock.Repository{},
+		&recipeanalysis.RecipeAnalyzerMock{},
+		&mealplanningmock.RepositoryMock{},
 		pp,
 		metricsnoop.NewMetricsProvider(),
 		cfg,
@@ -66,13 +63,17 @@ func TestWorker_Work(T *testing.T) {
 
 		ctx := t.Context()
 
-		mdm := &mealplanningmock.Repository{}
-		mdm.On(reflection.GetMethodName(mdm.GetFinalizedMealPlanIDsForTheNextWeek), testutils.ContextMatcher).Return([]*mealplanning.FinalizedMealPlanDatabaseResult{}, nil)
+		mdm := &mealplanningmock.RepositoryMock{
+			GetFinalizedMealPlanIDsForTheNextWeekFunc: func(context.Context) ([]*mealplanning.FinalizedMealPlanDatabaseResult, error) {
+				return []*mealplanning.FinalizedMealPlanDatabaseResult{}, nil
+			},
+		}
 		w.dataManager = mdm
 
 		assert.NoError(t, w.Work(ctx))
 
-		mock.AssertExpectationsForObjects(t, mdm)
+		assert.Len(t, mdm.GetFinalizedMealPlanIDsForTheNextWeekCalls(), 1)
+		assert.Empty(t, mdm.CreateMealPlanTasksForMealPlanOptionCalls())
 	})
 
 	T.Run("standard", func(t *testing.T) {
@@ -158,11 +159,6 @@ func TestWorker_Work(T *testing.T) {
 
 		createdMealPlanTasks := fakes.BuildFakeMealPlanTasksList().Data
 
-		mdm := &mealplanningmock.Repository{}
-		mdm.On(reflection.GetMethodName(mdm.CreateMealPlanTasksForMealPlanOption), testutils.ContextMatcher, testutils.MatchType[[]*mealplanning.MealPlanTaskDatabaseCreationInput]()).Return(createdMealPlanTasks, nil)
-		mdm.On(reflection.GetMethodName(mdm.GetFinalizedMealPlanIDsForTheNextWeek), testutils.ContextMatcher).Return(exampleFinalizedMealPlanResults, nil)
-		mdm.On(reflection.GetMethodName(mdm.MarkMealPlanAsHavingTasksCreated), testutils.ContextMatcher, testutils.MatchType[string]()).Return(nil)
-
 		expectedReturnResults := []*mealplanning.MealPlanTaskDatabaseCreationInput{
 			{
 				CreationExplanation: t.Name(),
@@ -170,19 +166,37 @@ func TestWorker_Work(T *testing.T) {
 			},
 		}
 
-		mockAnalyzer := &recipeanalysis.MockRecipeAnalyzer{}
-		for _, result := range exampleFinalizedMealPlanResults {
-			for _, recipeID := range result.RecipeIDs {
-				mdm.On(reflection.GetMethodName(mdm.GetRecipe), testutils.ContextMatcher, recipeID).Return(recipeMap[recipeID], nil)
+		mdm := &mealplanningmock.RepositoryMock{
+			GetFinalizedMealPlanIDsForTheNextWeekFunc: func(context.Context) ([]*mealplanning.FinalizedMealPlanDatabaseResult, error) {
+				return exampleFinalizedMealPlanResults, nil
+			},
+			GetRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+				recipe, ok := recipeMap[recipeID]
+				assert.True(t, ok, "unexpected recipe fetched: %s", recipeID)
 
-				mockAnalyzer.On(
-					"GenerateMealPlanTasksForRecipe",
-					testutils.ContextMatcher,
-					result.MealPlanOptionID,
-					recipeMap[recipeID],
-				).Return(expectedReturnResults, nil)
-			}
+				return recipe, nil
+			},
+			CreateMealPlanTasksForMealPlanOptionFunc: func(_ context.Context, inputs []*mealplanning.MealPlanTaskDatabaseCreationInput) ([]*mealplanning.MealPlanTask, error) {
+				assert.NotNil(t, inputs)
+
+				return createdMealPlanTasks, nil
+			},
+			MarkMealPlanAsHavingTasksCreatedFunc: func(_ context.Context, mealPlanID string) error {
+				assert.Equal(t, exampleMealPlan.ID, mealPlanID)
+
+				return nil
+			},
 		}
+
+		mockAnalyzer := &recipeanalysis.RecipeAnalyzerMock{
+			GenerateMealPlanTasksForRecipeFunc: func(_ context.Context, mealPlanOptionID string, recipe *mealplanning.Recipe) ([]*mealplanning.MealPlanTaskDatabaseCreationInput, error) {
+				assert.Equal(t, exampleFinalizedMealPlanResult.MealPlanOptionID, mealPlanOptionID)
+				assert.Equal(t, exampleRecipe, recipe)
+
+				return expectedReturnResults, nil
+			},
+		}
+
 		w.analyzer = mockAnalyzer
 		w.dataManager = mdm
 
@@ -193,6 +207,10 @@ func TestWorker_Work(T *testing.T) {
 
 		assert.NoError(t, w.Work(ctx))
 
-		mock.AssertExpectationsForObjects(t, mdm, mockAnalyzer)
+		assert.Len(t, mdm.GetFinalizedMealPlanIDsForTheNextWeekCalls(), 1)
+		assert.Len(t, mdm.GetRecipeCalls(), 1)
+		assert.Len(t, mdm.CreateMealPlanTasksForMealPlanOptionCalls(), 1)
+		assert.Len(t, mdm.MarkMealPlanAsHavingTasksCreatedCalls(), 1)
+		assert.Len(t, mockAnalyzer.GenerateMealPlanTasksForRecipeCalls(), 1)
 	})
 }

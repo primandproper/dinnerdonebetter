@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -8,13 +9,10 @@ import (
 	settingsfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/fakes"
 	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	settingssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 )
 
@@ -38,9 +36,11 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 			},
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.CreateServiceSettingConfiguration), testutils.ContextMatcher, mock.MatchedBy(func(input *settings.ServiceSettingConfigurationDatabaseCreationInput) bool {
-			return input != nil && input.BelongsToUser == "test-user-id" && input.BelongsToAccount == "test-account-id"
-		})).Return(exampleServiceSettingConfiguration, nil)
+		settingsRepo.CreateServiceSettingConfigurationFunc = func(_ context.Context, input *settings.ServiceSettingConfigurationDatabaseCreationInput) (*settings.ServiceSettingConfiguration, error) {
+			assert.True(t, input != nil && input.BelongsToUser == "test-user-id" && input.BelongsToAccount == "test-account-id")
+
+			return exampleServiceSettingConfiguration, nil
+		}
 
 		actual, err := service.CreateServiceSettingConfiguration(ctx, request)
 
@@ -50,7 +50,7 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 		assert.NotNil(t, actual.Created)
 		assert.Equal(t, exampleServiceSettingConfiguration.ID, actual.Created.Id)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.CreateServiceSettingConfigurationCalls(), 1)
 	})
 
 	t.Run("with session error", func(t *testing.T) {
@@ -59,7 +59,7 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 		ctx := t.Context()
 		exampleInput := settingsfakes.BuildFakeServiceSettingConfigurationCreationRequestInput()
 
-		service, settingsRepo := buildTestServiceWithSessionError(t)
+		service, _ := buildTestServiceWithSessionError(t)
 
 		request := &settingssvc.CreateServiceSettingConfigurationRequest{
 			Input: &settingssvc.ServiceSettingConfigurationCreationRequestInput{
@@ -74,15 +74,13 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Unauthenticated)
-
-		mock.AssertExpectationsForObjects(t, settingsRepo)
 	})
 
 	t.Run("with invalid input", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, settingsRepo := buildTestService(t)
+		service, _ := buildTestService(t)
 
 		request := &settingssvc.CreateServiceSettingConfigurationRequest{
 			Input: &settingssvc.ServiceSettingConfigurationCreationRequestInput{
@@ -96,8 +94,6 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.InvalidArgument)
-
-		mock.AssertExpectationsForObjects(t, settingsRepo)
 	})
 
 	t.Run("with repository error", func(t *testing.T) {
@@ -116,9 +112,11 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 			},
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.CreateServiceSettingConfiguration), testutils.ContextMatcher, mock.MatchedBy(func(input *settings.ServiceSettingConfigurationDatabaseCreationInput) bool {
-			return input != nil
-		})).Return((*settings.ServiceSettingConfiguration)(nil), errors.New("repository error"))
+		settingsRepo.CreateServiceSettingConfigurationFunc = func(_ context.Context, input *settings.ServiceSettingConfigurationDatabaseCreationInput) (*settings.ServiceSettingConfiguration, error) {
+			assert.True(t, input != nil)
+
+			return nil, errors.New("repository error")
+		}
 
 		actual, err := service.CreateServiceSettingConfiguration(ctx, request)
 
@@ -126,7 +124,7 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.CreateServiceSettingConfigurationCalls(), 1)
 	})
 }
 
@@ -145,7 +143,12 @@ func TestServiceImpl_GetServiceSettingConfigurationByName(t *testing.T) {
 			ServiceSettingConfigurationName: exampleServiceSettingConfiguration.ServiceSetting.Name,
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.GetServiceSettingConfigurationForAccountByName), testutils.ContextMatcher, "test-account-id", exampleServiceSettingConfiguration.ServiceSetting.Name).Return(exampleServiceSettingConfiguration, nil)
+		settingsRepo.GetServiceSettingConfigurationForAccountByNameFunc = func(_ context.Context, accountID string, serviceSettingConfigurationName string) (*settings.ServiceSettingConfiguration, error) {
+			assert.Equal(t, "test-account-id", accountID)
+			assert.Equal(t, exampleServiceSettingConfiguration.ServiceSetting.Name, serviceSettingConfigurationName)
+
+			return exampleServiceSettingConfiguration, nil
+		}
 
 		actual, err := service.GetServiceSettingConfigurationByName(ctx, request)
 
@@ -155,7 +158,7 @@ func TestServiceImpl_GetServiceSettingConfigurationByName(t *testing.T) {
 		assert.NotNil(t, actual.Result)
 		assert.Equal(t, exampleServiceSettingConfiguration.ID, actual.Result.Id)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.GetServiceSettingConfigurationForAccountByNameCalls(), 1)
 	})
 
 	t.Run("with session error", func(t *testing.T) {
@@ -164,7 +167,7 @@ func TestServiceImpl_GetServiceSettingConfigurationByName(t *testing.T) {
 		ctx := t.Context()
 		exampleServiceSettingConfiguration := settingsfakes.BuildFakeServiceSettingConfiguration()
 
-		service, settingsRepo := buildTestServiceWithSessionError(t)
+		service, _ := buildTestServiceWithSessionError(t)
 
 		request := &settingssvc.GetServiceSettingConfigurationByNameRequest{
 			ServiceSettingConfigurationName: exampleServiceSettingConfiguration.ServiceSetting.Name,
@@ -175,8 +178,6 @@ func TestServiceImpl_GetServiceSettingConfigurationByName(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Unauthenticated)
-
-		mock.AssertExpectationsForObjects(t, settingsRepo)
 	})
 
 	t.Run("with repository error", func(t *testing.T) {
@@ -191,14 +192,19 @@ func TestServiceImpl_GetServiceSettingConfigurationByName(t *testing.T) {
 			ServiceSettingConfigurationName: exampleServiceSettingConfiguration.ServiceSetting.Name,
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.GetServiceSettingConfigurationForAccountByName), testutils.ContextMatcher, "test-account-id", exampleServiceSettingConfiguration.ServiceSetting.Name).Return((*settings.ServiceSettingConfiguration)(nil), errors.New("repository error"))
+		settingsRepo.GetServiceSettingConfigurationForAccountByNameFunc = func(_ context.Context, accountID string, serviceSettingConfigurationName string) (*settings.ServiceSettingConfiguration, error) {
+			assert.Equal(t, "test-account-id", accountID)
+			assert.Equal(t, exampleServiceSettingConfiguration.ServiceSetting.Name, serviceSettingConfigurationName)
+
+			return nil, errors.New("repository error")
+		}
 
 		actual, err := service.GetServiceSettingConfigurationByName(ctx, request)
 		assert.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.GetServiceSettingConfigurationForAccountByNameCalls(), 1)
 	})
 }
 
@@ -220,9 +226,12 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 			},
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.GetServiceSettingConfigurationsForAccount), testutils.ContextMatcher, "test-account-id", mock.MatchedBy(func(filter *filtering.QueryFilter) bool {
-			return filter != nil
-		})).Return(exampleServiceSettingConfigurationsList, nil)
+		settingsRepo.GetServiceSettingConfigurationsForAccountFunc = func(_ context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
+			assert.Equal(t, "test-account-id", accountID)
+			assert.True(t, filter != nil)
+
+			return exampleServiceSettingConfigurationsList, nil
+		}
 
 		actual, err := service.GetServiceSettingConfigurationsForAccount(ctx, request)
 
@@ -231,7 +240,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 		assert.NotNil(t, actual.ResponseDetails)
 		assert.Len(t, actual.Results, len(exampleServiceSettingConfigurationsList.Data))
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.GetServiceSettingConfigurationsForAccountCalls(), 1)
 	})
 
 	t.Run("with session error", func(t *testing.T) {
@@ -239,7 +248,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 
 		ctx := t.Context()
 
-		service, settingsRepo := buildTestServiceWithSessionError(t)
+		service, _ := buildTestServiceWithSessionError(t)
 
 		pageSize := uint32(50)
 		request := &settingssvc.GetServiceSettingConfigurationsForAccountRequest{
@@ -253,8 +262,6 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Unauthenticated)
-
-		mock.AssertExpectationsForObjects(t, settingsRepo)
 	})
 
 	t.Run("with repository error", func(t *testing.T) {
@@ -271,9 +278,12 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 			},
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.GetServiceSettingConfigurationsForAccount), testutils.ContextMatcher, "test-account-id", mock.MatchedBy(func(filter *filtering.QueryFilter) bool {
-			return filter != nil
-		})).Return((*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration])(nil), errors.New("repository error"))
+		settingsRepo.GetServiceSettingConfigurationsForAccountFunc = func(_ context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
+			assert.Equal(t, "test-account-id", accountID)
+			assert.True(t, filter != nil)
+
+			return nil, errors.New("repository error")
+		}
 
 		actual, err := service.GetServiceSettingConfigurationsForAccount(ctx, request)
 
@@ -281,7 +291,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.GetServiceSettingConfigurationsForAccountCalls(), 1)
 	})
 }
 
@@ -303,9 +313,12 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 			},
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.GetServiceSettingConfigurationsForUser), testutils.ContextMatcher, "test-user-id", mock.MatchedBy(func(filter *filtering.QueryFilter) bool {
-			return filter != nil
-		})).Return(exampleServiceSettingConfigurationsList, nil)
+		settingsRepo.GetServiceSettingConfigurationsForUserFunc = func(_ context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
+			assert.Equal(t, "test-user-id", userID)
+			assert.True(t, filter != nil)
+
+			return exampleServiceSettingConfigurationsList, nil
+		}
 
 		actual, err := service.GetServiceSettingConfigurationsForUser(ctx, request)
 
@@ -314,7 +327,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 		assert.NotNil(t, actual.ResponseDetails)
 		assert.Len(t, actual.Results, len(exampleServiceSettingConfigurationsList.Data))
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.GetServiceSettingConfigurationsForUserCalls(), 1)
 	})
 
 	t.Run("with session error", func(t *testing.T) {
@@ -322,7 +335,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 
 		ctx := t.Context()
 
-		service, settingsRepo := buildTestServiceWithSessionError(t)
+		service, _ := buildTestServiceWithSessionError(t)
 
 		pageSize := uint32(50)
 		request := &settingssvc.GetServiceSettingConfigurationsForUserRequest{
@@ -336,8 +349,6 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Unauthenticated)
-
-		mock.AssertExpectationsForObjects(t, settingsRepo)
 	})
 
 	t.Run("with repository error", func(t *testing.T) {
@@ -354,9 +365,12 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 			},
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.GetServiceSettingConfigurationsForUser), testutils.ContextMatcher, "test-user-id", mock.MatchedBy(func(filter *filtering.QueryFilter) bool {
-			return filter != nil
-		})).Return((*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration])(nil), errors.New("repository error"))
+		settingsRepo.GetServiceSettingConfigurationsForUserFunc = func(_ context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
+			assert.Equal(t, "test-user-id", userID)
+			assert.True(t, filter != nil)
+
+			return nil, errors.New("repository error")
+		}
 
 		actual, err := service.GetServiceSettingConfigurationsForUser(ctx, request)
 
@@ -364,7 +378,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.GetServiceSettingConfigurationsForUserCalls(), 1)
 	})
 }
 
@@ -389,10 +403,16 @@ func TestServiceImpl_UpdateServiceSettingConfiguration(t *testing.T) {
 			},
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.GetServiceSettingConfiguration), testutils.ContextMatcher, exampleServiceSettingConfiguration.ID).Return(exampleServiceSettingConfiguration, nil)
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.UpdateServiceSettingConfiguration), testutils.ContextMatcher, mock.MatchedBy(func(input *settings.ServiceSettingConfiguration) bool {
-			return input != nil && input.ID == exampleServiceSettingConfiguration.ID
-		})).Return(nil)
+		settingsRepo.GetServiceSettingConfigurationFunc = func(_ context.Context, serviceSettingConfigurationID string) (*settings.ServiceSettingConfiguration, error) {
+			assert.Equal(t, exampleServiceSettingConfiguration.ID, serviceSettingConfigurationID)
+
+			return exampleServiceSettingConfiguration, nil
+		}
+		settingsRepo.UpdateServiceSettingConfigurationFunc = func(_ context.Context, input *settings.ServiceSettingConfiguration) error {
+			assert.True(t, input != nil && input.ID == exampleServiceSettingConfiguration.ID)
+
+			return nil
+		}
 
 		actual, err := service.UpdateServiceSettingConfiguration(ctx, request)
 
@@ -401,7 +421,8 @@ func TestServiceImpl_UpdateServiceSettingConfiguration(t *testing.T) {
 		assert.NotNil(t, actual.ResponseDetails)
 		assert.NotNil(t, actual.Updated)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.GetServiceSettingConfigurationCalls(), 1)
+		assert.Len(t, settingsRepo.UpdateServiceSettingConfigurationCalls(), 1)
 	})
 
 	t.Run("with get repository error", func(t *testing.T) {
@@ -422,7 +443,11 @@ func TestServiceImpl_UpdateServiceSettingConfiguration(t *testing.T) {
 			},
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.GetServiceSettingConfiguration), testutils.ContextMatcher, exampleServiceSettingConfiguration.ID).Return((*settings.ServiceSettingConfiguration)(nil), errors.New("repository error"))
+		settingsRepo.GetServiceSettingConfigurationFunc = func(_ context.Context, serviceSettingConfigurationID string) (*settings.ServiceSettingConfiguration, error) {
+			assert.Equal(t, exampleServiceSettingConfiguration.ID, serviceSettingConfigurationID)
+
+			return nil, errors.New("repository error")
+		}
 
 		actual, err := service.UpdateServiceSettingConfiguration(ctx, request)
 
@@ -430,7 +455,7 @@ func TestServiceImpl_UpdateServiceSettingConfiguration(t *testing.T) {
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.GetServiceSettingConfigurationCalls(), 1)
 	})
 
 	t.Run("with update repository error", func(t *testing.T) {
@@ -451,10 +476,16 @@ func TestServiceImpl_UpdateServiceSettingConfiguration(t *testing.T) {
 			},
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.GetServiceSettingConfiguration), testutils.ContextMatcher, exampleServiceSettingConfiguration.ID).Return(exampleServiceSettingConfiguration, nil)
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.UpdateServiceSettingConfiguration), testutils.ContextMatcher, mock.MatchedBy(func(input *settings.ServiceSettingConfiguration) bool {
-			return input != nil && input.ID == exampleServiceSettingConfiguration.ID
-		})).Return(errors.New("repository error"))
+		settingsRepo.GetServiceSettingConfigurationFunc = func(_ context.Context, serviceSettingConfigurationID string) (*settings.ServiceSettingConfiguration, error) {
+			assert.Equal(t, exampleServiceSettingConfiguration.ID, serviceSettingConfigurationID)
+
+			return exampleServiceSettingConfiguration, nil
+		}
+		settingsRepo.UpdateServiceSettingConfigurationFunc = func(_ context.Context, input *settings.ServiceSettingConfiguration) error {
+			assert.True(t, input != nil && input.ID == exampleServiceSettingConfiguration.ID)
+
+			return errors.New("repository error")
+		}
 
 		actual, err := service.UpdateServiceSettingConfiguration(ctx, request)
 
@@ -462,7 +493,8 @@ func TestServiceImpl_UpdateServiceSettingConfiguration(t *testing.T) {
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.GetServiceSettingConfigurationCalls(), 1)
+		assert.Len(t, settingsRepo.UpdateServiceSettingConfigurationCalls(), 1)
 	})
 }
 
@@ -481,7 +513,11 @@ func TestServiceImpl_ArchiveServiceSettingConfiguration(t *testing.T) {
 			ServiceSettingConfigurationId: exampleServiceSettingConfiguration.ID,
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.ArchiveServiceSettingConfiguration), testutils.ContextMatcher, exampleServiceSettingConfiguration.ID).Return(nil)
+		settingsRepo.ArchiveServiceSettingConfigurationFunc = func(_ context.Context, serviceSettingConfigurationID string) error {
+			assert.Equal(t, exampleServiceSettingConfiguration.ID, serviceSettingConfigurationID)
+
+			return nil
+		}
 
 		actual, err := service.ArchiveServiceSettingConfiguration(ctx, request)
 
@@ -489,7 +525,7 @@ func TestServiceImpl_ArchiveServiceSettingConfiguration(t *testing.T) {
 		assert.NotNil(t, actual)
 		assert.NotNil(t, actual.ResponseDetails)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.ArchiveServiceSettingConfigurationCalls(), 1)
 	})
 
 	t.Run("with repository error", func(t *testing.T) {
@@ -504,7 +540,11 @@ func TestServiceImpl_ArchiveServiceSettingConfiguration(t *testing.T) {
 			ServiceSettingConfigurationId: exampleServiceSettingConfiguration.ID,
 		}
 
-		settingsRepo.On(reflection.GetMethodName(settingsRepo.ArchiveServiceSettingConfiguration), testutils.ContextMatcher, exampleServiceSettingConfiguration.ID).Return(errors.New("repository error"))
+		settingsRepo.ArchiveServiceSettingConfigurationFunc = func(_ context.Context, serviceSettingConfigurationID string) error {
+			assert.Equal(t, exampleServiceSettingConfiguration.ID, serviceSettingConfigurationID)
+
+			return errors.New("repository error")
+		}
 
 		actual, err := service.ArchiveServiceSettingConfiguration(ctx, request)
 
@@ -512,6 +552,6 @@ func TestServiceImpl_ArchiveServiceSettingConfiguration(t *testing.T) {
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
-		mock.AssertExpectationsForObjects(t, settingsRepo)
+		assert.Len(t, settingsRepo.ArchiveServiceSettingConfigurationCalls(), 1)
 	})
 }

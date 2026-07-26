@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestRecipeManager_ListRecipeRatings(T *testing.T) {
@@ -27,18 +25,20 @@ func TestRecipeManager_ListRecipeRatings(T *testing.T) {
 		expected := fakes.BuildFakeRecipeRatingsList()
 		exampleRecipeID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetRecipeRatingsForRecipe), testutils.ContextMatcher, exampleRecipeID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeRatingsForRecipeFunc: func(_ context.Context, recipeID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeRating], error) {
+				assert.Equal(t, exampleRecipeID, recipeID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ListRecipeRatings(ctx, exampleRecipeID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRecipeRatingsForRecipeCalls(), 1)
 	})
 }
 
@@ -54,18 +54,21 @@ func TestRecipeManager_ReadRecipeRating(T *testing.T) {
 		exampleRecipeID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeRecipeRating()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetRecipeRating), testutils.ContextMatcher, exampleRecipeID, expected.ID).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeRatingFunc: func(_ context.Context, recipeID string, recipeRatingID string) (*types.RecipeRating, error) {
+				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, expected.ID, recipeRatingID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ReadRecipeRating(ctx, exampleRecipeID, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRecipeRatingCalls(), 1)
 	})
 }
 
@@ -82,24 +85,18 @@ func TestRecipeManager_CreateRecipeRating(T *testing.T) {
 		expected := fakes.BuildFakeRecipeRating()
 		fakeInput := fakes.BuildFakeRecipeRatingCreationRequestInput()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.CreateRecipeRating), testutils.ContextMatcher, testutils.MatchType[*types.RecipeRatingDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateRecipeRatingFunc: func(_ context.Context, _ *types.RecipeRatingDatabaseCreationInput) (*types.RecipeRating, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				types.RecipeRatingCreatedServiceEventType: {
-					mealplanningkeys.RecipeIDKey,
-					mealplanningkeys.RecipeRatingIDKey,
-				},
-			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.CreateRecipeRating(ctx, exampleRecipeID, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateRecipeRatingCalls(), 1)
 	})
 }
 
@@ -116,23 +113,23 @@ func TestRecipeManager_UpdateRecipeRating(T *testing.T) {
 		exampleRecipeRating := fakes.BuildFakeRecipeRating()
 		exampleInput := fakes.BuildFakeRecipeRatingUpdateRequestInput()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetRecipeRating), testutils.ContextMatcher, exampleRecipeID, exampleRecipeRating.ID).Return(exampleRecipeRating, nil)
-				db.On(reflection.GetMethodName(rm.db.UpdateRecipeRating), testutils.ContextMatcher, testutils.MatchType[*types.RecipeRating]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeRatingFunc: func(_ context.Context, recipeID string, recipeRatingID string) (*types.RecipeRating, error) {
+				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeRating.ID, recipeRatingID)
+
+				return exampleRecipeRating, nil
 			},
-			map[string][]string{
-				types.RecipeRatingUpdatedServiceEventType: {
-					mealplanningkeys.RecipeIDKey,
-					mealplanningkeys.RecipeRatingIDKey,
-				},
+			UpdateRecipeRatingFunc: func(_ context.Context, _ *types.RecipeRating) error {
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		assert.NoError(t, rm.UpdateRecipeRating(ctx, exampleRecipeID, exampleRecipeRating.ID, exampleInput))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRecipeRatingCalls(), 1)
+		assert.Len(t, db.UpdateRecipeRatingCalls(), 1)
 	})
 }
 
@@ -148,21 +145,18 @@ func TestRecipeManager_ArchiveRecipeRating(T *testing.T) {
 		exampleRecipeID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeRecipeRating()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.ArchiveRecipeRating), testutils.ContextMatcher, exampleRecipeID, expected.ID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveRecipeRatingFunc: func(_ context.Context, recipeID string, recipeRatingID string) error {
+				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, expected.ID, recipeRatingID)
+
+				return nil
 			},
-			map[string][]string{
-				types.RecipeRatingArchivedServiceEventType: {
-					mealplanningkeys.RecipeIDKey,
-					mealplanningkeys.RecipeRatingIDKey,
-				},
-			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		assert.NoError(t, rm.ArchiveRecipeRating(ctx, exampleRecipeID, expected.ID))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveRecipeRatingCalls(), 1)
 	})
 }

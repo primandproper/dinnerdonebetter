@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestValidEnumerationManager_SearchValidPreparations(T *testing.T) {
@@ -27,22 +25,32 @@ func TestValidEnumerationManager_SearchValidPreparations(T *testing.T) {
 		expected := fakes.BuildFakeValidPreparationsList()
 		exampleQuery := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.SearchForValidPreparations), testutils.ContextMatcher, exampleQuery, testutils.QueryFilterMatcher).Return(expected, nil)
+		// media is looked up once per returned record.
+		expectedIDs := map[string]bool{}
+		for _, prep := range expected.Data {
+			expectedIDs[prep.ID] = true
+		}
 
-				for _, prep := range expected.Data {
-					db.On(reflection.GetMethodName(vem.db.GetPreparationMediaByPreparation), testutils.ContextMatcher, prep.ID).Return([]*types.PreparationMediaRow{}, nil)
-				}
+		db := &mealplanningmock.RepositoryMock{
+			SearchForValidPreparationsFunc: func(_ context.Context, query string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPreparation], error) {
+				assert.Equal(t, exampleQuery, query)
+
+				return expected, nil
 			},
-		)
+			GetPreparationMediaByPreparationFunc: func(_ context.Context, id string) ([]*types.PreparationMediaRow, error) {
+				assert.True(t, expectedIDs[id], "unexpected media lookup for %s", id)
+
+				return []*types.PreparationMediaRow{}, nil
+			},
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidPreparations(ctx, exampleQuery, false, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.SearchForValidPreparationsCalls(), 1)
+		assert.Len(t, db.GetPreparationMediaByPreparationCalls(), len(expected.Data))
 	})
 }
 
@@ -57,22 +65,30 @@ func TestValidEnumerationManager_ListValidPreparations(T *testing.T) {
 
 		expected := fakes.BuildFakeValidPreparationsList()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPreparations), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(expected, nil)
+		// media is looked up once per returned record.
+		expectedIDs := map[string]bool{}
+		for _, prep := range expected.Data {
+			expectedIDs[prep.ID] = true
+		}
 
-				for _, prep := range expected.Data {
-					db.On(reflection.GetMethodName(vem.db.GetPreparationMediaByPreparation), testutils.ContextMatcher, prep.ID).Return([]*types.PreparationMediaRow{}, nil)
-				}
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationsFunc: func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPreparation], error) {
+				return expected, nil
 			},
-		)
+			GetPreparationMediaByPreparationFunc: func(_ context.Context, id string) ([]*types.PreparationMediaRow, error) {
+				assert.True(t, expectedIDs[id], "unexpected media lookup for %s", id)
+
+				return []*types.PreparationMediaRow{}, nil
+			},
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidPreparations(ctx, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationsCalls(), 1)
+		assert.Len(t, db.GetPreparationMediaByPreparationCalls(), len(expected.Data))
 	})
 }
 
@@ -88,21 +104,18 @@ func TestValidEnumerationManager_CreateValidPreparation(T *testing.T) {
 		expected := fakes.BuildFakeValidPreparation()
 		fakeInput := fakes.BuildFakeValidPreparationCreationRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.CreateValidPreparation), testutils.ContextMatcher, testutils.MatchType[*types.ValidPreparationDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateValidPreparationFunc: func(_ context.Context, _ *types.ValidPreparationDatabaseCreationInput) (*types.ValidPreparation, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				types.ValidPreparationCreatedServiceEventType: {mealplanningkeys.ValidPreparationIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidPreparation(ctx, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateValidPreparationCalls(), 1)
 	})
 }
 
@@ -117,20 +130,26 @@ func TestValidEnumerationManager_ReadValidPreparation(T *testing.T) {
 
 		expected := fakes.BuildFakeValidPreparation()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetValidPreparation), testutils.ContextMatcher, expected.ID).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationFunc: func(_ context.Context, validPreparationID string) (*types.ValidPreparation, error) {
+				assert.Equal(t, expected.ID, validPreparationID)
 
-				db.On(reflection.GetMethodName(vem.db.GetPreparationMediaByPreparation), testutils.ContextMatcher, expected.ID).Return([]*types.PreparationMediaRow{}, nil)
+				return expected, nil
 			},
-		)
+			GetPreparationMediaByPreparationFunc: func(_ context.Context, validPreparationID string) ([]*types.PreparationMediaRow, error) {
+				assert.Equal(t, expected.ID, validPreparationID)
+
+				return []*types.PreparationMediaRow{}, nil
+			},
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidPreparation(ctx, expected.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationCalls(), 1)
+		assert.Len(t, db.GetPreparationMediaByPreparationCalls(), 1)
 	})
 }
 
@@ -145,20 +164,24 @@ func TestValidEnumerationManager_RandomValidPreparation(T *testing.T) {
 
 		expected := fakes.BuildFakeValidPreparation()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.GetRandomValidPreparation), testutils.ContextMatcher).Return(expected, nil)
-
-				db.On(reflection.GetMethodName(vem.db.GetPreparationMediaByPreparation), testutils.ContextMatcher, expected.ID).Return([]*types.PreparationMediaRow{}, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRandomValidPreparationFunc: func(_ context.Context) (*types.ValidPreparation, error) {
+				return expected, nil
 			},
-		)
+			GetPreparationMediaByPreparationFunc: func(_ context.Context, validPreparationID string) ([]*types.PreparationMediaRow, error) {
+				assert.Equal(t, expected.ID, validPreparationID)
+
+				return []*types.PreparationMediaRow{}, nil
+			},
+		}
+		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.RandomValidPreparation(ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRandomValidPreparationCalls(), 1)
+		assert.Len(t, db.GetPreparationMediaByPreparationCalls(), 1)
 	})
 }
 
@@ -174,24 +197,30 @@ func TestValidEnumerationManager_UpdateValidPreparation(T *testing.T) {
 		exampleValidPreparation := fakes.BuildFakeValidPreparation()
 		exampleInput := fakes.BuildFakeValidPreparationUpdateRequestInput()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetValidPreparation), testutils.ContextMatcher, exampleValidPreparation.ID).Return(exampleValidPreparation, nil)
-				db.On(reflection.GetMethodName(mpm.db.UpdateValidPreparation), testutils.ContextMatcher, testutils.MatchType[*types.ValidPreparation]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetValidPreparationFunc: func(_ context.Context, validPreparationID string) (*types.ValidPreparation, error) {
+				assert.Equal(t, exampleValidPreparation.ID, validPreparationID)
 
-				db.On(reflection.GetMethodName(mpm.db.GetPreparationMediaByPreparation), testutils.ContextMatcher, exampleValidPreparation.ID).Return([]*types.PreparationMediaRow{}, nil)
+				return exampleValidPreparation, nil
 			},
-			map[string][]string{
-				types.ValidPreparationUpdatedServiceEventType: {mealplanningkeys.ValidPreparationIDKey},
+			UpdateValidPreparationFunc: func(_ context.Context, _ *types.ValidPreparation) error {
+				return nil
 			},
-		)
+			GetPreparationMediaByPreparationFunc: func(_ context.Context, validPreparationID string) ([]*types.PreparationMediaRow, error) {
+				assert.Equal(t, exampleValidPreparation.ID, validPreparationID)
+
+				return []*types.PreparationMediaRow{}, nil
+			},
+		}
+		attachRepositoryToManager(mpm, db)
 
 		result, err := mpm.UpdateValidPreparation(ctx, exampleValidPreparation.ID, exampleInput)
 		assert.NotNil(t, result)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetValidPreparationCalls(), 2) // the manager re-reads the record after updating it
+		assert.Len(t, db.UpdateValidPreparationCalls(), 1)
+		assert.Len(t, db.GetPreparationMediaByPreparationCalls(), 1)
 	})
 }
 
@@ -206,18 +235,17 @@ func TestValidEnumerationManager_ArchiveValidPreparation(T *testing.T) {
 
 		expected := fakes.BuildFakeValidPreparation()
 
-		expectations := setupExpectationsForValidEnumerationManager(
-			vem,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(vem.db.ArchiveValidPreparation), testutils.ContextMatcher, expected.ID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveValidPreparationFunc: func(_ context.Context, validPreparationID string) error {
+				assert.Equal(t, expected.ID, validPreparationID)
+
+				return nil
 			},
-			map[string][]string{
-				types.ValidPreparationArchivedServiceEventType: {mealplanningkeys.ValidPreparationIDKey},
-			},
-		)
+		}
+		attachRepositoryToManager(vem, db)
 
 		assert.NoError(t, vem.ArchiveValidPreparation(ctx, expected.ID))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveValidPreparationCalls(), 1)
 	})
 }

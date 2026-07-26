@@ -7,19 +7,15 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/converters"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/fakes"
-	settingskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/keys"
 	settingsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
 	mockpublishers "github.com/primandproper/platform-go/v6/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,7 +39,7 @@ func buildSettingsManagerForTest(t *testing.T) *settingsManager {
 		ctx,
 		tracingnoop.NewTracerProvider(),
 		loggingnoop.NewLogger(),
-		&settingsmock.Repository{},
+		&settingsmock.RepositoryMock{},
 		queueCfg,
 		mpp,
 	)
@@ -52,23 +48,13 @@ func buildSettingsManagerForTest(t *testing.T) *settingsManager {
 	return m.(*settingsManager)
 }
 
-func setupExpectationsForSettingsManager(
-	manager *settingsManager,
-	repoSetupFunc func(repo *settingsmock.Repository),
-	eventTypeMaps ...map[string][]string,
-) []any {
-	repo := &settingsmock.Repository{}
-	if repoSetupFunc != nil {
-		repoSetupFunc(repo)
-	}
+// attachRepositoryToSettingsManager wires a configured repository mock and a no-op data changes
+// publisher into the manager under test.
+func attachRepositoryToSettingsManager(manager *settingsManager, repo *settingsmock.RepositoryMock) {
 	manager.repo = repo
-
-	mp := &mockpublishers.PublisherMock{
+	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
 		PublishAsyncFunc: func(_ context.Context, _ any) {},
 	}
-	manager.dataChangesPublisher = mp
-
-	return []any{repo}
 }
 
 func TestSettingsManager_CreateServiceSetting(t *testing.T) {
@@ -83,21 +69,18 @@ func TestSettingsManager_CreateServiceSetting(t *testing.T) {
 		expected := fakes.BuildFakeServiceSetting()
 		input := converters.ConvertServiceSettingToServiceSettingDatabaseCreationInput(expected)
 
-		expectations := setupExpectationsForSettingsManager(
-			sm,
-			func(repo *settingsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.CreateServiceSetting), testutils.ContextMatcher, testutils.MatchType[*settings.ServiceSettingDatabaseCreationInput]()).Return(expected, nil)
+		repo := &settingsmock.RepositoryMock{
+			CreateServiceSettingFunc: func(_ context.Context, _ *settings.ServiceSettingDatabaseCreationInput) (*settings.ServiceSetting, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				settings.ServiceSettingCreatedServiceEventType: {settingskeys.ServiceSettingIDKey},
-			},
-		)
+		}
+		attachRepositoryToSettingsManager(sm, repo)
 
 		actual, err := sm.CreateServiceSetting(ctx, input)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateServiceSettingCalls(), 1)
 	})
 }
 
@@ -112,20 +95,19 @@ func TestSettingsManager_ArchiveServiceSetting(t *testing.T) {
 
 		serviceSettingID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForSettingsManager(
-			sm,
-			func(repo *settingsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.ArchiveServiceSetting), testutils.ContextMatcher, serviceSettingID).Return(nil)
+		repo := &settingsmock.RepositoryMock{
+			ArchiveServiceSettingFunc: func(_ context.Context, id string) error {
+				assert.Equal(t, serviceSettingID, id)
+
+				return nil
 			},
-			map[string][]string{
-				settings.ServiceSettingArchivedServiceEventType: {settingskeys.ServiceSettingIDKey},
-			},
-		)
+		}
+		attachRepositoryToSettingsManager(sm, repo)
 
 		err := sm.ArchiveServiceSetting(ctx, serviceSettingID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.ArchiveServiceSettingCalls(), 1)
 	})
 }
 
@@ -141,21 +123,18 @@ func TestSettingsManager_CreateServiceSettingConfiguration(t *testing.T) {
 		expected := fakes.BuildFakeServiceSettingConfiguration()
 		input := converters.ConvertServiceSettingConfigurationToServiceSettingConfigurationDatabaseCreationInput(expected)
 
-		expectations := setupExpectationsForSettingsManager(
-			sm,
-			func(repo *settingsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.CreateServiceSettingConfiguration), testutils.ContextMatcher, testutils.MatchType[*settings.ServiceSettingConfigurationDatabaseCreationInput]()).Return(expected, nil)
+		repo := &settingsmock.RepositoryMock{
+			CreateServiceSettingConfigurationFunc: func(_ context.Context, _ *settings.ServiceSettingConfigurationDatabaseCreationInput) (*settings.ServiceSettingConfiguration, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				settings.ServiceSettingConfigurationCreatedServiceEventType: {settingskeys.ServiceSettingConfigurationIDKey},
-			},
-		)
+		}
+		attachRepositoryToSettingsManager(sm, repo)
 
 		actual, err := sm.CreateServiceSettingConfiguration(ctx, input)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateServiceSettingConfigurationCalls(), 1)
 	})
 }
 
@@ -170,20 +149,19 @@ func TestSettingsManager_UpdateServiceSettingConfiguration(t *testing.T) {
 
 		updated := fakes.BuildFakeServiceSettingConfiguration()
 
-		expectations := setupExpectationsForSettingsManager(
-			sm,
-			func(repo *settingsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.UpdateServiceSettingConfiguration), testutils.ContextMatcher, updated).Return(nil)
+		repo := &settingsmock.RepositoryMock{
+			UpdateServiceSettingConfigurationFunc: func(_ context.Context, input *settings.ServiceSettingConfiguration) error {
+				assert.Equal(t, updated, input)
+
+				return nil
 			},
-			map[string][]string{
-				settings.ServiceSettingConfigurationUpdatedServiceEventType: {settingskeys.ServiceSettingConfigurationIDKey},
-			},
-		)
+		}
+		attachRepositoryToSettingsManager(sm, repo)
 
 		err := sm.UpdateServiceSettingConfiguration(ctx, updated)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.UpdateServiceSettingConfigurationCalls(), 1)
 	})
 }
 
@@ -198,19 +176,18 @@ func TestSettingsManager_ArchiveServiceSettingConfiguration(t *testing.T) {
 
 		serviceSettingConfigurationID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForSettingsManager(
-			sm,
-			func(repo *settingsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.ArchiveServiceSettingConfiguration), testutils.ContextMatcher, serviceSettingConfigurationID).Return(nil)
+		repo := &settingsmock.RepositoryMock{
+			ArchiveServiceSettingConfigurationFunc: func(_ context.Context, id string) error {
+				assert.Equal(t, serviceSettingConfigurationID, id)
+
+				return nil
 			},
-			map[string][]string{
-				settings.ServiceSettingConfigurationArchivedServiceEventType: {settingskeys.ServiceSettingConfigurationIDKey},
-			},
-		)
+		}
+		attachRepositoryToSettingsManager(sm, repo)
 
 		err := sm.ArchiveServiceSettingConfiguration(ctx, serviceSettingConfigurationID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.ArchiveServiceSettingConfigurationCalls(), 1)
 	})
 }

@@ -7,9 +7,7 @@ import (
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/fakes"
-	issuereportkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/keys"
 	issuereportsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	platformerrors "github.com/primandproper/platform-go/v6/errors"
 	"github.com/primandproper/platform-go/v6/filtering"
@@ -18,18 +16,21 @@ import (
 	mockpublishers "github.com/primandproper/platform-go/v6/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func buildIssueReportsManagerForTest(t *testing.T) (*issueReportsManager, *issuereportsmock.Repository) {
+// buildIssueReportsManagerForTest builds a manager backed by the given repository mock. A nil repo
+// gets an unconfigured mock, which panics if any of its methods are called.
+func buildIssueReportsManagerForTest(t *testing.T, repo *issuereportsmock.RepositoryMock) *issueReportsManager {
 	t.Helper()
 
+	if repo == nil {
+		repo = &issuereportsmock.RepositoryMock{}
+	}
+
 	ctx := t.Context()
-	repo := &issuereportsmock.Repository{}
 	queueCfg := &msgconfig.QueuesConfig{DataChangesTopicName: t.Name()}
 
 	mpp := &mockpublishers.PublisherProviderMock{
@@ -43,26 +44,12 @@ func buildIssueReportsManagerForTest(t *testing.T) (*issueReportsManager, *issue
 	m, err := NewIssueReportsDataManager(ctx, tracingnoop.NewTracerProvider(), loggingnoop.NewLogger(), repo, queueCfg, mpp)
 	require.NoError(t, err)
 
-	return m.(*issueReportsManager), repo
-}
-
-func setupExpectationsForIssueReportsManager(
-	manager *issueReportsManager,
-	repoSetupFunc func(repo *issuereportsmock.Repository),
-	eventTypeMaps ...map[string][]string,
-) []any {
-	repo := &issuereportsmock.Repository{}
-	if repoSetupFunc != nil {
-		repoSetupFunc(repo)
-	}
-	manager.repo = repo
-
-	mp := &mockpublishers.PublisherMock{
+	manager := m.(*issueReportsManager)
+	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
 		PublishAsyncFunc: func(_ context.Context, _ any) {},
 	}
-	manager.dataChangesPublisher = mp
 
-	return []any{repo}
+	return manager
 }
 
 func TestIssueReportsDataManager_CreateIssueReport(t *testing.T) {
@@ -72,50 +59,45 @@ func TestIssueReportsDataManager_CreateIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildIssueReportsManagerForTest(t)
 
 		dbInput := fakes.BuildFakeIssueReportDatabaseCreationInput()
 		createdReport := fakes.BuildFakeIssueReport()
 		createdReport.ID = dbInput.ID
 
-		expectations := setupExpectationsForIssueReportsManager(
-			manager,
-			func(repo *issuereportsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.CreateIssueReport), testutils.ContextMatcher, mock.Anything).Return(createdReport, nil)
+		repo := &issuereportsmock.RepositoryMock{
+			CreateIssueReportFunc: func(_ context.Context, _ *types.IssueReportDatabaseCreationInput) (*types.IssueReport, error) {
+				return createdReport, nil
 			},
-			map[string][]string{
-				types.IssueReportCreatedServiceEventType: {issuereportkeys.IssueReportIDKey},
-			},
-		)
+		}
+		manager := buildIssueReportsManagerForTest(t, repo)
 
 		created, err := manager.CreateIssueReport(ctx, dbInput)
 
 		require.NoError(t, err)
 		assert.NotNil(t, created)
 		assert.Equal(t, dbInput.ID, created.ID)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateIssueReportCalls(), 1)
 	})
 
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildIssueReportsManagerForTest(t)
 
 		dbInput := fakes.BuildFakeIssueReportDatabaseCreationInput()
 
-		expectations := setupExpectationsForIssueReportsManager(
-			manager,
-			func(repo *issuereportsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.CreateIssueReport), testutils.ContextMatcher, mock.Anything).Return((*types.IssueReport)(nil), errors.New("db error"))
+		repo := &issuereportsmock.RepositoryMock{
+			CreateIssueReportFunc: func(_ context.Context, _ *types.IssueReportDatabaseCreationInput) (*types.IssueReport, error) {
+				return nil, errors.New("db error")
 			},
-		)
+		}
+		manager := buildIssueReportsManagerForTest(t, repo)
 
 		created, err := manager.CreateIssueReport(ctx, dbInput)
 
 		assert.Error(t, err)
 		assert.Nil(t, created)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.CreateIssueReportCalls(), 1)
 	})
 }
 
@@ -126,16 +108,23 @@ func TestIssueReportsDataManager_GetIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildIssueReportsManagerForTest(t)
 
 		expected := fakes.BuildFakeIssueReport()
-		repo.On(reflection.GetMethodName(repo.GetIssueReport), testutils.ContextMatcher, expected.ID).Return(expected, nil)
+
+		repo := &issuereportsmock.RepositoryMock{
+			GetIssueReportFunc: func(_ context.Context, issueReportID string) (*types.IssueReport, error) {
+				assert.Equal(t, expected.ID, issueReportID)
+
+				return expected, nil
+			},
+		}
+		manager := buildIssueReportsManagerForTest(t, repo)
 
 		result, err := manager.GetIssueReport(ctx, expected.ID)
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.GetIssueReportCalls(), 1)
 	})
 }
 
@@ -146,20 +135,27 @@ func TestIssueReportsDataManager_GetIssueReports(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildIssueReportsManagerForTest(t)
 
 		filter := filtering.DefaultQueryFilter()
 		report := fakes.BuildFakeIssueReport()
 		expected := &filtering.QueryFilteredResult[types.IssueReport]{
 			Data: []*types.IssueReport{report},
 		}
-		repo.On(reflection.GetMethodName(repo.GetIssueReports), testutils.ContextMatcher, filter).Return(expected, nil)
+
+		repo := &issuereportsmock.RepositoryMock{
+			GetIssueReportsFunc: func(_ context.Context, actualFilter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.IssueReport], error) {
+				assert.Equal(t, filter, actualFilter)
+
+				return expected, nil
+			},
+		}
+		manager := buildIssueReportsManagerForTest(t, repo)
 
 		result, err := manager.GetIssueReports(ctx, filter)
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.GetIssueReportsCalls(), 1)
 	})
 }
 
@@ -170,31 +166,29 @@ func TestIssueReportsDataManager_UpdateIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildIssueReportsManagerForTest(t)
 
 		issueReport := fakes.BuildFakeIssueReport()
 
-		expectations := setupExpectationsForIssueReportsManager(
-			manager,
-			func(repo *issuereportsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.UpdateIssueReport), testutils.ContextMatcher, issueReport).Return(nil)
+		repo := &issuereportsmock.RepositoryMock{
+			UpdateIssueReportFunc: func(_ context.Context, actual *types.IssueReport) error {
+				assert.Equal(t, issueReport, actual)
+
+				return nil
 			},
-			map[string][]string{
-				types.IssueReportUpdatedServiceEventType: {issuereportkeys.IssueReportIDKey},
-			},
-		)
+		}
+		manager := buildIssueReportsManagerForTest(t, repo)
 
 		err := manager.UpdateIssueReport(ctx, issueReport)
 
 		require.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.UpdateIssueReportCalls(), 1)
 	})
 
 	t.Run("with nil input", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildIssueReportsManagerForTest(t)
+		manager := buildIssueReportsManagerForTest(t, nil)
 
 		err := manager.UpdateIssueReport(ctx, nil)
 
@@ -209,23 +203,21 @@ func TestIssueReportsDataManager_ArchiveIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, _ := buildIssueReportsManagerForTest(t)
 
 		issueReportID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForIssueReportsManager(
-			manager,
-			func(repo *issuereportsmock.Repository) {
-				repo.On(reflection.GetMethodName(repo.ArchiveIssueReport), testutils.ContextMatcher, issueReportID).Return(nil)
+		repo := &issuereportsmock.RepositoryMock{
+			ArchiveIssueReportFunc: func(_ context.Context, actualID string) error {
+				assert.Equal(t, issueReportID, actualID)
+
+				return nil
 			},
-			map[string][]string{
-				types.IssueReportArchivedServiceEventType: {issuereportkeys.IssueReportIDKey},
-			},
-		)
+		}
+		manager := buildIssueReportsManagerForTest(t, repo)
 
 		err := manager.ArchiveIssueReport(ctx, issueReportID)
 
 		require.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, repo.ArchiveIssueReportCalls(), 1)
 	})
 }

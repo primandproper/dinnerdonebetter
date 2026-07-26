@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestRecipeManager_ListRecipeLists(T *testing.T) {
@@ -32,18 +30,18 @@ func TestRecipeManager_ListRecipeLists(T *testing.T) {
 		}
 		expected := &filtering.QueryFilteredResult[types.RecipeList]{Data: []*types.RecipeList{recipeList}}
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.GetRecipeLists), testutils.ContextMatcher, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeListsFunc: func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error) {
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ListRecipeLists(ctx, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetRecipeListsCalls(), 1)
 	})
 }
 
@@ -63,18 +61,18 @@ func TestRecipeManager_CreateRecipeList(T *testing.T) {
 		}
 		expected := &types.RecipeList{ID: fakes.BuildFakeID(), Name: input.Name, Description: input.Description, BelongsToUser: userID}
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.CreateRecipeList), testutils.ContextMatcher, testutils.MatchType[*types.RecipeListDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateRecipeListFunc: func(_ context.Context, _ *types.RecipeListDatabaseCreationInput) (*types.RecipeList, error) {
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.CreateRecipeList(ctx, userID, input)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateRecipeListCalls(), 1)
 	})
 }
 
@@ -90,16 +88,19 @@ func TestRecipeManager_ArchiveRecipeList(T *testing.T) {
 		userID := fakes.BuildFakeID()
 		listID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.ArchiveRecipeList), testutils.ContextMatcher, listID, userID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveRecipeListFunc: func(_ context.Context, recipeListID string, actualUserID string) error {
+				assert.Equal(t, listID, recipeListID)
+				assert.Equal(t, userID, actualUserID)
+
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		assert.NoError(t, rm.ArchiveRecipeList(ctx, listID, userID))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveRecipeListCalls(), 1)
 	})
 }
 
@@ -121,15 +122,15 @@ func TestRecipeManager_UpdateRecipeList(T *testing.T) {
 			Description: &desc,
 		}
 
-		expectations := setupExpectationsForRecipeManager(
-			rm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(rm.db.UpdateRecipeList), testutils.ContextMatcher, testutils.MatchType[*types.RecipeList]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			UpdateRecipeListFunc: func(_ context.Context, _ *types.RecipeList) error {
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(rm, db)
 
 		assert.NoError(t, rm.UpdateRecipeList(ctx, listID, userID, input))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.UpdateRecipeListCalls(), 1)
 	})
 }

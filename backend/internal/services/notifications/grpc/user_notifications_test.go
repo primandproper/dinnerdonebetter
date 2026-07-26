@@ -12,58 +12,53 @@ import (
 	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	notificationssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/notifications/grpc/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v6/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	"github.com/primandproper/platform-go/v6/observability/tracing"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func buildTestService(t *testing.T) (*serviceImpl, *notificationsmock.Repository) {
+// testSessionUserID is the user reported by the session fetcher that buildTestService installs.
+const testSessionUserID = "test-user-id"
+
+// buildTestService builds a service backed by the given repository mock. A nil repo gets an
+// unconfigured mock, which panics if any of its methods are called.
+func buildTestService(t *testing.T, notificationsRepo *notificationsmock.RepositoryMock) *serviceImpl {
 	t.Helper()
 
-	logger := loggingnoop.NewLogger()
-	tracer := tracing.NewTracerForTest(t.Name())
-	notificationsRepo := &notificationsmock.Repository{}
+	if notificationsRepo == nil {
+		notificationsRepo = &notificationsmock.RepositoryMock{}
+	}
 
-	service := &serviceImpl{
-		tracer:               tracer,
-		logger:               logger,
+	return &serviceImpl{
+		tracer:               tracing.NewTracerForTest(t.Name()),
+		logger:               loggingnoop.NewLogger(),
 		notificationsManager: notificationsRepo,
-		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
+		sessionContextDataFetcher: func(context.Context) (*sessions.ContextData, error) {
 			return &sessions.ContextData{
 				Requester: sessions.RequesterInfo{
-					UserID: "test-user-id",
+					UserID: testSessionUserID,
 				},
 			}, nil
 		},
 	}
-
-	return service, notificationsRepo
 }
 
 func buildTestServiceWithSessionError(t *testing.T) *serviceImpl {
 	t.Helper()
 
-	logger := loggingnoop.NewLogger()
-	tracer := tracing.NewTracerForTest(t.Name())
-
-	service := &serviceImpl{
-		tracer:               tracer,
-		logger:               logger,
-		notificationsManager: &notificationsmock.Repository{},
-		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
+	return &serviceImpl{
+		tracer:               tracing.NewTracerForTest(t.Name()),
+		logger:               loggingnoop.NewLogger(),
+		notificationsManager: &notificationsmock.RepositoryMock{},
+		sessionContextDataFetcher: func(context.Context) (*sessions.ContextData, error) {
 			return nil, errors.New("session error")
 		},
 	}
-
-	return service
 }
 
 func TestServiceImpl_GetUserNotification(t *testing.T) {
@@ -73,13 +68,19 @@ func TestServiceImpl_GetUserNotification(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeNotification := notificationsfakes.BuildFakeUserNotification()
 		notificationID := fakeNotification.ID
-		userID := "test-user-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetUserNotification), testutils.ContextMatcher, userID, notificationID).Return(fakeNotification, nil)
+		mockRepo := &notificationsmock.RepositoryMock{
+			GetUserNotificationFunc: func(_ context.Context, userID, userNotificationID string) (*notifications.UserNotification, error) {
+				assert.Equal(t, testSessionUserID, userID)
+				assert.Equal(t, notificationID, userNotificationID)
+
+				return fakeNotification, nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &notificationssvc.GetUserNotificationRequest{
 			UserNotificationId: notificationID,
@@ -93,7 +94,7 @@ func TestServiceImpl_GetUserNotification(t *testing.T) {
 		assert.NotNil(t, response.Result)
 		assert.Equal(t, fakeNotification.ID, response.Result.Id)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetUserNotificationCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -117,12 +118,18 @@ func TestServiceImpl_GetUserNotification(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		notificationID := "nonexistent-notification"
-		userID := "test-user-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetUserNotification), testutils.ContextMatcher, userID, notificationID).Return((*notifications.UserNotification)(nil), errors.New("repository error"))
+		mockRepo := &notificationsmock.RepositoryMock{
+			GetUserNotificationFunc: func(_ context.Context, userID, userNotificationID string) (*notifications.UserNotification, error) {
+				assert.Equal(t, testSessionUserID, userID)
+				assert.Equal(t, notificationID, userNotificationID)
+
+				return nil, errors.New("repository error")
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &notificationssvc.GetUserNotificationRequest{
 			UserNotificationId: notificationID,
@@ -134,7 +141,7 @@ func TestServiceImpl_GetUserNotification(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetUserNotificationCalls(), 1)
 	})
 }
 
@@ -145,16 +152,22 @@ func TestServiceImpl_GetUserNotifications(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeNotifications := notificationsfakes.BuildFakeUserNotificationsList()
-		userID := "test-user-id"
 		pageSize := uint8(20)
 		filter := &filtering.QueryFilter{
 			MaxResponseSize: &pageSize,
 		}
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetUserNotifications), testutils.ContextMatcher, userID, testutils.QueryFilterMatcher).Return(fakeNotifications, nil)
+		mockRepo := &notificationsmock.RepositoryMock{
+			GetUserNotificationsFunc: func(_ context.Context, userID string, actualFilter *filtering.QueryFilter) (*filtering.QueryFilteredResult[notifications.UserNotification], error) {
+				assert.Equal(t, testSessionUserID, userID)
+				assert.NotNil(t, actualFilter)
+
+				return fakeNotifications, nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &notificationssvc.GetUserNotificationsRequest{
@@ -170,7 +183,7 @@ func TestServiceImpl_GetUserNotifications(t *testing.T) {
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Len(t, response.Results, len(fakeNotifications.Data))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetUserNotificationsCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -197,11 +210,15 @@ func TestServiceImpl_GetUserNotifications(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
-		userID := "test-user-id"
+		mockRepo := &notificationsmock.RepositoryMock{
+			GetUserNotificationsFunc: func(_ context.Context, userID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[notifications.UserNotification], error) {
+				assert.Equal(t, testSessionUserID, userID)
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetUserNotifications), testutils.ContextMatcher, userID, testutils.QueryFilterMatcher).Return((*filtering.QueryFilteredResult[notifications.UserNotification])(nil), errors.New("repository error"))
+				return nil, errors.New("repository error")
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		grpcPageSize := uint32(20)
 		request := &notificationssvc.GetUserNotificationsRequest{
@@ -216,7 +233,7 @@ func TestServiceImpl_GetUserNotifications(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetUserNotificationsCalls(), 1)
 	})
 }
 
@@ -227,23 +244,35 @@ func TestServiceImpl_UpdateUserNotification(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeNotification := notificationsfakes.BuildFakeUserNotification()
 		notificationID := fakeNotification.ID
-		userID := "test-user-id"
 		newStatus := notifications.UserNotificationStatusTypeRead
 
-		// Mock the first call to get existing notification
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetUserNotification), testutils.ContextMatcher, userID, notificationID).Return(fakeNotification, nil).Once()
-
-		// Mock the update call
-		mockRepo.On(reflection.GetMethodName(mockRepo.UpdateUserNotification), testutils.ContextMatcher, mock.AnythingOfType("*notifications.UserNotification")).Return(nil).Once()
-
-		// Mock the second call to get updated notification
 		updatedNotification := *fakeNotification
 		updatedNotification.Status = newStatus
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetUserNotification), testutils.ContextMatcher, userID, notificationID).Return(&updatedNotification, nil).Once()
+
+		// The handler fetches the existing notification, updates it, then re-reads it.
+		getCallCount := 0
+		mockRepo := &notificationsmock.RepositoryMock{
+			GetUserNotificationFunc: func(_ context.Context, userID, userNotificationID string) (*notifications.UserNotification, error) {
+				assert.Equal(t, testSessionUserID, userID)
+				assert.Equal(t, notificationID, userNotificationID)
+
+				getCallCount++
+				if getCallCount == 1 {
+					return fakeNotification, nil
+				}
+
+				return &updatedNotification, nil
+			},
+			UpdateUserNotificationFunc: func(_ context.Context, updated *notifications.UserNotification) error {
+				assert.NotNil(t, updated)
+
+				return nil
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		request := &notificationssvc.UpdateUserNotificationRequest{
 			UserNotificationId: notificationID,
@@ -260,7 +289,8 @@ func TestServiceImpl_UpdateUserNotification(t *testing.T) {
 		assert.NotNil(t, response.Updated)
 		assert.Equal(t, newStatus, converters.ConvertUserNotificationStatusToString(response.Updated.Status))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetUserNotificationCalls(), 2)
+		assert.Len(t, mockRepo.UpdateUserNotificationCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -288,12 +318,18 @@ func TestServiceImpl_UpdateUserNotification(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		notificationID := "nonexistent-notification"
-		userID := "test-user-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetUserNotification), testutils.ContextMatcher, userID, notificationID).Return((*notifications.UserNotification)(nil), errors.New("repository error"))
+		mockRepo := &notificationsmock.RepositoryMock{
+			GetUserNotificationFunc: func(_ context.Context, userID, userNotificationID string) (*notifications.UserNotification, error) {
+				assert.Equal(t, testSessionUserID, userID)
+				assert.Equal(t, notificationID, userNotificationID)
+
+				return nil, errors.New("repository error")
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		statusValue := notifications.UserNotificationStatusTypeRead
 		request := &notificationssvc.UpdateUserNotificationRequest{
@@ -309,21 +345,32 @@ func TestServiceImpl_UpdateUserNotification(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetUserNotificationCalls(), 1)
+		assert.Empty(t, mockRepo.UpdateUserNotificationCalls())
 	})
 
 	t.Run("repository error on update", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
 
 		fakeNotification := notificationsfakes.BuildFakeUserNotification()
 		notificationID := fakeNotification.ID
-		userID := "test-user-id"
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetUserNotification), testutils.ContextMatcher, userID, notificationID).Return(fakeNotification, nil).Once()
-		mockRepo.On(reflection.GetMethodName(mockRepo.UpdateUserNotification), testutils.ContextMatcher, mock.AnythingOfType("*notifications.UserNotification")).Return(errors.New("update error")).Once()
+		mockRepo := &notificationsmock.RepositoryMock{
+			GetUserNotificationFunc: func(_ context.Context, userID, userNotificationID string) (*notifications.UserNotification, error) {
+				assert.Equal(t, testSessionUserID, userID)
+				assert.Equal(t, notificationID, userNotificationID)
+
+				return fakeNotification, nil
+			},
+			UpdateUserNotificationFunc: func(_ context.Context, updated *notifications.UserNotification) error {
+				assert.NotNil(t, updated)
+
+				return errors.New("update error")
+			},
+		}
+		service := buildTestService(t, mockRepo)
 
 		statusValue := notifications.UserNotificationStatusTypeRead
 		request := &notificationssvc.UpdateUserNotificationRequest{
@@ -339,6 +386,7 @@ func TestServiceImpl_UpdateUserNotification(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetUserNotificationCalls(), 1)
+		assert.Len(t, mockRepo.UpdateUserNotificationCalls(), 1)
 	})
 }

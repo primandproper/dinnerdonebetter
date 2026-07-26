@@ -1,6 +1,7 @@
 package datachangemessagehandler
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -13,10 +14,8 @@ import (
 	webhooksfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 
 	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.T) {
@@ -50,13 +49,17 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 		}
 
 		expectedError := errors.New("account fetch error")
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetAccount), mock.Anything, accountID).Return((*identity.Account)(nil), expectedError)
+		identityRepo.GetAccountFunc = func(_ context.Context, actualAccountID string) (*identity.Account, error) {
+			assert.Equal(t, accountID, actualAccountID)
+
+			return nil, expectedError
+		}
 
 		err := handler.handleWebhookExecutionRequest(ctx, webhookExecutionRequest)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "getting account")
 
-		mock.AssertExpectationsForObjects(t, identityRepo)
+		assert.Len(t, identityRepo.GetAccountCalls(), 1)
 	})
 
 	t.Run("with webhook fetch error", func(t *testing.T) {
@@ -77,13 +80,23 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 		}
 
 		expectedError := errors.New("webhook fetch error")
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetAccount), mock.Anything, account.ID).Return(account, nil)
-		webhookRepo.On(reflection.GetMethodName(webhookRepo.GetWebhook), mock.Anything, webhookID, account.ID).Return((*webhooks.Webhook)(nil), expectedError)
+		identityRepo.GetAccountFunc = func(_ context.Context, accountID string) (*identity.Account, error) {
+			assert.Equal(t, account.ID, accountID)
+
+			return account, nil
+		}
+		webhookRepo.GetWebhookFunc = func(_ context.Context, actualWebhookID string, accountID string) (*webhooks.Webhook, error) {
+			assert.Equal(t, webhookID, actualWebhookID)
+			assert.Equal(t, account.ID, accountID)
+
+			return nil, expectedError
+		}
 
 		err := handler.handleWebhookExecutionRequest(ctx, webhookExecutionRequest)
 		assert.NoError(t, err) // Should not return error, just log it
 
-		mock.AssertExpectationsForObjects(t, identityRepo, webhookRepo)
+		assert.Len(t, identityRepo.GetAccountCalls(), 1)
+		assert.Len(t, webhookRepo.GetWebhookCalls(), 1)
 	})
 
 	t.Run("with invalid webhook encryption key", func(t *testing.T) {
@@ -106,14 +119,24 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 			Payload:   &audit.DataChangeMessage{},
 		}
 
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetAccount), mock.Anything, account.ID).Return(account, nil)
-		webhookRepo.On(reflection.GetMethodName(webhookRepo.GetWebhook), mock.Anything, webhook.ID, account.ID).Return(webhook, nil)
+		identityRepo.GetAccountFunc = func(_ context.Context, accountID string) (*identity.Account, error) {
+			assert.Equal(t, account.ID, accountID)
+
+			return account, nil
+		}
+		webhookRepo.GetWebhookFunc = func(_ context.Context, webhookID string, accountID string) (*webhooks.Webhook, error) {
+			assert.Equal(t, webhook.ID, webhookID)
+			assert.Equal(t, account.ID, accountID)
+
+			return webhook, nil
+		}
 
 		err := handler.handleWebhookExecutionRequest(ctx, webhookExecutionRequest)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "decoding webhook encryption key")
 
-		mock.AssertExpectationsForObjects(t, identityRepo, webhookRepo)
+		assert.Len(t, identityRepo.GetAccountCalls(), 1)
+		assert.Len(t, webhookRepo.GetWebhookCalls(), 1)
 	})
 
 	t.Run("with successful JSON webhook execution", func(t *testing.T) {
@@ -147,13 +170,23 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 			},
 		}
 
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetAccount), mock.Anything, account.ID).Return(account, nil)
-		webhookRepo.On(reflection.GetMethodName(webhookRepo.GetWebhook), mock.Anything, webhook.ID, account.ID).Return(webhook, nil)
+		identityRepo.GetAccountFunc = func(_ context.Context, accountID string) (*identity.Account, error) {
+			assert.Equal(t, account.ID, accountID)
+
+			return account, nil
+		}
+		webhookRepo.GetWebhookFunc = func(_ context.Context, webhookID string, accountID string) (*webhooks.Webhook, error) {
+			assert.Equal(t, webhook.ID, webhookID)
+			assert.Equal(t, account.ID, accountID)
+
+			return webhook, nil
+		}
 
 		err := handler.handleWebhookExecutionRequest(ctx, webhookExecutionRequest)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, identityRepo, webhookRepo)
+		assert.Len(t, identityRepo.GetAccountCalls(), 1)
+		assert.Len(t, webhookRepo.GetWebhookCalls(), 1)
 	})
 
 	t.Run("with non-2xx webhook response", func(t *testing.T) {
@@ -187,14 +220,24 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 			},
 		}
 
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetAccount), mock.Anything, account.ID).Return(account, nil)
-		webhookRepo.On(reflection.GetMethodName(webhookRepo.GetWebhook), mock.Anything, webhook.ID, account.ID).Return(webhook, nil)
+		identityRepo.GetAccountFunc = func(_ context.Context, accountID string) (*identity.Account, error) {
+			assert.Equal(t, account.ID, accountID)
+
+			return account, nil
+		}
+		webhookRepo.GetWebhookFunc = func(_ context.Context, webhookID string, accountID string) (*webhooks.Webhook, error) {
+			assert.Equal(t, webhook.ID, webhookID)
+			assert.Equal(t, account.ID, accountID)
+
+			return webhook, nil
+		}
 
 		err := handler.handleWebhookExecutionRequest(ctx, webhookExecutionRequest)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "unexpected status code")
 
-		mock.AssertExpectationsForObjects(t, identityRepo, webhookRepo)
+		assert.Len(t, identityRepo.GetAccountCalls(), 1)
+		assert.Len(t, webhookRepo.GetWebhookCalls(), 1)
 	})
 
 	t.Run("with XML webhook payload marshaling error", func(t *testing.T) {
@@ -223,14 +266,24 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 			},
 		}
 
-		identityRepo.On(reflection.GetMethodName(identityRepo.GetAccount), mock.Anything, account.ID).Return(account, nil)
-		webhookRepo.On(reflection.GetMethodName(webhookRepo.GetWebhook), mock.Anything, webhook.ID, account.ID).Return(webhook, nil)
+		identityRepo.GetAccountFunc = func(_ context.Context, accountID string) (*identity.Account, error) {
+			assert.Equal(t, account.ID, accountID)
+
+			return account, nil
+		}
+		webhookRepo.GetWebhookFunc = func(_ context.Context, webhookID string, accountID string) (*webhooks.Webhook, error) {
+			assert.Equal(t, webhook.ID, webhookID)
+			assert.Equal(t, account.ID, accountID)
+
+			return webhook, nil
+		}
 
 		// XML marshaling of the payload's map fields is not supported, so the request fails before any HTTP call.
 		err := handler.handleWebhookExecutionRequest(ctx, webhookExecutionRequest)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "marshaling webhook payload")
 
-		mock.AssertExpectationsForObjects(t, identityRepo, webhookRepo)
+		assert.Len(t, identityRepo.GetAccountCalls(), 1)
+		assert.Len(t, webhookRepo.GetWebhookCalls(), 1)
 	})
 }

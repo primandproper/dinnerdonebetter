@@ -6,20 +6,19 @@ import (
 	"testing"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
 	webhookfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 	webhookmgrmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/manager/mock"
 	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	webhookssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/webhooks/grpc/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
+	"github.com/primandproper/platform-go/v6/filtering"
 	"github.com/primandproper/platform-go/v6/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	"github.com/primandproper/platform-go/v6/observability/tracing"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -29,12 +28,12 @@ var (
 	testUserID    = identifiers.New()
 )
 
-func buildTestService(t *testing.T) (*serviceImpl, *webhookmgrmock.WebhookDataManager) {
+func buildTestService(t *testing.T) (*serviceImpl, *webhookmgrmock.WebhookDataManagerMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
-	webhookManager := &webhookmgrmock.WebhookDataManager{}
+	webhookManager := &webhookmgrmock.WebhookDataManagerMock{}
 
 	service := &serviceImpl{
 		tracer: tracer,
@@ -63,7 +62,7 @@ func buildTestServiceWithSessionError(t *testing.T) *serviceImpl {
 		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
 			return nil, errors.New("session error")
 		},
-		webhookManager: &webhookmgrmock.WebhookDataManager{},
+		webhookManager: &webhookmgrmock.WebhookDataManagerMock{},
 	}
 
 	return service
@@ -81,7 +80,12 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 		fakeWebhook := webhookfakes.BuildFakeWebhook()
 		fakeInput := webhookfakes.BuildFakeWebhookCreationRequestInput()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.CreateWebhook), testutils.ContextMatcher, testUserID, testAccountID, mock.AnythingOfType("*webhooks.WebhookCreationRequestInput")).Return(fakeWebhook, nil)
+		mockRepo.CreateWebhookFunc = func(_ context.Context, userID string, accountID string, _ *webhooks.WebhookCreationRequestInput) (*webhooks.Webhook, error) {
+			assert.Equal(t, testUserID, userID)
+			assert.Equal(t, testAccountID, accountID)
+
+			return fakeWebhook, nil
+		}
 
 		request := &webhookssvc.CreateWebhookRequest{
 			Input: converters.ConvertWebhookCreationRequestInputToGRPCWebhookCreationRequestInput(fakeInput),
@@ -97,7 +101,7 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 		assert.Equal(t, fakeWebhook.Name, response.Created.Name)
 		assert.Equal(t, fakeWebhook.URL, response.Created.Url)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.CreateWebhookCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -157,7 +161,12 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 
 		fakeInput := webhookfakes.BuildFakeWebhookCreationRequestInput()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.CreateWebhook), testutils.ContextMatcher, testUserID, testAccountID, mock.AnythingOfType("*webhooks.WebhookCreationRequestInput")).Return(nil, errors.New("repository error"))
+		mockRepo.CreateWebhookFunc = func(_ context.Context, userID string, accountID string, _ *webhooks.WebhookCreationRequestInput) (*webhooks.Webhook, error) {
+			assert.Equal(t, testUserID, userID)
+			assert.Equal(t, testAccountID, accountID)
+
+			return nil, errors.New("repository error")
+		}
 
 		request := &webhookssvc.CreateWebhookRequest{
 			Input: converters.ConvertWebhookCreationRequestInputToGRPCWebhookCreationRequestInput(fakeInput),
@@ -169,7 +178,7 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.CreateWebhookCalls(), 1)
 	})
 }
 
@@ -186,7 +195,11 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 		webhookID := identifiers.New()
 		triggerEventID := fakeConfig.TriggerEventID
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.AddWebhookTriggerConfig), testutils.ContextMatcher, testAccountID, mock.AnythingOfType("*webhooks.WebhookTriggerConfigCreationRequestInput")).Return(fakeConfig, nil)
+		mockRepo.AddWebhookTriggerConfigFunc = func(_ context.Context, accountID string, _ *webhooks.WebhookTriggerConfigCreationRequestInput) (*webhooks.WebhookTriggerConfig, error) {
+			assert.Equal(t, testAccountID, accountID)
+
+			return fakeConfig, nil
+		}
 
 		request := &webhookssvc.AddWebhookTriggerConfigRequest{
 			WebhookId: webhookID,
@@ -205,7 +218,7 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 		assert.Equal(t, fakeConfig.ID, response.Created.Id)
 		assert.Equal(t, fakeConfig.TriggerEventID, response.Created.TriggerEventId)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.AddWebhookTriggerConfigCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -237,7 +250,11 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 		ctx := t.Context()
 		service, mockRepo := buildTestService(t)
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.AddWebhookTriggerConfig), testutils.ContextMatcher, testAccountID, mock.AnythingOfType("*webhooks.WebhookTriggerConfigCreationRequestInput")).Return(nil, errors.New("repository error"))
+		mockRepo.AddWebhookTriggerConfigFunc = func(_ context.Context, accountID string, _ *webhooks.WebhookTriggerConfigCreationRequestInput) (*webhooks.WebhookTriggerConfig, error) {
+			assert.Equal(t, testAccountID, accountID)
+
+			return nil, errors.New("repository error")
+		}
 
 		webhookID := identifiers.New()
 		request := &webhookssvc.AddWebhookTriggerConfigRequest{
@@ -254,7 +271,7 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.AddWebhookTriggerConfigCalls(), 1)
 	})
 }
 
@@ -270,7 +287,12 @@ func TestServiceImpl_GetWebhook(t *testing.T) {
 		fakeWebhook := webhookfakes.BuildFakeWebhook()
 		webhookID := identifiers.New()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWebhook), testutils.ContextMatcher, webhookID, testAccountID).Return(fakeWebhook, nil)
+		mockRepo.GetWebhookFunc = func(_ context.Context, actualWebhookID string, accountID string) (*webhooks.Webhook, error) {
+			assert.Equal(t, webhookID, actualWebhookID)
+			assert.Equal(t, testAccountID, accountID)
+
+			return fakeWebhook, nil
+		}
 
 		request := &webhookssvc.GetWebhookRequest{
 			WebhookId: webhookID,
@@ -285,7 +307,7 @@ func TestServiceImpl_GetWebhook(t *testing.T) {
 		assert.Equal(t, fakeWebhook.ID, response.Result.Id)
 		assert.Equal(t, fakeWebhook.Name, response.Result.Name)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWebhookCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -314,7 +336,12 @@ func TestServiceImpl_GetWebhook(t *testing.T) {
 
 		webhookID := identifiers.New()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWebhook), testutils.ContextMatcher, webhookID, testAccountID).Return(nil, errors.New("repository error"))
+		mockRepo.GetWebhookFunc = func(_ context.Context, actualWebhookID string, accountID string) (*webhooks.Webhook, error) {
+			assert.Equal(t, webhookID, actualWebhookID)
+			assert.Equal(t, testAccountID, accountID)
+
+			return nil, errors.New("repository error")
+		}
 
 		request := &webhookssvc.GetWebhookRequest{
 			WebhookId: webhookID,
@@ -326,7 +353,7 @@ func TestServiceImpl_GetWebhook(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWebhookCalls(), 1)
 	})
 }
 
@@ -341,7 +368,11 @@ func TestServiceImpl_GetWebhooks(t *testing.T) {
 
 		fakeWebhooks := webhookfakes.BuildFakeWebhooksList()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWebhooks), testutils.ContextMatcher, testAccountID, testutils.QueryFilterMatcher).Return(fakeWebhooks, nil)
+		mockRepo.GetWebhooksFunc = func(_ context.Context, accountID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[webhooks.Webhook], error) {
+			assert.Equal(t, testAccountID, accountID)
+
+			return fakeWebhooks, nil
+		}
 
 		request := &webhookssvc.GetWebhooksRequest{
 			Filter: &grpcfiltering.QueryFilter{
@@ -357,7 +388,7 @@ func TestServiceImpl_GetWebhooks(t *testing.T) {
 		assert.Len(t, response.Results, len(fakeWebhooks.Data))
 		assert.Equal(t, fakeWebhooks.Data[0].ID, response.Results[0].Id)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWebhooksCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -383,7 +414,11 @@ func TestServiceImpl_GetWebhooks(t *testing.T) {
 		ctx := t.Context()
 		service, mockRepo := buildTestService(t)
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWebhooks), testutils.ContextMatcher, testAccountID, testutils.QueryFilterMatcher).Return(nil, errors.New("repository error"))
+		mockRepo.GetWebhooksFunc = func(_ context.Context, accountID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[webhooks.Webhook], error) {
+			assert.Equal(t, testAccountID, accountID)
+
+			return nil, errors.New("repository error")
+		}
 
 		request := &webhookssvc.GetWebhooksRequest{
 			Filter: &grpcfiltering.QueryFilter{},
@@ -395,7 +430,7 @@ func TestServiceImpl_GetWebhooks(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWebhooksCalls(), 1)
 	})
 }
 
@@ -410,7 +445,12 @@ func TestServiceImpl_ArchiveWebhook(t *testing.T) {
 
 		webhookID := identifiers.New()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.ArchiveWebhook), testutils.ContextMatcher, webhookID, testAccountID).Return(nil)
+		mockRepo.ArchiveWebhookFunc = func(_ context.Context, actualWebhookID string, accountID string) error {
+			assert.Equal(t, webhookID, actualWebhookID)
+			assert.Equal(t, testAccountID, accountID)
+
+			return nil
+		}
 
 		request := &webhookssvc.ArchiveWebhookRequest{
 			WebhookId: webhookID,
@@ -422,7 +462,7 @@ func TestServiceImpl_ArchiveWebhook(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.ArchiveWebhookCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -451,7 +491,12 @@ func TestServiceImpl_ArchiveWebhook(t *testing.T) {
 
 		webhookID := identifiers.New()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.ArchiveWebhook), testutils.ContextMatcher, webhookID, testAccountID).Return(errors.New("repository error"))
+		mockRepo.ArchiveWebhookFunc = func(_ context.Context, actualWebhookID string, accountID string) error {
+			assert.Equal(t, webhookID, actualWebhookID)
+			assert.Equal(t, testAccountID, accountID)
+
+			return errors.New("repository error")
+		}
 
 		request := &webhookssvc.ArchiveWebhookRequest{
 			WebhookId: webhookID,
@@ -463,7 +508,7 @@ func TestServiceImpl_ArchiveWebhook(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.ArchiveWebhookCalls(), 1)
 	})
 }
 
@@ -481,8 +526,18 @@ func TestServiceImpl_ArchiveWebhookTriggerConfig(t *testing.T) {
 
 		// the handler first verifies the webhook belongs to the active account.
 		fakeWebhook := webhookfakes.BuildFakeWebhook()
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWebhook), testutils.ContextMatcher, webhookID, testAccountID).Return(fakeWebhook, nil)
-		mockRepo.On(reflection.GetMethodName(mockRepo.ArchiveWebhookTriggerConfig), testutils.ContextMatcher, webhookID, configID).Return(nil)
+		mockRepo.GetWebhookFunc = func(_ context.Context, actualWebhookID string, accountID string) (*webhooks.Webhook, error) {
+			assert.Equal(t, webhookID, actualWebhookID)
+			assert.Equal(t, testAccountID, accountID)
+
+			return fakeWebhook, nil
+		}
+		mockRepo.ArchiveWebhookTriggerConfigFunc = func(_ context.Context, actualWebhookID string, actualConfigID string) error {
+			assert.Equal(t, webhookID, actualWebhookID)
+			assert.Equal(t, configID, actualConfigID)
+
+			return nil
+		}
 
 		request := &webhookssvc.ArchiveWebhookTriggerConfigRequest{
 			WebhookId:              webhookID,
@@ -495,7 +550,8 @@ func TestServiceImpl_ArchiveWebhookTriggerConfig(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWebhookCalls(), 1)
+		assert.Len(t, mockRepo.ArchiveWebhookTriggerConfigCalls(), 1)
 	})
 
 	t.Run("repository error", func(t *testing.T) {
@@ -509,8 +565,18 @@ func TestServiceImpl_ArchiveWebhookTriggerConfig(t *testing.T) {
 
 		// the handler first verifies the webhook belongs to the active account.
 		fakeWebhook := webhookfakes.BuildFakeWebhook()
-		mockRepo.On(reflection.GetMethodName(mockRepo.GetWebhook), testutils.ContextMatcher, webhookID, testAccountID).Return(fakeWebhook, nil)
-		mockRepo.On(reflection.GetMethodName(mockRepo.ArchiveWebhookTriggerConfig), testutils.ContextMatcher, webhookID, configID).Return(errors.New("repository error"))
+		mockRepo.GetWebhookFunc = func(_ context.Context, actualWebhookID string, accountID string) (*webhooks.Webhook, error) {
+			assert.Equal(t, webhookID, actualWebhookID)
+			assert.Equal(t, testAccountID, accountID)
+
+			return fakeWebhook, nil
+		}
+		mockRepo.ArchiveWebhookTriggerConfigFunc = func(_ context.Context, actualWebhookID string, actualConfigID string) error {
+			assert.Equal(t, webhookID, actualWebhookID)
+			assert.Equal(t, configID, actualConfigID)
+
+			return errors.New("repository error")
+		}
 
 		request := &webhookssvc.ArchiveWebhookTriggerConfigRequest{
 			WebhookId:              webhookID,
@@ -523,7 +589,8 @@ func TestServiceImpl_ArchiveWebhookTriggerConfig(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.GetWebhookCalls(), 1)
+		assert.Len(t, mockRepo.ArchiveWebhookTriggerConfigCalls(), 1)
 	})
 }
 
@@ -538,7 +605,11 @@ func TestServiceImpl_ArchiveWebhookTriggerEvent(t *testing.T) {
 
 		eventID := identifiers.New()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.ArchiveWebhookTriggerEvent), testutils.ContextMatcher, eventID).Return(nil)
+		mockRepo.ArchiveWebhookTriggerEventFunc = func(_ context.Context, id string) error {
+			assert.Equal(t, eventID, id)
+
+			return nil
+		}
 
 		request := &webhookssvc.ArchiveWebhookTriggerEventRequest{
 			Id: eventID,
@@ -550,7 +621,7 @@ func TestServiceImpl_ArchiveWebhookTriggerEvent(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.ArchiveWebhookTriggerEventCalls(), 1)
 	})
 
 	t.Run("repository error", func(t *testing.T) {
@@ -561,7 +632,11 @@ func TestServiceImpl_ArchiveWebhookTriggerEvent(t *testing.T) {
 
 		eventID := identifiers.New()
 
-		mockRepo.On(reflection.GetMethodName(mockRepo.ArchiveWebhookTriggerEvent), testutils.ContextMatcher, eventID).Return(errors.New("repository error"))
+		mockRepo.ArchiveWebhookTriggerEventFunc = func(_ context.Context, id string) error {
+			assert.Equal(t, eventID, id)
+
+			return errors.New("repository error")
+		}
 
 		request := &webhookssvc.ArchiveWebhookTriggerEventRequest{
 			Id: eventID,
@@ -573,7 +648,7 @@ func TestServiceImpl_ArchiveWebhookTriggerEvent(t *testing.T) {
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
-		mock.AssertExpectationsForObjects(t, mockRepo)
+		assert.Len(t, mockRepo.ArchiveWebhookTriggerEventCalls(), 1)
 	})
 }
 

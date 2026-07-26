@@ -1,18 +1,16 @@
 package managers
 
 import (
+	"context"
 	"testing"
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v6/reflection"
+	"github.com/primandproper/platform-go/v6/filtering"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestMealPlanningManager_ListUserIngredientPreferences(T *testing.T) {
@@ -27,18 +25,20 @@ func TestMealPlanningManager_ListUserIngredientPreferences(T *testing.T) {
 		expected := fakes.BuildFakeUserIngredientPreferencesList()
 		exampleOwnerID := fakes.BuildFakeID()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetUserIngredientPreferences), testutils.ContextMatcher, exampleOwnerID, testutils.QueryFilterMatcher).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetUserIngredientPreferencesFunc: func(_ context.Context, userID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.UserIngredientPreference], error) {
+				assert.Equal(t, exampleOwnerID, userID)
+
+				return expected, nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ListUserIngredientPreferences(ctx, exampleOwnerID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetUserIngredientPreferencesCalls(), 1)
 	})
 }
 
@@ -55,21 +55,18 @@ func TestMealPlanningManager_CreateUserIngredientPreference(T *testing.T) {
 		userID := fakes.BuildFakeID()
 		fakeInput := fakes.BuildFakeUserIngredientPreferenceCreationRequestInput()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.CreateUserIngredientPreference), testutils.ContextMatcher, testutils.MatchType[*types.UserIngredientPreferenceDatabaseCreationInput]()).Return(expected, nil)
+		db := &mealplanningmock.RepositoryMock{
+			CreateUserIngredientPreferenceFunc: func(_ context.Context, _ *types.UserIngredientPreferenceDatabaseCreationInput) ([]*types.UserIngredientPreference, error) {
+				return expected, nil
 			},
-			map[string][]string{
-				types.UserIngredientPreferenceCreatedServiceEventType: {mealplanningkeys.ValidIngredientGroupIDKey, mealplanningkeys.ValidIngredientIDKey, "created"},
-			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateUserIngredientPreference(ctx, userID, fakeInput)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.CreateUserIngredientPreferenceCalls(), 1)
 	})
 }
 
@@ -86,22 +83,23 @@ func TestMealPlanningManager_UpdateUserIngredientPreference(T *testing.T) {
 		ownerID := fakes.BuildFakeID()
 		exampleInput := fakes.BuildFakeUserIngredientPreferenceUpdateRequestInput()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.GetUserIngredientPreference), testutils.ContextMatcher, exampleUserIngredientPreference.ID, ownerID).Return(exampleUserIngredientPreference, nil)
-				db.On(reflection.GetMethodName(mpm.db.UpdateUserIngredientPreference), testutils.ContextMatcher, testutils.MatchType[*types.UserIngredientPreference]()).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			GetUserIngredientPreferenceFunc: func(_ context.Context, userIngredientPreferenceID string, userID string) (*types.UserIngredientPreference, error) {
+				assert.Equal(t, exampleUserIngredientPreference.ID, userIngredientPreferenceID)
+				assert.Equal(t, ownerID, userID)
+
+				return exampleUserIngredientPreference, nil
 			},
-			map[string][]string{
-				types.UserIngredientPreferenceUpdatedServiceEventType: {
-					mealplanningkeys.UserIngredientPreferenceIDKey,
-				},
+			UpdateUserIngredientPreferenceFunc: func(_ context.Context, _ *types.UserIngredientPreference) error {
+				return nil
 			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		assert.NoError(t, mpm.UpdateUserIngredientPreference(ctx, exampleUserIngredientPreference.ID, ownerID, exampleInput))
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.GetUserIngredientPreferenceCalls(), 1)
+		assert.Len(t, db.UpdateUserIngredientPreferenceCalls(), 1)
 	})
 }
 
@@ -117,21 +115,19 @@ func TestMealPlanningManager_ArchiveUserIngredientPreference(T *testing.T) {
 		ownershipID := fakes.BuildFakeID()
 		expected := fakes.BuildFakeUserIngredientPreference()
 
-		expectations := setupExpectationsForMealPlanningManager(
-			mpm,
-			func(db *mealplanningmock.Repository) {
-				db.On(reflection.GetMethodName(mpm.db.ArchiveUserIngredientPreference), testutils.ContextMatcher, expected.ID, ownershipID).Return(nil)
+		db := &mealplanningmock.RepositoryMock{
+			ArchiveUserIngredientPreferenceFunc: func(_ context.Context, userIngredientPreferenceID string, userID string) error {
+				assert.Equal(t, expected.ID, userIngredientPreferenceID)
+				assert.Equal(t, ownershipID, userID)
+
+				return nil
 			},
-			map[string][]string{
-				types.UserIngredientPreferenceArchivedServiceEventType: {
-					mealplanningkeys.UserIngredientPreferenceIDKey,
-				},
-			},
-		)
+		}
+		attachRepositoryToManager(mpm, db)
 
 		err := mpm.ArchiveUserIngredientPreference(ctx, ownershipID, expected.ID)
 		assert.NoError(t, err)
 
-		mock.AssertExpectationsForObjects(t, expectations...)
+		assert.Len(t, db.ArchiveUserIngredientPreferenceCalls(), 1)
 	})
 }

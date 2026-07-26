@@ -1,6 +1,7 @@
 package privacy
 
 import (
+	"context"
 	"testing"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
@@ -14,7 +15,6 @@ import (
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -60,29 +60,46 @@ func TestCollector_CollectUserData(T *testing.T) {
 		t.Parallel()
 
 		userID := identifiers.New()
-		repo := &mocks.Repository{}
-		collector := NewCollector(repo, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
 		// recipes span two pages: a full first page proves the collector keeps paging.
 		fullPage := buildRecipePage(filtering.MaxQueryFilterLimit)
 		lastPage := buildRecipePage(3)
 
-		repo.On("GetRecipesCreatedByUser", mock.Anything, userID, mock.MatchedBy(func(filter *filtering.QueryFilter) bool {
-			return filter != nil && filter.Cursor == nil
-		})).Return(fullPage, nil)
-		repo.On("GetRecipesCreatedByUser", mock.Anything, userID, mock.MatchedBy(func(filter *filtering.QueryFilter) bool {
-			return filter != nil && filter.Cursor != nil && *filter.Cursor == fullPage.Cursor
-		})).Return(lastPage, nil)
-
 		exampleMeal := fakes.BuildFakeMeal()
-		repo.On("GetMealsCreatedByUser", mock.Anything, userID, mock.Anything).
-			Return(buildSingleItemPage(exampleMeal, func(m *mealplanning.Meal) string { return m.ID }), nil)
-		repo.On("GetUserIngredientPreferences", mock.Anything, userID, mock.Anything).
-			Return(buildEmptyPage[mealplanning.UserIngredientPreference](), nil)
-
 		exampleRating := fakes.BuildFakeRecipeRating()
-		repo.On("GetRecipeRatingsForUser", mock.Anything, userID, mock.Anything).
-			Return(buildSingleItemPage(exampleRating, func(r *mealplanning.RecipeRating) string { return r.ID }), nil)
+
+		repo := &mocks.RepositoryMock{
+			GetRecipesCreatedByUserFunc: func(_ context.Context, actualUserID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error) {
+				assert.Equal(t, userID, actualUserID)
+				require.NotNil(t, filter)
+
+				// the first page is requested without a cursor; the second resumes from the first page's cursor.
+				if filter.Cursor == nil {
+					return fullPage, nil
+				}
+
+				assert.Equal(t, fullPage.Cursor, *filter.Cursor)
+
+				return lastPage, nil
+			},
+			GetMealsCreatedByUserFunc: func(_ context.Context, actualUserID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Meal], error) {
+				assert.Equal(t, userID, actualUserID)
+
+				return buildSingleItemPage(exampleMeal, func(m *mealplanning.Meal) string { return m.ID }), nil
+			},
+			GetUserIngredientPreferencesFunc: func(_ context.Context, actualUserID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.UserIngredientPreference], error) {
+				assert.Equal(t, userID, actualUserID)
+
+				return buildEmptyPage[mealplanning.UserIngredientPreference](), nil
+			},
+			GetRecipeRatingsForUserFunc: func(_ context.Context, actualUserID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeRating], error) {
+				assert.Equal(t, userID, actualUserID)
+
+				return buildSingleItemPage(exampleRating, func(r *mealplanning.RecipeRating) string { return r.ID }), nil
+			},
+		}
+
+		collector := NewCollector(repo, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
 		collection := &dataprivacy.UserDataCollection{}
 		err := collector.CollectUserData(t.Context(), collection, userID)
@@ -93,7 +110,10 @@ func TestCollector_CollectUserData(T *testing.T) {
 		assert.Empty(t, collection.MealPlanning.UserIngredientPreferences)
 		assert.Len(t, collection.MealPlanning.RecipeRatings, 1)
 
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.GetRecipesCreatedByUserCalls(), 2)
+		assert.Len(t, repo.GetMealsCreatedByUserCalls(), 1)
+		assert.Len(t, repo.GetUserIngredientPreferencesCalls(), 1)
+		assert.Len(t, repo.GetRecipeRatingsForUserCalls(), 1)
 	})
 }
 
@@ -104,16 +124,24 @@ func TestCollector_CollectAccountData(T *testing.T) {
 		t.Parallel()
 
 		accountID := identifiers.New()
-		repo := &mocks.Repository{}
-		collector := NewCollector(repo, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
 		exampleMealPlan := fakes.BuildFakeMealPlan()
-		repo.On("GetMealPlansForAccount", mock.Anything, accountID, mock.Anything).
-			Return(buildSingleItemPage(exampleMealPlan, func(mp *mealplanning.MealPlan) string { return mp.ID }), nil)
-
 		exampleOwnership := fakes.BuildFakeAccountInstrumentOwnership()
-		repo.On("GetAccountInstrumentOwnerships", mock.Anything, accountID, mock.Anything).
-			Return(buildSingleItemPage(exampleOwnership, func(o *mealplanning.AccountInstrumentOwnership) string { return o.ID }), nil)
+
+		repo := &mocks.RepositoryMock{
+			GetMealPlansForAccountFunc: func(_ context.Context, actualAccountID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlan], error) {
+				assert.Equal(t, accountID, actualAccountID)
+
+				return buildSingleItemPage(exampleMealPlan, func(mp *mealplanning.MealPlan) string { return mp.ID }), nil
+			},
+			GetAccountInstrumentOwnershipsFunc: func(_ context.Context, actualAccountID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.AccountInstrumentOwnership], error) {
+				assert.Equal(t, accountID, actualAccountID)
+
+				return buildSingleItemPage(exampleOwnership, func(o *mealplanning.AccountInstrumentOwnership) string { return o.ID }), nil
+			},
+		}
+
+		collector := NewCollector(repo, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
 		collection := &dataprivacy.UserDataCollection{}
 		err := collector.CollectAccountData(t.Context(), collection, accountID)
@@ -122,6 +150,7 @@ func TestCollector_CollectAccountData(T *testing.T) {
 		assert.Len(t, collection.MealPlanning.MealPlans, 1)
 		assert.Len(t, collection.MealPlanning.AccountInstrumentOwnerships, 1)
 
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.GetMealPlansForAccountCalls(), 1)
+		assert.Len(t, repo.GetAccountInstrumentOwnershipsCalls(), 1)
 	})
 }

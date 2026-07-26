@@ -7,7 +7,7 @@ import (
 	authenticationmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
-	authmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth/mock"
+	authmanagermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth/managers/mock"
 	identitymanagermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	authsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
@@ -27,15 +27,15 @@ var (
 	testUserID    = identifiers.New()
 )
 
-func buildTestService(t *testing.T) (*serviceImpl, *identitymanagermock.IdentityDataManager, *authmock.AuthManager, *authenticationmock.Manager, *mock.FeatureFlagManagerMock) {
+func buildTestService(t *testing.T) (*serviceImpl, *identitymanagermock.IdentityDataManagerMock, *authmanagermock.AuthManagerInterfaceMock, *authenticationmock.ManagerMock, *mock.FeatureFlagManagerMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
 	tracerProvider := tracingnoop.NewTracerProvider()
 	tracer := tracing.NewTracerForTest(t.Name())
-	identityDataManager := &identitymanagermock.IdentityDataManager{}
-	authManager := &authmock.AuthManager{}
-	authenticationManager := &authenticationmock.Manager{}
+	identityDataManager := &identitymanagermock.IdentityDataManagerMock{}
+	authManager := &authmanagermock.AuthManagerInterfaceMock{}
+	authenticationManager := &authenticationmock.ManagerMock{}
 	featureFlagManager := &mock.FeatureFlagManagerMock{
 		CanUseFeatureFunc: func(_ context.Context, _ string, _ featureflags.EvaluationContext) (bool, error) {
 			return false, nil
@@ -78,9 +78,9 @@ func TestNewAuthService(t *testing.T) {
 
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
-		identityDataManager := &identitymanagermock.IdentityDataManager{}
-		authManager := &authmock.AuthManager{}
-		authenticationManager := &authenticationmock.Manager{}
+		identityDataManager := &identitymanagermock.IdentityDataManagerMock{}
+		authManager := &authmanagermock.AuthManagerInterfaceMock{}
+		authenticationManager := &authenticationmock.ManagerMock{}
 
 		featureFlagManager := &mock.FeatureFlagManagerMock{
 			CanUseFeatureFunc: func(_ context.Context, _ string, _ featureflags.EvaluationContext) (bool, error) {

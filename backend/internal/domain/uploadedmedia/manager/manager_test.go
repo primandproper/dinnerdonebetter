@@ -1,30 +1,34 @@
 package manager
 
 import (
+	"context"
 	"testing"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia/fakes"
 	uploadedmediamock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
 	platformerrors "github.com/primandproper/platform-go/v6/errors"
 	"github.com/primandproper/platform-go/v6/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/reflection"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func buildUploadedMediaManagerForTest(t *testing.T) (*uploadedMediaManager, *uploadedmediamock.Repository) {
+// buildUploadedMediaManagerForTest builds a manager backed by the given repository mock. A nil repo
+// gets an unconfigured mock, which panics if any of its methods are called.
+func buildUploadedMediaManagerForTest(t *testing.T, repo *uploadedmediamock.RepositoryMock) *uploadedMediaManager {
 	t.Helper()
 
-	repo := &uploadedmediamock.Repository{}
+	if repo == nil {
+		repo = &uploadedmediamock.RepositoryMock{}
+	}
+
 	m := NewUploadedMediaDataManager(tracingnoop.NewTracerProvider(), loggingnoop.NewLogger(), repo)
-	return m.(*uploadedMediaManager), repo
+
+	return m.(*uploadedMediaManager)
 }
 
 func TestUploadedMediaDataManager_GetUploadedMedia(t *testing.T) {
@@ -34,16 +38,23 @@ func TestUploadedMediaDataManager_GetUploadedMedia(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildUploadedMediaManagerForTest(t)
 
 		expected := fakes.BuildFakeUploadedMedia()
-		repo.On(reflection.GetMethodName(repo.GetUploadedMedia), testutils.ContextMatcher, expected.ID).Return(expected, nil)
+
+		repo := &uploadedmediamock.RepositoryMock{
+			GetUploadedMediaFunc: func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
+				assert.Equal(t, expected.ID, uploadedMediaID)
+
+				return expected, nil
+			},
+		}
+		manager := buildUploadedMediaManagerForTest(t, repo)
 
 		result, err := manager.GetUploadedMedia(ctx, expected.ID)
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.GetUploadedMediaCalls(), 1)
 	})
 }
 
@@ -54,7 +65,6 @@ func TestUploadedMediaDataManager_GetUploadedMediaForUser(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildUploadedMediaManagerForTest(t)
 
 		userID := fakes.BuildFakeUploadedMedia().CreatedByUser
 		filter := filtering.DefaultQueryFilter()
@@ -62,13 +72,22 @@ func TestUploadedMediaDataManager_GetUploadedMediaForUser(t *testing.T) {
 		expected := &filtering.QueryFilteredResult[uploadedmedia.UploadedMedia]{
 			Data: []*uploadedmedia.UploadedMedia{media},
 		}
-		repo.On(reflection.GetMethodName(repo.GetUploadedMediaForUser), testutils.ContextMatcher, userID, filter).Return(expected, nil)
+
+		repo := &uploadedmediamock.RepositoryMock{
+			GetUploadedMediaForUserFunc: func(_ context.Context, actualUserID string, actualFilter *filtering.QueryFilter) (*filtering.QueryFilteredResult[uploadedmedia.UploadedMedia], error) {
+				assert.Equal(t, userID, actualUserID)
+				assert.Equal(t, filter, actualFilter)
+
+				return expected, nil
+			},
+		}
+		manager := buildUploadedMediaManagerForTest(t, repo)
 
 		result, err := manager.GetUploadedMediaForUser(ctx, userID, filter)
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.GetUploadedMediaForUserCalls(), 1)
 	})
 }
 
@@ -79,33 +98,40 @@ func TestUploadedMediaDataManager_CreateUploadedMedia(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildUploadedMediaManagerForTest(t)
 
 		dbInput := fakes.BuildFakeUploadedMediaDatabaseCreationInput()
 		created := fakes.BuildFakeUploadedMedia()
 		created.ID = dbInput.ID
 
-		repo.On(reflection.GetMethodName(repo.CreateUploadedMedia), testutils.ContextMatcher, mock.Anything).Return(created, nil)
+		repo := &uploadedmediamock.RepositoryMock{
+			CreateUploadedMediaFunc: func(_ context.Context, input *uploadedmedia.UploadedMediaDatabaseCreationInput) (*uploadedmedia.UploadedMedia, error) {
+				assert.NotNil(t, input)
+
+				return created, nil
+			},
+		}
+		manager := buildUploadedMediaManagerForTest(t, repo)
 
 		result, err := manager.CreateUploadedMedia(ctx, dbInput)
 
 		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, dbInput.ID, result.ID)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.CreateUploadedMediaCalls(), 1)
 	})
 
 	t.Run("with nil input", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildUploadedMediaManagerForTest(t)
+		repo := &uploadedmediamock.RepositoryMock{}
+		manager := buildUploadedMediaManagerForTest(t, repo)
 
 		result, err := manager.CreateUploadedMedia(ctx, nil)
 
 		require.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
 		assert.Nil(t, result)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Empty(t, repo.CreateUploadedMediaCalls())
 	})
 }
 
@@ -116,14 +142,21 @@ func TestUploadedMediaDataManager_ArchiveUploadedMedia(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		manager, repo := buildUploadedMediaManagerForTest(t)
 
 		uploadedMediaID := fakes.BuildFakeUploadedMedia().ID
-		repo.On(reflection.GetMethodName(repo.ArchiveUploadedMedia), testutils.ContextMatcher, uploadedMediaID).Return(nil)
+
+		repo := &uploadedmediamock.RepositoryMock{
+			ArchiveUploadedMediaFunc: func(_ context.Context, actualID string) error {
+				assert.Equal(t, uploadedMediaID, actualID)
+
+				return nil
+			},
+		}
+		manager := buildUploadedMediaManagerForTest(t, repo)
 
 		err := manager.ArchiveUploadedMedia(ctx, uploadedMediaID)
 
 		require.NoError(t, err)
-		mock.AssertExpectationsForObjects(t, repo)
+		assert.Len(t, repo.ArchiveUploadedMediaCalls(), 1)
 	})
 }
