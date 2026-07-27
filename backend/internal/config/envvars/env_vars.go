@@ -325,8 +325,14 @@ const (
 	// HTTPAppleAppSiteAssociationBundleIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.AppleAppSiteAssociation.BundleID`.
 	HTTPAppleAppSiteAssociationBundleIDEnvVarKey = "DINNER_DONE_BETTER_HTTP_APPLE_APP_SITE_ASSOCIATION_BUNDLE_ID"
 
+	// HTTPAppleAppSiteAssociationPathsEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.AppleAppSiteAssociation.Paths`.
+	HTTPAppleAppSiteAssociationPathsEnvVarKey = "DINNER_DONE_BETTER_HTTP_APPLE_APP_SITE_ASSOCIATION_PATHS"
+
 	// HTTPAppleAppSiteAssociationTeamIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.AppleAppSiteAssociation.TeamID`.
 	HTTPAppleAppSiteAssociationTeamIDEnvVarKey = "DINNER_DONE_BETTER_HTTP_APPLE_APP_SITE_ASSOCIATION_TEAM_ID"
+
+	// HTTPAppleAppSiteAssociationWebCredentialsEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.AppleAppSiteAssociation.WebCredentials`.
+	HTTPAppleAppSiteAssociationWebCredentialsEnvVarKey = "DINNER_DONE_BETTER_HTTP_APPLE_APP_SITE_ASSOCIATION_WEB_CREDENTIALS"
 
 	// HTTPClientEnableTracingEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPClient.EnableTracing`.
 	HTTPClientEnableTracingEnvVarKey = "DINNER_DONE_BETTER_HTTP_CLIENT_ENABLE_TRACING"
