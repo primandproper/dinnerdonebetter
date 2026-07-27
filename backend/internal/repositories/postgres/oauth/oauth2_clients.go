@@ -10,12 +10,12 @@ import (
 	oauthkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/oauth/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 const (
@@ -157,7 +157,7 @@ func (q *repository) CreateOAuth2Client(ctx context.Context, input *types.OAuth2
 	})
 
 	var err error
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if writeErr := q.generatedQuerier.CreateOAuth2Client(ctx, tx, &generated.CreateOAuth2ClientParams{
 			ID:           input.ID,
 			Description:  input.Description,

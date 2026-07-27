@@ -3,20 +3,27 @@ package repositories
 import (
 	postgresmigrations "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 
-	"github.com/primandproper/platform-go/v6/database"
-	databasecfg "github.com/primandproper/platform-go/v6/database/config"
-	"github.com/primandproper/platform-go/v6/observability/logging"
+	"github.com/primandproper/platform-go/v7/database"
+	databasecfg "github.com/primandproper/platform-go/v7/database/config"
+	"github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/observability/logging"
 )
+
+// ErrUnsupportedDatabaseProvider indicates the configured provider has no migrator.
+// The migrations are postgres-specific SQL, so any other provider is a
+// misconfiguration rather than a database that merely needs no schema — better to
+// fail at startup than to serve traffic against an unmigrated database.
+var ErrUnsupportedDatabaseProvider = errors.New("unsupported database provider for migrations")
 
 // ProvideMigrator returns a Migrator appropriate for the configured database provider.
 func ProvideMigrator(
 	cfg *databasecfg.Config,
 	logger logging.Logger,
-) database.Migrator {
+) (database.Migrator, error) {
 	switch cfg.Provider {
 	case databasecfg.ProviderPostgres:
 		return postgresmigrations.NewMigrator(logger)
 	default:
-		return nil
+		return nil, errors.Wrapf(ErrUnsupportedDatabaseProvider, "provider %q", cfg.Provider)
 	}
 }

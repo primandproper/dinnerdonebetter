@@ -13,25 +13,26 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v6/database"
-	mockdatabase "github.com/primandproper/platform-go/v6/database/mock"
-	"github.com/primandproper/platform-go/v6/database/postgres"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v7/database"
+	mockdatabase "github.com/primandproper/platform-go/v7/database/mock"
+	"github.com/primandproper/platform-go/v7/database/postgres"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	pgcontainers "github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
-func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository, *pgcontainers.PostgresContainer) {
+func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	t.Helper()
 
 	ctx := t.Context()
-	container, db, config := pgtesting.BuildDatabaseContainerForTest(t)
-	require.NoError(t, migrations.NewMigrator(loggingnoop.NewLogger()).Migrate(ctx, db))
+	db, config := pgtesting.BuildDatabaseContainerForTest(t)
+	migrator, err := migrations.NewMigrator(loggingnoop.NewLogger())
+	require.NoError(t, err)
+	require.NoError(t, migrator.Migrate(ctx, db))
 
 	pgc, err := postgres.NewDatabaseClient(ctx, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), config, nil)
 	require.NotNil(t, pgc)
@@ -41,7 +42,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository, *p
 
 	c := ProvideCommentsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc)
 
-	return c.(*repository), auditLogEntryRepo, container
+	return c.(*repository), auditLogEntryRepo
 }
 
 func buildInertClientForTest(t *testing.T) *repository {
@@ -76,17 +77,8 @@ func createCommentForTest(t *testing.T, ctx context.Context, input *comments.Com
 }
 
 func TestQuerier_Integration_Comments(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, auditRepo, container := buildDatabaseClientForTest(t)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, auditRepo := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	referencedID := identifiers.New()
@@ -141,17 +133,8 @@ func TestQuerier_Integration_Comments(t *testing.T) {
 }
 
 func TestQuerier_Integration_Comments_WithReplies(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	referencedID := identifiers.New()
@@ -193,17 +176,8 @@ func TestQuerier_Integration_Comments_WithReplies(t *testing.T) {
 }
 
 func TestQuerier_Integration_ArchiveCommentsForReference(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, auditRepo, container := buildDatabaseClientForTest(t)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, auditRepo := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	referencedID := identifiers.New()
@@ -355,17 +329,8 @@ func TestQuerier_ArchiveCommentsForReference(T *testing.T) {
 }
 
 func TestQuerier_Integration_Comments_CursorPagination(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	referencedID := identifiers.New()

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 )

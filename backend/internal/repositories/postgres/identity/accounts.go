@@ -12,12 +12,12 @@ import (
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 const (
@@ -207,7 +207,7 @@ func (r *repository) CreateAccount(ctx context.Context, input *identity.AccountD
 	// begin account creation transaction
 	var err error
 	var account *identity.Account
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		// create the account.
 		if writeErr := r.generatedQuerier.CreateAccount(ctx, tx, &generated.CreateAccountParams{
 			City:              input.City,
@@ -332,7 +332,7 @@ func (r *repository) UpdateAccount(ctx context.Context, updated *identity.Accoun
 	logger := r.logger.WithValue(identitykeys.AccountIDKey, updated.ID)
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, updated.ID)
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		account, err := r.GetAccount(ctx, updated.ID)
 		if err != nil {
 			return observability.PrepareError(err, span, "fetching account")
@@ -469,7 +469,7 @@ func (r *repository) ArchiveAccount(ctx context.Context, accountID, ownerID stri
 	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if _, err = r.generatedQuerier.ArchiveAccount(ctx, tx, &generated.ArchiveAccountParams{
 			BelongsToUser: ownerID,
 			ID:            accountID,

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v7/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"

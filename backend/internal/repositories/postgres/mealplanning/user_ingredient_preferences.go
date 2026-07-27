@@ -9,12 +9,12 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 var (
@@ -266,7 +266,7 @@ func (q *repository) CreateUserIngredientPreference(ctx context.Context, input *
 	logger.Debug("creating user ingredient preferences")
 
 	output := []*mealplanning.UserIngredientPreference{}
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		for _, validIngredientID := range validIngredientIDs {
 			l := logger.WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 			if validIngredientID == "" {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v7/filtering"
 )
 
 // Ensure, that RepositoryMock does implement issuereports.Repository.

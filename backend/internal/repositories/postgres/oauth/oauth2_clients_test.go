@@ -9,10 +9,8 @@ import (
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/converters"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/fakes"
-	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createOAuth2ClientForTest(t *testing.T, ctx context.Context, exampleOAuth2Client *types.OAuth2Client, dbc *repository) *types.OAuth2Client {
@@ -39,21 +37,8 @@ func createOAuth2ClientForTest(t *testing.T, ctx context.Context, exampleOAuth2C
 }
 
 func TestQuerier_Integration_OAuth2Clients(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	exampleOAuth2Client := fakes.BuildFakeOAuth2Client()
 	createdOAuth2Clients := []*types.OAuth2Client{}

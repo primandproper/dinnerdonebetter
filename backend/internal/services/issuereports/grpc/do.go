@@ -5,8 +5,8 @@ import (
 	issuereportsmanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/manager"
 	issuereportssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 
-	"github.com/primandproper/platform-go/v6/observability/logging"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/observability/logging"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

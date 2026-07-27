@@ -11,12 +11,12 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 var (
@@ -571,7 +571,7 @@ func (q *repository) SearchForMeals(ctx context.Context, mealNameQuery string, f
 }
 
 // CreateMeal creates a meal in the database.
-func (q *repository) createMeal(ctx context.Context, querier database.SQLQueryExecutorAndTransactionManager, input *mealplanning.MealDatabaseCreationInput) (*mealplanning.Meal, error) {
+func (q *repository) createMeal(ctx context.Context, querier database.SQLQueryExecutor, input *mealplanning.MealDatabaseCreationInput) (*mealplanning.Meal, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -626,7 +626,7 @@ func (q *repository) CreateMeal(ctx context.Context, input *mealplanning.MealDat
 	}
 
 	var x *mealplanning.Meal
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		created, err := q.createMeal(ctx, tx, input)
 		if err != nil {
 			return observability.PrepareError(err, span, "creating meal")

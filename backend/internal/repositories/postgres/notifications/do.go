@@ -3,10 +3,10 @@ package notifications
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 
-	"github.com/primandproper/platform-go/v6/database"
-	databasecfg "github.com/primandproper/platform-go/v6/database/config"
-	"github.com/primandproper/platform-go/v6/observability/logging"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	databasecfg "github.com/primandproper/platform-go/v7/database/config"
+	"github.com/primandproper/platform-go/v7/observability/logging"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

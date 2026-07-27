@@ -12,7 +12,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v7/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,21 +52,8 @@ func createAccountForTest(t *testing.T, ctx context.Context, exampleAccount *ide
 }
 
 func TestQuerier_Integration_Accounts(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, auditRepo, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, auditRepo := buildDatabaseClientForTest(t)
 
 	exampleUser := createUserForTest(t, ctx, nil, dbc)
 

@@ -8,12 +8,12 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/observability"
-	platformkeys "github.com/primandproper/platform-go/v6/observability/keys"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/observability"
+	platformkeys "github.com/primandproper/platform-go/v7/observability/keys"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 var (
@@ -376,7 +376,7 @@ func (q *repository) CreateValidIngredientGroup(ctx context.Context, input *meal
 		CreatedAt:   q.CurrentTime(),
 	}
 
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		// create the valid ingredient group.
 		if err := q.generatedQuerier.CreateValidIngredientGroup(ctx, tx, &generated.CreateValidIngredientGroupParams{
 			ID:          input.ID,
@@ -407,7 +407,7 @@ func (q *repository) CreateValidIngredientGroup(ctx context.Context, input *meal
 }
 
 // CreateValidIngredientGroupMember creates a valid ingredient group member in the database.
-func (q *repository) CreateValidIngredientGroupMember(ctx context.Context, db database.SQLQueryExecutorAndTransactionManager, groupID string, input *mealplanning.ValidIngredientGroupMemberDatabaseCreationInput) (*mealplanning.ValidIngredientGroupMember, error) {
+func (q *repository) CreateValidIngredientGroupMember(ctx context.Context, db database.SQLQueryExecutor, groupID string, input *mealplanning.ValidIngredientGroupMemberDatabaseCreationInput) (*mealplanning.ValidIngredientGroupMember, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 

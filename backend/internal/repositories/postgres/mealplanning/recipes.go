@@ -13,13 +13,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
-	"github.com/primandproper/platform-go/v6/pointer"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
+	"github.com/primandproper/platform-go/v7/pointer"
 )
 
 var (
@@ -958,7 +958,7 @@ func (q *repository) CreateRecipe(ctx context.Context, input *mealplanning.Recip
 
 	var err error
 	var x *mealplanning.Recipe
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		// create the recipe.
 		if err = q.generatedQuerier.CreateRecipe(ctx, tx, &generated.CreateRecipeParams{
 			MinEstimatedPortions: database.StringFromFloat32(input.MinEstimatedPortions),

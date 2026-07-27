@@ -14,11 +14,11 @@ import (
 	uploadedmediasvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
-	"github.com/primandproper/platform-go/v6/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
-	"github.com/primandproper/platform-go/v6/uploads"
-	mockuploads "github.com/primandproper/platform-go/v6/uploads/mock"
+	"github.com/primandproper/platform-go/v7/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
+	"github.com/primandproper/platform-go/v7/uploads"
+	mockuploads "github.com/primandproper/platform-go/v7/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"

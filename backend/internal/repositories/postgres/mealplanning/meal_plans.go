@@ -11,12 +11,12 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 const (
@@ -224,7 +224,7 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 
 	var err error
 	var x *types.MealPlan
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		// create the meal plan.
 		if err = q.generatedQuerier.CreateMealPlan(ctx, tx, &generated.CreateMealPlanParams{
 			ID:               input.ID,
@@ -501,7 +501,7 @@ func (q *repository) AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, 
 
 	usersWhoHaveNotVoted := []string{}
 	allVotesAreSubmitted := true
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		for _, event := range mealPlan.Events {
 			if len(event.Options) == 0 {
 				continue

@@ -40,21 +40,8 @@ func createRecipeMediaForTest(t *testing.T, ctx context.Context, exampleRecipeMe
 }
 
 func TestQuerier_Integration_RecipeMedia(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 

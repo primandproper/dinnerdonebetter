@@ -1,137 +1,64 @@
+# Per-service database roles.
+#
+# TO ADD A SERVICE: put its username in service_database_usernames below. That is the
+# whole change — the password, the Cloud SQL user, the Kubernetes secret entry, and
+# every grant in database_grants.tf are all derived from this list.
+#
+# Two things still have to be done by hand for a new service, because neither lives in
+# Terraform: point the service's config at the username (deploy/environments/prod/
+# kustomize/configs/*.json) and add a kustomize patch wiring DATABASE_<NAME>_PASSWORD
+# from the secret into the pod (deploy/environments/prod/kustomize/patches/).
+#
+# The username is used verbatim as the Postgres role name, so it must be a valid
+# unquoted identifier: lowercase, no dashes.
+
 locals {
-  api_database_username                       = "api_db_user"
-  async_message_handler_database_username     = "async_message_handler"
-  db_cleaner_username                         = "db_cleaner"
-  meal_plan_finalizer_username                = "meal_plan_finalizer"
-  meal_plan_grocery_list_initializer_username = "meal_plan_grocery_list_initializer"
-  meal_plan_task_creator_username             = "meal_plan_task_creator"
-  search_data_index_scheduler_username        = "search_data_index_scheduler"
-  mobile_notification_scheduler_username      = "mobile_notification_scheduler"
-  queue_test_username                         = "queue_test"
+  # The role the API server runs migrations as. It owns every table those migrations
+  # create, which is why it never appears as a grantee in database_grants.tf — an owner
+  # needs no grant to reach its own objects.
+  api_database_username = "api_db_user"
+
+  # Every other service's role. Keep sorted; the order has no effect.
+  service_database_usernames = toset([
+    "async_message_handler",
+    "db_cleaner",
+    "mcp_server",
+    "meal_plan_finalizer",
+    "meal_plan_grocery_list_initializer",
+    "meal_plan_task_creator",
+    "mobile_notification_scheduler",
+    "queue_test",
+    "search_data_index_scheduler",
+  ])
+
+  database_usernames = setunion(local.service_database_usernames, [local.api_database_username])
+
+  # Consumed by the application secret in kubernetes.tf. Keys are DATABASE_<USERNAME>_
+  # PASSWORD, matching what the kustomize patches read; api_db_user is the one
+  # exception, having been wired as DATABASE_API_PASSWORD before this was generated.
+  database_password_secret_data = merge(
+    {
+      DATABASE_API_PASSWORD = random_password.database_user[local.api_database_username].result
+    },
+    {
+      for username in local.service_database_usernames :
+      "DATABASE_${upper(username)}_PASSWORD" => random_password.database_user[username].result
+    },
+  )
 }
 
-# api_database_username
+resource "random_password" "database_user" {
+  for_each = local.database_usernames
 
-resource "random_password" "api_user_database_password" {
   length           = 64
   special          = true
   override_special = "#$*-_=+[]"
 }
 
-resource "google_sql_user" "api_user" {
-  name     = local.api_database_username
+resource "google_sql_user" "database_user" {
+  for_each = local.database_usernames
+
+  name     = each.value
   instance = google_sql_database_instance.prod.name
-  password = random_password.api_user_database_password.result
-}
-
-# async_message_handler_database_username
-
-resource "random_password" "async_message_handler_database_user_database_password" {
-  length           = 64
-  special          = true
-  override_special = "#$*-_=+[]"
-}
-
-resource "google_sql_user" "async_message_handler_database_user" {
-  name     = local.async_message_handler_database_username
-  instance = google_sql_database_instance.prod.name
-  password = random_password.async_message_handler_database_user_database_password.result
-}
-
-# db_cleaner_username
-
-resource "random_password" "db_cleaner_user_database_password" {
-  length           = 64
-  special          = true
-  override_special = "#$*-_=+[]"
-}
-
-resource "google_sql_user" "db_cleaner_user" {
-  name     = local.db_cleaner_username
-  instance = google_sql_database_instance.prod.name
-  password = random_password.db_cleaner_user_database_password.result
-}
-
-# meal_plan_finalizer_username
-
-resource "random_password" "meal_plan_finalizer_user_database_password" {
-  length           = 64
-  special          = true
-  override_special = "#$*-_=+[]"
-}
-
-resource "google_sql_user" "meal_plan_finalizer_user" {
-  name     = local.meal_plan_finalizer_username
-  instance = google_sql_database_instance.prod.name
-  password = random_password.meal_plan_finalizer_user_database_password.result
-}
-
-# meal_plan_grocery_list_initializer_username
-
-resource "random_password" "meal_plan_grocery_list_initializer_user_database_password" {
-  length           = 64
-  special          = true
-  override_special = "#$*-_=+[]"
-}
-
-resource "google_sql_user" "meal_plan_grocery_list_initializer_user" {
-  name     = local.meal_plan_grocery_list_initializer_username
-  instance = google_sql_database_instance.prod.name
-  password = random_password.meal_plan_grocery_list_initializer_user_database_password.result
-}
-
-# meal_plan_task_creator_username
-
-resource "random_password" "meal_plan_task_creator_user_database_password" {
-  length           = 64
-  special          = true
-  override_special = "#$*-_=+[]"
-}
-
-resource "google_sql_user" "meal_plan_task_creator_user" {
-  name     = local.meal_plan_task_creator_username
-  instance = google_sql_database_instance.prod.name
-  password = random_password.meal_plan_task_creator_user_database_password.result
-}
-
-# search_data_index_scheduler_username
-
-resource "random_password" "search_data_index_scheduler_user_database_password" {
-  length           = 64
-  special          = true
-  override_special = "#$*-_=+[]"
-}
-
-resource "google_sql_user" "search_data_index_scheduler_user" {
-  name     = local.search_data_index_scheduler_username
-  instance = google_sql_database_instance.prod.name
-  password = random_password.search_data_index_scheduler_user_database_password.result
-}
-
-# mobile_notification_scheduler_username
-
-resource "random_password" "mobile_notification_scheduler_user_database_password" {
-  length           = 64
-  special          = true
-  override_special = "#$*-_=+[]"
-}
-
-resource "google_sql_user" "mobile_notification_scheduler_user" {
-  name     = local.mobile_notification_scheduler_username
-  instance = google_sql_database_instance.prod.name
-  password = random_password.mobile_notification_scheduler_user_database_password.result
-}
-
-# queue_test_username
-
-resource "random_password" "queue_test_user_database_password" {
-  length           = 64
-  special          = true
-  override_special = "#$*-_=+[]"
-}
-
-resource "google_sql_user" "queue_test_user" {
-  name     = local.queue_test_username
-  instance = google_sql_database_instance.prod.name
-  password = random_password.queue_test_user_database_password.result
+  password = random_password.database_user[each.key].result
 }

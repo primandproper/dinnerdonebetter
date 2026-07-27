@@ -322,6 +322,12 @@ const (
 	// GrpcTLSCertificateKeyFilepathEnvVarKey is the environment variable name to set to override `APIServiceConfig.GRPCServer.TLSCertificateKeyFile`.
 	GrpcTLSCertificateKeyFilepathEnvVarKey = "DINNER_DONE_BETTER_GRPC_TLS_CERTIFICATE_KEY_FILEPATH"
 
+	// HTTPAppleAppSiteAssociationBundleIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.AppleAppSiteAssociation.BundleID`.
+	HTTPAppleAppSiteAssociationBundleIDEnvVarKey = "DINNER_DONE_BETTER_HTTP_APPLE_APP_SITE_ASSOCIATION_BUNDLE_ID"
+
+	// HTTPAppleAppSiteAssociationTeamIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.AppleAppSiteAssociation.TeamID`.
+	HTTPAppleAppSiteAssociationTeamIDEnvVarKey = "DINNER_DONE_BETTER_HTTP_APPLE_APP_SITE_ASSOCIATION_TEAM_ID"
+
 	// HTTPClientEnableTracingEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPClient.EnableTracing`.
 	HTTPClientEnableTracingEnvVarKey = "DINNER_DONE_BETTER_HTTP_CLIENT_ENABLE_TRACING"
 

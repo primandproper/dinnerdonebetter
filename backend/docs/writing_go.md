@@ -71,9 +71,9 @@ func TestMyService(T *testing.T) {
 
 ### Test Reliability
 
-- **No skipped tests**: The linter explicitly forbids `t.SkipNow()` calls. Sanctioned exception: container-backed tests (repository/integration tests gated on `RunContainerTests`) may call `t.SkipNow()` to opt out when the container environment isn't enabled — that's an environment gate, not a disabled test.
+- **No skipped tests**: The linter explicitly forbids `t.SkipNow()` calls. Container-backed tests do not need one: `pgtesting.BuildDatabaseContainerForTest` goes through platform's `pgtest.Run`, which skips the test itself unless `RUN_CONTAINER_TESTS=true`. Don't add your own gate on top of it — call the helper and write the test as if the database is always there. `make test` sets the variable, so these run by default; `RUN_CONTAINER_TESTS=false make test` opts out on a machine without a Docker daemon.
 - **No global state**: Each test should be independent
-- **Clean up resources**: Properly tear down any created test data
+- **Clean up resources**: Properly tear down any created test data. Containers are the helper's job, not yours — `BuildDatabaseContainerForTest` registers teardown of both the container and its pool with `t.Cleanup`, so tests never terminate a container by hand.
 
 ## General Go Conventions
 

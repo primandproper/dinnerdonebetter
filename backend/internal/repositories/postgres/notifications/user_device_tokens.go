@@ -10,12 +10,12 @@ import (
 	notificationkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/notifications/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 const (
@@ -215,7 +215,7 @@ func (q *Repository) UpdateUserDeviceToken(ctx context.Context, updated *types.U
 	tracing.AttachToSpan(span, notificationkeys.UserDeviceTokenIDKey, updated.ID)
 
 	var err error
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if _, err = q.generatedQuerier.UpdateUserDeviceToken(ctx, tx, &generated.UpdateUserDeviceTokenParams{
 			Platform:      updated.Platform,
 			ID:            updated.ID,
@@ -257,7 +257,7 @@ func (q *Repository) ArchiveUserDeviceToken(ctx context.Context, userID, tokenID
 	logger := q.logger.WithValue(notificationkeys.UserDeviceTokenIDKey, tokenID)
 	tracing.AttachToSpan(span, notificationkeys.UserDeviceTokenIDKey, tokenID)
 
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		rows, err := q.generatedQuerier.ArchiveUserDeviceToken(ctx, tx, &generated.ArchiveUserDeviceTokenParams{
 			ID:            tokenID,
 			BelongsToUser: userID,

@@ -9,12 +9,12 @@ import (
 	commentskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/comments/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 const (
@@ -91,7 +91,7 @@ func (q *repository) CreateComment(ctx context.Context, input *types.CommentData
 		CreatedAt:       q.CurrentTime(),
 	}
 
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if err := q.generatedQuerier.CreateComment(ctx, tx, &generated.CreateCommentParams{
 			ID:              input.ID,
 			Content:         input.Content,
@@ -274,7 +274,7 @@ func (q *repository) UpdateComment(ctx context.Context, id, belongsToUser, conte
 	logger := q.logger.WithValue(commentskeys.CommentIDKey, id)
 	tracing.AttachToSpan(span, commentskeys.CommentIDKey, id)
 
-	return q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		rowsAffected, err := q.generatedQuerier.UpdateComment(ctx, tx, &generated.UpdateCommentParams{
 			Content:       content,
 			ID:            id,
@@ -317,7 +317,7 @@ func (q *repository) ArchiveComment(ctx context.Context, id string) error {
 		return observability.PrepareAndLogError(getErr, logger, span, "fetching comment for archive")
 	}
 
-	return q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		rowsAffected, err := q.generatedQuerier.ArchiveComment(ctx, tx, id)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving comment")
@@ -360,7 +360,7 @@ func (q *repository) ArchiveCommentsForReference(ctx context.Context, targetType
 		return observability.PrepareAndLogError(err, logger, span, "fetching comments for archive")
 	}
 
-	return q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if _, err = q.generatedQuerier.ArchiveCommentsForReference(ctx, tx, &generated.ArchiveCommentsForReferenceParams{
 			TargetType:   targetTypeToGenerated(targetType),
 			ReferencedID: referencedID,

@@ -10,7 +10,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v7/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,21 +55,8 @@ func createRecipeStepVesselForTest(t *testing.T, ctx context.Context, recipeID s
 }
 
 func TestQuerier_Integration_RecipeStepVessels(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 
@@ -308,21 +295,8 @@ func TestQuerier_ArchiveRecipeStepVessel(T *testing.T) {
 }
 
 func TestQuerier_Integration_RecipeStepVessels_CursorBasedPagination(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	recipeStruct := buildRecipeForTestCreation(t, ctx, user.ID, dbc)

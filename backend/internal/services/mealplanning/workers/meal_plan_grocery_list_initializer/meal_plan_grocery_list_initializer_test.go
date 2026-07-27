@@ -9,12 +9,12 @@ import (
 	grocerylistpreparation2 "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
-	"github.com/primandproper/platform-go/v6/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v6/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v6/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v7/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
+	mockpublishers "github.com/primandproper/platform-go/v7/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v7/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

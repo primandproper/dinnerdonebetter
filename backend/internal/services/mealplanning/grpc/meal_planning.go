@@ -11,11 +11,11 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
 	converters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v6/errors/grpc"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/logging"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	errorsgrpc "github.com/primandproper/platform-go/v7/errors/grpc"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/logging"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )

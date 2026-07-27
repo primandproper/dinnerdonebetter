@@ -10,13 +10,13 @@ import (
 	settingskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/settings/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	platformkeys "github.com/primandproper/platform-go/v6/observability/keys"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	platformkeys "github.com/primandproper/platform-go/v7/observability/keys"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 const (
@@ -254,7 +254,7 @@ func (q *Repository) CreateServiceSetting(ctx context.Context, input *types.Serv
 
 	var err error
 	var x *types.ServiceSetting
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		// create the service setting.
 		if err = q.generatedQuerier.CreateServiceSetting(ctx, tx, &generated.CreateServiceSettingParams{
 			ID:           input.ID,
@@ -311,7 +311,7 @@ func (q *Repository) ArchiveServiceSetting(ctx context.Context, serviceSettingID
 	logger = logger.WithValue(settingskeys.ServiceSettingIDKey, serviceSettingID)
 	tracing.AttachToSpan(span, settingskeys.ServiceSettingIDKey, serviceSettingID)
 
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		rowsAffected, err := q.generatedQuerier.ArchiveServiceSetting(ctx, tx, serviceSettingID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "updating service setting")

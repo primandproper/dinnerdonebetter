@@ -4,10 +4,8 @@ import (
 	"database/sql"
 	"testing"
 
-	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
-
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/identifiers"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -85,26 +83,14 @@ func TestPruneQueueTestMessages(T *testing.T) {
 // --- Integration tests (require DB container) ---
 
 func TestQuerier_Integration_QueueTestMessages(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, container := buildDatabaseClientForTest(t)
-
-	_, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc := buildDatabaseClientForTest(t)
 
 	queueName := "test-queue-" + identifiers.New()[:8]
 	msgID := identifiers.New()
 
 	// Create
-	err = dbc.CreateQueueTestMessage(ctx, msgID, queueName)
+	err := dbc.CreateQueueTestMessage(ctx, msgID, queueName)
 	require.NoError(t, err)
 
 	// Get
@@ -127,20 +113,8 @@ func TestQuerier_Integration_QueueTestMessages(t *testing.T) {
 }
 
 func TestQuerier_Integration_QueueTestMessages_GetNotFound(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, container := buildDatabaseClientForTest(t)
-
-	_, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc := buildDatabaseClientForTest(t)
 
 	msg, err := dbc.GetQueueTestMessage(ctx, "nonexistent-id-"+identifiers.New())
 	assert.Error(t, err)
@@ -149,34 +123,19 @@ func TestQuerier_Integration_QueueTestMessages_GetNotFound(t *testing.T) {
 }
 
 func TestQuerier_Integration_QueueTestMessages_Prune(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, container := buildDatabaseClientForTest(t)
-
-	_, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc := buildDatabaseClientForTest(t)
 
 	queueName := "prune-test-" + identifiers.New()[:8]
 
 	// Create several messages
 	for range 5 {
-		err = dbc.CreateQueueTestMessage(ctx, identifiers.New(), queueName)
-		require.NoError(t, err)
+		require.NoError(t, dbc.CreateQueueTestMessage(ctx, identifiers.New(), queueName))
 	}
 
 	// Prune (keeps last 100, so all 5 should remain)
-	err = dbc.PruneQueueTestMessages(ctx, queueName)
-	require.NoError(t, err)
+	require.NoError(t, dbc.PruneQueueTestMessages(ctx, queueName))
 
 	// Prune with non-existent queue - should not error
-	err = dbc.PruneQueueTestMessages(ctx, "nonexistent-queue-"+identifiers.New())
-	require.NoError(t, err)
+	require.NoError(t, dbc.PruneQueueTestMessages(ctx, "nonexistent-queue-"+identifiers.New()))
 }

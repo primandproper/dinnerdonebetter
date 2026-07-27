@@ -9,19 +9,19 @@ import (
 	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
 	dataprivacycfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v6/analytics/config"
-	databasecfg "github.com/primandproper/platform-go/v6/database/config"
-	emailcfg "github.com/primandproper/platform-go/v6/email/config"
-	"github.com/primandproper/platform-go/v6/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v6/featureflags/config"
-	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
-	"github.com/primandproper/platform-go/v6/observability"
-	routingcfg "github.com/primandproper/platform-go/v6/routing/config"
-	textsearchcfg "github.com/primandproper/platform-go/v6/search/text/config"
-	"github.com/primandproper/platform-go/v6/server/grpc"
-	"github.com/primandproper/platform-go/v6/server/http"
-	uploadscfg "github.com/primandproper/platform-go/v6/uploads/config"
-	"github.com/primandproper/platform-go/v6/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v7/analytics/config"
+	databasecfg "github.com/primandproper/platform-go/v7/database/config"
+	emailcfg "github.com/primandproper/platform-go/v7/email/config"
+	"github.com/primandproper/platform-go/v7/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v7/featureflags/config"
+	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
+	"github.com/primandproper/platform-go/v7/observability"
+	routingcfg "github.com/primandproper/platform-go/v7/routing/config"
+	textsearchcfg "github.com/primandproper/platform-go/v7/search/text/config"
+	"github.com/primandproper/platform-go/v7/server/grpc"
+	"github.com/primandproper/platform-go/v7/server/http"
+	uploadscfg "github.com/primandproper/platform-go/v7/uploads/config"
+	"github.com/primandproper/platform-go/v7/uploads/objectstorage"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -202,6 +202,61 @@ func TestEnvironmentConfigSet_Render(T *testing.T) {
 			err = json.Unmarshal(data, &jsonData)
 			assert.NoError(t, err, "File %s should contain valid JSON", fileName)
 		}
+	})
+
+	T.Run("apple app site association is rendered for the API but not the MCP server", func(t *testing.T) {
+		t.Parallel()
+
+		tmpDir := t.TempDir()
+
+		rootConfig := &APIServiceConfig{
+			Encoding: encoding.Config{
+				ContentType: "application/json",
+			},
+			Meta: MetaSettings{
+				RunMode: DevelopmentRunMode,
+			},
+			Observability: observability.Config{},
+			HTTPServer: http.Config{
+				AppleAppSiteAssociation: &http.AppleAppSiteAssociationConfig{
+					TeamID:   "ABCD1234XY",
+					BundleID: "com.example.ios",
+				},
+			},
+			Database: databasecfg.Config{
+				Debug: true,
+				ReadConnection: databasecfg.ConnectionDetails{
+					Username: "user",
+					Password: "pass",
+					Database: "db",
+					Host:     "host",
+				},
+			},
+			Services: ServicesConfig{
+				DataPrivacy: dataprivacycfg.Config{
+					Uploads: uploadscfg.Config{
+						Storage: objectstorage.Config{},
+					},
+				},
+			},
+		}
+
+		configSet := &EnvironmentConfigSet{RootConfig: rootConfig}
+
+		require.NoError(t, configSet.Render(tmpDir, true, false))
+
+		apiConfig, err := os.ReadFile(filepath.Join(tmpDir, "api_service_config.json"))
+		require.NoError(t, err)
+		assert.Contains(t, string(apiConfig), "appleAppSiteAssociation")
+
+		// The MCP server copies the API's HTTP server config, so the association has to be
+		// stripped from that copy: it names a domain no Universal Link points at.
+		mcpConfig, err := os.ReadFile(filepath.Join(tmpDir, "mcp_server_config.json"))
+		require.NoError(t, err)
+		assert.NotContains(t, string(mcpConfig), "appleAppSiteAssociation")
+
+		// Rendering the MCP config must not clear the association on the config it copied.
+		assert.NotNil(t, rootConfig.HTTPServer.AppleAppSiteAssociation)
 	})
 
 	T.Run("with custom file paths", func(t *testing.T) {

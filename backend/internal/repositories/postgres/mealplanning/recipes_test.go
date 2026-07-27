@@ -10,8 +10,8 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -204,21 +204,8 @@ func createRecipeForTest(t *testing.T, ctx context.Context, exampleRecipe *mealp
 }
 
 func TestQuerier_Integration_Recipes(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 
@@ -273,17 +260,8 @@ func TestQuerier_Integration_Recipes(t *testing.T) {
 }
 
 func TestQuerier_Integration_SearchForRecipesWithInstrumentOwnership(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
-
+	dbc, _ := buildDatabaseClientForTest(t)
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
 
@@ -336,14 +314,9 @@ func TestQuerier_Integration_SearchForRecipesWithInstrumentOwnership(t *testing.
 }
 
 func TestQuerier_Integration_GetRecipesWithIDs(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 	defer func() {
-		assert.NoError(t, container.Terminate(ctx))
 	}()
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
@@ -758,21 +731,8 @@ func TestQuerier_MarkRecipeAsIndexed(T *testing.T) {
 }
 
 func TestQuerier_Integration_Recipes_CursorBasedPagination(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 
@@ -800,17 +760,13 @@ func TestQuerier_Integration_Recipes_CursorBasedPagination(t *testing.T) {
 
 func TestQuerier_GetRecipe_AssociatedRecipes(T *testing.T) {
 	T.Parallel()
-	if !pgtesting.RunContainerTests {
-		T.SkipNow()
-	}
 
 	T.Run("recipe with cross-recipe reference populates AssociatedRecipes", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		dbc, _, container := buildDatabaseClientForTest(t)
+		dbc, _ := buildDatabaseClientForTest(t)
 		defer func() {
-			assert.NoError(t, container.Terminate(ctx))
 		}()
 
 		user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
@@ -1042,9 +998,8 @@ func TestQuerier_GetRecipe_AssociatedRecipes(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		dbc, _, container := buildDatabaseClientForTest(t)
+		dbc, _ := buildDatabaseClientForTest(t)
 		defer func() {
-			assert.NoError(t, container.Terminate(ctx))
 		}()
 
 		user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
@@ -1275,9 +1230,8 @@ func TestQuerier_GetRecipe_AssociatedRecipes(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		dbc, _, container := buildDatabaseClientForTest(t)
+		dbc, _ := buildDatabaseClientForTest(t)
 		defer func() {
-			assert.NoError(t, container.Terminate(ctx))
 		}()
 
 		user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)

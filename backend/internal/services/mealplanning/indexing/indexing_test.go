@@ -8,10 +8,10 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
-	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	textsearch "github.com/primandproper/platform-go/v6/search/text"
-	mocksearch "github.com/primandproper/platform-go/v6/search/text/mock"
+	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
+	textsearch "github.com/primandproper/platform-go/v7/search/text"
+	mocksearch "github.com/primandproper/platform-go/v7/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
 )

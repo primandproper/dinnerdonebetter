@@ -6,7 +6,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v6/identifiers"
+	"github.com/primandproper/platform-go/v7/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,14 +23,9 @@ func buildMealListForTest(userID string) *mealplanning.MealListDatabaseCreationI
 }
 
 func TestIntegration_MealLists(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 	defer func() {
-		assert.NoError(t, container.Terminate(ctx))
 	}()
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)

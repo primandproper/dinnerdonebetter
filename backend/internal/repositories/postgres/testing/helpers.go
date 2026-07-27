@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"log"
-	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -18,13 +16,14 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	encryptioncfg "github.com/primandproper/platform-go/v6/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v6/database"
-	databasecfg "github.com/primandproper/platform-go/v6/database/config"
-	mockdatabase "github.com/primandproper/platform-go/v6/database/mock"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/retry"
+	encryptioncfg "github.com/primandproper/platform-go/v7/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v7/database"
+	databasecfg "github.com/primandproper/platform-go/v7/database/config"
+	mockdatabase "github.com/primandproper/platform-go/v7/database/mock"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/testutils/containers"
+	"github.com/primandproper/platform-go/v7/testutils/containers/pgtest"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"
@@ -33,8 +32,6 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
-
-var RunContainerTests = strings.ToLower(os.Getenv("RUN_CONTAINER_TESTS")) != "false" // on by default
 
 func MustHashStringToNumber(s string) uint64 {
 	h := fnv.New64a()
@@ -81,6 +78,10 @@ func splitReverseConcat(input string) string {
 
 const (
 	defaultPostgresImage = "postgres:17"
+
+	// testOAuth2TokenEncryptionKey is a throwaway key for containers that never
+	// outlive the test that started them.
+	testOAuth2TokenEncryptionKey = "blahblahblahblahblahblahblahblah" /* #nosec G101 */
 )
 
 // userFromGetUserByIDRow converts a GetUserByIDRow to User. Used by CreateUserForTest.
@@ -121,37 +122,100 @@ func userFromGetUserByIDRow(row *generated.GetUserByIDRow) *identity.User {
 	}
 }
 
-func BuildDatabaseContainerForTest(t *testing.T) (*postgres.PostgresContainer, *sql.DB, *databasecfg.Config) {
-	t.Helper()
-
-	container, db, dbConfig, err := BuildDatabaseContainer(t.Context(), t.Name())
-	require.NoError(t, err)
-
-	return container, db, dbConfig
+// waitStrategy is the readiness check every postgres container here is started with.
+//
+// The log line alone is not enough: postgres announces readiness inside the container
+// before Docker's host-side port forward reliably accepts connections, and this suite
+// starts containers many-at-a-time from parallel subtests. Since pgtest pings the pool as
+// soon as the container reports ready, a log-only strategy loses that race under load and
+// the ping fails with "connection refused". Waiting on the mapped port as well closes it.
+func waitStrategy() testcontainers.ContainerCustomizer {
+	return testcontainers.WithWaitStrategyAndDeadline(2*time.Minute, wait.ForAll(
+		wait.ForLog("database system is ready to accept connections").WithOccurrence(2),
+		wait.ForListeningPort("5432/tcp"),
+	))
 }
 
-func BuildDatabaseContainer(ctx context.Context, dbName string) (*postgres.PostgresContainer, *sql.DB, *databasecfg.Config, error) {
-	dbUsername := fmt.Sprintf("%d", MustHashStringToNumber(dbName))
+// credentialsFor derives the database name, username and password a container is
+// provisioned with from a caller-supplied name, so concurrently running suites do not
+// share identifiers.
+func credentialsFor(name string) (dbName, username, password string) {
+	username = fmt.Sprintf("%d", MustHashStringToNumber(name))
 
-	var container *postgres.PostgresContainer
-	policy := retry.NewExponentialBackoffPolicy(retry.Config{MaxAttempts: 5, InitialDelay: 1, UseJitter: false})
-	if err := policy.Execute(ctx, func(ctx context.Context) error {
-		var containerErr error
-		container, containerErr = postgres.Run(
-			ctx,
-			defaultPostgresImage,
-			postgres.WithDatabase(splitReverseConcat(dbUsername)),
-			postgres.WithUsername(dbUsername),
-			postgres.WithPassword(reverseString(dbUsername)),
-			testcontainers.WithWaitStrategyAndDeadline(2*time.Minute, wait.ForLog("database system is ready to accept connections").WithOccurrence(2)),
-		)
-		return containerErr
-	}); err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to connect to postgres: %w", err)
+	return splitReverseConcat(username), username, reverseString(username)
+}
+
+// databaseConfigForConnectionString renders a container's DSN as the database config the
+// repositories expect.
+func databaseConfigForConnectionString(connectionString string) (*databasecfg.Config, error) {
+	dbConfig := &databasecfg.Config{
+		RunMigrations:            false,
+		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
+		OAuth2TokenEncryptionKey: testOAuth2TokenEncryptionKey,
 	}
 
-	if container == nil {
-		return nil, nil, nil, fmt.Errorf("container %s not found", dbName)
+	if err := dbConfig.LoadConnectionDetailsFromURL(connectionString); err != nil {
+		return nil, fmt.Errorf("failed to load connection details from postgres container: %w", err)
+	}
+	// LoadConnectionDetailsFromURL only populates ReadConnection; copy it to
+	// WriteConnection so NewDatabaseClient can open both handles.
+	dbConfig.WriteConnection = dbConfig.ReadConnection
+
+	return dbConfig, nil
+}
+
+// BuildDatabaseContainerForTest stands up a postgres container for the calling test and
+// returns an open connection to it along with the config describing it. Both the pool
+// and the container are torn down when the test ends, so callers say what they want to
+// do with a database and nothing about how it is stood up or shut down.
+//
+// The container is gated on RUN_CONTAINER_TESTS=true (see containers.SkipIfNotRunning),
+// which pgtest.Run enforces on the caller's behalf.
+func BuildDatabaseContainerForTest(t *testing.T) (*sql.DB, *databasecfg.Config) {
+	t.Helper()
+
+	dbName, username, password := credentialsFor(t.Name())
+
+	var (
+		db       *sql.DB
+		dbConfig *databasecfg.Config
+	)
+
+	pgtest.Run(t,
+		func(_ context.Context, pg *pgtest.Instance) {
+			var err error
+			dbConfig, err = databaseConfigForConnectionString(pg.ConnectionString)
+			require.NoError(t, err)
+
+			db = pg.DB
+		},
+		pgtest.WithImage(defaultPostgresImage),
+		pgtest.WithCredentials(dbName, username, password),
+		pgtest.WithCustomizers(waitStrategy()),
+	)
+
+	return db, dbConfig
+}
+
+// BuildDatabaseContainer stands up a postgres container outside of a test, for callers
+// like localdev that need a database for the lifetime of a process rather than the
+// lifetime of a test. Termination is the caller's responsibility; tests should use
+// BuildDatabaseContainerForTest, which handles it.
+func BuildDatabaseContainer(ctx context.Context, dbName string) (*postgres.PostgresContainer, *sql.DB, *databasecfg.Config, error) {
+	name, username, password := credentialsFor(dbName)
+
+	container, err := containers.StartWithRetry(ctx, func(ctx context.Context) (*postgres.PostgresContainer, error) {
+		return postgres.Run(
+			ctx,
+			defaultPostgresImage,
+			postgres.WithDatabase(name),
+			postgres.WithUsername(username),
+			postgres.WithPassword(password),
+			waitStrategy(),
+		)
+	})
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to connect to postgres: %w", err)
 	}
 
 	connStr, err := container.ConnectionString(ctx, "sslmode=disable")
@@ -159,17 +223,10 @@ func BuildDatabaseContainer(ctx context.Context, dbName string) (*postgres.Postg
 		return nil, nil, nil, fmt.Errorf("failed to connect to postgres container: %w", err)
 	}
 
-	dbConfig := &databasecfg.Config{
-		RunMigrations:            false,
-		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
-		OAuth2TokenEncryptionKey: "blahblahblahblahblahblahblahblah",
+	dbConfig, err := databaseConfigForConnectionString(connStr)
+	if err != nil {
+		return nil, nil, nil, err
 	}
-	if err = dbConfig.LoadConnectionDetailsFromURL(connStr); err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to connect to postgres container: %w", err)
-	}
-	// LoadConnectionDetailsFromURL only populates ReadConnection; copy it to
-	// WriteConnection so NewDatabaseClient can open both handles.
-	dbConfig.WriteConnection = dbConfig.ReadConnection
 
 	db, err := dbConfig.ConnectToWriteDatabase()
 	if err != nil {
@@ -461,7 +518,7 @@ func NewSQLMockDatabaseClient(db *sql.DB) database.Client {
 		WriterFunc:      func() database.SQLQueryExecutor { return db },
 		CurrentTimeFunc: time.Now,
 		CloseFunc:       db.Close,
-		WithTransactionFunc: func(ctx context.Context, fn func(tx database.SQLQueryExecutorAndTransactionManager) error) error {
+		WithTransactionFunc: func(ctx context.Context, fn func(tx database.SQLQueryExecutor) error) error {
 			return database.RunInTransaction(ctx, db, rollbackTestTransaction, fn)
 		},
 	}
