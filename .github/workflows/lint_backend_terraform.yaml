@@ -1,8 +1,12 @@
 ---
+# Disabled: this workflow no longer runs automatically on pull requests.
+# It can still be triggered by hand from the Actions tab. To re-enable, restore:
+#
+#   pull_request:
+#     paths:
+#       - backend/deploy/environments/prod/terraform/*.tf
 on:
-  pull_request:
-    paths:
-      - backend/deploy/environments/prod/terraform/*.tf
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
