@@ -9,11 +9,11 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit/fakes"
 	auditmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit/mock"
 
-	"github.com/primandproper/platform-go/v6/database"
-	mockdatabase "github.com/primandproper/platform-go/v6/database/mock"
-	"github.com/primandproper/platform-go/v6/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v7/database"
+	mockdatabase "github.com/primandproper/platform-go/v7/database/mock"
+	"github.com/primandproper/platform-go/v7/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

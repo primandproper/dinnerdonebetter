@@ -20,22 +20,27 @@ make dev        # start local dev server
 
 ## Prerequisites
 
-| Category    | Tools                                                                                                                                                                                                                                                 |
-|-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Core**    | [Go](https://golang.org/) 1.26, [Make](https://www.gnu.org/software/make/), [Docker](https://docs.docker.com/get-docker/) & [Docker Compose](https://docs.docker.com/compose/install/)                                                                |
-| **Codegen** | [Wire](https://github.com/google/wire), [sqlc](https://sqlc.dev/), [gci](https://github.com/daixiang0/gci), [tagalign](https://github.com/4meepo/tagalign), [fieldalignment](https://pkg.go.dev/golang.org/x/tools/go/analysis/passes/fieldalignment) |
-| **Infra**   | [Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli), [Cloud SQL Proxy](https://cloud.google.com/sql/docs/postgres/sql-proxy) (for prod DB access)                                                                                |
+| Category    | Tools                                                                                                                                                                                                              |
+|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Core**    | [Go](https://golang.org/) 1.26, [Make](https://www.gnu.org/software/make/), [Docker](https://docs.docker.com/get-docker/) & [Docker Compose](https://docs.docker.com/compose/install/)                             |
+| **Codegen** | [Wire](https://github.com/google/wire), [sqlc](https://sqlc.dev/), [gci](https://github.com/daixiang0/gci), [tagalign](https://github.com/4meepo/tagalign), [betteralign](https://github.com/dkorunic/betteralign) |
+| **Infra**   | [Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli), [Cloud SQL Proxy](https://cloud.google.com/sql/docs/postgres/sql-proxy) (for prod DB access)                                             |
 
-Install Go tools:
+These are declared in the `tool` block of `go.mod` and run via `go tool <name>`, so a
+checkout needs no extra installation. To run one standalone:
 
 ```bash
 go install github.com/google/wire/cmd/wire@v0.7.0
-go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@v0.37.0
+go install github.com/dkorunic/betteralign/cmd/betteralign@v0.14.3
 go install github.com/4meepo/tagalign/cmd/tagalign@v1.4.3
 go install github.com/daixiang0/gci@v0.13.5
 ```
 
 `make setup` will ensure these are installed.
+
+Field alignment uses [betteralign](https://github.com/dkorunic/betteralign) rather than
+x/tools' `fieldalignment`: it preserves struct comments (fieldalignment deletes them on
+rewrite) and skips generated and test files by default.
 
 ---
 
@@ -47,7 +52,8 @@ go install github.com/daixiang0/gci@v0.13.5
 make setup
 ```
 
-Runs: `revendor`, `configs`, and ensures fieldalignment, tagalign, and gci are installed.
+Runs: `revendor` and `configs`. The Go tools above do not need installing separately —
+they are declared in the `tool` block of `go.mod` and invoked as `go tool <name>`.
 
 ### Running locally
 

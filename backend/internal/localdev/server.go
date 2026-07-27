@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
@@ -34,58 +33,46 @@ import (
 	webhooksrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v6/database"
-	databasecfg "github.com/primandproper/platform-go/v6/database/config"
-	"github.com/primandproper/platform-go/v6/httpclient"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
-	"github.com/primandproper/platform-go/v6/messagequeue/redis"
-	"github.com/primandproper/platform-go/v6/observability/logging"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v6/random"
+	"github.com/primandproper/platform-go/v7/database"
+	databasecfg "github.com/primandproper/platform-go/v7/database/config"
+	"github.com/primandproper/platform-go/v7/httpclient"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
+	"github.com/primandproper/platform-go/v7/messagequeue/redis"
+	"github.com/primandproper/platform-go/v7/observability/logging"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v7/random"
+	"github.com/primandproper/platform-go/v7/testutils/containers/redistest"
 
-	"github.com/testcontainers/testcontainers-go"
-	rediscontainers "github.com/testcontainers/testcontainers-go/modules/redis"
-	"github.com/testcontainers/testcontainers-go/wait"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-const (
-	redisProtocolPrefix      = "redis://"
-	redisContainerImageToUse = "redis:7-bullseye"
-)
+const redisProtocolPrefix = "redis://"
 
 // buildContainerBackedRedisConfig spins up a Redis testcontainer and returns a
-// *redis.Config pointed at it. v5 moved the equivalent helper into
-// test-only code, so we inline the setup here for local dev usage.
+// *redis.Config pointed at it. redistest.Try is the entry point platform provides for
+// callers outside a testing.TB: it applies the same image, wait strategy and retry
+// policy the test suites get, but enforces neither the RUN_CONTAINER_TESTS gate nor any
+// cleanup registration, which is what a long-running localdev process needs.
 func buildContainerBackedRedisConfig(ctx context.Context) (*redis.Config, func(context.Context) error, error) {
-	redisContainer, err := rediscontainers.Run(
-		ctx,
-		redisContainerImageToUse,
-		rediscontainers.WithLogLevel(rediscontainers.LogLevelNotice),
-		testcontainers.WithWaitStrategyAndDeadline(30*time.Second, wait.ForListeningPort("6379/tcp")),
-	)
+	redisContainer, shutdown, err := redistest.Try(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to build redis container: %w", err)
 	}
 
 	redisAddress, err := redisContainer.ConnectionString(ctx)
 	if err != nil {
-		if termErr := redisContainer.Terminate(ctx); termErr != nil {
-			slog.Error("failed to terminate redis container", slog.Any("error", termErr))
+		if shutdownErr := shutdown(ctx); shutdownErr != nil {
+			slog.Error("failed to terminate redis container", slog.Any("error", shutdownErr))
 		}
 		return nil, nil, fmt.Errorf("failed to build redis connection string: %w", err)
 	}
 
 	cfg := &redis.Config{
 		QueueAddresses: []string{strings.TrimPrefix(redisAddress, redisProtocolPrefix)},
-	}
-
-	shutdown := func(shutdownCtx context.Context) error {
-		return redisContainer.Terminate(shutdownCtx)
 	}
 
 	return cfg, shutdown, nil
@@ -178,7 +165,11 @@ func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (se
 	cfg.Database.ReadConnection = dbCfg.ReadConnection
 
 	tracerProvider := tracingnoop.NewTracerProvider()
-	migrator := repositories.ProvideMigrator(&cfg.Database, logger)
+	migrator, err := repositories.ProvideMigrator(&cfg.Database, logger)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("building migrator: %w", err)
+	}
+
 	databaseClient, err = databasecfg.NewDatabase(ctx, logger, tracerProvider, &cfg.Database, migrator, nil)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("initializing database client: %w", err)

@@ -9,17 +9,16 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v6/database"
-	mockdatabase "github.com/primandproper/platform-go/v6/database/mock"
-	"github.com/primandproper/platform-go/v6/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v7/database"
+	mockdatabase "github.com/primandproper/platform-go/v7/database/mock"
+	"github.com/primandproper/platform-go/v7/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	pgcontainers "github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
 const (
@@ -52,12 +51,14 @@ func buildMockSQLTestClient(t *testing.T) (*repository, *sqlmockExpecterWrapper)
 	return c, &sqlmockExpecterWrapper{Sqlmock: sqlMock}
 }
 
-func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository, *pgcontainers.PostgresContainer) {
+func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	t.Helper()
 
 	ctx := t.Context()
-	container, db, config := pgtesting.BuildDatabaseContainerForTest(t)
-	require.NoError(t, migrations.NewMigrator(loggingnoop.NewLogger()).Migrate(ctx, db))
+	db, config := pgtesting.BuildDatabaseContainerForTest(t)
+	migrator, err := migrations.NewMigrator(loggingnoop.NewLogger())
+	require.NoError(t, err)
+	require.NoError(t, migrator.Migrate(ctx, db))
 
 	pgc, err := postgres.NewDatabaseClient(ctx, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), config, nil)
 	require.NotNil(t, pgc)
@@ -67,7 +68,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository, *p
 
 	c := ProvideAuthRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, pgc)
 
-	return c.(*repository), auditLogRepo, container
+	return c.(*repository), auditLogRepo
 }
 
 func buildInertClientForTest(t *testing.T) *repository {

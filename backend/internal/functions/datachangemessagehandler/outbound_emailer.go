@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/primandproper/platform-go/v6/email"
-	"github.com/primandproper/platform-go/v6/observability"
+	"github.com/primandproper/platform-go/v7/email"
+	"github.com/primandproper/platform-go/v7/observability"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"

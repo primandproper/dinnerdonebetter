@@ -9,11 +9,11 @@ import (
 
 	postgresmigrations "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 
-	"github.com/primandproper/platform-go/v6/database"
-	databasecfg "github.com/primandproper/platform-go/v6/database/config"
-	"github.com/primandproper/platform-go/v6/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v7/database"
+	databasecfg "github.com/primandproper/platform-go/v7/database/config"
+	"github.com/primandproper/platform-go/v7/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )
@@ -95,7 +95,11 @@ func runMigrate(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string,
 		return fmt.Errorf("database client does not expose raw access required for migrations")
 	}
 
-	migrator := postgresmigrations.NewMigrator(logger)
+	migrator, err := postgresmigrations.NewMigrator(logger)
+	if err != nil {
+		return fmt.Errorf("building migrator: %w", err)
+	}
+
 	if err = migrator.Migrate(ctx, raw.WriteDB()); err != nil {
 		return fmt.Errorf("running migrations: %w", err)
 	}

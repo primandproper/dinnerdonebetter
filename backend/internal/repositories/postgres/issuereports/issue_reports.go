@@ -10,12 +10,12 @@ import (
 	issuereportkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/issuereports/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 const (
@@ -206,7 +206,7 @@ func (r *repository) CreateIssueReport(ctx context.Context, input *types.IssueRe
 
 	var err error
 	var x *types.IssueReport
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if err = r.generatedQuerier.CreateIssueReport(ctx, tx, &generated.CreateIssueReportParams{
 			ID:               input.ID,
 			IssueType:        input.IssueType,
@@ -263,7 +263,7 @@ func (r *repository) UpdateIssueReport(ctx context.Context, issueReport *types.I
 	logger = logger.WithValue(issuereportkeys.IssueReportIDKey, issueReport.ID)
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, issueReport.ID)
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		rowsAffected, err := r.generatedQuerier.UpdateIssueReport(ctx, tx, &generated.UpdateIssueReportParams{
 			ID:               issueReport.ID,
 			IssueType:        issueReport.IssueType,
@@ -457,7 +457,7 @@ func (r *repository) ArchiveIssueReport(ctx context.Context, issueReportID strin
 		return observability.PrepareAndLogError(getErr, logger, span, "fetching issue report for archive")
 	}
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		rowsAffected, err := r.generatedQuerier.ArchiveIssueReport(ctx, tx, issueReportID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving issue report")

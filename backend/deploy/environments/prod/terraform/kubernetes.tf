@@ -111,7 +111,9 @@ resource "kubernetes_secret_v1" "api_service_config" {
 
   depends_on = [kubernetes_namespace_v1.prod]
 
-  data = {
+  # Per-service database passwords are merged in from database_users.tf, so adding a
+  # service user does not require touching this block.
+  data = merge(local.database_password_secret_data, {
     OAUTH2_TOKEN_ENCRYPTION_KEY        = random_string.oauth2_token_encryption_key.result
     JWT_SIGNING_KEY                    = base64encode(random_string.jwt_signing_key.result)
     DATABASE_HOST                      = google_sql_database_instance.prod.private_ip_address
@@ -125,18 +127,7 @@ resource "kubernetes_secret_v1" "api_service_config" {
     PUSH_NOTIFICATIONS_APNS_BUNDLE_ID  = local.ios_bundle_id
     PUSH_NOTIFICATIONS_APNS_PRODUCTION = var.APNS_PRODUCTION
     RESEND_API_KEY                     = var.RESEND_API_KEY
-
-    # Per-service database passwords
-    DATABASE_API_PASSWORD                                = random_password.api_user_database_password.result
-    DATABASE_ASYNC_MESSAGE_HANDLER_PASSWORD              = random_password.async_message_handler_database_user_database_password.result
-    DATABASE_DB_CLEANER_PASSWORD                         = random_password.db_cleaner_user_database_password.result
-    DATABASE_MEAL_PLAN_FINALIZER_PASSWORD                = random_password.meal_plan_finalizer_user_database_password.result
-    DATABASE_MEAL_PLAN_GROCERY_LIST_INITIALIZER_PASSWORD = random_password.meal_plan_grocery_list_initializer_user_database_password.result
-    DATABASE_MEAL_PLAN_TASK_CREATOR_PASSWORD             = random_password.meal_plan_task_creator_user_database_password.result
-    DATABASE_SEARCH_DATA_INDEX_SCHEDULER_PASSWORD        = random_password.search_data_index_scheduler_user_database_password.result
-    DATABASE_MOBILE_NOTIFICATION_SCHEDULER_PASSWORD      = random_password.mobile_notification_scheduler_user_database_password.result
-    DATABASE_QUEUE_TEST_PASSWORD                         = random_password.queue_test_user_database_password.result
-  }
+  })
 }
 
 # this is the sort of resource that should probably ideally live in the infra folder, but it's here for now

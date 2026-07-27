@@ -9,8 +9,8 @@ import (
 	"path"
 	"strings"
 
-	databasecfg "github.com/primandproper/platform-go/v6/database/config"
-	"github.com/primandproper/platform-go/v6/observability"
+	databasecfg "github.com/primandproper/platform-go/v7/database/config"
+	"github.com/primandproper/platform-go/v7/observability"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -219,12 +219,18 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 		mcpRouting.Chi.EnableCORSForLocalhost = true
 	}
 
+	mcpHTTPServer := s.RootConfig.HTTPServer
+	// The apple-app-site-association document describes the domain the iOS app is
+	// associated with, which is the API's, not the MCP server's. Serving it from here
+	// would publish an association for a host no Universal Link points at.
+	mcpHTTPServer.AppleAppSiteAssociation = nil
+
 	mcpConfig := &MCPServiceConfig{
 		Database:      databaseConfigForService(&s.RootConfig.Database, s.ServiceDatabaseUsers, mcpConfigObservabilityServiceName),
 		Observability: mcpObservability,
 		Routing:       mcpRouting,
 		Meta:          s.RootConfig.Meta,
-		HTTPServer:    s.RootConfig.HTTPServer,
+		HTTPServer:    mcpHTTPServer,
 	}
 
 	if validate {

@@ -6,10 +6,9 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/identifiers"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -133,20 +132,8 @@ func TestArchiveUserDataDisclosure(T *testing.T) {
 // --- Integration tests (require DB container) ---
 
 func TestQuerier_Integration_UserDataDisclosures(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, identityRepo, container := buildDatabaseClientForTest(t)
-
-	_, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _, identityRepo := buildDatabaseClientForTest(t)
 
 	exampleUser := fakes.BuildFakeUser()
 	exampleUser.Username = "dataprivacy_" + identifiers.New()[:8]
@@ -191,20 +178,8 @@ func TestQuerier_Integration_UserDataDisclosures(t *testing.T) {
 }
 
 func TestQuerier_Integration_UserDataDisclosures_MarkFailed(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, identityRepo, container := buildDatabaseClientForTest(t)
-
-	_, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _, identityRepo := buildDatabaseClientForTest(t)
 
 	exampleUser := fakes.BuildFakeUser()
 	exampleUser.Username = "dataprivacy_fail_" + identifiers.New()[:8]
@@ -231,20 +206,8 @@ func TestQuerier_Integration_UserDataDisclosures_MarkFailed(t *testing.T) {
 }
 
 func TestQuerier_Integration_UserDataDisclosures_Archive(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, identityRepo, container := buildDatabaseClientForTest(t)
-
-	_, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _, identityRepo := buildDatabaseClientForTest(t)
 
 	exampleUser := fakes.BuildFakeUser()
 	exampleUser.Username = "dataprivacy_arch_" + identifiers.New()[:8]

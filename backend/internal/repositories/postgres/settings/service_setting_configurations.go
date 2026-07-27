@@ -11,12 +11,12 @@ import (
 	settingskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/settings/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 const (
@@ -404,7 +404,7 @@ func (q *Repository) CreateServiceSettingConfiguration(ctx context.Context, inpu
 
 	// begin account creation transaction
 	var x *types.ServiceSettingConfiguration
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		// create the service setting configuration.
 		if err := q.generatedQuerier.CreateServiceSettingConfiguration(ctx, tx, &generated.CreateServiceSettingConfigurationParams{
 			ID:               input.ID,
@@ -466,7 +466,7 @@ func (q *Repository) UpdateServiceSettingConfiguration(ctx context.Context, upda
 
 	// begin account creation transaction
 	var err error
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if _, err = q.generatedQuerier.UpdateServiceSettingConfiguration(ctx, tx, &generated.UpdateServiceSettingConfigurationParams{
 			Value:            updated.Value,
 			Notes:            updated.Notes,
@@ -513,7 +513,7 @@ func (q *Repository) ArchiveServiceSettingConfiguration(ctx context.Context, ser
 	tracing.AttachToSpan(span, settingskeys.ServiceSettingConfigurationIDKey, serviceSettingConfigurationID)
 
 	// begin account creation transaction
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		rowsAffected, err := q.generatedQuerier.ArchiveServiceSettingConfiguration(ctx, tx, serviceSettingConfigurationID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving service setting configuration")

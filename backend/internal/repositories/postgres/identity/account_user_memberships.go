@@ -12,11 +12,11 @@ import (
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 const (
@@ -161,7 +161,7 @@ func (r *repository) markAccountAsUserDefault(ctx context.Context, querier datab
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if err = r.generatedQuerier.MarkAccountUserMembershipAsUserDefault(ctx, querier, &generated.MarkAccountUserMembershipAsUserDefaultParams{
 			BelongsToUser:    userID,
 			BelongsToAccount: accountID,
@@ -251,7 +251,7 @@ func (r *repository) ModifyUserPermissions(ctx context.Context, accountID, userI
 	}
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		// Update the user's account-level role assignment.
 		if err = r.generatedQuerier.UpdateAccountRoleAssignment(ctx, tx, &generated.UpdateAccountRoleAssignmentParams{
 			NewRoleID: newRole.ID,
@@ -308,7 +308,7 @@ func (r *repository) TransferAccountOwnership(ctx context.Context, accountID str
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, input.NewOwner)
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		// create the membership.
 		if err := r.generatedQuerier.TransferAccountOwnership(ctx, tx, &generated.TransferAccountOwnershipParams{
 			NewOwner:  input.NewOwner,
@@ -419,7 +419,7 @@ func (r *repository) addUserToAccount(ctx context.Context, querier database.SQLQ
 }
 
 // removeUserFromAccount removes a user's membership to an account.
-func (r *repository) removeUserFromAccount(ctx context.Context, querier database.SQLQueryExecutorAndTransactionManager, userID, accountID string) error {
+func (r *repository) removeUserFromAccount(ctx context.Context, querier database.SQLQueryExecutor, userID, accountID string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -505,7 +505,7 @@ func (r *repository) RemoveUserFromAccount(ctx context.Context, userID, accountI
 	})
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if err = r.removeUserFromAccount(ctx, tx, userID, accountID); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "removing user from account")
 		}

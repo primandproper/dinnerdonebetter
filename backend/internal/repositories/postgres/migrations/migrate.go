@@ -1,15 +1,12 @@
 package migrations
 
 import (
-	"context"
-	"database/sql"
 	"embed"
-	"fmt"
+	"io/fs"
 
-	"github.com/primandproper/platform-go/v6/database"
-	"github.com/primandproper/platform-go/v6/observability/logging"
-
-	"github.com/GuiaBolso/darwin"
+	"github.com/primandproper/platform-go/v7/database/migrate"
+	"github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/observability/logging"
 )
 
 var (
@@ -17,59 +14,32 @@ var (
 	rawMigrations embed.FS
 )
 
-func fetchMigration(name string) string {
-	file, err := rawMigrations.ReadFile(fmt.Sprintf("migration_files/%s.sql", name))
+// lockKey names the Postgres advisory lock that serializes migrations. Every
+// deployment sharing a database derives the same lock ID from it, so one
+// replica applies migrations while the rest wait rather than racing.
+const lockKey = "dinnerdonebetter"
+
+// NewMigrator creates a new postgres Migrator over the embedded migration files.
+//
+// Migrations are ordered by the leading number in their filename, so adding one
+// means dropping a numbered .sql file into migration_files — there is no list
+// here to keep in sync. Files are read and checked here, so a malformed
+// migration fails construction rather than the first Migrate.
+func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
+	migrationFiles, err := fs.Sub(rawMigrations, "migration_files")
 	if err != nil {
-		panic(err)
+		return nil, errors.Wrap(err, "opening migration files")
 	}
 
-	return string(file)
-}
-
-// Migrator implements database.Migrator for postgres databases.
-type Migrator struct {
-	logger logging.Logger
-}
-
-var _ database.Migrator = (*Migrator)(nil)
-
-// NewMigrator creates a new postgres Migrator.
-func NewMigrator(logger logging.Logger) *Migrator {
-	return &Migrator{
-		logger: logging.EnsureLogger(logger),
-	}
-}
-
-// Migrate runs all postgres migrations on the given database connection.
-func (m *Migrator) Migrate(ctx context.Context, db *sql.DB) error {
-	migrations := []darwin.Migration{
-		{Version: 1, Description: "identity tables", Script: fetchMigration("00001_identity")},
-		{Version: 2, Description: "audit log entries tables", Script: fetchMigration("00002_auditlogentries")},
-		{Version: 3, Description: "auth tables", Script: fetchMigration("00003_auth")},
-		{Version: 4, Description: "oauth tables", Script: fetchMigration("00004_oauth")},
-		{Version: 5, Description: "settings tables", Script: fetchMigration("00005_settings")},
-		{Version: 6, Description: "user notifications table", Script: fetchMigration("00006_notifications")},
-		{Version: 7, Description: "webhooks tables", Script: fetchMigration("00007_webhooks")},
-		{Version: 8, Description: "waitlist tables", Script: fetchMigration("00008_waitlists")},
-		{Version: 9, Description: "issue reports table", Script: fetchMigration("00009_issue_reports")},
-		{Version: 10, Description: "uploaded media table", Script: fetchMigration("00010_uploaded_media")},
-		{Version: 11, Description: "payments tables", Script: fetchMigration("00011_payments")},
-		{Version: 12, Description: "comments table", Script: fetchMigration("00012_comments")},
-		{Version: 13, Description: "data privacy tables", Script: fetchMigration("00013_dataprivacy")},
-		{Version: 14, Description: "queue test messages tables", Script: fetchMigration("00014_internalops")},
-		{Version: 15, Description: "user device tokens table", Script: fetchMigration("00015_user_device_tokens")},
-		{Version: 16, Description: "webauthn credentials table", Script: fetchMigration("00016_webauthn_credentials")},
-		{Version: 17, Description: "webauthn sessions table", Script: fetchMigration("00017_webauthn_sessions")},
-		{Version: 18, Description: "user sessions table", Script: fetchMigration("00018_user_sessions")},
-		{Version: 19, Description: "rbac tables", Script: fetchMigration("00019_rbac")},
-		{Version: 20, Description: "per-service database users", Script: fetchMigration("00020_service_users")},
-		{Version: 21, Description: "meal planning tables", Script: fetchMigration("00021_mealplanning")},
+	migrator, err := migrate.New(
+		migrate.DialectPostgres,
+		migrationFiles,
+		migrate.WithLogger(logging.EnsureLogger(logger)),
+		migrate.WithLockKey(lockKey),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "building migrator")
 	}
 
-	if err := darwin.New(darwin.NewGenericDriver(db, darwin.PostgresDialect{}), migrations, nil).Migrate(); err != nil {
-		return fmt.Errorf("running migrations: %w", err)
-	}
-
-	m.logger.Info("migrations completed successfully")
-	return nil
+	return migrator, nil
 }

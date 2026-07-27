@@ -3,16 +3,16 @@ package datachangemessagehandler
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v6/analytics/config"
-	databasecfg "github.com/primandproper/platform-go/v6/database/config"
-	emailcfg "github.com/primandproper/platform-go/v6/email/config"
-	"github.com/primandproper/platform-go/v6/encoding"
-	httpclientcfg "github.com/primandproper/platform-go/v6/httpclient"
-	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
-	notificationscfg "github.com/primandproper/platform-go/v6/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v6/observability"
-	textsearchcfg "github.com/primandproper/platform-go/v6/search/text/config"
-	"github.com/primandproper/platform-go/v6/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v7/analytics/config"
+	databasecfg "github.com/primandproper/platform-go/v7/database/config"
+	emailcfg "github.com/primandproper/platform-go/v7/email/config"
+	"github.com/primandproper/platform-go/v7/encoding"
+	httpclientcfg "github.com/primandproper/platform-go/v7/httpclient"
+	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
+	notificationscfg "github.com/primandproper/platform-go/v7/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v7/observability"
+	textsearchcfg "github.com/primandproper/platform-go/v7/search/text/config"
+	"github.com/primandproper/platform-go/v7/uploads/objectstorage"
 
 	"github.com/samber/do/v2"
 )

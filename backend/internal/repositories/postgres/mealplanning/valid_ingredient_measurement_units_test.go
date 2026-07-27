@@ -10,7 +10,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v7/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,21 +50,8 @@ func createValidIngredientMeasurementUnitForTest(t *testing.T, ctx context.Conte
 }
 
 func TestQuerier_Integration_ValidIngredientMeasurementUnits(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	exampleValidIngredient := createValidIngredientForTest(t, ctx, nil, dbc)
 	exampleValidMeasurementUnit := createValidMeasurementUnitForTest(t, ctx, nil, dbc)
@@ -212,21 +199,8 @@ func TestQuerier_GetValidIngredientMeasurementUnitsByIDs(T *testing.T) {
 }
 
 func TestQuerier_Integration_GetValidIngredientMeasurementUnitsByIDs(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	// Create multiple valid ingredient measurement units
 	created1 := createValidIngredientMeasurementUnitForTest(t, ctx, nil, dbc)
@@ -261,21 +235,8 @@ func TestQuerier_Integration_GetValidIngredientMeasurementUnitsByIDs(t *testing.
 }
 
 func TestQuerier_Integration_ValidIngredientMeasurementUnits_CursorBasedPagination(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	// Create different ingredients and measurement units for each item to ensure uniqueness
 	// Use the generic pagination test helper

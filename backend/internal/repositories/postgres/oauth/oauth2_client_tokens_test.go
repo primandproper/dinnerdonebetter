@@ -46,21 +46,8 @@ func createOAuth2ClientTokenForTest(t *testing.T, ctx context.Context, exampleOA
 }
 
 func TestQuerier_Integration_OAuth2ClientTokens(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	oauth2Client := createOAuth2ClientForTest(t, ctx, nil, dbc)

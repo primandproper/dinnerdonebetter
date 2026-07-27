@@ -9,12 +9,12 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 const (
@@ -248,7 +248,7 @@ func (q *repository) MealPlanEventIsEligibleForVoting(ctx context.Context, mealP
 }
 
 // createMealPlanEvent creates a meal plan event in the database.
-func (q *repository) createMealPlanEvent(ctx context.Context, querier database.SQLQueryExecutorAndTransactionManager, input *types.MealPlanEventDatabaseCreationInput) (*types.MealPlanEvent, error) {
+func (q *repository) createMealPlanEvent(ctx context.Context, querier database.SQLQueryExecutor, input *types.MealPlanEventDatabaseCreationInput) (*types.MealPlanEvent, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -314,7 +314,7 @@ func (q *repository) CreateMealPlanEvent(ctx context.Context, input *types.MealP
 	}
 
 	var x *types.MealPlanEvent
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		created, err := q.createMealPlanEvent(ctx, tx, input)
 		if err != nil {
 			return observability.PrepareError(err, span, "creating meal plan event")
@@ -397,7 +397,7 @@ func (q *repository) SwapMealPlanEvents(ctx context.Context, mealPlanID, mealPla
 	eventA.StartsAt, eventA.EndsAt = eventBStartsAt, eventBEndsAt
 	eventB.StartsAt, eventB.EndsAt = eventAStartsAt, eventAEndsAt
 
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if _, err = q.generatedQuerier.UpdateMealPlanEvent(ctx, tx, &generated.UpdateMealPlanEventParams{
 			Notes:             eventA.Notes,
 			StartsAt:          eventA.StartsAt,

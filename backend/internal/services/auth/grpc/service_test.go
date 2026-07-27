@@ -11,13 +11,13 @@ import (
 	identitymanagermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	authsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
-	"github.com/primandproper/platform-go/v6/encoding"
-	"github.com/primandproper/platform-go/v6/featureflags"
-	"github.com/primandproper/platform-go/v6/featureflags/mock"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v7/encoding"
+	"github.com/primandproper/platform-go/v7/featureflags"
+	"github.com/primandproper/platform-go/v7/featureflags/mock"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -13,7 +13,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v7/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,21 +57,8 @@ func createServiceSettingConfigurationForTest(t *testing.T, ctx context.Context,
 }
 
 func TestQuerier_Integration_ServiceSettingConfigurations(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, auditRepo, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, auditRepo := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
@@ -104,13 +91,11 @@ func TestQuerier_Integration_ServiceSettingConfigurations(t *testing.T) {
 	for _, serviceSettingConfiguration := range createdServiceSettingConfigurations {
 		assert.NoError(t, dbc.ArchiveServiceSettingConfiguration(ctx, serviceSettingConfiguration.ID))
 
-		var exists bool
-		exists, err = dbc.ServiceSettingConfigurationExists(ctx, serviceSettingConfiguration.ID)
+		exists, err := dbc.ServiceSettingConfigurationExists(ctx, serviceSettingConfiguration.ID)
 		assert.NoError(t, err)
 		assert.False(t, exists)
 
-		var y *types.ServiceSettingConfiguration
-		y, err = dbc.GetServiceSettingConfiguration(ctx, serviceSettingConfiguration.ID)
+		y, err := dbc.GetServiceSettingConfiguration(ctx, serviceSettingConfiguration.ID)
 		assert.Nil(t, y)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
@@ -237,21 +222,8 @@ func TestQuerier_ArchiveServiceSettingConfiguration(T *testing.T) {
 }
 
 func TestQuerier_Integration_ServiceSettingConfigurationsForUser_CursorBasedPagination(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	// Create a user and account for testing
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
@@ -288,21 +260,8 @@ func TestQuerier_Integration_ServiceSettingConfigurationsForUser_CursorBasedPagi
 }
 
 func TestQuerier_Integration_ServiceSettingConfigurationsForAccount_CursorBasedPagination(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, _, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	// Create a user and account for testing
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)

@@ -10,11 +10,11 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 var (
@@ -108,7 +108,7 @@ func (q *repository) GetMealPlanTask(ctx context.Context, mealPlanTaskID string)
 }
 
 // createMealPlanTask creates a meal plan task.
-func (q *repository) createMealPlanTask(ctx context.Context, querier database.SQLQueryExecutorAndTransactionManager, input *types.MealPlanTaskDatabaseCreationInput) (*types.MealPlanTask, error) {
+func (q *repository) createMealPlanTask(ctx context.Context, querier database.SQLQueryExecutor, input *types.MealPlanTaskDatabaseCreationInput) (*types.MealPlanTask, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -167,7 +167,7 @@ func (q *repository) CreateMealPlanTask(ctx context.Context, input *types.MealPl
 	logger = logger.WithValue(mealplanningkeys.MealPlanTaskIDKey, input.ID)
 
 	var x *types.MealPlanTask
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		created, err := q.createMealPlanTask(ctx, tx, input)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "creating meal plan task")
@@ -311,7 +311,7 @@ func (q *repository) CreateMealPlanTasksForMealPlanOption(ctx context.Context, i
 	logger := q.logger.Clone()
 
 	outputs := []*types.MealPlanTask{}
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		for _, input := range inputs {
 			mealPlanTask, createMealPlanTaskErr := q.createMealPlanTask(ctx, tx, input)
 			if createMealPlanTaskErr != nil {

@@ -10,12 +10,12 @@ import (
 	authkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auth/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 const (
@@ -53,7 +53,7 @@ func (r *repository) CreateUserSession(ctx context.Context, input *auth.UserSess
 	tracing.AttachToSpan(span, authkeys.UserSessionIDKey, input.ID)
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if err = r.generatedQuerier.CreateUserSession(ctx, tx, &generated.CreateUserSessionParams{
 			ID:             input.ID,
 			BelongsToUser:  input.BelongsToUser,

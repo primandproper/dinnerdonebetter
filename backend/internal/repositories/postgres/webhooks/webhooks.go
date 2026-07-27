@@ -11,12 +11,12 @@ import (
 	webhookkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/webhooks/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 const (
@@ -249,7 +249,7 @@ func (r *repository) CreateWebhook(ctx context.Context, input *types.WebhookData
 
 	var err error
 	var x *types.Webhook
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if err = r.generatedQuerier.CreateWebhook(ctx, tx, &generated.CreateWebhookParams{
 			ID:               input.ID,
 			Name:             input.Name,
@@ -370,7 +370,7 @@ func (r *repository) ArchiveWebhook(ctx context.Context, webhookID, accountID st
 		identitykeys.AccountIDKey: accountID,
 	})
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		rowsAffected, err := r.generatedQuerier.ArchiveWebhook(ctx, tx, &generated.ArchiveWebhookParams{
 			BelongsToAccount: accountID,
 			ID:               webhookID,
@@ -423,7 +423,7 @@ func (r *repository) AddWebhookTriggerConfig(ctx context.Context, accountID stri
 	})
 
 	var created *types.WebhookTriggerConfig
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		result, err := r.createWebhookTriggerConfig(ctx, tx, accountID, input)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "performing webhook trigger config creation")
@@ -460,7 +460,7 @@ func (r *repository) ArchiveWebhookTriggerConfig(ctx context.Context, webhookID,
 	})
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if _, err = r.generatedQuerier.ArchiveWebhookTriggerConfig(ctx, tx, &generated.ArchiveWebhookTriggerConfigParams{
 			BelongsToWebhook: webhookID,
 			ID:               configID,

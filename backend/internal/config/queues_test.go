@@ -3,7 +3,7 @@ package config
 import (
 	"testing"
 
-	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
+	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
 
 	"github.com/stretchr/testify/assert"
 )

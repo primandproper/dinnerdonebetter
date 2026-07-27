@@ -12,12 +12,12 @@ import (
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/filtering"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 const (
@@ -714,7 +714,7 @@ func (r *repository) AcceptAccountInvitation(ctx context.Context, accountID, acc
 		return platformerrors.ErrNilInputProvided
 	}
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		invitation, err := r.GetAccountInvitationByTokenAndID(ctx, token, accountInvitationID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "fetching account invitation")
@@ -780,7 +780,7 @@ func (r *repository) attachInvitationsToUser(ctx context.Context, querier databa
 	return nil
 }
 
-func (r *repository) acceptInvitationForUser(ctx context.Context, querier database.SQLQueryExecutorAndTransactionManager, input *identity.UserDatabaseCreationInput) error {
+func (r *repository) acceptInvitationForUser(ctx context.Context, querier database.SQLQueryExecutor, input *identity.UserDatabaseCreationInput) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 

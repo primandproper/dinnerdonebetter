@@ -8,11 +8,11 @@ import (
 	authkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auth/generated"
 
-	"github.com/primandproper/platform-go/v6/database"
-	platformerrors "github.com/primandproper/platform-go/v6/errors"
-	"github.com/primandproper/platform-go/v6/identifiers"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/tracing"
+	"github.com/primandproper/platform-go/v7/database"
+	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/tracing"
 )
 
 const (
@@ -89,7 +89,7 @@ func (r *repository) CreatePasswordResetToken(ctx context.Context, input *auth.P
 	tracing.AttachToSpan(span, authkeys.PasswordResetTokenIDKey, input.ID)
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		// create the password reset token.
 		if err = r.generatedQuerier.CreatePasswordResetToken(ctx, tx, &generated.CreatePasswordResetTokenParams{
 			ID:            input.ID,
@@ -145,7 +145,7 @@ func (r *repository) RedeemPasswordResetToken(ctx context.Context, passwordReset
 		return observability.PrepareAndLogError(err, logger, span, "fetching password reset token for redeem")
 	}
 
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutorAndTransactionManager) error {
+	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if err = r.generatedQuerier.RedeemPasswordResetToken(ctx, tx, passwordResetTokenID); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "redeeming password reset token")
 		}

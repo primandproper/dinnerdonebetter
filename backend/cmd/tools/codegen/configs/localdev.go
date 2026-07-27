@@ -11,33 +11,33 @@ import (
 	uploadedmediacfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	analyticscfg "github.com/primandproper/platform-go/v6/analytics/config"
-	tokenscfg "github.com/primandproper/platform-go/v6/authentication/tokens/config"
-	circuitbreakingcfg "github.com/primandproper/platform-go/v6/circuitbreaking/config"
-	encryptioncfg "github.com/primandproper/platform-go/v6/cryptography/encryption/config"
-	databasecfg "github.com/primandproper/platform-go/v6/database/config"
-	"github.com/primandproper/platform-go/v6/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v6/featureflags/config"
-	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
-	"github.com/primandproper/platform-go/v6/messagequeue/redis"
-	notificationscfg "github.com/primandproper/platform-go/v6/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v6/observability"
-	"github.com/primandproper/platform-go/v6/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v6/observability/logging/config"
-	logotelgrpc "github.com/primandproper/platform-go/v6/observability/logging/otelgrpc"
-	metricscfg "github.com/primandproper/platform-go/v6/observability/metrics/config"
-	"github.com/primandproper/platform-go/v6/observability/metrics/otelgrpc"
-	profilingcfg "github.com/primandproper/platform-go/v6/observability/profiling/config"
-	"github.com/primandproper/platform-go/v6/observability/profiling/pprof"
-	tracingcfg "github.com/primandproper/platform-go/v6/observability/tracing/config"
-	"github.com/primandproper/platform-go/v6/observability/tracing/oteltrace"
-	"github.com/primandproper/platform-go/v6/routing/backends/chi"
-	routingcfg "github.com/primandproper/platform-go/v6/routing/config"
-	"github.com/primandproper/platform-go/v6/search/text/algolia"
-	textsearchcfg "github.com/primandproper/platform-go/v6/search/text/config"
-	"github.com/primandproper/platform-go/v6/server/http"
-	uploadscfg "github.com/primandproper/platform-go/v6/uploads/config"
-	"github.com/primandproper/platform-go/v6/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v7/analytics/config"
+	tokenscfg "github.com/primandproper/platform-go/v7/authentication/tokens/config"
+	circuitbreakingcfg "github.com/primandproper/platform-go/v7/circuitbreaking/config"
+	encryptioncfg "github.com/primandproper/platform-go/v7/cryptography/encryption/config"
+	databasecfg "github.com/primandproper/platform-go/v7/database/config"
+	"github.com/primandproper/platform-go/v7/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v7/featureflags/config"
+	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
+	"github.com/primandproper/platform-go/v7/messagequeue/redis"
+	notificationscfg "github.com/primandproper/platform-go/v7/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v7/observability"
+	"github.com/primandproper/platform-go/v7/observability/logging"
+	loggingcfg "github.com/primandproper/platform-go/v7/observability/logging/config"
+	logotelgrpc "github.com/primandproper/platform-go/v7/observability/logging/otelgrpc"
+	metricscfg "github.com/primandproper/platform-go/v7/observability/metrics/config"
+	"github.com/primandproper/platform-go/v7/observability/metrics/otelgrpc"
+	profilingcfg "github.com/primandproper/platform-go/v7/observability/profiling/config"
+	"github.com/primandproper/platform-go/v7/observability/profiling/pprof"
+	tracingcfg "github.com/primandproper/platform-go/v7/observability/tracing/config"
+	"github.com/primandproper/platform-go/v7/observability/tracing/oteltrace"
+	"github.com/primandproper/platform-go/v7/routing/backends/chi"
+	routingcfg "github.com/primandproper/platform-go/v7/routing/config"
+	"github.com/primandproper/platform-go/v7/search/text/algolia"
+	textsearchcfg "github.com/primandproper/platform-go/v7/search/text/config"
+	"github.com/primandproper/platform-go/v7/server/http"
+	uploadscfg "github.com/primandproper/platform-go/v7/uploads/config"
+	"github.com/primandproper/platform-go/v7/uploads/objectstorage"
 )
 
 const (
@@ -178,6 +178,10 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 			Debug:           true,
 			Port:            defaultHTTPPort,
 			StartupDeadline: time.Minute,
+			AppleAppSiteAssociation: &http.AppleAppSiteAssociationConfig{
+				TeamID:   appleTeamID,
+				BundleID: appleBundleID,
+			},
 		},
 		Database: databasecfg.Config{
 			Provider:                 databasecfg.ProviderPostgres,

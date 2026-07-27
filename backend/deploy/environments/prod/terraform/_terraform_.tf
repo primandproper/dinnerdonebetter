@@ -37,5 +37,9 @@ terraform {
       source  = "grafana/grafana"
       version = "4.28.0"
     }
+    postgresql = {
+      source  = "cyrilgdn/postgresql"
+      version = "1.27.0"
+    }
   }
 }

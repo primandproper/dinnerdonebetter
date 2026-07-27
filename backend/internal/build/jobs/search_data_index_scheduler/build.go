@@ -10,14 +10,14 @@ import (
 	identityrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
-	databasecfg "github.com/primandproper/platform-go/v6/database/config"
-	"github.com/primandproper/platform-go/v6/database/postgres"
-	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
-	"github.com/primandproper/platform-go/v6/observability"
-	loggingcfg "github.com/primandproper/platform-go/v6/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v6/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v6/observability/tracing/config"
-	"github.com/primandproper/platform-go/v6/search/text/indexing"
+	databasecfg "github.com/primandproper/platform-go/v7/database/config"
+	"github.com/primandproper/platform-go/v7/database/postgres"
+	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
+	"github.com/primandproper/platform-go/v7/observability"
+	loggingcfg "github.com/primandproper/platform-go/v7/observability/logging/config"
+	metricscfg "github.com/primandproper/platform-go/v7/observability/metrics/config"
+	tracingcfg "github.com/primandproper/platform-go/v7/observability/tracing/config"
+	"github.com/primandproper/platform-go/v7/search/text/indexing"
 
 	"github.com/samber/do/v2"
 )

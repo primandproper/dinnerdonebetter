@@ -9,8 +9,8 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 
-	"github.com/primandproper/platform-go/v6/database"
-	"github.com/primandproper/platform-go/v6/filtering"
+	"github.com/primandproper/platform-go/v7/database"
+	"github.com/primandproper/platform-go/v7/filtering"
 )
 
 // Ensure, that RepositoryMock does implement audit.Repository.

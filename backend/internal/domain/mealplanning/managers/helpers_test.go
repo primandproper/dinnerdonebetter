@@ -8,13 +8,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	mealplanningworkers "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v6/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v6/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v6/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v6/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v6/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v6/observability/tracing/noop"
-	textsearchcfg "github.com/primandproper/platform-go/v6/search/text/config"
+	"github.com/primandproper/platform-go/v7/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
+	mockpublishers "github.com/primandproper/platform-go/v7/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v7/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
+	textsearchcfg "github.com/primandproper/platform-go/v7/search/text/config"
 
 	"github.com/stretchr/testify/require"
 )

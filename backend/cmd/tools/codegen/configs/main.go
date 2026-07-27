@@ -5,7 +5,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 
-	"github.com/primandproper/platform-go/v6/encoding"
+	"github.com/primandproper/platform-go/v7/encoding"
 )
 
 const (
@@ -20,6 +20,12 @@ const (
 	// run modes.
 	developmentEnv = "development"
 	testingEnv     = "testing"
+
+	// Universal Link identifiers, mirrored from the iOS project's DEVELOPMENT_TEAM and
+	// PRODUCT_BUNDLE_IDENTIFIER. They are public identifiers, not secrets — the
+	// apple-app-site-association document Apple fetches contains both.
+	appleTeamID   = "K8R2Q5UWQS"
+	appleBundleID = "com.dinnerdonebetter.ios"
 
 	// message provider topics.
 	dataChangesTopicName              = "data_changes"

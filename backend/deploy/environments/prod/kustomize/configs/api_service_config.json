@@ -214,6 +214,10 @@
 		}
 	},
 	"http": {
+		"appleAppSiteAssociation": {
+			"teamID": "K8R2Q5UWQS",
+			"bundleID": "com.dinnerdonebetter.ios"
+		},
 		"startupDeadline": 60000000000,
 		"port": 8000,
 		"debug": false

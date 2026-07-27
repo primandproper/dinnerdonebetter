@@ -57,21 +57,8 @@ func createAccountInvitationForTest(t *testing.T, ctx context.Context, exampleAc
 }
 
 func TestQuerier_Integration_AccountInvitations(t *testing.T) {
-	if !pgtesting.RunContainerTests {
-		t.SkipNow()
-	}
-
 	ctx := t.Context()
-	dbc, auditRepo, container := buildDatabaseClientForTest(t)
-
-	databaseURI, err := container.ConnectionString(ctx)
-	require.NoError(t, err)
-	require.NotEmpty(t, databaseURI)
-
-	defer func(t *testing.T) {
-		t.Helper()
-		assert.NoError(t, container.Terminate(ctx))
-	}(t)
+	dbc, auditRepo := buildDatabaseClientForTest(t)
 
 	account := createAccountForTest(t, ctx, nil, dbc)
 
