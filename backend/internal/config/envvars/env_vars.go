@@ -370,6 +370,87 @@ const (
 	// HTTPWriteTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.WriteTimeout`.
 	HTTPWriteTimeoutEnvVarKey = "DINNER_DONE_BETTER_HTTP_WRITE_TIMEOUT"
 
+	// IdempotencyEnabledEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Enabled`.
+	IdempotencyEnabledEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_ENABLED"
+
+	// IdempotencyManagerCacheCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.CircuitBreaker.ErrorRate`.
+	IdempotencyManagerCacheCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// IdempotencyManagerCacheCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.CircuitBreaker.MinimumSampleThreshold`.
+	IdempotencyManagerCacheCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// IdempotencyManagerCacheCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.CircuitBreaker.Name`.
+	IdempotencyManagerCacheCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_CIRCUIT_BREAKING_NAME"
+
+	// IdempotencyManagerCacheExpiryEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Expiry`.
+	IdempotencyManagerCacheExpiryEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_EXPIRY"
+
+	// IdempotencyManagerCacheJanitorIntervalEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.JanitorInterval`.
+	IdempotencyManagerCacheJanitorIntervalEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_JANITOR_INTERVAL"
+
+	// IdempotencyManagerCacheProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Provider`.
+	IdempotencyManagerCacheProviderEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_PROVIDER"
+
+	// IdempotencyManagerCacheRedisClusterEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.Cluster`.
+	IdempotencyManagerCacheRedisClusterEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_CLUSTER"
+
+	// IdempotencyManagerCacheRedisNamespaceEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.Namespace`.
+	IdempotencyManagerCacheRedisNamespaceEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_NAMESPACE"
+
+	// IdempotencyManagerCacheRedisPasswordEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.Password`.
+	IdempotencyManagerCacheRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_PASSWORD"
+
+	// IdempotencyManagerCacheRedisQueueAddressesEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.QueueAddresses`.
+	IdempotencyManagerCacheRedisQueueAddressesEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_QUEUE_ADDRESSES"
+
+	// IdempotencyManagerCacheRedisUsernameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.Username`.
+	IdempotencyManagerCacheRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_USERNAME"
+
+	// IdempotencyManagerFailOpenEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.FailOpen`.
+	IdempotencyManagerFailOpenEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_FAIL_OPEN"
+
+	// IdempotencyManagerInFlightTTLEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.InFlightTTL`.
+	IdempotencyManagerInFlightTTLEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_IN_FLIGHT_TTL"
+
+	// IdempotencyManagerKeyPrefixEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.KeyPrefix`.
+	IdempotencyManagerKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_KEY_PREFIX"
+
+	// IdempotencyManagerLockCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.CircuitBreaker.ErrorRate`.
+	IdempotencyManagerLockCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// IdempotencyManagerLockCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.CircuitBreaker.MinimumSampleThreshold`.
+	IdempotencyManagerLockCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// IdempotencyManagerLockCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.CircuitBreaker.Name`.
+	IdempotencyManagerLockCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_CIRCUIT_BREAKING_NAME"
+
+	// IdempotencyManagerLockPostgresConnWaitTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.Postgres.ConnWaitTimeout`.
+	IdempotencyManagerLockPostgresConnWaitTimeoutEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_POSTGRES_CONN_WAIT_TIMEOUT"
+
+	// IdempotencyManagerLockPostgresNamespaceEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.Postgres.Namespace`.
+	IdempotencyManagerLockPostgresNamespaceEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_POSTGRES_NAMESPACE"
+
+	// IdempotencyManagerLockProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.Provider`.
+	IdempotencyManagerLockProviderEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_PROVIDER"
+
+	// IdempotencyManagerLockRedisAddressesEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.Redis.Addresses`.
+	IdempotencyManagerLockRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_REDIS_ADDRESSES"
+
+	// IdempotencyManagerLockRedisKeyPrefixEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.Redis.KeyPrefix`.
+	IdempotencyManagerLockRedisKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_REDIS_KEY_PREFIX"
+
+	// IdempotencyManagerLockRedisPasswordEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.Redis.Password`.
+	IdempotencyManagerLockRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_REDIS_PASSWORD"
+
+	// IdempotencyManagerLockRedisUsernameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.Redis.Username`.
+	IdempotencyManagerLockRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_REDIS_USERNAME"
+
+	// IdempotencyManagerMaxKeyLengthEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.MaxKeyLength`.
+	IdempotencyManagerMaxKeyLengthEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_MAX_KEY_LENGTH"
+
+	// IdempotencyManagerTTLEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.TTL`.
+	IdempotencyManagerTTLEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_TTL"
+
 	// JobsLockCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Lock.CircuitBreaker.ErrorRate`.
 	JobsLockCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_CIRCUIT_BREAKING_ERROR_RATE"
 

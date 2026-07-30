@@ -368,7 +368,6 @@
 		}
 	},
 	"idempotency": {
-		"enabled": false,
 		"manager": {
 			"keyPrefix": "",
 			"lock": {
@@ -396,6 +395,7 @@
 			"inFlightTTL": 0,
 			"maxKeyLength": 0,
 			"failOpen": false
-		}
+		},
+		"enabled": false
 	}
 }

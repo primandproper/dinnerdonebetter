@@ -324,7 +324,6 @@
 		}
 	},
 	"idempotency": {
-		"enabled": true,
 		"manager": {
 			"keyPrefix": "dinner_done_better.idempotency.",
 			"lock": {
@@ -362,6 +361,7 @@
 			"inFlightTTL": 120000000000,
 			"maxKeyLength": 0,
 			"failOpen": false
-		}
+		},
+		"enabled": true
 	}
 }
