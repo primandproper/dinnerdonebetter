@@ -34,6 +34,9 @@ type waitlistManager struct {
 }
 
 // NewWaitlistDataManager returns a new manager that wraps the repository and emits data change events.
+//
+// Data change events are enqueued into the outbox by the repository, inside the same
+// transaction as the write they describe; see internal/repositories/postgres/events.
 func NewWaitlistDataManager(
 	ctx context.Context,
 	tracerProvider tracing.TracerProvider,
@@ -83,8 +86,6 @@ func (m *waitlistManager) CreateWaitlist(ctx context.Context, input *waitlists.W
 	}
 
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistIDKey, created.ID)
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -104,9 +105,6 @@ func (m *waitlistManager) UpdateWaitlist(ctx context.Context, waitlist *waitlist
 		return observability.PrepareAndLogError(err, logger, span, "update waitlist")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -120,9 +118,6 @@ func (m *waitlistManager) ArchiveWaitlist(ctx context.Context, waitlistID string
 	if err := m.repo.ArchiveWaitlist(ctx, waitlistID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archive waitlist")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -163,8 +158,6 @@ func (m *waitlistManager) CreateWaitlistSignup(ctx context.Context, input *waitl
 	}
 
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistSignupIDKey, created.ID)
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -183,9 +176,6 @@ func (m *waitlistManager) UpdateWaitlistSignup(ctx context.Context, signup *wait
 		return err
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -199,9 +189,6 @@ func (m *waitlistManager) ArchiveWaitlistSignup(ctx context.Context, waitlistSig
 	if err := m.repo.ArchiveWaitlistSignup(ctx, waitlistSignupID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archive waitlist signup")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

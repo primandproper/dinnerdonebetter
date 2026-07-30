@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -96,10 +95,8 @@ func (m *mealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, mea
 		return nil, observability.PrepareAndLogError(err, logger, span, "created meal plan option votes")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanOptionVoteCreatedServiceEventType, map[string]any{
-		"vote_count": len(input.Votes),
-		"created":    len(created),
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the writes it counts; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -160,9 +157,6 @@ func (m *mealPlanningManager) UpdateMealPlanOptionVote(ctx context.Context, meal
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan option vote")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -184,9 +178,6 @@ func (m *mealPlanningManager) ArchiveMealPlanOptionVote(ctx context.Context, mea
 	if err := m.db.ArchiveMealPlanOptionVote(ctx, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan option vote")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

@@ -1,6 +1,8 @@
 package identity
 
 import (
+	"context"
+
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/events"
@@ -52,4 +54,22 @@ func ProvideIdentityRepository(
 	}
 
 	return c
+}
+
+// withEvent runs a write and the data change event describing it in one transaction, so the
+// event cannot survive a write that rolled back — nor be lost after one that committed.
+func (r *repository) withEvent(
+	ctx context.Context,
+	logger logging.Logger,
+	eventType, accountID string,
+	metadata map[string]any,
+	write func(tx database.SQLQueryExecutor) error,
+) error {
+	return r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		if err := write(tx); err != nil {
+			return err
+		}
+
+		return r.events.Emit(ctx, tx, logger, eventType, accountID, metadata)
+	})
 }

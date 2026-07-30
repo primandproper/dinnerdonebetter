@@ -34,6 +34,9 @@ type notificationsManager struct {
 }
 
 // NewNotificationsDataManager returns a new NotificationsDataManager implementing notifications.Repository.
+//
+// Data change events are enqueued into the outbox by the repository, inside the same
+// transaction as the write they describe; see internal/repositories/postgres/events.
 func NewNotificationsDataManager(
 	ctx context.Context,
 	tracerProvider tracing.TracerProvider,
@@ -87,9 +90,6 @@ func (m *notificationsManager) CreateUserNotification(ctx context.Context, input
 		return nil, err
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return created, nil
 }
 
@@ -106,9 +106,6 @@ func (m *notificationsManager) UpdateUserNotification(ctx context.Context, updat
 	if err := m.repo.UpdateUserNotification(ctx, updated); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "update user notification")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -153,9 +150,6 @@ func (m *notificationsManager) CreateUserDeviceToken(ctx context.Context, input 
 		return nil, err
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return created, nil
 }
 
@@ -173,9 +167,6 @@ func (m *notificationsManager) UpdateUserDeviceToken(ctx context.Context, update
 		return observability.PrepareAndLogError(err, logger, span, "update user device token")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -192,9 +183,6 @@ func (m *notificationsManager) ArchiveUserDeviceToken(ctx context.Context, userI
 	if err := m.repo.ArchiveUserDeviceToken(ctx, userID, tokenID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archive user device token")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

@@ -28,6 +28,9 @@ type webhookManager struct {
 }
 
 // NewWebhookDataManager returns a new WebhookDataManager that delegates to the webhooks repository.
+//
+// Data change events are enqueued into the outbox by the repository, inside the same
+// transaction as the write they describe; see internal/repositories/postgres/events.
 func NewWebhookDataManager(
 	ctx context.Context,
 	tracerProvider tracing.TracerProvider,
@@ -98,8 +101,6 @@ func (m *webhookManager) CreateWebhook(ctx context.Context, userID, accountID st
 	}
 
 	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, created.ID)
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -129,9 +130,6 @@ func (m *webhookManager) ArchiveWebhook(ctx context.Context, webhookID, accountI
 		return observability.PrepareAndLogError(err, logger, span, "archive webhook")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -159,8 +157,6 @@ func (m *webhookManager) AddWebhookTriggerConfig(ctx context.Context, accountID 
 	}
 
 	tracing.AttachToSpan(span, webhookkeys.WebhookTriggerConfigIDKey, created.ID)
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -175,9 +171,6 @@ func (m *webhookManager) ArchiveWebhookTriggerConfig(ctx context.Context, webhoo
 	if err := m.repo.ArchiveWebhookTriggerConfig(ctx, webhookID, configID); err != nil {
 		return err
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

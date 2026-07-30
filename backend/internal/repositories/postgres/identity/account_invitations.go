@@ -408,16 +408,22 @@ func (r *repository) CreateAccountInvitation(ctx context.Context, input *identit
 		}
 	}
 
-	if err := r.generatedQuerier.CreateAccountInvitation(ctx, r.writeDB, &generated.CreateAccountInvitationParams{
-		ExpiresAt:          input.ExpiresAt,
-		ID:                 input.ID,
-		FromUser:           input.FromUser,
-		ToName:             input.ToName,
-		Note:               input.Note,
-		ToEmail:            input.ToEmail,
-		Token:              input.Token,
-		DestinationAccount: input.DestinationAccountID,
-		ToUser:             database.NullStringFromStringPointer(input.ToUser),
+	if err := r.withEvent(ctx, logger, identity.AccountInvitationCreatedServiceEventType, input.DestinationAccountID, map[string]any{
+		identitykeys.AccountInvitationIDKey:  input.ID,
+		identitykeys.UserIDKey:               input.FromUser,
+		identitykeys.DestinationAccountIDKey: input.DestinationAccountID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return r.generatedQuerier.CreateAccountInvitation(ctx, tx, &generated.CreateAccountInvitationParams{
+			ExpiresAt:          input.ExpiresAt,
+			ID:                 input.ID,
+			FromUser:           input.FromUser,
+			ToName:             input.ToName,
+			Note:               input.Note,
+			ToEmail:            input.ToEmail,
+			Token:              input.Token,
+			DestinationAccount: input.DestinationAccountID,
+			ToUser:             database.NullStringFromStringPointer(input.ToUser),
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing account invitation creation query")
 	}
@@ -694,7 +700,11 @@ func (r *repository) setInvitationStatus(ctx context.Context, querier database.S
 
 // CancelAccountInvitation cancels an account invitation by its ID with a note.
 func (r *repository) CancelAccountInvitation(ctx context.Context, accountID, accountInvitationID, note string) error {
-	return r.setInvitationStatus(ctx, r.writeDB, accountInvitationID, note, string(identity.CancelledAccountInvitationStatus))
+	return r.withEvent(ctx, r.logger, identity.AccountInvitationCanceledServiceEventType, accountID, map[string]any{
+		identitykeys.AccountInvitationIDKey: accountInvitationID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return r.setInvitationStatus(ctx, tx, accountInvitationID, note, string(identity.CancelledAccountInvitationStatus))
+	})
 }
 
 // AcceptAccountInvitation accepts an account invitation by its ID with a note.
@@ -736,6 +746,15 @@ func (r *repository) AcceptAccountInvitation(ctx context.Context, accountID, acc
 			}
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.AccountInvitationAcceptedServiceEventType, accountID, map[string]any{
+			identitykeys.AccountInvitationIDKey:  accountInvitationID,
+			identitykeys.DestinationAccountIDKey: invitation.DestinationAccount.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return err
@@ -746,7 +765,11 @@ func (r *repository) AcceptAccountInvitation(ctx context.Context, accountID, acc
 
 // RejectAccountInvitation rejects an account invitation by its ID with a note.
 func (r *repository) RejectAccountInvitation(ctx context.Context, accountID, accountInvitationID, note string) error {
-	return r.setInvitationStatus(ctx, r.writeDB, accountInvitationID, note, string(identity.RejectedAccountInvitationStatus))
+	return r.withEvent(ctx, r.logger, identity.AccountInvitationRejectedServiceEventType, accountID, map[string]any{
+		identitykeys.AccountInvitationIDKey: accountInvitationID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return r.setInvitationStatus(ctx, tx, accountInvitationID, note, string(identity.RejectedAccountInvitationStatus))
+	})
 }
 
 func (r *repository) attachInvitationsToUser(ctx context.Context, querier database.SQLQueryExecutor, userEmail, userID string) error {

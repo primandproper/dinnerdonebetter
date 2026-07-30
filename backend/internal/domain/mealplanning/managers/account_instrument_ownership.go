@@ -67,9 +67,6 @@ func (m *mealPlanningManager) CreateAccountInstrumentOwnership(ctx context.Conte
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating instrument ownership")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return created, nil
 }
 
@@ -117,9 +114,6 @@ func (m *mealPlanningManager) UpdateAccountInstrumentOwnership(ctx context.Conte
 		return observability.PrepareAndLogError(err, logger, span, "updating instrument ownership")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -137,9 +131,6 @@ func (m *mealPlanningManager) ArchiveAccountInstrumentOwnership(ctx context.Cont
 	if err := m.db.ArchiveAccountInstrumentOwnership(ctx, instrumentOwnershipID, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving instrument ownership")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

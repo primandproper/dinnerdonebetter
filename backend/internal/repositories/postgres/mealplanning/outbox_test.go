@@ -7,6 +7,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
@@ -144,4 +145,36 @@ func TestQuerier_Integration_CatalogOutboxEvents(t *testing.T) {
 	archivedEvent := findEvent(msgs, types.ValidVesselArchivedServiceEventType)
 	require.NotNil(t, archivedEvent, "no archived event was enqueued")
 	assert.Equal(t, created.ID, archivedEvent.Context[mealplanningkeys.ValidVesselIDKey])
+}
+
+func TestQuerier_Integration_RecipeCloneEmitsBothEvents(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	original := createRecipeForTest(t, ctx, buildRecipeForTestCreation(t, ctx, user.ID, dbc), dbc, true)
+
+	// A clone is one write, so both the created and the cloned event commit with it.
+	cloneInput := converters.ConvertRecipeToRecipeDatabaseCreationInput(
+		buildRecipeForTestCreation(t, ctx, user.ID, dbc))
+	cloneInput.ClonedFromRecipeID = &original.ID
+
+	clone, err := dbc.CreateRecipe(ctx, cloneInput)
+	require.NoError(t, err)
+	require.NotNil(t, clone)
+
+	msgs := decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic))
+
+	cloned := findEvent(msgs, types.RecipeClonedServiceEventType)
+	require.NotNil(t, cloned, "no cloned event was enqueued")
+	assert.Equal(t, original.ID, cloned.Context[mealplanningkeys.RecipeIDKey],
+		"the cloned event should name the recipe that was copied from")
+
+	var createdForClone bool
+	for _, msg := range msgs {
+		if msg.EventType == types.RecipeCreatedServiceEventType && msg.Context[mealplanningkeys.RecipeIDKey] == clone.ID {
+			createdForClone = true
+		}
+	}
+	assert.True(t, createdForClone, "the clone should also announce itself as created")
 }

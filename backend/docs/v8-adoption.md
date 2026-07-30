@@ -87,35 +87,25 @@ The finalizer job's publish is gone: the event is enqueued inside
 to leave a finalized meal plan that no consumer heard about, with a log line as the only
 evidence.
 
-Beyond meal plans: the whole meal planning catalog (`valid_*`), meal-plan child entities, the
-full recipe tree including step children, and the comments, issue reports, webhooks, settings,
-notifications, waitlists, payments and identity domains. **127 of ~150 publish sites converted.**
+Beyond meal plans: every domain, **every one of ~150 publish sites**. No manager publishes a
+data change event after commit any more.
 
-Many of those repository methods gained the transaction they never had, so a write and its audit
-log entry can no longer half-commit. Seven managers (`comments`, `issuereports`, `settings`,
-`notifications`, `payments`, `waitlists`, `webhooks`) no longer construct a data-changes
-publisher at all.
+Many repository methods gained the transaction they never had, so a write and its audit log entry
+can no longer half-commit. Nine managers no longer construct a data-changes publisher at all, and
+`CreateUser` lost two round trips per signup — the default account ID and the email verification
+token were re-fetched purely to build the event, and the repository names both from inside the
+transaction that created them.
 
-Five repository signatures were widened so the events could keep their full payload — the recipe
-step children (`CreateRecipeStepProduct` and friends) now take the `recipeID` their events name,
-rather than dropping the field. That was a `Repository` interface change and a moq regeneration.
+Two cases needed a shape change rather than a move, and both are worth copying:
 
-### What is not, and why
-
-23 sites still publish after commit, for two reasons:
-
-**The repository cannot reproduce the payload (12 sites).** `AcceptAccountInvitation` names the
-invitation's destination account, which its repository method never sees; several identity
-methods (`ArchiveUserMembership`, `SetDefaultAccount`, `UpdateAccountMemberPermissions`,
-`AdminUpdateUserStatus`) are similar. Emitting from the repository would silently drop fields
-webhook subscribers receive. The recipe step children were fixed by widening signatures; these
-need the same treatment, decided case by case.
-
-**No single backing repository method (11 sites).** `CreateMealPlanOptionWithEventID`,
-`CreateMealPlanOptionVotes`, `MealPlanTaskStatusChange`, `CreateUser`,
-`CreateAccountInvitation`, `RejectAccountInvitation`, `CancelAccountInvitation` and friends
-summarize several writes (`"vote_count"`, `"created"`) or compose calls the manager makes in
-sequence. Each needs a decision about what the atomic unit is before it can move.
+- **Where an event named something the repository could not see**, the signature was widened
+  rather than the field dropped. The five recipe step children now take the `recipeID` their
+  events carry.
+- **Where an event described an operation rather than a row**, the operation was made a single
+  write. `RecipeDatabaseCreationInput` gained `ClonedFromRecipeID`, so `CreateRecipe` emits both
+  the created and the cloned event inside the transaction that writes the clone — a clone is one
+  write, and the fact that it is a clone should not be announced separately from it. The meal
+  plan option votes summary moved into the transaction that writes the batch it counts.
 
 Because the relay is wire-compatible, the converted and unconverted paths coexist correctly: a
 consumer cannot tell which mechanism delivered a message.
@@ -152,29 +142,34 @@ key — the exact failure this prevents. Shipping that would be worse than shipp
 Provision Redis, point `Manager.Cache` at it, and flip the flag. Localdev has Redis and runs
 with it enabled.
 
-## Authorization — adopted in audit-only mode
+## Authorization — adopted and enforcing
 
 v8's `authorization` package models exactly what `internal/authorization/` hand-rolls: roles
 resolve to a permission set once, and checking is a map lookup that cannot fail. The gRPC
-adapter's model also matches the existing `AuthInterceptor` exactly — declared methods require
-permissions, `Public` methods opt out, and an undeclared method is denied.
+adapter's model matches the existing `AuthInterceptor` too — declared methods require permissions,
+`Public` methods opt out, undeclared methods are denied.
 
-`internal/authorization/platform.go` bridges the two. The policy is built from the same
-permission slices the checkers are constructed from, so the two tables cannot drift, and
+`internal/authorization/platform.go` bridges the two. The policy is built from the same permission
+slices the checkers are constructed from, and
 `internal/build/services/api/grpc/authorization.go` builds the requirements from the same
-aggregated method map and the interceptor's own public-route list. Nothing is spelled twice.
+aggregated method map and the interceptor's own public-route list. Nothing is spelled twice, so
+the two cannot drift.
 
-**It runs with `WithAuditOnly()`, and denies nothing.** The existing interceptor is still what
-refuses requests. That is the package's own documented migration path, and the reason is worth
-stating plainly: turning enforcement on across a service that already has a large hand-written
-permission table is a coin flip on whether the two tables agree. Audit mode turns the coin flip
-into a measurement.
+**It enforces.** The package ships an audit-only mode for services that cannot compare the two
+implementations ahead of time. This one can, because both read the same method table and the same
+checkers — so instead of deploying in audit mode and waiting,
+`TestAuthorizationEnforcerMatchesTheHandRolledCheck` drives every declared method against every
+role a principal can hold (2,184 decisions) and asserts the verdicts match.
 
-**To finish the migration:** deploy, watch `authorization_denied` for methods the enforcer would
-have refused but the current interceptor allows. Each one is either a policy bug in
-`PlatformPolicy()` or a gap in the current table — both worth knowing before either enforces.
-Once it holds at zero under real traffic, drop `WithAuditOnly()` and delete the permission-check
-half of `AuthInterceptor`.
+That test is load-bearing, and it earned its keep immediately: it found that **39 methods map to
+an empty permission slice**. `AuthInterceptor` admits those — it demands a session, loops over
+zero permissions, and proceeds — while the platform refuses to express "requires nothing" as a
+requirement at all, so they would have been denied as undeclared. They are now declared `Public`,
+which is what the platform's model calls a method that needs authentication but no permission.
+Without that comparison, enforcement would have broken `UpdateUserDetails` and 38 others.
+
+Keep the test green. It is what would catch this policy drifting from the permission slices in
+`internal/authorization`.
 
 ## Not adopted
 

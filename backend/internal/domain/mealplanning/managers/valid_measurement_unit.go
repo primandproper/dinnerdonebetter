@@ -122,9 +122,6 @@ func (m *mealPlanningManager) CreateValidMeasurementUnit(ctx context.Context, in
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid measurement unit")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return created, nil
 }
 
@@ -163,9 +160,6 @@ func (m *mealPlanningManager) UpdateValidMeasurementUnit(ctx context.Context, va
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid measurement unit")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	existingValidMeasurementUnit, err = m.db.GetValidMeasurementUnit(ctx, validMeasurementUnitID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching updated valid measurement unit")
@@ -184,9 +178,6 @@ func (m *mealPlanningManager) ArchiveValidMeasurementUnit(ctx context.Context, v
 	if err := m.db.ArchiveValidMeasurementUnit(ctx, validMeasurementUnitID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid measurement unit")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

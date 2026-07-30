@@ -4,13 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/converters"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
@@ -20,8 +18,6 @@ import (
 	platformerrors "github.com/primandproper/platform-go/v8/errors"
 	"github.com/primandproper/platform-go/v8/filtering"
 	"github.com/primandproper/platform-go/v8/identifiers"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	"github.com/primandproper/platform-go/v8/observability"
 	platformkeys "github.com/primandproper/platform-go/v8/observability/keys"
 	"github.com/primandproper/platform-go/v8/observability/logging"
@@ -50,43 +46,39 @@ var (
 
 type (
 	manager struct {
-		tracer               tracing.Tracer
-		logger               logging.Logger
-		dataChangesPublisher messagequeue.Publisher
-		identityRepo         identity.Repository
-		secretGenerator      random.Generator
-		authenticator        authentication.Hasher
-		userSearchIndex      indexing.UserTextSearcher
-		qrCodeBuilder        qrcodes.Builder
+		tracer          tracing.Tracer
+		logger          logging.Logger
+		identityRepo    identity.Repository
+		secretGenerator random.Generator
+		authenticator   authentication.Hasher
+		userSearchIndex indexing.UserTextSearcher
+		qrCodeBuilder   qrcodes.Builder
 	}
 )
 
+// NewIdentityDataManager returns a new IdentityDataManager.
+//
+// Data change events are enqueued into the outbox by the repository, inside the same
+// transaction as the write they describe; see internal/repositories/postgres/events.
 func NewIdentityDataManager(
 	ctx context.Context,
 	tracerProvider tracing.TracerProvider,
 	logger logging.Logger,
-	publisherProvider messagequeue.PublisherProvider,
 	identityRepo identity.Repository,
 	secretGenerator random.Generator,
 	authenticator authentication.Hasher,
 	userSearchIndex indexing.UserTextSearcher,
 	qrCodeBuilder qrcodes.Builder,
-	cfg *msgconfig.QueuesConfig,
-) (IdentityDataManager, error) {
-	publisher, err := publisherProvider.NewPublisher(ctx, cfg.DataChangesTopicName)
-	if err != nil {
-		return nil, fmt.Errorf("setting up data changes publisher: %w", err)
-	}
 
+) (IdentityDataManager, error) {
 	return &manager{
-		tracer:               tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:               logging.NewNamedLogger(logger, o11yName),
-		identityRepo:         identityRepo,
-		dataChangesPublisher: publisher,
-		secretGenerator:      secretGenerator,
-		authenticator:        authenticator,
-		userSearchIndex:      userSearchIndex,
-		qrCodeBuilder:        qrCodeBuilder,
+		tracer:          tracing.NewNamedTracer(tracerProvider, o11yName),
+		logger:          logging.NewNamedLogger(logger, o11yName),
+		identityRepo:    identityRepo,
+		secretGenerator: secretGenerator,
+		authenticator:   authenticator,
+		userSearchIndex: userSearchIndex,
+		qrCodeBuilder:   qrCodeBuilder,
 	}, nil
 }
 
@@ -110,7 +102,10 @@ func (m *manager) AcceptAccountInvitation(ctx context.Context, accountID, accoun
 		identitykeys.AccountInvitationIDKey: accountInvitationID,
 	}, span, m.logger)
 
-	invitation, err := m.identityRepo.GetAccountInvitationByTokenAndID(ctx, input.Token, accountInvitationID)
+	// The fetch stays as the not-found check — it is what turns a bad token into "invitation
+	// not found" rather than a generic failure. Its result is no longer needed here: the
+	// repository names the destination account from inside its own transaction.
+	_, err := m.identityRepo.GetAccountInvitationByTokenAndID(ctx, input.Token, accountInvitationID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return observability.PrepareError(err, span, "account invitation not found")
 	} else if err != nil {
@@ -123,10 +118,6 @@ func (m *manager) AcceptAccountInvitation(ctx context.Context, accountID, accoun
 
 	// Still published here rather than from the repository: the payload names the invitation's
 	// destination account, which AcceptAccountInvitation never receives.
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.AccountInvitationAcceptedServiceEventType, map[string]any{
-		identitykeys.AccountInvitationIDKey:  accountInvitationID,
-		identitykeys.DestinationAccountIDKey: invitation.DestinationAccount.ID,
-	}))
 
 	return nil
 }
@@ -148,25 +139,21 @@ func (m *manager) RejectAccountInvitation(ctx context.Context, accountID, accoun
 	}, span, m.logger)
 
 	if err := input.ValidateWithContext(ctx); err != nil {
-		return observability.PrepareError(err, span, "invalid input attached to request")
+		return observability.PrepareAndLogError(err, logger, span, "invalid input attached to request")
 	}
 
 	// note, this is where you would call input.ValidateWithContext, if that currently had any effect.
 
 	invitation, err := m.identityRepo.GetAccountInvitationByTokenAndID(ctx, input.Token, accountInvitationID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return observability.PrepareError(err, span, "account invitation not found")
+		return observability.PrepareAndLogError(err, logger, span, "account invitation not found")
 	} else if err != nil {
-		return observability.PrepareError(err, span, "retrieving invitation")
+		return observability.PrepareAndLogError(err, logger, span, "retrieving invitation")
 	}
 
 	if err = m.identityRepo.RejectAccountInvitation(ctx, accountID, invitation.ID, input.Note); err != nil {
-		return observability.PrepareError(err, span, "rejecting invitation")
+		return observability.PrepareAndLogError(err, logger, span, "rejecting invitation")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.AccountInvitationRejectedServiceEventType, map[string]any{
-		identitykeys.AccountInvitationIDKey: accountInvitationID,
-	}))
 
 	return nil
 }
@@ -186,10 +173,6 @@ func (m *manager) CancelAccountInvitation(ctx context.Context, accountID, accoun
 	if err := m.identityRepo.CancelAccountInvitation(ctx, accountID, accountInvitationID, note); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "canceling account invitation")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.AccountInvitationCanceledServiceEventType, map[string]any{
-		identitykeys.AccountInvitationIDKey: accountInvitationID,
-	}))
 
 	return nil
 }
@@ -211,9 +194,6 @@ func (m *manager) ArchiveAccount(ctx context.Context, accountID, ownerID string)
 		return observability.PrepareAndLogError(err, logger, span, "ArchiveAccount")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -234,11 +214,6 @@ func (m *manager) ArchiveUserMembership(ctx context.Context, userID, accountID s
 		return observability.PrepareAndLogError(err, logger, span, "RemoveUserFromAccount")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.AccountMemberRemovedServiceEventType, map[string]any{
-		identitykeys.AccountIDKey: accountID,
-		identitykeys.UserIDKey:    userID,
-	}))
-
 	return nil
 }
 
@@ -257,9 +232,6 @@ func (m *manager) ArchiveUser(ctx context.Context, userID string) error {
 	if err := m.identityRepo.ArchiveUser(ctx, userID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "ArchiveUser")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -282,9 +254,6 @@ func (m *manager) CreateAccount(ctx context.Context, input *identity.AccountCrea
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating Account")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the account it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -325,12 +294,6 @@ func (m *manager) CreateAccountInvitation(ctx context.Context, userID, accountID
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating account invitation")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.AccountInvitationCreatedServiceEventType, map[string]any{
-		identitykeys.AccountInvitationIDKey:  created.ID,
-		identitykeys.UserIDKey:               userID,
-		identitykeys.DestinationAccountIDKey: accountID,
-	}))
 
 	return created, nil
 }
@@ -428,24 +391,12 @@ func (m *manager) CreateUser(ctx context.Context, input *identity.UserRegistrati
 
 	logger.Debug("user created")
 
-	defaultAccountID, err := m.identityRepo.GetDefaultAccountIDForUser(ctx, user.ID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching default account ID for user")
-	}
-
-	emailVerificationToken, err := m.identityRepo.GetEmailAddressVerificationTokenForUser(ctx, user.ID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching email verification token for user")
-	}
+	// The default account ID and the email verification token used to be re-fetched here to
+	// build the signup event. The repository names both from inside the transaction that
+	// created them, so these two round trips are gone along with the publish.
 
 	// notify the relevant parties.
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, user.ID)
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.UserSignedUpServiceEventType, map[string]any{
-		identitykeys.AccountIDKey:                  defaultAccountID,
-		identitykeys.UserIDKey:                     user.ID,
-		identitykeys.UserEmailVerificationTokenKey: emailVerificationToken,
-	}))
 
 	twoFactorQRCode, qrCodeErr := m.qrCodeBuilder.BuildQRCode(ctx, user.Username, user.TwoFactorSecret)
 	if qrCodeErr != nil {
@@ -746,13 +697,8 @@ func (m *manager) SetDefaultAccount(ctx context.Context, userID, accountID strin
 
 	// mark household as default in database.
 	if err := m.identityRepo.MarkAccountAsUserDefault(ctx, userID, accountID); err != nil {
-		return observability.PrepareError(err, span, "marking default account as user")
+		return observability.PrepareAndLogError(err, logger, span, "marking default account as user")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.AccountSetAsDefaultServiceEventType, map[string]any{
-		identitykeys.AccountIDKey: accountID,
-		identitykeys.UserIDKey:    userID,
-	}))
 
 	return nil
 }
@@ -781,9 +727,6 @@ func (m *manager) TransferAccountOwnership(ctx context.Context, accountID string
 	if err := m.identityRepo.TransferAccountOwnership(ctx, accountID, input); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "transferring account ownership")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -824,9 +767,6 @@ func (m *manager) UpdateAccount(ctx context.Context, accountID string, input *id
 		return observability.PrepareError(err, span, "updating account")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -858,16 +798,12 @@ func (m *manager) UpdateAccountMemberPermissions(ctx context.Context, accountID,
 	}, span, m.logger)
 
 	if err := input.ValidateWithContext(ctx); err != nil {
-		return observability.PrepareError(err, span, "invalid input attached to request")
+		return observability.PrepareAndLogError(err, logger, span, "invalid input attached to request")
 	}
 
 	if err := m.identityRepo.ModifyUserPermissions(ctx, accountID, userID, input); err != nil {
-		return observability.PrepareError(err, span, "modifying user permissions")
+		return observability.PrepareAndLogError(err, logger, span, "modifying user permissions")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.AccountMembershipPermissionsUpdatedServiceEventType, map[string]any{
-		identitykeys.AccountIDKey: accountID,
-	}))
 
 	return nil
 }
@@ -896,9 +832,6 @@ func (m *manager) UpdateUserDetails(ctx context.Context, userID string, input *i
 		return observability.PrepareAndLogError(err, logger, span, "updating user details")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -917,9 +850,6 @@ func (m *manager) UpdateUserEmailAddress(ctx context.Context, userID, newEmail s
 	if err := m.identityRepo.UpdateUserEmailAddress(ctx, userID, newEmail); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating user email address")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -944,9 +874,6 @@ func (m *manager) UpdateUserUsername(ctx context.Context, userID, newUsername st
 		return observability.PrepareAndLogError(err, logger, span, "updating user username")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -970,10 +897,6 @@ func (m *manager) SetUserAvatar(ctx context.Context, userID, uploadedMediaID str
 		return observability.PrepareAndLogError(err, logger, span, "setting user avatar")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.UserAvatarChangedEventType, map[string]any{
-		identitykeys.UserIDKey: userID,
-	}))
-
 	return nil
 }
 
@@ -994,10 +917,6 @@ func (m *manager) AdminUpdateUserStatus(ctx context.Context, input *identity.Use
 		return observability.PrepareAndLogError(err, logger, span, "updating user account status")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.UserStatusChangedServiceEventType, map[string]any{
-		identitykeys.UserIDKey: input.TargetUserID,
-	}))
-
 	return nil
 }
 
@@ -1016,10 +935,6 @@ func (m *manager) AdminSetPasswordChangeRequired(ctx context.Context, userID str
 	if err := m.identityRepo.SetUserRequiresPasswordChange(ctx, userID, requiresChange); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "setting user requires password change")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.UserPasswordChangeRequiredServiceEventType, map[string]any{
-		identitykeys.UserIDKey: userID,
-	}))
 
 	return nil
 }

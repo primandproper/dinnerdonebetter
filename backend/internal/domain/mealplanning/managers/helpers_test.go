@@ -76,13 +76,12 @@ func buildValidEnumerationsManagerForTest(t *testing.T) *mealPlanningManager {
 	return newManagerForTest(t, nil, nil)
 }
 
-// attachRepositoryToManager wires a configured repository mock and a no-op data changes publisher
-// into the manager under test.
+// attachRepositoryToManager wires a configured repository mock into the manager under test.
+//
+// There is no publisher to wire any more: data change events are enqueued into the outbox by the
+// repository, inside the transaction that writes the row they describe.
 func attachRepositoryToManager(manager *mealPlanningManager, db *mealplanningmock.RepositoryMock) {
 	manager.db = db
-	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
-	}
 }
 
 // attachRepositoryAndAnalyzerToManager additionally swaps in a configured recipe analyzer. A nil

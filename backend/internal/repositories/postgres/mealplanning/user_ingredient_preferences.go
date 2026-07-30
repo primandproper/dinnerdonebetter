@@ -303,6 +303,15 @@ func (q *repository) CreateUserIngredientPreference(ctx context.Context, input *
 			output = append(output, x)
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// preferences it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, mealplanning.UserIngredientPreferenceCreatedServiceEventType, "", map[string]any{
+			mealplanningkeys.ValidIngredientGroupIDKey: input.ValidIngredientGroupID,
+			mealplanningkeys.ValidIngredientIDKey:      input.ValidIngredientID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing user ingredient preference created event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err

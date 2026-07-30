@@ -63,9 +63,6 @@ func (m *mealPlanningManager) CreateRecipeStepCompletionCondition(ctx context.Co
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating recipe step completion condition")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return created, nil
 }
 
@@ -117,9 +114,6 @@ func (m *mealPlanningManager) UpdateRecipeStepCompletionCondition(ctx context.Co
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step completion condition")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -139,9 +133,6 @@ func (m *mealPlanningManager) ArchiveRecipeStepCompletionCondition(ctx context.C
 	if err := m.db.ArchiveRecipeStepCompletionCondition(ctx, recipeID, recipeStepID, recipeStepCompletionConditionID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step completion condition")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

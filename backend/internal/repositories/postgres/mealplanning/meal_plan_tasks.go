@@ -404,18 +404,22 @@ func (q *repository) ChangeMealPlanTaskStatus(ctx context.Context, input *types.
 		newStatus = *input.Status
 	}
 
-	if err := q.generatedQuerier.ChangeMealPlanTaskStatus(ctx, q.writeDB, &generated.ChangeMealPlanTaskStatusParams{
-		ID:                input.MealPlanTaskID,
-		Status:            generated.PrepStepStatus(newStatus),
-		StatusExplanation: input.StatusExplanation,
-		CompletedAt:       database.NullTimeFromTimePointer(settledAt),
-	}); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "changing meal plan task status")
-	}
+	return q.withEvent(ctx, logger, types.MealPlanTaskStatusChangedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealPlanTaskIDKey: input.MealPlanTaskID,
+	}, func(tx database.SQLQueryExecutor) error {
+		if err := q.generatedQuerier.ChangeMealPlanTaskStatus(ctx, tx, &generated.ChangeMealPlanTaskStatusParams{
+			ID:                input.MealPlanTaskID,
+			Status:            generated.PrepStepStatus(newStatus),
+			StatusExplanation: input.StatusExplanation,
+			CompletedAt:       database.NullTimeFromTimePointer(settledAt),
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "changing meal plan task status")
+		}
 
-	logger.Info("meal plan task status changed")
+		logger.Info("meal plan task status changed")
 
-	return nil
+		return nil
+	})
 }
 
 // MealPlanTaskNotificationHasBeenSent checks if a push notification has already been sent for a meal plan task.

@@ -52,9 +52,6 @@ func (m *mealPlanningManager) CreateValidPreparationVessel(ctx context.Context, 
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid preparation vessel")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return created, nil
 }
 
@@ -94,9 +91,6 @@ func (m *mealPlanningManager) UpdateValidPreparationVessel(ctx context.Context, 
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid preparation vessel")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	existingValidPreparationVessel, err = m.db.GetValidPreparationVessel(ctx, validPreparationVesselID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching updated valid preparation vessel")
@@ -115,9 +109,6 @@ func (m *mealPlanningManager) ArchiveValidPreparationVessel(ctx context.Context,
 	if err := m.db.ArchiveValidPreparationVessel(ctx, validPreparationVesselID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid preparation vessel")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

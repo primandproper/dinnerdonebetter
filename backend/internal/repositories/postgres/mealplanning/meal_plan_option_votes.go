@@ -297,6 +297,15 @@ func (q *repository) CreateMealPlanOptionVote(ctx context.Context, input *types.
 			votes = append(votes, x)
 		}
 
+		// The summary is a statement about this whole batch, and this transaction is the
+		// batch — so it commits with the votes it counts.
+		if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanOptionVoteCreatedServiceEventType, "", map[string]any{
+			"vote_count": len(input.Votes),
+			"created":    len(votes),
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing meal plan option votes created event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err

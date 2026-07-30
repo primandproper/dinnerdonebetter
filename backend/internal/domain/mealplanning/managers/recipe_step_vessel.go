@@ -76,9 +76,6 @@ func (m *mealPlanningManager) CreateRecipeStepVessel(ctx context.Context, recipe
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating recipe step vessel")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return created, nil
 }
 
@@ -130,9 +127,6 @@ func (m *mealPlanningManager) UpdateRecipeStepVessel(ctx context.Context, recipe
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step vessel")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -152,9 +146,6 @@ func (m *mealPlanningManager) ArchiveRecipeStepVessel(ctx context.Context, recip
 	if err := m.db.ArchiveRecipeStepVessel(ctx, recipeID, recipeStepID, recipeStepVesselID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step vessel")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

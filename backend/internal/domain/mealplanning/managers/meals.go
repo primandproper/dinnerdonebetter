@@ -62,9 +62,6 @@ func (m *mealPlanningManager) CreateMeal(ctx context.Context, creatorID string, 
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating meal")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return created, nil
 }
 
@@ -150,9 +147,6 @@ func (m *mealPlanningManager) ArchiveMeal(ctx context.Context, mealID, ownerID s
 	if err := m.db.ArchiveMeal(ctx, mealID, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

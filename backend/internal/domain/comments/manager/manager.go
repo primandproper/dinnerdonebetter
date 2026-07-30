@@ -28,6 +28,9 @@ type commentsManager struct {
 }
 
 // NewCommentsDataManager returns a new CommentsDataManager.
+//
+// Data change events are enqueued into the outbox by the repository, inside the same
+// transaction as the write they describe; see internal/repositories/postgres/events.
 func NewCommentsDataManager(
 	ctx context.Context,
 	tracerProvider tracing.TracerProvider,
@@ -69,8 +72,6 @@ func (m *commentsManager) CreateComment(ctx context.Context, input *comments.Com
 	}
 
 	tracing.AttachToSpan(span, commentskeys.CommentIDKey, created.ID)
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -107,9 +108,6 @@ func (m *commentsManager) UpdateComment(ctx context.Context, id, belongsToUser s
 		return err
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -123,9 +121,6 @@ func (m *commentsManager) ArchiveComment(ctx context.Context, id string) error {
 	if err := m.repo.ArchiveComment(ctx, id); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archive comment")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

@@ -29,6 +29,9 @@ type issueReportsManager struct {
 }
 
 // NewIssueReportsDataManager returns a new IssueReportsDataManager that wraps the issue reports repository and emits data change events.
+//
+// Data change events are enqueued into the outbox by the repository, inside the same
+// transaction as the write they describe; see internal/repositories/postgres/events.
 func NewIssueReportsDataManager(
 	ctx context.Context,
 	tracerProvider tracing.TracerProvider,
@@ -84,8 +87,6 @@ func (m *issueReportsManager) CreateIssueReport(ctx context.Context, input *issu
 	}
 
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, created.ID)
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -105,9 +106,6 @@ func (m *issueReportsManager) UpdateIssueReport(ctx context.Context, issueReport
 		return observability.PrepareAndLogError(err, logger, span, "update issue report")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -121,9 +119,6 @@ func (m *issueReportsManager) ArchiveIssueReport(ctx context.Context, issueRepor
 	if err := m.repo.ArchiveIssueReport(ctx, issueReportID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archive issue report")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

@@ -65,9 +65,6 @@ func (m *mealPlanningManager) CreateMealPlan(ctx context.Context, ownerID, creat
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating meal plan")
 	}
 
-	// The created event is enqueued into the outbox by the repository, inside the same
-	// transaction as the meal plan itself; see internal/repositories/postgres/events.
-
 	if created.Status == string(types.MealPlanStatusFinalized) {
 		m.runPostFinalizationWorkers(ctx, logger, span)
 	}
@@ -123,8 +120,6 @@ func (m *mealPlanningManager) UpdateMealPlan(ctx context.Context, mealPlanID, ow
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan")
 	}
 
-	// The updated event is enqueued into the outbox by the repository.
-
 	return nil
 }
 
@@ -142,8 +137,6 @@ func (m *mealPlanningManager) ArchiveMealPlan(ctx context.Context, mealPlanID, o
 	if err := m.db.ArchiveMealPlan(ctx, mealPlanID, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan")
 	}
-
-	// The archived event is enqueued into the outbox by the repository.
 
 	return nil
 }
@@ -166,9 +159,6 @@ func (m *mealPlanningManager) FinalizeMealPlan(ctx context.Context, mealPlanID, 
 
 	// only run downstream workers when the plan actually finalized.
 	if finalized {
-		// The finalized event is enqueued into the outbox by the repository, which is the
-		// only place that knows the plan finalized and can commit the event with it.
-
 		m.runPostFinalizationWorkers(ctx, logger, span)
 	}
 

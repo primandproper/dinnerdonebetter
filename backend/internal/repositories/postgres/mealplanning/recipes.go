@@ -1059,6 +1059,25 @@ func (q *repository) CreateRecipe(ctx context.Context, input *mealplanning.Recip
 			}
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, mealplanning.RecipeCreatedServiceEventType, "", map[string]any{
+			mealplanningkeys.RecipeIDKey: input.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
+		// A clone is still a creation, so both events describe this one write and both
+		// belong to this one transaction. The cloned event names the source, which is the
+		// only thing that distinguishes it from an ordinary create.
+		if input.ClonedFromRecipeID != nil {
+			if emitErr := q.events.Emit(ctx, tx, logger, mealplanning.RecipeClonedServiceEventType, "", map[string]any{
+				mealplanningkeys.RecipeIDKey: *input.ClonedFromRecipeID,
+			}); emitErr != nil {
+				return observability.PrepareError(emitErr, span, "enqueuing recipe cloned event")
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -1199,33 +1218,37 @@ func (q *repository) UpdateRecipe(ctx context.Context, updated *mealplanning.Rec
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, updated.ID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, updated.CreatedByUser)
 
-	rowsAffected, err := q.generatedQuerier.UpdateRecipe(ctx, q.writeDB, &generated.UpdateRecipeParams{
-		Name:                 updated.Name,
-		Slug:                 updated.Slug,
-		Source:               updated.Source,
-		SourceIsbn:           updated.SourceISBN,
-		Description:          updated.Description,
-		InspiredByRecipeID:   database.NullStringFromStringPointer(updated.InspiredByRecipeID),
-		MinEstimatedPortions: database.StringFromFloat32(updated.MinEstimatedPortions),
-		MaxEstimatedPortions: database.NullStringFromFloat32Pointer(updated.MaxEstimatedPortions),
-		PortionName:          updated.PortionName,
-		PluralPortionName:    updated.PluralPortionName,
-		EligibleForMeals:     updated.EligibleForMeals,
-		YieldsComponentType:  generated.ComponentType(updated.YieldsComponentType),
-		CreatedByUser:        updated.CreatedByUser,
-		ID:                   updated.ID,
+	return q.withEvent(ctx, logger, mealplanning.RecipeUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, err := q.generatedQuerier.UpdateRecipe(ctx, tx, &generated.UpdateRecipeParams{
+			Name:                 updated.Name,
+			Slug:                 updated.Slug,
+			Source:               updated.Source,
+			SourceIsbn:           updated.SourceISBN,
+			Description:          updated.Description,
+			InspiredByRecipeID:   database.NullStringFromStringPointer(updated.InspiredByRecipeID),
+			MinEstimatedPortions: database.StringFromFloat32(updated.MinEstimatedPortions),
+			MaxEstimatedPortions: database.NullStringFromFloat32Pointer(updated.MaxEstimatedPortions),
+			PortionName:          updated.PortionName,
+			PluralPortionName:    updated.PluralPortionName,
+			EligibleForMeals:     updated.EligibleForMeals,
+			YieldsComponentType:  generated.ComponentType(updated.YieldsComponentType),
+			CreatedByUser:        updated.CreatedByUser,
+			ID:                   updated.ID,
+		})
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating recipe")
+		}
+
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		logger.Info("recipe updated")
+
+		return nil
 	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating recipe")
-	}
-
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
-
-	logger.Info("recipe updated")
-
-	return nil
 }
 
 // UpdateRecipeStatus updates a particular recipe's status exclusively.
@@ -1241,19 +1264,23 @@ func (q *repository) UpdateRecipeStatus(ctx context.Context, recipeID, newStatus
 	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
-	rowsAffected, err := q.generatedQuerier.UpdateRecipeStatus(ctx, q.writeDB, &generated.UpdateRecipeStatusParams{
-		Status: generated.RecipeStatus(newStatus),
-		ID:     recipeID,
+	return q.withEvent(ctx, logger, mealplanning.RecipeUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey: recipeID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, err := q.generatedQuerier.UpdateRecipeStatus(ctx, tx, &generated.UpdateRecipeStatusParams{
+			Status: generated.RecipeStatus(newStatus),
+			ID:     recipeID,
+		})
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating recipe status")
+		}
+
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
 	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating recipe status")
-	}
-
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
-
-	return nil
 }
 
 // MarkRecipeAsIndexed updates a particular recipe's last_indexed_at value.
@@ -1418,19 +1445,23 @@ func (q *repository) ArchiveRecipe(ctx context.Context, recipeID, userID string)
 	logger = logger.WithValue(identitykeys.UserIDKey, userID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveRecipe(ctx, q.writeDB, &generated.ArchiveRecipeParams{
-		CreatedByUser: userID,
-		ID:            recipeID,
+	return q.withEvent(ctx, logger, mealplanning.RecipeArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey: recipeID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, err := q.generatedQuerier.ArchiveRecipe(ctx, tx, &generated.ArchiveRecipeParams{
+			CreatedByUser: userID,
+			ID:            recipeID,
+		})
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "archiving recipe")
+		}
+
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
 	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving recipe")
-	}
-
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
-
-	return nil
 }
 
 // AddRecipeImage adds an uploaded media image to a recipe.

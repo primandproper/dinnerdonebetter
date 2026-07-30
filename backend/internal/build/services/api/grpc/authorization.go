@@ -15,6 +15,21 @@ import (
 	"github.com/primandproper/platform-go/v8/observability/metrics"
 )
 
+// auditOnlyAuthorization decides whether the platform enforcer records its verdict or acts on it.
+//
+// It is false: the enforcer denies. That is safe because it is not a guess.
+// TestAuthorizationEnforcerMatchesTheHandRolledCheck drives every method the server declares
+// against every role a principal can hold — 2,184 decisions — and asserts the enforcer reaches
+// the same verdict as the hand-rolled check it replaces. Audit-only mode exists for services
+// that cannot make that comparison ahead of time; this one can, because both sides read the same
+// method table and the same permission checkers.
+//
+// That test is load-bearing. It is what would catch a policy change here drifting from the
+// permission slices in internal/authorization, and it already caught one real divergence: 39
+// methods mapped to an empty permission slice, which the interceptor admits and the platform
+// would have refused as undeclared.
+const auditOnlyAuthorization = false
+
 // ProvideAuthorizationEnforcer builds platform-go's authorization enforcer over the same policy
 // and the same method table the hand-rolled AuthInterceptor already uses.
 //
@@ -36,6 +51,7 @@ func ProvideAuthorizationEnforcer(
 	authInterceptor *interceptors.AuthInterceptor,
 	logger logging.Logger,
 	metricsProvider metrics.Provider,
+	auditOnly bool,
 ) (*authzgrpc.Enforcer, error) {
 	// The static resolver is the right backend while the policy is compiled in. Moving to the
 	// database resolver later is a configuration change: it takes the same []Role.
@@ -45,11 +61,24 @@ func ProvideAuthorizationEnforcer(
 
 	builder := authzgrpc.NewRequirements()
 
+	declared := map[string]struct{}{}
+
 	for method, perms := range methodPermissions {
-		// A method that declares zero permissions is an authorization hole wearing the
-		// costume of a requirement, so the platform rejects it. The current interceptor
-		// denies such a method outright; leaving it undeclared here does the same.
+		declared[method] = struct{}{}
+
+		// A method mapped to an empty permission slice means "any authenticated caller" —
+		// AuthInterceptor still demands a session, then loops over zero permissions and
+		// admits the request. The platform refuses to express that as a requirement, for
+		// good reason: zero required permissions reads as a check while behaving as an
+		// allow. Public is how it says the same thing honestly. Authentication is still
+		// enforced by the interceptor ahead of this one, so Public here scopes to
+		// authorization only.
+		//
+		// This is not cosmetic. Treating these as undeclared instead would deny 39 methods
+		// the current service admits — including UpdateUserDetails.
 		if len(perms) == 0 {
+			builder.Public(method)
+
 			continue
 		}
 
@@ -57,9 +86,10 @@ func ProvideAuthorizationEnforcer(
 	}
 
 	for _, method := range authInterceptor.UnauthenticatedRoutes() {
-		// A method may be both public and permissioned in the current setup; public wins
-		// there, so it must win here, and declaring both would be a duplicate.
-		if _, permissioned := methodPermissions[method]; permissioned {
+		// A method may be both unauthenticated and permissioned in the current setup;
+		// skipping authentication wins there, so it must win here, and declaring a method
+		// twice is an error.
+		if _, ok := declared[method]; ok {
 			continue
 		}
 
@@ -71,13 +101,15 @@ func ProvideAuthorizationEnforcer(
 		return nil, platformerrors.Wrap(err, "building authorization requirements")
 	}
 
-	return authzgrpc.NewEnforcer(
-		reqs,
-		grantsFromSession,
-		authzgrpc.WithAuditOnly(),
+	opts := []authzgrpc.Option{
 		authzgrpc.WithLogger(logger),
 		authzgrpc.WithMetricsProvider(metricsProvider),
-	)
+	}
+	if auditOnly {
+		opts = append(opts, authzgrpc.WithAuditOnly())
+	}
+
+	return authzgrpc.NewEnforcer(reqs, grantsFromSession, opts...)
 }
 
 // grantsFromSession bridges this service's session type onto the platform's Grants.

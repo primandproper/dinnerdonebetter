@@ -283,20 +283,28 @@ func (q *repository) UpdateMealPlanRecipeOptionSelection(ctx context.Context, me
 		return sql.ErrNoRows
 	}
 
-	rowsAffected, err := q.generatedQuerier.UpdateMealPlanRecipeOptionSelection(ctx, q.writeDB, &generated.UpdateMealPlanRecipeOptionSelectionParams{
-		RecipeID:            existing.RecipeID,
-		MealPlanOptionID:    mealPlanOptionID,
-		RecipeStepID:        recipeStepID,
-		IngredientIndex:     int32(ingredientIndex),
-		SelectionType:       selectionType,
-		SelectedOptionIndex: int32(*input.SelectedOptionIndex),
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating meal plan recipe option selection")
-	}
+	if err = q.withEvent(ctx, logger, types.MealPlanRecipeOptionSelectionUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, updateErr := q.generatedQuerier.UpdateMealPlanRecipeOptionSelection(ctx, tx, &generated.UpdateMealPlanRecipeOptionSelectionParams{
+			RecipeID:            existing.RecipeID,
+			MealPlanOptionID:    mealPlanOptionID,
+			RecipeStepID:        recipeStepID,
+			IngredientIndex:     int32(ingredientIndex),
+			SelectionType:       selectionType,
+			SelectedOptionIndex: int32(*input.SelectedOptionIndex),
+		})
+		if updateErr != nil {
+			return observability.PrepareAndLogError(updateErr, logger, span, "updating meal plan recipe option selection")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Info("meal plan recipe option selection updated")

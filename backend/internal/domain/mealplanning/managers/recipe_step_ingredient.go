@@ -84,9 +84,6 @@ func (m *mealPlanningManager) CreateRecipeStepIngredient(ctx context.Context, re
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating recipe step ingredient")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return created, nil
 }
 
@@ -137,9 +134,6 @@ func (m *mealPlanningManager) UpdateRecipeStepIngredient(ctx context.Context, re
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step ingredient")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -159,9 +153,6 @@ func (m *mealPlanningManager) ArchiveRecipeStepIngredient(ctx context.Context, r
 	if err := m.db.ArchiveRecipeStepIngredient(ctx, recipeID, recipeStepID, recipeStepIngredientID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step ingredient")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

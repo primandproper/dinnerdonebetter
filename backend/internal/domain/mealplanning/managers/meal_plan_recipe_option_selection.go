@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -80,9 +79,6 @@ func (m *mealPlanningManager) CreateMealPlanRecipeOptionSelection(ctx context.Co
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating meal plan recipe option selection")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return created, nil
 }
 
@@ -117,11 +113,6 @@ func (m *mealPlanningManager) UpdateMealPlanRecipeOptionSelection(ctx context.Co
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan recipe option selection")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanRecipeOptionSelectionUpdatedServiceEventType, map[string]any{
-		"meal_plan_recipe_option_selection_id": existingSelection.ID,
-		mealplanningkeys.MealPlanOptionIDKey:   mealPlanOptionID,
-	}))
-
 	return nil
 }
 
@@ -143,9 +134,6 @@ func (m *mealPlanningManager) ArchiveMealPlanRecipeOptionSelection(ctx context.C
 	if err := m.db.ArchiveMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan recipe option selection")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

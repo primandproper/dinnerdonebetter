@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
@@ -81,10 +80,6 @@ func (m *mealPlanningManager) CreateRecipe(ctx context.Context, creatorID string
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "retrieving recipe")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, mealplanning.RecipeCreatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey: recipe.ID,
-	}))
 
 	return recipe, nil
 }
@@ -222,10 +217,6 @@ func (m *mealPlanningManager) UpdateRecipe(ctx context.Context, recipeID string,
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, mealplanning.RecipeUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey: recipeID,
-	}))
-
 	return nil
 }
 
@@ -240,10 +231,6 @@ func (m *mealPlanningManager) UpdateRecipeStatus(ctx context.Context, recipeID, 
 	if err := m.db.UpdateRecipeStatus(ctx, recipeID, newStatus); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe status")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, mealplanning.RecipeUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey: recipeID,
-	}))
 
 	return nil
 }
@@ -262,10 +249,6 @@ func (m *mealPlanningManager) ArchiveRecipe(ctx context.Context, recipeID, owner
 	if err := m.db.ArchiveRecipe(ctx, recipeID, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, mealplanning.RecipeArchivedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey: recipeID,
-	}))
 
 	return nil
 }
@@ -356,14 +339,16 @@ func (m *mealPlanningManager) CloneRecipe(ctx context.Context, recipeID, newOwne
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching recipe by id")
 	}
 
-	newRecipe, err := m.db.CreateRecipe(ctx, cloneRecipe(original, newOwnerID))
+	cloneInput := cloneRecipe(original, newOwnerID)
+	cloneInput.ClonedFromRecipeID = &recipeID
+
+	newRecipe, err := m.db.CreateRecipe(ctx, cloneInput)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating clone of recipe")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, mealplanning.RecipeClonedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey: recipeID,
-	}))
+	// Both the created and the cloned event are enqueued into the outbox by CreateRecipe,
+	// inside the transaction that writes the clone; see internal/repositories/postgres/events.
 
 	return newRecipe, nil
 }

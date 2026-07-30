@@ -87,11 +87,6 @@ func (w *Worker) Work(ctx context.Context) (int64, error) {
 			continue
 		}
 
-		// The finalized event is enqueued into the outbox inside AttemptToFinalizeMealPlan's
-		// transaction, so it commits with the finalization rather than being published after
-		// it. That closes the gap this loop used to have: a publish failure here left a
-		// finalized meal plan that no consumer ever heard about, and a log line as the only
-		// evidence.
 		if changed {
 			changedCount++
 		}

@@ -108,9 +108,6 @@ func (m *mealPlanningManager) CreateValidInstrument(ctx context.Context, input *
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid instrument")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return created, nil
 }
 
@@ -163,9 +160,6 @@ func (m *mealPlanningManager) UpdateValidInstrument(ctx context.Context, validIn
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid instrument")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	existingValidInstrument, err = m.db.GetValidInstrument(ctx, validInstrumentID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching updated valid instrument")
@@ -184,9 +178,6 @@ func (m *mealPlanningManager) ArchiveValidInstrument(ctx context.Context, validI
 	if err := m.db.ArchiveValidInstrument(ctx, validInstrumentID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid instrument")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

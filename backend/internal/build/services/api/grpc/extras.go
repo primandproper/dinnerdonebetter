@@ -104,6 +104,7 @@ func RegisterExtras(i do.Injector) {
 			authInterceptor,
 			logger,
 			do.MustInvoke[metrics.Provider](i),
+			auditOnlyAuthorization,
 		)
 		if err != nil {
 			return nil, err
@@ -222,9 +223,8 @@ func BuildUnaryServerInterceptors(
 		// recovery must be outermost so it catches panics from downstream interceptors and handlers.
 		RecoveryUnaryServerInterceptor(logger),
 		authInterceptor.UnaryServerInterceptor(),
-		// Audit-only: this evaluates and records, and denies nothing. It runs after the
-		// interceptor above so it sees the session that one established, and its disagreements
-		// with that one are the signal for whether enforcement can move here.
+		// Runs after the interceptor above so it sees the session that one established.
+		// Both enforce, and they are proven equivalent — see auditOnlyAuthorization.
 		authzEnforcer.UnaryServerInterceptor(),
 		// after auth, because the key is scoped to the authenticated principal, and before the
 		// error encoder, because it records the handler's status code rather than a rendered one.

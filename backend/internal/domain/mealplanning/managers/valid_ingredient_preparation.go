@@ -52,9 +52,6 @@ func (m *mealPlanningManager) CreateValidIngredientPreparation(ctx context.Conte
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid ingredient preparation")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return created, nil
 }
 
@@ -94,9 +91,6 @@ func (m *mealPlanningManager) UpdateValidIngredientPreparation(ctx context.Conte
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid ingredient preparation")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	existingValidIngredientPreparation, err = m.db.GetValidIngredientPreparation(ctx, validIngredientPreparationID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching updated valid ingredient preparation")
@@ -115,9 +109,6 @@ func (m *mealPlanningManager) ArchiveValidIngredientPreparation(ctx context.Cont
 	if err := m.db.ArchiveValidIngredientPreparation(ctx, validIngredientPreparationID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid ingredient preparation")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

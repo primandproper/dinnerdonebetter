@@ -23,7 +23,13 @@ GO_IMAGE               := golang:1.26-trixie
 CONTAINER_RUNNER      := docker
 RUN_CONTAINER         := $(CONTAINER_RUNNER) run --rm --volume $(PWD):$(PWD) --workdir=$(PWD) --network=host
 RUN_CONTAINER_AS_USER := $(RUN_CONTAINER) --user $(MYSELF):$(MY_GROUP)
-LINTER                := $(RUN_CONTAINER) $(LINTER_IMAGE) golangci-lint
+
+# The linter runs with --rm, so without a named volume golangci-lint's analysis cache dies with
+# the container and every run is a cold full type-check of the module — including reading all of
+# vendor/ to resolve imports, which is most of the wall clock. The volume is keyed to the image
+# tag so bumping the linter starts from a clean cache rather than a stale one.
+LINTER_CACHE_VOLUME   := golangci-lint-cache-$(subst :,-,$(subst /,-,$(LINTER_IMAGE)))
+LINTER                := $(RUN_CONTAINER) --volume $(LINTER_CACHE_VOLUME):/root/.cache $(LINTER_IMAGE) golangci-lint
 SQL_GENERATOR         := $(RUN_CONTAINER_AS_USER) $(SQL_GENERATOR_IMAGE)
 
 ## non-PHONY folders/files

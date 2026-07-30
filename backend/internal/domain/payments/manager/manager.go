@@ -42,6 +42,9 @@ type paymentsManager struct {
 }
 
 // NewPaymentsDataManager returns a new PaymentsDataManager.
+//
+// Data change events are enqueued into the outbox by the repository, inside the same
+// transaction as the write they describe; see internal/repositories/postgres/events.
 func NewPaymentsDataManager(
 	ctx context.Context,
 	tracerProvider tracing.TracerProvider,
@@ -88,8 +91,6 @@ func (m *paymentsManager) CreateProduct(ctx context.Context, input *payments.Pro
 	}
 
 	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, created.ID)
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -153,8 +154,6 @@ func (m *paymentsManager) UpdateProduct(ctx context.Context, id string, input *p
 	}
 
 	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, id)
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -170,8 +169,6 @@ func (m *paymentsManager) ArchiveProduct(ctx context.Context, id string) error {
 	}
 
 	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, id)
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -204,8 +201,6 @@ func (m *paymentsManager) CreateSubscription(ctx context.Context, input *payment
 	}
 
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, created.ID)
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -257,8 +252,6 @@ func (m *paymentsManager) UpdateSubscription(ctx context.Context, id string, inp
 	}
 
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, id)
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -274,8 +267,6 @@ func (m *paymentsManager) ArchiveSubscription(ctx context.Context, id string) er
 	}
 
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, id)
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

@@ -97,6 +97,7 @@ func buildTestEnforcer(t *testing.T) *grpc.UnaryServerInterceptor {
 		interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, perms),
 		loggingnoop.NewLogger(),
 		metricsnoop.NewMetricsProvider(),
+		true,
 	)
 	require.NoError(t, err)
 

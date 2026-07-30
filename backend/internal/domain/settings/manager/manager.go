@@ -34,6 +34,9 @@ type settingsManager struct {
 }
 
 // NewSettingsDataManager returns a new SettingsDataManager implementing settings.Repository.
+//
+// Data change events are enqueued into the outbox by the repository, inside the same
+// transaction as the write they describe; see internal/repositories/postgres/events.
 func NewSettingsDataManager(
 	ctx context.Context,
 	tracerProvider tracing.TracerProvider,
@@ -66,9 +69,6 @@ func (m *settingsManager) CreateServiceSetting(ctx context.Context, input *setti
 	if err != nil {
 		return nil, err
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -107,9 +107,6 @@ func (m *settingsManager) ArchiveServiceSetting(ctx context.Context, serviceSett
 	if err := m.repo.ArchiveServiceSetting(ctx, serviceSettingID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archive service setting")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -170,9 +167,6 @@ func (m *settingsManager) CreateServiceSettingConfiguration(ctx context.Context,
 		return nil, err
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return created, nil
 }
 
@@ -190,9 +184,6 @@ func (m *settingsManager) UpdateServiceSettingConfiguration(ctx context.Context,
 		return observability.PrepareAndLogError(err, logger, span, "update service setting configuration")
 	}
 
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
-
 	return nil
 }
 
@@ -206,9 +197,6 @@ func (m *settingsManager) ArchiveServiceSettingConfiguration(ctx context.Context
 	if err := m.repo.ArchiveServiceSettingConfiguration(ctx, serviceSettingConfigurationID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archive service setting configuration")
 	}
-
-	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
