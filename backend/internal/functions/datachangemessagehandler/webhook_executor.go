@@ -14,11 +14,11 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
 
-	"github.com/primandproper/platform-go/v7/encoding"
-	"github.com/primandproper/platform-go/v7/httpclient"
-	"github.com/primandproper/platform-go/v7/observability"
-	platformkeys "github.com/primandproper/platform-go/v7/observability/keys"
-	"github.com/primandproper/platform-go/v7/observability/tracing"
+	"github.com/primandproper/platform-go/v8/encoding"
+	"github.com/primandproper/platform-go/v8/httpclient"
+	"github.com/primandproper/platform-go/v8/observability"
+	platformkeys "github.com/primandproper/platform-go/v8/observability/keys"
+	"github.com/primandproper/platform-go/v8/observability/tracing"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -113,7 +113,7 @@ func (a *AsyncDataChangeMessageHandler) handleWebhookExecutionRequest(
 	digest.Write(payloadBody)
 	req.Header.Set("X-Dinner-Done-Better-Signature", hex.EncodeToString(digest.Sum(nil)))
 
-	res, err := httpclient.NewHTTPClient(&httpclient.Config{EnableTracing: true}).Do(req) //nolint:gosec // G704: webhook URL is admin-configured; webhooks intentionally deliver to external URLs
+	res, err := httpclient.NewHTTPClient(httpclient.WithTracing(true)).Do(req) //nolint:gosec // G704: webhook URL is admin-configured; webhooks intentionally deliver to external URLs
 	if err != nil {
 		// Return the error so the message is retried at the queue level rather than silently dropped.
 		return observability.PrepareAndLogError(err, logger, span, "executing webhook request")

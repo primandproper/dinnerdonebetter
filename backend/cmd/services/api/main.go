@@ -8,7 +8,7 @@ import (
 	apiserver "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 
-	"github.com/primandproper/platform-go/v7/version"
+	"github.com/primandproper/platform-go/v8/version"
 
 	"github.com/spf13/cobra"
 	_ "go.uber.org/automaxprocs"

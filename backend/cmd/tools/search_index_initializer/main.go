@@ -16,18 +16,18 @@ import (
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	databasecfg "github.com/primandproper/platform-go/v7/database/config"
-	"github.com/primandproper/platform-go/v7/database/postgres"
-	"github.com/primandproper/platform-go/v7/filtering"
-	"github.com/primandproper/platform-go/v7/observability/logging"
-	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
-	"github.com/primandproper/platform-go/v7/observability/metrics"
-	metricsnoop "github.com/primandproper/platform-go/v7/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v7/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
-	textsearch "github.com/primandproper/platform-go/v7/search/text"
-	"github.com/primandproper/platform-go/v7/search/text/algolia"
-	textsearchcfg "github.com/primandproper/platform-go/v7/search/text/config"
+	databasecfg "github.com/primandproper/platform-go/v8/database/config"
+	"github.com/primandproper/platform-go/v8/database/postgres"
+	"github.com/primandproper/platform-go/v8/filtering"
+	"github.com/primandproper/platform-go/v8/observability/logging"
+	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
+	"github.com/primandproper/platform-go/v8/observability/metrics"
+	metricsnoop "github.com/primandproper/platform-go/v8/observability/metrics/noop"
+	"github.com/primandproper/platform-go/v8/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	textsearch "github.com/primandproper/platform-go/v8/search/text"
+	"github.com/primandproper/platform-go/v8/search/text/algolia"
+	textsearchcfg "github.com/primandproper/platform-go/v8/search/text/config"
 
 	"github.com/spf13/cobra"
 )
@@ -131,7 +131,7 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 	}
 	dbConfig.WriteConnection = dbConfig.ReadConnection
 
-	client, err := postgres.NewDatabaseClient(ctx, logger, tracerProvider, dbConfig, nil)
+	client, err := postgres.NewDatabaseClient(ctx, dbConfig, postgres.WithLogger(logger), postgres.WithTracerProvider(tracerProvider))
 	if err != nil {
 		return fmt.Errorf("initializing database client: %w", err)
 	}

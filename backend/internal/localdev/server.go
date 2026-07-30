@@ -33,17 +33,18 @@ import (
 	webhooksrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v7/database"
-	databasecfg "github.com/primandproper/platform-go/v7/database/config"
-	"github.com/primandproper/platform-go/v7/httpclient"
-	"github.com/primandproper/platform-go/v7/identifiers"
-	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
-	"github.com/primandproper/platform-go/v7/messagequeue/redis"
-	"github.com/primandproper/platform-go/v7/observability/logging"
-	"github.com/primandproper/platform-go/v7/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v7/random"
-	"github.com/primandproper/platform-go/v7/testutils/containers/redistest"
+	"github.com/primandproper/platform-go/v8/authentication/argon2"
+	"github.com/primandproper/platform-go/v8/database"
+	databasecfg "github.com/primandproper/platform-go/v8/database/config"
+	"github.com/primandproper/platform-go/v8/httpclient"
+	"github.com/primandproper/platform-go/v8/identifiers"
+	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
+	"github.com/primandproper/platform-go/v8/messagequeue/redis"
+	"github.com/primandproper/platform-go/v8/observability/logging"
+	"github.com/primandproper/platform-go/v8/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v8/random"
+	"github.com/primandproper/platform-go/v8/testutils/containers/redistest"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
@@ -86,7 +87,7 @@ func CreatePremadeAdminUser(
 	dbClient database.Client,
 	premadeAdminUser *identity.User,
 ) (*identity.User, error) {
-	hasher := authentication.NewArgon2Authenticator(logger, tracerProvider)
+	hasher := authentication.NewArgon2Authenticator(argon2.WithLogger(logger), argon2.WithTracerProvider(tracerProvider))
 
 	actuallyHashedPass, err := hasher.HashPassword(ctx, premadeAdminUser.HashedPassword)
 	if err != nil {
@@ -328,7 +329,7 @@ func BuildInsecureOAuthedGRPCClient(
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Location", "localhost")
 
-	httpClient := httpclient.NewHTTPClient(&httpclient.Config{EnableTracing: true})
+	httpClient := httpclient.NewHTTPClient(httpclient.WithTracing(true))
 	httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
@@ -459,7 +460,7 @@ func FetchOAuth2TokenForUser(
 	req.Header.Set("Authorization", "Bearer "+jwt)
 	req.Header.Set("Location", "localhost")
 
-	httpClient := httpclient.NewHTTPClient(&httpclient.Config{EnableTracing: true})
+	httpClient := httpclient.NewHTTPClient(httpclient.WithTracing(true))
 	httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}

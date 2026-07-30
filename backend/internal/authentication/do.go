@@ -6,13 +6,14 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v7/authentication/tokens"
-	tokenscfg "github.com/primandproper/platform-go/v7/authentication/tokens/config"
-	"github.com/primandproper/platform-go/v7/authentication/totp"
-	"github.com/primandproper/platform-go/v7/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
-	"github.com/primandproper/platform-go/v7/observability/logging"
-	"github.com/primandproper/platform-go/v7/observability/tracing"
+	"github.com/primandproper/platform-go/v8/authentication/argon2"
+	"github.com/primandproper/platform-go/v8/authentication/tokens"
+	tokenscfg "github.com/primandproper/platform-go/v8/authentication/tokens/config"
+	"github.com/primandproper/platform-go/v8/authentication/totp"
+	"github.com/primandproper/platform-go/v8/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
+	"github.com/primandproper/platform-go/v8/observability/logging"
+	"github.com/primandproper/platform-go/v8/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -21,8 +22,8 @@ import (
 func RegisterAuth(i do.Injector) {
 	do.Provide[Authenticator](i, func(i do.Injector) (Authenticator, error) {
 		return NewArgon2Authenticator(
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			argon2.WithLogger(do.MustInvoke[logging.Logger](i)),
+			argon2.WithTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
 		), nil
 	})
 
@@ -31,7 +32,7 @@ func RegisterAuth(i do.Injector) {
 	})
 
 	do.Provide[totp.Verifier](i, func(i do.Injector) (totp.Verifier, error) {
-		return totp.NewVerifier(do.MustInvoke[tracing.TracerProvider](i)), nil
+		return totp.NewVerifier(totp.WithTracerProvider(do.MustInvoke[tracing.TracerProvider](i))), nil
 	})
 
 	do.Provide[Manager](i, func(i do.Injector) (Manager, error) {

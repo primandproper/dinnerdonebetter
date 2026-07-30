@@ -9,11 +9,11 @@ import (
 
 	postgresmigrations "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 
-	"github.com/primandproper/platform-go/v7/database"
-	databasecfg "github.com/primandproper/platform-go/v7/database/config"
-	"github.com/primandproper/platform-go/v7/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v8/database"
+	databasecfg "github.com/primandproper/platform-go/v8/database/config"
+	"github.com/primandproper/platform-go/v8/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )
@@ -78,7 +78,7 @@ func runMigrate(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string,
 		connDetails: connDetails,
 	}
 
-	client, err := postgres.NewDatabaseClient(ctx, logger, tracerProvider, clientConfig, nil)
+	client, err := postgres.NewDatabaseClient(ctx, clientConfig, postgres.WithLogger(logger), postgres.WithTracerProvider(tracerProvider))
 	if err != nil {
 		return fmt.Errorf("connecting to database: %w", err)
 	}

@@ -8,12 +8,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningnotifications "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
 
-	"github.com/primandproper/platform-go/v7/filtering"
-	"github.com/primandproper/platform-go/v7/messagequeue"
-	notifications "github.com/primandproper/platform-go/v7/notifications/mobile"
-	"github.com/primandproper/platform-go/v7/observability"
-	"github.com/primandproper/platform-go/v7/observability/logging"
-	"github.com/primandproper/platform-go/v7/observability/tracing"
+	"github.com/primandproper/platform-go/v8/filtering"
+	"github.com/primandproper/platform-go/v8/messagequeue"
+	notifications "github.com/primandproper/platform-go/v8/notifications/mobile"
+	"github.com/primandproper/platform-go/v8/observability"
+	"github.com/primandproper/platform-go/v8/observability/logging"
+	"github.com/primandproper/platform-go/v8/observability/tracing"
 
 	"github.com/hashicorp/go-multierror"
 )

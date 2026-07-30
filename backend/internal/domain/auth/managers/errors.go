@@ -1,7 +1,7 @@
 package managers
 
 import (
-	platformerrors "github.com/primandproper/platform-go/v7/errors"
+	platformerrors "github.com/primandproper/platform-go/v8/errors"
 )
 
 var (

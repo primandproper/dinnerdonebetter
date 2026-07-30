@@ -10,10 +10,10 @@ import (
 	mockmanagers "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/managers/mock"
 	mealplanninggrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 
-	"github.com/primandproper/platform-go/v7/fake"
-	"github.com/primandproper/platform-go/v7/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
-	"github.com/primandproper/platform-go/v7/observability/tracing"
+	"github.com/primandproper/platform-go/v8/fake"
+	"github.com/primandproper/platform-go/v8/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
+	"github.com/primandproper/platform-go/v8/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -6,10 +6,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/primandproper/platform-go/v7/cryptography/encryption"
-	"github.com/primandproper/platform-go/v7/cryptography/encryption/config"
-	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v8/cryptography/encryption"
+	"github.com/primandproper/platform-go/v8/cryptography/encryption/config"
+	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )

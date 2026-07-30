@@ -11,15 +11,15 @@ import (
 	identitymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/mock"
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	"github.com/primandproper/platform-go/v7/filtering"
-	"github.com/primandproper/platform-go/v7/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v7/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v7/qrcodes"
-	randommock "github.com/primandproper/platform-go/v7/random/mock"
-	mocksearch "github.com/primandproper/platform-go/v7/search/text/mock"
+	"github.com/primandproper/platform-go/v8/filtering"
+	"github.com/primandproper/platform-go/v8/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
+	mockpublishers "github.com/primandproper/platform-go/v8/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v8/qrcodes"
+	randommock "github.com/primandproper/platform-go/v8/random/mock"
+	mocksearch "github.com/primandproper/platform-go/v8/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -48,7 +48,7 @@ func buildIdentityDataManagerForTest(t *testing.T) *manager {
 		&randommock.GeneratorMock{},
 		&mockauthn.AuthenticatorMock{},
 		&mocksearch.IndexMock[identityindexing.UserSearchSubset]{},
-		qrcodes.NewBuilder(qrcodes.Issuer("test"), tracingnoop.NewTracerProvider(), loggingnoop.NewLogger()),
+		qrcodes.NewBuilder(qrcodes.Issuer("test"), qrcodes.WithTracerProvider(tracingnoop.NewTracerProvider()), qrcodes.WithLogger(loggingnoop.NewLogger())),
 		queueCfg,
 	)
 	require.NoError(t, err)

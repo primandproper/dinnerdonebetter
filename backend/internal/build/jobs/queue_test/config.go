@@ -4,9 +4,9 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 	queuetest "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
 
-	databasecfg "github.com/primandproper/platform-go/v7/database/config"
-	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
-	"github.com/primandproper/platform-go/v7/observability"
+	databasecfg "github.com/primandproper/platform-go/v8/database/config"
+	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
+	"github.com/primandproper/platform-go/v8/observability"
 
 	"github.com/samber/do/v2"
 )

@@ -16,10 +16,10 @@ import (
 	_ "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/errors"
 	identityconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v7/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v7/errors/grpc"
-	"github.com/primandproper/platform-go/v7/featureflags"
-	"github.com/primandproper/platform-go/v7/observability"
+	platformerrors "github.com/primandproper/platform-go/v8/errors"
+	errorsgrpc "github.com/primandproper/platform-go/v8/errors/grpc"
+	"github.com/primandproper/platform-go/v8/featureflags"
+	"github.com/primandproper/platform-go/v8/observability"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"

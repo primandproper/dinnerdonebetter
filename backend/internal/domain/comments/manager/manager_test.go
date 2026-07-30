@@ -8,11 +8,11 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/fakes"
 	commentsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/mock"
 
-	"github.com/primandproper/platform-go/v7/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v7/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v8/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
+	mockpublishers "github.com/primandproper/platform-go/v8/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

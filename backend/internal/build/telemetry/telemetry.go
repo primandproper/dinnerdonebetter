@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/primandproper/platform-go/v7/observability/metrics"
-	"github.com/primandproper/platform-go/v7/observability/tracing"
+	"github.com/primandproper/platform-go/v8/observability/metrics"
+	"github.com/primandproper/platform-go/v8/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

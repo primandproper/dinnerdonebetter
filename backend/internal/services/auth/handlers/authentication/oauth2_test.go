@@ -14,11 +14,11 @@ import (
 	identitymanagermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	oauthmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/mock"
 
-	"github.com/primandproper/platform-go/v7/authentication/tokens/paseto"
-	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
-	"github.com/primandproper/platform-go/v7/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v7/random"
+	"github.com/primandproper/platform-go/v8/authentication/tokens/paseto"
+	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
+	"github.com/primandproper/platform-go/v8/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v8/random"
 
 	oauth2errors "github.com/go-oauth2/oauth2/v4/errors"
 	"github.com/stretchr/testify/assert"
@@ -57,7 +57,7 @@ func TestProvideOAuth2ServerImplementation(T *testing.T) {
 
 		ctx := t.Context()
 		signingKey := random.MustGenerateRawBytes(ctx, 32)
-		tokenIssuer, err := paseto.NewPASETOSigner(logger, tracerProvider, "dinner-done-better", t.Name(), signingKey)
+		tokenIssuer, err := paseto.NewPASETOSigner("dinner-done-better", t.Name(), signingKey, paseto.WithLogger(logger), paseto.WithTracerProvider(tracerProvider))
 		require.NoError(t, err)
 
 		cfg := &OAuth2Config{
@@ -322,7 +322,7 @@ func TestBuildUserAuthorizationHandler(T *testing.T) {
 		tracer := tracing.NewTracerForTest("test")
 
 		signingKey := random.MustGenerateRawBytes(ctx, 32)
-		tokenIssuer, err := paseto.NewPASETOSigner(logger, tracingnoop.NewTracerProvider(), "dinner-done-better", t.Name(), signingKey)
+		tokenIssuer, err := paseto.NewPASETOSigner("dinner-done-better", t.Name(), signingKey, paseto.WithLogger(logger), paseto.WithTracerProvider(tracingnoop.NewTracerProvider()))
 		require.NoError(t, err)
 
 		user := fakes.BuildFakeUser()
@@ -353,7 +353,7 @@ func TestBuildUserAuthorizationHandler(T *testing.T) {
 		tracer := tracing.NewTracerForTest("test")
 
 		signingKey := random.MustGenerateRawBytes(ctx, 32)
-		tokenIssuer, err := paseto.NewPASETOSigner(logger, tracingnoop.NewTracerProvider(), "dinner-done-better", t.Name(), signingKey)
+		tokenIssuer, err := paseto.NewPASETOSigner("dinner-done-better", t.Name(), signingKey, paseto.WithLogger(logger), paseto.WithTracerProvider(tracingnoop.NewTracerProvider()))
 		require.NoError(t, err)
 
 		req := &http.Request{

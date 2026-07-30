@@ -17,18 +17,18 @@ import (
 	identityfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/mock"
 
-	platformtotp "github.com/primandproper/platform-go/v7/authentication/totp"
-	mocktotp "github.com/primandproper/platform-go/v7/authentication/totp/mock"
-	"github.com/primandproper/platform-go/v7/filtering"
-	"github.com/primandproper/platform-go/v7/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v7/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
-	"github.com/primandproper/platform-go/v7/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v7/qrcodes"
-	"github.com/primandproper/platform-go/v7/random"
-	randommock "github.com/primandproper/platform-go/v7/random/mock"
+	platformtotp "github.com/primandproper/platform-go/v8/authentication/totp"
+	mocktotp "github.com/primandproper/platform-go/v8/authentication/totp/mock"
+	"github.com/primandproper/platform-go/v8/filtering"
+	"github.com/primandproper/platform-go/v8/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
+	mockpublishers "github.com/primandproper/platform-go/v8/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
+	"github.com/primandproper/platform-go/v8/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v8/qrcodes"
+	"github.com/primandproper/platform-go/v8/random"
+	randommock "github.com/primandproper/platform-go/v8/random/mock"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -60,8 +60,8 @@ func TestProvideAuthManager(t *testing.T) {
 			&mockauthn.AuthenticatorMock{},
 			&mocktotp.VerifierMock{},
 			mpp,
-			random.NewGenerator(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider()),
-			qrcodes.NewBuilder(qrcodes.Issuer("test"), tracingnoop.NewTracerProvider(), loggingnoop.NewLogger()),
+			random.NewGenerator(random.WithLogger(loggingnoop.NewLogger()), random.WithTracerProvider(tracingnoop.NewTracerProvider())),
+			qrcodes.NewBuilder(qrcodes.Issuer("test"), qrcodes.WithTracerProvider(tracingnoop.NewTracerProvider()), qrcodes.WithLogger(loggingnoop.NewLogger())),
 			queueCfg,
 		)
 
@@ -190,8 +190,8 @@ func TestProvideAuthManager_NilConfig(t *testing.T) {
 		&mockauthn.AuthenticatorMock{},
 		&mocktotp.VerifierMock{},
 		mpp,
-		random.NewGenerator(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider()),
-		qrcodes.NewBuilder(qrcodes.Issuer("test"), tracingnoop.NewTracerProvider(), loggingnoop.NewLogger()),
+		random.NewGenerator(random.WithLogger(loggingnoop.NewLogger()), random.WithTracerProvider(tracingnoop.NewTracerProvider())),
+		qrcodes.NewBuilder(qrcodes.Issuer("test"), qrcodes.WithTracerProvider(tracingnoop.NewTracerProvider()), qrcodes.WithLogger(loggingnoop.NewLogger())),
 		nil, // nil config
 	)
 
@@ -897,7 +897,7 @@ func TestAuthManager_NewTOTPSecret_Success(t *testing.T) {
 		},
 	}
 
-	qrBuilder := qrcodes.NewBuilder(qrcodes.Issuer("test"), tracingnoop.NewTracerProvider(), loggingnoop.NewLogger())
+	qrBuilder := qrcodes.NewBuilder(qrcodes.Issuer("test"), qrcodes.WithTracerProvider(tracingnoop.NewTracerProvider()), qrcodes.WithLogger(loggingnoop.NewLogger()))
 
 	publisher := &mockpublishers.PublisherMock{
 		PublishAsyncFunc: func(_ context.Context, _ any) {},

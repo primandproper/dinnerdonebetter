@@ -9,13 +9,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/fakes"
 	oauthmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/mock"
 
-	"github.com/primandproper/platform-go/v7/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v7/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v7/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v7/random"
-	randommock "github.com/primandproper/platform-go/v7/random/mock"
+	"github.com/primandproper/platform-go/v8/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
+	mockpublishers "github.com/primandproper/platform-go/v8/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v8/random"
+	randommock "github.com/primandproper/platform-go/v8/random/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,7 +41,7 @@ func buildOAuthManagerForTest(t *testing.T) *manager {
 		return sessionData, nil
 	}
 
-	secretGen := random.NewGenerator(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
+	secretGen := random.NewGenerator(random.WithLogger(loggingnoop.NewLogger()), random.WithTracerProvider(tracingnoop.NewTracerProvider()))
 
 	m, err := NewOAuth2Manager(
 		ctx,

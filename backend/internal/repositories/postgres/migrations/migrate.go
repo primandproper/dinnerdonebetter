@@ -4,9 +4,10 @@ import (
 	"embed"
 	"io/fs"
 
-	"github.com/primandproper/platform-go/v7/database/migrate"
-	"github.com/primandproper/platform-go/v7/errors"
-	"github.com/primandproper/platform-go/v7/observability/logging"
+	"github.com/primandproper/platform-go/v8/database/dialect"
+	"github.com/primandproper/platform-go/v8/database/migrate"
+	"github.com/primandproper/platform-go/v8/errors"
+	"github.com/primandproper/platform-go/v8/observability/logging"
 )
 
 var (
@@ -32,7 +33,7 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 	}
 
 	migrator, err := migrate.New(
-		migrate.DialectPostgres,
+		dialect.Postgres,
 		migrationFiles,
 		migrate.WithLogger(logging.EnsureLogger(logger)),
 		migrate.WithLockKey(lockKey),

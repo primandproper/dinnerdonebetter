@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/primandproper/platform-go/v7/email"
+	"github.com/primandproper/platform-go/v8/email"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -12,10 +12,10 @@ import (
 	mealplanningnotifications "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
 	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v7/email"
-	notifications "github.com/primandproper/platform-go/v7/notifications/mobile"
-	"github.com/primandproper/platform-go/v7/observability"
-	textsearch "github.com/primandproper/platform-go/v7/search/text"
+	"github.com/primandproper/platform-go/v8/email"
+	notifications "github.com/primandproper/platform-go/v8/notifications/mobile"
+	"github.com/primandproper/platform-go/v8/observability"
+	textsearch "github.com/primandproper/platform-go/v8/search/text"
 )
 
 // handleMealPlanTaskNotification processes a meal plan task reminder notification.

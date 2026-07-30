@@ -7,7 +7,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
-	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v8/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
