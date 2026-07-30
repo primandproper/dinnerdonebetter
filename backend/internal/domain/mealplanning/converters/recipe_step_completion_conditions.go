@@ -3,7 +3,7 @@ package converters
 import (
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v7/identifiers"
+	"github.com/primandproper/platform-go/v8/identifiers"
 
 	"github.com/ccoveille/go-safecast"
 )

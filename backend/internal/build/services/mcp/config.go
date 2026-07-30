@@ -3,9 +3,9 @@ package mcpbuild
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 
-	databasecfg "github.com/primandproper/platform-go/v7/database/config"
-	"github.com/primandproper/platform-go/v7/observability"
-	routingcfg "github.com/primandproper/platform-go/v7/routing/config"
+	databasecfg "github.com/primandproper/platform-go/v8/database/config"
+	"github.com/primandproper/platform-go/v8/observability"
+	routingcfg "github.com/primandproper/platform-go/v8/routing/config"
 
 	"github.com/samber/do/v2"
 )

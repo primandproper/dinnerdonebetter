@@ -34,7 +34,7 @@ require (
 	github.com/matcornic/hermes/v2 v2.1.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/pquerna/otp v1.5.0
-	github.com/primandproper/platform-go/v7 v7.1.1
+	github.com/primandproper/platform-go/v8 v8.0.0
 	github.com/samber/do/v2 v2.0.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/spf13/cobra v1.10.2
@@ -420,3 +420,10 @@ require (
 	rsc.io/omap v1.2.0 // indirect
 	rsc.io/ordered v1.1.1 // indirect
 )
+
+// TEMPORARY — remove before merging.
+//
+// platform-go v8 is not tagged yet; this points at the local checkout so the
+// upgrade can be compiled and tested before the tag is cut. Once v8.0.0 is
+// published, delete this directive and run `make revendor`.
+replace github.com/primandproper/platform-go/v8 => ../../../primandproper/platform-go

@@ -3,7 +3,7 @@ package indexing
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v7/search/text/indexing"
+	"github.com/primandproper/platform-go/v8/search/text/indexing"
 )
 
 const (

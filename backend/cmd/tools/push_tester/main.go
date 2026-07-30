@@ -6,12 +6,12 @@ import (
 	"log"
 	"strings"
 
-	notifications "github.com/primandproper/platform-go/v7/notifications/mobile"
-	"github.com/primandproper/platform-go/v7/notifications/mobile/apns"
-	"github.com/primandproper/platform-go/v7/notifications/mobile/fcm"
-	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v7/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
+	notifications "github.com/primandproper/platform-go/v8/notifications/mobile"
+	"github.com/primandproper/platform-go/v8/notifications/mobile/apns"
+	"github.com/primandproper/platform-go/v8/notifications/mobile/fcm"
+	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v8/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
 
 	"github.com/spf13/pflag"
 )
@@ -75,19 +75,33 @@ func run() error {
 			BundleID:    *bundleID,
 			Production:  *production,
 		}
-		apnsSender, err := apns.NewSender(apnsCfg, tracerProvider, logger, metricsProvider)
+		apnsSender, err := apns.NewSender(apnsCfg,
+			apns.WithTracerProvider(tracerProvider),
+			apns.WithLogger(logger),
+			apns.WithMetricsProvider(metricsProvider),
+		)
 		if err != nil {
 			return fmt.Errorf("creating APNs sender: %w", err)
 		}
-		sender = notifications.NewMultiPlatformPushSender(apnsSender, nil, logger, tracerProvider)
+		sender = notifications.NewMultiPlatformPushSender(apnsSender, nil,
+			notifications.WithLogger(logger),
+			notifications.WithTracerProvider(tracerProvider),
+		)
 
 	case platformAndroid:
 		fcmCfg := &fcm.Config{CredentialsPath: *credentialsPath}
-		fcmSender, err := fcm.NewSender(ctx, fcmCfg, tracerProvider, logger, metricsProvider)
+		fcmSender, err := fcm.NewSender(ctx, fcmCfg,
+			fcm.WithTracerProvider(tracerProvider),
+			fcm.WithLogger(logger),
+			fcm.WithMetricsProvider(metricsProvider),
+		)
 		if err != nil {
 			return fmt.Errorf("creating FCM sender: %w", err)
 		}
-		sender = notifications.NewMultiPlatformPushSender(nil, fcmSender, logger, tracerProvider)
+		sender = notifications.NewMultiPlatformPushSender(nil, fcmSender,
+			notifications.WithLogger(logger),
+			notifications.WithTracerProvider(tracerProvider),
+		)
 
 	default:
 		return fmt.Errorf("invalid platform %q: must be ios or android", p)

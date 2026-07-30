@@ -9,7 +9,7 @@ import (
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	mealplanningworkers "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v8/filtering"
 
 	"github.com/stretchr/testify/assert"
 )

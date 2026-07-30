@@ -6,12 +6,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 	emaildeliverabilitytest "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/email/workers/email_deliverability_test"
 
-	emailcfg "github.com/primandproper/platform-go/v7/email/config"
-	"github.com/primandproper/platform-go/v7/httpclient"
-	"github.com/primandproper/platform-go/v7/observability"
-	loggingcfg "github.com/primandproper/platform-go/v7/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v7/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v7/observability/tracing/config"
+	emailcfg "github.com/primandproper/platform-go/v8/email/config"
+	"github.com/primandproper/platform-go/v8/httpclient"
+	"github.com/primandproper/platform-go/v8/observability"
+	loggingcfg "github.com/primandproper/platform-go/v8/observability/logging/config"
+	metricscfg "github.com/primandproper/platform-go/v8/observability/metrics/config"
+	tracingcfg "github.com/primandproper/platform-go/v8/observability/tracing/config"
 
 	"github.com/samber/do/v2"
 )

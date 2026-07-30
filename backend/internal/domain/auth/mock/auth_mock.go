@@ -10,7 +10,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 
-	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v8/filtering"
 )
 
 // Ensure, that PasswordResetTokenDataManagerMock does implement auth.PasswordResetTokenDataManager.

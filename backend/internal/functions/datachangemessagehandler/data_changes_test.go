@@ -18,8 +18,8 @@ import (
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	msgqueuemock "github.com/primandproper/platform-go/v7/messagequeue/mock"
-	textsearch "github.com/primandproper/platform-go/v7/search/text"
+	msgqueuemock "github.com/primandproper/platform-go/v8/messagequeue/mock"
+	textsearch "github.com/primandproper/platform-go/v8/search/text"
 
 	"github.com/stretchr/testify/assert"
 )

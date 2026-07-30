@@ -6,14 +6,14 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	paymentswebhook "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/http"
 
-	"github.com/primandproper/platform-go/v7/encoding"
-	"github.com/primandproper/platform-go/v7/healthcheck"
-	"github.com/primandproper/platform-go/v7/observability/logging"
-	"github.com/primandproper/platform-go/v7/observability/metrics"
-	"github.com/primandproper/platform-go/v7/observability/tracing"
-	"github.com/primandproper/platform-go/v7/routing"
-	routingcfg "github.com/primandproper/platform-go/v7/routing/config"
-	"github.com/primandproper/platform-go/v7/version"
+	"github.com/primandproper/platform-go/v8/encoding"
+	"github.com/primandproper/platform-go/v8/healthcheck"
+	"github.com/primandproper/platform-go/v8/observability/logging"
+	"github.com/primandproper/platform-go/v8/observability/metrics"
+	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v8/routing"
+	routingcfg "github.com/primandproper/platform-go/v8/routing/config"
+	"github.com/primandproper/platform-go/v8/version"
 )
 
 func ProvideAPIRouter(
@@ -25,7 +25,7 @@ func ProvideAPIRouter(
 	paymentsWebhookHandler *paymentswebhook.WebhookHandler,
 	healthRegistry healthcheck.Registry,
 ) (*routing.Router, error) {
-	encoder := encoding.NewServerEncoderDecoder(logger, tracerProvider, encoding.ContentTypeJSON)
+	encoder := encoding.NewServerEncoderDecoder(encoding.ContentTypeJSON, encoding.WithLogger(logger), encoding.WithTracerProvider(tracerProvider))
 
 	router, err := routingcfg.NewRouter(&routingConfig, encoder, logger, tracerProvider, metricsProvider)
 	if err != nil {

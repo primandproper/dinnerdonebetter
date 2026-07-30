@@ -18,16 +18,17 @@ import (
 	identityrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	oauthrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 
-	encryptioncfg "github.com/primandproper/platform-go/v7/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v7/database"
-	databasecfg "github.com/primandproper/platform-go/v7/database/config"
-	"github.com/primandproper/platform-go/v7/database/postgres"
-	"github.com/primandproper/platform-go/v7/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v7/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v7/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v7/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v7/random"
-	"github.com/primandproper/platform-go/v7/secrets/kubectl"
+	"github.com/primandproper/platform-go/v8/authentication/argon2"
+	encryptioncfg "github.com/primandproper/platform-go/v8/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v8/database"
+	databasecfg "github.com/primandproper/platform-go/v8/database/config"
+	"github.com/primandproper/platform-go/v8/database/postgres"
+	"github.com/primandproper/platform-go/v8/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v8/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v8/random"
+	"github.com/primandproper/platform-go/v8/secrets/kubectl"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
@@ -194,7 +195,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 	}
 
 	clientConfig := &bootstrapClientConfig{connDetails: connDetails}
-	client, err := postgres.NewDatabaseClient(ctx, logger, tracerProvider, clientConfig, nil)
+	client, err := postgres.NewDatabaseClient(ctx, clientConfig, postgres.WithLogger(logger), postgres.WithTracerProvider(tracerProvider))
 	if err != nil {
 		return fmt.Errorf("connecting to database: %w", err)
 	}
@@ -221,7 +222,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 	// --- Admin user (idempotent) ---
 	user, err := identityRepo.GetUserByUsername(ctx, adminUsername)
 	if err != nil {
-		hasher := authentication.NewArgon2Authenticator(logger, tracerProvider)
+		hasher := authentication.NewArgon2Authenticator(argon2.WithLogger(logger), argon2.WithTracerProvider(tracerProvider))
 		hashedPassword, hashErr := hasher.HashPassword(ctx, adminPassword)
 		if hashErr != nil {
 			return fmt.Errorf("hashing password: %w", hashErr)
@@ -399,7 +400,11 @@ func fetchProdSecrets(ctx context.Context, kubeconfigPath string) (*prodSecrets,
 		Kubeconfig: kubeconfigPath,
 	}
 
-	secretSource, err := kubectl.NewKubectlSecretSource(ctx, cfg, nil, logger, tracerProvider, metricsProvider)
+	secretSource, err := kubectl.NewKubectlSecretSource(ctx, cfg, nil,
+		kubectl.WithLogger(logger),
+		kubectl.WithTracerProvider(tracerProvider),
+		kubectl.WithMetricsProvider(metricsProvider),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("creating kubectl secret source: %w", err)
 	}

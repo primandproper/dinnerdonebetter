@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/primandproper/platform-go/v7/cookies"
+	"github.com/primandproper/platform-go/v8/cookies"
 )
 
 // BuildCookie provides a consistent way of constructing an HTTP cookie for session auth.

@@ -3,7 +3,7 @@ package fakes
 import (
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v7/filtering"
+	"github.com/primandproper/platform-go/v8/filtering"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )
