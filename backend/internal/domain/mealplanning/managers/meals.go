@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
@@ -63,9 +62,8 @@ func (m *mealPlanningManager) CreateMeal(ctx context.Context, creatorID string, 
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating meal")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealCreatedServiceEventType, map[string]any{
-		mealplanningkeys.MealIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -153,9 +151,8 @@ func (m *mealPlanningManager) ArchiveMeal(ctx context.Context, mealID, ownerID s
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealArchivedServiceEventType, map[string]any{
-		mealplanningkeys.MealIDKey: mealID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

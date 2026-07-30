@@ -142,9 +142,9 @@ type (
 		RecipeStepProductExists(ctx context.Context, recipeID, recipeStepID, recipeStepProductID string) (bool, error)
 		GetRecipeStepProduct(ctx context.Context, recipeID, recipeStepID, recipeStepProductID string) (*RecipeStepProduct, error)
 		GetRecipeStepProducts(ctx context.Context, recipeID, recipeStepID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[RecipeStepProduct], error)
-		CreateRecipeStepProduct(ctx context.Context, input *RecipeStepProductDatabaseCreationInput) (*RecipeStepProduct, error)
-		UpdateRecipeStepProduct(ctx context.Context, updated *RecipeStepProduct) error
-		ArchiveRecipeStepProduct(ctx context.Context, recipeStepID, recipeStepProductID string) error
+		CreateRecipeStepProduct(ctx context.Context, recipeID string, input *RecipeStepProductDatabaseCreationInput) (*RecipeStepProduct, error)
+		UpdateRecipeStepProduct(ctx context.Context, recipeID string, updated *RecipeStepProduct) error
+		ArchiveRecipeStepProduct(ctx context.Context, recipeID, recipeStepID, recipeStepProductID string) error
 	}
 )
 

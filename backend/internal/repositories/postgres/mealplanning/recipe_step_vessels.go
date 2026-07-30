@@ -433,12 +433,32 @@ func (q *repository) createRecipeStepVessel(ctx context.Context, querier databas
 }
 
 // CreateRecipeStepVessel creates a recipe step vessel in the database.
-func (q *repository) CreateRecipeStepVessel(ctx context.Context, input *mealplanning.RecipeStepVesselDatabaseCreationInput) (*mealplanning.RecipeStepVessel, error) {
-	return q.createRecipeStepVessel(ctx, q.writeDB, input)
+func (q *repository) CreateRecipeStepVessel(ctx context.Context, recipeID string, input *mealplanning.RecipeStepVesselDatabaseCreationInput) (*mealplanning.RecipeStepVessel, error) {
+	if input == nil {
+		return nil, platformerrors.ErrNilInputProvided
+	}
+
+	var created *mealplanning.RecipeStepVessel
+
+	// The write and its event share a transaction.
+	if err := q.withEvent(ctx, q.logger, mealplanning.RecipeStepVesselCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:           recipeID,
+		mealplanningkeys.RecipeStepIDKey:       input.BelongsToRecipeStep,
+		mealplanningkeys.RecipeStepVesselIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		var createErr error
+		created, createErr = q.createRecipeStepVessel(ctx, tx, input)
+
+		return createErr
+	}); err != nil {
+		return nil, err
+	}
+
+	return created, nil
 }
 
 // UpdateRecipeStepVessel updates a particular recipe step vessel.
-func (q *repository) UpdateRecipeStepVessel(ctx context.Context, updated *mealplanning.RecipeStepVessel) error {
+func (q *repository) UpdateRecipeStepVessel(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepVessel) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -453,20 +473,28 @@ func (q *repository) UpdateRecipeStepVessel(ctx context.Context, updated *mealpl
 		vesselID = &updated.Vessel.ID
 	}
 
-	if _, err := q.generatedQuerier.UpdateRecipeStepVessel(ctx, q.writeDB, &generated.UpdateRecipeStepVesselParams{
-		Name:                 updated.Name,
-		Notes:                updated.Notes,
-		BelongsToRecipeStep:  updated.BelongsToRecipeStep,
-		VesselPredicate:      updated.VesselPreposition,
-		ID:                   updated.ID,
-		RecipeStepProductID:  database.NullStringFromStringPointer(updated.RecipeStepProductID),
-		ValidVesselID:        database.NullStringFromStringPointer(vesselID),
-		MaximumQuantity:      database.NullInt32FromUint16Pointer(updated.MaxQuantity),
-		MinimumQuantity:      int32(updated.MinQuantity),
-		Index:                int32(updated.Index),
-		OptionIndex:          int32(updated.OptionIndex),
-		UnavailableAfterStep: updated.UnavailableAfterStep,
-		ScaleFactor:          database.StringFromFloat32(updated.ScaleFactor),
+	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepVesselUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:           recipeID,
+		mealplanningkeys.RecipeStepIDKey:       updated.BelongsToRecipeStep,
+		mealplanningkeys.RecipeStepVesselIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateRecipeStepVessel(ctx, tx, &generated.UpdateRecipeStepVesselParams{
+			Name:                 updated.Name,
+			Notes:                updated.Notes,
+			BelongsToRecipeStep:  updated.BelongsToRecipeStep,
+			VesselPredicate:      updated.VesselPreposition,
+			ID:                   updated.ID,
+			RecipeStepProductID:  database.NullStringFromStringPointer(updated.RecipeStepProductID),
+			ValidVesselID:        database.NullStringFromStringPointer(vesselID),
+			MaximumQuantity:      database.NullInt32FromUint16Pointer(updated.MaxQuantity),
+			MinimumQuantity:      int32(updated.MinQuantity),
+			Index:                int32(updated.Index),
+			OptionIndex:          int32(updated.OptionIndex),
+			UnavailableAfterStep: updated.UnavailableAfterStep,
+			ScaleFactor:          database.StringFromFloat32(updated.ScaleFactor),
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step vessel")
 	}
@@ -477,7 +505,7 @@ func (q *repository) UpdateRecipeStepVessel(ctx context.Context, updated *mealpl
 }
 
 // ArchiveRecipeStepVessel archives a recipe step vessel from the database by its ID.
-func (q *repository) ArchiveRecipeStepVessel(ctx context.Context, recipeStepID, recipeStepVesselID string) error {
+func (q *repository) ArchiveRecipeStepVessel(ctx context.Context, recipeID, recipeStepID, recipeStepVesselID string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -495,16 +523,26 @@ func (q *repository) ArchiveRecipeStepVessel(ctx context.Context, recipeStepID, 
 	logger = logger.WithValue(mealplanningkeys.RecipeStepVesselIDKey, recipeStepVesselID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepVesselIDKey, recipeStepVesselID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveRecipeStepVessel(ctx, q.writeDB, &generated.ArchiveRecipeStepVesselParams{
-		BelongsToRecipeStep: recipeStepID,
-		ID:                  recipeStepVesselID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step vessel")
-	}
+	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepVesselArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:           recipeID,
+		mealplanningkeys.RecipeStepIDKey:       recipeStepID,
+		mealplanningkeys.RecipeStepVesselIDKey: recipeStepVesselID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveRecipeStepVessel(ctx, tx, &generated.ArchiveRecipeStepVesselParams{
+			BelongsToRecipeStep: recipeStepID,
+			ID:                  recipeStepVesselID,
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving recipe step vessel")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

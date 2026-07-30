@@ -2,16 +2,12 @@ package manager
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications"
 	notificationkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/keys"
 
 	platformerrors "github.com/primandproper/platform-go/v8/errors"
 	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	"github.com/primandproper/platform-go/v8/observability"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/tracing"
@@ -32,10 +28,9 @@ var (
 )
 
 type notificationsManager struct {
-	tracer               tracing.Tracer
-	logger               logging.Logger
-	repo                 notificationsRepo
-	dataChangesPublisher messagequeue.Publisher
+	tracer tracing.Tracer
+	logger logging.Logger
+	repo   notificationsRepo
 }
 
 // NewNotificationsDataManager returns a new NotificationsDataManager implementing notifications.Repository.
@@ -44,19 +39,11 @@ func NewNotificationsDataManager(
 	tracerProvider tracing.TracerProvider,
 	logger logging.Logger,
 	repo notificationsRepo,
-	cfg *msgconfig.QueuesConfig,
-	publisherProvider messagequeue.PublisherProvider,
 ) (NotificationsDataManager, error) {
-	dataChangesPublisher, err := publisherProvider.NewPublisher(ctx, cfg.DataChangesTopicName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to provide publisher for data changes topic: %w", err)
-	}
-
 	return &notificationsManager{
-		tracer:               tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:               logging.NewNamedLogger(logger, o11yName),
-		repo:                 repo,
-		dataChangesPublisher: dataChangesPublisher,
+		tracer: tracing.NewNamedTracer(tracerProvider, o11yName),
+		logger: logging.NewNamedLogger(logger, o11yName),
+		repo:   repo,
 	}, nil
 }
 
@@ -100,9 +87,8 @@ func (m *notificationsManager) CreateUserNotification(ctx context.Context, input
 		return nil, err
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, notifications.UserNotificationCreatedServiceEventType, map[string]any{
-		notificationkeys.UserNotificationIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -118,12 +104,11 @@ func (m *notificationsManager) UpdateUserNotification(ctx context.Context, updat
 	tracing.AttachToSpan(span, notificationkeys.UserNotificationIDKey, updated.ID)
 
 	if err := m.repo.UpdateUserNotification(ctx, updated); err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "update user notification")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, notifications.UserNotificationUpdatedServiceEventType, map[string]any{
-		notificationkeys.UserNotificationIDKey: updated.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -168,9 +153,8 @@ func (m *notificationsManager) CreateUserDeviceToken(ctx context.Context, input 
 		return nil, err
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, notifications.UserDeviceTokenCreatedServiceEventType, map[string]any{
-		notificationkeys.UserDeviceTokenIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -186,12 +170,11 @@ func (m *notificationsManager) UpdateUserDeviceToken(ctx context.Context, update
 	tracing.AttachToSpan(span, notificationkeys.UserDeviceTokenIDKey, updated.ID)
 
 	if err := m.repo.UpdateUserDeviceToken(ctx, updated); err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "update user device token")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, notifications.UserDeviceTokenUpdatedServiceEventType, map[string]any{
-		notificationkeys.UserDeviceTokenIDKey: updated.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -207,12 +190,11 @@ func (m *notificationsManager) ArchiveUserDeviceToken(ctx context.Context, userI
 	tracing.AttachToSpan(span, notificationkeys.UserDeviceTokenIDKey, tokenID)
 
 	if err := m.repo.ArchiveUserDeviceToken(ctx, userID, tokenID); err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "archive user device token")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, notifications.UserDeviceTokenArchivedServiceEventType, map[string]any{
-		notificationkeys.UserDeviceTokenIDKey: tokenID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

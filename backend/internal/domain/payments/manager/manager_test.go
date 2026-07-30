@@ -10,9 +10,6 @@ import (
 	paymentsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/adapters"
 
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v8/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
 
@@ -24,18 +21,6 @@ func buildPaymentsManagerForTest(t *testing.T) *paymentsManager {
 	t.Helper()
 
 	ctx := t.Context()
-	queueCfg := &msgconfig.QueuesConfig{
-		DataChangesTopicName: t.Name(),
-	}
-
-	mpp := &mockpublishers.PublisherProviderMock{
-		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
-			return &mockpublishers.PublisherMock{
-				PublishAsyncFunc: func(_ context.Context, _ any) {},
-			}, nil
-		},
-	}
-
 	stub := adapters.NewStubPaymentProcessor(nil)
 	registry := payments.NewMapProcessorRegistry(map[string]payments.PaymentProcessor{
 		"stripe":     stub,
@@ -48,21 +33,16 @@ func buildPaymentsManagerForTest(t *testing.T) *paymentsManager {
 		&paymentsmock.RepositoryMock{},
 		registry,
 		&identitymock.IdentityDataManagerMock{},
-		queueCfg,
-		mpp,
 	)
 	require.NoError(t, err)
 
 	return m.(*paymentsManager)
 }
 
-// attachRepositoryToPaymentsManager wires a configured repository mock and a no-op data changes
-// publisher into the manager under test.
+// attachRepositoryToPaymentsManager wires a configured repository mock
+// into the manager under test.
 func attachRepositoryToPaymentsManager(manager *paymentsManager, repo *paymentsmock.RepositoryMock) {
 	manager.repo = repo
-	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
-	}
 }
 
 func TestPaymentsManager_CreateProduct(t *testing.T) {

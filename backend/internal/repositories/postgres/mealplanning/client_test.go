@@ -5,21 +5,27 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/platform-go/v8/database"
+	"github.com/primandproper/platform-go/v8/database/dialect"
 	mockdatabase "github.com/primandproper/platform-go/v8/database/mock"
 	"github.com/primandproper/platform-go/v8/database/postgres"
 	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v8/outbox"
 
 	"github.com/stretchr/testify/require"
 )
 
 const (
 	exampleQuantity = 3
+
+	// testDataChangesTopic is what the emitter writes onto outbox rows in these tests.
+	testDataChangesTopic = "data_changes"
 )
 
 func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
@@ -36,11 +42,22 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	require.NoError(t, err)
 
 	auditLogEntryRepo := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
-	identitiesRepo := identity.ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc)
+	identitiesRepo := identity.ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil)
 	require.NoError(t, err)
 
-	c := ProvideMealPlanningRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, identitiesRepo, pgc)
+	// A real emitter, so the tests exercise the same path production does: the event is
+	// another statement in the repository's transaction.
+	outboxWriter, err := outbox.NewWriter(dialect.Postgres, outbox.WithWriterLogger(loggingnoop.NewLogger()))
 	require.NoError(t, err)
+
+	c := ProvideMealPlanningRepository(
+		loggingnoop.NewLogger(),
+		tracingnoop.NewTracerProvider(),
+		auditLogEntryRepo,
+		identitiesRepo,
+		pgc,
+		events.NewEmitter(outboxWriter, testDataChangesTopic),
+	)
 
 	return c.(*repository), auditLogEntryRepo
 }
@@ -48,7 +65,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideMealPlanningRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
+	c := ProvideMealPlanningRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil)
 
 	return c.(*repository)
 }

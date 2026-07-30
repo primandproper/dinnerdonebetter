@@ -243,16 +243,21 @@ func (q *repository) CreateRecipeRating(ctx context.Context, input *types.Recipe
 	logger := q.logger.WithValue(mealplanningkeys.RecipeRatingIDKey, input.ID)
 
 	// create the recipe rating.
-	if err := q.generatedQuerier.CreateRecipeRating(ctx, q.writeDB, &generated.CreateRecipeRatingParams{
-		ID:              input.ID,
-		BelongsToRecipe: input.BelongsToRecipe,
-		Notes:           input.Notes,
-		CreatedByUser:   input.CreatedByUser,
-		Taste:           database.NullStringFromFloat32(input.Taste),
-		Difficulty:      database.NullStringFromFloat32(input.Difficulty),
-		Cleanup:         database.NullStringFromFloat32(input.Cleanup),
-		Instructions:    database.NullStringFromFloat32(input.Instructions),
-		Overall:         database.NullStringFromFloat32(input.Overall),
+	if err := q.withEvent(ctx, logger, types.RecipeRatingCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:       input.BelongsToRecipe,
+		mealplanningkeys.RecipeRatingIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return q.generatedQuerier.CreateRecipeRating(ctx, tx, &generated.CreateRecipeRatingParams{
+			ID:              input.ID,
+			BelongsToRecipe: input.BelongsToRecipe,
+			Notes:           input.Notes,
+			CreatedByUser:   input.CreatedByUser,
+			Taste:           database.NullStringFromFloat32(input.Taste),
+			Difficulty:      database.NullStringFromFloat32(input.Difficulty),
+			Cleanup:         database.NullStringFromFloat32(input.Cleanup),
+			Instructions:    database.NullStringFromFloat32(input.Instructions),
+			Overall:         database.NullStringFromFloat32(input.Overall),
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing recipe rating creation query")
 	}
@@ -287,15 +292,22 @@ func (q *repository) UpdateRecipeRating(ctx context.Context, updated *types.Reci
 	logger := q.logger.WithValue(mealplanningkeys.RecipeRatingIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeRatingIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateRecipeRating(ctx, q.writeDB, &generated.UpdateRecipeRatingParams{
-		BelongsToRecipe: updated.BelongsToRecipe,
-		Taste:           database.NullStringFromFloat32(updated.Taste),
-		Difficulty:      database.NullStringFromFloat32(updated.Difficulty),
-		Cleanup:         database.NullStringFromFloat32(updated.Cleanup),
-		Instructions:    database.NullStringFromFloat32(updated.Instructions),
-		Overall:         database.NullStringFromFloat32(updated.Overall),
-		Notes:           updated.Notes,
-		ID:              updated.ID,
+	if err := q.withEvent(ctx, logger, types.RecipeRatingUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:       updated.BelongsToRecipe,
+		mealplanningkeys.RecipeRatingIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateRecipeRating(ctx, tx, &generated.UpdateRecipeRatingParams{
+			BelongsToRecipe: updated.BelongsToRecipe,
+			Taste:           database.NullStringFromFloat32(updated.Taste),
+			Difficulty:      database.NullStringFromFloat32(updated.Difficulty),
+			Cleanup:         database.NullStringFromFloat32(updated.Cleanup),
+			Instructions:    database.NullStringFromFloat32(updated.Instructions),
+			Overall:         database.NullStringFromFloat32(updated.Overall),
+			Notes:           updated.Notes,
+			ID:              updated.ID,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe rating")
 	}
@@ -324,13 +336,22 @@ func (q *repository) ArchiveRecipeRating(ctx context.Context, recipeID, recipeRa
 	logger = logger.WithValue(mealplanningkeys.RecipeRatingIDKey, recipeRatingID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeRatingIDKey, recipeRatingID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveRecipeRating(ctx, q.writeDB, recipeRatingID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving recipe rating")
-	}
+	if err := q.withEvent(ctx, logger, types.RecipeRatingArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:       recipeID,
+		mealplanningkeys.RecipeRatingIDKey: recipeRatingID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveRecipeRating(ctx, tx, recipeRatingID)
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving recipe rating")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

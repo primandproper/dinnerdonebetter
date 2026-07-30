@@ -80,10 +80,8 @@ func (m *mealPlanningManager) CreateMealPlanRecipeOptionSelection(ctx context.Co
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating meal plan recipe option selection")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanRecipeOptionSelectionCreatedServiceEventType, map[string]any{
-		"meal_plan_recipe_option_selection_id": created.ID,
-		mealplanningkeys.MealPlanOptionIDKey:   created.BelongsToMealPlanOption,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -146,12 +144,8 @@ func (m *mealPlanningManager) ArchiveMealPlanRecipeOptionSelection(ctx context.C
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan recipe option selection")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanRecipeOptionSelectionArchivedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
-		"recipe_step_id":                     recipeStepID,
-		"ingredient_index":                   ingredientIndex,
-		"selection_type":                     selectionType,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

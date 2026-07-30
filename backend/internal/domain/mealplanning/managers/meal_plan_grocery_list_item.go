@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -46,9 +45,8 @@ func (m *mealPlanningManager) CreateMealPlanGroceryListItem(ctx context.Context,
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating meal plan grocery list item")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanGroceryListItemCreatedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanGroceryListItemIDKey: convertedInput.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -97,10 +95,8 @@ func (m *mealPlanningManager) UpdateMealPlanGroceryListItem(ctx context.Context,
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan grocery list item")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanGroceryListItemUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanIDKey:                mealPlanID,
-		mealplanningkeys.MealPlanGroceryListItemIDKey: mealPlanGroceryListItemID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -120,10 +116,8 @@ func (m *mealPlanningManager) ArchiveMealPlanGroceryListItem(ctx context.Context
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan grocery list item")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanGroceryListItemArchivedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanIDKey:                mealPlanID,
-		mealplanningkeys.MealPlanGroceryListItemIDKey: mealPlanGroceryListItemID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

@@ -348,16 +348,20 @@ func (q *repository) CreateValidInstrument(ctx context.Context, input *types.Val
 	logger := q.logger.WithValue(mealplanningkeys.ValidInstrumentIDKey, input.ID)
 
 	// create the valid instrument.
-	if err := q.generatedQuerier.CreateValidInstrument(ctx, q.writeDB, &generated.CreateValidInstrumentParams{
-		ID:                             input.ID,
-		Name:                           input.Name,
-		PluralName:                     input.PluralName,
-		Description:                    input.Description,
-		IconPath:                       input.IconPath,
-		Slug:                           input.Slug,
-		UsableForStorage:               input.UsableForStorage,
-		DisplayInSummaryLists:          input.DisplayInSummaryLists,
-		IncludeInGeneratedInstructions: input.IncludeInGeneratedInstructions,
+	if err := q.withEvent(ctx, logger, types.ValidInstrumentCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidInstrumentIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return q.generatedQuerier.CreateValidInstrument(ctx, tx, &generated.CreateValidInstrumentParams{
+			ID:                             input.ID,
+			Name:                           input.Name,
+			PluralName:                     input.PluralName,
+			Description:                    input.Description,
+			IconPath:                       input.IconPath,
+			Slug:                           input.Slug,
+			UsableForStorage:               input.UsableForStorage,
+			DisplayInSummaryLists:          input.DisplayInSummaryLists,
+			IncludeInGeneratedInstructions: input.IncludeInGeneratedInstructions,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid instrument creation query")
 	}
@@ -391,16 +395,22 @@ func (q *repository) UpdateValidInstrument(ctx context.Context, updated *types.V
 	logger := q.logger.WithValue(mealplanningkeys.ValidInstrumentIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidInstrumentIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateValidInstrument(ctx, q.writeDB, &generated.UpdateValidInstrumentParams{
-		Name:                           updated.Name,
-		PluralName:                     updated.PluralName,
-		Description:                    updated.Description,
-		IconPath:                       updated.IconPath,
-		Slug:                           updated.Slug,
-		ID:                             updated.ID,
-		UsableForStorage:               updated.UsableForStorage,
-		DisplayInSummaryLists:          updated.DisplayInSummaryLists,
-		IncludeInGeneratedInstructions: updated.IncludeInGeneratedInstructions,
+	if err := q.withEvent(ctx, logger, types.ValidInstrumentUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidInstrumentIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateValidInstrument(ctx, tx, &generated.UpdateValidInstrumentParams{
+			Name:                           updated.Name,
+			PluralName:                     updated.PluralName,
+			Description:                    updated.Description,
+			IconPath:                       updated.IconPath,
+			Slug:                           updated.Slug,
+			ID:                             updated.ID,
+			UsableForStorage:               updated.UsableForStorage,
+			DisplayInSummaryLists:          updated.DisplayInSummaryLists,
+			IncludeInGeneratedInstructions: updated.IncludeInGeneratedInstructions,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid instrument")
 	}
@@ -445,14 +455,18 @@ func (q *repository) ArchiveValidInstrument(ctx context.Context, validInstrument
 	logger = logger.WithValue(mealplanningkeys.ValidInstrumentIDKey, validInstrumentID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidInstrumentIDKey, validInstrumentID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveValidInstrument(ctx, q.writeDB, validInstrumentID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving valid instrument")
-	}
+	return q.withEvent(ctx, logger, types.ValidInstrumentArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidInstrumentIDKey: validInstrumentID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidInstrument(ctx, tx, validInstrumentID)
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid instrument")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	return nil
+		return nil
+	})
 }

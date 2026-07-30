@@ -194,7 +194,7 @@ type DatabaseInitFunc func(ctx context.Context, dbClient database.Client, dbCfg 
 func WithIdentityRepository(fn func(ctx context.Context, repo identity.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider, dbClient database.Client) error) DatabaseInitFunc {
 	return func(ctx context.Context, dbClient database.Client, dbCfg *databasecfg.Config, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
 		auditLogRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, dbClient)
-		identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditLogRepo, dbClient)
+		identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditLogRepo, dbClient, nil)
 		return fn(ctx, identityRepo, logger, tracerProvider, dbClient)
 	}
 }
@@ -225,8 +225,8 @@ func WithAuthRepository(fn func(ctx context.Context, repo auth.Repository, logge
 func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) error) DatabaseInitFunc {
 	return func(ctx context.Context, dbClient database.Client, dbCfg *databasecfg.Config, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
 		auditLogRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, dbClient)
-		identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditLogRepo, dbClient)
-		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityRepo, dbClient)
+		identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditLogRepo, dbClient, nil)
+		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityRepo, dbClient, nil)
 		return fn(ctx, mealPlanningRepo, logger, tracerProvider)
 	}
 }
@@ -236,7 +236,7 @@ func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.R
 func WithSettingsRepository(fn func(ctx context.Context, repo settings.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) error) DatabaseInitFunc {
 	return func(ctx context.Context, dbClient database.Client, dbCfg *databasecfg.Config, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
 		auditLogRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, dbClient)
-		settingsRepo := settingsrepo.ProvideSettingsRepository(logger, tracerProvider, auditLogRepo, dbClient)
+		settingsRepo := settingsrepo.ProvideSettingsRepository(logger, tracerProvider, auditLogRepo, dbClient, nil)
 		return fn(ctx, settingsRepo, logger, tracerProvider)
 	}
 }
@@ -246,7 +246,7 @@ func WithSettingsRepository(fn func(ctx context.Context, repo settings.Repositor
 func WithWebhooksRepository(fn func(ctx context.Context, repo webhooks.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) error) DatabaseInitFunc {
 	return func(ctx context.Context, dbClient database.Client, dbCfg *databasecfg.Config, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
 		auditLogRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, dbClient)
-		webhooksRepo := webhooksrepo.ProvideWebhooksRepository(logger, tracerProvider, auditLogRepo, dbClient)
+		webhooksRepo := webhooksrepo.ProvideWebhooksRepository(logger, tracerProvider, auditLogRepo, dbClient, nil)
 		return fn(ctx, webhooksRepo, logger, tracerProvider)
 	}
 }
@@ -256,7 +256,7 @@ func WithWebhooksRepository(fn func(ctx context.Context, repo webhooks.Repositor
 func WithNotificationsRepository(fn func(ctx context.Context, repo notifications.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) error) DatabaseInitFunc {
 	return func(ctx context.Context, dbClient database.Client, dbCfg *databasecfg.Config, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
 		auditLogRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, dbClient)
-		notificationsRepo := notificationsrepo.ProvideNotificationsRepository(logger, tracerProvider, auditLogRepo, dbCfg, dbClient)
+		notificationsRepo := notificationsrepo.ProvideNotificationsRepository(logger, tracerProvider, auditLogRepo, dbCfg, dbClient, nil)
 		return fn(ctx, notificationsRepo, logger, tracerProvider)
 	}
 }

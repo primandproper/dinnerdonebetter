@@ -6,6 +6,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 	auditrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	identityrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	issuereportsrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	mealplanningrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
@@ -46,6 +47,7 @@ func BuildInjector(ctx context.Context, cfg *config.MCPServiceConfig) *do.RootSc
 	// repositories
 	auditrepo.RegisterAuditLogRepository(i)
 	identityrepo.RegisterIdentityRepository(i)
+	events.RegisterOutboxEmitter(i)
 	mealplanningrepo.RegisterMealPlanningRepository(i)
 	webhooksrepo.RegisterWebhooksRepository(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)

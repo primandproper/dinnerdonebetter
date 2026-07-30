@@ -12,9 +12,6 @@ import (
 
 	platformerrors "github.com/primandproper/platform-go/v8/errors"
 	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v8/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
 
@@ -32,23 +29,11 @@ func buildWaitlistManagerForTest(t *testing.T, repo *waitlistmock.RepositoryMock
 	}
 
 	ctx := t.Context()
-	queueCfg := &msgconfig.QueuesConfig{DataChangesTopicName: t.Name()}
 
-	mpp := &mockpublishers.PublisherProviderMock{
-		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
-			return &mockpublishers.PublisherMock{
-				PublishAsyncFunc: func(_ context.Context, _ any) {},
-			}, nil
-		},
-	}
-
-	m, err := NewWaitlistDataManager(ctx, tracingnoop.NewTracerProvider(), loggingnoop.NewLogger(), repo, queueCfg, mpp)
+	m, err := NewWaitlistDataManager(ctx, tracingnoop.NewTracerProvider(), loggingnoop.NewLogger(), repo)
 	require.NoError(t, err)
 
 	manager := m.(*waitlistManager)
-	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
-	}
 
 	return manager
 }

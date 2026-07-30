@@ -322,6 +322,14 @@ func (q *repository) CreateMealPlanEvent(ctx context.Context, input *types.MealP
 
 		x = created
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, q.logger, types.MealPlanEventCreatedServiceEventType, "", map[string]any{
+			mealplanningkeys.MealPlanEventIDKey: input.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -341,13 +349,20 @@ func (q *repository) UpdateMealPlanEvent(ctx context.Context, updated *types.Mea
 	logger := q.logger.WithValue(mealplanningkeys.MealPlanEventIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateMealPlanEvent(ctx, q.writeDB, &generated.UpdateMealPlanEventParams{
-		Notes:             updated.Notes,
-		StartsAt:          updated.StartsAt,
-		EndsAt:            updated.EndsAt,
-		MealName:          generated.MealName(updated.MealName),
-		BelongsToMealPlan: updated.BelongsToMealPlan,
-		ID:                updated.ID,
+	if err := q.withEvent(ctx, logger, types.MealPlanEventUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealPlanIDKey:      updated.BelongsToMealPlan,
+		mealplanningkeys.MealPlanEventIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateMealPlanEvent(ctx, tx, &generated.UpdateMealPlanEventParams{
+			Notes:             updated.Notes,
+			StartsAt:          updated.StartsAt,
+			EndsAt:            updated.EndsAt,
+			MealName:          generated.MealName(updated.MealName),
+			BelongsToMealPlan: updated.BelongsToMealPlan,
+			ID:                updated.ID,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan event")
 	}
@@ -436,6 +451,14 @@ func (q *repository) SwapMealPlanEvents(ctx context.Context, mealPlanID, mealPla
 			return observability.PrepareError(err, span, "creating audit log entry for event B")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanEventUpdatedServiceEventType, "", map[string]any{
+			mealplanningkeys.MealPlanIDKey: mealPlanID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return err
@@ -464,26 +487,33 @@ func (q *repository) ArchiveMealPlanEvent(ctx context.Context, mealPlanID, mealP
 	logger = logger.WithValue(mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveMealPlanEvent(ctx, q.writeDB, &generated.ArchiveMealPlanEventParams{
-		ID:                mealPlanEventID,
-		BelongsToMealPlan: mealPlanID,
+	return q.withEvent(ctx, logger, types.MealPlanEventArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealPlanIDKey:      mealPlanID,
+		mealplanningkeys.MealPlanEventIDKey: mealPlanEventID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMealPlanEvent(ctx, tx, &generated.ArchiveMealPlanEventParams{
+			ID:                mealPlanEventID,
+			BelongsToMealPlan: mealPlanID,
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving meal plan event")
+		}
+
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		// The audit log entry belongs in this transaction too: it describes the same
+		// write, and half of a write is not something to record.
+		if _, auditErr := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:           identifiers.New(),
+			ResourceType: resourceTypeMealPlanEvents,
+			RelevantID:   mealPlanEventID,
+			EventType:    audit.AuditLogEventTypeArchived,
+		}); auditErr != nil {
+			return observability.PrepareError(auditErr, span, "creating audit log entry")
+		}
+
+		return nil
 	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan event")
-	}
-
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
-
-	if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, q.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeMealPlanEvents,
-		RelevantID:   mealPlanEventID,
-		EventType:    audit.AuditLogEventTypeArchived,
-	}); err != nil {
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	return nil
 }

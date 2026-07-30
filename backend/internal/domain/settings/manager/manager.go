@@ -2,16 +2,12 @@ package manager
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings"
 	settingskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/keys"
 
 	platformerrors "github.com/primandproper/platform-go/v8/errors"
 	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	"github.com/primandproper/platform-go/v8/observability"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/tracing"
@@ -32,10 +28,9 @@ var (
 )
 
 type settingsManager struct {
-	tracer               tracing.Tracer
-	logger               logging.Logger
-	repo                 settingsRepo
-	dataChangesPublisher messagequeue.Publisher
+	tracer tracing.Tracer
+	logger logging.Logger
+	repo   settingsRepo
 }
 
 // NewSettingsDataManager returns a new SettingsDataManager implementing settings.Repository.
@@ -44,19 +39,11 @@ func NewSettingsDataManager(
 	tracerProvider tracing.TracerProvider,
 	logger logging.Logger,
 	repo settingsRepo,
-	cfg *msgconfig.QueuesConfig,
-	publisherProvider messagequeue.PublisherProvider,
 ) (SettingsDataManager, error) {
-	dataChangesPublisher, err := publisherProvider.NewPublisher(ctx, cfg.DataChangesTopicName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to provide publisher for data changes topic: %w", err)
-	}
-
 	return &settingsManager{
-		tracer:               tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:               logging.NewNamedLogger(logger, o11yName),
-		repo:                 repo,
-		dataChangesPublisher: dataChangesPublisher,
+		tracer: tracing.NewNamedTracer(tracerProvider, o11yName),
+		logger: logging.NewNamedLogger(logger, o11yName),
+		repo:   repo,
 	}, nil
 }
 
@@ -80,9 +67,8 @@ func (m *settingsManager) CreateServiceSetting(ctx context.Context, input *setti
 		return nil, err
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, settings.ServiceSettingCreatedServiceEventType, map[string]any{
-		settingskeys.ServiceSettingIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -119,12 +105,11 @@ func (m *settingsManager) ArchiveServiceSetting(ctx context.Context, serviceSett
 	tracing.AttachToSpan(span, settingskeys.ServiceSettingIDKey, serviceSettingID)
 
 	if err := m.repo.ArchiveServiceSetting(ctx, serviceSettingID); err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "archive service setting")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, settings.ServiceSettingArchivedServiceEventType, map[string]any{
-		settingskeys.ServiceSettingIDKey: serviceSettingID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -185,9 +170,8 @@ func (m *settingsManager) CreateServiceSettingConfiguration(ctx context.Context,
 		return nil, err
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, settings.ServiceSettingConfigurationCreatedServiceEventType, map[string]any{
-		settingskeys.ServiceSettingConfigurationIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -203,12 +187,11 @@ func (m *settingsManager) UpdateServiceSettingConfiguration(ctx context.Context,
 	tracing.AttachToSpan(span, settingskeys.ServiceSettingConfigurationIDKey, updated.ID)
 
 	if err := m.repo.UpdateServiceSettingConfiguration(ctx, updated); err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "update service setting configuration")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, settings.ServiceSettingConfigurationUpdatedServiceEventType, map[string]any{
-		settingskeys.ServiceSettingConfigurationIDKey: updated.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -221,12 +204,11 @@ func (m *settingsManager) ArchiveServiceSettingConfiguration(ctx context.Context
 	tracing.AttachToSpan(span, settingskeys.ServiceSettingConfigurationIDKey, serviceSettingConfigurationID)
 
 	if err := m.repo.ArchiveServiceSettingConfiguration(ctx, serviceSettingConfigurationID); err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "archive service setting configuration")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, settings.ServiceSettingConfigurationArchivedServiceEventType, map[string]any{
-		settingskeys.ServiceSettingConfigurationIDKey: serviceSettingConfigurationID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

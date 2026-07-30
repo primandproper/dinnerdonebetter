@@ -118,9 +118,8 @@ func (m *mealPlanningManager) UpdateUserIngredientPreference(ctx context.Context
 		return observability.PrepareAndLogError(err, logger, span, "updating ingredient preference")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.UserIngredientPreferenceUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.UserIngredientPreferenceIDKey: ingredientPreferenceID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -140,9 +139,8 @@ func (m *mealPlanningManager) ArchiveUserIngredientPreference(ctx context.Contex
 		return observability.PrepareAndLogError(err, logger, span, "archiving ingredient preference")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.UserIngredientPreferenceArchivedServiceEventType, map[string]any{
-		mealplanningkeys.UserIngredientPreferenceIDKey: ingredientPreferenceID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

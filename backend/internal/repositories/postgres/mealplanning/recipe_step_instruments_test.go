@@ -31,7 +31,7 @@ func createRecipeStepInstrumentForTest(t *testing.T, ctx context.Context, recipe
 	}
 	dbInput := converters.ConvertRecipeStepInstrumentToRecipeStepInstrumentDatabaseCreationInput(exampleRecipeStepInstrument)
 
-	created, err := dbc.CreateRecipeStepInstrument(ctx, dbInput)
+	created, err := dbc.CreateRecipeStepInstrument(ctx, recipeID, dbInput)
 	assert.NoError(t, err)
 	require.NotNil(t, created)
 
@@ -98,7 +98,7 @@ func TestQuerier_Integration_RecipeStepInstruments(t *testing.T) {
 
 	// delete
 	for _, recipeStepInstrument := range createdRecipeStepInstruments {
-		assert.NoError(t, dbc.ArchiveRecipeStepInstrument(ctx, exampleRecipeStep.ID, recipeStepInstrument.ID))
+		assert.NoError(t, dbc.ArchiveRecipeStepInstrument(ctx, createdRecipe.ID, exampleRecipeStep.ID, recipeStepInstrument.ID))
 
 		var exists bool
 		exists, err = dbc.RecipeStepInstrumentExists(ctx, exampleRecipe.ID, recipeStepInstrument.BelongsToRecipeStep, recipeStepInstrument.ID)
@@ -249,7 +249,7 @@ func TestQuerier_CreateRecipeStepInstrument(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.CreateRecipeStepInstrument(ctx, nil)
+		actual, err := c.CreateRecipeStepInstrument(ctx, fakes.BuildFakeID(), nil)
 		assert.Error(t, err)
 		assert.Nil(t, actual)
 	})
@@ -264,7 +264,7 @@ func TestQuerier_UpdateRecipeStepInstrument(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.UpdateRecipeStepInstrument(ctx, nil))
+		assert.Error(t, c.UpdateRecipeStepInstrument(ctx, fakes.BuildFakeID(), nil))
 	})
 }
 
@@ -279,7 +279,7 @@ func TestQuerier_ArchiveRecipeStepInstrument(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveRecipeStepInstrument(ctx, "", exampleRecipeStepInstrument.ID))
+		assert.Error(t, c.ArchiveRecipeStepInstrument(ctx, fakes.BuildFakeID(), "", exampleRecipeStepInstrument.ID))
 	})
 
 	T.Run("with invalid recipe step instrument MealPlanTaskID", func(t *testing.T) {
@@ -290,7 +290,7 @@ func TestQuerier_ArchiveRecipeStepInstrument(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveRecipeStepInstrument(ctx, exampleRecipeStepID, ""))
+		assert.Error(t, c.ArchiveRecipeStepInstrument(ctx, fakes.BuildFakeID(), exampleRecipeStepID, ""))
 	})
 }
 
@@ -329,7 +329,7 @@ func TestQuerier_Integration_RecipeStepInstruments_CursorBasedPagination(t *test
 			return recipeStepInstrument.ID
 		},
 		CleanupItem: func(ctx context.Context, recipeStepInstrument *types.RecipeStepInstrument) error {
-			return dbc.ArchiveRecipeStepInstrument(ctx, recipeStep.ID, recipeStepInstrument.ID)
+			return dbc.ArchiveRecipeStepInstrument(ctx, recipe.ID, recipeStep.ID, recipeStepInstrument.ID)
 		},
 	})
 }

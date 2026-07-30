@@ -4,10 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
@@ -17,8 +15,6 @@ import (
 	platformerrors "github.com/primandproper/platform-go/v8/errors"
 	"github.com/primandproper/platform-go/v8/filtering"
 	"github.com/primandproper/platform-go/v8/identifiers"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	"github.com/primandproper/platform-go/v8/observability"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/tracing"
@@ -38,12 +34,11 @@ var (
 var _ PaymentsDataManager = (*paymentsManager)(nil)
 
 type paymentsManager struct {
-	tracer               tracing.Tracer
-	logger               logging.Logger
-	repo                 payments.Repository
-	processorRegistry    payments.PaymentProcessorRegistry
-	identityMgr          identitymanager.IdentityDataManager
-	dataChangesPublisher messagequeue.Publisher
+	tracer            tracing.Tracer
+	logger            logging.Logger
+	repo              payments.Repository
+	processorRegistry payments.PaymentProcessorRegistry
+	identityMgr       identitymanager.IdentityDataManager
 }
 
 // NewPaymentsDataManager returns a new PaymentsDataManager.
@@ -54,21 +49,13 @@ func NewPaymentsDataManager(
 	repo payments.Repository,
 	processorRegistry payments.PaymentProcessorRegistry,
 	identityMgr identitymanager.IdentityDataManager,
-	cfg *msgconfig.QueuesConfig,
-	publisherProvider messagequeue.PublisherProvider,
 ) (PaymentsDataManager, error) {
-	dataChangesPublisher, err := publisherProvider.NewPublisher(ctx, cfg.DataChangesTopicName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to provide publisher for data changes topic: %w", err)
-	}
-
 	return &paymentsManager{
-		tracer:               tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:               logging.NewNamedLogger(logger, o11yName),
-		repo:                 repo,
-		processorRegistry:    processorRegistry,
-		identityMgr:          identityMgr,
-		dataChangesPublisher: dataChangesPublisher,
+		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
+		logger:            logging.NewNamedLogger(logger, o11yName),
+		repo:              repo,
+		processorRegistry: processorRegistry,
+		identityMgr:       identityMgr,
 	}, nil
 }
 
@@ -76,11 +63,13 @@ func (m *paymentsManager) CreateProduct(ctx context.Context, input *payments.Pro
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
+	logger := m.logger.WithSpan(span)
+
 	if input == nil {
 		return nil, platformerrors.ErrNilInputParameter
 	}
 	if err := input.ValidateWithContext(ctx); err != nil {
-		return nil, observability.PrepareError(err, span, "validating product creation input")
+		return nil, observability.PrepareAndLogError(err, logger, span, "validating product creation input")
 	}
 
 	dbInput := &payments.ProductDatabaseCreationInput{
@@ -95,14 +84,12 @@ func (m *paymentsManager) CreateProduct(ctx context.Context, input *payments.Pro
 	}
 	created, err := m.repo.CreateProduct(ctx, dbInput)
 	if err != nil {
-		return nil, err
+		return nil, observability.PrepareAndLogError(err, logger, span, "create product")
 	}
 
-	logger := m.logger.WithSpan(span)
 	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, created.ID)
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, payments.ProductCreatedServiceEventType, map[string]any{
-		paymentskeys.ProductIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -125,16 +112,18 @@ func (m *paymentsManager) UpdateProduct(ctx context.Context, id string, input *p
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
+	logger := m.logger.WithSpan(span)
+
 	if input == nil {
 		return platformerrors.ErrNilInputParameter
 	}
 	if err := input.ValidateWithContext(ctx); err != nil {
-		return observability.PrepareError(err, span, "validating product update input")
+		return observability.PrepareAndLogError(err, logger, span, "validating product update input")
 	}
 
 	product, err := m.repo.GetProduct(ctx, id)
 	if err != nil {
-		return observability.PrepareError(err, span, "fetching product")
+		return observability.PrepareAndLogError(err, logger, span, "fetching product")
 	}
 
 	if input.Name != nil {
@@ -163,11 +152,9 @@ func (m *paymentsManager) UpdateProduct(ctx context.Context, id string, input *p
 		return err
 	}
 
-	logger := m.logger.WithSpan(span)
 	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, id)
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, payments.ProductUpdatedServiceEventType, map[string]any{
-		paymentskeys.ProductIDKey: id,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -176,15 +163,15 @@ func (m *paymentsManager) ArchiveProduct(ctx context.Context, id string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
+	logger := m.logger.WithSpan(span)
+
 	if err := m.repo.ArchiveProduct(ctx, id); err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "archive product")
 	}
 
-	logger := m.logger.WithSpan(span)
 	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, id)
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, payments.ProductArchivedServiceEventType, map[string]any{
-		paymentskeys.ProductIDKey: id,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -193,11 +180,13 @@ func (m *paymentsManager) CreateSubscription(ctx context.Context, input *payment
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
+	logger := m.logger.WithSpan(span)
+
 	if input == nil {
 		return nil, platformerrors.ErrNilInputParameter
 	}
 	if err := input.ValidateWithContext(ctx); err != nil {
-		return nil, observability.PrepareError(err, span, "validating subscription creation input")
+		return nil, observability.PrepareAndLogError(err, logger, span, "validating subscription creation input")
 	}
 
 	dbInput := &payments.SubscriptionDatabaseCreationInput{
@@ -211,14 +200,12 @@ func (m *paymentsManager) CreateSubscription(ctx context.Context, input *payment
 	}
 	created, err := m.repo.CreateSubscription(ctx, dbInput)
 	if err != nil {
-		return nil, err
+		return nil, observability.PrepareAndLogError(err, logger, span, "create subscription")
 	}
 
-	logger := m.logger.WithSpan(span)
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, created.ID)
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, payments.SubscriptionCreatedServiceEventType, map[string]any{
-		paymentskeys.SubscriptionIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -241,16 +228,18 @@ func (m *paymentsManager) UpdateSubscription(ctx context.Context, id string, inp
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
+	logger := m.logger.WithSpan(span)
+
 	if input == nil {
 		return platformerrors.ErrNilInputParameter
 	}
 	if err := input.ValidateWithContext(ctx); err != nil {
-		return observability.PrepareError(err, span, "validating subscription update input")
+		return observability.PrepareAndLogError(err, logger, span, "validating subscription update input")
 	}
 
 	sub, err := m.repo.GetSubscription(ctx, id)
 	if err != nil {
-		return observability.PrepareError(err, span, "fetching subscription")
+		return observability.PrepareAndLogError(err, logger, span, "fetching subscription")
 	}
 
 	if input.Status != nil {
@@ -267,11 +256,9 @@ func (m *paymentsManager) UpdateSubscription(ctx context.Context, id string, inp
 		return err
 	}
 
-	logger := m.logger.WithSpan(span)
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, id)
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, payments.SubscriptionUpdatedServiceEventType, map[string]any{
-		paymentskeys.SubscriptionIDKey: id,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -280,15 +267,15 @@ func (m *paymentsManager) ArchiveSubscription(ctx context.Context, id string) er
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
+	logger := m.logger.WithSpan(span)
+
 	if err := m.repo.ArchiveSubscription(ctx, id); err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "archive subscription")
 	}
 
-	logger := m.logger.WithSpan(span)
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, id)
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, payments.SubscriptionArchivedServiceEventType, map[string]any{
-		paymentskeys.SubscriptionIDKey: id,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

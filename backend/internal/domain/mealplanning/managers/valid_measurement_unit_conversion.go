@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -82,9 +81,8 @@ func (m *mealPlanningManager) CreateValidMeasurementUnitConversion(ctx context.C
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid measurement unit conversion")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidMeasurementUnitConversionCreatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidMeasurementUnitConversionIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -125,9 +123,8 @@ func (m *mealPlanningManager) UpdateValidMeasurementUnitConversion(ctx context.C
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid measurement unit conversion")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidMeasurementUnitConversionUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidMeasurementUnitConversionIDKey: existingValidMeasurementUnitConversion.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	existingValidMeasurementUnitConversion, err = m.db.GetValidMeasurementUnitConversion(ctx, validMeasurementUnitConversionID)
 	if err != nil {
@@ -148,9 +145,8 @@ func (m *mealPlanningManager) ArchiveValidMeasurementUnitConversion(ctx context.
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid measurement unit conversion")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidMeasurementUnitConversionArchivedServiceEventType, map[string]any{
-		mealplanningkeys.ValidMeasurementUnitConversionIDKey: validMeasurementUnitConversionID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

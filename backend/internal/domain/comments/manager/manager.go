@@ -2,9 +2,7 @@ package manager
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments"
 	commentskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/keys"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
@@ -12,8 +10,6 @@ import (
 	platformerrors "github.com/primandproper/platform-go/v8/errors"
 	"github.com/primandproper/platform-go/v8/filtering"
 	"github.com/primandproper/platform-go/v8/identifiers"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	"github.com/primandproper/platform-go/v8/observability"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/tracing"
@@ -26,10 +22,9 @@ const (
 var _ CommentsDataManager = (*commentsManager)(nil)
 
 type commentsManager struct {
-	tracer               tracing.Tracer
-	logger               logging.Logger
-	repo                 comments.Repository
-	dataChangesPublisher messagequeue.Publisher
+	tracer tracing.Tracer
+	logger logging.Logger
+	repo   comments.Repository
 }
 
 // NewCommentsDataManager returns a new CommentsDataManager.
@@ -38,19 +33,11 @@ func NewCommentsDataManager(
 	tracerProvider tracing.TracerProvider,
 	logger logging.Logger,
 	repo comments.Repository,
-	cfg *msgconfig.QueuesConfig,
-	publisherProvider messagequeue.PublisherProvider,
 ) (CommentsDataManager, error) {
-	dataChangesPublisher, err := publisherProvider.NewPublisher(ctx, cfg.DataChangesTopicName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to provide publisher for data changes topic: %w", err)
-	}
-
 	return &commentsManager{
-		tracer:               tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:               logging.NewNamedLogger(logger, o11yName),
-		repo:                 repo,
-		dataChangesPublisher: dataChangesPublisher,
+		tracer: tracing.NewNamedTracer(tracerProvider, o11yName),
+		logger: logging.NewNamedLogger(logger, o11yName),
+		repo:   repo,
 	}, nil
 }
 
@@ -82,9 +69,8 @@ func (m *commentsManager) CreateComment(ctx context.Context, input *comments.Com
 	}
 
 	tracing.AttachToSpan(span, commentskeys.CommentIDKey, created.ID)
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, comments.CommentCreatedServiceEventType, map[string]any{
-		commentskeys.CommentIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -121,9 +107,8 @@ func (m *commentsManager) UpdateComment(ctx context.Context, id, belongsToUser s
 		return err
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, comments.CommentUpdatedServiceEventType, map[string]any{
-		commentskeys.CommentIDKey: id,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -136,12 +121,11 @@ func (m *commentsManager) ArchiveComment(ctx context.Context, id string) error {
 	tracing.AttachToSpan(span, commentskeys.CommentIDKey, id)
 
 	if err := m.repo.ArchiveComment(ctx, id); err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "archive comment")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, comments.CommentArchivedServiceEventType, map[string]any{
-		commentskeys.CommentIDKey: id,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

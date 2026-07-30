@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
@@ -66,9 +65,8 @@ func (m *mealPlanningManager) CreateMealPlan(ctx context.Context, ownerID, creat
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating meal plan")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanCreatedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanIDKey: created.ID,
-	}))
+	// The created event is enqueued into the outbox by the repository, inside the same
+	// transaction as the meal plan itself; see internal/repositories/postgres/events.
 
 	if created.Status == string(types.MealPlanStatusFinalized) {
 		m.runPostFinalizationWorkers(ctx, logger, span)
@@ -125,9 +123,7 @@ func (m *mealPlanningManager) UpdateMealPlan(ctx context.Context, mealPlanID, ow
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanIDKey: mealPlanID,
-	}))
+	// The updated event is enqueued into the outbox by the repository.
 
 	return nil
 }
@@ -147,9 +143,7 @@ func (m *mealPlanningManager) ArchiveMealPlan(ctx context.Context, mealPlanID, o
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanArchivedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanIDKey: mealPlanID,
-	}))
+	// The archived event is enqueued into the outbox by the repository.
 
 	return nil
 }
@@ -170,11 +164,10 @@ func (m *mealPlanningManager) FinalizeMealPlan(ctx context.Context, mealPlanID, 
 		return false, observability.PrepareAndLogError(err, logger, span, "finalizing meal plan")
 	}
 
-	// only publish the finalized event and run downstream workers when the plan actually finalized.
+	// only run downstream workers when the plan actually finalized.
 	if finalized {
-		m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanFinalizedServiceEventType, map[string]any{
-			mealplanningkeys.MealPlanIDKey: mealPlanID,
-		}))
+		// The finalized event is enqueued into the outbox by the repository, which is the
+		// only place that knows the plan finalized and can commit the event with it.
 
 		m.runPostFinalizationWorkers(ctx, logger, span)
 	}

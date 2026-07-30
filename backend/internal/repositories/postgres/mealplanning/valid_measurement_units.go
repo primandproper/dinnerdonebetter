@@ -366,17 +366,21 @@ func (q *repository) CreateValidMeasurementUnit(ctx context.Context, input *type
 	logger := q.logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, input.ID)
 
 	// create the valid measurement unit.
-	if err := q.generatedQuerier.CreateValidMeasurementUnit(ctx, q.writeDB, &generated.CreateValidMeasurementUnitParams{
-		Name:        input.Name,
-		Description: input.Description,
-		IconPath:    input.IconPath,
-		Slug:        input.Slug,
-		PluralName:  input.PluralName,
-		ID:          input.ID,
-		Volumetric:  database.NullBoolFromBool(input.Volumetric),
-		Universal:   input.Universal,
-		Metric:      input.Metric,
-		Imperial:    input.Imperial,
+	if err := q.withEvent(ctx, logger, types.ValidMeasurementUnitCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidMeasurementUnitIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return q.generatedQuerier.CreateValidMeasurementUnit(ctx, tx, &generated.CreateValidMeasurementUnitParams{
+			Name:        input.Name,
+			Description: input.Description,
+			IconPath:    input.IconPath,
+			Slug:        input.Slug,
+			PluralName:  input.PluralName,
+			ID:          input.ID,
+			Volumetric:  database.NullBoolFromBool(input.Volumetric),
+			Universal:   input.Universal,
+			Metric:      input.Metric,
+			Imperial:    input.Imperial,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid measurement unit creation query")
 	}
@@ -411,17 +415,23 @@ func (q *repository) UpdateValidMeasurementUnit(ctx context.Context, updated *ty
 	logger := q.logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateValidMeasurementUnit(ctx, q.writeDB, &generated.UpdateValidMeasurementUnitParams{
-		Name:        updated.Name,
-		Description: updated.Description,
-		IconPath:    updated.IconPath,
-		Slug:        updated.Slug,
-		PluralName:  updated.PluralName,
-		ID:          updated.ID,
-		Volumetric:  database.NullBoolFromBool(updated.Volumetric),
-		Universal:   updated.Universal,
-		Metric:      updated.Metric,
-		Imperial:    updated.Imperial,
+	if err := q.withEvent(ctx, logger, types.ValidMeasurementUnitUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidMeasurementUnitIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateValidMeasurementUnit(ctx, tx, &generated.UpdateValidMeasurementUnitParams{
+			Name:        updated.Name,
+			Description: updated.Description,
+			IconPath:    updated.IconPath,
+			Slug:        updated.Slug,
+			PluralName:  updated.PluralName,
+			ID:          updated.ID,
+			Volumetric:  database.NullBoolFromBool(updated.Volumetric),
+			Universal:   updated.Universal,
+			Metric:      updated.Metric,
+			Imperial:    updated.Imperial,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid measurement unit")
 	}
@@ -466,14 +476,18 @@ func (q *repository) ArchiveValidMeasurementUnit(ctx context.Context, validMeasu
 	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveValidMeasurementUnit(ctx, q.writeDB, validMeasurementUnitID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving valid measurement unit")
-	}
+	return q.withEvent(ctx, logger, types.ValidMeasurementUnitArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidMeasurementUnitIDKey: validMeasurementUnitID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidMeasurementUnit(ctx, tx, validMeasurementUnitID)
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid measurement unit")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	return nil
+		return nil
+	})
 }

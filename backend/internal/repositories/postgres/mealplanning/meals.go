@@ -634,6 +634,14 @@ func (q *repository) CreateMeal(ctx context.Context, input *mealplanning.MealDat
 
 		x = created
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, q.logger, mealplanning.MealCreatedServiceEventType, "", map[string]any{
+			mealplanningkeys.MealIDKey: input.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -714,16 +722,24 @@ func (q *repository) ArchiveMeal(ctx context.Context, mealID, userID string) err
 	logger = logger.WithValue(identitykeys.UserIDKey, userID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveMeal(ctx, q.writeDB, &generated.ArchiveMealParams{
-		CreatedByUser: userID,
-		ID:            mealID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving meal")
-	}
+	if err := q.withEvent(ctx, logger, mealplanning.MealArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealIDKey: mealID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMeal(ctx, tx, &generated.ArchiveMealParams{
+			CreatedByUser: userID,
+			ID:            mealID,
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving meal")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

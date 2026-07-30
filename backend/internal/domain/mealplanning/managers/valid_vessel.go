@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -102,9 +101,8 @@ func (m *mealPlanningManager) CreateValidVessel(ctx context.Context, input *type
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid vessel")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidVesselCreatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidVesselIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -159,9 +157,8 @@ func (m *mealPlanningManager) UpdateValidVessel(ctx context.Context, validVessel
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid vessel")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidVesselUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidVesselIDKey: existingValidVessel.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	existingValidVessel, err = m.db.GetValidVessel(ctx, validVesselID)
 	if err != nil {
@@ -182,9 +179,8 @@ func (m *mealPlanningManager) ArchiveValidVessel(ctx context.Context, validVesse
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid vessel")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidVesselArchivedServiceEventType, map[string]any{
-		mealplanningkeys.ValidVesselIDKey: validVesselID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

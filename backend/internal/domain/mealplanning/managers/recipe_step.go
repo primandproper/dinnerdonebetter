@@ -145,10 +145,8 @@ func (m *mealPlanningManager) UpdateRecipeStep(ctx context.Context, recipeID, re
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeStepUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:     recipeID,
-		mealplanningkeys.RecipeStepIDKey: recipeStepID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -168,10 +166,8 @@ func (m *mealPlanningManager) ArchiveRecipeStep(ctx context.Context, recipeID, r
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeStepArchivedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:     recipeID,
-		mealplanningkeys.RecipeStepIDKey: recipeStepID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

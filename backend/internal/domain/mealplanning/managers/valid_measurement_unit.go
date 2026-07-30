@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -123,9 +122,8 @@ func (m *mealPlanningManager) CreateValidMeasurementUnit(ctx context.Context, in
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid measurement unit")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidMeasurementUnitCreatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidMeasurementUnitIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -165,9 +163,8 @@ func (m *mealPlanningManager) UpdateValidMeasurementUnit(ctx context.Context, va
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid measurement unit")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidMeasurementUnitUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidMeasurementUnitIDKey: existingValidMeasurementUnit.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	existingValidMeasurementUnit, err = m.db.GetValidMeasurementUnit(ctx, validMeasurementUnitID)
 	if err != nil {
@@ -188,9 +185,8 @@ func (m *mealPlanningManager) ArchiveValidMeasurementUnit(ctx context.Context, v
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid measurement unit")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidMeasurementUnitArchivedServiceEventType, map[string]any{
-		mealplanningkeys.ValidMeasurementUnitIDKey: validMeasurementUnitID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

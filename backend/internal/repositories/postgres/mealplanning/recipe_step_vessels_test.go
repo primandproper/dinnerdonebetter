@@ -31,7 +31,7 @@ func createRecipeStepVesselForTest(t *testing.T, ctx context.Context, recipeID s
 	}
 	dbInput := converters.ConvertRecipeStepVesselToRecipeStepVesselDatabaseCreationInput(exampleRecipeStepVessel)
 
-	created, err := dbc.CreateRecipeStepVessel(ctx, dbInput)
+	created, err := dbc.CreateRecipeStepVessel(ctx, recipeID, dbInput)
 	assert.NoError(t, err)
 	require.NotNil(t, created)
 
@@ -98,7 +98,7 @@ func TestQuerier_Integration_RecipeStepVessels(t *testing.T) {
 
 	// delete
 	for _, recipeStepVessel := range createdRecipeStepVessels {
-		assert.NoError(t, dbc.ArchiveRecipeStepVessel(ctx, exampleRecipeStep.ID, recipeStepVessel.ID))
+		assert.NoError(t, dbc.ArchiveRecipeStepVessel(ctx, createdRecipe.ID, exampleRecipeStep.ID, recipeStepVessel.ID))
 
 		var exists bool
 		exists, err = dbc.RecipeStepVesselExists(ctx, exampleRecipe.ID, recipeStepVessel.BelongsToRecipeStep, recipeStepVessel.ID)
@@ -249,7 +249,7 @@ func TestQuerier_CreateRecipeStepVessel(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.CreateRecipeStepVessel(ctx, nil)
+		actual, err := c.CreateRecipeStepVessel(ctx, fakes.BuildFakeID(), nil)
 		assert.Error(t, err)
 		assert.Nil(t, actual)
 	})
@@ -264,7 +264,7 @@ func TestQuerier_UpdateRecipeStepVessel(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.UpdateRecipeStepVessel(ctx, nil))
+		assert.Error(t, c.UpdateRecipeStepVessel(ctx, fakes.BuildFakeID(), nil))
 	})
 }
 
@@ -279,7 +279,7 @@ func TestQuerier_ArchiveRecipeStepVessel(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveRecipeStepVessel(ctx, "", exampleRecipeStepVessel.ID))
+		assert.Error(t, c.ArchiveRecipeStepVessel(ctx, fakes.BuildFakeID(), "", exampleRecipeStepVessel.ID))
 	})
 
 	T.Run("with invalid recipe step instrument MealPlanTaskID", func(t *testing.T) {
@@ -290,7 +290,7 @@ func TestQuerier_ArchiveRecipeStepVessel(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveRecipeStepVessel(ctx, exampleRecipeStepID, ""))
+		assert.Error(t, c.ArchiveRecipeStepVessel(ctx, fakes.BuildFakeID(), exampleRecipeStepID, ""))
 	})
 }
 
@@ -329,7 +329,7 @@ func TestQuerier_Integration_RecipeStepVessels_CursorBasedPagination(t *testing.
 			return recipeStepVessel.ID
 		},
 		CleanupItem: func(ctx context.Context, recipeStepVessel *types.RecipeStepVessel) error {
-			return dbc.ArchiveRecipeStepVessel(ctx, recipeStep.ID, recipeStepVessel.ID)
+			return dbc.ArchiveRecipeStepVessel(ctx, recipe.ID, recipeStep.ID, recipeStepVessel.ID)
 		},
 	})
 }

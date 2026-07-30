@@ -73,9 +73,8 @@ func (m *mealPlanningManager) CreateMealPlanOption(ctx context.Context, input *t
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating selections for meal plan option")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanOptionCreatedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanOptionIDKey: convertedInput.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -218,11 +217,8 @@ func (m *mealPlanningManager) UpdateMealPlanOption(ctx context.Context, mealPlan
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan option")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanOptionUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanIDKey:       mealPlanID,
-		mealplanningkeys.MealPlanEventIDKey:  mealPlanEventID,
-		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -244,11 +240,8 @@ func (m *mealPlanningManager) ArchiveMealPlanOption(ctx context.Context, mealPla
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan option")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanOptionArchivedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanIDKey:       mealPlanID,
-		mealplanningkeys.MealPlanEventIDKey:  mealPlanEventID,
-		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

@@ -357,6 +357,14 @@ func (r *repository) TransferAccountOwnership(ctx context.Context, accountID str
 
 		// audit log created above
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.AccountOwnershipTransferredServiceEventType, accountID, map[string]any{
+			identitykeys.AccountIDKey: accountID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return err

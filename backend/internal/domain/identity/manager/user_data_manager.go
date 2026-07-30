@@ -121,6 +121,8 @@ func (m *manager) AcceptAccountInvitation(ctx context.Context, accountID, accoun
 		return observability.PrepareAndLogError(err, logger, span, "accepting account invitation")
 	}
 
+	// Still published here rather than from the repository: the payload names the invitation's
+	// destination account, which AcceptAccountInvitation never receives.
 	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.AccountInvitationAcceptedServiceEventType, map[string]any{
 		identitykeys.AccountInvitationIDKey:  accountInvitationID,
 		identitykeys.DestinationAccountIDKey: invitation.DestinationAccount.ID,
@@ -209,10 +211,8 @@ func (m *manager) ArchiveAccount(ctx context.Context, accountID, ownerID string)
 		return observability.PrepareAndLogError(err, logger, span, "ArchiveAccount")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.AccountArchivedServiceEventType, map[string]any{
-		identitykeys.AccountIDKey: accountID,
-		identitykeys.UserIDKey:    ownerID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -258,9 +258,8 @@ func (m *manager) ArchiveUser(ctx context.Context, userID string) error {
 		return observability.PrepareAndLogError(err, logger, span, "ArchiveUser")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.UserArchivedServiceEventType, map[string]any{
-		identitykeys.UserIDKey: userID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -284,9 +283,8 @@ func (m *manager) CreateAccount(ctx context.Context, input *identity.AccountCrea
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating Account")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.AccountCreatedServiceEventType, map[string]any{
-		identitykeys.AccountIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the account it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -776,17 +774,16 @@ func (m *manager) TransferAccountOwnership(ctx context.Context, accountID string
 	}, span, m.logger)
 
 	if err := input.ValidateWithContext(ctx); err != nil {
-		return observability.PrepareError(err, span, "")
+		return observability.PrepareAndLogError(err, logger, span, "transferring account ownership")
 	}
 
 	// transfer ownership of household in database.
 	if err := m.identityRepo.TransferAccountOwnership(ctx, accountID, input); err != nil {
-		return observability.PrepareError(err, span, "")
+		return observability.PrepareAndLogError(err, logger, span, "transferring account ownership")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.AccountOwnershipTransferredServiceEventType, map[string]any{
-		identitykeys.AccountIDKey: accountID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -806,19 +803,18 @@ func (m *manager) UpdateAccount(ctx context.Context, accountID string, input *id
 	logger := observability.ObserveValues(map[string]any{
 		identitykeys.AccountIDKey: accountID,
 	}, span, m.logger)
-	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
 	if err := input.ValidateWithContext(ctx); err != nil {
-		return observability.PrepareError(err, span, "validating account update")
+		return observability.PrepareAndLogError(err, logger, span, "validating account update")
 	}
 
 	// fetch the account from the database.
 	account, err := m.identityRepo.GetAccount(ctx, accountID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return observability.PrepareError(err, span, "no account found")
+		return observability.PrepareAndLogError(err, logger, span, "no account found")
 	} else if err != nil {
-		return observability.PrepareError(err, span, "fetching account")
+		return observability.PrepareAndLogError(err, logger, span, "fetching account")
 	}
 
 	account.Update(input)
@@ -828,9 +824,8 @@ func (m *manager) UpdateAccount(ctx context.Context, accountID string, input *id
 		return observability.PrepareError(err, span, "updating account")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.AccountUpdatedServiceEventType, map[string]any{
-		identitykeys.AccountIDKey: accountID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -901,9 +896,8 @@ func (m *manager) UpdateUserDetails(ctx context.Context, userID string, input *i
 		return observability.PrepareAndLogError(err, logger, span, "updating user details")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.UserDetailsChangedEventType, map[string]any{
-		identitykeys.UserIDKey: userID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -924,9 +918,8 @@ func (m *manager) UpdateUserEmailAddress(ctx context.Context, userID, newEmail s
 		return observability.PrepareAndLogError(err, logger, span, "updating user email address")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.EmailAddressChangedEventType, map[string]any{
-		identitykeys.UserIDKey: userID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -951,9 +944,8 @@ func (m *manager) UpdateUserUsername(ctx context.Context, userID, newUsername st
 		return observability.PrepareAndLogError(err, logger, span, "updating user username")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, identity.UsernameChangedEventType, map[string]any{
-		identitykeys.UserIDKey: userID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

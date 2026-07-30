@@ -113,6 +113,14 @@ func (q *repository) CreateComment(ctx context.Context, input *types.CommentData
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, types.CommentCreatedServiceEventType, "", map[string]any{
+			commentskeys.CommentIDKey: input.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -297,6 +305,14 @@ func (q *repository) UpdateComment(ctx context.Context, id, belongsToUser, conte
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, types.CommentUpdatedServiceEventType, "", map[string]any{
+			commentskeys.CommentIDKey: id,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	})
 }
@@ -334,6 +350,14 @@ func (q *repository) ArchiveComment(ctx context.Context, id string) error {
 			BelongsToUser: comment.BelongsToUser,
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, types.CommentArchivedServiceEventType, "", map[string]any{
+			commentskeys.CommentIDKey: id,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		return nil

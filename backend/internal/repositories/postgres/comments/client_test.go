@@ -40,7 +40,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 
 	auditLogEntryRepo := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
 
-	c := ProvideCommentsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc)
+	c := ProvideCommentsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil)
 
 	return c.(*repository), auditLogEntryRepo
 }
@@ -48,7 +48,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideCommentsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
+	c := ProvideCommentsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil)
 
 	return c.(*repository)
 }

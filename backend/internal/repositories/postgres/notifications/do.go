@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	"github.com/primandproper/platform-go/v8/database"
 	databasecfg "github.com/primandproper/platform-go/v8/database/config"
@@ -20,6 +21,7 @@ func RegisterNotificationsRepository(i do.Injector) {
 			do.MustInvoke[audit.Repository](i),
 			do.MustInvoke[*databasecfg.Config](i),
 			do.MustInvoke[database.Client](i),
+			do.MustInvoke[*events.Emitter](i),
 		), nil
 	})
 }

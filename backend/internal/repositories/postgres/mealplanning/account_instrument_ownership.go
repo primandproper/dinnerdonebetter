@@ -196,12 +196,16 @@ func (q *repository) CreateAccountInstrumentOwnership(ctx context.Context, input
 	logger := q.logger.WithValue(mealplanningkeys.AccountInstrumentOwnershipIDKey, input.ID)
 
 	// create the account instrument ownership.
-	if err := q.generatedQuerier.CreateAccountInstrumentOwnership(ctx, q.writeDB, &generated.CreateAccountInstrumentOwnershipParams{
-		ID:                input.ID,
-		Notes:             input.Notes,
-		ValidInstrumentID: input.ValidInstrumentID,
-		BelongsToAccount:  input.BelongsToAccount,
-		Quantity:          int32(input.Quantity),
+	if err := q.withEvent(ctx, logger, types.AccountInstrumentOwnershipCreatedServiceEventType, input.BelongsToAccount, map[string]any{
+		mealplanningkeys.AccountInstrumentOwnershipIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return q.generatedQuerier.CreateAccountInstrumentOwnership(ctx, tx, &generated.CreateAccountInstrumentOwnershipParams{
+			ID:                input.ID,
+			Notes:             input.Notes,
+			ValidInstrumentID: input.ValidInstrumentID,
+			BelongsToAccount:  input.BelongsToAccount,
+			Quantity:          int32(input.Quantity),
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing account instrument ownership creation query")
 	}
@@ -241,12 +245,18 @@ func (q *repository) UpdateAccountInstrumentOwnership(ctx context.Context, updat
 	logger := q.logger.WithValue(mealplanningkeys.AccountInstrumentOwnershipIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.AccountInstrumentOwnershipIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateAccountInstrumentOwnership(ctx, q.writeDB, &generated.UpdateAccountInstrumentOwnershipParams{
-		Notes:             updated.Notes,
-		ValidInstrumentID: updated.Instrument.ID,
-		ID:                updated.ID,
-		BelongsToAccount:  updated.BelongsToAccount,
-		Quantity:          int32(updated.Quantity),
+	if err := q.withEvent(ctx, logger, types.AccountInstrumentOwnershipUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
+		mealplanningkeys.AccountInstrumentOwnershipIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateAccountInstrumentOwnership(ctx, tx, &generated.UpdateAccountInstrumentOwnershipParams{
+			Notes:             updated.Notes,
+			ValidInstrumentID: updated.Instrument.ID,
+			ID:                updated.ID,
+			BelongsToAccount:  updated.BelongsToAccount,
+			Quantity:          int32(updated.Quantity),
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating account instrument ownership")
 	}
@@ -285,27 +295,33 @@ func (q *repository) ArchiveAccountInstrumentOwnership(ctx context.Context, acco
 	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveAccountInstrumentOwnership(ctx, q.writeDB, &generated.ArchiveAccountInstrumentOwnershipParams{
-		ID:               accountInstrumentOwnershipID,
-		BelongsToAccount: accountID,
+	return q.withEvent(ctx, logger, types.AccountInstrumentOwnershipArchivedServiceEventType, accountID, map[string]any{
+		mealplanningkeys.AccountInstrumentOwnershipIDKey: accountInstrumentOwnershipID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveAccountInstrumentOwnership(ctx, tx, &generated.ArchiveAccountInstrumentOwnershipParams{
+			ID:               accountInstrumentOwnershipID,
+			BelongsToAccount: accountID,
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving account instrument ownership")
+		}
+
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		// The audit log entry belongs in this transaction too: it describes the same
+		// write, and half of a write is not something to record.
+		if _, auditErr := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToAccount: &accountID,
+			ID:               identifiers.New(),
+			ResourceType:     resourceTypeAccountInstrumentOwnerships,
+			RelevantID:       accountInstrumentOwnershipID,
+			EventType:        audit.AuditLogEventTypeArchived,
+		}); auditErr != nil {
+			return observability.PrepareError(auditErr, span, "creating audit log entry")
+		}
+
+		return nil
 	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving account instrument ownership")
-	}
-
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
-
-	if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, q.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &accountID,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeAccountInstrumentOwnerships,
-		RelevantID:       accountInstrumentOwnershipID,
-		EventType:        audit.AuditLogEventTypeArchived,
-	}); err != nil {
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	return nil
 }

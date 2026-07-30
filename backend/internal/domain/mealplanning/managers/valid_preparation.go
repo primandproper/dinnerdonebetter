@@ -112,9 +112,8 @@ func (m *mealPlanningManager) CreateValidPreparation(ctx context.Context, input 
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid preparation")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidPreparationCreatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidPreparationIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -195,9 +194,8 @@ func (m *mealPlanningManager) ArchiveValidPreparation(ctx context.Context, valid
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid preparation")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidPreparationArchivedServiceEventType, map[string]any{
-		mealplanningkeys.ValidPreparationIDKey: validPreparationID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
@@ -68,9 +67,8 @@ func (m *mealPlanningManager) CreateAccountInstrumentOwnership(ctx context.Conte
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating instrument ownership")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.AccountInstrumentOwnershipCreatedServiceEventType, map[string]any{
-		mealplanningkeys.AccountInstrumentOwnershipIDKey: convertedInput.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -119,9 +117,8 @@ func (m *mealPlanningManager) UpdateAccountInstrumentOwnership(ctx context.Conte
 		return observability.PrepareAndLogError(err, logger, span, "updating instrument ownership")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.AccountInstrumentOwnershipUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.AccountInstrumentOwnershipIDKey: instrumentOwnershipID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -141,9 +138,8 @@ func (m *mealPlanningManager) ArchiveAccountInstrumentOwnership(ctx context.Cont
 		return observability.PrepareAndLogError(err, logger, span, "archiving instrument ownership")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.AccountInstrumentOwnershipArchivedServiceEventType, map[string]any{
-		mealplanningkeys.AccountInstrumentOwnershipIDKey: instrumentOwnershipID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

@@ -31,7 +31,7 @@ func buildDatabaseClientForTest(t *testing.T) (c *Repository, auditLogEntryRepo 
 	require.NoError(t, err)
 
 	auditLogEntryRepo = auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
-	c = ProvideWaitlistsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc)
+	c = ProvideWaitlistsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil)
 
 	return c, auditLogEntryRepo
 }
@@ -39,7 +39,7 @@ func buildDatabaseClientForTest(t *testing.T) (c *Repository, auditLogEntryRepo 
 func buildInertClientForTest(t *testing.T) *Repository {
 	t.Helper()
 
-	c := ProvideWaitlistsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
+	c := ProvideWaitlistsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil)
 
 	return c
 }

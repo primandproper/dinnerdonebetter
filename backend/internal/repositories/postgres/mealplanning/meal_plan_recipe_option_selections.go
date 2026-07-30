@@ -207,14 +207,19 @@ func (q *repository) CreateMealPlanRecipeOptionSelection(ctx context.Context, in
 	tracing.AttachToSpan(span, "meal_plan_recipe_option_selection_id", input.ID)
 
 	// create the selection
-	if err := q.generatedQuerier.CreateMealPlanRecipeOptionSelection(ctx, q.writeDB, &generated.CreateMealPlanRecipeOptionSelectionParams{
-		ID:                      input.ID,
-		BelongsToMealPlanOption: input.BelongsToMealPlanOption,
-		RecipeID:                input.RecipeID,
-		RecipeStepID:            input.RecipeStepID,
-		IngredientIndex:         int32(input.IngredientIndex),
-		SelectedOptionIndex:     int32(input.SelectedOptionIndex),
-		SelectionType:           input.SelectionType,
+	if err := q.withEvent(ctx, logger, types.MealPlanRecipeOptionSelectionCreatedServiceEventType, "", map[string]any{
+		"meal_plan_recipe_option_selection_id": input.ID,
+		mealplanningkeys.MealPlanOptionIDKey:   input.BelongsToMealPlanOption,
+	}, func(tx database.SQLQueryExecutor) error {
+		return q.generatedQuerier.CreateMealPlanRecipeOptionSelection(ctx, tx, &generated.CreateMealPlanRecipeOptionSelectionParams{
+			ID:                      input.ID,
+			BelongsToMealPlanOption: input.BelongsToMealPlanOption,
+			RecipeID:                input.RecipeID,
+			RecipeStepID:            input.RecipeStepID,
+			IngredientIndex:         int32(input.IngredientIndex),
+			SelectedOptionIndex:     int32(input.SelectedOptionIndex),
+			SelectionType:           input.SelectionType,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing meal plan recipe option selection creation query")
 	}
@@ -324,18 +329,29 @@ func (q *repository) ArchiveMealPlanRecipeOptionSelection(ctx context.Context, m
 	logger = logger.WithValue("selection_type", selectionType)
 	tracing.AttachToSpan(span, "selection_type", selectionType)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveMealPlanRecipeOptionSelection(ctx, q.writeDB, &generated.ArchiveMealPlanRecipeOptionSelectionParams{
-		MealPlanOptionID: mealPlanOptionID,
-		RecipeStepID:     recipeStepID,
-		IngredientIndex:  int32(ingredientIndex),
-		SelectionType:    selectionType,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan recipe option selection")
-	}
+	if err := q.withEvent(ctx, logger, types.MealPlanRecipeOptionSelectionArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
+		"recipe_step_id":                     recipeStepID,
+		"ingredient_index":                   ingredientIndex,
+		"selection_type":                     selectionType,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMealPlanRecipeOptionSelection(ctx, tx, &generated.ArchiveMealPlanRecipeOptionSelectionParams{
+			MealPlanOptionID: mealPlanOptionID,
+			RecipeStepID:     recipeStepID,
+			IngredientIndex:  int32(ingredientIndex),
+			SelectionType:    selectionType,
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving meal plan recipe option selection")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Info("meal plan recipe option selection archived")

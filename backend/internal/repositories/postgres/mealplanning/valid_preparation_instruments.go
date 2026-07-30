@@ -478,11 +478,15 @@ func (q *repository) CreateValidPreparationInstrument(ctx context.Context, input
 	logger := q.logger.WithValue(mealplanningkeys.ValidPreparationInstrumentIDKey, input.ID)
 
 	// create the valid preparation instrument.
-	if err := q.generatedQuerier.CreateValidPreparationInstrument(ctx, q.writeDB, &generated.CreateValidPreparationInstrumentParams{
-		ID:                 input.ID,
-		Notes:              input.Notes,
-		ValidPreparationID: input.ValidPreparationID,
-		ValidInstrumentID:  input.ValidInstrumentID,
+	if err := q.withEvent(ctx, logger, mealplanning.ValidPreparationInstrumentCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidPreparationInstrumentIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return q.generatedQuerier.CreateValidPreparationInstrument(ctx, tx, &generated.CreateValidPreparationInstrumentParams{
+			ID:                 input.ID,
+			Notes:              input.Notes,
+			ValidPreparationID: input.ValidPreparationID,
+			ValidInstrumentID:  input.ValidInstrumentID,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid preparation instrument creation query")
 	}
@@ -530,11 +534,17 @@ func (q *repository) UpdateValidPreparationInstrument(ctx context.Context, updat
 	logger := q.logger.WithValue(mealplanningkeys.ValidPreparationInstrumentIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationInstrumentIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateValidPreparationInstrument(ctx, q.writeDB, &generated.UpdateValidPreparationInstrumentParams{
-		Notes:              updated.Notes,
-		ValidPreparationID: updated.Preparation.ID,
-		ValidInstrumentID:  updated.Instrument.ID,
-		ID:                 updated.ID,
+	if err := q.withEvent(ctx, logger, mealplanning.ValidPreparationInstrumentUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidPreparationInstrumentIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateValidPreparationInstrument(ctx, tx, &generated.UpdateValidPreparationInstrumentParams{
+			Notes:              updated.Notes,
+			ValidPreparationID: updated.Preparation.ID,
+			ValidInstrumentID:  updated.Instrument.ID,
+			ID:                 updated.ID,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid preparation instrument")
 	}
@@ -555,14 +565,18 @@ func (q *repository) ArchiveValidPreparationInstrument(ctx context.Context, vali
 	logger := q.logger.WithValue(mealplanningkeys.ValidPreparationInstrumentIDKey, validPreparationInstrumentID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationInstrumentIDKey, validPreparationInstrumentID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveValidPreparationInstrument(ctx, q.writeDB, validPreparationInstrumentID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating valid preparation instrument")
-	}
+	return q.withEvent(ctx, logger, mealplanning.ValidPreparationInstrumentArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidPreparationInstrumentIDKey: validPreparationInstrumentID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidPreparationInstrument(ctx, tx, validPreparationInstrumentID)
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "updating valid preparation instrument")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	return nil
+		return nil
+	})
 }

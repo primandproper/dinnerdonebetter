@@ -23,28 +23,8 @@ images:
     newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-email-deliverability-test
     newTag: latest
 
-  - name: dinner-done-better-job-queue-test
-    newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-queue-test
-    newTag: latest
-
-  - name: dinner-done-better-job-meal-plan-finalizer
-    newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-meal-plan-finalizer
-    newTag: latest
-
-  - name: dinner-done-better-job-meal-plan-grocery-list-init
-    newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-meal-plan-grocery-list-init
-    newTag: latest
-
-  - name: dinner-done-better-job-meal-plan-task-creator
-    newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-meal-plan-task-creator
-    newTag: latest
-
-  - name: dinner-done-better-job-search-data-index-scheduler
-    newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-search-data-index-scheduler
-    newTag: latest
-
-  - name: dinner-done-better-job-mobile-notification-scheduler
-    newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-mobile-notification-scheduler
+  - name: dinner-done-better-scheduler
+    newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-scheduler
     newTag: latest
 
   - name: dinner-done-better-async-message-handler
@@ -113,30 +93,11 @@ patches:
   #   target:
   #     kind: CronJob
   #     name: dinner-done-better-job-email-deliverability-test
-  # - path: patches/cronjob-pyroscope-env.yaml
+  # - path: patches/deployment-pyroscope-env.yaml
   #   target:
-  #     kind: CronJob
-  #     name: dinner-done-better-job-queue-test
-  # - path: patches/cronjob-pyroscope-env.yaml
-  #   target:
-  #     kind: CronJob
-  #     name: dinner-done-better-job-meal-plan-finalizer
-  # - path: patches/cronjob-pyroscope-env.yaml
-  #   target:
-  #     kind: CronJob
-  #     name: dinner-done-better-job-meal-plan-grocery-list-init
-  # - path: patches/cronjob-pyroscope-env.yaml
-  #   target:
-  #     kind: CronJob
-  #     name: dinner-done-better-job-meal-plan-task-creator
-  # - path: patches/cronjob-pyroscope-env.yaml
-  #   target:
-  #     kind: CronJob
-  #     name: dinner-done-better-job-search-data-index-scheduler
-  # - path: patches/cronjob-pyroscope-env.yaml
-  #   target:
-  #     kind: CronJob
-  #     name: dinner-done-better-job-mobile-notification-scheduler
+  #     version: v1
+  #     kind: Deployment
+  #     name: dinner-done-better-scheduler-deployment
 
   ### Async Message Handler - needs database, pubsub, service secrets, environment, workload identity
   - path: patches/deployment-workload-identity.yaml
@@ -196,20 +157,6 @@ patches:
       kind: CronJob
       name: dinner-done-better-job-email-deliverability-test
 
-  ### Queue Test CronJob - needs database, pubsub
-  - path: patches/cronjob-database-env.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-queue-test
-  - path: patches/cronjob-database-password-queue-test.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-queue-test
-  - path: patches/cronjob-pubsub-env.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-queue-test
-
   ### DB Cleaner CronJob - needs database only
   - path: patches/cronjob-database-env.yaml
     target:
@@ -220,83 +167,28 @@ patches:
       kind: CronJob
       name: dinner-done-better-job-db-cleaner
 
-  ### Meal Plan Finalizer CronJob - needs database, pubsub
-  - path: patches/cronjob-database-env.yaml
+  ### Scheduler Deployment - needs database, pubsub, posthog.
+  ### The union of what the six interval CronJobs it replaced each needed.
+  - path: patches/deployment-database-env.yaml
     target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-finalizer
-  - path: patches/cronjob-database-password-meal-plan-finalizer.yaml
+      version: v1
+      kind: Deployment
+      name: dinner-done-better-scheduler-deployment
+  - path: patches/deployment-database-password-scheduler.yaml
     target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-finalizer
-  - path: patches/cronjob-pubsub-env.yaml
+      version: v1
+      kind: Deployment
+      name: dinner-done-better-scheduler-deployment
+  - path: patches/deployment-pubsub-env.yaml
     target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-finalizer
-
-  ### Meal Plan Grocery List Init CronJob - needs database, pubsub, posthog
-  - path: patches/cronjob-database-env.yaml
+      version: v1
+      kind: Deployment
+      name: dinner-done-better-scheduler-deployment
+  - path: patches/deployment-posthog-env.yaml
     target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-grocery-list-init
-  - path: patches/cronjob-database-password-meal-plan-grocery-list-init.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-grocery-list-init
-  - path: patches/cronjob-pubsub-env.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-grocery-list-init
-  - path: patches/cronjob-posthog-env.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-grocery-list-init
-
-  ### Meal Plan Task Creator CronJob - needs database, pubsub, posthog
-  - path: patches/cronjob-database-env.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-task-creator
-  - path: patches/cronjob-database-password-meal-plan-task-creator.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-task-creator
-  - path: patches/cronjob-pubsub-env.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-task-creator
-  - path: patches/cronjob-posthog-env.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-task-creator
-
-  ### Search Data Index Scheduler CronJob - needs database, pubsub
-  - path: patches/cronjob-database-env.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-search-data-index-scheduler
-  - path: patches/cronjob-database-password-search-data-index-scheduler.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-search-data-index-scheduler
-  - path: patches/cronjob-pubsub-env.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-search-data-index-scheduler
-
-  ### Mobile Notification Scheduler CronJob - needs database, pubsub
-  - path: patches/cronjob-database-env.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-mobile-notification-scheduler
-  - path: patches/cronjob-database-password-mobile-notification-scheduler.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-mobile-notification-scheduler
-  - path: patches/cronjob-pubsub-env.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-mobile-notification-scheduler
+      version: v1
+      kind: Deployment
+      name: dinner-done-better-scheduler-deployment
 
   ### MCP Server - OAuth credentials from mcp-server-config secret (API URLs are in config JSON)
   - patch: |-
@@ -347,35 +239,10 @@ configMapGenerator:
     files:
       - config.json=./configs/job_email_deliverability_test_config.json
 
-  - name: dinner-done-better-job-queue-test-config
-    namespace: prod
+  - name: dinner-done-better-scheduler-config
+    namespace: dinner-done-better-prod
     files:
-      - config.json=./configs/job_queue_test_config.json
-
-  - name: dinner-done-better-job-meal-plan-finalizer-config
-    namespace: prod
-    files:
-      - config.json=./configs/job_meal_plan_finalizer_config.json
-
-  - name: dinner-done-better-job-meal-plan-grocery-list-init-config
-    namespace: prod
-    files:
-      - config.json=./configs/job_meal_plan_grocery_list_initializer_config.json
-
-  - name: dinner-done-better-job-meal-plan-task-creator-config
-    namespace: prod
-    files:
-      - config.json=./configs/job_meal_plan_task_creator_config.json
-
-  - name: dinner-done-better-job-search-data-index-scheduler-config
-    namespace: prod
-    files:
-      - config.json=./configs/job_search_data_index_scheduler_config.json
-
-  - name: dinner-done-better-job-mobile-notification-scheduler-config
-    namespace: prod
-    files:
-      - config.json=./configs/job_mobile_notification_scheduler_config.json
+      - config.json=./configs/scheduler_config.json
 
   - name: dinner-done-better-mcp-server-config
     namespace: prod

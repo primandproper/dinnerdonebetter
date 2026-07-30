@@ -6,8 +6,6 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings"
 	settingsrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/tracing"
 
@@ -30,8 +28,6 @@ func RegisterSettingsDataManager(i do.Injector) {
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[settingsRepo](i),
-			do.MustInvoke[*msgconfig.QueuesConfig](i),
-			do.MustInvoke[messagequeue.PublisherProvider](i),
 		)
 	})
 

@@ -322,5 +322,46 @@
 		"oauth2Clients": {
 			"creationEnabled": false
 		}
+	},
+	"idempotency": {
+		"enabled": true,
+		"manager": {
+			"keyPrefix": "dinner_done_better.idempotency.",
+			"lock": {
+				"redis": null,
+				"postgres": {
+					"namespace": 0,
+					"connWaitTimeout": 5000000000
+				},
+				"provider": "postgres",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				}
+			},
+			"cache": {
+				"redis": {
+					"username": "",
+					"namespace": "idempotency:",
+					"queueAddresses": [
+						"worker_queue:6379"
+					],
+					"cluster": false
+				},
+				"provider": "redis",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				},
+				"expiry": 0,
+				"janitorInterval": 0
+			},
+			"ttl": 86400000000000,
+			"inFlightTTL": 120000000000,
+			"maxKeyLength": 0,
+			"failOpen": false
+		}
 	}
 }

@@ -9,6 +9,7 @@ import (
 	mealplanningmgr "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/managers"
 	mealplanningprivacy "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/privacy"
 	recipeanalysis "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	mealplanningrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	mealplanningsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
 	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
@@ -23,6 +24,9 @@ import (
 )
 
 func registerRepository(i do.Injector) {
+	// The repository writes its data change events into the outbox as part of the same
+	// transaction as the row they describe; see internal/repositories/postgres/events.
+	events.RegisterOutboxEmitter(i)
 	mealplanningrepo.RegisterMealPlanningRepository(i)
 }
 

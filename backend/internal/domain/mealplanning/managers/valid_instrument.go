@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -106,12 +105,11 @@ func (m *mealPlanningManager) CreateValidInstrument(ctx context.Context, input *
 	convertedInput := converters.ConvertValidInstrumentCreationRequestInputToValidInstrumentDatabaseCreationInput(input)
 	created, err := m.db.CreateValidInstrument(ctx, convertedInput)
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "creating valid instrument")
+		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid instrument")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidInstrumentCreatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidInstrumentIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -165,9 +163,8 @@ func (m *mealPlanningManager) UpdateValidInstrument(ctx context.Context, validIn
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid instrument")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidInstrumentUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidInstrumentIDKey: existingValidInstrument.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	existingValidInstrument, err = m.db.GetValidInstrument(ctx, validInstrumentID)
 	if err != nil {
@@ -188,9 +185,8 @@ func (m *mealPlanningManager) ArchiveValidInstrument(ctx context.Context, validI
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid instrument")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidInstrumentArchivedServiceEventType, map[string]any{
-		mealplanningkeys.ValidInstrumentIDKey: validInstrumentID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

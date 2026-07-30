@@ -37,7 +37,7 @@ func buildDatabaseClientForTest(t *testing.T) (c *Repository, auditLogEntryRepo 
 
 	auditLogEntryRepo = auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
 
-	c = ProvideNotificationsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, config, pgc)
+	c = ProvideNotificationsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, config, pgc, nil)
 
 	return c, auditLogEntryRepo
 }
@@ -46,7 +46,7 @@ func buildInertClientForTest(t *testing.T) *Repository {
 	t.Helper()
 
 	cfg := &databasecfg.Config{}
-	c := ProvideNotificationsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, cfg, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
+	c := ProvideNotificationsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, cfg, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil)
 
 	return c
 }

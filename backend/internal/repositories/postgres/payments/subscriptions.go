@@ -43,7 +43,11 @@ func (r *repository) CreateSubscription(ctx context.Context, input *payments.Sub
 		CurrentPeriodEnd:       input.CurrentPeriodEnd,
 	}
 
-	if err := r.generatedQuerier.CreateSubscription(ctx, r.writeDB, arg); err != nil {
+	if err := r.withEvent(ctx, logger, payments.SubscriptionCreatedServiceEventType, "", map[string]any{
+		paymentskeys.SubscriptionIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return r.generatedQuerier.CreateSubscription(ctx, tx, arg)
+	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating subscription")
 	}
 
@@ -150,22 +154,26 @@ func (r *repository) UpdateSubscription(ctx context.Context, sub *payments.Subsc
 		CurrentPeriodEnd:       sub.CurrentPeriodEnd,
 	}
 
-	_, err := r.generatedQuerier.UpdateSubscription(ctx, r.writeDB, arg)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating subscription")
-	}
+	return r.withEvent(ctx, logger, payments.SubscriptionUpdatedServiceEventType, "", map[string]any{
+		paymentskeys.SubscriptionIDKey: sub.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, err := r.generatedQuerier.UpdateSubscription(ctx, tx, arg)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "updating subscription")
+		}
 
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &sub.BelongsToAccount,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeSubscriptions,
-		RelevantID:       sub.ID,
-		EventType:        audit.AuditLogEventTypeUpdated,
-	}); err != nil {
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToAccount: &sub.BelongsToAccount,
+			ID:               identifiers.New(),
+			ResourceType:     resourceTypeSubscriptions,
+			RelevantID:       sub.ID,
+			EventType:        audit.AuditLogEventTypeUpdated,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	return nil
+		return nil
+	})
 }
 
 func (r *repository) UpdateSubscriptionStatus(ctx context.Context, id, status string) error {
@@ -213,22 +221,26 @@ func (r *repository) ArchiveSubscription(ctx context.Context, id string) error {
 	logger = logger.WithValue(paymentskeys.SubscriptionIDKey, id)
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, id)
 
-	_, err := r.generatedQuerier.ArchiveSubscription(ctx, r.writeDB, id)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving subscription")
-	}
+	return r.withEvent(ctx, logger, payments.SubscriptionArchivedServiceEventType, "", map[string]any{
+		paymentskeys.SubscriptionIDKey: id,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, err := r.generatedQuerier.ArchiveSubscription(ctx, tx, id)
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "archiving subscription")
+		}
 
-	// ArchiveSubscription does not have account ID; create audit entry without it
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeSubscriptions,
-		RelevantID:   id,
-		EventType:    audit.AuditLogEventTypeArchived,
-	}); err != nil {
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
+		// ArchiveSubscription does not have account ID; create audit entry without it
+		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			ID:           identifiers.New(),
+			ResourceType: resourceTypeSubscriptions,
+			RelevantID:   id,
+			EventType:    audit.AuditLogEventTypeArchived,
+		}); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entry")
+		}
 
-	return nil
+		return nil
+	})
 }
 
 func convertSubscriptionFromGenerated(m *generated.Subscriptions) *payments.Subscription {

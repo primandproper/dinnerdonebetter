@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -53,9 +52,8 @@ func (m *mealPlanningManager) CreateValidPrepTaskConfig(ctx context.Context, inp
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid prep task config")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidPrepTaskConfigCreatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidPrepTaskConfigIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -96,9 +94,8 @@ func (m *mealPlanningManager) UpdateValidPrepTaskConfig(ctx context.Context, val
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid prep task config")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidPrepTaskConfigUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidPrepTaskConfigIDKey: existingValidPrepTaskConfig.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	existingValidPrepTaskConfig, err = m.db.GetValidPrepTaskConfig(ctx, validPrepTaskConfigID)
 	if err != nil {
@@ -119,9 +116,8 @@ func (m *mealPlanningManager) ArchiveValidPrepTaskConfig(ctx context.Context, va
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid prep task config")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidPrepTaskConfigArchivedServiceEventType, map[string]any{
-		mealplanningkeys.ValidPrepTaskConfigIDKey: validPrepTaskConfigID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

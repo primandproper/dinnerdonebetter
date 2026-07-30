@@ -240,6 +240,14 @@ func (r *repository) CreateIssueReport(ctx context.Context, input *types.IssueRe
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, types.IssueReportCreatedServiceEventType, "", map[string]any{
+			issuereportkeys.IssueReportIDKey: input.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -287,6 +295,14 @@ func (r *repository) UpdateIssueReport(ctx context.Context, issueReport *types.I
 			EventType:        audit.AuditLogEventTypeUpdated,
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, types.IssueReportUpdatedServiceEventType, "", map[string]any{
+			issuereportkeys.IssueReportIDKey: issueReport.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		return nil
@@ -475,6 +491,14 @@ func (r *repository) ArchiveIssueReport(ctx context.Context, issueReportID strin
 			EventType:        audit.AuditLogEventTypeArchived,
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, types.IssueReportArchivedServiceEventType, "", map[string]any{
+			issuereportkeys.IssueReportIDKey: issueReportID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		return nil

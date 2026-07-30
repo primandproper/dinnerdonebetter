@@ -13,11 +13,16 @@ import (
 
 	analyticscfg "github.com/primandproper/platform-go/v8/analytics/config"
 	tokenscfg "github.com/primandproper/platform-go/v8/authentication/tokens/config"
+	cachecfg "github.com/primandproper/platform-go/v8/cache/config"
+	cacheredis "github.com/primandproper/platform-go/v8/cache/redis"
 	circuitbreakingcfg "github.com/primandproper/platform-go/v8/circuitbreaking/config"
 	encryptioncfg "github.com/primandproper/platform-go/v8/cryptography/encryption/config"
 	databasecfg "github.com/primandproper/platform-go/v8/database/config"
+	distributedlockcfg "github.com/primandproper/platform-go/v8/distributedlock/config"
+	pglock "github.com/primandproper/platform-go/v8/distributedlock/postgres"
 	"github.com/primandproper/platform-go/v8/encoding"
 	featureflagscfg "github.com/primandproper/platform-go/v8/featureflags/config"
+	idempotencycfg "github.com/primandproper/platform-go/v8/idempotency/config"
 	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	"github.com/primandproper/platform-go/v8/messagequeue/redis"
 	notificationscfg "github.com/primandproper/platform-go/v8/notifications/mobile/config"
@@ -118,6 +123,27 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 
 	return &config.APIServiceConfig{
 		Routing: localRoutingConfig,
+		// Localdev has a Redis, so the record store is shared and the interceptor means
+		// something. Prod does not yet; see the prod config.
+		Idempotency: config.IdempotencyConfig{
+			Enabled: true,
+			Manager: idempotencycfg.Config{
+				KeyPrefix: "dinner_done_better.idempotency.",
+				Cache: cachecfg.Config{
+					Provider: cachecfg.ProviderRedis,
+					Redis: &cacheredis.Config{
+						QueueAddresses: []string{dockerComposeWorkerQueueAddress},
+						Namespace:      "idempotency:",
+					},
+				},
+				Lock: distributedlockcfg.Config{
+					Provider: distributedlockcfg.PostgresProvider,
+					Postgres: &pglock.Config{ConnWaitTimeout: 5 * time.Second},
+				},
+				TTL:         24 * time.Hour,
+				InFlightTTL: 2 * time.Minute,
+			},
+		},
 		Queues: msgconfig.QueuesConfig{
 			DataChangesTopicName:              dataChangesTopicName,
 			OutboundEmailsTopicName:           outboundEmailsTopicName,

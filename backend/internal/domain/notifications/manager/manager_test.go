@@ -9,9 +9,6 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/fakes"
 	notificationsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/mock"
 
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v8/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
 
@@ -23,38 +20,21 @@ func buildNotificationsManagerForTest(t *testing.T) *notificationsManager {
 	t.Helper()
 
 	ctx := t.Context()
-	queueCfg := &msgconfig.QueuesConfig{
-		DataChangesTopicName: t.Name(),
-	}
-
-	mpp := &mockpublishers.PublisherProviderMock{
-		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
-			return &mockpublishers.PublisherMock{
-				PublishAsyncFunc: func(_ context.Context, _ any) {},
-			}, nil
-		},
-	}
-
 	m, err := NewNotificationsDataManager(
 		ctx,
 		tracingnoop.NewTracerProvider(),
 		loggingnoop.NewLogger(),
 		&notificationsmock.RepositoryMock{},
-		queueCfg,
-		mpp,
 	)
 	require.NoError(t, err)
 
 	return m.(*notificationsManager)
 }
 
-// attachRepositoryToNotificationsManager wires a configured repository mock and a no-op data changes
-// publisher into the manager under test.
+// attachRepositoryToNotificationsManager wires a configured repository mock
+// into the manager under test.
 func attachRepositoryToNotificationsManager(manager *notificationsManager, repo *notificationsmock.RepositoryMock) {
 	manager.repo = repo
-	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
-	}
 }
 
 func TestNotificationsManager_CreateUserNotification(t *testing.T) {

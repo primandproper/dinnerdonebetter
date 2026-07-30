@@ -827,6 +827,14 @@ func (r *repository) UpdateUserUsername(ctx context.Context, userID, newUsername
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.UsernameChangedEventType, "", map[string]any{
+			identitykeys.UserIDKey: userID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return err
@@ -880,6 +888,14 @@ func (r *repository) UpdateUserEmailAddress(ctx context.Context, userID, newEmai
 			},
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.EmailAddressChangedEventType, "", map[string]any{
+			identitykeys.UserIDKey: userID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		return nil
@@ -944,6 +960,14 @@ func (r *repository) UpdateUserDetails(ctx context.Context, userID string, input
 			Changes:       changes,
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.UserDetailsChangedEventType, "", map[string]any{
+			identitykeys.UserIDKey: userID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		return nil
@@ -1239,6 +1263,14 @@ func (r *repository) ArchiveUser(ctx context.Context, userID string) error {
 
 		if _, err = r.generatedQuerier.ArchiveUserMemberships(ctx, tx, userID); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving user account memberships")
+		}
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.UserArchivedServiceEventType, "", map[string]any{
+			identitykeys.UserIDKey: userID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		return nil

@@ -65,9 +65,8 @@ func (m *mealPlanningManager) CreateMealPlanTask(ctx context.Context, input *typ
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating meal plan task")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanTaskCreatedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanTaskIDKey: convertedInput.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }

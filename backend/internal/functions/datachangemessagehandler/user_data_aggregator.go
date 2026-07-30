@@ -13,6 +13,7 @@ import (
 	"github.com/primandproper/platform-go/v8/observability"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v8/retry"
 	"github.com/primandproper/platform-go/v8/uploads"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -38,7 +39,10 @@ func (a *AsyncDataChangeMessageHandler) UserDataAggregationEventHandler(topicNam
 		if err := a.decoder.DecodeBytes(ctx, rawMsg, &userDataCollectionRequest); err != nil {
 			a.messageDecodeErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicUserDataAggregation)))
 			status = statusFailure
-			return fmt.Errorf("decoding JSON body: %w", err)
+			// Unretryable: a payload that fails to decode will fail to decode on every
+			// remaining attempt, and each of those is latency the healthy messages behind
+			// it spend waiting. Straight to the dead-letter topic.
+			return retry.Unretryable(fmt.Errorf("decoding JSON body: %w", err))
 		}
 
 		if userDataCollectionRequest.TestID != "" {

@@ -167,6 +167,9 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 				WebhookExecutionRequestsTopicName: "webhook-execution-requests",
 				MobileNotificationsTopicName:      "mobile-notifications",
 			},
+			Pools: config.WorkerPoolsConfig{
+				DeadLetterTopicName: "dead-letter",
+			},
 		}
 		identityRepo := &identitymock.RepositoryMock{}
 		dataPrivacyRepo := &dataprivacymock.RepositoryMock{}

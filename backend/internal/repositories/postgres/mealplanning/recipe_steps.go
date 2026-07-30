@@ -626,20 +626,27 @@ func (q *repository) UpdateRecipeStep(ctx context.Context, updated *mealplanning
 	logger := q.logger.WithValue(mealplanningkeys.RecipeStepIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateRecipeStep(ctx, q.writeDB, &generated.UpdateRecipeStepParams{
-		ConditionExpression:           updated.ConditionExpression,
-		PreparationID:                 updated.Preparation.ID,
-		ID:                            updated.ID,
-		BelongsToRecipe:               updated.BelongsToRecipe,
-		Notes:                         updated.Notes,
-		ExplicitInstructions:          updated.ExplicitInstructions,
-		MaximumTemperatureInCelsius:   database.NullStringFromFloat32Pointer(updated.MaxTemperatureInCelsius),
-		MinimumTemperatureInCelsius:   database.NullStringFromFloat32Pointer(updated.MinTemperatureInCelsius),
-		MaximumEstimatedTimeInSeconds: database.NullInt64FromUint32Pointer(updated.MaxEstimatedTimeInSeconds),
-		MinimumEstimatedTimeInSeconds: database.NullInt64FromUint32Pointer(updated.MinEstimatedTimeInSeconds),
-		Index:                         int32(updated.Index),
-		Optional:                      updated.Optional,
-		StartTimerAutomatically:       updated.StartTimerAutomatically,
+	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:     updated.BelongsToRecipe,
+		mealplanningkeys.RecipeStepIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateRecipeStep(ctx, tx, &generated.UpdateRecipeStepParams{
+			ConditionExpression:           updated.ConditionExpression,
+			PreparationID:                 updated.Preparation.ID,
+			ID:                            updated.ID,
+			BelongsToRecipe:               updated.BelongsToRecipe,
+			Notes:                         updated.Notes,
+			ExplicitInstructions:          updated.ExplicitInstructions,
+			MaximumTemperatureInCelsius:   database.NullStringFromFloat32Pointer(updated.MaxTemperatureInCelsius),
+			MinimumTemperatureInCelsius:   database.NullStringFromFloat32Pointer(updated.MinTemperatureInCelsius),
+			MaximumEstimatedTimeInSeconds: database.NullInt64FromUint32Pointer(updated.MaxEstimatedTimeInSeconds),
+			MinimumEstimatedTimeInSeconds: database.NullInt64FromUint32Pointer(updated.MinEstimatedTimeInSeconds),
+			Index:                         int32(updated.Index),
+			Optional:                      updated.Optional,
+			StartTimerAutomatically:       updated.StartTimerAutomatically,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step")
 	}
@@ -666,16 +673,25 @@ func (q *repository) ArchiveRecipeStep(ctx context.Context, recipeID, recipeStep
 	logger = logger.WithValue(mealplanningkeys.RecipeStepIDKey, recipeStepID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveRecipeStep(ctx, q.writeDB, &generated.ArchiveRecipeStepParams{
-		BelongsToRecipe: recipeID,
-		ID:              recipeStepID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating recipe step")
-	}
+	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:     recipeID,
+		mealplanningkeys.RecipeStepIDKey: recipeStepID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveRecipeStep(ctx, tx, &generated.ArchiveRecipeStepParams{
+			BelongsToRecipe: recipeID,
+			ID:              recipeStepID,
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "updating recipe step")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

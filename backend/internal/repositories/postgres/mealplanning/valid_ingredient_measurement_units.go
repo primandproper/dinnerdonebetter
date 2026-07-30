@@ -576,13 +576,17 @@ func (q *repository) CreateValidIngredientMeasurementUnit(ctx context.Context, i
 	logger := q.logger.WithValue(mealplanningkeys.ValidIngredientMeasurementUnitIDKey, input.ID)
 
 	// create the valid ingredient measurement unit.
-	if err := q.generatedQuerier.CreateValidIngredientMeasurementUnit(ctx, q.writeDB, &generated.CreateValidIngredientMeasurementUnitParams{
-		ID:                       input.ID,
-		Notes:                    input.Notes,
-		ValidMeasurementUnitID:   input.ValidMeasurementUnitID,
-		ValidIngredientID:        input.ValidIngredientID,
-		MinimumAllowableQuantity: database.StringFromFloat32(input.MinAllowableQuantity),
-		MaximumAllowableQuantity: database.NullStringFromFloat32Pointer(input.MaxAllowableQuantity),
+	if err := q.withEvent(ctx, logger, mealplanning.ValidIngredientMeasurementUnitCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidIngredientMeasurementUnitIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return q.generatedQuerier.CreateValidIngredientMeasurementUnit(ctx, tx, &generated.CreateValidIngredientMeasurementUnitParams{
+			ID:                       input.ID,
+			Notes:                    input.Notes,
+			ValidMeasurementUnitID:   input.ValidMeasurementUnitID,
+			ValidIngredientID:        input.ValidIngredientID,
+			MinimumAllowableQuantity: database.StringFromFloat32(input.MinAllowableQuantity),
+			MaximumAllowableQuantity: database.NullStringFromFloat32Pointer(input.MaxAllowableQuantity),
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid ingredient measurement unit creation query")
 	}
@@ -631,13 +635,19 @@ func (q *repository) UpdateValidIngredientMeasurementUnit(ctx context.Context, u
 	logger := q.logger.WithValue(mealplanningkeys.ValidIngredientMeasurementUnitIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientMeasurementUnitIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateValidIngredientMeasurementUnit(ctx, q.writeDB, &generated.UpdateValidIngredientMeasurementUnitParams{
-		Notes:                    updated.Notes,
-		ValidMeasurementUnitID:   updated.MeasurementUnit.ID,
-		ValidIngredientID:        updated.Ingredient.ID,
-		MinimumAllowableQuantity: database.StringFromFloat32(updated.MinAllowableQuantity),
-		MaximumAllowableQuantity: database.NullStringFromFloat32Pointer(updated.MaxAllowableQuantity),
-		ID:                       updated.ID,
+	if err := q.withEvent(ctx, logger, mealplanning.ValidIngredientMeasurementUnitUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidIngredientMeasurementUnitIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateValidIngredientMeasurementUnit(ctx, tx, &generated.UpdateValidIngredientMeasurementUnitParams{
+			Notes:                    updated.Notes,
+			ValidMeasurementUnitID:   updated.MeasurementUnit.ID,
+			ValidIngredientID:        updated.Ingredient.ID,
+			MinimumAllowableQuantity: database.StringFromFloat32(updated.MinAllowableQuantity),
+			MaximumAllowableQuantity: database.NullStringFromFloat32Pointer(updated.MaxAllowableQuantity),
+			ID:                       updated.ID,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid ingredient measurement unit")
 	}
@@ -660,14 +670,18 @@ func (q *repository) ArchiveValidIngredientMeasurementUnit(ctx context.Context, 
 	logger = logger.WithValue(mealplanningkeys.ValidIngredientMeasurementUnitIDKey, validIngredientMeasurementUnitID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientMeasurementUnitIDKey, validIngredientMeasurementUnitID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveValidIngredientMeasurementUnit(ctx, q.writeDB, validIngredientMeasurementUnitID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving valid ingredient measurement unit")
-	}
+	return q.withEvent(ctx, logger, mealplanning.ValidIngredientMeasurementUnitArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidIngredientMeasurementUnitIDKey: validIngredientMeasurementUnitID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidIngredientMeasurementUnit(ctx, tx, validIngredientMeasurementUnitID)
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid ingredient measurement unit")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	return nil
+		return nil
+	})
 }

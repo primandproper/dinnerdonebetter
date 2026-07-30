@@ -3,6 +3,7 @@ package payments
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	domainpayments "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	"github.com/primandproper/platform-go/v8/database"
 	"github.com/primandproper/platform-go/v8/observability/logging"
@@ -19,6 +20,7 @@ func RegisterPaymentsRepository(i do.Injector) {
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[audit.Repository](i),
 			do.MustInvoke[database.Client](i),
+			do.MustInvoke[*events.Emitter](i),
 		), nil
 	})
 }

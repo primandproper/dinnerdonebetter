@@ -380,12 +380,32 @@ func (q *repository) createRecipeStepProduct(ctx context.Context, db database.SQ
 }
 
 // CreateRecipeStepProduct creates a recipe step product in the database.
-func (q *repository) CreateRecipeStepProduct(ctx context.Context, input *mealplanning.RecipeStepProductDatabaseCreationInput) (*mealplanning.RecipeStepProduct, error) {
-	return q.createRecipeStepProduct(ctx, q.writeDB, input)
+func (q *repository) CreateRecipeStepProduct(ctx context.Context, recipeID string, input *mealplanning.RecipeStepProductDatabaseCreationInput) (*mealplanning.RecipeStepProduct, error) {
+	if input == nil {
+		return nil, platformerrors.ErrNilInputProvided
+	}
+
+	var created *mealplanning.RecipeStepProduct
+
+	// The write and its event share a transaction.
+	if err := q.withEvent(ctx, q.logger, mealplanning.RecipeStepProductCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:            recipeID,
+		mealplanningkeys.RecipeStepIDKey:        input.BelongsToRecipeStep,
+		mealplanningkeys.RecipeStepProductIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		var createErr error
+		created, createErr = q.createRecipeStepProduct(ctx, tx, input)
+
+		return createErr
+	}); err != nil {
+		return nil, err
+	}
+
+	return created, nil
 }
 
 // UpdateRecipeStepProduct updates a particular recipe step product.
-func (q *repository) UpdateRecipeStepProduct(ctx context.Context, updated *mealplanning.RecipeStepProduct) error {
+func (q *repository) UpdateRecipeStepProduct(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepProduct) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -400,26 +420,34 @@ func (q *repository) UpdateRecipeStepProduct(ctx context.Context, updated *mealp
 		measurementUnitID = &updated.MeasurementUnit.ID
 	}
 
-	if _, err := q.generatedQuerier.UpdateRecipeStepProduct(ctx, q.writeDB, &generated.UpdateRecipeStepProductParams{
-		Name:                               updated.Name,
-		Type:                               generated.RecipeStepProductType(updated.Type),
-		MeasurementUnit:                    database.NullStringFromStringPointer(measurementUnitID),
-		MinimumMeasurementQuantityValue:    database.NullStringFromFloat32Pointer(updated.MinMeasurementQuantity),
-		MaximumMeasurementQuantityValue:    database.NullStringFromFloat32Pointer(updated.MaxMeasurementQuantity),
-		MinimumItemQuantityValue:           database.NullStringFromFloat32Pointer(updated.MinItemQuantity),
-		MaximumItemQuantityValue:           database.NullStringFromFloat32Pointer(updated.MaxItemQuantity),
-		QuantityNotes:                      updated.QuantityNotes,
-		Compostable:                        updated.Compostable,
-		MaximumStorageDurationInSeconds:    database.NullInt32FromUint32Pointer(updated.MaxStorageDurationInSeconds),
-		MinimumStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(updated.MinStorageTemperatureInCelsius),
-		MaximumStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(updated.MaxStorageTemperatureInCelsius),
-		StorageInstructions:                updated.StorageInstructions,
-		IsLiquid:                           updated.IsLiquid,
-		IsWaste:                            updated.IsWaste,
-		Index:                              int32(updated.Index),
-		ContainedInVesselIndex:             database.NullInt32FromUint16Pointer(updated.ContainedInVesselIndex),
-		BelongsToRecipeStep:                updated.BelongsToRecipeStep,
-		ID:                                 updated.ID,
+	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepProductUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:            recipeID,
+		mealplanningkeys.RecipeStepIDKey:        updated.BelongsToRecipeStep,
+		mealplanningkeys.RecipeStepProductIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateRecipeStepProduct(ctx, tx, &generated.UpdateRecipeStepProductParams{
+			Name:                               updated.Name,
+			Type:                               generated.RecipeStepProductType(updated.Type),
+			MeasurementUnit:                    database.NullStringFromStringPointer(measurementUnitID),
+			MinimumMeasurementQuantityValue:    database.NullStringFromFloat32Pointer(updated.MinMeasurementQuantity),
+			MaximumMeasurementQuantityValue:    database.NullStringFromFloat32Pointer(updated.MaxMeasurementQuantity),
+			MinimumItemQuantityValue:           database.NullStringFromFloat32Pointer(updated.MinItemQuantity),
+			MaximumItemQuantityValue:           database.NullStringFromFloat32Pointer(updated.MaxItemQuantity),
+			QuantityNotes:                      updated.QuantityNotes,
+			Compostable:                        updated.Compostable,
+			MaximumStorageDurationInSeconds:    database.NullInt32FromUint32Pointer(updated.MaxStorageDurationInSeconds),
+			MinimumStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(updated.MinStorageTemperatureInCelsius),
+			MaximumStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(updated.MaxStorageTemperatureInCelsius),
+			StorageInstructions:                updated.StorageInstructions,
+			IsLiquid:                           updated.IsLiquid,
+			IsWaste:                            updated.IsWaste,
+			Index:                              int32(updated.Index),
+			ContainedInVesselIndex:             database.NullInt32FromUint16Pointer(updated.ContainedInVesselIndex),
+			BelongsToRecipeStep:                updated.BelongsToRecipeStep,
+			ID:                                 updated.ID,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step product")
 	}
@@ -430,7 +458,7 @@ func (q *repository) UpdateRecipeStepProduct(ctx context.Context, updated *mealp
 }
 
 // ArchiveRecipeStepProduct archives a recipe step product from the database by its ID.
-func (q *repository) ArchiveRecipeStepProduct(ctx context.Context, recipeStepID, recipeStepProductID string) error {
+func (q *repository) ArchiveRecipeStepProduct(ctx context.Context, recipeID, recipeStepID, recipeStepProductID string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -448,16 +476,26 @@ func (q *repository) ArchiveRecipeStepProduct(ctx context.Context, recipeStepID,
 	logger = logger.WithValue(mealplanningkeys.RecipeStepProductIDKey, recipeStepProductID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepProductIDKey, recipeStepProductID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveRecipeStepProduct(ctx, q.writeDB, &generated.ArchiveRecipeStepProductParams{
-		BelongsToRecipeStep: recipeStepID,
-		ID:                  recipeStepProductID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating recipe step product")
-	}
+	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepProductArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:            recipeID,
+		mealplanningkeys.RecipeStepIDKey:        recipeStepID,
+		mealplanningkeys.RecipeStepProductIDKey: recipeStepProductID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveRecipeStepProduct(ctx, tx, &generated.ArchiveRecipeStepProductParams{
+			BelongsToRecipeStep: recipeStepID,
+			ID:                  recipeStepProductID,
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "updating recipe step product")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

@@ -3,17 +3,13 @@ package manager
 import (
 	"context"
 	"errors"
-	"fmt"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
 	webhookkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/keys"
 
 	platformerrors "github.com/primandproper/platform-go/v8/errors"
 	"github.com/primandproper/platform-go/v8/filtering"
 	"github.com/primandproper/platform-go/v8/identifiers"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	"github.com/primandproper/platform-go/v8/observability"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/tracing"
@@ -26,10 +22,9 @@ const (
 var _ WebhookDataManager = (*webhookManager)(nil)
 
 type webhookManager struct {
-	tracer               tracing.Tracer
-	logger               logging.Logger
-	repo                 webhooks.Repository
-	dataChangesPublisher messagequeue.Publisher
+	tracer tracing.Tracer
+	logger logging.Logger
+	repo   webhooks.Repository
 }
 
 // NewWebhookDataManager returns a new WebhookDataManager that delegates to the webhooks repository.
@@ -38,19 +33,11 @@ func NewWebhookDataManager(
 	tracerProvider tracing.TracerProvider,
 	logger logging.Logger,
 	repo webhooks.Repository,
-	cfg *msgconfig.QueuesConfig,
-	publisherProvider messagequeue.PublisherProvider,
 ) (WebhookDataManager, error) {
-	dataChangesPublisher, err := publisherProvider.NewPublisher(ctx, cfg.DataChangesTopicName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to provide publisher for data changes topic: %w", err)
-	}
-
 	return &webhookManager{
-		tracer:               tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:               logging.NewNamedLogger(logger, o11yName),
-		repo:                 repo,
-		dataChangesPublisher: dataChangesPublisher,
+		tracer: tracing.NewNamedTracer(tracerProvider, o11yName),
+		logger: logging.NewNamedLogger(logger, o11yName),
+		repo:   repo,
 	}, nil
 }
 
@@ -70,7 +57,7 @@ func (m *webhookManager) CreateWebhook(ctx context.Context, userID, accountID st
 	}
 	logger := m.logger.WithSpan(span)
 	if err := input.ValidateWithContext(ctx); err != nil {
-		return nil, observability.PrepareError(err, span, "validating webhook creation input")
+		return nil, observability.PrepareAndLogError(err, logger, span, "validating webhook creation input")
 	}
 
 	webhookID := identifiers.New()
@@ -111,9 +98,8 @@ func (m *webhookManager) CreateWebhook(ctx context.Context, userID, accountID st
 	}
 
 	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, created.ID)
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, webhooks.WebhookCreatedServiceEventType, map[string]any{
-		webhookkeys.WebhookIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -140,12 +126,11 @@ func (m *webhookManager) ArchiveWebhook(ctx context.Context, webhookID, accountI
 	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, webhookID)
 
 	if err := m.repo.ArchiveWebhook(ctx, webhookID, accountID); err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "archive webhook")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, webhooks.WebhookArchivedServiceEventType, map[string]any{
-		webhookkeys.WebhookIDKey: webhookID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -154,11 +139,13 @@ func (m *webhookManager) AddWebhookTriggerConfig(ctx context.Context, accountID 
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
+	logger := m.logger.WithSpan(span)
+
 	if input == nil {
 		return nil, observability.PrepareError(errors.New("nil trigger config creation input"), span, "nil trigger config creation input")
 	}
 	if err := input.ValidateWithContext(ctx); err != nil {
-		return nil, observability.PrepareError(err, span, "validating trigger config creation input")
+		return nil, observability.PrepareAndLogError(err, logger, span, "validating trigger config creation input")
 	}
 
 	dbInput := &webhooks.WebhookTriggerConfigDatabaseCreationInput{
@@ -168,15 +155,12 @@ func (m *webhookManager) AddWebhookTriggerConfig(ctx context.Context, accountID 
 	}
 	created, err := m.repo.AddWebhookTriggerConfig(ctx, accountID, dbInput)
 	if err != nil {
-		return nil, err
+		return nil, observability.PrepareAndLogError(err, logger, span, "add webhook trigger config")
 	}
 
-	logger := m.logger.WithSpan(span).WithValue(webhookkeys.WebhookTriggerConfigIDKey, created.ID)
 	tracing.AttachToSpan(span, webhookkeys.WebhookTriggerConfigIDKey, created.ID)
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, webhooks.WebhookTriggerConfigCreatedServiceEventType, map[string]any{
-		webhookkeys.WebhookIDKey:              input.BelongsToWebhook,
-		webhookkeys.WebhookTriggerConfigIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -185,7 +169,6 @@ func (m *webhookManager) ArchiveWebhookTriggerConfig(ctx context.Context, webhoo
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := m.logger.WithSpan(span).WithValue(webhookkeys.WebhookIDKey, webhookID).WithValue(webhookkeys.WebhookTriggerConfigIDKey, configID)
 	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, webhookID)
 	tracing.AttachToSpan(span, webhookkeys.WebhookTriggerConfigIDKey, configID)
 
@@ -193,10 +176,8 @@ func (m *webhookManager) ArchiveWebhookTriggerConfig(ctx context.Context, webhoo
 		return err
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, webhooks.WebhookTriggerConfigArchivedServiceEventType, map[string]any{
-		webhookkeys.WebhookIDKey:              webhookID,
-		webhookkeys.WebhookTriggerConfigIDKey: configID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

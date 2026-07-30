@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -76,9 +75,8 @@ func (m *mealPlanningManager) CreateValidIngredientGroup(ctx context.Context, in
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid ingredient group")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidIngredientGroupCreatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidIngredientGroupIDKey: created.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -119,9 +117,8 @@ func (m *mealPlanningManager) UpdateValidIngredientGroup(ctx context.Context, va
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid ingredient group")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidIngredientGroupUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidIngredientGroupIDKey: existingValidIngredientGroup.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	existingValidIngredientGroup, err = m.db.GetValidIngredientGroup(ctx, validIngredientGroupID)
 	if err != nil {
@@ -142,9 +139,8 @@ func (m *mealPlanningManager) ArchiveValidIngredientGroup(ctx context.Context, v
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid ingredient group")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidIngredientGroupArchivedServiceEventType, map[string]any{
-		mealplanningkeys.ValidIngredientGroupIDKey: validIngredientGroupID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

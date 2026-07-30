@@ -10,6 +10,7 @@ import (
 	coreindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
+	"github.com/primandproper/platform-go/v8/retry"
 	textsearch "github.com/primandproper/platform-go/v8/search/text"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -38,7 +39,10 @@ func (a *AsyncDataChangeMessageHandler) SearchIndexRequestsEventHandler(topicNam
 		if err := json.NewDecoder(bytes.NewReader(rawMsg)).Decode(&searchIndexRequest); err != nil {
 			a.messageDecodeErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicSearchIndexRequests)))
 			status = statusFailure
-			return fmt.Errorf("decoding JSON body: %w", err)
+			// Unretryable: a payload that fails to decode will fail to decode on every
+			// remaining attempt, and each of those is latency the healthy messages behind
+			// it spend waiting. Straight to the dead-letter topic.
+			return retry.Unretryable(fmt.Errorf("decoding JSON body: %w", err))
 		}
 
 		if searchIndexRequest.TestID != "" {

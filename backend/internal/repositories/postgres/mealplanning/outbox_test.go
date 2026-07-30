@@ -1,0 +1,147 @@
+package mealplanning
+
+import (
+	"context"
+	"encoding/json"
+	"testing"
+
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
+	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
+	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
+
+	"github.com/primandproper/platform-go/v8/database"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// outboxRow is the subset of an outbox_messages row these tests read back.
+type outboxRow struct {
+	topic        string
+	partitionKey string
+	payload      []byte
+}
+
+// fetchOutboxRows reads every outbox row for a topic, oldest first.
+func fetchOutboxRows(ctx context.Context, t *testing.T, db database.SQLQueryExecutor, topic string) []outboxRow {
+	t.Helper()
+
+	rows, err := db.QueryContext(ctx, `SELECT topic, partition_key, payload FROM outbox_messages WHERE topic = $1 ORDER BY created_at, id`, topic)
+	require.NoError(t, err)
+	defer func() { assert.NoError(t, rows.Close()) }()
+
+	var out []outboxRow
+	for rows.Next() {
+		var r outboxRow
+		require.NoError(t, rows.Scan(&r.topic, &r.partitionKey, &r.payload))
+		out = append(out, r)
+	}
+	require.NoError(t, rows.Err())
+
+	return out
+}
+
+// decodeDataChangeMessages decodes each row's payload as the message the async handler consumes.
+// The relay republishes these bytes verbatim, so what decodes here is what a consumer receives.
+func decodeDataChangeMessages(t *testing.T, rows []outboxRow) []*audit.DataChangeMessage {
+	t.Helper()
+
+	out := make([]*audit.DataChangeMessage, 0, len(rows))
+	for i := range rows {
+		var msg audit.DataChangeMessage
+		require.NoError(t, json.Unmarshal(rows[i].payload, &msg))
+		out = append(out, &msg)
+	}
+
+	return out
+}
+
+func findEvent(msgs []*audit.DataChangeMessage, eventType string) *audit.DataChangeMessage {
+	for _, msg := range msgs {
+		if msg.EventType == eventType {
+			return msg
+		}
+	}
+
+	return nil
+}
+
+func TestQuerier_Integration_MealPlanOutboxEvents(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
+
+	recipe := createRecipeForTest(t, ctx, nil, dbc, true)
+	meal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+
+	exampleMealPlan := buildMealPlanForIntegrationTest(user.ID, meal)
+	exampleMealPlan.BelongsToAccount = account.ID
+
+	// create — the event is another statement in CreateMealPlan's transaction
+	created := createMealPlanForTest(t, ctx, exampleMealPlan, dbc)
+
+	msgs := decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic))
+	createdEvent := findEvent(msgs, types.MealPlanCreatedServiceEventType)
+	require.NotNil(t, createdEvent, "no created event was enqueued")
+	assert.Equal(t, account.ID, createdEvent.AccountID)
+	assert.Equal(t, created.ID, createdEvent.Context[mealplanningkeys.MealPlanIDKey])
+
+	// The partition key is what preserves per-account ordering, so a row that names an account
+	// must be keyed by it. Rows for meal-plan child entities carry no account and are keyed by
+	// nothing, which the relay treats as unordered — correct, since nothing orders them.
+	for _, row := range fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic) {
+		var msg audit.DataChangeMessage
+		require.NoError(t, json.Unmarshal(row.payload, &msg))
+
+		if msg.AccountID != "" {
+			assert.Equal(t, msg.AccountID, row.partitionKey)
+		}
+	}
+
+	// archive
+	require.NoError(t, dbc.ArchiveMealPlan(ctx, created.ID, account.ID))
+
+	msgs = decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic))
+	archivedEvent := findEvent(msgs, types.MealPlanArchivedServiceEventType)
+	require.NotNil(t, archivedEvent, "no archived event was enqueued")
+	assert.Equal(t, account.ID, archivedEvent.AccountID)
+	assert.Equal(t, created.ID, archivedEvent.Context[mealplanningkeys.MealPlanIDKey])
+}
+
+func TestQuerier_Integration_MealPlanOutboxRollsBackWithItsWrite(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
+
+	// Archiving a meal plan that does not exist affects no rows, so the transaction rolls
+	// back. This is the whole point of the outbox: the event rolls back with it, rather than
+	// announcing a change that never happened.
+	require.Error(t, dbc.ArchiveMealPlan(ctx, "nonexistent", account.ID))
+
+	assert.Empty(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic))
+}
+
+func TestQuerier_Integration_CatalogOutboxEvents(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	// Catalog entities are global — owned by no account — so their events carry no account ID.
+	created := createValidVesselForTest(t, ctx, nil, dbc)
+
+	msgs := decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic))
+	createdEvent := findEvent(msgs, types.ValidVesselCreatedServiceEventType)
+	require.NotNil(t, createdEvent, "no created event was enqueued")
+	assert.Equal(t, created.ID, createdEvent.Context[mealplanningkeys.ValidVesselIDKey])
+
+	require.NoError(t, dbc.ArchiveValidVessel(ctx, created.ID))
+
+	msgs = decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic))
+	archivedEvent := findEvent(msgs, types.ValidVesselArchivedServiceEventType)
+	require.NotNil(t, archivedEvent, "no archived event was enqueued")
+	assert.Equal(t, created.ID, archivedEvent.Context[mealplanningkeys.ValidVesselIDKey])
+}

@@ -295,6 +295,14 @@ func (r *repository) CreateWebhook(ctx context.Context, input *types.WebhookData
 			x.TriggerConfigs = append(x.TriggerConfigs, created)
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, types.WebhookCreatedServiceEventType, input.BelongsToAccount, map[string]any{
+			webhookkeys.WebhookIDKey: input.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -393,6 +401,14 @@ func (r *repository) ArchiveWebhook(ctx context.Context, webhookID, accountID st
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, types.WebhookArchivedServiceEventType, accountID, map[string]any{
+			webhookkeys.WebhookIDKey: webhookID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return err
@@ -430,6 +446,15 @@ func (r *repository) AddWebhookTriggerConfig(ctx context.Context, accountID stri
 		}
 
 		created = result
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, types.WebhookTriggerConfigCreatedServiceEventType, "", map[string]any{
+			webhookkeys.WebhookIDKey:              input.BelongsToWebhook,
+			webhookkeys.WebhookTriggerConfigIDKey: input.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
 
 		return nil
 	}); err != nil {
@@ -475,6 +500,15 @@ func (r *repository) ArchiveWebhookTriggerConfig(ctx context.Context, webhookID,
 			EventType:    audit.AuditLogEventTypeArchived,
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		// The event is another statement in this transaction, so it commits with the row
+		// it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, types.WebhookTriggerConfigArchivedServiceEventType, "", map[string]any{
+			webhookkeys.WebhookIDKey:              webhookID,
+			webhookkeys.WebhookTriggerConfigIDKey: configID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing webhook trigger config archived event")
 		}
 
 		return nil

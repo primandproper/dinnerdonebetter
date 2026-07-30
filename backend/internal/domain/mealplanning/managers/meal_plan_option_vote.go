@@ -160,12 +160,8 @@ func (m *mealPlanningManager) UpdateMealPlanOptionVote(ctx context.Context, meal
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan option vote")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanOptionVoteUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanIDKey:           mealPlanID,
-		mealplanningkeys.MealPlanEventIDKey:      mealPlanEventID,
-		mealplanningkeys.MealPlanOptionIDKey:     mealPlanOptionID,
-		mealplanningkeys.MealPlanOptionVoteIDKey: mealPlanOptionVoteID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -189,12 +185,8 @@ func (m *mealPlanningManager) ArchiveMealPlanOptionVote(ctx context.Context, mea
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan option vote")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanOptionVoteArchivedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanIDKey:           mealPlanID,
-		mealplanningkeys.MealPlanEventIDKey:      mealPlanEventID,
-		mealplanningkeys.MealPlanOptionIDKey:     mealPlanOptionID,
-		mealplanningkeys.MealPlanOptionVoteIDKey: mealPlanOptionVoteID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

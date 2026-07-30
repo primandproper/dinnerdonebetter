@@ -397,3 +397,12 @@ func (s *AuthInterceptor) StreamServerInterceptor() grpc.StreamServerInterceptor
 		return handler(srv, wrappedStream)
 	}
 }
+
+// UnauthenticatedRoutes returns the methods this interceptor lets through without a session.
+//
+// It exists so the platform's authorization enforcer can be built from the same list rather than
+// a second copy of it. Two allow-lists that are supposed to agree and are maintained separately
+// is how a method ends up public in one and not the other.
+func (s *AuthInterceptor) UnauthenticatedRoutes() []string {
+	return slices.Clone(s.unauthenticatedRoutes)
+}

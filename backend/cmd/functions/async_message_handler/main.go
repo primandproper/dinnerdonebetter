@@ -80,25 +80,20 @@ func run(ctx context.Context, cfg *config.AsyncMessageHandlerConfig) error {
 		syscall.SIGTERM,
 	)
 
-	stopChan := make(chan bool)
-	errorsChan := make(chan error)
-
 	dataChangeMessageHandler.SetNonWebhookEventTypes(nonWebhookEventTypes)
 
-	if err := dataChangeMessageHandler.ConsumeMessages(ctx, stopChan, errorsChan); err != nil {
+	if err := dataChangeMessageHandler.Start(ctx); err != nil {
 		return err
 	}
 
 	// Block until the first shutdown signal arrives.
 	<-signalChan
 
-	// Closing stopChan broadcasts to every consumer; then wait for in-flight handlers to drain
-	// before the deferred telemetry flush runs and main returns.
-	close(stopChan)
-
+	// Close stops each pool's consumer first and only then retires its workers, so a message
+	// already being handled finishes. The timeout bounds that drain; past it the pools cancel
+	// their handlers so the deferred telemetry flush still runs and main returns.
 	drainCtx, cancelDrain := context.WithTimeout(ctx, 30*time.Second)
 	defer cancelDrain()
-	dataChangeMessageHandler.WaitForConsumers(drainCtx)
 
-	return nil
+	return dataChangeMessageHandler.Close(drainCtx)
 }

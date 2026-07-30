@@ -11,9 +11,6 @@ import (
 
 	platformerrors "github.com/primandproper/platform-go/v8/errors"
 	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v8/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
 
@@ -31,23 +28,11 @@ func buildIssueReportsManagerForTest(t *testing.T, repo *issuereportsmock.Reposi
 	}
 
 	ctx := t.Context()
-	queueCfg := &msgconfig.QueuesConfig{DataChangesTopicName: t.Name()}
 
-	mpp := &mockpublishers.PublisherProviderMock{
-		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
-			return &mockpublishers.PublisherMock{
-				PublishAsyncFunc: func(_ context.Context, _ any) {},
-			}, nil
-		},
-	}
-
-	m, err := NewIssueReportsDataManager(ctx, tracingnoop.NewTracerProvider(), loggingnoop.NewLogger(), repo, queueCfg, mpp)
+	m, err := NewIssueReportsDataManager(ctx, tracingnoop.NewTracerProvider(), loggingnoop.NewLogger(), repo)
 	require.NoError(t, err)
 
 	manager := m.(*issueReportsManager)
-	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
-	}
 
 	return manager
 }

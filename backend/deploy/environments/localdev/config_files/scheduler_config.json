@@ -1,0 +1,234 @@
+{
+	"queues": {
+		"dataChangesTopicName": "data_changes",
+		"outboundEmailsTopicName": "outbound_emails",
+		"searchIndexRequestsTopicName": "search_index_requests",
+		"mobileNotificationsTopicName": "mobile_notifications",
+		"userDataAggregationTopicName": "user_data_aggregation_requests",
+		"webhookExecutionRequestsTopicName": "webhook_execution_requests"
+	},
+	"events": {
+		"consumer": {
+			"kafka": {
+				"groupId": "",
+				"brokers": null
+			},
+			"provider": "redis",
+			"sqs": {
+				"queueAddress": ""
+			},
+			"pubSub": {
+				"projectID": ""
+			},
+			"redis": {
+				"username": "",
+				"queueAddresses": [
+					"worker_queue:6379"
+				]
+			}
+		},
+		"publisher": {
+			"kafka": {
+				"groupId": "",
+				"brokers": null
+			},
+			"provider": "redis",
+			"sqs": {
+				"queueAddress": ""
+			},
+			"pubSub": {
+				"projectID": ""
+			},
+			"redis": {
+				"username": "",
+				"queueAddresses": [
+					"worker_queue:6379"
+				]
+			}
+		}
+	},
+	"observability": {
+		"profiling": {
+			"pprof": {
+				"port": 6060,
+				"enableMutexProfile": false,
+				"enableBlockProfile": false
+			},
+			"serviceName": "scheduler",
+			"provider": "pprof"
+		},
+		"logging": {
+			"serviceName": "scheduler",
+			"level": "debug",
+			"otelslog": {
+				"endpointURL": "otel_collector:4317",
+				"insecure": true,
+				"timeout": 3000000000
+			},
+			"provider": "otelslog"
+		},
+		"metrics": {
+			"otelgrpc": {
+				"metricsCollectorEndpoint": "otel_collector:4317",
+				"collectionInterval": 1000000000,
+				"insecure": true,
+				"enableRuntimeMetrics": false,
+				"enableHostMetrics": false
+			},
+			"serviceName": "scheduler",
+			"provider": "otelgrpc",
+			"enabled": true
+		},
+		"tracing": {
+			"otelgrpc": {
+				"collector_endpoint": "otel_collector:4317",
+				"insecure": true
+			},
+			"service_name": "scheduler",
+			"provider": "otelgrpc",
+			"spanCollectionProbability": 1
+		}
+	},
+	"analytics": {
+		"proxySources": {
+			"ios": null,
+			"web": null
+		},
+		"segment": null,
+		"posthog": null,
+		"provider": "",
+		"circuitBreaker": {
+			"name": "feature_flagger",
+			"circuitBreakerErrorPercentage": 0.5,
+			"circuitBreakerMinimumOccurrenceThreshold": 100
+		}
+	},
+	"search": {
+		"algolia": {
+			"appID": "",
+			"writeAPIKey": "",
+			"timeout": 0
+		},
+		"elasticsearch": null,
+		"provider": "algolia",
+		"circuitBreakerConfig": {
+			"name": "dev_text_searcher",
+			"circuitBreakerErrorPercentage": 0.5,
+			"circuitBreakerMinimumOccurrenceThreshold": 100
+		}
+	},
+	"database": {
+		"encryption": {
+			"provider": "salsa20"
+		},
+		"oauth2TokenEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
+		"provider": "postgres",
+		"readConnection": {
+			"username": "dbuser",
+			"password": "hunter2",
+			"database": "dinner-done-better",
+			"hostname": "pgdatabase",
+			"port": 5432,
+			"disableSSL": true
+		},
+		"writeConnection": {
+			"username": "dbuser",
+			"password": "hunter2",
+			"database": "dinner-done-better",
+			"hostname": "pgdatabase",
+			"port": 5432,
+			"disableSSL": true
+		},
+		"pingWaitPeriod": 1000000000,
+		"maxPingAttempts": 50,
+		"connMaxLifetime": 1800000000000,
+		"maxIdleConns": 5,
+		"maxOpenConns": 7,
+		"debug": true,
+		"logQueries": true,
+		"runMigrations": true,
+		"enableDatabaseMetrics": false
+	},
+	"outbox": {
+		"dialect": "postgres",
+		"tableName": "outbox_messages",
+		"claimMode": "skip_locked",
+		"backoff": {
+			"maxAttempts": 8,
+			"initialDelay": 1000000000,
+			"maxDelay": 60000000000,
+			"multiplier": 2,
+			"useJitter": true
+		},
+		"batchSize": 100,
+		"pollInterval": 1000000000,
+		"leaseDuration": 30000000000,
+		"retention": 604800000000000,
+		"reapInterval": 3600000000000,
+		"reapBatchSize": 1000
+	},
+	"jobs": {
+		"scheduler": {
+			"lockKeyPrefix": "dinner_done_better.scheduler.",
+			"defaultLeaseTTL": 120000000000,
+			"defaultTimeout": 60000000000
+		},
+		"lock": {
+			"redis": null,
+			"postgres": {
+				"namespace": 0,
+				"connWaitTimeout": 5000000000
+			},
+			"provider": "postgres",
+			"circuitBreakerConfig": {
+				"name": "",
+				"circuitBreakerErrorPercentage": 0,
+				"circuitBreakerMinimumOccurrenceThreshold": 0
+			}
+		},
+		"searchDataIndexScheduler": {
+			"interval": 600000000000,
+			"timeout": 300000000000,
+			"leaseTTL": 600000000000,
+			"enabled": true,
+			"runOnStart": false
+		},
+		"mobileNotificationScheduler": {
+			"interval": 120000000000,
+			"timeout": 60000000000,
+			"leaseTTL": 180000000000,
+			"enabled": true,
+			"runOnStart": false
+		},
+		"queueTest": {
+			"interval": 900000000000,
+			"timeout": 60000000000,
+			"leaseTTL": 120000000000,
+			"enabled": true,
+			"runOnStart": false
+		},
+		"mealPlanning": {
+			"mealPlanFinalizer": {
+				"interval": 300000000000,
+				"timeout": 600000000000,
+				"leaseTTL": 900000000000,
+				"enabled": true,
+				"runOnStart": false
+			},
+			"mealPlanGroceryListInitializer": {
+				"interval": 60000000000,
+				"timeout": 120000000000,
+				"leaseTTL": 300000000000,
+				"enabled": true,
+				"runOnStart": false
+			},
+			"mealPlanTaskCreator": {
+				"interval": 60000000000,
+				"timeout": 120000000000,
+				"leaseTTL": 300000000000,
+				"enabled": true,
+				"runOnStart": false
+			}
+		}
+	}
+}

@@ -59,7 +59,7 @@ func TestRecipeManager_CreateRecipeStepCompletionCondition(T *testing.T) {
 		fakeInput := fakes.BuildFakeRecipeStepCompletionConditionForExistingRecipeCreationRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{
-			CreateRecipeStepCompletionConditionFunc: func(_ context.Context, _ *types.RecipeStepCompletionConditionDatabaseCreationInput) (*types.RecipeStepCompletionCondition, error) {
+			CreateRecipeStepCompletionConditionFunc: func(_ context.Context, _ string, _ *types.RecipeStepCompletionConditionDatabaseCreationInput) (*types.RecipeStepCompletionCondition, error) {
 				return expected, nil
 			},
 		}
@@ -127,7 +127,7 @@ func TestRecipeManager_UpdateRecipeStepCompletionCondition(T *testing.T) {
 
 				return exampleRecipeStepCompletionCondition, nil
 			},
-			UpdateRecipeStepCompletionConditionFunc: func(_ context.Context, _ *types.RecipeStepCompletionCondition) error {
+			UpdateRecipeStepCompletionConditionFunc: func(_ context.Context, _ string, _ *types.RecipeStepCompletionCondition) error {
 				return nil
 			},
 		}
@@ -154,7 +154,7 @@ func TestRecipeManager_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 		expected := fakes.BuildFakeRecipeStepCompletionCondition()
 
 		db := &mealplanningmock.RepositoryMock{
-			ArchiveRecipeStepCompletionConditionFunc: func(_ context.Context, recipeStepID string, recipeStepIngredientID string) error {
+			ArchiveRecipeStepCompletionConditionFunc: func(_ context.Context, _ string, recipeStepID string, recipeStepIngredientID string) error {
 				assert.Equal(t, exampleRecipeStepID, recipeStepID)
 				assert.Equal(t, expected.ID, recipeStepIngredientID)
 

@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -74,10 +73,8 @@ func (m *mealPlanningManager) CreateRecipeRating(ctx context.Context, recipeID s
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating recipe rating")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeRatingCreatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:       recipeID,
-		mealplanningkeys.RecipeRatingIDKey: convertedInput.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -107,10 +104,8 @@ func (m *mealPlanningManager) UpdateRecipeRating(ctx context.Context, recipeID, 
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe rating")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeRatingUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:       recipeID,
-		mealplanningkeys.RecipeRatingIDKey: recipeRatingID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -130,10 +125,8 @@ func (m *mealPlanningManager) ArchiveRecipeRating(ctx context.Context, recipeID,
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe rating")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeRatingArchivedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:       recipeID,
-		mealplanningkeys.RecipeRatingIDKey: recipeRatingID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

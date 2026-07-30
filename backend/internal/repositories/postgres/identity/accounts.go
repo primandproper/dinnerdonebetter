@@ -286,6 +286,14 @@ func (r *repository) CreateAccount(ctx context.Context, input *identity.AccountD
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// account it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.AccountCreatedServiceEventType, account.ID, map[string]any{
+			identitykeys.AccountIDKey: account.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing account created event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -365,6 +373,14 @@ func (r *repository) UpdateAccount(ctx context.Context, updated *identity.Accoun
 			Changes:          buildChangesForAccount(account, updated),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.AccountUpdatedServiceEventType, updated.ID, map[string]any{
+			identitykeys.AccountIDKey: updated.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		return nil
@@ -486,6 +502,15 @@ func (r *repository) ArchiveAccount(ctx context.Context, accountID, ownerID stri
 			BelongsToUser:    ownerID,
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.AccountArchivedServiceEventType, accountID, map[string]any{
+			identitykeys.AccountIDKey: accountID,
+			identitykeys.UserIDKey:    ownerID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		return nil

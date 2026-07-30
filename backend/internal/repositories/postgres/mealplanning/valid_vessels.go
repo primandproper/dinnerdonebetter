@@ -385,22 +385,26 @@ func (q *repository) CreateValidVessel(ctx context.Context, input *types.ValidVe
 	logger := q.logger.WithValue(mealplanningkeys.ValidVesselIDKey, input.ID)
 
 	// create the valid vessel.
-	if err := q.generatedQuerier.CreateValidVessel(ctx, q.writeDB, &generated.CreateValidVesselParams{
-		Slug:                           input.Slug,
-		ID:                             input.ID,
-		PluralName:                     input.PluralName,
-		Description:                    input.Description,
-		IconPath:                       input.IconPath,
-		Shape:                          generated.VesselShape(input.Shape),
-		Name:                           input.Name,
-		Capacity:                       database.StringFromFloat32(input.Capacity),
-		CapacityUnit:                   database.NullStringFromStringPointer(input.CapacityUnitID),
-		WidthInMillimeters:             database.NullStringFromFloat32(input.WidthInMillimeters),
-		LengthInMillimeters:            database.NullStringFromFloat32(input.LengthInMillimeters),
-		HeightInMillimeters:            database.NullStringFromFloat32(input.HeightInMillimeters),
-		IncludeInGeneratedInstructions: input.IncludeInGeneratedInstructions,
-		DisplayInSummaryLists:          input.DisplayInSummaryLists,
-		UsableForStorage:               input.UsableForStorage,
+	if err := q.withEvent(ctx, logger, types.ValidVesselCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidVesselIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return q.generatedQuerier.CreateValidVessel(ctx, tx, &generated.CreateValidVesselParams{
+			Slug:                           input.Slug,
+			ID:                             input.ID,
+			PluralName:                     input.PluralName,
+			Description:                    input.Description,
+			IconPath:                       input.IconPath,
+			Shape:                          generated.VesselShape(input.Shape),
+			Name:                           input.Name,
+			Capacity:                       database.StringFromFloat32(input.Capacity),
+			CapacityUnit:                   database.NullStringFromStringPointer(input.CapacityUnitID),
+			WidthInMillimeters:             database.NullStringFromFloat32(input.WidthInMillimeters),
+			LengthInMillimeters:            database.NullStringFromFloat32(input.LengthInMillimeters),
+			HeightInMillimeters:            database.NullStringFromFloat32(input.HeightInMillimeters),
+			IncludeInGeneratedInstructions: input.IncludeInGeneratedInstructions,
+			DisplayInSummaryLists:          input.DisplayInSummaryLists,
+			UsableForStorage:               input.UsableForStorage,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid vessel creation query")
 	}
@@ -448,22 +452,28 @@ func (q *repository) UpdateValidVessel(ctx context.Context, updated *types.Valid
 		return fmt.Errorf("capacity unit: %w", platformerrors.ErrNilInputProvided)
 	}
 
-	if _, err := q.generatedQuerier.UpdateValidVessel(ctx, q.writeDB, &generated.UpdateValidVesselParams{
-		Name:                           updated.Name,
-		PluralName:                     updated.PluralName,
-		Description:                    updated.Description,
-		IconPath:                       updated.IconPath,
-		UsableForStorage:               updated.UsableForStorage,
-		Slug:                           updated.Slug,
-		DisplayInSummaryLists:          updated.DisplayInSummaryLists,
-		IncludeInGeneratedInstructions: updated.IncludeInGeneratedInstructions,
-		Capacity:                       database.StringFromFloat32(updated.Capacity),
-		CapacityUnit:                   database.NullStringFromString(updated.CapacityUnit.ID),
-		WidthInMillimeters:             database.NullStringFromFloat32(updated.WidthInMillimeters),
-		LengthInMillimeters:            database.NullStringFromFloat32(updated.LengthInMillimeters),
-		HeightInMillimeters:            database.NullStringFromFloat32(updated.HeightInMillimeters),
-		Shape:                          generated.VesselShape(updated.Shape),
-		ID:                             updated.ID,
+	if err := q.withEvent(ctx, logger, types.ValidVesselUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidVesselIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateValidVessel(ctx, tx, &generated.UpdateValidVesselParams{
+			Name:                           updated.Name,
+			PluralName:                     updated.PluralName,
+			Description:                    updated.Description,
+			IconPath:                       updated.IconPath,
+			UsableForStorage:               updated.UsableForStorage,
+			Slug:                           updated.Slug,
+			DisplayInSummaryLists:          updated.DisplayInSummaryLists,
+			IncludeInGeneratedInstructions: updated.IncludeInGeneratedInstructions,
+			Capacity:                       database.StringFromFloat32(updated.Capacity),
+			CapacityUnit:                   database.NullStringFromString(updated.CapacityUnit.ID),
+			WidthInMillimeters:             database.NullStringFromFloat32(updated.WidthInMillimeters),
+			LengthInMillimeters:            database.NullStringFromFloat32(updated.LengthInMillimeters),
+			HeightInMillimeters:            database.NullStringFromFloat32(updated.HeightInMillimeters),
+			Shape:                          generated.VesselShape(updated.Shape),
+			ID:                             updated.ID,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid vessel")
 	}
@@ -508,14 +518,18 @@ func (q *repository) ArchiveValidVessel(ctx context.Context, validVesselID strin
 	logger = logger.WithValue(mealplanningkeys.ValidVesselIDKey, validVesselID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, validVesselID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveValidVessel(ctx, q.writeDB, validVesselID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving valid vessel")
-	}
+	return q.withEvent(ctx, logger, types.ValidVesselArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidVesselIDKey: validVesselID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidVessel(ctx, tx, validVesselID)
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid vessel")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	return nil
+		return nil
+	})
 }

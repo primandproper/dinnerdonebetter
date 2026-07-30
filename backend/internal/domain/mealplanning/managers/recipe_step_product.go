@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -59,16 +58,13 @@ func (m *mealPlanningManager) CreateRecipeStepProduct(ctx context.Context, recip
 	logger = logger.WithValue(mealplanningkeys.RecipeStepProductIDKey, convertedInput.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepProductIDKey, convertedInput.ID)
 
-	created, err := m.db.CreateRecipeStepProduct(ctx, convertedInput)
+	created, err := m.db.CreateRecipeStepProduct(ctx, recipeID, convertedInput)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating recipe step product")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeStepProductCreatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:            recipeID,
-		mealplanningkeys.RecipeStepIDKey:        recipeStepID,
-		mealplanningkeys.RecipeStepProductIDKey: convertedInput.ID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return created, nil
 }
@@ -117,15 +113,12 @@ func (m *mealPlanningManager) UpdateRecipeStepProduct(ctx context.Context, recip
 	}
 
 	existingRecipeStepProduct.Update(input)
-	if err = m.db.UpdateRecipeStepProduct(ctx, existingRecipeStepProduct); err != nil {
+	if err = m.db.UpdateRecipeStepProduct(ctx, recipeID, existingRecipeStepProduct); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step product")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeStepProductUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:            recipeID,
-		mealplanningkeys.RecipeStepIDKey:        recipeStepID,
-		mealplanningkeys.RecipeStepProductIDKey: recipeStepProductID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }
@@ -143,15 +136,12 @@ func (m *mealPlanningManager) ArchiveRecipeStepProduct(ctx context.Context, reci
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepProductIDKey, recipeStepProductID)
 
-	if err := m.db.ArchiveRecipeStepProduct(ctx, recipeStepID, recipeStepProductID); err != nil {
+	if err := m.db.ArchiveRecipeStepProduct(ctx, recipeID, recipeStepID, recipeStepProductID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step product")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeStepProductArchivedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:            recipeID,
-		mealplanningkeys.RecipeStepIDKey:        recipeStepID,
-		mealplanningkeys.RecipeStepProductIDKey: recipeStepProductID,
-	}))
+	// The event is enqueued into the outbox by the repository, inside the same transaction
+	// as the write it describes; see internal/repositories/postgres/events.
 
 	return nil
 }

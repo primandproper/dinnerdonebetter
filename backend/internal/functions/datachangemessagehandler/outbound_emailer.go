@@ -9,6 +9,7 @@ import (
 
 	"github.com/primandproper/platform-go/v8/email"
 	"github.com/primandproper/platform-go/v8/observability"
+	"github.com/primandproper/platform-go/v8/retry"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -32,7 +33,10 @@ func (a *AsyncDataChangeMessageHandler) OutboundEmailsEventHandler(topicName str
 		if err := json.NewDecoder(bytes.NewReader(rawMsg)).Decode(&emailMessage); err != nil {
 			a.messageDecodeErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicOutboundEmails)))
 			status = statusFailure
-			return fmt.Errorf("decoding JSON body: %w", err)
+			// Unretryable: a payload that fails to decode will fail to decode on every
+			// remaining attempt, and each of those is latency the healthy messages behind
+			// it spend waiting. Straight to the dead-letter topic.
+			return retry.Unretryable(fmt.Errorf("decoding JSON body: %w", err))
 		}
 
 		if emailMessage.TestID != "" {

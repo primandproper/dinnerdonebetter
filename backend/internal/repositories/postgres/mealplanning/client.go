@@ -1,9 +1,12 @@
 package mealplanning
 
 import (
+	"context"
+
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
 	"github.com/primandproper/platform-go/v8/database"
@@ -23,17 +26,23 @@ type repository struct {
 	generatedQuerier  generated.Querier
 	identityRepo      identity.Repository
 	auditLogEntryRepo audit.Repository
+	events            *events.Emitter
 	readDB            database.SQLQueryExecutor
 	writeDB           database.SQLQueryExecutor
 }
 
 // ProvideMealPlanningRepository provides a new repository.
+//
+// eventEmitter may be nil, in which case no data change events are written to the outbox and
+// the caller is expected to publish them itself — which is what every unconverted method here
+// still does.
 func ProvideMealPlanningRepository(
 	logger logging.Logger,
 	tracerProvider tracing.TracerProvider,
 	auditLogEntryRepo audit.Repository,
 	identityRepo identity.Repository,
 	client database.Client,
+	eventEmitter *events.Emitter,
 ) mealplanning.Repository {
 	c := &repository{
 		Client:            client,
@@ -43,8 +52,31 @@ func ProvideMealPlanningRepository(
 		generatedQuerier:  generated.New(),
 		auditLogEntryRepo: auditLogEntryRepo,
 		identityRepo:      identityRepo,
+		events:            eventEmitter,
 		logger:            logging.NewNamedLogger(logger, o11yName),
 	}
 
 	return c
+}
+
+// withEvent runs a write and the data change event describing it in one transaction, so the
+// event cannot survive a write that rolled back — nor be lost after one that committed.
+//
+// accountID is passed explicitly wherever the repository knows it; see events.Emitter.Emit.
+// The enumeration tables (valid ingredients, vessels, preparations, and friends) are global
+// catalog data owned by no account, so they pass "".
+func (q *repository) withEvent(
+	ctx context.Context,
+	logger logging.Logger,
+	eventType, accountID string,
+	metadata map[string]any,
+	write func(tx database.SQLQueryExecutor) error,
+) error {
+	return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		if err := write(tx); err != nil {
+			return err
+		}
+
+		return q.events.Emit(ctx, tx, logger, eventType, accountID, metadata)
+	})
 }

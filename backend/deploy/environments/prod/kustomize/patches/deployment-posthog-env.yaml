@@ -1,0 +1,10 @@
+# PostHog analytics environment variable for Deployments
+# Applied via JSON patch to inject PostHog API key
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: DINNER_DONE_BETTER_ANALYTICS_POSTHOG_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: api-service-config
+        key: POSTHOG_API_KEY
