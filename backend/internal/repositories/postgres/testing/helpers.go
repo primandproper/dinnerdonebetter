@@ -79,6 +79,10 @@ func splitReverseConcat(input string) string {
 const (
 	defaultPostgresImage = "postgres:17"
 
+	// driverName is the database/sql driver these helpers open pools with. The pgx
+	// stdlib driver is registered by this package's blank import.
+	driverName = "pgx"
+
 	// testOAuth2TokenEncryptionKey is a throwaway key for containers that never
 	// outlive the test that started them.
 	testOAuth2TokenEncryptionKey = "blahblahblahblahblahblahblahblah" /* #nosec G101 */
@@ -122,6 +126,11 @@ func userFromGetUserByIDRow(row *generated.GetUserByIDRow) *identity.User {
 	}
 }
 
+// startupDeadline bounds how long a container has to become ready. It is applied
+// to each sub-strategy individually as well as to the wait as a whole — see
+// waitStrategy for why the latter alone is not enough.
+const startupDeadline = 2 * time.Minute
+
 // waitStrategy is the readiness check every postgres container here is started with.
 //
 // The log line alone is not enough: postgres announces readiness inside the container
@@ -129,10 +138,21 @@ func userFromGetUserByIDRow(row *generated.GetUserByIDRow) *identity.User {
 // starts containers many-at-a-time from parallel subtests. Since pgtest pings the pool as
 // soon as the container reports ready, a log-only strategy loses that race under load and
 // the ping fails with "connection refused". Waiting on the mapped port as well closes it.
+//
+// Every sub-strategy carries its own startup timeout, and the deadline on the
+// enclosing ForAll does not override them: each one falls back to testcontainers'
+// 60s default unless told otherwise. Under a loaded Docker daemon that is the
+// timeout that actually fires, so both are pinned to startupDeadline explicitly.
+// A timeout here is also effectively fatal — containers.StartWithRetry runs on a
+// retry policy that treats a wrapped context.DeadlineExceeded as terminal, so a
+// container that trips this wait gets no second attempt.
 func waitStrategy() testcontainers.ContainerCustomizer {
-	return testcontainers.WithWaitStrategyAndDeadline(2*time.Minute, wait.ForAll(
-		wait.ForLog("database system is ready to accept connections").WithOccurrence(2),
-		wait.ForListeningPort("5432/tcp"),
+	return testcontainers.WithWaitStrategyAndDeadline(startupDeadline, wait.ForAll(
+		wait.ForLog("database system is ready to accept connections").
+			WithOccurrence(2).
+			WithStartupTimeout(startupDeadline),
+		wait.ForListeningPort("5432/tcp").
+			WithStartupTimeout(startupDeadline),
 	))
 }
 
@@ -201,18 +221,21 @@ func BuildDatabaseContainerForTest(t *testing.T) (*sql.DB, *databasecfg.Config) 
 // like localdev that need a database for the lifetime of a process rather than the
 // lifetime of a test. Termination is the caller's responsibility; tests should use
 // BuildDatabaseContainerForTest, which handles it.
-func BuildDatabaseContainer(ctx context.Context, dbName string) (*postgres.PostgresContainer, *sql.DB, *databasecfg.Config, error) {
+//
+// Extra customizers are applied after the defaults, so a caller can override them —
+// RunTestsWithSharedDatabase uses this to raise the server's connection ceiling.
+func BuildDatabaseContainer(ctx context.Context, dbName string, customizers ...testcontainers.ContainerCustomizer) (*postgres.PostgresContainer, *sql.DB, *databasecfg.Config, error) {
 	name, username, password := credentialsFor(dbName)
 
+	options := append([]testcontainers.ContainerCustomizer{
+		postgres.WithDatabase(name),
+		postgres.WithUsername(username),
+		postgres.WithPassword(password),
+		waitStrategy(),
+	}, customizers...)
+
 	container, err := containers.StartWithRetry(ctx, func(ctx context.Context) (*postgres.PostgresContainer, error) {
-		return postgres.Run(
-			ctx,
-			defaultPostgresImage,
-			postgres.WithDatabase(name),
-			postgres.WithUsername(username),
-			postgres.WithPassword(password),
-			waitStrategy(),
-		)
+		return postgres.Run(ctx, defaultPostgresImage, options...)
 	})
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to connect to postgres: %w", err)

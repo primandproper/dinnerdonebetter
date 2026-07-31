@@ -1,6 +1,9 @@
 package mealplanning
 
 import (
+	"context"
+	"database/sql"
+	"os"
 	"testing"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
@@ -28,14 +31,29 @@ const (
 	testDataChangesTopic = "data_changes"
 )
 
+// TestMain starts the one postgres container this package's tests share and migrates
+// the template database each of them is cloned from. This package has by far the most
+// container-backed tests in the repo, and giving each its own container asked the
+// Docker daemon for more instances at once than it would serve — see the commentary on
+// RunTestsWithSharedDatabase.
+func TestMain(m *testing.M) {
+	os.Exit(pgtesting.RunTestsWithSharedDatabase(m, func(ctx context.Context, db *sql.DB) error {
+		migrator, err := migrations.NewMigrator(loggingnoop.NewLogger())
+		if err != nil {
+			return err
+		}
+
+		return migrator.Migrate(ctx, db)
+	}))
+}
+
 func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	t.Helper()
 
 	ctx := t.Context()
-	db, config := pgtesting.BuildDatabaseContainerForTest(t)
-	migrator, err := migrations.NewMigrator(loggingnoop.NewLogger())
-	require.NoError(t, err)
-	require.NoError(t, migrator.Migrate(ctx, db))
+
+	// Already migrated: the template this was cloned from was migrated once in TestMain.
+	_, config := pgtesting.NewIsolatedDatabaseForTest(t)
 
 	pgc, err := postgres.NewDatabaseClient(ctx, config, postgres.WithLogger(loggingnoop.NewLogger()), postgres.WithTracerProvider(tracingnoop.NewTracerProvider()))
 	require.NotNil(t, pgc)
