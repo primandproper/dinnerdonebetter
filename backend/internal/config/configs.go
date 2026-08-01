@@ -19,6 +19,8 @@ import (
 	"github.com/primandproper/platform-go/v8/encoding"
 	featureflagscfg "github.com/primandproper/platform-go/v8/featureflags/config"
 	httpclientcfg "github.com/primandproper/platform-go/v8/httpclient"
+	idempotencycfg "github.com/primandproper/platform-go/v8/idempotency/config"
+	"github.com/primandproper/platform-go/v8/jobs"
 	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	notificationscfg "github.com/primandproper/platform-go/v8/notifications/mobile/config"
 	"github.com/primandproper/platform-go/v8/observability"
@@ -61,14 +63,9 @@ type (
 	configurations interface {
 		APIServiceConfig |
 			DBCleanerConfig |
-			MealPlanFinalizerConfig |
-			MealPlanGroceryListInitializerConfig |
-			MealPlanTaskCreatorConfig |
-			SearchDataIndexSchedulerConfig |
-			MobileNotificationSchedulerConfig |
+			SchedulerConfig |
 			AsyncMessageHandlerConfig |
 			EmailDeliverabilityTestConfig |
-			QueueTestJobConfig |
 			MCPServiceConfig
 	}
 
@@ -93,7 +90,34 @@ type (
 		Auth              authcfg.Config          `envPrefix:"AUTH_"               json:"auth"`
 		Database          databasecfg.Config      `envPrefix:"DATABASE_"           json:"database"`
 		Services          ServicesConfig          `envPrefix:"SERVICE_"            json:"services"`
-		validateServices  bool
+
+		// Idempotency guards the mutations where running the work twice costs real money.
+		// A client that never sees a response and retries is indistinguishable from a
+		// deliberate second purchase unless it supplies a key, so this is opt-in per call:
+		// a request without the idempotency-key metadata passes through untouched.
+		Idempotency IdempotencyConfig `envPrefix:"IDEMPOTENCY_" json:"idempotency"`
+
+		validateServices bool
+	}
+
+	// IdempotencyConfig gates the payment idempotency interceptor on having somewhere real to
+	// keep its records.
+	IdempotencyConfig struct {
+		_ struct{} `json:"-"`
+
+		Manager idempotencycfg.Config `envPrefix:"MANAGER_" json:"manager"`
+
+		// Enabled installs the interceptor.
+		//
+		// It is a flag rather than a derived default because the failure mode of getting
+		// this wrong is silent. The memory cache provider is per-process, so with several
+		// replicas one replica's records are invisible to the others: a retry that lands
+		// elsewhere re-executes, and two concurrent requests can both claim the same key.
+		// That configuration looks like protection and provides none, which is worse than
+		// no interceptor at all — at least an absent interceptor is legible.
+		//
+		// Turn it on only where Manager.Cache names a shared store.
+		Enabled bool `env:"ENABLED" json:"enabled"`
 	}
 
 	// DBCleanerConfig configures an instance of the database cleaner job.
@@ -102,26 +126,6 @@ type (
 
 		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability"`
 		Database      databasecfg.Config   `envPrefix:"DATABASE_"      json:"database"`
-	}
-
-	// SearchDataIndexSchedulerConfig configures an instance of the search data index scheduler job.
-	SearchDataIndexSchedulerConfig struct {
-		_ struct{} `json:"-"`
-
-		Queues        msgconfig.QueuesConfig `envPrefix:"QUEUES_"        json:"queues"`
-		Events        msgconfig.Config       `envPrefix:"EVENTS_"        json:"events"`
-		Observability observability.Config   `envPrefix:"OBSERVABILITY_" json:"observability"`
-		Database      databasecfg.Config     `envPrefix:"DATABASE_"      json:"database"`
-	}
-
-	// MobileNotificationSchedulerConfig configures an instance of the mobile notification scheduler job.
-	MobileNotificationSchedulerConfig struct {
-		_ struct{} `json:"-"`
-
-		Queues        msgconfig.QueuesConfig `envPrefix:"QUEUES_"        json:"queues"`
-		Events        msgconfig.Config       `envPrefix:"EVENTS_"        json:"events"`
-		Observability observability.Config   `envPrefix:"OBSERVABILITY_" json:"observability"`
-		Database      databasecfg.Config     `envPrefix:"DATABASE_"      json:"database"`
 	}
 
 	// AsyncMessageHandlerConfig configures an instance of the search data index scheduler job.
@@ -139,6 +143,26 @@ type (
 		Email             emailcfg.Config         `envPrefix:"EMAIL_"              json:"email"`
 		Search            textsearchcfg.Config    `envPrefix:"SEARCH_"             json:"search"`
 		Database          databasecfg.Config      `envPrefix:"DATABASE_"           json:"database"`
+		Pools             WorkerPoolsConfig       `envPrefix:"POOLS_"              json:"pools"`
+	}
+
+	// WorkerPoolsConfig configures the jobs.Pool draining each queue topic. Topics are not
+	// repeated here: each pool's Topic is filled in from Queues at construction, so a topic
+	// name lives in exactly one place.
+	WorkerPoolsConfig struct {
+		_ struct{} `json:"-"`
+
+		// DeadLetterTopicName is where a message goes once it has exhausted its attempts.
+		// Without it jobs.Pool has no terminal destination and silently drops exhausted
+		// messages, so it is required rather than defaulted.
+		DeadLetterTopicName string `env:"DEAD_LETTER_TOPIC_NAME" json:"deadLetterTopicName"`
+
+		DataChanges              jobs.PoolConfig `envPrefix:"DATA_CHANGES_"               json:"dataChanges"`
+		OutboundEmails           jobs.PoolConfig `envPrefix:"OUTBOUND_EMAILS_"            json:"outboundEmails"`
+		SearchIndexRequests      jobs.PoolConfig `envPrefix:"SEARCH_INDEX_REQUESTS_"      json:"searchIndexRequests"`
+		WebhookExecutionRequests jobs.PoolConfig `envPrefix:"WEBHOOK_EXECUTION_REQUESTS_" json:"webhookExecutionRequests"`
+		UserDataAggregation      jobs.PoolConfig `envPrefix:"USER_DATA_AGGREGATION_"      json:"userDataAggregation"`
+		MobileNotifications      jobs.PoolConfig `envPrefix:"MOBILE_NOTIFICATIONS_"       json:"mobileNotifications"`
 	}
 
 	// EmailDeliverabilityTestConfig configures the email deliverability test cron job.
@@ -149,15 +173,6 @@ type (
 		ServiceEnvironment    string                `env:"SERVICE_ENVIRONMENT"     json:"serviceEnvironment"`
 		Observability         observability.Config  `envPrefix:"OBSERVABILITY_"    json:"observability"`
 		Email                 emailcfg.Config       `envPrefix:"EMAIL_"            json:"email"`
-	}
-
-	// QueueTestJobConfig configures the queue test cron job.
-	QueueTestJobConfig struct {
-		_             struct{}               `json:"-"`
-		Queues        msgconfig.QueuesConfig `envPrefix:"QUEUES_"        json:"queues"`
-		Events        msgconfig.Config       `envPrefix:"EVENTS_"        json:"events"`
-		Observability observability.Config   `envPrefix:"OBSERVABILITY_" json:"observability"`
-		Database      databasecfg.Config     `envPrefix:"DATABASE_"      json:"database"`
 	}
 
 	// MCPServiceConfig configures an instance of the service. It is composed of all the other setting structs.
@@ -215,6 +230,7 @@ func (cfg *APIServiceConfig) ValidateWithContext(ctx context.Context) error {
 		"Email":         cfg.Email.ValidateWithContext,
 		"FeatureFlags":  cfg.FeatureFlags.ValidateWithContext,
 		"TextSearch":    cfg.TextSearch.ValidateWithContext,
+		"Idempotency":   cfg.Idempotency.ValidateWithContext,
 		// no "Events" here, that's a collection of publisher/subscriber configs that can each optionally be setup
 	}
 
@@ -251,46 +267,29 @@ func (cfg *DBCleanerConfig) ValidateWithContext(ctx context.Context) error {
 	return result.ErrorOrNil()
 }
 
-var _ validation.ValidatableWithContext = (*SearchDataIndexSchedulerConfig)(nil)
+var _ validation.ValidatableWithContext = (*IdempotencyConfig)(nil)
 
-// ValidateWithContext validates a SearchDataIndexSchedulerConfig struct.
-func (cfg *SearchDataIndexSchedulerConfig) ValidateWithContext(ctx context.Context) error {
-	result := &multierror.Error{}
-
-	validators := map[string]func(context.Context) error{
-		"Observability": cfg.Observability.ValidateWithContext,
-		"Database":      cfg.Database.ValidateWithContext,
-		"Queues":        cfg.Queues.ValidateWithContext,
+// ValidateWithContext validates an IdempotencyConfig struct. A disabled interceptor is never
+// constructed, so its manager config is not validated.
+func (cfg *IdempotencyConfig) ValidateWithContext(ctx context.Context) error {
+	if !cfg.Enabled {
+		return nil
 	}
 
-	for name, validator := range validators {
-		if err := validator(ctx); err != nil {
-			result = multierror.Append(fmt.Errorf("error validating %s config: %w", name, err), result)
-		}
-	}
-
-	return result.ErrorOrNil()
+	return cfg.Manager.ValidateWithContext(ctx)
 }
 
-var _ validation.ValidatableWithContext = (*MobileNotificationSchedulerConfig)(nil)
+var _ validation.ValidatableWithContext = (*WorkerPoolsConfig)(nil)
 
-// ValidateWithContext validates a MobileNotificationSchedulerConfig struct.
-func (cfg *MobileNotificationSchedulerConfig) ValidateWithContext(ctx context.Context) error {
-	result := &multierror.Error{}
-
-	validators := map[string]func(context.Context) error{
-		"Observability": cfg.Observability.ValidateWithContext,
-		"Database":      cfg.Database.ValidateWithContext,
-		"Queues":        cfg.Queues.ValidateWithContext,
-	}
-
-	for name, validator := range validators {
-		if err := validator(ctx); err != nil {
-			result = multierror.Append(fmt.Errorf("error validating %s config: %w", name, err), result)
-		}
-	}
-
-	return result.ErrorOrNil()
+// ValidateWithContext validates a WorkerPoolsConfig struct.
+//
+// The individual jobs.PoolConfig values are deliberately not validated here: their Topic is
+// filled in from the queues config at construction, so they are still empty at this point and
+// jobs.NewPool validates each one once it is complete.
+func (cfg *WorkerPoolsConfig) ValidateWithContext(ctx context.Context) error {
+	return validation.ValidateStructWithContext(ctx, cfg,
+		validation.Field(&cfg.DeadLetterTopicName, validation.Required),
+	)
 }
 
 var _ validation.ValidatableWithContext = (*AsyncMessageHandlerConfig)(nil)
@@ -307,6 +306,7 @@ func (cfg *AsyncMessageHandlerConfig) ValidateWithContext(ctx context.Context) e
 		"Email":         cfg.Email.ValidateWithContext,
 		"TextSearch":    cfg.Search.ValidateWithContext,
 		"Storage":       cfg.Storage.ValidateWithContext,
+		"Pools":         cfg.Pools.ValidateWithContext,
 	}
 
 	for name, validator := range validators {
@@ -329,27 +329,6 @@ func (cfg *EmailDeliverabilityTestConfig) ValidateWithContext(ctx context.Contex
 		validation.Field(&cfg.Email, validation.Required),
 		validation.Field(&cfg.RecipientEmailAddress, validation.Required),
 	)
-}
-
-var _ validation.ValidatableWithContext = (*QueueTestJobConfig)(nil)
-
-// ValidateWithContext validates a QueueTestJobConfig struct.
-func (cfg *QueueTestJobConfig) ValidateWithContext(ctx context.Context) error {
-	result := &multierror.Error{}
-
-	validators := map[string]func(context.Context) error{
-		"Observability": cfg.Observability.ValidateWithContext,
-		"Database":      cfg.Database.ValidateWithContext,
-		"Queues":        cfg.Queues.ValidateWithContext,
-	}
-
-	for name, validator := range validators {
-		if err := validator(ctx); err != nil {
-			result = multierror.Append(fmt.Errorf("error validating %s config: %w", name, err), result)
-		}
-	}
-
-	return result.ErrorOrNil()
 }
 
 var _ validation.ValidatableWithContext = (*MCPServiceConfig)(nil)

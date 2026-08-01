@@ -198,6 +198,14 @@ func (q *Repository) CreateUserNotification(ctx context.Context, input *types.Us
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, types.UserNotificationCreatedServiceEventType, "", map[string]any{
+			notificationkeys.UserNotificationIDKey: input.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -234,6 +242,14 @@ func (q *Repository) UpdateUserNotification(ctx context.Context, updated *types.
 			BelongsToUser: updated.BelongsToUser,
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, types.UserNotificationUpdatedServiceEventType, "", map[string]any{
+			notificationkeys.UserNotificationIDKey: updated.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		return nil

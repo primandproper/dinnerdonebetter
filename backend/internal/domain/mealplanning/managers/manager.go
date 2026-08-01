@@ -336,7 +336,6 @@ type (
 	mealPlanningManager struct {
 		tracer                           tracing.Tracer
 		logger                           logging.Logger
-		dataChangesPublisher             messagequeue.Publisher
 		db                               types.Repository
 		recipeAnalyzer                   recipeanalysis.RecipeAnalyzer
 		groceryListInitializer           mealPlanGroceryListInitializerWorker
@@ -356,6 +355,10 @@ var (
 	_ MealPlanningManager = (*mealPlanningManager)(nil)
 )
 
+// NewMealPlanningManager returns a new MealPlanningManager.
+//
+// Data change events are enqueued into the outbox by the repository, inside the same
+// transaction as the write they describe; see internal/repositories/postgres/events.
 func NewMealPlanningManager(
 	ctx context.Context,
 	logger logging.Logger,
@@ -369,11 +372,6 @@ func NewMealPlanningManager(
 	groceryListInitializer mealPlanGroceryListInitializerWorker,
 	taskCreator mealPlanTaskCreatorWorker,
 ) (MealPlanningManager, error) {
-	dataChangesPublisher, err := publisherProvider.NewPublisher(ctx, cfg.DataChangesTopicName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to provide publisher for data changes topic: %w", err)
-	}
-
 	mealsSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.MealSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchConfig, eatingindexing.IndexTypeMeals)
 	if err != nil {
 		return nil, observability.PrepareError(err, nil, "initializing meals search index")
@@ -418,7 +416,6 @@ func NewMealPlanningManager(
 		db:                               db,
 		tracer:                           tracing.NewNamedTracer(tracerProvider, mealPlannerName),
 		logger:                           logging.NewNamedLogger(logger, mealPlannerName),
-		dataChangesPublisher:             dataChangesPublisher,
 		recipeAnalyzer:                   recipeAnalyzer,
 		groceryListInitializer:           groceryListInitializer,
 		taskCreator:                      taskCreator,

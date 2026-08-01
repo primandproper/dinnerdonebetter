@@ -303,6 +303,15 @@ func (q *repository) CreateUserIngredientPreference(ctx context.Context, input *
 			output = append(output, x)
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// preferences it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, mealplanning.UserIngredientPreferenceCreatedServiceEventType, "", map[string]any{
+			mealplanningkeys.ValidIngredientGroupIDKey: input.ValidIngredientGroupID,
+			mealplanningkeys.ValidIngredientIDKey:      input.ValidIngredientID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing user ingredient preference created event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -322,13 +331,19 @@ func (q *repository) UpdateUserIngredientPreference(ctx context.Context, updated
 	logger := q.logger.WithValue(mealplanningkeys.UserIngredientPreferenceIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.UserIngredientPreferenceIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateUserIngredientPreference(ctx, q.writeDB, &generated.UpdateUserIngredientPreferenceParams{
-		Ingredient:    updated.Ingredient.ID,
-		Notes:         updated.Notes,
-		ID:            updated.ID,
-		BelongsToUser: updated.CreatedByUser,
-		Rating:        int16(updated.Rating),
-		Allergy:       updated.Allergy,
+	if err := q.withEvent(ctx, logger, mealplanning.UserIngredientPreferenceUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.UserIngredientPreferenceIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateUserIngredientPreference(ctx, tx, &generated.UpdateUserIngredientPreferenceParams{
+			Ingredient:    updated.Ingredient.ID,
+			Notes:         updated.Notes,
+			ID:            updated.ID,
+			BelongsToUser: updated.CreatedByUser,
+			Rating:        int16(updated.Rating),
+			Allergy:       updated.Allergy,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating user ingredient preference")
 	}
@@ -357,16 +372,24 @@ func (q *repository) ArchiveUserIngredientPreference(ctx context.Context, userIn
 	logger = logger.WithValue(mealplanningkeys.UserIngredientPreferenceIDKey, userIngredientPreferenceID)
 	tracing.AttachToSpan(span, mealplanningkeys.UserIngredientPreferenceIDKey, userIngredientPreferenceID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveUserIngredientPreference(ctx, q.writeDB, &generated.ArchiveUserIngredientPreferenceParams{
-		ID:            userIngredientPreferenceID,
-		BelongsToUser: userID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving user ingredient preference")
-	}
+	if err := q.withEvent(ctx, logger, mealplanning.UserIngredientPreferenceArchivedServiceEventType, userID, map[string]any{
+		mealplanningkeys.UserIngredientPreferenceIDKey: userIngredientPreferenceID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveUserIngredientPreference(ctx, tx, &generated.ArchiveUserIngredientPreferenceParams{
+			ID:            userIngredientPreferenceID,
+			BelongsToUser: userID,
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving user ingredient preference")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

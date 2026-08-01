@@ -160,5 +160,80 @@
 		"logQueries": true,
 		"runMigrations": true,
 		"enableDatabaseMetrics": false
+	},
+	"pools": {
+		"deadLetterTopicName": "dead_letter",
+		"dataChanges": {
+			"topic": "",
+			"retry": {
+				"maxAttempts": 3,
+				"initialDelay": 100000000,
+				"maxDelay": 5000000000,
+				"multiplier": 2,
+				"useJitter": true
+			},
+			"concurrency": 16,
+			"handlerTimeout": 30000000000
+		},
+		"outboundEmails": {
+			"topic": "",
+			"retry": {
+				"maxAttempts": 4,
+				"initialDelay": 100000000,
+				"maxDelay": 30000000000,
+				"multiplier": 2,
+				"useJitter": true
+			},
+			"concurrency": 8,
+			"handlerTimeout": 30000000000
+		},
+		"searchIndexRequests": {
+			"topic": "",
+			"retry": {
+				"maxAttempts": 3,
+				"initialDelay": 100000000,
+				"maxDelay": 5000000000,
+				"multiplier": 2,
+				"useJitter": true
+			},
+			"concurrency": 8,
+			"handlerTimeout": 30000000000
+		},
+		"webhookExecutionRequests": {
+			"topic": "",
+			"retry": {
+				"maxAttempts": 4,
+				"initialDelay": 100000000,
+				"maxDelay": 30000000000,
+				"multiplier": 2,
+				"useJitter": true
+			},
+			"concurrency": 16,
+			"handlerTimeout": 30000000000
+		},
+		"userDataAggregation": {
+			"topic": "",
+			"retry": {
+				"maxAttempts": 2,
+				"initialDelay": 100000000,
+				"maxDelay": 5000000000,
+				"multiplier": 2,
+				"useJitter": true
+			},
+			"concurrency": 1,
+			"handlerTimeout": 600000000000
+		},
+		"mobileNotifications": {
+			"topic": "",
+			"retry": {
+				"maxAttempts": 3,
+				"initialDelay": 100000000,
+				"maxDelay": 5000000000,
+				"multiplier": 2,
+				"useJitter": true
+			},
+			"concurrency": 8,
+			"handlerTimeout": 30000000000
+		}
 	}
 }

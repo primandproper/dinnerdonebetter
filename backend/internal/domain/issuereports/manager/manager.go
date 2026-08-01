@@ -2,16 +2,13 @@ package manager
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
 	issuereportkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/keys"
 
 	platformerrors "github.com/primandproper/platform-go/v8/errors"
 	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
+	"github.com/primandproper/platform-go/v8/observability"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/tracing"
 )
@@ -26,31 +23,25 @@ var (
 )
 
 type issueReportsManager struct {
-	tracer               tracing.Tracer
-	logger               logging.Logger
-	repo                 issuereports.Repository
-	dataChangesPublisher messagequeue.Publisher
+	tracer tracing.Tracer
+	logger logging.Logger
+	repo   issuereports.Repository
 }
 
 // NewIssueReportsDataManager returns a new IssueReportsDataManager that wraps the issue reports repository and emits data change events.
+//
+// Data change events are enqueued into the outbox by the repository, inside the same
+// transaction as the write they describe; see internal/repositories/postgres/events.
 func NewIssueReportsDataManager(
 	ctx context.Context,
 	tracerProvider tracing.TracerProvider,
 	logger logging.Logger,
 	repo issuereports.Repository,
-	cfg *msgconfig.QueuesConfig,
-	publisherProvider messagequeue.PublisherProvider,
 ) (IssueReportsDataManager, error) {
-	dataChangesPublisher, err := publisherProvider.NewPublisher(ctx, cfg.DataChangesTopicName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to provide publisher for data changes topic: %w", err)
-	}
-
 	return &issueReportsManager{
-		tracer:               tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:               logging.NewNamedLogger(logger, o11yName),
-		repo:                 repo,
-		dataChangesPublisher: dataChangesPublisher,
+		tracer: tracing.NewNamedTracer(tracerProvider, o11yName),
+		logger: logging.NewNamedLogger(logger, o11yName),
+		repo:   repo,
 	}, nil
 }
 
@@ -92,13 +83,10 @@ func (m *issueReportsManager) CreateIssueReport(ctx context.Context, input *issu
 
 	created, err := m.repo.CreateIssueReport(ctx, input)
 	if err != nil {
-		return nil, err
+		return nil, observability.PrepareAndLogError(err, logger, span, "create issue report")
 	}
 
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, created.ID)
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, issuereports.IssueReportCreatedServiceEventType, map[string]any{
-		issuereportkeys.IssueReportIDKey: created.ID,
-	}))
 
 	return created, nil
 }
@@ -115,12 +103,8 @@ func (m *issueReportsManager) UpdateIssueReport(ctx context.Context, issueReport
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, issueReport.ID)
 
 	if err := m.repo.UpdateIssueReport(ctx, issueReport); err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "update issue report")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, issuereports.IssueReportUpdatedServiceEventType, map[string]any{
-		issuereportkeys.IssueReportIDKey: issueReport.ID,
-	}))
 
 	return nil
 }
@@ -133,12 +117,8 @@ func (m *issueReportsManager) ArchiveIssueReport(ctx context.Context, issueRepor
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, issueReportID)
 
 	if err := m.repo.ArchiveIssueReport(ctx, issueReportID); err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "archive issue report")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, issuereports.IssueReportArchivedServiceEventType, map[string]any{
-		issuereportkeys.IssueReportIDKey: issueReportID,
-	}))
 
 	return nil
 }

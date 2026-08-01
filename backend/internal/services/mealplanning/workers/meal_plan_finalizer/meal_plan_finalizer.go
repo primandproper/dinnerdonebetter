@@ -4,14 +4,11 @@ import (
 	"context"
 	"errors"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	"github.com/primandproper/platform-go/v8/observability"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/metrics"
@@ -31,32 +28,26 @@ type Worker struct {
 	tracer tracing.Tracer
 
 	dataManager             mealplanning.Repository
-	postUpdatesPublisher    messagequeue.Publisher
 	finalizedRecordsCounter metrics.Int64Counter
 }
 
+// NewMealPlanFinalizer builds the worker.
+//
+// It takes no publisher: the finalized event is written into the outbox by the repository,
+// inside the transaction that finalizes the plan.
 func NewMealPlanFinalizer(
-	ctx context.Context,
 	logger logging.Logger,
 	tracerProvider tracing.TracerProvider,
 	dataManager mealplanning.Repository,
-	publisherProvider messagequeue.PublisherProvider,
 	metricsProvider metrics.Provider,
-	cfg *msgconfig.QueuesConfig,
 ) (*Worker, error) {
 	finalizedRecordsCounter, err := metricsProvider.NewInt64Counter("meal_plan_finalizer.finalized_records")
 	if err != nil {
 		return nil, err
 	}
 
-	postUpdatesPublisher, err := publisherProvider.NewPublisher(ctx, cfg.DataChangesTopicName)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Worker{
 		dataManager:             dataManager,
-		postUpdatesPublisher:    postUpdatesPublisher,
 		finalizedRecordsCounter: finalizedRecordsCounter,
 
 		logger: logging.NewNamedLogger(logger, serviceName),
@@ -98,18 +89,6 @@ func (w *Worker) Work(ctx context.Context) (int64, error) {
 
 		if changed {
 			changedCount++
-			// EventType must be set so the async handler routes this to webhooks/notifications/search indexing,
-			// mirroring the manager path (see internal/domain/mealplanning/managers/meal_plan.go).
-			if err = w.postUpdatesPublisher.Publish(ctx, &audit.DataChangeMessage{
-				EventType: mealplanning.MealPlanFinalizedServiceEventType,
-				Context: map[string]any{
-					mealplanningkeys.MealPlanIDKey: mealPlan.ID,
-					"meal_plan":                    mealPlan,
-				},
-				AccountID: mealPlan.BelongsToAccount,
-			}); err != nil {
-				logger.Error("writing data change message for finalized meal plan", err)
-			}
 		}
 	}
 

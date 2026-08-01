@@ -12,9 +12,6 @@ import (
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 
 	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v8/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
 	"github.com/primandproper/platform-go/v8/qrcodes"
@@ -29,27 +26,16 @@ func buildIdentityDataManagerForTest(t *testing.T) *manager {
 	t.Helper()
 
 	ctx := t.Context()
-	queueCfg := &msgconfig.QueuesConfig{
-		DataChangesTopicName: t.Name(),
-	}
-
-	mpp := &mockpublishers.PublisherProviderMock{
-		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
-			return &mockpublishers.PublisherMock{}, nil
-		},
-	}
 
 	m, err := NewIdentityDataManager(
 		ctx,
 		tracingnoop.NewTracerProvider(),
 		loggingnoop.NewLogger(),
-		mpp,
 		&identitymock.RepositoryMock{},
 		&randommock.GeneratorMock{},
 		&mockauthn.AuthenticatorMock{},
 		&mocksearch.IndexMock[identityindexing.UserSearchSubset]{},
 		qrcodes.NewBuilder(qrcodes.Issuer("test"), qrcodes.WithTracerProvider(tracingnoop.NewTracerProvider()), qrcodes.WithLogger(loggingnoop.NewLogger())),
-		queueCfg,
 	)
 	require.NoError(t, err)
 
@@ -91,10 +77,6 @@ func attachMocksToIdentityDataManager(
 		searchIndex = &mocksearch.IndexMock[identityindexing.UserSearchSubset]{}
 	}
 	m.userSearchIndex = searchIndex
-
-	m.dataChangesPublisher = &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
-	}
 }
 
 func TestIdentityDataManager_AcceptAccountInvitation(T *testing.T) {
@@ -403,8 +385,11 @@ func TestIdentityDataManager_CreateUser(T *testing.T) {
 		assert.True(t, strings.HasPrefix(actual.TwoFactorQRCode, "data:image/png;base64,"), "two factor QR code should be a PNG data URI")
 
 		assert.Len(t, db.CreateUserCalls(), 1)
-		assert.Len(t, db.GetDefaultAccountIDForUserCalls(), 1)
-		assert.Len(t, db.GetEmailAddressVerificationTokenForUserCalls(), 1)
+		// The default account ID and verification token are no longer re-fetched here: the
+		// repository names both from inside the transaction that created them, and emits the
+		// signup event there. Two round trips per signup went away with the publish.
+		assert.Empty(t, db.GetDefaultAccountIDForUserCalls())
+		assert.Empty(t, db.GetEmailAddressVerificationTokenForUserCalls())
 		assert.Len(t, secretGenerator.GenerateBase32EncodedStringCalls(), 1)
 		assert.Len(t, authenticator.HashPasswordCalls(), 1)
 	})

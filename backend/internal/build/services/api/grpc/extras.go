@@ -43,6 +43,8 @@ import (
 	webhooksgrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/webhooks/grpc"
 
 	analyticscfg "github.com/primandproper/platform-go/v8/analytics/config"
+	authzgrpc "github.com/primandproper/platform-go/v8/authorization/grpc"
+	"github.com/primandproper/platform-go/v8/database"
 	errorsgrpc "github.com/primandproper/platform-go/v8/errors/grpc"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/metrics"
@@ -96,7 +98,31 @@ func RegisterExtras(i do.Injector) {
 	do.Provide(i, func(i do.Injector) ([]grpc.UnaryServerInterceptor, error) {
 		logger := do.MustInvoke[logging.Logger](i)
 		authInterceptor := do.MustInvoke[*interceptors.AuthInterceptor](i)
-		return BuildUnaryServerInterceptors(logger, authInterceptor), nil
+
+		authzEnforcer, err := ProvideAuthorizationEnforcer(
+			do.MustInvoke[interceptors.MethodPermissionsMap](i),
+			authInterceptor,
+			logger,
+			do.MustInvoke[metrics.Provider](i),
+			auditOnlyAuthorization,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		idempotencyInterceptor, err := ProvideIdempotencyInterceptor(
+			do.MustInvoke[context.Context](i),
+			do.MustInvoke[*config.APIServiceConfig](i),
+			logger,
+			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[metrics.Provider](i),
+			do.MustInvoke[database.Client](i),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return BuildUnaryServerInterceptors(logger, authInterceptor, authzEnforcer, idempotencyInterceptor), nil
 	})
 
 	do.Provide(i, func(i do.Injector) ([]grpc.StreamServerInterceptor, error) {
@@ -187,11 +213,22 @@ func BuildRegistrationFuncs(
 	}
 }
 
-func BuildUnaryServerInterceptors(logger logging.Logger, authInterceptor *interceptors.AuthInterceptor) []grpc.UnaryServerInterceptor {
+func BuildUnaryServerInterceptors(
+	logger logging.Logger,
+	authInterceptor *interceptors.AuthInterceptor,
+	authzEnforcer *authzgrpc.Enforcer,
+	idempotencyInterceptor grpc.UnaryServerInterceptor,
+) []grpc.UnaryServerInterceptor {
 	return []grpc.UnaryServerInterceptor{
 		// recovery must be outermost so it catches panics from downstream interceptors and handlers.
 		RecoveryUnaryServerInterceptor(logger),
 		authInterceptor.UnaryServerInterceptor(),
+		// Runs after the interceptor above so it sees the session that one established.
+		// Both enforce, and they are proven equivalent — see auditOnlyAuthorization.
+		authzEnforcer.UnaryServerInterceptor(),
+		// after auth, because the key is scoped to the authenticated principal, and before the
+		// error encoder, because it records the handler's status code rather than a rendered one.
+		idempotencyInterceptor,
 		errorsgrpc.UnaryErrorEncodingInterceptor(),
 	}
 }

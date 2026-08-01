@@ -142,8 +142,8 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 	}()
 
 	auditRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, client)
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client)
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, client)
+	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, client, nil)
 
 	searchCfg := &textsearchcfg.Config{
 		Provider: searchProvider,

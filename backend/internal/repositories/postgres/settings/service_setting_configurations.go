@@ -443,6 +443,14 @@ func (q *Repository) CreateServiceSettingConfiguration(ctx context.Context, inpu
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, types.ServiceSettingConfigurationCreatedServiceEventType, "", map[string]any{
+			settingskeys.ServiceSettingConfigurationIDKey: input.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -489,6 +497,14 @@ func (q *Repository) UpdateServiceSettingConfiguration(ctx context.Context, upda
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, types.ServiceSettingConfigurationUpdatedServiceEventType, "", map[string]any{
+			settingskeys.ServiceSettingConfigurationIDKey: updated.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return err
@@ -531,6 +547,14 @@ func (q *Repository) ArchiveServiceSettingConfiguration(ctx context.Context, ser
 			EventType:    audit.AuditLogEventTypeArchived,
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, types.ServiceSettingConfigurationArchivedServiceEventType, "", map[string]any{
+			settingskeys.ServiceSettingConfigurationIDKey: serviceSettingConfigurationID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		return nil

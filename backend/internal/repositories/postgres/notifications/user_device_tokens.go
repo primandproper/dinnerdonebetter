@@ -180,14 +180,29 @@ func (q *Repository) UpsertUserDeviceToken(ctx context.Context, input *types.Use
 	tracing.AttachToSpan(span, notificationkeys.UserDeviceTokenIDKey, input.ID)
 	logger := q.logger.WithValue(notificationkeys.UserDeviceTokenIDKey, input.ID)
 
-	result, err := q.generatedQuerier.UpsertUserDeviceToken(ctx, q.writeDB, &generated.UpsertUserDeviceTokenParams{
-		ID:            input.ID,
-		BelongsToUser: input.BelongsToUser,
-		DeviceToken:   input.DeviceToken,
-		Platform:      input.Platform,
-	})
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "performing user device token upsert query")
+	var result *generated.UserDeviceTokens
+
+	// The upsert and its event share a transaction.
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		var upsertErr error
+		if result, upsertErr = q.generatedQuerier.UpsertUserDeviceToken(ctx, tx, &generated.UpsertUserDeviceTokenParams{
+			ID:            input.ID,
+			BelongsToUser: input.BelongsToUser,
+			DeviceToken:   input.DeviceToken,
+			Platform:      input.Platform,
+		}); upsertErr != nil {
+			return observability.PrepareAndLogError(upsertErr, logger, span, "performing user device token upsert query")
+		}
+
+		if emitErr := q.events.Emit(ctx, tx, logger, types.UserDeviceTokenCreatedServiceEventType, "", map[string]any{
+			notificationkeys.UserDeviceTokenIDKey: result.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing user device token created event")
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	x := &types.UserDeviceToken{
@@ -234,6 +249,14 @@ func (q *Repository) UpdateUserDeviceToken(ctx context.Context, updated *types.U
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, types.UserDeviceTokenUpdatedServiceEventType, "", map[string]any{
+			notificationkeys.UserDeviceTokenIDKey: updated.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return err
@@ -277,6 +300,14 @@ func (q *Repository) ArchiveUserDeviceToken(ctx context.Context, userID, tokenID
 			BelongsToUser: userID,
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, types.UserDeviceTokenArchivedServiceEventType, "", map[string]any{
+			notificationkeys.UserDeviceTokenIDKey: tokenID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		return nil

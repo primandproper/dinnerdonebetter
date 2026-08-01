@@ -4,6 +4,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	domainmealplanning "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	"github.com/primandproper/platform-go/v8/database"
 	"github.com/primandproper/platform-go/v8/observability/logging"
@@ -21,6 +22,7 @@ func RegisterMealPlanningRepository(i do.Injector) {
 			do.MustInvoke[audit.Repository](i),
 			do.MustInvoke[identity.Repository](i),
 			do.MustInvoke[database.Client](i),
+			do.MustInvoke[*events.Emitter](i),
 		), nil
 	})
 

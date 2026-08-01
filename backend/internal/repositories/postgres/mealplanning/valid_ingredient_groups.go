@@ -452,11 +452,17 @@ func (q *repository) UpdateValidIngredientGroup(ctx context.Context, updated *me
 	logger := q.logger.WithValue(mealplanningkeys.ValidIngredientGroupIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientGroupIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateValidIngredientGroup(ctx, q.writeDB, &generated.UpdateValidIngredientGroupParams{
-		Name:        updated.Name,
-		Description: updated.Description,
-		Slug:        updated.Slug,
-		ID:          updated.ID,
+	if err := q.withEvent(ctx, logger, mealplanning.ValidIngredientGroupUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidIngredientGroupIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateValidIngredientGroup(ctx, tx, &generated.UpdateValidIngredientGroupParams{
+			Name:        updated.Name,
+			Description: updated.Description,
+			Slug:        updated.Slug,
+			ID:          updated.ID,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid ingredient group")
 	}
@@ -479,14 +485,18 @@ func (q *repository) ArchiveValidIngredientGroup(ctx context.Context, validIngre
 	logger = logger.WithValue(mealplanningkeys.ValidIngredientGroupIDKey, validIngredientGroupID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientGroupIDKey, validIngredientGroupID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveValidIngredientGroup(ctx, q.writeDB, validIngredientGroupID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving valid ingredient group")
-	}
+	return q.withEvent(ctx, logger, mealplanning.ValidIngredientGroupArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidIngredientGroupIDKey: validIngredientGroupID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidIngredientGroup(ctx, tx, validIngredientGroupID)
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid ingredient group")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	return nil
+		return nil
+	})
 }

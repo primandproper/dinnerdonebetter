@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -53,10 +52,6 @@ func (m *mealPlanningManager) CreateValidPrepTaskConfig(ctx context.Context, inp
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid prep task config")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidPrepTaskConfigCreatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidPrepTaskConfigIDKey: created.ID,
-	}))
-
 	return created, nil
 }
 
@@ -96,10 +91,6 @@ func (m *mealPlanningManager) UpdateValidPrepTaskConfig(ctx context.Context, val
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid prep task config")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidPrepTaskConfigUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidPrepTaskConfigIDKey: existingValidPrepTaskConfig.ID,
-	}))
-
 	existingValidPrepTaskConfig, err = m.db.GetValidPrepTaskConfig(ctx, validPrepTaskConfigID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching updated valid prep task config")
@@ -118,10 +109,6 @@ func (m *mealPlanningManager) ArchiveValidPrepTaskConfig(ctx context.Context, va
 	if err := m.db.ArchiveValidPrepTaskConfig(ctx, validPrepTaskConfigID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid prep task config")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidPrepTaskConfigArchivedServiceEventType, map[string]any{
-		mealplanningkeys.ValidPrepTaskConfigIDKey: validPrepTaskConfigID,
-	}))
 
 	return nil
 }

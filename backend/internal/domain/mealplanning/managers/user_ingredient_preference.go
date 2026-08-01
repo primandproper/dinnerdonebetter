@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
@@ -84,12 +83,6 @@ func (m *mealPlanningManager) CreateUserIngredientPreference(ctx context.Context
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating ingredient preference")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.UserIngredientPreferenceCreatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidIngredientGroupIDKey: input.ValidIngredientGroupID,
-		mealplanningkeys.ValidIngredientIDKey:      input.ValidIngredientID,
-		"created":                                  len(created),
-	}))
-
 	return created, nil
 }
 
@@ -118,10 +111,6 @@ func (m *mealPlanningManager) UpdateUserIngredientPreference(ctx context.Context
 		return observability.PrepareAndLogError(err, logger, span, "updating ingredient preference")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.UserIngredientPreferenceUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.UserIngredientPreferenceIDKey: ingredientPreferenceID,
-	}))
-
 	return nil
 }
 
@@ -139,10 +128,6 @@ func (m *mealPlanningManager) ArchiveUserIngredientPreference(ctx context.Contex
 	if err := m.db.ArchiveUserIngredientPreference(ctx, ingredientPreferenceID, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving ingredient preference")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.UserIngredientPreferenceArchivedServiceEventType, map[string]any{
-		mealplanningkeys.UserIngredientPreferenceIDKey: ingredientPreferenceID,
-	}))
 
 	return nil
 }

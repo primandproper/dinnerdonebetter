@@ -505,7 +505,7 @@ func (q *repository) createRecipeStepIngredient(ctx context.Context, db database
 }
 
 // CreateRecipeStepIngredient creates a recipe step ingredient in the database.
-func (q *repository) CreateRecipeStepIngredient(ctx context.Context, input *mealplanning.RecipeStepIngredientDatabaseCreationInput) (*mealplanning.RecipeStepIngredient, error) {
+func (q *repository) CreateRecipeStepIngredient(ctx context.Context, recipeID string, input *mealplanning.RecipeStepIngredientDatabaseCreationInput) (*mealplanning.RecipeStepIngredient, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -524,11 +524,27 @@ func (q *repository) CreateRecipeStepIngredient(ctx context.Context, input *meal
 		return nil, observability.PrepareError(err, span, "validating ingredient dependencies")
 	}
 
-	return q.createRecipeStepIngredient(ctx, q.writeDB, input)
+	var created *mealplanning.RecipeStepIngredient
+
+	// The write and its event share a transaction.
+	if err = q.withEvent(ctx, q.logger, mealplanning.RecipeStepIngredientCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:               recipeID,
+		mealplanningkeys.RecipeStepIDKey:           input.BelongsToRecipeStep,
+		mealplanningkeys.RecipeStepIngredientIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		var createErr error
+		created, createErr = q.createRecipeStepIngredient(ctx, tx, input)
+
+		return createErr
+	}); err != nil {
+		return nil, err
+	}
+
+	return created, nil
 }
 
 // UpdateRecipeStepIngredient updates a particular recipe step ingredient.
-func (q *repository) UpdateRecipeStepIngredient(ctx context.Context, updated *mealplanning.RecipeStepIngredient) error {
+func (q *repository) UpdateRecipeStepIngredient(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepIngredient) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -554,25 +570,33 @@ func (q *repository) UpdateRecipeStepIngredient(ctx context.Context, updated *me
 		ingredientID = &updated.Ingredient.ID
 	}
 
-	if _, err = q.generatedQuerier.UpdateRecipeStepIngredient(ctx, q.writeDB, &generated.UpdateRecipeStepIngredientParams{
-		IngredientID:              database.NullStringFromStringPointer(ingredientID),
-		Name:                      updated.Name,
-		Optional:                  updated.Optional,
-		MeasurementUnit:           database.NullStringFromString(updated.MeasurementUnit.ID),
-		MinimumQuantityValue:      database.StringFromFloat32(updated.MinQuantity),
-		MaximumQuantityValue:      database.NullStringFromFloat32Pointer(updated.MaxQuantity),
-		QuantityNotes:             updated.QuantityNotes,
-		RecipeStepProductID:       database.NullStringFromStringPointer(updated.RecipeStepProductID),
-		IngredientNotes:           updated.IngredientNotes,
-		Index:                     int32(updated.Index),
-		OptionIndex:               int32(updated.OptionIndex),
-		ToTaste:                   updated.ToTaste,
-		ProductPercentageToUse:    database.NullStringFromFloat32Pointer(updated.ProductPercentageToUse),
-		VesselIndex:               database.NullInt32FromUint16Pointer(updated.VesselIndex),
-		RecipeStepProductRecipeID: database.NullStringFromStringPointer(updated.RecipeStepProductRecipeID),
-		BelongsToRecipeStep:       updated.BelongsToRecipeStep,
-		ID:                        updated.ID,
-		ScaleFactor:               database.StringFromFloat32(updated.ScaleFactor),
+	if err = q.withEvent(ctx, logger, mealplanning.RecipeStepIngredientUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:               recipeID,
+		mealplanningkeys.RecipeStepIDKey:           updated.BelongsToRecipeStep,
+		mealplanningkeys.RecipeStepIngredientIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateRecipeStepIngredient(ctx, tx, &generated.UpdateRecipeStepIngredientParams{
+			IngredientID:              database.NullStringFromStringPointer(ingredientID),
+			Name:                      updated.Name,
+			Optional:                  updated.Optional,
+			MeasurementUnit:           database.NullStringFromString(updated.MeasurementUnit.ID),
+			MinimumQuantityValue:      database.StringFromFloat32(updated.MinQuantity),
+			MaximumQuantityValue:      database.NullStringFromFloat32Pointer(updated.MaxQuantity),
+			QuantityNotes:             updated.QuantityNotes,
+			RecipeStepProductID:       database.NullStringFromStringPointer(updated.RecipeStepProductID),
+			IngredientNotes:           updated.IngredientNotes,
+			Index:                     int32(updated.Index),
+			OptionIndex:               int32(updated.OptionIndex),
+			ToTaste:                   updated.ToTaste,
+			ProductPercentageToUse:    database.NullStringFromFloat32Pointer(updated.ProductPercentageToUse),
+			VesselIndex:               database.NullInt32FromUint16Pointer(updated.VesselIndex),
+			RecipeStepProductRecipeID: database.NullStringFromStringPointer(updated.RecipeStepProductRecipeID),
+			BelongsToRecipeStep:       updated.BelongsToRecipeStep,
+			ID:                        updated.ID,
+			ScaleFactor:               database.StringFromFloat32(updated.ScaleFactor),
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step ingredient")
 	}
@@ -583,7 +607,7 @@ func (q *repository) UpdateRecipeStepIngredient(ctx context.Context, updated *me
 }
 
 // ArchiveRecipeStepIngredient archives a recipe step ingredient from the database by its ID.
-func (q *repository) ArchiveRecipeStepIngredient(ctx context.Context, recipeStepID, recipeStepIngredientID string) error {
+func (q *repository) ArchiveRecipeStepIngredient(ctx context.Context, recipeID, recipeStepID, recipeStepIngredientID string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -601,16 +625,26 @@ func (q *repository) ArchiveRecipeStepIngredient(ctx context.Context, recipeStep
 	logger = logger.WithValue(mealplanningkeys.RecipeStepIngredientIDKey, recipeStepIngredientID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIngredientIDKey, recipeStepIngredientID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveRecipeStepIngredient(ctx, q.writeDB, &generated.ArchiveRecipeStepIngredientParams{
-		BelongsToRecipeStep: recipeStepID,
-		ID:                  recipeStepIngredientID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step ingredient")
-	}
+	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepIngredientArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:               recipeID,
+		mealplanningkeys.RecipeStepIDKey:           recipeStepID,
+		mealplanningkeys.RecipeStepIngredientIDKey: recipeStepIngredientID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveRecipeStepIngredient(ctx, tx, &generated.ArchiveRecipeStepIngredientParams{
+			BelongsToRecipeStep: recipeStepID,
+			ID:                  recipeStepIngredientID,
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving recipe step ingredient")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

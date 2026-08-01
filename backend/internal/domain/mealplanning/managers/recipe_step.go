@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -93,11 +92,6 @@ func (m *mealPlanningManager) CreateRecipeStep(ctx context.Context, recipeID str
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating recipe step")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeStepCreatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:     recipeID,
-		mealplanningkeys.RecipeStepIDKey: convertedInput.ID,
-	}))
-
 	return created, nil
 }
 
@@ -145,11 +139,6 @@ func (m *mealPlanningManager) UpdateRecipeStep(ctx context.Context, recipeID, re
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeStepUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:     recipeID,
-		mealplanningkeys.RecipeStepIDKey: recipeStepID,
-	}))
-
 	return nil
 }
 
@@ -167,11 +156,6 @@ func (m *mealPlanningManager) ArchiveRecipeStep(ctx context.Context, recipeID, r
 	if err := m.db.ArchiveRecipeStep(ctx, recipeID, recipeStepID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeStepArchivedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:     recipeID,
-		mealplanningkeys.RecipeStepIDKey: recipeStepID,
-	}))
 
 	return nil
 }

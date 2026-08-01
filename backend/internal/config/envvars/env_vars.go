@@ -370,6 +370,216 @@ const (
 	// HTTPWriteTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.WriteTimeout`.
 	HTTPWriteTimeoutEnvVarKey = "DINNER_DONE_BETTER_HTTP_WRITE_TIMEOUT"
 
+	// IdempotencyEnabledEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Enabled`.
+	IdempotencyEnabledEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_ENABLED"
+
+	// IdempotencyManagerCacheCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.CircuitBreaker.ErrorRate`.
+	IdempotencyManagerCacheCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// IdempotencyManagerCacheCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.CircuitBreaker.MinimumSampleThreshold`.
+	IdempotencyManagerCacheCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// IdempotencyManagerCacheCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.CircuitBreaker.Name`.
+	IdempotencyManagerCacheCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_CIRCUIT_BREAKING_NAME"
+
+	// IdempotencyManagerCacheExpiryEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Expiry`.
+	IdempotencyManagerCacheExpiryEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_EXPIRY"
+
+	// IdempotencyManagerCacheJanitorIntervalEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.JanitorInterval`.
+	IdempotencyManagerCacheJanitorIntervalEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_JANITOR_INTERVAL"
+
+	// IdempotencyManagerCacheProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Provider`.
+	IdempotencyManagerCacheProviderEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_PROVIDER"
+
+	// IdempotencyManagerCacheRedisClusterEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.Cluster`.
+	IdempotencyManagerCacheRedisClusterEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_CLUSTER"
+
+	// IdempotencyManagerCacheRedisNamespaceEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.Namespace`.
+	IdempotencyManagerCacheRedisNamespaceEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_NAMESPACE"
+
+	// IdempotencyManagerCacheRedisPasswordEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.Password`.
+	IdempotencyManagerCacheRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_PASSWORD"
+
+	// IdempotencyManagerCacheRedisQueueAddressesEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.QueueAddresses`.
+	IdempotencyManagerCacheRedisQueueAddressesEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_QUEUE_ADDRESSES"
+
+	// IdempotencyManagerCacheRedisUsernameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.Username`.
+	IdempotencyManagerCacheRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_USERNAME"
+
+	// IdempotencyManagerFailOpenEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.FailOpen`.
+	IdempotencyManagerFailOpenEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_FAIL_OPEN"
+
+	// IdempotencyManagerInFlightTTLEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.InFlightTTL`.
+	IdempotencyManagerInFlightTTLEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_IN_FLIGHT_TTL"
+
+	// IdempotencyManagerKeyPrefixEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.KeyPrefix`.
+	IdempotencyManagerKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_KEY_PREFIX"
+
+	// IdempotencyManagerLockCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.CircuitBreaker.ErrorRate`.
+	IdempotencyManagerLockCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// IdempotencyManagerLockCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.CircuitBreaker.MinimumSampleThreshold`.
+	IdempotencyManagerLockCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// IdempotencyManagerLockCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.CircuitBreaker.Name`.
+	IdempotencyManagerLockCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_CIRCUIT_BREAKING_NAME"
+
+	// IdempotencyManagerLockPostgresConnWaitTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.Postgres.ConnWaitTimeout`.
+	IdempotencyManagerLockPostgresConnWaitTimeoutEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_POSTGRES_CONN_WAIT_TIMEOUT"
+
+	// IdempotencyManagerLockPostgresNamespaceEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.Postgres.Namespace`.
+	IdempotencyManagerLockPostgresNamespaceEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_POSTGRES_NAMESPACE"
+
+	// IdempotencyManagerLockProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.Provider`.
+	IdempotencyManagerLockProviderEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_PROVIDER"
+
+	// IdempotencyManagerLockRedisAddressesEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.Redis.Addresses`.
+	IdempotencyManagerLockRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_REDIS_ADDRESSES"
+
+	// IdempotencyManagerLockRedisKeyPrefixEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.Redis.KeyPrefix`.
+	IdempotencyManagerLockRedisKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_REDIS_KEY_PREFIX"
+
+	// IdempotencyManagerLockRedisPasswordEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.Redis.Password`.
+	IdempotencyManagerLockRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_REDIS_PASSWORD"
+
+	// IdempotencyManagerLockRedisUsernameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Lock.Redis.Username`.
+	IdempotencyManagerLockRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_LOCK_REDIS_USERNAME"
+
+	// IdempotencyManagerMaxKeyLengthEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.MaxKeyLength`.
+	IdempotencyManagerMaxKeyLengthEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_MAX_KEY_LENGTH"
+
+	// IdempotencyManagerTTLEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.TTL`.
+	IdempotencyManagerTTLEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_TTL"
+
+	// JobsLockCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Lock.CircuitBreaker.ErrorRate`.
+	JobsLockCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// JobsLockCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Lock.CircuitBreaker.MinimumSampleThreshold`.
+	JobsLockCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// JobsLockCircuitBreakingNameEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Lock.CircuitBreaker.Name`.
+	JobsLockCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_CIRCUIT_BREAKING_NAME"
+
+	// JobsLockPostgresConnWaitTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Lock.Postgres.ConnWaitTimeout`.
+	JobsLockPostgresConnWaitTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_POSTGRES_CONN_WAIT_TIMEOUT"
+
+	// JobsLockPostgresNamespaceEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Lock.Postgres.Namespace`.
+	JobsLockPostgresNamespaceEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_POSTGRES_NAMESPACE"
+
+	// JobsLockProviderEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Lock.Provider`.
+	JobsLockProviderEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_PROVIDER"
+
+	// JobsLockRedisAddressesEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Lock.Redis.Addresses`.
+	JobsLockRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_REDIS_ADDRESSES"
+
+	// JobsLockRedisKeyPrefixEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Lock.Redis.KeyPrefix`.
+	JobsLockRedisKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_REDIS_KEY_PREFIX"
+
+	// JobsLockRedisPasswordEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Lock.Redis.Password`.
+	JobsLockRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_REDIS_PASSWORD"
+
+	// JobsLockRedisUsernameEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Lock.Redis.Username`.
+	JobsLockRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_REDIS_USERNAME"
+
+	// JobsMealPlanningMealPlanFinalizerEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.Enabled`.
+	JobsMealPlanningMealPlanFinalizerEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_ENABLED"
+
+	// JobsMealPlanningMealPlanFinalizerIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.Interval`.
+	JobsMealPlanningMealPlanFinalizerIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_INTERVAL"
+
+	// JobsMealPlanningMealPlanFinalizerLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.LeaseTTL`.
+	JobsMealPlanningMealPlanFinalizerLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_LEASE_TTL"
+
+	// JobsMealPlanningMealPlanFinalizerRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.RunOnStart`.
+	JobsMealPlanningMealPlanFinalizerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_RUN_ON_START"
+
+	// JobsMealPlanningMealPlanFinalizerTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.Timeout`.
+	JobsMealPlanningMealPlanFinalizerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_TIMEOUT"
+
+	// JobsMealPlanningMealPlanGroceryListInitializerEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.Enabled`.
+	JobsMealPlanningMealPlanGroceryListInitializerEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_ENABLED"
+
+	// JobsMealPlanningMealPlanGroceryListInitializerIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.Interval`.
+	JobsMealPlanningMealPlanGroceryListInitializerIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_INTERVAL"
+
+	// JobsMealPlanningMealPlanGroceryListInitializerLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.LeaseTTL`.
+	JobsMealPlanningMealPlanGroceryListInitializerLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_LEASE_TTL"
+
+	// JobsMealPlanningMealPlanGroceryListInitializerRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.RunOnStart`.
+	JobsMealPlanningMealPlanGroceryListInitializerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_RUN_ON_START"
+
+	// JobsMealPlanningMealPlanGroceryListInitializerTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.Timeout`.
+	JobsMealPlanningMealPlanGroceryListInitializerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_TIMEOUT"
+
+	// JobsMealPlanningMealPlanTaskCreatorEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.Enabled`.
+	JobsMealPlanningMealPlanTaskCreatorEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_ENABLED"
+
+	// JobsMealPlanningMealPlanTaskCreatorIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.Interval`.
+	JobsMealPlanningMealPlanTaskCreatorIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_INTERVAL"
+
+	// JobsMealPlanningMealPlanTaskCreatorLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.LeaseTTL`.
+	JobsMealPlanningMealPlanTaskCreatorLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_LEASE_TTL"
+
+	// JobsMealPlanningMealPlanTaskCreatorRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.RunOnStart`.
+	JobsMealPlanningMealPlanTaskCreatorRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_RUN_ON_START"
+
+	// JobsMealPlanningMealPlanTaskCreatorTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.Timeout`.
+	JobsMealPlanningMealPlanTaskCreatorTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_TIMEOUT"
+
+	// JobsMobileNotificationSchedulerEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MobileNotificationScheduler.Enabled`.
+	JobsMobileNotificationSchedulerEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_ENABLED"
+
+	// JobsMobileNotificationSchedulerIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MobileNotificationScheduler.Interval`.
+	JobsMobileNotificationSchedulerIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_INTERVAL"
+
+	// JobsMobileNotificationSchedulerLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MobileNotificationScheduler.LeaseTTL`.
+	JobsMobileNotificationSchedulerLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_LEASE_TTL"
+
+	// JobsMobileNotificationSchedulerRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MobileNotificationScheduler.RunOnStart`.
+	JobsMobileNotificationSchedulerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_RUN_ON_START"
+
+	// JobsMobileNotificationSchedulerTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MobileNotificationScheduler.Timeout`.
+	JobsMobileNotificationSchedulerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_TIMEOUT"
+
+	// JobsQueueTestEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.QueueTest.Enabled`.
+	JobsQueueTestEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_QUEUE_TEST_ENABLED"
+
+	// JobsQueueTestIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.QueueTest.Interval`.
+	JobsQueueTestIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_QUEUE_TEST_INTERVAL"
+
+	// JobsQueueTestLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.QueueTest.LeaseTTL`.
+	JobsQueueTestLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_QUEUE_TEST_LEASE_TTL"
+
+	// JobsQueueTestRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.QueueTest.RunOnStart`.
+	JobsQueueTestRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_QUEUE_TEST_RUN_ON_START"
+
+	// JobsQueueTestTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.QueueTest.Timeout`.
+	JobsQueueTestTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_QUEUE_TEST_TIMEOUT"
+
+	// JobsSchedulerDefaultLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Scheduler.DefaultLeaseTTL`.
+	JobsSchedulerDefaultLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_DEFAULT_LEASE_TTL"
+
+	// JobsSchedulerDefaultTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Scheduler.DefaultTimeout`.
+	JobsSchedulerDefaultTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_DEFAULT_TIMEOUT"
+
+	// JobsSchedulerLockKeyPrefixEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Scheduler.LockKeyPrefix`.
+	JobsSchedulerLockKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_LOCK_KEY_PREFIX"
+
+	// JobsSearchDataIndexSchedulerEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.SearchDataIndexScheduler.Enabled`.
+	JobsSearchDataIndexSchedulerEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_ENABLED"
+
+	// JobsSearchDataIndexSchedulerIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.SearchDataIndexScheduler.Interval`.
+	JobsSearchDataIndexSchedulerIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_INTERVAL"
+
+	// JobsSearchDataIndexSchedulerLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.SearchDataIndexScheduler.LeaseTTL`.
+	JobsSearchDataIndexSchedulerLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_LEASE_TTL"
+
+	// JobsSearchDataIndexSchedulerRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.SearchDataIndexScheduler.RunOnStart`.
+	JobsSearchDataIndexSchedulerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_RUN_ON_START"
+
+	// JobsSearchDataIndexSchedulerTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.SearchDataIndexScheduler.Timeout`.
+	JobsSearchDataIndexSchedulerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_TIMEOUT"
+
 	// MetaDebugEnvVarKey is the environment variable name to set to override `APIServiceConfig.Meta.Debug`.
 	MetaDebugEnvVarKey = "DINNER_DONE_BETTER_META_DEBUG"
 
@@ -474,6 +684,195 @@ const (
 
 	// ObservabilityTracingSpanCollectionProbabilityEnvVarKey is the environment variable name to set to override `APIServiceConfig.Observability.Tracing.SpanCollectionProbability`.
 	ObservabilityTracingSpanCollectionProbabilityEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_SPAN_COLLECTION_PROBABILITY"
+
+	// OutboxBackoffInitialDelayEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.Backoff.InitialDelay`.
+	OutboxBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_INITIAL_DELAY"
+
+	// OutboxBackoffMaxAttemptsEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.Backoff.MaxAttempts`.
+	OutboxBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_MAX_ATTEMPTS"
+
+	// OutboxBackoffMaxDelayEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.Backoff.MaxDelay`.
+	OutboxBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_MAX_DELAY"
+
+	// OutboxBackoffMultiplierEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.Backoff.Multiplier`.
+	OutboxBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_MULTIPLIER"
+
+	// OutboxBackoffUseJitterEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.Backoff.UseJitter`.
+	OutboxBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_USE_JITTER"
+
+	// OutboxBatchSizeEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.BatchSize`.
+	OutboxBatchSizeEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BATCH_SIZE"
+
+	// OutboxClaimModeEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.ClaimMode`.
+	OutboxClaimModeEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_CLAIM_MODE"
+
+	// OutboxDialectEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.Dialect`.
+	OutboxDialectEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_DIALECT"
+
+	// OutboxLeaseDurationEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.LeaseDuration`.
+	OutboxLeaseDurationEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_LEASE_DURATION"
+
+	// OutboxPollIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.PollInterval`.
+	OutboxPollIntervalEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_POLL_INTERVAL"
+
+	// OutboxReapBatchSizeEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.ReapBatchSize`.
+	OutboxReapBatchSizeEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_REAP_BATCH_SIZE"
+
+	// OutboxReapIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.ReapInterval`.
+	OutboxReapIntervalEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_REAP_INTERVAL"
+
+	// OutboxRetentionEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.Retention`.
+	OutboxRetentionEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RETENTION"
+
+	// OutboxTableNameEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.TableName`.
+	OutboxTableNameEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_TABLE_NAME"
+
+	// PoolsDataChangesConcurrencyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.DataChanges.Concurrency`.
+	PoolsDataChangesConcurrencyEnvVarKey = "DINNER_DONE_BETTER_POOLS_DATA_CHANGES_CONCURRENCY"
+
+	// PoolsDataChangesHandlerTimeoutEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.DataChanges.HandlerTimeout`.
+	PoolsDataChangesHandlerTimeoutEnvVarKey = "DINNER_DONE_BETTER_POOLS_DATA_CHANGES_HANDLER_TIMEOUT"
+
+	// PoolsDataChangesRetryInitialDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.DataChanges.Retry.InitialDelay`.
+	PoolsDataChangesRetryInitialDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_DATA_CHANGES_RETRY_INITIAL_DELAY"
+
+	// PoolsDataChangesRetryMaxAttemptsEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.DataChanges.Retry.MaxAttempts`.
+	PoolsDataChangesRetryMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_POOLS_DATA_CHANGES_RETRY_MAX_ATTEMPTS"
+
+	// PoolsDataChangesRetryMaxDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.DataChanges.Retry.MaxDelay`.
+	PoolsDataChangesRetryMaxDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_DATA_CHANGES_RETRY_MAX_DELAY"
+
+	// PoolsDataChangesRetryMultiplierEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.DataChanges.Retry.Multiplier`.
+	PoolsDataChangesRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_DATA_CHANGES_RETRY_MULTIPLIER"
+
+	// PoolsDataChangesRetryUseJitterEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.DataChanges.Retry.UseJitter`.
+	PoolsDataChangesRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_DATA_CHANGES_RETRY_USE_JITTER"
+
+	// PoolsDataChangesTopicEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.DataChanges.Topic`.
+	PoolsDataChangesTopicEnvVarKey = "DINNER_DONE_BETTER_POOLS_DATA_CHANGES_TOPIC"
+
+	// PoolsDeadLetterTopicNameEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.DeadLetterTopicName`.
+	PoolsDeadLetterTopicNameEnvVarKey = "DINNER_DONE_BETTER_POOLS_DEAD_LETTER_TOPIC_NAME"
+
+	// PoolsMobileNotificationsConcurrencyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.MobileNotifications.Concurrency`.
+	PoolsMobileNotificationsConcurrencyEnvVarKey = "DINNER_DONE_BETTER_POOLS_MOBILE_NOTIFICATIONS_CONCURRENCY"
+
+	// PoolsMobileNotificationsHandlerTimeoutEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.MobileNotifications.HandlerTimeout`.
+	PoolsMobileNotificationsHandlerTimeoutEnvVarKey = "DINNER_DONE_BETTER_POOLS_MOBILE_NOTIFICATIONS_HANDLER_TIMEOUT"
+
+	// PoolsMobileNotificationsRetryInitialDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.MobileNotifications.Retry.InitialDelay`.
+	PoolsMobileNotificationsRetryInitialDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_MOBILE_NOTIFICATIONS_RETRY_INITIAL_DELAY"
+
+	// PoolsMobileNotificationsRetryMaxAttemptsEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.MobileNotifications.Retry.MaxAttempts`.
+	PoolsMobileNotificationsRetryMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_POOLS_MOBILE_NOTIFICATIONS_RETRY_MAX_ATTEMPTS"
+
+	// PoolsMobileNotificationsRetryMaxDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.MobileNotifications.Retry.MaxDelay`.
+	PoolsMobileNotificationsRetryMaxDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_MOBILE_NOTIFICATIONS_RETRY_MAX_DELAY"
+
+	// PoolsMobileNotificationsRetryMultiplierEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.MobileNotifications.Retry.Multiplier`.
+	PoolsMobileNotificationsRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_MOBILE_NOTIFICATIONS_RETRY_MULTIPLIER"
+
+	// PoolsMobileNotificationsRetryUseJitterEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.MobileNotifications.Retry.UseJitter`.
+	PoolsMobileNotificationsRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_MOBILE_NOTIFICATIONS_RETRY_USE_JITTER"
+
+	// PoolsMobileNotificationsTopicEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.MobileNotifications.Topic`.
+	PoolsMobileNotificationsTopicEnvVarKey = "DINNER_DONE_BETTER_POOLS_MOBILE_NOTIFICATIONS_TOPIC"
+
+	// PoolsOutboundEmailsConcurrencyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.OutboundEmails.Concurrency`.
+	PoolsOutboundEmailsConcurrencyEnvVarKey = "DINNER_DONE_BETTER_POOLS_OUTBOUND_EMAILS_CONCURRENCY"
+
+	// PoolsOutboundEmailsHandlerTimeoutEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.OutboundEmails.HandlerTimeout`.
+	PoolsOutboundEmailsHandlerTimeoutEnvVarKey = "DINNER_DONE_BETTER_POOLS_OUTBOUND_EMAILS_HANDLER_TIMEOUT"
+
+	// PoolsOutboundEmailsRetryInitialDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.OutboundEmails.Retry.InitialDelay`.
+	PoolsOutboundEmailsRetryInitialDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_OUTBOUND_EMAILS_RETRY_INITIAL_DELAY"
+
+	// PoolsOutboundEmailsRetryMaxAttemptsEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.OutboundEmails.Retry.MaxAttempts`.
+	PoolsOutboundEmailsRetryMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_POOLS_OUTBOUND_EMAILS_RETRY_MAX_ATTEMPTS"
+
+	// PoolsOutboundEmailsRetryMaxDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.OutboundEmails.Retry.MaxDelay`.
+	PoolsOutboundEmailsRetryMaxDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_OUTBOUND_EMAILS_RETRY_MAX_DELAY"
+
+	// PoolsOutboundEmailsRetryMultiplierEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.OutboundEmails.Retry.Multiplier`.
+	PoolsOutboundEmailsRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_OUTBOUND_EMAILS_RETRY_MULTIPLIER"
+
+	// PoolsOutboundEmailsRetryUseJitterEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.OutboundEmails.Retry.UseJitter`.
+	PoolsOutboundEmailsRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_OUTBOUND_EMAILS_RETRY_USE_JITTER"
+
+	// PoolsOutboundEmailsTopicEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.OutboundEmails.Topic`.
+	PoolsOutboundEmailsTopicEnvVarKey = "DINNER_DONE_BETTER_POOLS_OUTBOUND_EMAILS_TOPIC"
+
+	// PoolsSearchIndexRequestsConcurrencyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.SearchIndexRequests.Concurrency`.
+	PoolsSearchIndexRequestsConcurrencyEnvVarKey = "DINNER_DONE_BETTER_POOLS_SEARCH_INDEX_REQUESTS_CONCURRENCY"
+
+	// PoolsSearchIndexRequestsHandlerTimeoutEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.SearchIndexRequests.HandlerTimeout`.
+	PoolsSearchIndexRequestsHandlerTimeoutEnvVarKey = "DINNER_DONE_BETTER_POOLS_SEARCH_INDEX_REQUESTS_HANDLER_TIMEOUT"
+
+	// PoolsSearchIndexRequestsRetryInitialDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.SearchIndexRequests.Retry.InitialDelay`.
+	PoolsSearchIndexRequestsRetryInitialDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_SEARCH_INDEX_REQUESTS_RETRY_INITIAL_DELAY"
+
+	// PoolsSearchIndexRequestsRetryMaxAttemptsEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.SearchIndexRequests.Retry.MaxAttempts`.
+	PoolsSearchIndexRequestsRetryMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_POOLS_SEARCH_INDEX_REQUESTS_RETRY_MAX_ATTEMPTS"
+
+	// PoolsSearchIndexRequestsRetryMaxDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.SearchIndexRequests.Retry.MaxDelay`.
+	PoolsSearchIndexRequestsRetryMaxDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_SEARCH_INDEX_REQUESTS_RETRY_MAX_DELAY"
+
+	// PoolsSearchIndexRequestsRetryMultiplierEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.SearchIndexRequests.Retry.Multiplier`.
+	PoolsSearchIndexRequestsRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_SEARCH_INDEX_REQUESTS_RETRY_MULTIPLIER"
+
+	// PoolsSearchIndexRequestsRetryUseJitterEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.SearchIndexRequests.Retry.UseJitter`.
+	PoolsSearchIndexRequestsRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_SEARCH_INDEX_REQUESTS_RETRY_USE_JITTER"
+
+	// PoolsSearchIndexRequestsTopicEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.SearchIndexRequests.Topic`.
+	PoolsSearchIndexRequestsTopicEnvVarKey = "DINNER_DONE_BETTER_POOLS_SEARCH_INDEX_REQUESTS_TOPIC"
+
+	// PoolsUserDataAggregationConcurrencyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Concurrency`.
+	PoolsUserDataAggregationConcurrencyEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_CONCURRENCY"
+
+	// PoolsUserDataAggregationHandlerTimeoutEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.HandlerTimeout`.
+	PoolsUserDataAggregationHandlerTimeoutEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_HANDLER_TIMEOUT"
+
+	// PoolsUserDataAggregationRetryInitialDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Retry.InitialDelay`.
+	PoolsUserDataAggregationRetryInitialDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_RETRY_INITIAL_DELAY"
+
+	// PoolsUserDataAggregationRetryMaxAttemptsEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Retry.MaxAttempts`.
+	PoolsUserDataAggregationRetryMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_RETRY_MAX_ATTEMPTS"
+
+	// PoolsUserDataAggregationRetryMaxDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Retry.MaxDelay`.
+	PoolsUserDataAggregationRetryMaxDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_RETRY_MAX_DELAY"
+
+	// PoolsUserDataAggregationRetryMultiplierEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Retry.Multiplier`.
+	PoolsUserDataAggregationRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_RETRY_MULTIPLIER"
+
+	// PoolsUserDataAggregationRetryUseJitterEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Retry.UseJitter`.
+	PoolsUserDataAggregationRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_RETRY_USE_JITTER"
+
+	// PoolsUserDataAggregationTopicEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Topic`.
+	PoolsUserDataAggregationTopicEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_TOPIC"
+
+	// PoolsWebhookExecutionRequestsConcurrencyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Concurrency`.
+	PoolsWebhookExecutionRequestsConcurrencyEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_CONCURRENCY"
+
+	// PoolsWebhookExecutionRequestsHandlerTimeoutEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.HandlerTimeout`.
+	PoolsWebhookExecutionRequestsHandlerTimeoutEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_HANDLER_TIMEOUT"
+
+	// PoolsWebhookExecutionRequestsRetryInitialDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Retry.InitialDelay`.
+	PoolsWebhookExecutionRequestsRetryInitialDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_RETRY_INITIAL_DELAY"
+
+	// PoolsWebhookExecutionRequestsRetryMaxAttemptsEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Retry.MaxAttempts`.
+	PoolsWebhookExecutionRequestsRetryMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_RETRY_MAX_ATTEMPTS"
+
+	// PoolsWebhookExecutionRequestsRetryMaxDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Retry.MaxDelay`.
+	PoolsWebhookExecutionRequestsRetryMaxDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_RETRY_MAX_DELAY"
+
+	// PoolsWebhookExecutionRequestsRetryMultiplierEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Retry.Multiplier`.
+	PoolsWebhookExecutionRequestsRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_RETRY_MULTIPLIER"
+
+	// PoolsWebhookExecutionRequestsRetryUseJitterEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Retry.UseJitter`.
+	PoolsWebhookExecutionRequestsRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_RETRY_USE_JITTER"
+
+	// PoolsWebhookExecutionRequestsTopicEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Topic`.
+	PoolsWebhookExecutionRequestsTopicEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_TOPIC"
 
 	// PushNotificationsApnsAuthKeyPathEnvVarKey is the environment variable name to set to override `APIServiceConfig.PushNotifications.APNs.AuthKeyPath`.
 	PushNotificationsApnsAuthKeyPathEnvVarKey = "DINNER_DONE_BETTER_PUSH_NOTIFICATIONS_APNS_AUTH_KEY_PATH"

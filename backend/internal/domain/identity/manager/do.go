@@ -7,8 +7,6 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/tracing"
 	"github.com/primandproper/platform-go/v8/qrcodes"
@@ -24,13 +22,11 @@ func RegisterIdentityDataManager(i do.Injector) {
 			do.MustInvoke[context.Context](i),
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[messagequeue.PublisherProvider](i),
 			do.MustInvoke[identity.Repository](i),
 			do.MustInvoke[random.Generator](i),
 			do.MustInvoke[authentication.Hasher](i),
 			do.MustInvoke[identityindexing.UserTextSearcher](i),
 			do.MustInvoke[qrcodes.Builder](i),
-			do.MustInvoke[*msgconfig.QueuesConfig](i),
 		)
 	})
 }

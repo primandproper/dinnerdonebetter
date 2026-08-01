@@ -116,8 +116,8 @@ func runImport(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, 
 	}()
 
 	auditRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, client)
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client)
-	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, client)
+	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil)
+	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, client, nil)
 
 	log.Println("Importing base enumerations...")
 	if err = importBaseEnumerations(ctx, repo, &export.Enumerations); err != nil {

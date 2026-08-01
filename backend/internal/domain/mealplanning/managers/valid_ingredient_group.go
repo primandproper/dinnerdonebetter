@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -76,10 +75,6 @@ func (m *mealPlanningManager) CreateValidIngredientGroup(ctx context.Context, in
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid ingredient group")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidIngredientGroupCreatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidIngredientGroupIDKey: created.ID,
-	}))
-
 	return created, nil
 }
 
@@ -119,10 +114,6 @@ func (m *mealPlanningManager) UpdateValidIngredientGroup(ctx context.Context, va
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid ingredient group")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidIngredientGroupUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidIngredientGroupIDKey: existingValidIngredientGroup.ID,
-	}))
-
 	existingValidIngredientGroup, err = m.db.GetValidIngredientGroup(ctx, validIngredientGroupID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching updated valid ingredient group")
@@ -141,10 +132,6 @@ func (m *mealPlanningManager) ArchiveValidIngredientGroup(ctx context.Context, v
 	if err := m.db.ArchiveValidIngredientGroup(ctx, validIngredientGroupID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid ingredient group")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidIngredientGroupArchivedServiceEventType, map[string]any{
-		mealplanningkeys.ValidIngredientGroupIDKey: validIngredientGroupID,
-	}))
 
 	return nil
 }

@@ -171,7 +171,7 @@
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
       "datasource": { "type": "prometheus" },
-      "description": "Round-trip latency for the queue_test cron job. Data appears after each run (every 15m) once the job flushes metrics on exit.",
+      "description": "Round-trip latency for the queue_test job, which runs on a 15m interval inside the scheduler deployment.",
       "fieldConfig": {
         "defaults": {
           "unit": "ms",

@@ -117,9 +117,9 @@ type (
 		RecipeStepVesselExists(ctx context.Context, recipeID, recipeStepID, recipeStepInstrumentID string) (bool, error)
 		GetRecipeStepVessel(ctx context.Context, recipeID, recipeStepID, recipeStepInstrumentID string) (*RecipeStepVessel, error)
 		GetRecipeStepVessels(ctx context.Context, recipeID, recipeStepID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[RecipeStepVessel], error)
-		CreateRecipeStepVessel(ctx context.Context, input *RecipeStepVesselDatabaseCreationInput) (*RecipeStepVessel, error)
-		UpdateRecipeStepVessel(ctx context.Context, updated *RecipeStepVessel) error
-		ArchiveRecipeStepVessel(ctx context.Context, recipeStepID, recipeStepInstrumentID string) error
+		CreateRecipeStepVessel(ctx context.Context, recipeID string, input *RecipeStepVesselDatabaseCreationInput) (*RecipeStepVessel, error)
+		UpdateRecipeStepVessel(ctx context.Context, recipeID string, updated *RecipeStepVessel) error
+		ArchiveRecipeStepVessel(ctx context.Context, recipeID, recipeStepID, recipeStepVesselID string) error
 	}
 )
 

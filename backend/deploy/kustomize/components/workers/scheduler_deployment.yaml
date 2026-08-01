@@ -1,0 +1,60 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dinner-done-better-scheduler-deployment
+  labels:
+    app: dinner-done-better-backend
+    app.kubernetes.io/name: dinner-done-better-backend-services
+spec:
+  progressDeadlineSeconds: 1200
+  selector:
+    matchLabels:
+      app: dinner-done-better-backend
+      app.kubernetes.io/name: dinner-done-better-backend-services
+  # Every replica ticks; the one that wins the distributed lock runs the job and the rest skip,
+  # so this is safe to scale. It is 1 because these jobs are cheap, not because it has to be.
+  replicas: 1
+  strategy:
+    # A job holds its lock for the whole execution, and the lock is a Postgres advisory lock
+    # tied to the connection. Recreate means the outgoing pod's connections are gone before the
+    # incoming pod starts asking for the same locks, rather than the two overlapping.
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: dinner-done-better-backend
+        app.kubernetes.io/name: dinner-done-better-backend-services
+    spec:
+      # Long enough for the longest LeaseTTL-bounded job to finish its current execution;
+      # scheduler.Close stops accepting ticks immediately and waits for what is running.
+      terminationGracePeriodSeconds: 90
+      containers:
+        - name: dinner-done-better-scheduler
+          image: dinner-done-better-scheduler
+          imagePullPolicy: Always
+          env:
+            - name: "CONFIGURATION_FILEPATH"
+              value: "/etc/service-config.json"
+            - name: "RUNNING_IN_KUBERNETES"
+              value: "true"
+            - name: "DINNER_DONE_BETTER_OBSERVABILITY_METRICS_OTEL_SERVICE_NAME"
+              value: "dinner_done_better_scheduler"
+            - name: "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_TRACING_SERVICE_NAME"
+              value: "dinner_done_better_scheduler"
+          volumeMounts:
+            - name: "config"
+              mountPath: "/etc/service-config.json"
+              subPath: "config.json"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: "config"
+          configMap:
+            name: "dinner-done-better-scheduler-config"
+---

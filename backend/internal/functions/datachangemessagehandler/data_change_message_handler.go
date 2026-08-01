@@ -21,10 +21,10 @@ import (
 	"github.com/primandproper/platform-go/v8/analytics"
 	"github.com/primandproper/platform-go/v8/email"
 	"github.com/primandproper/platform-go/v8/encoding"
+	"github.com/primandproper/platform-go/v8/jobs"
 	"github.com/primandproper/platform-go/v8/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	platformnotifications "github.com/primandproper/platform-go/v8/notifications/mobile"
-	"github.com/primandproper/platform-go/v8/observability"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/metrics"
 	"github.com/primandproper/platform-go/v8/observability/tracing"
@@ -59,6 +59,8 @@ type OutboundNotificationHandler func(ctx context.Context, msg *audit.DataChange
 
 var (
 	errRequiredDataIsNil = errors.New("required data is nil")
+
+	errPoolsAlreadyStarted = errors.New("job pools already started")
 )
 
 // AsyncDataChangeMessageHandler is a cross-cutting event router that dispatches domain events to
@@ -98,15 +100,20 @@ type AsyncDataChangeMessageHandler struct {
 	emailsSentCounter                         metrics.Int64Counter
 	emailsFailedCounter                       metrics.Int64Counter
 	mobileNotificationsExecutionTimeHistogram metrics.Float64Histogram
+	tracerProvider                            tracing.TracerProvider
+	metricsProvider                           metrics.Provider
 	mealPlanningDataIndexer                   *mealplanningindexing.MealPlanningDataIndexer
 	userDataIndexer                           *identityindexing.UserDataIndexer
-	searchIndexHandlers                       []SearchIndexEventHandler
-	outboundNotificationHandlers              []OutboundNotificationHandler
+	deadLetter                                jobs.DeadLetterFunc
 	queuesConfig                              msgconfig.QueuesConfig
 	baseURL                                   string
+	searchIndexHandlers                       []SearchIndexEventHandler
+	outboundNotificationHandlers              []OutboundNotificationHandler
+	pools                                     []*jobs.Pool
 	nonWebhookEventTypes                      []string
+	poolsConfig                               config.WorkerPoolsConfig
+	poolsWG                                   sync.WaitGroup
 	nonWebhookEventTypesHat                   sync.RWMutex
-	consumersWG                               sync.WaitGroup
 }
 
 func (a *AsyncDataChangeMessageHandler) SetNonWebhookEventTypes(nonWebhookEventTypes []string) {
@@ -230,9 +237,21 @@ func NewAsyncDataChangeMessageHandler(
 		return nil, fmt.Errorf("configuring mobile notifications publisher: %w", err)
 	}
 
+	// A pool with no dead-letter destination drops exhausted messages, so this is built here
+	// rather than lazily: a broken dead-letter topic should fail startup, not the first
+	// message that needs it.
+	deadLetter, err := jobs.NewTopicDeadLetter(ctx, publisherProvider, cfg.Pools.DeadLetterTopicName)
+	if err != nil {
+		return nil, fmt.Errorf("configuring dead letter publisher: %w", err)
+	}
+
 	handler := &AsyncDataChangeMessageHandler{
 		tracer:                               tracing.NewNamedTracer(tracerProvider, o11yName),
 		logger:                               logging.NewNamedLogger(logger, o11yName),
+		tracerProvider:                       tracerProvider,
+		metricsProvider:                      metricsProvider,
+		poolsConfig:                          cfg.Pools,
+		deadLetter:                           deadLetter,
 		nonWebhookEventTypes:                 []string{},
 		identityRepo:                         identityRepo,
 		dataPrivacyRepo:                      dataPrivacyRepo,
@@ -282,112 +301,4 @@ func NewAsyncDataChangeMessageHandler(
 	}
 
 	return handler, nil
-}
-
-func (a *AsyncDataChangeMessageHandler) ConsumeMessages(
-	ctx context.Context,
-	stopChan chan bool,
-	errorsChan chan error,
-) error {
-	ctx, span := a.tracer.StartSpan(ctx)
-	defer span.End()
-
-	// set up myriad publishers
-
-	dataChangesConsumer, err := a.consumerProvider.NewConsumer(
-		ctx,
-		a.queuesConfig.DataChangesTopicName,
-		a.DataChangesEventHandler(a.queuesConfig.DataChangesTopicName),
-	)
-	if err != nil {
-		return observability.PrepareAndLogError(err, a.logger, span, "configuring data changes consumer")
-	}
-
-	outboundEmailsConsumer, err := a.consumerProvider.NewConsumer(
-		ctx,
-		a.queuesConfig.OutboundEmailsTopicName,
-		a.OutboundEmailsEventHandler(a.queuesConfig.OutboundEmailsTopicName),
-	)
-	if err != nil {
-		return observability.PrepareAndLogError(err, a.logger, span, "configuring outbound emails consumer")
-	}
-
-	searchIndexRequestsConsumer, err := a.consumerProvider.NewConsumer(
-		ctx,
-		a.queuesConfig.SearchIndexRequestsTopicName,
-		a.SearchIndexRequestsEventHandler(a.queuesConfig.SearchIndexRequestsTopicName),
-	)
-	if err != nil {
-		return observability.PrepareAndLogError(err, a.logger, span, "configuring search index requests consumer")
-	}
-
-	webhookExecutionRequestsConsumer, err := a.consumerProvider.NewConsumer(
-		ctx,
-		a.queuesConfig.WebhookExecutionRequestsTopicName,
-		a.WebhookExecutionRequestsEventHandler(a.queuesConfig.WebhookExecutionRequestsTopicName),
-	)
-	if err != nil {
-		return observability.PrepareAndLogError(err, a.logger, span, "configuring webhook execution requests consumer")
-	}
-
-	userDataAggregationConsumer, err := a.consumerProvider.NewConsumer(
-		ctx,
-		a.queuesConfig.UserDataAggregationTopicName,
-		a.UserDataAggregationEventHandler(a.queuesConfig.UserDataAggregationTopicName),
-	)
-	if err != nil {
-		return observability.PrepareAndLogError(err, a.logger, span, "configuring user data aggregation requests consumer")
-	}
-
-	mobileNotificationsConsumer, err := a.consumerProvider.NewConsumer(
-		ctx,
-		a.queuesConfig.MobileNotificationsTopicName,
-		a.MobileNotificationsEventHandler(a.queuesConfig.MobileNotificationsTopicName),
-	)
-	if err != nil {
-		return observability.PrepareAndLogError(err, a.logger, span, "configuring mobile notifications consumer")
-	}
-
-	// Every consumer shares stopChan; callers stop them by closing it (a close broadcasts to all
-	// receivers) rather than sending a single value that only one consumer would receive. The
-	// WaitGroup lets callers wait for in-flight handlers to drain before flushing telemetry and exiting.
-	consumers := []messagequeue.Consumer{
-		dataChangesConsumer,
-		outboundEmailsConsumer,
-		searchIndexRequestsConsumer,
-		webhookExecutionRequestsConsumer,
-		userDataAggregationConsumer,
-		mobileNotificationsConsumer,
-	}
-
-	for _, consumer := range consumers {
-		a.consumersWG.Add(1)
-		go func(c messagequeue.Consumer) {
-			defer a.consumersWG.Done()
-			c.Consume(ctx, stopChan, errorsChan)
-		}(consumer)
-	}
-
-	go func() {
-		for e := range errorsChan {
-			a.logger.Error("consuming message", e)
-		}
-	}()
-
-	return nil
-}
-
-// WaitForConsumers blocks until all consumer goroutines have returned or ctx is done. Consumers return
-// after their in-flight handler completes once the shared stopChan is closed, so this drains gracefully.
-func (a *AsyncDataChangeMessageHandler) WaitForConsumers(ctx context.Context) {
-	done := make(chan struct{})
-	go func() {
-		a.consumersWG.Wait()
-		close(done)
-	}()
-
-	select {
-	case <-done:
-	case <-ctx.Done():
-	}
 }

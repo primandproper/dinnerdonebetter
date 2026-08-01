@@ -380,12 +380,32 @@ func (q *repository) createRecipeStepCompletionConditionIngredient(ctx context.C
 }
 
 // CreateRecipeStepCompletionCondition creates a recipe step completion condition in the database.
-func (q *repository) CreateRecipeStepCompletionCondition(ctx context.Context, input *types.RecipeStepCompletionConditionDatabaseCreationInput) (*types.RecipeStepCompletionCondition, error) {
-	return q.createRecipeStepCompletionCondition(ctx, q.writeDB, input)
+func (q *repository) CreateRecipeStepCompletionCondition(ctx context.Context, recipeID string, input *types.RecipeStepCompletionConditionDatabaseCreationInput) (*types.RecipeStepCompletionCondition, error) {
+	if input == nil {
+		return nil, platformerrors.ErrNilInputProvided
+	}
+
+	var created *types.RecipeStepCompletionCondition
+
+	// The write and its event share a transaction.
+	if err := q.withEvent(ctx, q.logger, types.RecipeStepCompletionConditionCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:                        recipeID,
+		mealplanningkeys.RecipeStepIDKey:                    input.BelongsToRecipeStep,
+		mealplanningkeys.RecipeStepCompletionConditionIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		var createErr error
+		created, createErr = q.createRecipeStepCompletionCondition(ctx, tx, input)
+
+		return createErr
+	}); err != nil {
+		return nil, err
+	}
+
+	return created, nil
 }
 
 // UpdateRecipeStepCompletionCondition updates a particular recipe step completion condition.
-func (q *repository) UpdateRecipeStepCompletionCondition(ctx context.Context, updated *types.RecipeStepCompletionCondition) error {
+func (q *repository) UpdateRecipeStepCompletionCondition(ctx context.Context, recipeID string, updated *types.RecipeStepCompletionCondition) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -395,12 +415,20 @@ func (q *repository) UpdateRecipeStepCompletionCondition(ctx context.Context, up
 	logger := q.logger.WithValue(mealplanningkeys.RecipeStepCompletionConditionIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepCompletionConditionIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateRecipeStepCompletionCondition(ctx, q.writeDB, &generated.UpdateRecipeStepCompletionConditionParams{
-		Optional:            updated.Optional,
-		Notes:               updated.Notes,
-		BelongsToRecipeStep: updated.BelongsToRecipeStep,
-		IngredientState:     updated.IngredientState.ID,
-		ID:                  updated.ID,
+	if err := q.withEvent(ctx, logger, types.RecipeStepCompletionConditionUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:                        recipeID,
+		mealplanningkeys.RecipeStepIDKey:                    updated.BelongsToRecipeStep,
+		mealplanningkeys.RecipeStepCompletionConditionIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateRecipeStepCompletionCondition(ctx, tx, &generated.UpdateRecipeStepCompletionConditionParams{
+			Optional:            updated.Optional,
+			Notes:               updated.Notes,
+			BelongsToRecipeStep: updated.BelongsToRecipeStep,
+			IngredientState:     updated.IngredientState.ID,
+			ID:                  updated.ID,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step completion condition")
 	}
@@ -411,7 +439,7 @@ func (q *repository) UpdateRecipeStepCompletionCondition(ctx context.Context, up
 }
 
 // ArchiveRecipeStepCompletionCondition archives a recipe step completion condition from the database by its ID.
-func (q *repository) ArchiveRecipeStepCompletionCondition(ctx context.Context, recipeStepID, recipeStepCompletionConditionID string) error {
+func (q *repository) ArchiveRecipeStepCompletionCondition(ctx context.Context, recipeID, recipeStepID, recipeStepCompletionConditionID string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -429,16 +457,26 @@ func (q *repository) ArchiveRecipeStepCompletionCondition(ctx context.Context, r
 	logger = logger.WithValue(mealplanningkeys.RecipeStepCompletionConditionIDKey, recipeStepCompletionConditionID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepCompletionConditionIDKey, recipeStepCompletionConditionID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveRecipeStepCompletionCondition(ctx, q.writeDB, &generated.ArchiveRecipeStepCompletionConditionParams{
-		BelongsToRecipeStep: recipeStepID,
-		ID:                  recipeStepCompletionConditionID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating recipe step completion condition")
-	}
+	if err := q.withEvent(ctx, logger, types.RecipeStepCompletionConditionArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:                        recipeID,
+		mealplanningkeys.RecipeStepIDKey:                    recipeStepID,
+		mealplanningkeys.RecipeStepCompletionConditionIDKey: recipeStepCompletionConditionID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveRecipeStepCompletionCondition(ctx, tx, &generated.ArchiveRecipeStepCompletionConditionParams{
+			BelongsToRecipeStep: recipeStepID,
+			ID:                  recipeStepCompletionConditionID,
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "updating recipe step completion condition")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

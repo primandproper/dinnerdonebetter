@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
@@ -73,10 +72,6 @@ func (m *mealPlanningManager) CreateMealPlanOption(ctx context.Context, input *t
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating selections for meal plan option")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanOptionCreatedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanOptionIDKey: convertedInput.ID,
-	}))
-
 	return created, nil
 }
 
@@ -139,10 +134,6 @@ func (m *mealPlanningManager) CreateMealPlanOptionWithEventID(ctx context.Contex
 	if err = m.createSelectionsForNewOption(ctx, created.ID, input.Selections); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating selections for meal plan option")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanOptionCreatedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanOptionIDKey: convertedInput.ID,
-	}))
 
 	return created, nil
 }
@@ -218,12 +209,6 @@ func (m *mealPlanningManager) UpdateMealPlanOption(ctx context.Context, mealPlan
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan option")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanOptionUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanIDKey:       mealPlanID,
-		mealplanningkeys.MealPlanEventIDKey:  mealPlanEventID,
-		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
-	}))
-
 	return nil
 }
 
@@ -243,12 +228,6 @@ func (m *mealPlanningManager) ArchiveMealPlanOption(ctx context.Context, mealPla
 	if err := m.db.ArchiveMealPlanOption(ctx, mealPlanID, mealPlanEventID, mealPlanOptionID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan option")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.MealPlanOptionArchivedServiceEventType, map[string]any{
-		mealplanningkeys.MealPlanIDKey:       mealPlanID,
-		mealplanningkeys.MealPlanEventIDKey:  mealPlanEventID,
-		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
-	}))
 
 	return nil
 }

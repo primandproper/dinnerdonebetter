@@ -2,6 +2,7 @@ package settings
 
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/settings/generated"
 
 	"github.com/primandproper/platform-go/v8/database"
@@ -20,6 +21,7 @@ type Repository struct {
 	logger            logging.Logger
 	generatedQuerier  generated.Querier
 	auditLogEntryRepo audit.Repository
+	events            *events.Emitter
 	readDB            database.SQLQueryExecutor
 	writeDB           database.SQLQueryExecutor
 	database.Client
@@ -31,6 +33,7 @@ func ProvideSettingsRepository(
 	tracerProvider tracing.TracerProvider,
 	auditLogEntryRepo audit.Repository,
 	client database.Client,
+	eventEmitter *events.Emitter,
 ) *Repository {
 	c := &Repository{
 		Client:            client,
@@ -39,6 +42,7 @@ func ProvideSettingsRepository(
 		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
 		generatedQuerier:  generated.New(),
 		auditLogEntryRepo: auditLogEntryRepo,
+		events:            eventEmitter,
 		logger:            logging.NewNamedLogger(logger, o11yName),
 	}
 

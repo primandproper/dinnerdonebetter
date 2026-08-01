@@ -61,7 +61,7 @@ profiles:
             main: ./cmd/workers/email_deliverability_test
             fromImage: golang:1.26-trixie
 
-        - image: dinner-done-better-job-queue-test
+        - image: dinner-done-better-scheduler
           ko:
             dir: .
             flags:
@@ -73,82 +73,7 @@ profiles:
               - -X github.com/primandproper/platform-go/v2/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
               - -X github.com/primandproper/platform-go/v2/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
               - -X github.com/primandproper/platform-go/v2/version.Version={{ default "dev" .VERSION }}
-            main: ./cmd/workers/queue_test
-            fromImage: golang:1.26-trixie
-
-        - image: dinner-done-better-job-meal-plan-finalizer
-          ko:
-            dir: .
-            flags:
-              - -trimpath
-            ldflags:
-              - -s -w
-              - -extldflags "-static"
-              - -X github.com/primandproper/platform-go/v2/version.CommitHash={{ trim (cmd "bash" "-c" "git rev-parse HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.Version={{ default "dev" .VERSION }}
-            main: ./cmd/workers/meal_plan_finalizer
-            fromImage: golang:1.26-trixie
-
-        - image: dinner-done-better-job-meal-plan-grocery-list-init
-          ko:
-            dir: .
-            flags:
-              - -trimpath
-            ldflags:
-              - -s -w
-              - -extldflags "-static"
-              - -X github.com/primandproper/platform-go/v2/version.CommitHash={{ trim (cmd "bash" "-c" "git rev-parse HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.Version={{ default "dev" .VERSION }}
-            main: ./cmd/workers/meal_plan_grocery_list_initializer
-            fromImage: golang:1.26-trixie
-
-        - image: dinner-done-better-job-meal-plan-task-creator
-          ko:
-            dir: .
-            flags:
-              - -trimpath
-            ldflags:
-              - -s -w
-              - -extldflags "-static"
-              - -X github.com/primandproper/platform-go/v2/version.CommitHash={{ trim (cmd "bash" "-c" "git rev-parse HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.Version={{ default "dev" .VERSION }}
-            main: ./cmd/workers/meal_plan_task_creator
-            fromImage: golang:1.26-trixie
-
-        - image: dinner-done-better-job-search-data-index-scheduler
-          ko:
-            dir: .
-            flags:
-              - -trimpath
-            ldflags:
-              - -s -w
-              - -extldflags "-static"
-              - -X github.com/primandproper/platform-go/v2/version.CommitHash={{ trim (cmd "bash" "-c" "git rev-parse HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.Version={{ default "dev" .VERSION }}
-            main: ./cmd/workers/search_data_index_scheduler
-            fromImage: golang:1.26-trixie
-
-        - image: dinner-done-better-job-mobile-notification-scheduler
-          ko:
-            dir: .
-            flags:
-              - -trimpath
-            ldflags:
-              - -s -w
-              - -extldflags "-static"
-              - -X github.com/primandproper/platform-go/v2/version.CommitHash={{ trim (cmd "bash" "-c" "git rev-parse HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.Version={{ default "dev" .VERSION }}
-            main: ./cmd/workers/mobile_notification_scheduler
+            main: ./cmd/workers/scheduler
             fromImage: golang:1.26-trixie
 
         - image: dinner-done-better-mcp-server
@@ -233,7 +158,7 @@ profiles:
             main: ./cmd/workers/email_deliverability_test
             fromImage: golang:1.26-trixie
 
-        - image: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-queue-test
+        - image: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-scheduler
           ko:
             dir: .
             flags:
@@ -245,82 +170,7 @@ profiles:
               - -X github.com/primandproper/platform-go/v2/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
               - -X github.com/primandproper/platform-go/v2/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
               - -X github.com/primandproper/platform-go/v2/version.Version={{ default "dev" .VERSION }}
-            main: ./cmd/workers/queue_test
-            fromImage: golang:1.26-trixie
-
-        - image: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-meal-plan-finalizer
-          ko:
-            dir: .
-            flags:
-              - -trimpath
-            ldflags:
-              - -s -w
-              - -extldflags "-static"
-              - -X github.com/primandproper/platform-go/v2/version.CommitHash={{ trim (cmd "bash" "-c" "git rev-parse HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.Version={{ default "dev" .VERSION }}
-            main: ./cmd/workers/meal_plan_finalizer
-            fromImage: golang:1.26-trixie
-
-        - image: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-meal-plan-grocery-list-init
-          ko:
-            dir: .
-            flags:
-              - -trimpath
-            ldflags:
-              - -s -w
-              - -extldflags "-static"
-              - -X github.com/primandproper/platform-go/v2/version.CommitHash={{ trim (cmd "bash" "-c" "git rev-parse HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.Version={{ default "dev" .VERSION }}
-            main: ./cmd/workers/meal_plan_grocery_list_initializer
-            fromImage: golang:1.26-trixie
-
-        - image: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-meal-plan-task-creator
-          ko:
-            dir: .
-            flags:
-              - -trimpath
-            ldflags:
-              - -s -w
-              - -extldflags "-static"
-              - -X github.com/primandproper/platform-go/v2/version.CommitHash={{ trim (cmd "bash" "-c" "git rev-parse HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.Version={{ default "dev" .VERSION }}
-            main: ./cmd/workers/meal_plan_task_creator
-            fromImage: golang:1.26-trixie
-
-        - image: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-search-data-index-scheduler
-          ko:
-            dir: .
-            flags:
-              - -trimpath
-            ldflags:
-              - -s -w
-              - -extldflags "-static"
-              - -X github.com/primandproper/platform-go/v2/version.CommitHash={{ trim (cmd "bash" "-c" "git rev-parse HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.Version={{ default "dev" .VERSION }}
-            main: ./cmd/workers/search_data_index_scheduler
-            fromImage: golang:1.26-trixie
-
-        - image: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-mobile-notification-scheduler
-          ko:
-            dir: .
-            flags:
-              - -trimpath
-            ldflags:
-              - -s -w
-              - -extldflags "-static"
-              - -X github.com/primandproper/platform-go/v2/version.CommitHash={{ trim (cmd "bash" "-c" "git rev-parse HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v2/version.Version={{ default "dev" .VERSION }}
-            main: ./cmd/workers/mobile_notification_scheduler
+            main: ./cmd/workers/scheduler
             fromImage: golang:1.26-trixie
 
         - image: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-async-message-handler

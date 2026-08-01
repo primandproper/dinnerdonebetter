@@ -67,7 +67,7 @@ func TestRecipeManager_CreateRecipeStepVessel(T *testing.T) {
 
 				return fakeValidPreparationVessel, nil
 			},
-			CreateRecipeStepVesselFunc: func(_ context.Context, _ *types.RecipeStepVesselDatabaseCreationInput) (*types.RecipeStepVessel, error) {
+			CreateRecipeStepVesselFunc: func(_ context.Context, _ string, _ *types.RecipeStepVesselDatabaseCreationInput) (*types.RecipeStepVessel, error) {
 				return expected, nil
 			},
 		}
@@ -136,7 +136,7 @@ func TestRecipeManager_UpdateRecipeStepVessel(T *testing.T) {
 
 				return exampleRecipeStepVessel, nil
 			},
-			UpdateRecipeStepVesselFunc: func(_ context.Context, _ *types.RecipeStepVessel) error {
+			UpdateRecipeStepVesselFunc: func(_ context.Context, _ string, _ *types.RecipeStepVessel) error {
 				return nil
 			},
 		}
@@ -163,7 +163,7 @@ func TestRecipeManager_ArchiveRecipeStepVessel(T *testing.T) {
 		expected := fakes.BuildFakeRecipeStepVessel()
 
 		db := &mealplanningmock.RepositoryMock{
-			ArchiveRecipeStepVesselFunc: func(_ context.Context, recipeStepID string, recipeStepInstrumentID string) error {
+			ArchiveRecipeStepVesselFunc: func(_ context.Context, _ string, recipeStepID string, recipeStepInstrumentID string) error {
 				assert.Equal(t, exampleRecipeStepID, recipeStepID)
 				assert.Equal(t, expected.ID, recipeStepInstrumentID)
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -122,10 +121,6 @@ func (m *mealPlanningManager) CreateValidIngredient(ctx context.Context, input *
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid ingredient")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidIngredientCreatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidIngredientIDKey: created.ID,
-	}))
-
 	return created, nil
 }
 
@@ -187,10 +182,6 @@ func (m *mealPlanningManager) UpdateValidIngredient(ctx context.Context, validIn
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid ingredient")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidIngredientUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidIngredientIDKey: existingValidIngredient.ID,
-	}))
-
 	existingValidIngredient, err = m.db.GetValidIngredient(ctx, validIngredientID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching updated valid ingredient")
@@ -211,10 +202,6 @@ func (m *mealPlanningManager) ArchiveValidIngredient(ctx context.Context, validI
 	if err := m.db.ArchiveValidIngredient(ctx, validIngredientID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid ingredient")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidIngredientArchivedServiceEventType, map[string]any{
-		mealplanningkeys.ValidIngredientIDKey: validIngredientID,
-	}))
 
 	return nil
 }

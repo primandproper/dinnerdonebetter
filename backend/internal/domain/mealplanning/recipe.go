@@ -87,6 +87,11 @@ type (
 	RecipeDatabaseCreationInput struct {
 		_ struct{} `json:"-"`
 
+		// ClonedFromRecipeID names the recipe this one was copied from, when it was. It
+		// exists so CreateRecipe can emit the cloned event inside the transaction that
+		// writes the clone — a clone is one write, and the fact that it is a clone should
+		// not be announced separately from it.
+		ClonedFromRecipeID   *string                                `json:"-"`
 		InspiredByRecipeID   *string                                `json:"-"`
 		MaxEstimatedPortions *float32                               `json:"-"`
 		CreatedByUser        string                                 `json:"-"`

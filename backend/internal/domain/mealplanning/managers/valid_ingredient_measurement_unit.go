@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -53,10 +52,6 @@ func (m *mealPlanningManager) CreateValidIngredientMeasurementUnit(ctx context.C
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid ingredient measurement unit")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidIngredientMeasurementUnitCreatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidIngredientMeasurementUnitIDKey: created.ID,
-	}))
-
 	return created, nil
 }
 
@@ -96,10 +91,6 @@ func (m *mealPlanningManager) UpdateValidIngredientMeasurementUnit(ctx context.C
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid ingredient measurement unit")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidIngredientMeasurementUnitUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidIngredientMeasurementUnitIDKey: existingValidIngredientMeasurementUnit.ID,
-	}))
-
 	existingValidIngredientMeasurementUnit, err = m.db.GetValidIngredientMeasurementUnit(ctx, validIngredientMeasurementUnitID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching updated valid ingredient measurement unit")
@@ -118,10 +109,6 @@ func (m *mealPlanningManager) ArchiveValidIngredientMeasurementUnit(ctx context.
 	if err := m.db.ArchiveValidIngredientMeasurementUnit(ctx, validIngredientMeasurementUnitID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid ingredient measurement unit")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidIngredientMeasurementUnitArchivedServiceEventType, map[string]any{
-		mealplanningkeys.ValidIngredientMeasurementUnitIDKey: validIngredientMeasurementUnitID,
-	}))
 
 	return nil
 }

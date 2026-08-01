@@ -1,6 +1,9 @@
 package identity
 
 import (
+	"context"
+	"database/sql"
+	"os"
 	"testing"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
@@ -51,14 +54,28 @@ func buildMockSQLTestClient(t *testing.T) (*repository, *sqlmockExpecterWrapper)
 	return c, &sqlmockExpecterWrapper{Sqlmock: sqlMock}
 }
 
+// TestMain starts the one postgres container this package's tests share and migrates
+// the template database each of them is cloned from, so that a test costs a database
+// clone rather than a container start plus a migration replay. See
+// pgtesting.RunTestsWithSharedDatabase.
+func TestMain(m *testing.M) {
+	os.Exit(pgtesting.RunTestsWithSharedDatabase(m, func(ctx context.Context, db *sql.DB) error {
+		migrator, err := migrations.NewMigrator(loggingnoop.NewLogger())
+		if err != nil {
+			return err
+		}
+
+		return migrator.Migrate(ctx, db)
+	}))
+}
+
 func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	t.Helper()
 
 	ctx := t.Context()
-	db, config := pgtesting.BuildDatabaseContainerForTest(t)
-	migrator, err := migrations.NewMigrator(loggingnoop.NewLogger())
-	require.NoError(t, err)
-	require.NoError(t, migrator.Migrate(ctx, db))
+
+	// Already migrated: the template this was cloned from was migrated once in TestMain.
+	_, config := pgtesting.NewIsolatedDatabaseForTest(t)
 
 	pgc, err := postgres.NewDatabaseClient(ctx, config, postgres.WithLogger(loggingnoop.NewLogger()), postgres.WithTracerProvider(tracingnoop.NewTracerProvider()))
 	require.NotNil(t, pgc)
@@ -66,7 +83,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 
 	auditLogRepo := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
 
-	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, pgc)
+	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, pgc, nil)
 	require.NoError(t, err)
 
 	return c.(*repository), auditLogRepo
@@ -75,7 +92,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
+	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil)
 
 	return c.(*repository)
 }

@@ -3,11 +3,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+  # Interval-shaped periodic work runs inside one long-lived process; see scheduler_deployment.yaml.
+  - scheduler_deployment.yaml
+  # Calendar-shaped work stays a CronJob: jobs.Scheduler takes intervals, not cron expressions,
+  # and an interval that starts whenever the pod last restarted is not a wall-clock time.
   - db_cleaner_cronjob.yaml
   - email_deliverability_test_cronjob.yaml
-  - queue_test_cronjob.yaml
-  - meal_plan_finalizer_cronjob.yaml
-  - meal_plan_grocery_list_initializer_cronjob.yaml
-  - meal_plan_task_creator_cronjob.yaml
-  - search_data_index_scheduler_cronjob.yaml
-  - mobile_notification_scheduler_cronjob.yaml

@@ -8,9 +8,6 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/fakes"
 	commentsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/mock"
 
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v8/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
 
@@ -22,38 +19,21 @@ func buildCommentsManagerForTest(t *testing.T) *commentsManager {
 	t.Helper()
 
 	ctx := t.Context()
-	queueCfg := &msgconfig.QueuesConfig{
-		DataChangesTopicName: t.Name(),
-	}
-
-	mpp := &mockpublishers.PublisherProviderMock{
-		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
-			return &mockpublishers.PublisherMock{
-				PublishAsyncFunc: func(_ context.Context, _ any) {},
-			}, nil
-		},
-	}
 
 	m, err := NewCommentsDataManager(
 		ctx,
 		tracingnoop.NewTracerProvider(),
 		loggingnoop.NewLogger(),
 		&commentsmock.RepositoryMock{},
-		queueCfg,
-		mpp,
 	)
 	require.NoError(t, err)
 
 	return m.(*commentsManager)
 }
 
-// attachRepositoryToCommentsManager wires a configured repository mock and a no-op data changes
-// publisher into the manager under test.
+// attachRepositoryToCommentsManager wires a configured repository mock into the manager under test.
 func attachRepositoryToCommentsManager(manager *commentsManager, repo *commentsmock.RepositoryMock) {
 	manager.repo = repo
-	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
-	}
 }
 
 func TestCommentsManager_CreateComment(t *testing.T) {

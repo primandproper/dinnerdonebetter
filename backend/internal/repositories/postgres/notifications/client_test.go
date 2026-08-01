@@ -1,6 +1,9 @@
 package notifications
 
 import (
+	"context"
+	"database/sql"
+	"os"
 	"testing"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
@@ -22,14 +25,28 @@ const (
 	exampleQuantity = 3
 )
 
+// TestMain starts the one postgres container this package's tests share and migrates
+// the template database each of them is cloned from, so that a test costs a database
+// clone rather than a container start plus a migration replay. See
+// pgtesting.RunTestsWithSharedDatabase.
+func TestMain(m *testing.M) {
+	os.Exit(pgtesting.RunTestsWithSharedDatabase(m, func(ctx context.Context, db *sql.DB) error {
+		migrator, err := migrations.NewMigrator(loggingnoop.NewLogger())
+		if err != nil {
+			return err
+		}
+
+		return migrator.Migrate(ctx, db)
+	}))
+}
+
 func buildDatabaseClientForTest(t *testing.T) (c *Repository, auditLogEntryRepo audit.Repository) {
 	t.Helper()
 
 	ctx := t.Context()
-	db, config := pgtesting.BuildDatabaseContainerForTest(t)
-	migrator, err := migrations.NewMigrator(loggingnoop.NewLogger())
-	require.NoError(t, err)
-	require.NoError(t, migrator.Migrate(ctx, db))
+
+	// Already migrated: the template this was cloned from was migrated once in TestMain.
+	_, config := pgtesting.NewIsolatedDatabaseForTest(t)
 
 	pgc, err := postgres.NewDatabaseClient(ctx, config, postgres.WithLogger(loggingnoop.NewLogger()), postgres.WithTracerProvider(tracingnoop.NewTracerProvider()))
 	require.NotNil(t, pgc)
@@ -37,7 +54,7 @@ func buildDatabaseClientForTest(t *testing.T) (c *Repository, auditLogEntryRepo 
 
 	auditLogEntryRepo = auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
 
-	c = ProvideNotificationsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, config, pgc)
+	c = ProvideNotificationsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, config, pgc, nil)
 
 	return c, auditLogEntryRepo
 }
@@ -46,7 +63,7 @@ func buildInertClientForTest(t *testing.T) *Repository {
 	t.Helper()
 
 	cfg := &databasecfg.Config{}
-	c := ProvideNotificationsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, cfg, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
+	c := ProvideNotificationsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, cfg, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil)
 
 	return c
 }

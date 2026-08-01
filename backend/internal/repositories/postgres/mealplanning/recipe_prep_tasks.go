@@ -200,6 +200,15 @@ func (q *repository) CreateRecipePrepTask(ctx context.Context, input *mealplanni
 
 		x = created
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := q.events.Emit(ctx, tx, logger, mealplanning.RecipePrepTaskCreatedServiceEventType, "", map[string]any{
+			mealplanningkeys.RecipeIDKey:         input.BelongsToRecipe,
+			mealplanningkeys.RecipePrepTaskIDKey: input.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -365,19 +374,26 @@ func (q *repository) UpdateRecipePrepTask(ctx context.Context, updated *mealplan
 	}
 	logger = logger.WithValue(mealplanningkeys.RecipePrepTaskIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateRecipePrepTask(ctx, q.writeDB, &generated.UpdateRecipePrepTaskParams{
-		Name:                                   updated.Name,
-		Description:                            updated.Description,
-		Notes:                                  updated.Notes,
-		Optional:                               updated.Optional,
-		ExplicitStorageInstructions:            updated.ExplicitStorageInstructions,
-		MinimumTimeBufferBeforeRecipeInSeconds: int32(updated.MinTimeBufferBeforeRecipeInSeconds),
-		MaximumTimeBufferBeforeRecipeInSeconds: database.NullInt32FromUint32Pointer(updated.MaxTimeBufferBeforeRecipeInSeconds),
-		StorageType:                            generated.NullStorageContainerType{StorageContainerType: generated.StorageContainerType(updated.StorageType), Valid: true},
-		MinimumStorageTemperatureInCelsius:     database.NullStringFromFloat32Pointer(updated.MinStorageTemperatureInCelsius),
-		MaximumStorageTemperatureInCelsius:     database.NullStringFromFloat32Pointer(updated.MaxStorageTemperatureInCelsius),
-		BelongsToRecipe:                        updated.BelongsToRecipe,
-		ID:                                     updated.ID,
+	if err := q.withEvent(ctx, logger, mealplanning.RecipePrepTaskUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:         updated.BelongsToRecipe,
+		mealplanningkeys.RecipePrepTaskIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateRecipePrepTask(ctx, tx, &generated.UpdateRecipePrepTaskParams{
+			Name:                                   updated.Name,
+			Description:                            updated.Description,
+			Notes:                                  updated.Notes,
+			Optional:                               updated.Optional,
+			ExplicitStorageInstructions:            updated.ExplicitStorageInstructions,
+			MinimumTimeBufferBeforeRecipeInSeconds: int32(updated.MinTimeBufferBeforeRecipeInSeconds),
+			MaximumTimeBufferBeforeRecipeInSeconds: database.NullInt32FromUint32Pointer(updated.MaxTimeBufferBeforeRecipeInSeconds),
+			StorageType:                            generated.NullStorageContainerType{StorageContainerType: generated.StorageContainerType(updated.StorageType), Valid: true},
+			MinimumStorageTemperatureInCelsius:     database.NullStringFromFloat32Pointer(updated.MinStorageTemperatureInCelsius),
+			MaximumStorageTemperatureInCelsius:     database.NullStringFromFloat32Pointer(updated.MaxStorageTemperatureInCelsius),
+			BelongsToRecipe:                        updated.BelongsToRecipe,
+			ID:                                     updated.ID,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe prep task")
 	}
@@ -406,13 +422,22 @@ func (q *repository) ArchiveRecipePrepTask(ctx context.Context, recipeID, recipe
 	logger = logger.WithValue(mealplanningkeys.RecipePrepTaskIDKey, recipePrepTaskID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipePrepTaskIDKey, recipePrepTaskID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveRecipePrepTask(ctx, q.writeDB, recipePrepTaskID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating recipe prep task")
-	}
+	if err := q.withEvent(ctx, logger, mealplanning.RecipePrepTaskArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:         recipeID,
+		mealplanningkeys.RecipePrepTaskIDKey: recipePrepTaskID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveRecipePrepTask(ctx, tx, recipePrepTaskID)
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "updating recipe prep task")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

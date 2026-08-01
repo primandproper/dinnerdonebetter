@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -72,16 +71,10 @@ func (m *mealPlanningManager) CreateRecipeStepVessel(ctx context.Context, recipe
 		convertedInput.VesselID = &vpv.Vessel.ID
 	}
 
-	created, err := m.db.CreateRecipeStepVessel(ctx, convertedInput)
+	created, err := m.db.CreateRecipeStepVessel(ctx, recipeID, convertedInput)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating recipe step vessel")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeStepVesselCreatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:           recipeID,
-		mealplanningkeys.RecipeStepIDKey:       recipeStepID,
-		mealplanningkeys.RecipeStepVesselIDKey: convertedInput.ID,
-	}))
 
 	return created, nil
 }
@@ -130,15 +123,9 @@ func (m *mealPlanningManager) UpdateRecipeStepVessel(ctx context.Context, recipe
 	}
 
 	existingRecipeStepVessel.Update(input)
-	if err = m.db.UpdateRecipeStepVessel(ctx, existingRecipeStepVessel); err != nil {
+	if err = m.db.UpdateRecipeStepVessel(ctx, recipeID, existingRecipeStepVessel); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step vessel")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeStepVesselUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:           recipeID,
-		mealplanningkeys.RecipeStepIDKey:       recipeStepID,
-		mealplanningkeys.RecipeStepVesselIDKey: recipeStepVesselID,
-	}))
 
 	return nil
 }
@@ -156,15 +143,9 @@ func (m *mealPlanningManager) ArchiveRecipeStepVessel(ctx context.Context, recip
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepVesselIDKey, recipeStepVesselID)
 
-	if err := m.db.ArchiveRecipeStepVessel(ctx, recipeStepID, recipeStepVesselID); err != nil {
+	if err := m.db.ArchiveRecipeStepVessel(ctx, recipeID, recipeStepID, recipeStepVesselID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step vessel")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeStepVesselArchivedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:           recipeID,
-		mealplanningkeys.RecipeStepIDKey:       recipeStepID,
-		mealplanningkeys.RecipeStepVesselIDKey: recipeStepVesselID,
-	}))
 
 	return nil
 }

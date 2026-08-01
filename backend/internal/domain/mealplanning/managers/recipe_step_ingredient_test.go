@@ -73,7 +73,7 @@ func TestRecipeManager_CreateRecipeStepIngredient(T *testing.T) {
 
 				return fakeValidIngredientMeasurementUnit, nil
 			},
-			CreateRecipeStepIngredientFunc: func(_ context.Context, _ *types.RecipeStepIngredientDatabaseCreationInput) (*types.RecipeStepIngredient, error) {
+			CreateRecipeStepIngredientFunc: func(_ context.Context, _ string, _ *types.RecipeStepIngredientDatabaseCreationInput) (*types.RecipeStepIngredient, error) {
 				return expected, nil
 			},
 		}
@@ -143,7 +143,7 @@ func TestRecipeManager_UpdateRecipeStepIngredient(T *testing.T) {
 
 				return exampleRecipeStepIngredient, nil
 			},
-			UpdateRecipeStepIngredientFunc: func(_ context.Context, _ *types.RecipeStepIngredient) error {
+			UpdateRecipeStepIngredientFunc: func(_ context.Context, _ string, _ *types.RecipeStepIngredient) error {
 				return nil
 			},
 		}
@@ -170,7 +170,7 @@ func TestRecipeManager_ArchiveRecipeStepIngredient(T *testing.T) {
 		expected := fakes.BuildFakeRecipeStepIngredient()
 
 		db := &mealplanningmock.RepositoryMock{
-			ArchiveRecipeStepIngredientFunc: func(_ context.Context, recipeStepID string, recipeStepIngredientID string) error {
+			ArchiveRecipeStepIngredientFunc: func(_ context.Context, _ string, recipeStepID string, recipeStepIngredientID string) error {
 				assert.Equal(t, exampleRecipeStepID, recipeStepID)
 				assert.Equal(t, expected.ID, recipeStepIngredientID)
 

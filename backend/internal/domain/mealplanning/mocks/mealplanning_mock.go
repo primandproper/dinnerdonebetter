@@ -92,19 +92,19 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			ArchiveRecipeStepFunc: func(ctx context.Context, recipeID string, recipeStepID string) error {
 //				panic("mock out the ArchiveRecipeStep method")
 //			},
-//			ArchiveRecipeStepCompletionConditionFunc: func(ctx context.Context, recipeStepID string, recipeStepIngredientID string) error {
+//			ArchiveRecipeStepCompletionConditionFunc: func(ctx context.Context, recipeID string, recipeStepID string, recipeStepCompletionConditionID string) error {
 //				panic("mock out the ArchiveRecipeStepCompletionCondition method")
 //			},
-//			ArchiveRecipeStepIngredientFunc: func(ctx context.Context, recipeStepID string, recipeStepIngredientID string) error {
+//			ArchiveRecipeStepIngredientFunc: func(ctx context.Context, recipeID string, recipeStepID string, recipeStepIngredientID string) error {
 //				panic("mock out the ArchiveRecipeStepIngredient method")
 //			},
-//			ArchiveRecipeStepInstrumentFunc: func(ctx context.Context, recipeStepID string, recipeStepInstrumentID string) error {
+//			ArchiveRecipeStepInstrumentFunc: func(ctx context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string) error {
 //				panic("mock out the ArchiveRecipeStepInstrument method")
 //			},
-//			ArchiveRecipeStepProductFunc: func(ctx context.Context, recipeStepID string, recipeStepProductID string) error {
+//			ArchiveRecipeStepProductFunc: func(ctx context.Context, recipeID string, recipeStepID string, recipeStepProductID string) error {
 //				panic("mock out the ArchiveRecipeStepProduct method")
 //			},
-//			ArchiveRecipeStepVesselFunc: func(ctx context.Context, recipeStepID string, recipeStepInstrumentID string) error {
+//			ArchiveRecipeStepVesselFunc: func(ctx context.Context, recipeID string, recipeStepID string, recipeStepVesselID string) error {
 //				panic("mock out the ArchiveRecipeStepVessel method")
 //			},
 //			ArchiveUserIngredientPreferenceFunc: func(ctx context.Context, userIngredientPreferenceID string, userID string) error {
@@ -218,19 +218,19 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			CreateRecipeStepFunc: func(ctx context.Context, input *mealplanning.RecipeStepDatabaseCreationInput) (*mealplanning.RecipeStep, error) {
 //				panic("mock out the CreateRecipeStep method")
 //			},
-//			CreateRecipeStepCompletionConditionFunc: func(ctx context.Context, input *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput) (*mealplanning.RecipeStepCompletionCondition, error) {
+//			CreateRecipeStepCompletionConditionFunc: func(ctx context.Context, recipeID string, input *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput) (*mealplanning.RecipeStepCompletionCondition, error) {
 //				panic("mock out the CreateRecipeStepCompletionCondition method")
 //			},
-//			CreateRecipeStepIngredientFunc: func(ctx context.Context, input *mealplanning.RecipeStepIngredientDatabaseCreationInput) (*mealplanning.RecipeStepIngredient, error) {
+//			CreateRecipeStepIngredientFunc: func(ctx context.Context, recipeID string, input *mealplanning.RecipeStepIngredientDatabaseCreationInput) (*mealplanning.RecipeStepIngredient, error) {
 //				panic("mock out the CreateRecipeStepIngredient method")
 //			},
-//			CreateRecipeStepInstrumentFunc: func(ctx context.Context, input *mealplanning.RecipeStepInstrumentDatabaseCreationInput) (*mealplanning.RecipeStepInstrument, error) {
+//			CreateRecipeStepInstrumentFunc: func(ctx context.Context, recipeID string, input *mealplanning.RecipeStepInstrumentDatabaseCreationInput) (*mealplanning.RecipeStepInstrument, error) {
 //				panic("mock out the CreateRecipeStepInstrument method")
 //			},
-//			CreateRecipeStepProductFunc: func(ctx context.Context, input *mealplanning.RecipeStepProductDatabaseCreationInput) (*mealplanning.RecipeStepProduct, error) {
+//			CreateRecipeStepProductFunc: func(ctx context.Context, recipeID string, input *mealplanning.RecipeStepProductDatabaseCreationInput) (*mealplanning.RecipeStepProduct, error) {
 //				panic("mock out the CreateRecipeStepProduct method")
 //			},
-//			CreateRecipeStepVesselFunc: func(ctx context.Context, input *mealplanning.RecipeStepVesselDatabaseCreationInput) (*mealplanning.RecipeStepVessel, error) {
+//			CreateRecipeStepVesselFunc: func(ctx context.Context, recipeID string, input *mealplanning.RecipeStepVesselDatabaseCreationInput) (*mealplanning.RecipeStepVessel, error) {
 //				panic("mock out the CreateRecipeStepVessel method")
 //			},
 //			CreateUserIngredientPreferenceFunc: func(ctx context.Context, input *mealplanning.UserIngredientPreferenceDatabaseCreationInput) ([]*mealplanning.UserIngredientPreference, error) {
@@ -854,19 +854,19 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			UpdateRecipeStepFunc: func(ctx context.Context, updated *mealplanning.RecipeStep) error {
 //				panic("mock out the UpdateRecipeStep method")
 //			},
-//			UpdateRecipeStepCompletionConditionFunc: func(ctx context.Context, updated *mealplanning.RecipeStepCompletionCondition) error {
+//			UpdateRecipeStepCompletionConditionFunc: func(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepCompletionCondition) error {
 //				panic("mock out the UpdateRecipeStepCompletionCondition method")
 //			},
-//			UpdateRecipeStepIngredientFunc: func(ctx context.Context, updated *mealplanning.RecipeStepIngredient) error {
+//			UpdateRecipeStepIngredientFunc: func(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepIngredient) error {
 //				panic("mock out the UpdateRecipeStepIngredient method")
 //			},
-//			UpdateRecipeStepInstrumentFunc: func(ctx context.Context, updated *mealplanning.RecipeStepInstrument) error {
+//			UpdateRecipeStepInstrumentFunc: func(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepInstrument) error {
 //				panic("mock out the UpdateRecipeStepInstrument method")
 //			},
-//			UpdateRecipeStepProductFunc: func(ctx context.Context, updated *mealplanning.RecipeStepProduct) error {
+//			UpdateRecipeStepProductFunc: func(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepProduct) error {
 //				panic("mock out the UpdateRecipeStepProduct method")
 //			},
-//			UpdateRecipeStepVesselFunc: func(ctx context.Context, updated *mealplanning.RecipeStepVessel) error {
+//			UpdateRecipeStepVesselFunc: func(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepVessel) error {
 //				panic("mock out the UpdateRecipeStepVessel method")
 //			},
 //			UpdateUserIngredientPreferenceFunc: func(ctx context.Context, updated *mealplanning.UserIngredientPreference) error {
@@ -1039,19 +1039,19 @@ type RepositoryMock struct {
 	ArchiveRecipeStepFunc func(ctx context.Context, recipeID string, recipeStepID string) error
 
 	// ArchiveRecipeStepCompletionConditionFunc mocks the ArchiveRecipeStepCompletionCondition method.
-	ArchiveRecipeStepCompletionConditionFunc func(ctx context.Context, recipeStepID string, recipeStepIngredientID string) error
+	ArchiveRecipeStepCompletionConditionFunc func(ctx context.Context, recipeID string, recipeStepID string, recipeStepCompletionConditionID string) error
 
 	// ArchiveRecipeStepIngredientFunc mocks the ArchiveRecipeStepIngredient method.
-	ArchiveRecipeStepIngredientFunc func(ctx context.Context, recipeStepID string, recipeStepIngredientID string) error
+	ArchiveRecipeStepIngredientFunc func(ctx context.Context, recipeID string, recipeStepID string, recipeStepIngredientID string) error
 
 	// ArchiveRecipeStepInstrumentFunc mocks the ArchiveRecipeStepInstrument method.
-	ArchiveRecipeStepInstrumentFunc func(ctx context.Context, recipeStepID string, recipeStepInstrumentID string) error
+	ArchiveRecipeStepInstrumentFunc func(ctx context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string) error
 
 	// ArchiveRecipeStepProductFunc mocks the ArchiveRecipeStepProduct method.
-	ArchiveRecipeStepProductFunc func(ctx context.Context, recipeStepID string, recipeStepProductID string) error
+	ArchiveRecipeStepProductFunc func(ctx context.Context, recipeID string, recipeStepID string, recipeStepProductID string) error
 
 	// ArchiveRecipeStepVesselFunc mocks the ArchiveRecipeStepVessel method.
-	ArchiveRecipeStepVesselFunc func(ctx context.Context, recipeStepID string, recipeStepInstrumentID string) error
+	ArchiveRecipeStepVesselFunc func(ctx context.Context, recipeID string, recipeStepID string, recipeStepVesselID string) error
 
 	// ArchiveUserIngredientPreferenceFunc mocks the ArchiveUserIngredientPreference method.
 	ArchiveUserIngredientPreferenceFunc func(ctx context.Context, userIngredientPreferenceID string, userID string) error
@@ -1165,19 +1165,19 @@ type RepositoryMock struct {
 	CreateRecipeStepFunc func(ctx context.Context, input *mealplanning.RecipeStepDatabaseCreationInput) (*mealplanning.RecipeStep, error)
 
 	// CreateRecipeStepCompletionConditionFunc mocks the CreateRecipeStepCompletionCondition method.
-	CreateRecipeStepCompletionConditionFunc func(ctx context.Context, input *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput) (*mealplanning.RecipeStepCompletionCondition, error)
+	CreateRecipeStepCompletionConditionFunc func(ctx context.Context, recipeID string, input *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput) (*mealplanning.RecipeStepCompletionCondition, error)
 
 	// CreateRecipeStepIngredientFunc mocks the CreateRecipeStepIngredient method.
-	CreateRecipeStepIngredientFunc func(ctx context.Context, input *mealplanning.RecipeStepIngredientDatabaseCreationInput) (*mealplanning.RecipeStepIngredient, error)
+	CreateRecipeStepIngredientFunc func(ctx context.Context, recipeID string, input *mealplanning.RecipeStepIngredientDatabaseCreationInput) (*mealplanning.RecipeStepIngredient, error)
 
 	// CreateRecipeStepInstrumentFunc mocks the CreateRecipeStepInstrument method.
-	CreateRecipeStepInstrumentFunc func(ctx context.Context, input *mealplanning.RecipeStepInstrumentDatabaseCreationInput) (*mealplanning.RecipeStepInstrument, error)
+	CreateRecipeStepInstrumentFunc func(ctx context.Context, recipeID string, input *mealplanning.RecipeStepInstrumentDatabaseCreationInput) (*mealplanning.RecipeStepInstrument, error)
 
 	// CreateRecipeStepProductFunc mocks the CreateRecipeStepProduct method.
-	CreateRecipeStepProductFunc func(ctx context.Context, input *mealplanning.RecipeStepProductDatabaseCreationInput) (*mealplanning.RecipeStepProduct, error)
+	CreateRecipeStepProductFunc func(ctx context.Context, recipeID string, input *mealplanning.RecipeStepProductDatabaseCreationInput) (*mealplanning.RecipeStepProduct, error)
 
 	// CreateRecipeStepVesselFunc mocks the CreateRecipeStepVessel method.
-	CreateRecipeStepVesselFunc func(ctx context.Context, input *mealplanning.RecipeStepVesselDatabaseCreationInput) (*mealplanning.RecipeStepVessel, error)
+	CreateRecipeStepVesselFunc func(ctx context.Context, recipeID string, input *mealplanning.RecipeStepVesselDatabaseCreationInput) (*mealplanning.RecipeStepVessel, error)
 
 	// CreateUserIngredientPreferenceFunc mocks the CreateUserIngredientPreference method.
 	CreateUserIngredientPreferenceFunc func(ctx context.Context, input *mealplanning.UserIngredientPreferenceDatabaseCreationInput) ([]*mealplanning.UserIngredientPreference, error)
@@ -1801,19 +1801,19 @@ type RepositoryMock struct {
 	UpdateRecipeStepFunc func(ctx context.Context, updated *mealplanning.RecipeStep) error
 
 	// UpdateRecipeStepCompletionConditionFunc mocks the UpdateRecipeStepCompletionCondition method.
-	UpdateRecipeStepCompletionConditionFunc func(ctx context.Context, updated *mealplanning.RecipeStepCompletionCondition) error
+	UpdateRecipeStepCompletionConditionFunc func(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepCompletionCondition) error
 
 	// UpdateRecipeStepIngredientFunc mocks the UpdateRecipeStepIngredient method.
-	UpdateRecipeStepIngredientFunc func(ctx context.Context, updated *mealplanning.RecipeStepIngredient) error
+	UpdateRecipeStepIngredientFunc func(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepIngredient) error
 
 	// UpdateRecipeStepInstrumentFunc mocks the UpdateRecipeStepInstrument method.
-	UpdateRecipeStepInstrumentFunc func(ctx context.Context, updated *mealplanning.RecipeStepInstrument) error
+	UpdateRecipeStepInstrumentFunc func(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepInstrument) error
 
 	// UpdateRecipeStepProductFunc mocks the UpdateRecipeStepProduct method.
-	UpdateRecipeStepProductFunc func(ctx context.Context, updated *mealplanning.RecipeStepProduct) error
+	UpdateRecipeStepProductFunc func(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepProduct) error
 
 	// UpdateRecipeStepVesselFunc mocks the UpdateRecipeStepVessel method.
-	UpdateRecipeStepVesselFunc func(ctx context.Context, updated *mealplanning.RecipeStepVessel) error
+	UpdateRecipeStepVesselFunc func(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepVessel) error
 
 	// UpdateUserIngredientPreferenceFunc mocks the UpdateUserIngredientPreference method.
 	UpdateUserIngredientPreferenceFunc func(ctx context.Context, updated *mealplanning.UserIngredientPreference) error
@@ -2139,15 +2139,19 @@ type RepositoryMock struct {
 		ArchiveRecipeStepCompletionCondition []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// RecipeStepID is the recipeStepID argument value.
 			RecipeStepID string
-			// RecipeStepIngredientID is the recipeStepIngredientID argument value.
-			RecipeStepIngredientID string
+			// RecipeStepCompletionConditionID is the recipeStepCompletionConditionID argument value.
+			RecipeStepCompletionConditionID string
 		}
 		// ArchiveRecipeStepIngredient holds details about calls to the ArchiveRecipeStepIngredient method.
 		ArchiveRecipeStepIngredient []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// RecipeStepID is the recipeStepID argument value.
 			RecipeStepID string
 			// RecipeStepIngredientID is the recipeStepIngredientID argument value.
@@ -2157,6 +2161,8 @@ type RepositoryMock struct {
 		ArchiveRecipeStepInstrument []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// RecipeStepID is the recipeStepID argument value.
 			RecipeStepID string
 			// RecipeStepInstrumentID is the recipeStepInstrumentID argument value.
@@ -2166,6 +2172,8 @@ type RepositoryMock struct {
 		ArchiveRecipeStepProduct []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// RecipeStepID is the recipeStepID argument value.
 			RecipeStepID string
 			// RecipeStepProductID is the recipeStepProductID argument value.
@@ -2175,10 +2183,12 @@ type RepositoryMock struct {
 		ArchiveRecipeStepVessel []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// RecipeStepID is the recipeStepID argument value.
 			RecipeStepID string
-			// RecipeStepInstrumentID is the recipeStepInstrumentID argument value.
-			RecipeStepInstrumentID string
+			// RecipeStepVesselID is the recipeStepVesselID argument value.
+			RecipeStepVesselID string
 		}
 		// ArchiveUserIngredientPreference holds details about calls to the ArchiveUserIngredientPreference method.
 		ArchiveUserIngredientPreference []struct {
@@ -2447,6 +2457,8 @@ type RepositoryMock struct {
 		CreateRecipeStepCompletionCondition []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// Input is the input argument value.
 			Input *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput
 		}
@@ -2454,6 +2466,8 @@ type RepositoryMock struct {
 		CreateRecipeStepIngredient []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// Input is the input argument value.
 			Input *mealplanning.RecipeStepIngredientDatabaseCreationInput
 		}
@@ -2461,6 +2475,8 @@ type RepositoryMock struct {
 		CreateRecipeStepInstrument []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// Input is the input argument value.
 			Input *mealplanning.RecipeStepInstrumentDatabaseCreationInput
 		}
@@ -2468,6 +2484,8 @@ type RepositoryMock struct {
 		CreateRecipeStepProduct []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// Input is the input argument value.
 			Input *mealplanning.RecipeStepProductDatabaseCreationInput
 		}
@@ -2475,6 +2493,8 @@ type RepositoryMock struct {
 		CreateRecipeStepVessel []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// Input is the input argument value.
 			Input *mealplanning.RecipeStepVesselDatabaseCreationInput
 		}
@@ -4157,6 +4177,8 @@ type RepositoryMock struct {
 		UpdateRecipeStepCompletionCondition []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// Updated is the updated argument value.
 			Updated *mealplanning.RecipeStepCompletionCondition
 		}
@@ -4164,6 +4186,8 @@ type RepositoryMock struct {
 		UpdateRecipeStepIngredient []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// Updated is the updated argument value.
 			Updated *mealplanning.RecipeStepIngredient
 		}
@@ -4171,6 +4195,8 @@ type RepositoryMock struct {
 		UpdateRecipeStepInstrument []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// Updated is the updated argument value.
 			Updated *mealplanning.RecipeStepInstrument
 		}
@@ -4178,6 +4204,8 @@ type RepositoryMock struct {
 		UpdateRecipeStepProduct []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// Updated is the updated argument value.
 			Updated *mealplanning.RecipeStepProduct
 		}
@@ -4185,6 +4213,8 @@ type RepositoryMock struct {
 		UpdateRecipeStepVessel []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// Updated is the updated argument value.
 			Updated *mealplanning.RecipeStepVessel
 		}
@@ -5682,23 +5712,25 @@ func (mock *RepositoryMock) ArchiveRecipeStepCalls() []struct {
 }
 
 // ArchiveRecipeStepCompletionCondition calls ArchiveRecipeStepCompletionConditionFunc.
-func (mock *RepositoryMock) ArchiveRecipeStepCompletionCondition(ctx context.Context, recipeStepID string, recipeStepIngredientID string) error {
+func (mock *RepositoryMock) ArchiveRecipeStepCompletionCondition(ctx context.Context, recipeID string, recipeStepID string, recipeStepCompletionConditionID string) error {
 	if mock.ArchiveRecipeStepCompletionConditionFunc == nil {
 		panic("RepositoryMock.ArchiveRecipeStepCompletionConditionFunc: method is nil but Repository.ArchiveRecipeStepCompletionCondition was just called")
 	}
 	callInfo := struct {
-		Ctx                    context.Context
-		RecipeStepID           string
-		RecipeStepIngredientID string
+		Ctx                             context.Context
+		RecipeID                        string
+		RecipeStepID                    string
+		RecipeStepCompletionConditionID string
 	}{
-		Ctx:                    ctx,
-		RecipeStepID:           recipeStepID,
-		RecipeStepIngredientID: recipeStepIngredientID,
+		Ctx:                             ctx,
+		RecipeID:                        recipeID,
+		RecipeStepID:                    recipeStepID,
+		RecipeStepCompletionConditionID: recipeStepCompletionConditionID,
 	}
 	mock.lockArchiveRecipeStepCompletionCondition.Lock()
 	mock.calls.ArchiveRecipeStepCompletionCondition = append(mock.calls.ArchiveRecipeStepCompletionCondition, callInfo)
 	mock.lockArchiveRecipeStepCompletionCondition.Unlock()
-	return mock.ArchiveRecipeStepCompletionConditionFunc(ctx, recipeStepID, recipeStepIngredientID)
+	return mock.ArchiveRecipeStepCompletionConditionFunc(ctx, recipeID, recipeStepID, recipeStepCompletionConditionID)
 }
 
 // ArchiveRecipeStepCompletionConditionCalls gets all the calls that were made to ArchiveRecipeStepCompletionCondition.
@@ -5706,14 +5738,16 @@ func (mock *RepositoryMock) ArchiveRecipeStepCompletionCondition(ctx context.Con
 //
 //	len(mockedRepository.ArchiveRecipeStepCompletionConditionCalls())
 func (mock *RepositoryMock) ArchiveRecipeStepCompletionConditionCalls() []struct {
-	Ctx                    context.Context
-	RecipeStepID           string
-	RecipeStepIngredientID string
+	Ctx                             context.Context
+	RecipeID                        string
+	RecipeStepID                    string
+	RecipeStepCompletionConditionID string
 } {
 	var calls []struct {
-		Ctx                    context.Context
-		RecipeStepID           string
-		RecipeStepIngredientID string
+		Ctx                             context.Context
+		RecipeID                        string
+		RecipeStepID                    string
+		RecipeStepCompletionConditionID string
 	}
 	mock.lockArchiveRecipeStepCompletionCondition.RLock()
 	calls = mock.calls.ArchiveRecipeStepCompletionCondition
@@ -5722,23 +5756,25 @@ func (mock *RepositoryMock) ArchiveRecipeStepCompletionConditionCalls() []struct
 }
 
 // ArchiveRecipeStepIngredient calls ArchiveRecipeStepIngredientFunc.
-func (mock *RepositoryMock) ArchiveRecipeStepIngredient(ctx context.Context, recipeStepID string, recipeStepIngredientID string) error {
+func (mock *RepositoryMock) ArchiveRecipeStepIngredient(ctx context.Context, recipeID string, recipeStepID string, recipeStepIngredientID string) error {
 	if mock.ArchiveRecipeStepIngredientFunc == nil {
 		panic("RepositoryMock.ArchiveRecipeStepIngredientFunc: method is nil but Repository.ArchiveRecipeStepIngredient was just called")
 	}
 	callInfo := struct {
 		Ctx                    context.Context
+		RecipeID               string
 		RecipeStepID           string
 		RecipeStepIngredientID string
 	}{
 		Ctx:                    ctx,
+		RecipeID:               recipeID,
 		RecipeStepID:           recipeStepID,
 		RecipeStepIngredientID: recipeStepIngredientID,
 	}
 	mock.lockArchiveRecipeStepIngredient.Lock()
 	mock.calls.ArchiveRecipeStepIngredient = append(mock.calls.ArchiveRecipeStepIngredient, callInfo)
 	mock.lockArchiveRecipeStepIngredient.Unlock()
-	return mock.ArchiveRecipeStepIngredientFunc(ctx, recipeStepID, recipeStepIngredientID)
+	return mock.ArchiveRecipeStepIngredientFunc(ctx, recipeID, recipeStepID, recipeStepIngredientID)
 }
 
 // ArchiveRecipeStepIngredientCalls gets all the calls that were made to ArchiveRecipeStepIngredient.
@@ -5747,11 +5783,13 @@ func (mock *RepositoryMock) ArchiveRecipeStepIngredient(ctx context.Context, rec
 //	len(mockedRepository.ArchiveRecipeStepIngredientCalls())
 func (mock *RepositoryMock) ArchiveRecipeStepIngredientCalls() []struct {
 	Ctx                    context.Context
+	RecipeID               string
 	RecipeStepID           string
 	RecipeStepIngredientID string
 } {
 	var calls []struct {
 		Ctx                    context.Context
+		RecipeID               string
 		RecipeStepID           string
 		RecipeStepIngredientID string
 	}
@@ -5762,23 +5800,25 @@ func (mock *RepositoryMock) ArchiveRecipeStepIngredientCalls() []struct {
 }
 
 // ArchiveRecipeStepInstrument calls ArchiveRecipeStepInstrumentFunc.
-func (mock *RepositoryMock) ArchiveRecipeStepInstrument(ctx context.Context, recipeStepID string, recipeStepInstrumentID string) error {
+func (mock *RepositoryMock) ArchiveRecipeStepInstrument(ctx context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string) error {
 	if mock.ArchiveRecipeStepInstrumentFunc == nil {
 		panic("RepositoryMock.ArchiveRecipeStepInstrumentFunc: method is nil but Repository.ArchiveRecipeStepInstrument was just called")
 	}
 	callInfo := struct {
 		Ctx                    context.Context
+		RecipeID               string
 		RecipeStepID           string
 		RecipeStepInstrumentID string
 	}{
 		Ctx:                    ctx,
+		RecipeID:               recipeID,
 		RecipeStepID:           recipeStepID,
 		RecipeStepInstrumentID: recipeStepInstrumentID,
 	}
 	mock.lockArchiveRecipeStepInstrument.Lock()
 	mock.calls.ArchiveRecipeStepInstrument = append(mock.calls.ArchiveRecipeStepInstrument, callInfo)
 	mock.lockArchiveRecipeStepInstrument.Unlock()
-	return mock.ArchiveRecipeStepInstrumentFunc(ctx, recipeStepID, recipeStepInstrumentID)
+	return mock.ArchiveRecipeStepInstrumentFunc(ctx, recipeID, recipeStepID, recipeStepInstrumentID)
 }
 
 // ArchiveRecipeStepInstrumentCalls gets all the calls that were made to ArchiveRecipeStepInstrument.
@@ -5787,11 +5827,13 @@ func (mock *RepositoryMock) ArchiveRecipeStepInstrument(ctx context.Context, rec
 //	len(mockedRepository.ArchiveRecipeStepInstrumentCalls())
 func (mock *RepositoryMock) ArchiveRecipeStepInstrumentCalls() []struct {
 	Ctx                    context.Context
+	RecipeID               string
 	RecipeStepID           string
 	RecipeStepInstrumentID string
 } {
 	var calls []struct {
 		Ctx                    context.Context
+		RecipeID               string
 		RecipeStepID           string
 		RecipeStepInstrumentID string
 	}
@@ -5802,23 +5844,25 @@ func (mock *RepositoryMock) ArchiveRecipeStepInstrumentCalls() []struct {
 }
 
 // ArchiveRecipeStepProduct calls ArchiveRecipeStepProductFunc.
-func (mock *RepositoryMock) ArchiveRecipeStepProduct(ctx context.Context, recipeStepID string, recipeStepProductID string) error {
+func (mock *RepositoryMock) ArchiveRecipeStepProduct(ctx context.Context, recipeID string, recipeStepID string, recipeStepProductID string) error {
 	if mock.ArchiveRecipeStepProductFunc == nil {
 		panic("RepositoryMock.ArchiveRecipeStepProductFunc: method is nil but Repository.ArchiveRecipeStepProduct was just called")
 	}
 	callInfo := struct {
 		Ctx                 context.Context
+		RecipeID            string
 		RecipeStepID        string
 		RecipeStepProductID string
 	}{
 		Ctx:                 ctx,
+		RecipeID:            recipeID,
 		RecipeStepID:        recipeStepID,
 		RecipeStepProductID: recipeStepProductID,
 	}
 	mock.lockArchiveRecipeStepProduct.Lock()
 	mock.calls.ArchiveRecipeStepProduct = append(mock.calls.ArchiveRecipeStepProduct, callInfo)
 	mock.lockArchiveRecipeStepProduct.Unlock()
-	return mock.ArchiveRecipeStepProductFunc(ctx, recipeStepID, recipeStepProductID)
+	return mock.ArchiveRecipeStepProductFunc(ctx, recipeID, recipeStepID, recipeStepProductID)
 }
 
 // ArchiveRecipeStepProductCalls gets all the calls that were made to ArchiveRecipeStepProduct.
@@ -5827,11 +5871,13 @@ func (mock *RepositoryMock) ArchiveRecipeStepProduct(ctx context.Context, recipe
 //	len(mockedRepository.ArchiveRecipeStepProductCalls())
 func (mock *RepositoryMock) ArchiveRecipeStepProductCalls() []struct {
 	Ctx                 context.Context
+	RecipeID            string
 	RecipeStepID        string
 	RecipeStepProductID string
 } {
 	var calls []struct {
 		Ctx                 context.Context
+		RecipeID            string
 		RecipeStepID        string
 		RecipeStepProductID string
 	}
@@ -5842,23 +5888,25 @@ func (mock *RepositoryMock) ArchiveRecipeStepProductCalls() []struct {
 }
 
 // ArchiveRecipeStepVessel calls ArchiveRecipeStepVesselFunc.
-func (mock *RepositoryMock) ArchiveRecipeStepVessel(ctx context.Context, recipeStepID string, recipeStepInstrumentID string) error {
+func (mock *RepositoryMock) ArchiveRecipeStepVessel(ctx context.Context, recipeID string, recipeStepID string, recipeStepVesselID string) error {
 	if mock.ArchiveRecipeStepVesselFunc == nil {
 		panic("RepositoryMock.ArchiveRecipeStepVesselFunc: method is nil but Repository.ArchiveRecipeStepVessel was just called")
 	}
 	callInfo := struct {
-		Ctx                    context.Context
-		RecipeStepID           string
-		RecipeStepInstrumentID string
+		Ctx                context.Context
+		RecipeID           string
+		RecipeStepID       string
+		RecipeStepVesselID string
 	}{
-		Ctx:                    ctx,
-		RecipeStepID:           recipeStepID,
-		RecipeStepInstrumentID: recipeStepInstrumentID,
+		Ctx:                ctx,
+		RecipeID:           recipeID,
+		RecipeStepID:       recipeStepID,
+		RecipeStepVesselID: recipeStepVesselID,
 	}
 	mock.lockArchiveRecipeStepVessel.Lock()
 	mock.calls.ArchiveRecipeStepVessel = append(mock.calls.ArchiveRecipeStepVessel, callInfo)
 	mock.lockArchiveRecipeStepVessel.Unlock()
-	return mock.ArchiveRecipeStepVesselFunc(ctx, recipeStepID, recipeStepInstrumentID)
+	return mock.ArchiveRecipeStepVesselFunc(ctx, recipeID, recipeStepID, recipeStepVesselID)
 }
 
 // ArchiveRecipeStepVesselCalls gets all the calls that were made to ArchiveRecipeStepVessel.
@@ -5866,14 +5914,16 @@ func (mock *RepositoryMock) ArchiveRecipeStepVessel(ctx context.Context, recipeS
 //
 //	len(mockedRepository.ArchiveRecipeStepVesselCalls())
 func (mock *RepositoryMock) ArchiveRecipeStepVesselCalls() []struct {
-	Ctx                    context.Context
-	RecipeStepID           string
-	RecipeStepInstrumentID string
+	Ctx                context.Context
+	RecipeID           string
+	RecipeStepID       string
+	RecipeStepVesselID string
 } {
 	var calls []struct {
-		Ctx                    context.Context
-		RecipeStepID           string
-		RecipeStepInstrumentID string
+		Ctx                context.Context
+		RecipeID           string
+		RecipeStepID       string
+		RecipeStepVesselID string
 	}
 	mock.lockArchiveRecipeStepVessel.RLock()
 	calls = mock.calls.ArchiveRecipeStepVessel
@@ -7222,21 +7272,23 @@ func (mock *RepositoryMock) CreateRecipeStepCalls() []struct {
 }
 
 // CreateRecipeStepCompletionCondition calls CreateRecipeStepCompletionConditionFunc.
-func (mock *RepositoryMock) CreateRecipeStepCompletionCondition(ctx context.Context, input *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput) (*mealplanning.RecipeStepCompletionCondition, error) {
+func (mock *RepositoryMock) CreateRecipeStepCompletionCondition(ctx context.Context, recipeID string, input *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput) (*mealplanning.RecipeStepCompletionCondition, error) {
 	if mock.CreateRecipeStepCompletionConditionFunc == nil {
 		panic("RepositoryMock.CreateRecipeStepCompletionConditionFunc: method is nil but Repository.CreateRecipeStepCompletionCondition was just called")
 	}
 	callInfo := struct {
-		Ctx   context.Context
-		Input *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput
+		Ctx      context.Context
+		RecipeID string
+		Input    *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput
 	}{
-		Ctx:   ctx,
-		Input: input,
+		Ctx:      ctx,
+		RecipeID: recipeID,
+		Input:    input,
 	}
 	mock.lockCreateRecipeStepCompletionCondition.Lock()
 	mock.calls.CreateRecipeStepCompletionCondition = append(mock.calls.CreateRecipeStepCompletionCondition, callInfo)
 	mock.lockCreateRecipeStepCompletionCondition.Unlock()
-	return mock.CreateRecipeStepCompletionConditionFunc(ctx, input)
+	return mock.CreateRecipeStepCompletionConditionFunc(ctx, recipeID, input)
 }
 
 // CreateRecipeStepCompletionConditionCalls gets all the calls that were made to CreateRecipeStepCompletionCondition.
@@ -7244,12 +7296,14 @@ func (mock *RepositoryMock) CreateRecipeStepCompletionCondition(ctx context.Cont
 //
 //	len(mockedRepository.CreateRecipeStepCompletionConditionCalls())
 func (mock *RepositoryMock) CreateRecipeStepCompletionConditionCalls() []struct {
-	Ctx   context.Context
-	Input *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput
+	Ctx      context.Context
+	RecipeID string
+	Input    *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput
 } {
 	var calls []struct {
-		Ctx   context.Context
-		Input *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput
+		Ctx      context.Context
+		RecipeID string
+		Input    *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput
 	}
 	mock.lockCreateRecipeStepCompletionCondition.RLock()
 	calls = mock.calls.CreateRecipeStepCompletionCondition
@@ -7258,21 +7312,23 @@ func (mock *RepositoryMock) CreateRecipeStepCompletionConditionCalls() []struct 
 }
 
 // CreateRecipeStepIngredient calls CreateRecipeStepIngredientFunc.
-func (mock *RepositoryMock) CreateRecipeStepIngredient(ctx context.Context, input *mealplanning.RecipeStepIngredientDatabaseCreationInput) (*mealplanning.RecipeStepIngredient, error) {
+func (mock *RepositoryMock) CreateRecipeStepIngredient(ctx context.Context, recipeID string, input *mealplanning.RecipeStepIngredientDatabaseCreationInput) (*mealplanning.RecipeStepIngredient, error) {
 	if mock.CreateRecipeStepIngredientFunc == nil {
 		panic("RepositoryMock.CreateRecipeStepIngredientFunc: method is nil but Repository.CreateRecipeStepIngredient was just called")
 	}
 	callInfo := struct {
-		Ctx   context.Context
-		Input *mealplanning.RecipeStepIngredientDatabaseCreationInput
+		Ctx      context.Context
+		RecipeID string
+		Input    *mealplanning.RecipeStepIngredientDatabaseCreationInput
 	}{
-		Ctx:   ctx,
-		Input: input,
+		Ctx:      ctx,
+		RecipeID: recipeID,
+		Input:    input,
 	}
 	mock.lockCreateRecipeStepIngredient.Lock()
 	mock.calls.CreateRecipeStepIngredient = append(mock.calls.CreateRecipeStepIngredient, callInfo)
 	mock.lockCreateRecipeStepIngredient.Unlock()
-	return mock.CreateRecipeStepIngredientFunc(ctx, input)
+	return mock.CreateRecipeStepIngredientFunc(ctx, recipeID, input)
 }
 
 // CreateRecipeStepIngredientCalls gets all the calls that were made to CreateRecipeStepIngredient.
@@ -7280,12 +7336,14 @@ func (mock *RepositoryMock) CreateRecipeStepIngredient(ctx context.Context, inpu
 //
 //	len(mockedRepository.CreateRecipeStepIngredientCalls())
 func (mock *RepositoryMock) CreateRecipeStepIngredientCalls() []struct {
-	Ctx   context.Context
-	Input *mealplanning.RecipeStepIngredientDatabaseCreationInput
+	Ctx      context.Context
+	RecipeID string
+	Input    *mealplanning.RecipeStepIngredientDatabaseCreationInput
 } {
 	var calls []struct {
-		Ctx   context.Context
-		Input *mealplanning.RecipeStepIngredientDatabaseCreationInput
+		Ctx      context.Context
+		RecipeID string
+		Input    *mealplanning.RecipeStepIngredientDatabaseCreationInput
 	}
 	mock.lockCreateRecipeStepIngredient.RLock()
 	calls = mock.calls.CreateRecipeStepIngredient
@@ -7294,21 +7352,23 @@ func (mock *RepositoryMock) CreateRecipeStepIngredientCalls() []struct {
 }
 
 // CreateRecipeStepInstrument calls CreateRecipeStepInstrumentFunc.
-func (mock *RepositoryMock) CreateRecipeStepInstrument(ctx context.Context, input *mealplanning.RecipeStepInstrumentDatabaseCreationInput) (*mealplanning.RecipeStepInstrument, error) {
+func (mock *RepositoryMock) CreateRecipeStepInstrument(ctx context.Context, recipeID string, input *mealplanning.RecipeStepInstrumentDatabaseCreationInput) (*mealplanning.RecipeStepInstrument, error) {
 	if mock.CreateRecipeStepInstrumentFunc == nil {
 		panic("RepositoryMock.CreateRecipeStepInstrumentFunc: method is nil but Repository.CreateRecipeStepInstrument was just called")
 	}
 	callInfo := struct {
-		Ctx   context.Context
-		Input *mealplanning.RecipeStepInstrumentDatabaseCreationInput
+		Ctx      context.Context
+		RecipeID string
+		Input    *mealplanning.RecipeStepInstrumentDatabaseCreationInput
 	}{
-		Ctx:   ctx,
-		Input: input,
+		Ctx:      ctx,
+		RecipeID: recipeID,
+		Input:    input,
 	}
 	mock.lockCreateRecipeStepInstrument.Lock()
 	mock.calls.CreateRecipeStepInstrument = append(mock.calls.CreateRecipeStepInstrument, callInfo)
 	mock.lockCreateRecipeStepInstrument.Unlock()
-	return mock.CreateRecipeStepInstrumentFunc(ctx, input)
+	return mock.CreateRecipeStepInstrumentFunc(ctx, recipeID, input)
 }
 
 // CreateRecipeStepInstrumentCalls gets all the calls that were made to CreateRecipeStepInstrument.
@@ -7316,12 +7376,14 @@ func (mock *RepositoryMock) CreateRecipeStepInstrument(ctx context.Context, inpu
 //
 //	len(mockedRepository.CreateRecipeStepInstrumentCalls())
 func (mock *RepositoryMock) CreateRecipeStepInstrumentCalls() []struct {
-	Ctx   context.Context
-	Input *mealplanning.RecipeStepInstrumentDatabaseCreationInput
+	Ctx      context.Context
+	RecipeID string
+	Input    *mealplanning.RecipeStepInstrumentDatabaseCreationInput
 } {
 	var calls []struct {
-		Ctx   context.Context
-		Input *mealplanning.RecipeStepInstrumentDatabaseCreationInput
+		Ctx      context.Context
+		RecipeID string
+		Input    *mealplanning.RecipeStepInstrumentDatabaseCreationInput
 	}
 	mock.lockCreateRecipeStepInstrument.RLock()
 	calls = mock.calls.CreateRecipeStepInstrument
@@ -7330,21 +7392,23 @@ func (mock *RepositoryMock) CreateRecipeStepInstrumentCalls() []struct {
 }
 
 // CreateRecipeStepProduct calls CreateRecipeStepProductFunc.
-func (mock *RepositoryMock) CreateRecipeStepProduct(ctx context.Context, input *mealplanning.RecipeStepProductDatabaseCreationInput) (*mealplanning.RecipeStepProduct, error) {
+func (mock *RepositoryMock) CreateRecipeStepProduct(ctx context.Context, recipeID string, input *mealplanning.RecipeStepProductDatabaseCreationInput) (*mealplanning.RecipeStepProduct, error) {
 	if mock.CreateRecipeStepProductFunc == nil {
 		panic("RepositoryMock.CreateRecipeStepProductFunc: method is nil but Repository.CreateRecipeStepProduct was just called")
 	}
 	callInfo := struct {
-		Ctx   context.Context
-		Input *mealplanning.RecipeStepProductDatabaseCreationInput
+		Ctx      context.Context
+		RecipeID string
+		Input    *mealplanning.RecipeStepProductDatabaseCreationInput
 	}{
-		Ctx:   ctx,
-		Input: input,
+		Ctx:      ctx,
+		RecipeID: recipeID,
+		Input:    input,
 	}
 	mock.lockCreateRecipeStepProduct.Lock()
 	mock.calls.CreateRecipeStepProduct = append(mock.calls.CreateRecipeStepProduct, callInfo)
 	mock.lockCreateRecipeStepProduct.Unlock()
-	return mock.CreateRecipeStepProductFunc(ctx, input)
+	return mock.CreateRecipeStepProductFunc(ctx, recipeID, input)
 }
 
 // CreateRecipeStepProductCalls gets all the calls that were made to CreateRecipeStepProduct.
@@ -7352,12 +7416,14 @@ func (mock *RepositoryMock) CreateRecipeStepProduct(ctx context.Context, input *
 //
 //	len(mockedRepository.CreateRecipeStepProductCalls())
 func (mock *RepositoryMock) CreateRecipeStepProductCalls() []struct {
-	Ctx   context.Context
-	Input *mealplanning.RecipeStepProductDatabaseCreationInput
+	Ctx      context.Context
+	RecipeID string
+	Input    *mealplanning.RecipeStepProductDatabaseCreationInput
 } {
 	var calls []struct {
-		Ctx   context.Context
-		Input *mealplanning.RecipeStepProductDatabaseCreationInput
+		Ctx      context.Context
+		RecipeID string
+		Input    *mealplanning.RecipeStepProductDatabaseCreationInput
 	}
 	mock.lockCreateRecipeStepProduct.RLock()
 	calls = mock.calls.CreateRecipeStepProduct
@@ -7366,21 +7432,23 @@ func (mock *RepositoryMock) CreateRecipeStepProductCalls() []struct {
 }
 
 // CreateRecipeStepVessel calls CreateRecipeStepVesselFunc.
-func (mock *RepositoryMock) CreateRecipeStepVessel(ctx context.Context, input *mealplanning.RecipeStepVesselDatabaseCreationInput) (*mealplanning.RecipeStepVessel, error) {
+func (mock *RepositoryMock) CreateRecipeStepVessel(ctx context.Context, recipeID string, input *mealplanning.RecipeStepVesselDatabaseCreationInput) (*mealplanning.RecipeStepVessel, error) {
 	if mock.CreateRecipeStepVesselFunc == nil {
 		panic("RepositoryMock.CreateRecipeStepVesselFunc: method is nil but Repository.CreateRecipeStepVessel was just called")
 	}
 	callInfo := struct {
-		Ctx   context.Context
-		Input *mealplanning.RecipeStepVesselDatabaseCreationInput
+		Ctx      context.Context
+		RecipeID string
+		Input    *mealplanning.RecipeStepVesselDatabaseCreationInput
 	}{
-		Ctx:   ctx,
-		Input: input,
+		Ctx:      ctx,
+		RecipeID: recipeID,
+		Input:    input,
 	}
 	mock.lockCreateRecipeStepVessel.Lock()
 	mock.calls.CreateRecipeStepVessel = append(mock.calls.CreateRecipeStepVessel, callInfo)
 	mock.lockCreateRecipeStepVessel.Unlock()
-	return mock.CreateRecipeStepVesselFunc(ctx, input)
+	return mock.CreateRecipeStepVesselFunc(ctx, recipeID, input)
 }
 
 // CreateRecipeStepVesselCalls gets all the calls that were made to CreateRecipeStepVessel.
@@ -7388,12 +7456,14 @@ func (mock *RepositoryMock) CreateRecipeStepVessel(ctx context.Context, input *m
 //
 //	len(mockedRepository.CreateRecipeStepVesselCalls())
 func (mock *RepositoryMock) CreateRecipeStepVesselCalls() []struct {
-	Ctx   context.Context
-	Input *mealplanning.RecipeStepVesselDatabaseCreationInput
+	Ctx      context.Context
+	RecipeID string
+	Input    *mealplanning.RecipeStepVesselDatabaseCreationInput
 } {
 	var calls []struct {
-		Ctx   context.Context
-		Input *mealplanning.RecipeStepVesselDatabaseCreationInput
+		Ctx      context.Context
+		RecipeID string
+		Input    *mealplanning.RecipeStepVesselDatabaseCreationInput
 	}
 	mock.lockCreateRecipeStepVessel.RLock()
 	calls = mock.calls.CreateRecipeStepVessel
@@ -15306,21 +15376,23 @@ func (mock *RepositoryMock) UpdateRecipeStepCalls() []struct {
 }
 
 // UpdateRecipeStepCompletionCondition calls UpdateRecipeStepCompletionConditionFunc.
-func (mock *RepositoryMock) UpdateRecipeStepCompletionCondition(ctx context.Context, updated *mealplanning.RecipeStepCompletionCondition) error {
+func (mock *RepositoryMock) UpdateRecipeStepCompletionCondition(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepCompletionCondition) error {
 	if mock.UpdateRecipeStepCompletionConditionFunc == nil {
 		panic("RepositoryMock.UpdateRecipeStepCompletionConditionFunc: method is nil but Repository.UpdateRecipeStepCompletionCondition was just called")
 	}
 	callInfo := struct {
-		Ctx     context.Context
-		Updated *mealplanning.RecipeStepCompletionCondition
+		Ctx      context.Context
+		RecipeID string
+		Updated  *mealplanning.RecipeStepCompletionCondition
 	}{
-		Ctx:     ctx,
-		Updated: updated,
+		Ctx:      ctx,
+		RecipeID: recipeID,
+		Updated:  updated,
 	}
 	mock.lockUpdateRecipeStepCompletionCondition.Lock()
 	mock.calls.UpdateRecipeStepCompletionCondition = append(mock.calls.UpdateRecipeStepCompletionCondition, callInfo)
 	mock.lockUpdateRecipeStepCompletionCondition.Unlock()
-	return mock.UpdateRecipeStepCompletionConditionFunc(ctx, updated)
+	return mock.UpdateRecipeStepCompletionConditionFunc(ctx, recipeID, updated)
 }
 
 // UpdateRecipeStepCompletionConditionCalls gets all the calls that were made to UpdateRecipeStepCompletionCondition.
@@ -15328,12 +15400,14 @@ func (mock *RepositoryMock) UpdateRecipeStepCompletionCondition(ctx context.Cont
 //
 //	len(mockedRepository.UpdateRecipeStepCompletionConditionCalls())
 func (mock *RepositoryMock) UpdateRecipeStepCompletionConditionCalls() []struct {
-	Ctx     context.Context
-	Updated *mealplanning.RecipeStepCompletionCondition
+	Ctx      context.Context
+	RecipeID string
+	Updated  *mealplanning.RecipeStepCompletionCondition
 } {
 	var calls []struct {
-		Ctx     context.Context
-		Updated *mealplanning.RecipeStepCompletionCondition
+		Ctx      context.Context
+		RecipeID string
+		Updated  *mealplanning.RecipeStepCompletionCondition
 	}
 	mock.lockUpdateRecipeStepCompletionCondition.RLock()
 	calls = mock.calls.UpdateRecipeStepCompletionCondition
@@ -15342,21 +15416,23 @@ func (mock *RepositoryMock) UpdateRecipeStepCompletionConditionCalls() []struct 
 }
 
 // UpdateRecipeStepIngredient calls UpdateRecipeStepIngredientFunc.
-func (mock *RepositoryMock) UpdateRecipeStepIngredient(ctx context.Context, updated *mealplanning.RecipeStepIngredient) error {
+func (mock *RepositoryMock) UpdateRecipeStepIngredient(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepIngredient) error {
 	if mock.UpdateRecipeStepIngredientFunc == nil {
 		panic("RepositoryMock.UpdateRecipeStepIngredientFunc: method is nil but Repository.UpdateRecipeStepIngredient was just called")
 	}
 	callInfo := struct {
-		Ctx     context.Context
-		Updated *mealplanning.RecipeStepIngredient
+		Ctx      context.Context
+		RecipeID string
+		Updated  *mealplanning.RecipeStepIngredient
 	}{
-		Ctx:     ctx,
-		Updated: updated,
+		Ctx:      ctx,
+		RecipeID: recipeID,
+		Updated:  updated,
 	}
 	mock.lockUpdateRecipeStepIngredient.Lock()
 	mock.calls.UpdateRecipeStepIngredient = append(mock.calls.UpdateRecipeStepIngredient, callInfo)
 	mock.lockUpdateRecipeStepIngredient.Unlock()
-	return mock.UpdateRecipeStepIngredientFunc(ctx, updated)
+	return mock.UpdateRecipeStepIngredientFunc(ctx, recipeID, updated)
 }
 
 // UpdateRecipeStepIngredientCalls gets all the calls that were made to UpdateRecipeStepIngredient.
@@ -15364,12 +15440,14 @@ func (mock *RepositoryMock) UpdateRecipeStepIngredient(ctx context.Context, upda
 //
 //	len(mockedRepository.UpdateRecipeStepIngredientCalls())
 func (mock *RepositoryMock) UpdateRecipeStepIngredientCalls() []struct {
-	Ctx     context.Context
-	Updated *mealplanning.RecipeStepIngredient
+	Ctx      context.Context
+	RecipeID string
+	Updated  *mealplanning.RecipeStepIngredient
 } {
 	var calls []struct {
-		Ctx     context.Context
-		Updated *mealplanning.RecipeStepIngredient
+		Ctx      context.Context
+		RecipeID string
+		Updated  *mealplanning.RecipeStepIngredient
 	}
 	mock.lockUpdateRecipeStepIngredient.RLock()
 	calls = mock.calls.UpdateRecipeStepIngredient
@@ -15378,21 +15456,23 @@ func (mock *RepositoryMock) UpdateRecipeStepIngredientCalls() []struct {
 }
 
 // UpdateRecipeStepInstrument calls UpdateRecipeStepInstrumentFunc.
-func (mock *RepositoryMock) UpdateRecipeStepInstrument(ctx context.Context, updated *mealplanning.RecipeStepInstrument) error {
+func (mock *RepositoryMock) UpdateRecipeStepInstrument(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepInstrument) error {
 	if mock.UpdateRecipeStepInstrumentFunc == nil {
 		panic("RepositoryMock.UpdateRecipeStepInstrumentFunc: method is nil but Repository.UpdateRecipeStepInstrument was just called")
 	}
 	callInfo := struct {
-		Ctx     context.Context
-		Updated *mealplanning.RecipeStepInstrument
+		Ctx      context.Context
+		RecipeID string
+		Updated  *mealplanning.RecipeStepInstrument
 	}{
-		Ctx:     ctx,
-		Updated: updated,
+		Ctx:      ctx,
+		RecipeID: recipeID,
+		Updated:  updated,
 	}
 	mock.lockUpdateRecipeStepInstrument.Lock()
 	mock.calls.UpdateRecipeStepInstrument = append(mock.calls.UpdateRecipeStepInstrument, callInfo)
 	mock.lockUpdateRecipeStepInstrument.Unlock()
-	return mock.UpdateRecipeStepInstrumentFunc(ctx, updated)
+	return mock.UpdateRecipeStepInstrumentFunc(ctx, recipeID, updated)
 }
 
 // UpdateRecipeStepInstrumentCalls gets all the calls that were made to UpdateRecipeStepInstrument.
@@ -15400,12 +15480,14 @@ func (mock *RepositoryMock) UpdateRecipeStepInstrument(ctx context.Context, upda
 //
 //	len(mockedRepository.UpdateRecipeStepInstrumentCalls())
 func (mock *RepositoryMock) UpdateRecipeStepInstrumentCalls() []struct {
-	Ctx     context.Context
-	Updated *mealplanning.RecipeStepInstrument
+	Ctx      context.Context
+	RecipeID string
+	Updated  *mealplanning.RecipeStepInstrument
 } {
 	var calls []struct {
-		Ctx     context.Context
-		Updated *mealplanning.RecipeStepInstrument
+		Ctx      context.Context
+		RecipeID string
+		Updated  *mealplanning.RecipeStepInstrument
 	}
 	mock.lockUpdateRecipeStepInstrument.RLock()
 	calls = mock.calls.UpdateRecipeStepInstrument
@@ -15414,21 +15496,23 @@ func (mock *RepositoryMock) UpdateRecipeStepInstrumentCalls() []struct {
 }
 
 // UpdateRecipeStepProduct calls UpdateRecipeStepProductFunc.
-func (mock *RepositoryMock) UpdateRecipeStepProduct(ctx context.Context, updated *mealplanning.RecipeStepProduct) error {
+func (mock *RepositoryMock) UpdateRecipeStepProduct(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepProduct) error {
 	if mock.UpdateRecipeStepProductFunc == nil {
 		panic("RepositoryMock.UpdateRecipeStepProductFunc: method is nil but Repository.UpdateRecipeStepProduct was just called")
 	}
 	callInfo := struct {
-		Ctx     context.Context
-		Updated *mealplanning.RecipeStepProduct
+		Ctx      context.Context
+		RecipeID string
+		Updated  *mealplanning.RecipeStepProduct
 	}{
-		Ctx:     ctx,
-		Updated: updated,
+		Ctx:      ctx,
+		RecipeID: recipeID,
+		Updated:  updated,
 	}
 	mock.lockUpdateRecipeStepProduct.Lock()
 	mock.calls.UpdateRecipeStepProduct = append(mock.calls.UpdateRecipeStepProduct, callInfo)
 	mock.lockUpdateRecipeStepProduct.Unlock()
-	return mock.UpdateRecipeStepProductFunc(ctx, updated)
+	return mock.UpdateRecipeStepProductFunc(ctx, recipeID, updated)
 }
 
 // UpdateRecipeStepProductCalls gets all the calls that were made to UpdateRecipeStepProduct.
@@ -15436,12 +15520,14 @@ func (mock *RepositoryMock) UpdateRecipeStepProduct(ctx context.Context, updated
 //
 //	len(mockedRepository.UpdateRecipeStepProductCalls())
 func (mock *RepositoryMock) UpdateRecipeStepProductCalls() []struct {
-	Ctx     context.Context
-	Updated *mealplanning.RecipeStepProduct
+	Ctx      context.Context
+	RecipeID string
+	Updated  *mealplanning.RecipeStepProduct
 } {
 	var calls []struct {
-		Ctx     context.Context
-		Updated *mealplanning.RecipeStepProduct
+		Ctx      context.Context
+		RecipeID string
+		Updated  *mealplanning.RecipeStepProduct
 	}
 	mock.lockUpdateRecipeStepProduct.RLock()
 	calls = mock.calls.UpdateRecipeStepProduct
@@ -15450,21 +15536,23 @@ func (mock *RepositoryMock) UpdateRecipeStepProductCalls() []struct {
 }
 
 // UpdateRecipeStepVessel calls UpdateRecipeStepVesselFunc.
-func (mock *RepositoryMock) UpdateRecipeStepVessel(ctx context.Context, updated *mealplanning.RecipeStepVessel) error {
+func (mock *RepositoryMock) UpdateRecipeStepVessel(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepVessel) error {
 	if mock.UpdateRecipeStepVesselFunc == nil {
 		panic("RepositoryMock.UpdateRecipeStepVesselFunc: method is nil but Repository.UpdateRecipeStepVessel was just called")
 	}
 	callInfo := struct {
-		Ctx     context.Context
-		Updated *mealplanning.RecipeStepVessel
+		Ctx      context.Context
+		RecipeID string
+		Updated  *mealplanning.RecipeStepVessel
 	}{
-		Ctx:     ctx,
-		Updated: updated,
+		Ctx:      ctx,
+		RecipeID: recipeID,
+		Updated:  updated,
 	}
 	mock.lockUpdateRecipeStepVessel.Lock()
 	mock.calls.UpdateRecipeStepVessel = append(mock.calls.UpdateRecipeStepVessel, callInfo)
 	mock.lockUpdateRecipeStepVessel.Unlock()
-	return mock.UpdateRecipeStepVesselFunc(ctx, updated)
+	return mock.UpdateRecipeStepVesselFunc(ctx, recipeID, updated)
 }
 
 // UpdateRecipeStepVesselCalls gets all the calls that were made to UpdateRecipeStepVessel.
@@ -15472,12 +15560,14 @@ func (mock *RepositoryMock) UpdateRecipeStepVessel(ctx context.Context, updated 
 //
 //	len(mockedRepository.UpdateRecipeStepVesselCalls())
 func (mock *RepositoryMock) UpdateRecipeStepVesselCalls() []struct {
-	Ctx     context.Context
-	Updated *mealplanning.RecipeStepVessel
+	Ctx      context.Context
+	RecipeID string
+	Updated  *mealplanning.RecipeStepVessel
 } {
 	var calls []struct {
-		Ctx     context.Context
-		Updated *mealplanning.RecipeStepVessel
+		Ctx      context.Context
+		RecipeID string
+		Updated  *mealplanning.RecipeStepVessel
 	}
 	mock.lockUpdateRecipeStepVessel.RLock()
 	calls = mock.calls.UpdateRecipeStepVessel

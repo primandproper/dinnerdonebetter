@@ -666,6 +666,16 @@ func (r *repository) CreateUser(ctx context.Context, input *identity.UserDatabas
 			return observability.PrepareAndLogError(err, logger, span, "attaching existing invitations to new user")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.UserSignedUpServiceEventType, "", map[string]any{
+			identitykeys.AccountIDKey:                  account.ID,
+			identitykeys.UserIDKey:                     input.ID,
+			identitykeys.UserEmailVerificationTokenKey: token,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -827,6 +837,14 @@ func (r *repository) UpdateUserUsername(ctx context.Context, userID, newUsername
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.UsernameChangedEventType, "", map[string]any{
+			identitykeys.UserIDKey: userID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return err
@@ -880,6 +898,14 @@ func (r *repository) UpdateUserEmailAddress(ctx context.Context, userID, newEmai
 			},
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.EmailAddressChangedEventType, "", map[string]any{
+			identitykeys.UserIDKey: userID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		return nil
@@ -946,6 +972,14 @@ func (r *repository) UpdateUserDetails(ctx context.Context, userID string, input
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.UserDetailsChangedEventType, "", map[string]any{
+			identitykeys.UserIDKey: userID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return err
@@ -996,6 +1030,14 @@ func (r *repository) SetUserAvatar(ctx context.Context, userID, uploadedMediaID 
 			},
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.UserAvatarChangedEventType, "", map[string]any{
+			identitykeys.UserIDKey: userID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		return nil
@@ -1241,6 +1283,14 @@ func (r *repository) ArchiveUser(ctx context.Context, userID string) error {
 			return observability.PrepareAndLogError(err, logger, span, "archiving user account memberships")
 		}
 
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.UserArchivedServiceEventType, "", map[string]any{
+			identitykeys.UserIDKey: userID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
+
 		return nil
 	}); err != nil {
 		return err
@@ -1429,22 +1479,26 @@ func (r *repository) UpdateUserAccountStatus(ctx context.Context, userID string,
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 
-	rowsChanged, err := r.generatedQuerier.SetUserAccountStatus(ctx, r.writeDB, &generated.SetUserAccountStatusParams{
-		UserAccountStatus:            input.NewStatus,
-		UserAccountStatusExplanation: input.Reason,
-		ID:                           input.TargetUserID,
+	return r.withEvent(ctx, logger, identity.UserStatusChangedServiceEventType, "", map[string]any{
+		identitykeys.UserIDKey: userID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsChanged, err := r.generatedQuerier.SetUserAccountStatus(ctx, tx, &generated.SetUserAccountStatusParams{
+			UserAccountStatus:            input.NewStatus,
+			UserAccountStatusExplanation: input.Reason,
+			ID:                           input.TargetUserID,
+		})
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "user status update")
+		}
+
+		if rowsChanged == 0 {
+			return sql.ErrNoRows
+		}
+
+		logger.Info("user account status updated")
+
+		return nil
 	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "user status update")
-	}
-
-	if rowsChanged == 0 {
-		return sql.ErrNoRows
-	}
-
-	logger.Info("user account status updated")
-
-	return nil
 }
 
 func (r *repository) SetUserRequiresPasswordChange(ctx context.Context, userID string, requiresChange bool) error {
@@ -1458,21 +1512,25 @@ func (r *repository) SetUserRequiresPasswordChange(ctx context.Context, userID s
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 
-	rowsChanged, err := r.generatedQuerier.SetUserRequiresPasswordChange(ctx, r.writeDB, &generated.SetUserRequiresPasswordChangeParams{
-		RequiresPasswordChange: requiresChange,
-		ID:                     userID,
+	return r.withEvent(ctx, logger, identity.UserPasswordChangeRequiredServiceEventType, "", map[string]any{
+		identitykeys.UserIDKey: userID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsChanged, err := r.generatedQuerier.SetUserRequiresPasswordChange(ctx, tx, &generated.SetUserRequiresPasswordChangeParams{
+			RequiresPasswordChange: requiresChange,
+			ID:                     userID,
+		})
+		if err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "setting user requires password change")
+		}
+
+		if rowsChanged == 0 {
+			return sql.ErrNoRows
+		}
+
+		logger.Info("user requires password change updated")
+
+		return nil
 	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "setting user requires password change")
-	}
-
-	if rowsChanged == 0 {
-		return sql.ErrNoRows
-	}
-
-	logger.Info("user requires password change updated")
-
-	return nil
 }
 
 func (r *repository) UserRequiresPasswordChange(ctx context.Context, userID string) (bool, error) {

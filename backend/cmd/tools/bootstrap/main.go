@@ -216,7 +216,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 	}
 
 	auditRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, client)
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client)
+	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil)
 	oauthRepo := oauthrepo.ProvideOAuthRepository(logger, tracerProvider, auditRepo, dbConfig, client)
 
 	// --- Admin user (idempotent) ---

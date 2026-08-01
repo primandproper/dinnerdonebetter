@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -112,10 +111,6 @@ func (m *mealPlanningManager) CreateValidPreparation(ctx context.Context, input 
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid preparation")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidPreparationCreatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidPreparationIDKey: created.ID,
-	}))
-
 	return created, nil
 }
 
@@ -172,8 +167,6 @@ func (m *mealPlanningManager) UpdateValidPreparation(ctx context.Context, validP
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid preparation")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidPreparationUpdatedServiceEventType, map[string]any{mealplanningkeys.ValidPreparationIDKey: existingValidPreparation.ID}))
-
 	existingValidPreparation, err = m.db.GetValidPreparation(ctx, validPreparationID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching updated valid preparation")
@@ -194,10 +187,6 @@ func (m *mealPlanningManager) ArchiveValidPreparation(ctx context.Context, valid
 	if err := m.db.ArchiveValidPreparation(ctx, validPreparationID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid preparation")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidPreparationArchivedServiceEventType, map[string]any{
-		mealplanningkeys.ValidPreparationIDKey: validPreparationID,
-	}))
 
 	return nil
 }

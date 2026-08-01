@@ -297,6 +297,15 @@ func (q *repository) CreateMealPlanOptionVote(ctx context.Context, input *types.
 			votes = append(votes, x)
 		}
 
+		// The summary is a statement about this whole batch, and this transaction is the
+		// batch — so it commits with the votes it counts.
+		if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanOptionVoteCreatedServiceEventType, "", map[string]any{
+			"vote_count": len(input.Votes),
+			"created":    len(votes),
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing meal plan option votes created event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -316,13 +325,20 @@ func (q *repository) UpdateMealPlanOptionVote(ctx context.Context, updated *type
 	logger := q.logger.WithValue(mealplanningkeys.MealPlanOptionVoteIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionVoteIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateMealPlanOptionVote(ctx, q.writeDB, &generated.UpdateMealPlanOptionVoteParams{
-		Notes:                   updated.Notes,
-		ByUser:                  updated.ByUser,
-		BelongsToMealPlanOption: updated.BelongsToMealPlanOption,
-		ID:                      updated.ID,
-		Rank:                    int32(updated.Rank),
-		Abstain:                 updated.Abstain,
+	if err := q.withEvent(ctx, logger, types.MealPlanOptionVoteUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealPlanOptionIDKey:     updated.BelongsToMealPlanOption,
+		mealplanningkeys.MealPlanOptionVoteIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateMealPlanOptionVote(ctx, tx, &generated.UpdateMealPlanOptionVoteParams{
+			Notes:                   updated.Notes,
+			ByUser:                  updated.ByUser,
+			BelongsToMealPlanOption: updated.BelongsToMealPlanOption,
+			ID:                      updated.ID,
+			Rank:                    int32(updated.Rank),
+			Abstain:                 updated.Abstain,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan option vote")
 	}
@@ -363,16 +379,27 @@ func (q *repository) ArchiveMealPlanOptionVote(ctx context.Context, mealPlanID, 
 	logger = logger.WithValue(mealplanningkeys.MealPlanOptionVoteIDKey, mealPlanOptionVoteID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionVoteIDKey, mealPlanOptionVoteID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveMealPlanOptionVote(ctx, q.writeDB, &generated.ArchiveMealPlanOptionVoteParams{
-		BelongsToMealPlanOption: mealPlanOptionID,
-		ID:                      mealPlanOptionVoteID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating meal plan option vote")
-	}
+	if err := q.withEvent(ctx, logger, types.MealPlanOptionVoteArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealPlanIDKey:           mealPlanID,
+		mealplanningkeys.MealPlanEventIDKey:      mealPlanEventID,
+		mealplanningkeys.MealPlanOptionIDKey:     mealPlanOptionID,
+		mealplanningkeys.MealPlanOptionVoteIDKey: mealPlanOptionVoteID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMealPlanOptionVote(ctx, tx, &generated.ArchiveMealPlanOptionVoteParams{
+			BelongsToMealPlanOption: mealPlanOptionID,
+			ID:                      mealPlanOptionVoteID,
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "updating meal plan option vote")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

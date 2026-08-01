@@ -11,6 +11,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
 
 	"github.com/primandproper/platform-go/v8/observability"
+	"github.com/primandproper/platform-go/v8/retry"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -38,7 +39,10 @@ func (a *AsyncDataChangeMessageHandler) DataChangesEventHandler(topicName string
 		if err := a.decoder.DecodeBytes(ctx, rawMsg, &dataChangeMessage); err != nil {
 			a.messageDecodeErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicDataChanges)))
 			status = statusFailure
-			return fmt.Errorf("decoding message body: %w", err)
+			// Unretryable: a payload that fails to decode will fail to decode on every
+			// remaining attempt, and each of those is latency the healthy messages behind
+			// it spend waiting. Straight to the dead-letter topic.
+			return retry.Unretryable(fmt.Errorf("decoding message body: %w", err))
 		}
 
 		eventType = dataChangeMessage.EventType

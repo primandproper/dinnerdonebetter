@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -53,10 +52,6 @@ func (m *mealPlanningManager) CreateValidPreparationInstrument(ctx context.Conte
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating valid preparation instrument")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidPreparationInstrumentCreatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidPreparationInstrumentIDKey: created.ID,
-	}))
-
 	return created, nil
 }
 
@@ -96,10 +91,6 @@ func (m *mealPlanningManager) UpdateValidPreparationInstrument(ctx context.Conte
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating valid preparation instrument")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidPreparationInstrumentUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.ValidPreparationInstrumentIDKey: existingValidPreparationInstrument.ID,
-	}))
-
 	existingValidPreparationInstrument, err = m.db.GetValidPreparationInstrument(ctx, validPreparationInstrumentID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching updated valid preparation instrument")
@@ -118,10 +109,6 @@ func (m *mealPlanningManager) ArchiveValidPreparationInstrument(ctx context.Cont
 	if err := m.db.ArchiveValidPreparationInstrument(ctx, validPreparationInstrumentID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving valid preparation instrument")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.ValidPreparationInstrumentArchivedServiceEventType, map[string]any{
-		mealplanningkeys.ValidPreparationInstrumentIDKey: validPreparationInstrumentID,
-	}))
 
 	return nil
 }

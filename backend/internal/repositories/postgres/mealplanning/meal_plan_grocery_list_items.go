@@ -414,7 +414,25 @@ func (q *repository) createMealPlanGroceryListItem(ctx context.Context, querier 
 
 // CreateMealPlanGroceryListItem creates a meal plan grocery list in the database.
 func (q *repository) CreateMealPlanGroceryListItem(ctx context.Context, input *mealplanning.MealPlanGroceryListItemDatabaseCreationInput) (*mealplanning.MealPlanGroceryListItem, error) {
-	return q.createMealPlanGroceryListItem(ctx, q.writeDB, input)
+	if input == nil {
+		return nil, platformerrors.ErrNilInputProvided
+	}
+
+	var created *mealplanning.MealPlanGroceryListItem
+
+	// The write and its event share a transaction.
+	if err := q.withEvent(ctx, q.logger, mealplanning.MealPlanGroceryListItemCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealPlanGroceryListItemIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		var createErr error
+		created, createErr = q.createMealPlanGroceryListItem(ctx, tx, input)
+
+		return createErr
+	}); err != nil {
+		return nil, err
+	}
+
+	return created, nil
 }
 
 // UpdateMealPlanGroceryListItem updates a particular meal plan grocery list.
@@ -433,24 +451,31 @@ func (q *repository) UpdateMealPlanGroceryListItem(ctx context.Context, updated 
 		purchasedMeasurementUnitID = &updated.PurchasedMeasurementUnit.ID
 	}
 
-	if _, err := q.generatedQuerier.UpdateMealPlanGroceryListItem(ctx, q.writeDB, &generated.UpdateMealPlanGroceryListItemParams{
-		BelongsToMealPlanOption:  database.NullStringFromStringPointer(updated.BelongsToMealPlanOption),
-		RecipeID:                 database.NullStringFromStringPointer(updated.RecipeID),
-		RecipeStepID:             database.NullStringFromStringPointer(updated.RecipeStepID),
-		IngredientIndex:          database.NullInt32FromUint16Pointer(updated.IngredientIndex),
-		OptionIndex:              database.NullInt32FromUint16Pointer(updated.OptionIndex),
-		BelongsToMealPlan:        updated.BelongsToMealPlan,
-		ValidIngredient:          updated.Ingredient.ID,
-		ValidMeasurementUnit:     updated.MeasurementUnit.ID,
-		MinimumQuantityNeeded:    database.StringFromFloat32(updated.MinQuantityNeeded),
-		StatusExplanation:        updated.StatusExplanation,
-		Status:                   generated.GroceryListItemStatus(updated.Status),
-		ID:                       updated.ID,
-		MaximumQuantityNeeded:    database.NullStringFromFloat32Pointer(updated.MaxQuantityNeeded),
-		QuantityPurchased:        database.NullStringFromFloat32Pointer(updated.QuantityPurchased),
-		PurchasedMeasurementUnit: database.NullStringFromStringPointer(purchasedMeasurementUnitID),
-		PurchasedUpc:             database.NullStringFromStringPointer(updated.PurchasedUPC),
-		PurchasePrice:            database.NullStringFromFloat32Pointer(updated.PurchasePrice),
+	if err := q.withEvent(ctx, logger, mealplanning.MealPlanGroceryListItemUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealPlanIDKey:                updated.BelongsToMealPlan,
+		mealplanningkeys.MealPlanGroceryListItemIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateMealPlanGroceryListItem(ctx, tx, &generated.UpdateMealPlanGroceryListItemParams{
+			BelongsToMealPlanOption:  database.NullStringFromStringPointer(updated.BelongsToMealPlanOption),
+			RecipeID:                 database.NullStringFromStringPointer(updated.RecipeID),
+			RecipeStepID:             database.NullStringFromStringPointer(updated.RecipeStepID),
+			IngredientIndex:          database.NullInt32FromUint16Pointer(updated.IngredientIndex),
+			OptionIndex:              database.NullInt32FromUint16Pointer(updated.OptionIndex),
+			BelongsToMealPlan:        updated.BelongsToMealPlan,
+			ValidIngredient:          updated.Ingredient.ID,
+			ValidMeasurementUnit:     updated.MeasurementUnit.ID,
+			MinimumQuantityNeeded:    database.StringFromFloat32(updated.MinQuantityNeeded),
+			StatusExplanation:        updated.StatusExplanation,
+			Status:                   generated.GroceryListItemStatus(updated.Status),
+			ID:                       updated.ID,
+			MaximumQuantityNeeded:    database.NullStringFromFloat32Pointer(updated.MaxQuantityNeeded),
+			QuantityPurchased:        database.NullStringFromFloat32Pointer(updated.QuantityPurchased),
+			PurchasedMeasurementUnit: database.NullStringFromStringPointer(purchasedMeasurementUnitID),
+			PurchasedUpc:             database.NullStringFromStringPointer(updated.PurchasedUPC),
+			PurchasePrice:            database.NullStringFromFloat32Pointer(updated.PurchasePrice),
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan grocery list")
 	}
@@ -473,14 +498,18 @@ func (q *repository) ArchiveMealPlanGroceryListItem(ctx context.Context, mealPla
 	logger = logger.WithValue(mealplanningkeys.MealPlanGroceryListItemIDKey, mealPlanGroceryListItemID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanGroceryListItemIDKey, mealPlanGroceryListItemID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveMealPlanGroceryListItem(ctx, q.writeDB, mealPlanGroceryListItemID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan grocery list")
-	}
+	return q.withEvent(ctx, logger, mealplanning.MealPlanGroceryListItemArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealPlanGroceryListItemIDKey: mealPlanGroceryListItemID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMealPlanGroceryListItem(ctx, tx, mealPlanGroceryListItemID)
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving meal plan grocery list")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	return nil
+		return nil
+	})
 }

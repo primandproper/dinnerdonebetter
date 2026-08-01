@@ -16,6 +16,7 @@ import (
 	notifications "github.com/primandproper/platform-go/v8/notifications/mobile"
 	"github.com/primandproper/platform-go/v8/observability"
 	"github.com/primandproper/platform-go/v8/observability/logging"
+	"github.com/primandproper/platform-go/v8/retry"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -45,7 +46,10 @@ func (a *AsyncDataChangeMessageHandler) MobileNotificationsEventHandler(topicNam
 		if err := json.NewDecoder(bytes.NewReader(rawMsg)).Decode(&req); err != nil {
 			a.messageDecodeErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicMobileNotifications)))
 			status = statusFailure
-			return fmt.Errorf("decoding mobile notification request: %w", err)
+			// Unretryable: a payload that fails to decode will fail to decode on every
+			// remaining attempt, and each of those is latency the healthy messages behind
+			// it spend waiting. Straight to the dead-letter topic.
+			return retry.Unretryable(fmt.Errorf("decoding mobile notification request: %w", err))
 		}
 
 		if req.TestID != "" {

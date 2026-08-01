@@ -516,42 +516,46 @@ func (q *repository) CreateValidIngredient(ctx context.Context, input *mealplann
 	logger := q.logger.WithValue(mealplanningkeys.ValidIngredientIDKey, input.ID)
 
 	// create the valid ingredient.
-	if err := q.generatedQuerier.CreateValidIngredient(ctx, q.writeDB, &generated.CreateValidIngredientParams{
-		ID:                                      input.ID,
-		Name:                                    input.Name,
-		Description:                             input.Description,
-		Warning:                                 input.Warning,
-		ContainsEgg:                             input.ContainsEgg,
-		ContainsDairy:                           input.ContainsDairy,
-		ContainsPeanut:                          input.ContainsPeanut,
-		ContainsTreeNut:                         input.ContainsTreeNut,
-		ContainsSoy:                             input.ContainsSoy,
-		ContainsWheat:                           input.ContainsWheat,
-		ContainsShellfish:                       input.ContainsShellfish,
-		ContainsSesame:                          input.ContainsSesame,
-		ContainsFish:                            input.ContainsFish,
-		ContainsGluten:                          input.ContainsGluten,
-		AnimalFlesh:                             input.AnimalFlesh,
-		IsLiquid:                                database.NullBoolFromBool(input.IsLiquid),
-		IconPath:                                input.IconPath,
-		AnimalDerived:                           input.AnimalDerived,
-		PluralName:                              input.PluralName,
-		RestrictToPreparations:                  input.RestrictToPreparations,
-		ContaminatesEquipment:                   input.ContaminatesEquipment,
-		MaximumIdealStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(input.MaxStorageTemperatureInCelsius),
-		MinimumIdealStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(input.MinStorageTemperatureInCelsius),
-		StorageInstructions:                     input.StorageInstructions,
-		Slug:                                    input.Slug,
-		ContainsAlcohol:                         input.ContainsAlcohol,
-		ShoppingSuggestions:                     input.ShoppingSuggestions,
-		IsStarch:                                input.IsStarch,
-		IsProtein:                               input.IsProtein,
-		IsGrain:                                 input.IsGrain,
-		IsFruit:                                 input.IsFruit,
-		IsSalt:                                  input.IsSalt,
-		IsFat:                                   input.IsFat,
-		IsAcid:                                  input.IsAcid,
-		IsHeat:                                  input.IsHeat,
+	if err := q.withEvent(ctx, logger, mealplanning.ValidIngredientCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidIngredientIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return q.generatedQuerier.CreateValidIngredient(ctx, tx, &generated.CreateValidIngredientParams{
+			ID:                                      input.ID,
+			Name:                                    input.Name,
+			Description:                             input.Description,
+			Warning:                                 input.Warning,
+			ContainsEgg:                             input.ContainsEgg,
+			ContainsDairy:                           input.ContainsDairy,
+			ContainsPeanut:                          input.ContainsPeanut,
+			ContainsTreeNut:                         input.ContainsTreeNut,
+			ContainsSoy:                             input.ContainsSoy,
+			ContainsWheat:                           input.ContainsWheat,
+			ContainsShellfish:                       input.ContainsShellfish,
+			ContainsSesame:                          input.ContainsSesame,
+			ContainsFish:                            input.ContainsFish,
+			ContainsGluten:                          input.ContainsGluten,
+			AnimalFlesh:                             input.AnimalFlesh,
+			IsLiquid:                                database.NullBoolFromBool(input.IsLiquid),
+			IconPath:                                input.IconPath,
+			AnimalDerived:                           input.AnimalDerived,
+			PluralName:                              input.PluralName,
+			RestrictToPreparations:                  input.RestrictToPreparations,
+			ContaminatesEquipment:                   input.ContaminatesEquipment,
+			MaximumIdealStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(input.MaxStorageTemperatureInCelsius),
+			MinimumIdealStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(input.MinStorageTemperatureInCelsius),
+			StorageInstructions:                     input.StorageInstructions,
+			Slug:                                    input.Slug,
+			ContainsAlcohol:                         input.ContainsAlcohol,
+			ShoppingSuggestions:                     input.ShoppingSuggestions,
+			IsStarch:                                input.IsStarch,
+			IsProtein:                               input.IsProtein,
+			IsGrain:                                 input.IsGrain,
+			IsFruit:                                 input.IsFruit,
+			IsSalt:                                  input.IsSalt,
+			IsFat:                                   input.IsFat,
+			IsAcid:                                  input.IsAcid,
+			IsHeat:                                  input.IsHeat,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid ingredient creation query")
 	}
@@ -612,42 +616,48 @@ func (q *repository) UpdateValidIngredient(ctx context.Context, updated *mealpla
 	logger := q.logger.WithValue(mealplanningkeys.ValidIngredientIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateValidIngredient(ctx, q.writeDB, &generated.UpdateValidIngredientParams{
-		Description:                             updated.Description,
-		Warning:                                 updated.Warning,
-		ID:                                      updated.ID,
-		ShoppingSuggestions:                     updated.ShoppingSuggestions,
-		Slug:                                    updated.Slug,
-		StorageInstructions:                     updated.StorageInstructions,
-		Name:                                    updated.Name,
-		PluralName:                              updated.PluralName,
-		IconPath:                                updated.IconPath,
-		MaximumIdealStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(updated.MaxStorageTemperatureInCelsius),
-		MinimumIdealStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(updated.MinStorageTemperatureInCelsius),
-		IsLiquid:                                database.NullBoolFromBool(updated.IsLiquid),
-		ContainsWheat:                           updated.ContainsWheat,
-		ContainsPeanut:                          updated.ContainsPeanut,
-		ContainsGluten:                          updated.ContainsGluten,
-		ContainsFish:                            updated.ContainsFish,
-		AnimalDerived:                           updated.AnimalDerived,
-		ContainsSesame:                          updated.ContainsSesame,
-		RestrictToPreparations:                  updated.RestrictToPreparations,
-		ContaminatesEquipment:                   updated.ContaminatesEquipment,
-		ContainsShellfish:                       updated.ContainsShellfish,
-		ContainsSoy:                             updated.ContainsSoy,
-		ContainsTreeNut:                         updated.ContainsTreeNut,
-		AnimalFlesh:                             updated.AnimalFlesh,
-		ContainsAlcohol:                         updated.ContainsAlcohol,
-		ContainsDairy:                           updated.ContainsDairy,
-		IsStarch:                                updated.IsStarch,
-		IsProtein:                               updated.IsProtein,
-		IsGrain:                                 updated.IsGrain,
-		IsFruit:                                 updated.IsFruit,
-		IsSalt:                                  updated.IsSalt,
-		IsFat:                                   updated.IsFat,
-		IsAcid:                                  updated.IsAcid,
-		IsHeat:                                  updated.IsHeat,
-		ContainsEgg:                             updated.ContainsEgg,
+	if err := q.withEvent(ctx, logger, mealplanning.ValidIngredientUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidIngredientIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateValidIngredient(ctx, tx, &generated.UpdateValidIngredientParams{
+			Description:                             updated.Description,
+			Warning:                                 updated.Warning,
+			ID:                                      updated.ID,
+			ShoppingSuggestions:                     updated.ShoppingSuggestions,
+			Slug:                                    updated.Slug,
+			StorageInstructions:                     updated.StorageInstructions,
+			Name:                                    updated.Name,
+			PluralName:                              updated.PluralName,
+			IconPath:                                updated.IconPath,
+			MaximumIdealStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(updated.MaxStorageTemperatureInCelsius),
+			MinimumIdealStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(updated.MinStorageTemperatureInCelsius),
+			IsLiquid:                                database.NullBoolFromBool(updated.IsLiquid),
+			ContainsWheat:                           updated.ContainsWheat,
+			ContainsPeanut:                          updated.ContainsPeanut,
+			ContainsGluten:                          updated.ContainsGluten,
+			ContainsFish:                            updated.ContainsFish,
+			AnimalDerived:                           updated.AnimalDerived,
+			ContainsSesame:                          updated.ContainsSesame,
+			RestrictToPreparations:                  updated.RestrictToPreparations,
+			ContaminatesEquipment:                   updated.ContaminatesEquipment,
+			ContainsShellfish:                       updated.ContainsShellfish,
+			ContainsSoy:                             updated.ContainsSoy,
+			ContainsTreeNut:                         updated.ContainsTreeNut,
+			AnimalFlesh:                             updated.AnimalFlesh,
+			ContainsAlcohol:                         updated.ContainsAlcohol,
+			ContainsDairy:                           updated.ContainsDairy,
+			IsStarch:                                updated.IsStarch,
+			IsProtein:                               updated.IsProtein,
+			IsGrain:                                 updated.IsGrain,
+			IsFruit:                                 updated.IsFruit,
+			IsSalt:                                  updated.IsSalt,
+			IsFat:                                   updated.IsFat,
+			IsAcid:                                  updated.IsAcid,
+			IsHeat:                                  updated.IsHeat,
+			ContainsEgg:                             updated.ContainsEgg,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid ingredient")
 	}
@@ -692,14 +702,18 @@ func (q *repository) ArchiveValidIngredient(ctx context.Context, validIngredient
 	logger = logger.WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveValidIngredient(ctx, q.writeDB, validIngredientID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving valid ingredient")
-	}
+	return q.withEvent(ctx, logger, mealplanning.ValidIngredientArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidIngredientIDKey: validIngredientID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidIngredient(ctx, tx, validIngredientID)
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid ingredient")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	return nil
+		return nil
+	})
 }

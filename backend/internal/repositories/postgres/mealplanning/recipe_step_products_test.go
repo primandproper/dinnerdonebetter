@@ -31,7 +31,7 @@ func createRecipeStepProductForTest(t *testing.T, ctx context.Context, recipeID 
 	}
 	dbInput := converters.ConvertRecipeStepProductToRecipeStepProductDatabaseCreationInput(exampleRecipeStepProduct)
 
-	created, err := dbc.CreateRecipeStepProduct(ctx, dbInput)
+	created, err := dbc.CreateRecipeStepProduct(ctx, recipeID, dbInput)
 	assert.NoError(t, err)
 	require.NotNil(t, created)
 
@@ -90,7 +90,7 @@ func TestQuerier_Integration_RecipeStepProducts(t *testing.T) {
 
 	// delete
 	for _, recipeStepProduct := range createdRecipeStepProducts {
-		assert.NoError(t, dbc.ArchiveRecipeStepProduct(ctx, exampleRecipeStep.ID, recipeStepProduct.ID))
+		assert.NoError(t, dbc.ArchiveRecipeStepProduct(ctx, createdRecipe.ID, exampleRecipeStep.ID, recipeStepProduct.ID))
 
 		var exists bool
 		exists, err = dbc.RecipeStepProductExists(ctx, exampleRecipe.ID, recipeStepProduct.BelongsToRecipeStep, recipeStepProduct.ID)
@@ -256,7 +256,7 @@ func TestQuerier_CreateRecipeStepProduct(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.CreateRecipeStepProduct(ctx, nil)
+		actual, err := c.CreateRecipeStepProduct(ctx, fakes.BuildFakeID(), nil)
 		assert.Error(t, err)
 		assert.Nil(t, actual)
 	})
@@ -271,7 +271,7 @@ func TestQuerier_UpdateRecipeStepProduct(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.UpdateRecipeStepProduct(ctx, nil))
+		assert.Error(t, c.UpdateRecipeStepProduct(ctx, fakes.BuildFakeID(), nil))
 	})
 }
 
@@ -286,7 +286,7 @@ func TestQuerier_ArchiveRecipeStepProduct(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveRecipeStepProduct(ctx, "", exampleRecipeStepProduct.ID))
+		assert.Error(t, c.ArchiveRecipeStepProduct(ctx, fakes.BuildFakeID(), "", exampleRecipeStepProduct.ID))
 	})
 
 	T.Run("with invalid recipe step product MealPlanTaskID", func(t *testing.T) {
@@ -297,7 +297,7 @@ func TestQuerier_ArchiveRecipeStepProduct(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveRecipeStepProduct(ctx, exampleRecipeStepID, ""))
+		assert.Error(t, c.ArchiveRecipeStepProduct(ctx, fakes.BuildFakeID(), exampleRecipeStepID, ""))
 	})
 }
 
@@ -333,7 +333,7 @@ func TestQuerier_Integration_RecipeStepProducts_CursorBasedPagination(t *testing
 			return recipeStepProduct.ID
 		},
 		CleanupItem: func(ctx context.Context, recipeStepProduct *types.RecipeStepProduct) error {
-			return dbc.ArchiveRecipeStepProduct(ctx, recipeStep.ID, recipeStepProduct.ID)
+			return dbc.ArchiveRecipeStepProduct(ctx, recipe.ID, recipeStep.ID, recipeStepProduct.ID)
 		},
 	})
 }

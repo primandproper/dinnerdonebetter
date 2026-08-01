@@ -420,7 +420,25 @@ func (q *repository) createMealPlanOption(ctx context.Context, db database.SQLQu
 
 // CreateMealPlanOption creates a meal plan option in the database.
 func (q *repository) CreateMealPlanOption(ctx context.Context, input *mealplanning.MealPlanOptionDatabaseCreationInput) (*mealplanning.MealPlanOption, error) {
-	return q.createMealPlanOption(ctx, q.writeDB, input, false)
+	if input == nil {
+		return nil, platformerrors.ErrNilInputProvided
+	}
+
+	var created *mealplanning.MealPlanOption
+
+	// The write and its event share a transaction.
+	if err := q.withEvent(ctx, q.logger, mealplanning.MealPlanOptionCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealPlanOptionIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		var createErr error
+		created, createErr = q.createMealPlanOption(ctx, tx, input, false)
+
+		return createErr
+	}); err != nil {
+		return nil, err
+	}
+
+	return created, nil
 }
 
 // UpdateMealPlanOption updates a particular meal plan option.
@@ -434,14 +452,21 @@ func (q *repository) UpdateMealPlanOption(ctx context.Context, updated *mealplan
 	logger := q.logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateMealPlanOption(ctx, q.writeDB, &generated.UpdateMealPlanOptionParams{
-		MealID:             updated.Meal.ID,
-		Notes:              updated.Notes,
-		MealScale:          database.StringFromFloat32(updated.MealScale),
-		MealPlanOptionID:   updated.ID,
-		AssignedCook:       database.NullStringFromStringPointer(updated.AssignedCook),
-		AssignedDishwasher: database.NullStringFromStringPointer(updated.AssignedDishwasher),
-		MealPlanEventID:    database.NullStringFromString(updated.BelongsToMealPlanEvent),
+	if err := q.withEvent(ctx, logger, mealplanning.MealPlanOptionUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealPlanEventIDKey:  updated.BelongsToMealPlanEvent,
+		mealplanningkeys.MealPlanOptionIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateMealPlanOption(ctx, tx, &generated.UpdateMealPlanOptionParams{
+			MealID:             updated.Meal.ID,
+			Notes:              updated.Notes,
+			MealScale:          database.StringFromFloat32(updated.MealScale),
+			MealPlanOptionID:   updated.ID,
+			AssignedCook:       database.NullStringFromStringPointer(updated.AssignedCook),
+			AssignedDishwasher: database.NullStringFromStringPointer(updated.AssignedDishwasher),
+			MealPlanEventID:    database.NullStringFromString(updated.BelongsToMealPlanEvent),
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan option")
 	}
@@ -476,16 +501,26 @@ func (q *repository) ArchiveMealPlanOption(ctx context.Context, mealPlanID, meal
 	logger = logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveMealPlanOption(ctx, q.writeDB, &generated.ArchiveMealPlanOptionParams{
-		ID:                     mealPlanOptionID,
-		BelongsToMealPlanEvent: sql.NullString{String: mealPlanEventID, Valid: true},
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan option")
-	}
+	if err := q.withEvent(ctx, logger, mealplanning.MealPlanOptionArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealPlanIDKey:       mealPlanID,
+		mealplanningkeys.MealPlanEventIDKey:  mealPlanEventID,
+		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMealPlanOption(ctx, tx, &generated.ArchiveMealPlanOptionParams{
+			ID:                     mealPlanOptionID,
+			BelongsToMealPlanEvent: sql.NullString{String: mealPlanEventID, Valid: true},
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving meal plan option")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

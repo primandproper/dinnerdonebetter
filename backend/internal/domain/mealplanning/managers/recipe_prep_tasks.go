@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -56,11 +55,6 @@ func (m *mealPlanningManager) CreateRecipePrepTask(ctx context.Context, recipeID
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating recipe prep task")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipePrepTaskCreatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:         recipeID,
-		mealplanningkeys.RecipePrepTaskIDKey: convertedInput.ID,
-	}))
-
 	return created, nil
 }
 
@@ -108,11 +102,6 @@ func (m *mealPlanningManager) UpdateRecipePrepTask(ctx context.Context, recipeID
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe prep task")
 	}
 
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipePrepTaskUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:         recipeID,
-		mealplanningkeys.RecipePrepTaskIDKey: recipePrepTaskID,
-	}))
-
 	return nil
 }
 
@@ -130,11 +119,6 @@ func (m *mealPlanningManager) ArchiveRecipePrepTask(ctx context.Context, recipeI
 	if err := m.db.ArchiveRecipePrepTask(ctx, recipeID, recipePrepTaskID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe prep task")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipePrepTaskArchivedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:         recipeID,
-		mealplanningkeys.RecipePrepTaskIDKey: recipePrepTaskID,
-	}))
 
 	return nil
 }

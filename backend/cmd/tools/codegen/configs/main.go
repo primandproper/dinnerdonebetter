@@ -60,15 +60,14 @@ func main() {
 		"deploy/environments/prod/kustomize/configs": {
 			RootConfig: buildProdConfig(),
 			ServiceDatabaseUsers: map[string]string{
-				"db_cleaner":                         "db_cleaner",
-				"meal_plan_finalizer":                "meal_plan_finalizer",
-				"meal_plan_grocery_list_initializer": "meal_plan_grocery_list_initializer",
-				"meal_plan_task_creator":             "meal_plan_task_creator",
-				"search_data_index_scheduler":        "search_data_index_scheduler",
-				"mobile_notification_scheduler":      "mobile_notification_scheduler",
-				"async_message_handler":              "async_message_handler",
-				"queue_test":                         "queue_test",
-				"dinner_done_better_mcp_server":      "mcp_server",
+				"db_cleaner": "db_cleaner",
+				// The six interval jobs that used to be one CronJob (and one database user)
+				// each now share a process, so they share a user with the union of their
+				// grants. Least privilege between them is gone; least privilege against the
+				// API server's user is not.
+				"scheduler":                     "scheduler",
+				"async_message_handler":         "async_message_handler",
+				"dinner_done_better_mcp_server": "mcp_server",
 			},
 		},
 	}

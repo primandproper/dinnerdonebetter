@@ -6,8 +6,6 @@ import (
 	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/tracing"
 
@@ -24,8 +22,6 @@ func RegisterPaymentsDataManager(i do.Injector) {
 			do.MustInvoke[payments.Repository](i),
 			do.MustInvoke[payments.PaymentProcessorRegistry](i),
 			do.MustInvoke[identitymanager.IdentityDataManager](i),
-			do.MustInvoke[*msgconfig.QueuesConfig](i),
-			do.MustInvoke[messagequeue.PublisherProvider](i),
 		)
 	})
 }

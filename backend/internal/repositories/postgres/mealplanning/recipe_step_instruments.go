@@ -362,12 +362,32 @@ func (q *repository) createRecipeStepInstrument(ctx context.Context, querier dat
 }
 
 // CreateRecipeStepInstrument creates a recipe step instrument in the database.
-func (q *repository) CreateRecipeStepInstrument(ctx context.Context, input *mealplanning.RecipeStepInstrumentDatabaseCreationInput) (*mealplanning.RecipeStepInstrument, error) {
-	return q.createRecipeStepInstrument(ctx, q.writeDB, input)
+func (q *repository) CreateRecipeStepInstrument(ctx context.Context, recipeID string, input *mealplanning.RecipeStepInstrumentDatabaseCreationInput) (*mealplanning.RecipeStepInstrument, error) {
+	if input == nil {
+		return nil, platformerrors.ErrNilInputProvided
+	}
+
+	var created *mealplanning.RecipeStepInstrument
+
+	// The write and its event share a transaction.
+	if err := q.withEvent(ctx, q.logger, mealplanning.RecipeStepInstrumentCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:               recipeID,
+		mealplanningkeys.RecipeStepIDKey:           input.BelongsToRecipeStep,
+		mealplanningkeys.RecipeStepInstrumentIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		var createErr error
+		created, createErr = q.createRecipeStepInstrument(ctx, tx, input)
+
+		return createErr
+	}); err != nil {
+		return nil, err
+	}
+
+	return created, nil
 }
 
 // UpdateRecipeStepInstrument updates a particular recipe step instrument.
-func (q *repository) UpdateRecipeStepInstrument(ctx context.Context, updated *mealplanning.RecipeStepInstrument) error {
+func (q *repository) UpdateRecipeStepInstrument(ctx context.Context, recipeID string, updated *mealplanning.RecipeStepInstrument) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -382,20 +402,28 @@ func (q *repository) UpdateRecipeStepInstrument(ctx context.Context, updated *me
 		instrumentID = &updated.Instrument.ID
 	}
 
-	if _, err := q.generatedQuerier.UpdateRecipeStepInstrument(ctx, q.writeDB, &generated.UpdateRecipeStepInstrumentParams{
-		InstrumentID:        database.NullStringFromStringPointer(instrumentID),
-		RecipeStepProductID: database.NullStringFromStringPointer(updated.RecipeStepProductID),
-		Name:                updated.Name,
-		Notes:               updated.Notes,
-		PreferenceRank:      int32(updated.PreferenceRank),
-		Optional:            updated.Optional,
-		Index:               int32(updated.Index),
-		OptionIndex:         int32(updated.OptionIndex),
-		MinimumQuantity:     int32(updated.MinQuantity),
-		MaximumQuantity:     database.NullInt32FromUint32Pointer(updated.MaxQuantity),
-		BelongsToRecipeStep: updated.BelongsToRecipeStep,
-		ID:                  updated.ID,
-		ScaleFactor:         database.StringFromFloat32(updated.ScaleFactor),
+	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepInstrumentUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:               recipeID,
+		mealplanningkeys.RecipeStepIDKey:           updated.BelongsToRecipeStep,
+		mealplanningkeys.RecipeStepInstrumentIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateRecipeStepInstrument(ctx, tx, &generated.UpdateRecipeStepInstrumentParams{
+			InstrumentID:        database.NullStringFromStringPointer(instrumentID),
+			RecipeStepProductID: database.NullStringFromStringPointer(updated.RecipeStepProductID),
+			Name:                updated.Name,
+			Notes:               updated.Notes,
+			PreferenceRank:      int32(updated.PreferenceRank),
+			Optional:            updated.Optional,
+			Index:               int32(updated.Index),
+			OptionIndex:         int32(updated.OptionIndex),
+			MinimumQuantity:     int32(updated.MinQuantity),
+			MaximumQuantity:     database.NullInt32FromUint32Pointer(updated.MaxQuantity),
+			BelongsToRecipeStep: updated.BelongsToRecipeStep,
+			ID:                  updated.ID,
+			ScaleFactor:         database.StringFromFloat32(updated.ScaleFactor),
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step instrument")
 	}
@@ -406,7 +434,7 @@ func (q *repository) UpdateRecipeStepInstrument(ctx context.Context, updated *me
 }
 
 // ArchiveRecipeStepInstrument archives a recipe step instrument from the database by its ID.
-func (q *repository) ArchiveRecipeStepInstrument(ctx context.Context, recipeStepID, recipeStepInstrumentID string) error {
+func (q *repository) ArchiveRecipeStepInstrument(ctx context.Context, recipeID, recipeStepID, recipeStepInstrumentID string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -424,16 +452,26 @@ func (q *repository) ArchiveRecipeStepInstrument(ctx context.Context, recipeStep
 	logger = logger.WithValue(mealplanningkeys.RecipeStepInstrumentIDKey, recipeStepInstrumentID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepInstrumentIDKey, recipeStepInstrumentID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveRecipeStepInstrument(ctx, q.writeDB, &generated.ArchiveRecipeStepInstrumentParams{
-		BelongsToRecipeStep: recipeStepID,
-		ID:                  recipeStepInstrumentID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step instrument")
-	}
+	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepInstrumentArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:               recipeID,
+		mealplanningkeys.RecipeStepIDKey:           recipeStepID,
+		mealplanningkeys.RecipeStepInstrumentIDKey: recipeStepInstrumentID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveRecipeStepInstrument(ctx, tx, &generated.ArchiveRecipeStepInstrumentParams{
+			BelongsToRecipeStep: recipeStepID,
+			ID:                  recipeStepInstrumentID,
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving recipe step instrument")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

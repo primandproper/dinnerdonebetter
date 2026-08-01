@@ -197,7 +197,18 @@ func (r *repository) markAccountAsUserDefault(ctx context.Context, querier datab
 
 // MarkAccountAsUserDefault does a thing.
 func (r *repository) MarkAccountAsUserDefault(ctx context.Context, userID, accountID string) error {
-	return r.markAccountAsUserDefault(ctx, r.writeDB, userID, accountID)
+	// Hoisted out of the helper: opening a transaction to reject an obviously invalid ID is
+	// waste, and the event metadata below reads both values.
+	if userID == "" || accountID == "" {
+		return platformerrors.ErrInvalidIDProvided
+	}
+
+	return r.withEvent(ctx, r.logger, identity.UserChangedActiveAccountServiceEventType, accountID, map[string]any{
+		identitykeys.AccountIDKey: accountID,
+		identitykeys.UserIDKey:    userID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return r.markAccountAsUserDefault(ctx, tx, userID, accountID)
+	})
 }
 
 // UserIsMemberOfAccount does a thing.
@@ -274,6 +285,14 @@ func (r *repository) ModifyUserPermissions(ctx context.Context, accountID, userI
 			},
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
+		}
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.AccountMembershipPermissionsUpdatedServiceEventType, accountID, map[string]any{
+			identitykeys.AccountIDKey: accountID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		return nil
@@ -356,6 +375,14 @@ func (r *repository) TransferAccountOwnership(ctx context.Context, accountID str
 		}
 
 		// audit log created above
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.AccountOwnershipTransferredServiceEventType, accountID, map[string]any{
+			identitykeys.AccountIDKey: accountID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
 
 		return nil
 	}); err != nil {
@@ -511,6 +538,15 @@ func (r *repository) RemoveUserFromAccount(ctx context.Context, userID, accountI
 		}
 
 		// audit log entry created above
+
+		// The event is another statement in this transaction, so it commits with the
+		// rows it describes.
+		if emitErr := r.events.Emit(ctx, tx, logger, identity.AccountMemberRemovedServiceEventType, accountID, map[string]any{
+			identitykeys.AccountIDKey: accountID,
+			identitykeys.UserIDKey:    userID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		}
 
 		return nil
 	}); err != nil {

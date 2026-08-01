@@ -406,13 +406,17 @@ func (q *repository) CreateValidMeasurementUnitConversion(ctx context.Context, i
 	}
 
 	// create the valid measurement conversion.
-	if err := q.generatedQuerier.CreateValidMeasurementUnitConversion(ctx, q.writeDB, &generated.CreateValidMeasurementUnitConversionParams{
-		ID:                input.ID,
-		FromUnit:          fromUnit,
-		ToUnit:            toUnit,
-		Modifier:          database.StringFromFloat32(modifier),
-		Notes:             input.Notes,
-		OnlyForIngredient: database.NullStringFromStringPointer(input.OnlyForIngredient),
+	if err := q.withEvent(ctx, logger, mealplanning.ValidMeasurementUnitConversionCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidMeasurementUnitConversionIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return q.generatedQuerier.CreateValidMeasurementUnitConversion(ctx, tx, &generated.CreateValidMeasurementUnitConversionParams{
+			ID:                input.ID,
+			FromUnit:          fromUnit,
+			ToUnit:            toUnit,
+			Modifier:          database.StringFromFloat32(modifier),
+			Notes:             input.Notes,
+			OnlyForIngredient: database.NullStringFromStringPointer(input.OnlyForIngredient),
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid measurement conversion creation query")
 	}
@@ -478,13 +482,19 @@ func (q *repository) UpdateValidMeasurementUnitConversion(ctx context.Context, u
 		ingredientID = &updated.OnlyForIngredient.ID
 	}
 
-	if _, err := q.generatedQuerier.UpdateValidMeasurementUnitConversion(ctx, q.writeDB, &generated.UpdateValidMeasurementUnitConversionParams{
-		FromUnit:          updated.From.ID,
-		ToUnit:            updated.To.ID,
-		OnlyForIngredient: database.NullStringFromStringPointer(ingredientID),
-		Modifier:          database.StringFromFloat32(updated.Modifier),
-		Notes:             updated.Notes,
-		ID:                updated.ID,
+	if err := q.withEvent(ctx, logger, mealplanning.ValidMeasurementUnitConversionUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidMeasurementUnitConversionIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateValidMeasurementUnitConversion(ctx, tx, &generated.UpdateValidMeasurementUnitConversionParams{
+			FromUnit:          updated.From.ID,
+			ToUnit:            updated.To.ID,
+			OnlyForIngredient: database.NullStringFromStringPointer(ingredientID),
+			Modifier:          database.StringFromFloat32(updated.Modifier),
+			Notes:             updated.Notes,
+			ID:                updated.ID,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid measurement conversion")
 	}
@@ -507,16 +517,20 @@ func (q *repository) ArchiveValidMeasurementUnitConversion(ctx context.Context, 
 	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitConversionIDKey, validMeasurementUnitConversionID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitConversionIDKey, validMeasurementUnitConversionID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveValidMeasurementUnitConversion(ctx, q.writeDB, validMeasurementUnitConversionID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving valid measurement conversion")
-	}
+	return q.withEvent(ctx, logger, mealplanning.ValidMeasurementUnitConversionArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidMeasurementUnitConversionIDKey: validMeasurementUnitConversionID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidMeasurementUnitConversion(ctx, tx, validMeasurementUnitConversionID)
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid measurement conversion")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	return nil
+		return nil
+	})
 }
 
 // GetMeasurementUnitConversionMismatches fetches ingredient-unit pairs that lack a conversion in the database.

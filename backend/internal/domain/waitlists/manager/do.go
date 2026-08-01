@@ -6,8 +6,6 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists"
 	waitlistsrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/tracing"
 
@@ -30,8 +28,6 @@ func RegisterWaitlistDataManager(i do.Injector) {
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[waitlistRepository](i),
-			do.MustInvoke[*msgconfig.QueuesConfig](i),
-			do.MustInvoke[messagequeue.PublisherProvider](i),
 		)
 	})
 

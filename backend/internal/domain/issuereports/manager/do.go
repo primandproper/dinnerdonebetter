@@ -5,8 +5,6 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
 	"github.com/primandproper/platform-go/v8/observability/logging"
 	"github.com/primandproper/platform-go/v8/observability/tracing"
 
@@ -21,8 +19,6 @@ func RegisterIssueReportsDataManager(i do.Injector) {
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[issuereports.Repository](i),
-			do.MustInvoke[*msgconfig.QueuesConfig](i),
-			do.MustInvoke[messagequeue.PublisherProvider](i),
 		)
 	})
 }

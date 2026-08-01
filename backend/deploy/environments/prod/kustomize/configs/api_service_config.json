@@ -366,5 +366,36 @@
 		"oauth2Clients": {
 			"creationEnabled": true
 		}
+	},
+	"idempotency": {
+		"manager": {
+			"keyPrefix": "",
+			"lock": {
+				"redis": null,
+				"postgres": null,
+				"provider": "",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				}
+			},
+			"cache": {
+				"redis": null,
+				"provider": "",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				},
+				"expiry": 0,
+				"janitorInterval": 0
+			},
+			"ttl": 0,
+			"inFlightTTL": 0,
+			"maxKeyLength": 0,
+			"failOpen": false
+		},
+		"enabled": false
 	}
 }

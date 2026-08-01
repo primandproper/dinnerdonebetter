@@ -4,6 +4,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/comments/generated"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	"github.com/primandproper/platform-go/v8/database"
 	"github.com/primandproper/platform-go/v8/observability/logging"
@@ -21,6 +22,7 @@ type repository struct {
 	logger            logging.Logger
 	generatedQuerier  generated.Querier
 	auditLogEntryRepo audit.Repository
+	events            *events.Emitter
 	readDB            database.SQLQueryExecutor
 	writeDB           database.SQLQueryExecutor
 }
@@ -31,6 +33,7 @@ func ProvideCommentsRepository(
 	tracerProvider tracing.TracerProvider,
 	auditLogEntryRepo audit.Repository,
 	client database.Client,
+	eventEmitter *events.Emitter,
 ) comments.Repository {
 	c := &repository{
 		Client:            client,
@@ -39,6 +42,7 @@ func ProvideCommentsRepository(
 		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
 		generatedQuerier:  generated.New(),
 		auditLogEntryRepo: auditLogEntryRepo,
+		events:            eventEmitter,
 		logger:            logging.NewNamedLogger(logger, o11yName),
 	}
 

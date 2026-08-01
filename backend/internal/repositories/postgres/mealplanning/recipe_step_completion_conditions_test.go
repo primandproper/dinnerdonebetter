@@ -45,7 +45,7 @@ func createRecipeStepCompletionConditionForTest(t *testing.T, ctx context.Contex
 		},
 	}
 
-	created, err := dbc.CreateRecipeStepCompletionCondition(ctx, dbInput)
+	created, err := dbc.CreateRecipeStepCompletionCondition(ctx, recipeID, dbInput)
 	assert.NoError(t, err)
 	require.NotNil(t, created)
 
@@ -101,7 +101,7 @@ func TestQuerier_Integration_RecipeStepCompletionConditions(t *testing.T) {
 
 	// delete
 	for _, recipeStepCompletionCondition := range createdRecipeStepCompletionConditions {
-		assert.NoError(t, dbc.ArchiveRecipeStepCompletionCondition(ctx, exampleRecipeStep.ID, recipeStepCompletionCondition.ID))
+		assert.NoError(t, dbc.ArchiveRecipeStepCompletionCondition(ctx, createdRecipe.ID, exampleRecipeStep.ID, recipeStepCompletionCondition.ID))
 
 		var exists bool
 		exists, err = dbc.RecipeStepCompletionConditionExists(ctx, exampleRecipe.ID, recipeStepCompletionCondition.BelongsToRecipeStep, recipeStepCompletionCondition.ID)
@@ -238,7 +238,7 @@ func TestQuerier_CreateRecipeStepCompletionCondition(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.CreateRecipeStepCompletionCondition(ctx, nil)
+		actual, err := c.CreateRecipeStepCompletionCondition(ctx, fakes.BuildFakeID(), nil)
 		assert.Error(t, err)
 		assert.Nil(t, actual)
 	})
@@ -268,7 +268,7 @@ func TestQuerier_UpdateRecipeStepCompletionCondition(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.UpdateRecipeStepCompletionCondition(ctx, nil))
+		assert.Error(t, c.UpdateRecipeStepCompletionCondition(ctx, fakes.BuildFakeID(), nil))
 	})
 }
 
@@ -283,7 +283,7 @@ func TestQuerier_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveRecipeStepCompletionCondition(ctx, "", exampleRecipeStepCompletionCondition.ID))
+		assert.Error(t, c.ArchiveRecipeStepCompletionCondition(ctx, fakes.BuildFakeID(), "", exampleRecipeStepCompletionCondition.ID))
 	})
 
 	T.Run("with invalid recipe step completion condition MealPlanTaskID", func(t *testing.T) {
@@ -294,7 +294,7 @@ func TestQuerier_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveRecipeStepCompletionCondition(ctx, exampleRecipeStepID, ""))
+		assert.Error(t, c.ArchiveRecipeStepCompletionCondition(ctx, fakes.BuildFakeID(), exampleRecipeStepID, ""))
 	})
 }
 
@@ -330,7 +330,7 @@ func TestQuerier_Integration_RecipeStepCompletionConditions_CursorBasedPaginatio
 			return recipeStepCompletionCondition.ID
 		},
 		CleanupItem: func(ctx context.Context, recipeStepCompletionCondition *types.RecipeStepCompletionCondition) error {
-			return dbc.ArchiveRecipeStepCompletionCondition(ctx, recipeStep.ID, recipeStepCompletionCondition.ID)
+			return dbc.ArchiveRecipeStepCompletionCondition(ctx, recipe.ID, recipeStep.ID, recipeStepCompletionCondition.ID)
 		},
 	})
 }

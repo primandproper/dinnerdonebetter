@@ -3,6 +3,7 @@ package issue_reports
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
+	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/issuereports/generated"
 
 	"github.com/primandproper/platform-go/v8/database"
@@ -21,6 +22,7 @@ type repository struct {
 	logger            logging.Logger
 	generatedQuerier  generated.Querier
 	auditLogEntryRepo audit.Repository
+	events            *events.Emitter
 	readDB            database.SQLQueryExecutor
 	writeDB           database.SQLQueryExecutor
 }
@@ -31,6 +33,7 @@ func ProvideIssueReportsRepository(
 	tracerProvider tracing.TracerProvider,
 	auditLogEntryRepo audit.Repository,
 	client database.Client,
+	eventEmitter *events.Emitter,
 ) issuereports.Repository {
 	c := &repository{
 		Client:            client,
@@ -39,6 +42,7 @@ func ProvideIssueReportsRepository(
 		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
 		generatedQuerier:  generated.New(),
 		auditLogEntryRepo: auditLogEntryRepo,
+		events:            eventEmitter,
 		logger:            logging.NewNamedLogger(logger, o11yName),
 	}
 

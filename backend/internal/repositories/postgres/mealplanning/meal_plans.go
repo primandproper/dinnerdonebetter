@@ -345,6 +345,14 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 			}
 		}
 
+		// The event is another statement in this transaction, so it lives or dies with the
+		// meal plan it describes. See internal/repositories/postgres/events.
+		if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanCreatedServiceEventType, input.BelongsToAccount, map[string]any{
+			mealplanningkeys.MealPlanIDKey: input.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing meal plan created event")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -368,29 +376,43 @@ func (q *repository) UpdateMealPlan(ctx context.Context, updated *types.MealPlan
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, updated.ID)
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, updated.BelongsToAccount)
 
-	rowsAffected, err := q.generatedQuerier.UpdateMealPlan(ctx, q.writeDB, &generated.UpdateMealPlanParams{
-		Notes:            updated.Notes,
-		Status:           generated.MealPlanStatus(updated.Status),
-		VotingDeadline:   updated.VotingDeadline,
-		BelongsToAccount: updated.BelongsToAccount,
-		ID:               updated.ID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating meal plan")
-	}
+	// The update, its audit log entry, and its data change event share a transaction so a
+	// failure part-way through leaves none of the three rather than some of them.
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, updateErr := q.generatedQuerier.UpdateMealPlan(ctx, tx, &generated.UpdateMealPlanParams{
+			Notes:            updated.Notes,
+			Status:           generated.MealPlanStatus(updated.Status),
+			VotingDeadline:   updated.VotingDeadline,
+			BelongsToAccount: updated.BelongsToAccount,
+			ID:               updated.ID,
+		})
+		if updateErr != nil {
+			return observability.PrepareAndLogError(updateErr, logger, span, "updating meal plan")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, q.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &updated.BelongsToAccount,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeMealPlans,
-		RelevantID:       updated.ID,
-		EventType:        audit.AuditLogEventTypeUpdated,
+		if _, auditErr := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToAccount: &updated.BelongsToAccount,
+			ID:               identifiers.New(),
+			ResourceType:     resourceTypeMealPlans,
+			RelevantID:       updated.ID,
+			EventType:        audit.AuditLogEventTypeUpdated,
+		}); auditErr != nil {
+			return observability.PrepareError(auditErr, span, "creating audit log entry")
+		}
+
+		if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
+			mealplanningkeys.MealPlanIDKey: updated.ID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing meal plan updated event")
+		}
+
+		return nil
 	}); err != nil {
-		return observability.PrepareError(err, span, "creating audit log entry")
+		return err
 	}
 
 	logger.Info("meal plan updated")
@@ -417,29 +439,39 @@ func (q *repository) ArchiveMealPlan(ctx context.Context, mealPlanID, accountID 
 	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveMealPlan(ctx, q.writeDB, &generated.ArchiveMealPlanParams{
-		BelongsToAccount: accountID,
-		ID:               mealPlanID,
+	// As with UpdateMealPlan: the archive, its audit log entry, and its data change event
+	// share a transaction.
+	return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMealPlan(ctx, tx, &generated.ArchiveMealPlanParams{
+			BelongsToAccount: accountID,
+			ID:               mealPlanID,
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving meal plan")
+		}
+
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		if _, auditErr := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			BelongsToAccount: &accountID,
+			ID:               identifiers.New(),
+			ResourceType:     resourceTypeMealPlans,
+			RelevantID:       mealPlanID,
+			EventType:        audit.AuditLogEventTypeArchived,
+		}); auditErr != nil {
+			return observability.PrepareError(auditErr, span, "creating audit log entry")
+		}
+
+		if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanArchivedServiceEventType, accountID, map[string]any{
+			mealplanningkeys.MealPlanIDKey: mealPlanID,
+		}); emitErr != nil {
+			return observability.PrepareError(emitErr, span, "enqueuing meal plan archived event")
+		}
+
+		return nil
 	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan")
-	}
-
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
-
-	if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, q.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &accountID,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeMealPlans,
-		RelevantID:       mealPlanID,
-		EventType:        audit.AuditLogEventTypeArchived,
-	}); err != nil {
-		return observability.PrepareError(err, span, "creating audit log entry")
-	}
-
-	return nil
 }
 
 // MarkMealPlanAsGroceryListInitialized marks a meal plan as having all its tasks created.
@@ -571,6 +603,17 @@ func (q *repository) AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, 
 				ID:     mealPlanID,
 			}); err != nil {
 				return observability.PrepareAndLogError(err, logger, span, "finalizing meal plan option")
+			}
+
+			// Emitted here rather than by the two callers — the manager on a user request
+			// and the finalizer job on a tick — because only this transaction knows the
+			// plan actually finalized, and only in here can the event commit with it.
+			// The account is passed explicitly: the finalizer job has no session context.
+			if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanFinalizedServiceEventType, accountID, map[string]any{
+				mealplanningkeys.MealPlanIDKey: mealPlanID,
+				"meal_plan":                    mealPlan,
+			}); emitErr != nil {
+				return observability.PrepareError(emitErr, span, "enqueuing meal plan finalized event")
 			}
 
 			finalized = true

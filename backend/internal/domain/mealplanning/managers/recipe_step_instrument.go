@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -72,16 +71,10 @@ func (m *mealPlanningManager) CreateRecipeStepInstrument(ctx context.Context, re
 		convertedInput.InstrumentID = &vpi.Instrument.ID
 	}
 
-	created, err := m.db.CreateRecipeStepInstrument(ctx, convertedInput)
+	created, err := m.db.CreateRecipeStepInstrument(ctx, recipeID, convertedInput)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating recipe step instrument")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeStepInstrumentCreatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:               recipeID,
-		mealplanningkeys.RecipeStepIDKey:           recipeStepID,
-		mealplanningkeys.RecipeStepInstrumentIDKey: convertedInput.ID,
-	}))
 
 	return created, nil
 }
@@ -130,15 +123,9 @@ func (m *mealPlanningManager) UpdateRecipeStepInstrument(ctx context.Context, re
 	}
 
 	existingRecipeStepInstrument.Update(input)
-	if err = m.db.UpdateRecipeStepInstrument(ctx, existingRecipeStepInstrument); err != nil {
+	if err = m.db.UpdateRecipeStepInstrument(ctx, recipeID, existingRecipeStepInstrument); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step instrument")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeStepInstrumentUpdatedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:               recipeID,
-		mealplanningkeys.RecipeStepIDKey:           recipeStepID,
-		mealplanningkeys.RecipeStepInstrumentIDKey: recipeStepInstrumentID,
-	}))
 
 	return nil
 }
@@ -156,15 +143,9 @@ func (m *mealPlanningManager) ArchiveRecipeStepInstrument(ctx context.Context, r
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepInstrumentIDKey, recipeStepInstrumentID)
 
-	if err := m.db.ArchiveRecipeStepInstrument(ctx, recipeStepID, recipeStepInstrumentID); err != nil {
+	if err := m.db.ArchiveRecipeStepInstrument(ctx, recipeID, recipeStepID, recipeStepInstrumentID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step instrument")
 	}
-
-	m.dataChangesPublisher.PublishAsync(ctx, audit.BuildDataChangeMessageFromContext(ctx, logger, types.RecipeStepInstrumentArchivedServiceEventType, map[string]any{
-		mealplanningkeys.RecipeIDKey:               recipeID,
-		mealplanningkeys.RecipeStepIDKey:           recipeStepID,
-		mealplanningkeys.RecipeStepInstrumentIDKey: recipeStepInstrumentID,
-	}))
 
 	return nil
 }

@@ -705,18 +705,22 @@ func (q *repository) CreateValidPrepTaskConfig(ctx context.Context, input *mealp
 	logger := q.logger.WithValue(mealplanningkeys.ValidPrepTaskConfigIDKey, input.ID)
 
 	// create the valid prep task config.
-	if err := q.generatedQuerier.CreateValidPrepTaskConfig(ctx, q.writeDB, &generated.CreateValidPrepTaskConfigParams{
-		ID:                                 input.ID,
-		ValidIngredientID:                  input.ValidIngredientID,
-		ValidPreparationID:                 input.ValidPreparationID,
-		MinimumStorageDurationInSeconds:    int32(input.MinStorageDurationInSeconds),
-		MaximumStorageDurationInSeconds:    database.NullInt32FromUint32Pointer(input.MaxStorageDurationInSeconds),
-		StorageContainerType:               generated.StorageContainerType(input.StorageType),
-		MinimumStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(input.MinStorageTemperatureInCelsius),
-		MaximumStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(input.MaxStorageTemperatureInCelsius),
-		StorageInstructions:                input.StorageInstructions,
-		Notes:                              input.Notes,
-		Source:                             input.Source,
+	if err := q.withEvent(ctx, logger, mealplanning.ValidPrepTaskConfigCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidPrepTaskConfigIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return q.generatedQuerier.CreateValidPrepTaskConfig(ctx, tx, &generated.CreateValidPrepTaskConfigParams{
+			ID:                                 input.ID,
+			ValidIngredientID:                  input.ValidIngredientID,
+			ValidPreparationID:                 input.ValidPreparationID,
+			MinimumStorageDurationInSeconds:    int32(input.MinStorageDurationInSeconds),
+			MaximumStorageDurationInSeconds:    database.NullInt32FromUint32Pointer(input.MaxStorageDurationInSeconds),
+			StorageContainerType:               generated.StorageContainerType(input.StorageType),
+			MinimumStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(input.MinStorageTemperatureInCelsius),
+			MaximumStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(input.MaxStorageTemperatureInCelsius),
+			StorageInstructions:                input.StorageInstructions,
+			Notes:                              input.Notes,
+			Source:                             input.Source,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid prep task config creation query")
 	}
@@ -768,18 +772,24 @@ func (q *repository) UpdateValidPrepTaskConfig(ctx context.Context, updated *mea
 	logger := q.logger.WithValue(mealplanningkeys.ValidPrepTaskConfigIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPrepTaskConfigIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateValidPrepTaskConfig(ctx, q.writeDB, &generated.UpdateValidPrepTaskConfigParams{
-		ValidIngredientID:                  updated.Ingredient.ID,
-		ValidPreparationID:                 updated.Preparation.ID,
-		MinimumStorageDurationInSeconds:    int32(updated.MinStorageDurationInSeconds),
-		MaximumStorageDurationInSeconds:    database.NullInt32FromUint32Pointer(updated.MaxStorageDurationInSeconds),
-		StorageContainerType:               generated.StorageContainerType(updated.StorageType),
-		MinimumStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(updated.MinStorageTemperatureInCelsius),
-		MaximumStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(updated.MaxStorageTemperatureInCelsius),
-		StorageInstructions:                updated.StorageInstructions,
-		Notes:                              updated.Notes,
-		Source:                             updated.Source,
-		ID:                                 updated.ID,
+	if err := q.withEvent(ctx, logger, mealplanning.ValidPrepTaskConfigUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidPrepTaskConfigIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateValidPrepTaskConfig(ctx, tx, &generated.UpdateValidPrepTaskConfigParams{
+			ValidIngredientID:                  updated.Ingredient.ID,
+			ValidPreparationID:                 updated.Preparation.ID,
+			MinimumStorageDurationInSeconds:    int32(updated.MinStorageDurationInSeconds),
+			MaximumStorageDurationInSeconds:    database.NullInt32FromUint32Pointer(updated.MaxStorageDurationInSeconds),
+			StorageContainerType:               generated.StorageContainerType(updated.StorageType),
+			MinimumStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(updated.MinStorageTemperatureInCelsius),
+			MaximumStorageTemperatureInCelsius: database.NullStringFromFloat32Pointer(updated.MaxStorageTemperatureInCelsius),
+			StorageInstructions:                updated.StorageInstructions,
+			Notes:                              updated.Notes,
+			Source:                             updated.Source,
+			ID:                                 updated.ID,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid prep task config")
 	}
@@ -802,14 +812,18 @@ func (q *repository) ArchiveValidPrepTaskConfig(ctx context.Context, validPrepTa
 	logger = logger.WithValue(mealplanningkeys.ValidPrepTaskConfigIDKey, validPrepTaskConfigID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPrepTaskConfigIDKey, validPrepTaskConfigID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveValidPrepTaskConfig(ctx, q.writeDB, validPrepTaskConfigID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving valid prep task config")
-	}
+	return q.withEvent(ctx, logger, mealplanning.ValidPrepTaskConfigArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidPrepTaskConfigIDKey: validPrepTaskConfigID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidPrepTaskConfig(ctx, tx, validPrepTaskConfigID)
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid prep task config")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	return nil
+		return nil
+	})
 }

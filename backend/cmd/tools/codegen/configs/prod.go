@@ -130,6 +130,15 @@ func buildProdConfig() *config.APIServiceConfig {
 				SilenceRouteLogging:    false,
 			},
 		},
+		// Off until prod has a shared record store. The interceptor needs one: with the
+		// memory provider each replica keeps its own records, so a retry that lands on a
+		// different pod re-executes and two concurrent requests can both claim the same
+		// key. That is the failure this exists to prevent, so shipping it that way would
+		// be worse than shipping nothing. Provision Redis, point Manager.Cache at it, and
+		// flip Enabled.
+		Idempotency: config.IdempotencyConfig{
+			Enabled: false,
+		},
 		Queues: msgconfig.QueuesConfig{
 			DataChangesTopicName:              dataChangesTopicName,
 			OutboundEmailsTopicName:           outboundEmailsTopicName,

@@ -608,11 +608,15 @@ func (q *repository) CreateValidPreparationVessel(ctx context.Context, input *me
 	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, input.ID)
 
 	// create the valid preparation vessel.
-	if err := q.generatedQuerier.CreateValidPreparationVessel(ctx, q.writeDB, &generated.CreateValidPreparationVesselParams{
-		ID:                 input.ID,
-		Notes:              input.Notes,
-		ValidPreparationID: input.ValidPreparationID,
-		ValidVesselID:      input.ValidVesselID,
+	if err := q.withEvent(ctx, logger, mealplanning.ValidPreparationVesselCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidPreparationVesselIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return q.generatedQuerier.CreateValidPreparationVessel(ctx, tx, &generated.CreateValidPreparationVesselParams{
+			ID:                 input.ID,
+			Notes:              input.Notes,
+			ValidPreparationID: input.ValidPreparationID,
+			ValidVesselID:      input.ValidVesselID,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid preparation vessel creation query")
 	}
@@ -659,11 +663,17 @@ func (q *repository) UpdateValidPreparationVessel(ctx context.Context, updated *
 	logger := q.logger.WithValue(mealplanningkeys.ValidPreparationVesselIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateValidPreparationVessel(ctx, q.writeDB, &generated.UpdateValidPreparationVesselParams{
-		Notes:              updated.Notes,
-		ValidPreparationID: updated.Preparation.ID,
-		ValidVesselID:      updated.Vessel.ID,
-		ID:                 updated.ID,
+	if err := q.withEvent(ctx, logger, mealplanning.ValidPreparationVesselUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidPreparationVesselIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateValidPreparationVessel(ctx, tx, &generated.UpdateValidPreparationVesselParams{
+			Notes:              updated.Notes,
+			ValidPreparationID: updated.Preparation.ID,
+			ValidVesselID:      updated.Vessel.ID,
+			ID:                 updated.ID,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid preparation vessel")
 	}
@@ -684,14 +694,18 @@ func (q *repository) ArchiveValidPreparationVessel(ctx context.Context, validPre
 	logger := q.logger.WithValue(mealplanningkeys.ValidPreparationVesselIDKey, validPreparationVesselID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, validPreparationVesselID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveValidPreparationVessel(ctx, q.writeDB, validPreparationVesselID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating valid preparation vessel")
-	}
+	return q.withEvent(ctx, logger, mealplanning.ValidPreparationVesselArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidPreparationVesselIDKey: validPreparationVesselID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidPreparationVessel(ctx, tx, validPreparationVesselID)
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "updating valid preparation vessel")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	return nil
+		return nil
+	})
 }

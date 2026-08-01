@@ -476,11 +476,15 @@ func (q *repository) CreateValidIngredientStateIngredient(ctx context.Context, i
 	logger := q.logger.WithValue(mealplanningkeys.ValidIngredientStateIngredientIDKey, input.ID)
 
 	// create the valid ingredient state ingredient.
-	if err := q.generatedQuerier.CreateValidIngredientStateIngredient(ctx, q.writeDB, &generated.CreateValidIngredientStateIngredientParams{
-		ID:                   input.ID,
-		Notes:                input.Notes,
-		ValidIngredientState: input.ValidIngredientStateID,
-		ValidIngredient:      input.ValidIngredientID,
+	if err := q.withEvent(ctx, logger, mealplanning.ValidIngredientStateIngredientCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidIngredientStateIngredientIDKey: input.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		return q.generatedQuerier.CreateValidIngredientStateIngredient(ctx, tx, &generated.CreateValidIngredientStateIngredientParams{
+			ID:                   input.ID,
+			Notes:                input.Notes,
+			ValidIngredientState: input.ValidIngredientStateID,
+			ValidIngredient:      input.ValidIngredientID,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid ingredient state ingredient creation query")
 	}
@@ -528,11 +532,17 @@ func (q *repository) UpdateValidIngredientStateIngredient(ctx context.Context, u
 	logger := q.logger.WithValue(mealplanningkeys.ValidIngredientStateIngredientIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientStateIngredientIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateValidIngredientStateIngredient(ctx, q.writeDB, &generated.UpdateValidIngredientStateIngredientParams{
-		Notes:                updated.Notes,
-		ValidIngredientState: updated.IngredientState.ID,
-		ValidIngredient:      updated.Ingredient.ID,
-		ID:                   updated.ID,
+	if err := q.withEvent(ctx, logger, mealplanning.ValidIngredientStateIngredientUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidIngredientStateIngredientIDKey: updated.ID,
+	}, func(tx database.SQLQueryExecutor) error {
+		_, updateErr := q.generatedQuerier.UpdateValidIngredientStateIngredient(ctx, tx, &generated.UpdateValidIngredientStateIngredientParams{
+			Notes:                updated.Notes,
+			ValidIngredientState: updated.IngredientState.ID,
+			ValidIngredient:      updated.Ingredient.ID,
+			ID:                   updated.ID,
+		})
+
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid ingredient state ingredient")
 	}
@@ -555,14 +565,18 @@ func (q *repository) ArchiveValidIngredientStateIngredient(ctx context.Context, 
 	logger = logger.WithValue(mealplanningkeys.ValidIngredientStateIngredientIDKey, validIngredientStateIngredientID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientStateIngredientIDKey, validIngredientStateIngredientID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveValidIngredientStateIngredient(ctx, q.writeDB, validIngredientStateIngredientID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving valid ingredient state ingredient")
-	}
+	return q.withEvent(ctx, logger, mealplanning.ValidIngredientStateIngredientArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidIngredientStateIngredientIDKey: validIngredientStateIngredientID,
+	}, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidIngredientStateIngredient(ctx, tx, validIngredientStateIngredientID)
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid ingredient state ingredient")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	return nil
+		return nil
+	})
 }

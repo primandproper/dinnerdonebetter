@@ -25,6 +25,18 @@ patches:
       kind: Deployment
       name: dinner-done-better-service-api-deployment
 
+  # Scheduler Deployment - the interval-shaped jobs that were one CronJob each
+  - path: patches/deployment-k8s-hostnames.yaml
+    target:
+      version: v1
+      kind: Deployment
+      name: dinner-done-better-scheduler-deployment
+  - path: patches/deployment-local-image-pull.yaml
+    target:
+      version: v1
+      kind: Deployment
+      name: dinner-done-better-scheduler-deployment
+
   # DB Cleaner CronJob
   - path: patches/cronjob-k8s-hostnames.yaml
     target:
@@ -44,66 +56,6 @@ patches:
     target:
       kind: CronJob
       name: dinner-done-better-job-email-deliverability-test
-
-  # Queue Test CronJob
-  - path: patches/cronjob-k8s-hostnames.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-queue-test
-  - path: patches/cronjob-local-image-pull.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-queue-test
-
-  # Meal Plan Finalizer CronJob
-  - path: patches/cronjob-k8s-hostnames.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-finalizer
-  - path: patches/cronjob-local-image-pull.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-finalizer
-
-  # Meal Plan Grocery List Init CronJob
-  - path: patches/cronjob-k8s-hostnames.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-grocery-list-init
-  - path: patches/cronjob-local-image-pull.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-grocery-list-init
-
-  # Meal Plan Task Creator CronJob
-  - path: patches/cronjob-k8s-hostnames.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-task-creator
-  - path: patches/cronjob-local-image-pull.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-meal-plan-task-creator
-
-  # Search Data Index Scheduler CronJob
-  - path: patches/cronjob-k8s-hostnames.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-search-data-index-scheduler
-  - path: patches/cronjob-local-image-pull.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-search-data-index-scheduler
-
-  # Mobile Notification Scheduler CronJob
-  - path: patches/cronjob-k8s-hostnames.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-mobile-notification-scheduler
-  - path: patches/cronjob-local-image-pull.yaml
-    target:
-      kind: CronJob
-      name: dinner-done-better-job-mobile-notification-scheduler
 
 labels:
   - pairs:
@@ -128,35 +80,10 @@ configMapGenerator:
     files:
       - config.json=configs/job_email_deliverability_test_config.json
 
-  - name: dinner-done-better-job-queue-test-config
+  - name: dinner-done-better-scheduler-config
     namespace: localdev
     files:
-      - config.json=configs/job_queue_test_config.json
-
-  - name: dinner-done-better-job-meal-plan-finalizer-config
-    namespace: localdev
-    files:
-      - config.json=configs/job_meal_plan_finalizer_config.json
-
-  - name: dinner-done-better-job-meal-plan-grocery-list-init-config
-    namespace: localdev
-    files:
-      - config.json=configs/job_meal_plan_grocery_list_initializer_config.json
-
-  - name: dinner-done-better-job-meal-plan-task-creator-config
-    namespace: localdev
-    files:
-      - config.json=configs/job_meal_plan_task_creator_config.json
-
-  - name: dinner-done-better-job-search-data-index-scheduler-config
-    namespace: localdev
-    files:
-      - config.json=configs/job_search_data_index_scheduler_config.json
-
-  - name: dinner-done-better-job-mobile-notification-scheduler-config
-    namespace: localdev
-    files:
-      - config.json=configs/job_mobile_notification_scheduler_config.json
+      - config.json=configs/scheduler_config.json
 
   # Uncomment to enable MCP server deployment
   # - name: dinner-done-better-mcp-server-config
