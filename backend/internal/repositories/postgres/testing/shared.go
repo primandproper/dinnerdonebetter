@@ -15,7 +15,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
 // The share-one-container model.
@@ -62,8 +61,6 @@ const (
 // sharedDatabase owns the one container a test binary starts and mints isolated
 // databases inside it.
 type sharedDatabase struct {
-	container *postgres.PostgresContainer
-
 	// admin is connected to the container's provisioning database, never to the
 	// template, so it is always free to issue CREATE/DROP DATABASE.
 	admin *sql.DB
@@ -154,7 +151,7 @@ func startSharedDatabase(migrate func(ctx context.Context, db *sql.DB) error) (f
 		return nil, err
 	}
 
-	shared = &sharedDatabase{container: container, admin: admin, baseDSN: baseDSN}
+	shared = &sharedDatabase{admin: admin, baseDSN: baseDSN}
 
 	return cleanup, nil
 }
