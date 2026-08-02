@@ -118,7 +118,6 @@ type (
 		UpdateMealPlan(ctx context.Context, updated *MealPlan) error
 		ArchiveMealPlan(ctx context.Context, mealPlanID, accountID string) error
 		AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, accountID string) (bool, error)
-		MarkMealPlanAsGroceryListInitialized(ctx context.Context, mealPlanID string) error
 		GetFinalizedMealPlanIDsForTheNextWeek(ctx context.Context) ([]*FinalizedMealPlanDatabaseResult, error)
 		GetUnfinalizedMealPlansWithExpiredVotingPeriods(ctx context.Context) ([]*MealPlan, error)
 		GetFinalizedMealPlansWithUninitializedGroceryLists(ctx context.Context) ([]*MealPlan, error)

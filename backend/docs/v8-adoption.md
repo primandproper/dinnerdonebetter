@@ -90,6 +90,15 @@ evidence.
 Beyond meal plans: every domain, **every one of ~150 publish sites**. No manager publishes a
 data change event after commit any more.
 
+The task creator and grocery list initializer jobs followed (#1251), and neither constructs a
+publisher now. Both had the same defect underneath: work committed, the flag saying it had been
+done did not, and the next run — which selects on that flag — redid the work against tables with
+no unique constraint to absorb it. Each job's writes, its events, and its flag are now one
+transaction, exposed as a single repository method (`CreateMealPlanTasksForMealPlan`,
+`InitializeMealPlanGroceryList`) with no way to call the halves separately. The initializer was
+also publishing grocery list item created events that `CreateMealPlanGroceryListItem` had
+already emitted transactionally, so every item announced itself twice.
+
 Many repository methods gained the transaction they never had, so a write and its audit log entry
 can no longer half-commit. Nine managers no longer construct a data-changes publisher at all, and
 `CreateUser` lost two round trips per signup — the default account ID and the email verification

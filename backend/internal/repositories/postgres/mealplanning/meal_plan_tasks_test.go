@@ -100,6 +100,49 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, len(createdMealPlanTasks), len(mealPlanTasks.Data))
 
+	// a batch that fails partway through commits nothing, and leaves the plan unmarked. The task
+	// creator re-selects unmarked plans and regenerates every task, so anything left behind by a
+	// partial failure would be created a second time on the next run.
+	goodTaskInput := func() *types.MealPlanTaskDatabaseCreationInput {
+		return &types.MealPlanTaskDatabaseCreationInput{
+			ID:                  fakes.BuildFakeID(),
+			MealPlanOptionID:    mealPlan.Events[0].Options[0].ID,
+			CreationExplanation: t.Name(),
+		}
+	}
+
+	doomedTask := goodTaskInput()
+	// a nonexistent meal plan option trips the foreign key, so this input fails after the one
+	// before it has already been inserted.
+	doomedTask.MealPlanOptionID = fakes.BuildFakeID()
+
+	batched, err := dbc.CreateMealPlanTasksForMealPlan(ctx, mealPlan.ID, []*types.MealPlanTaskDatabaseCreationInput{goodTaskInput(), doomedTask})
+	assert.Error(t, err)
+	assert.Nil(t, batched)
+
+	mealPlanTasks, err = dbc.GetMealPlanTasksForMealPlan(ctx, mealPlan.ID, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, len(createdMealPlanTasks), len(mealPlanTasks.Data), "the task preceding the failure must have rolled back with it")
+
+	unmarkedMealPlan, err := dbc.GetMealPlan(ctx, mealPlan.ID, account.ID)
+	require.NoError(t, err)
+	assert.False(t, unmarkedMealPlan.TasksCreated)
+
+	// a batch that succeeds writes every task and the flag together.
+	taskBatch := []*types.MealPlanTaskDatabaseCreationInput{goodTaskInput(), goodTaskInput()}
+	batched, err = dbc.CreateMealPlanTasksForMealPlan(ctx, mealPlan.ID, taskBatch)
+	require.NoError(t, err)
+	assert.Len(t, batched, len(taskBatch))
+	createdMealPlanTasks = append(createdMealPlanTasks, batched...)
+
+	mealPlanTasks, err = dbc.GetMealPlanTasksForMealPlan(ctx, mealPlan.ID, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, len(createdMealPlanTasks), len(mealPlanTasks.Data))
+
+	markedMealPlan, err := dbc.GetMealPlan(ctx, mealPlan.ID, account.ID)
+	require.NoError(t, err)
+	assert.True(t, markedMealPlan.TasksCreated)
+
 	// delete
 	for _, mealPlanTask := range createdMealPlanTasks {
 		assert.NoError(t, dbc.ChangeMealPlanTaskStatus(ctx, &types.MealPlanTaskStatusChangeRequestInput{
@@ -193,29 +236,18 @@ func TestQuerier_GetMealPlanTasksForMealPlan(T *testing.T) {
 	})
 }
 
-func TestQuerier_MarkMealPlanAsHavingTasksCreated(T *testing.T) {
+func TestQuerier_CreateMealPlanTasksForMealPlan(T *testing.T) {
 	T.Parallel()
 
-	T.Run("with empty meal plan MealPlanTaskID", func(t *testing.T) {
+	T.Run("with empty meal plan ID", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.MarkMealPlanAsHavingTasksCreated(ctx, ""))
-	})
-}
-
-func TestQuerier_MarkMealPlanAsHavingGroceryListInitialized(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with empty meal plan MealPlanTaskID", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		assert.Error(t, c.MarkMealPlanAsHavingGroceryListInitialized(ctx, ""))
+		actual, err := c.CreateMealPlanTasksForMealPlan(ctx, "", nil)
+		assert.Error(t, err)
+		assert.Nil(t, actual)
 	})
 }
 
