@@ -2,9 +2,10 @@ package dbcleaner
 
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
 
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	"github.com/primandproper/platform-go/v8/observability"
+	databasecfg "github.com/primandproper/platform-go/v9/database/config"
+	"github.com/primandproper/platform-go/v9/observability"
 
 	"github.com/samber/do/v2"
 )
@@ -15,8 +16,11 @@ func RegisterConfigs(i do.Injector) {
 		cfg := do.MustInvoke[*config.DBCleanerConfig](i)
 		return &cfg.Observability, nil
 	})
-	do.Provide[*databasecfg.Config](i, func(i do.Injector) (*databasecfg.Config, error) {
+	do.Provide[*dbcfg.Config](i, func(i do.Injector) (*dbcfg.Config, error) {
 		cfg := do.MustInvoke[*config.DBCleanerConfig](i)
 		return &cfg.Database, nil
+	})
+	do.Provide[*databasecfg.Config](i, func(i do.Injector) (*databasecfg.Config, error) {
+		return &do.MustInvoke[*dbcfg.Config](i).Config, nil
 	})
 }

@@ -4,45 +4,48 @@ import (
 	"encoding/base64"
 	"time"
 
+	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 	authservice "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	identitycfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/config"
 	uploadedmediacfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	analyticscfg "github.com/primandproper/platform-go/v8/analytics/config"
-	tokenscfg "github.com/primandproper/platform-go/v8/authentication/tokens/config"
-	cachecfg "github.com/primandproper/platform-go/v8/cache/config"
-	cacheredis "github.com/primandproper/platform-go/v8/cache/redis"
-	circuitbreakingcfg "github.com/primandproper/platform-go/v8/circuitbreaking/config"
-	encryptioncfg "github.com/primandproper/platform-go/v8/cryptography/encryption/config"
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	distributedlockcfg "github.com/primandproper/platform-go/v8/distributedlock/config"
-	pglock "github.com/primandproper/platform-go/v8/distributedlock/postgres"
-	"github.com/primandproper/platform-go/v8/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v8/featureflags/config"
-	idempotencycfg "github.com/primandproper/platform-go/v8/idempotency/config"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/messagequeue/redis"
-	notificationscfg "github.com/primandproper/platform-go/v8/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v8/observability"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v8/observability/logging/config"
-	logotelgrpc "github.com/primandproper/platform-go/v8/observability/logging/otelgrpc"
-	metricscfg "github.com/primandproper/platform-go/v8/observability/metrics/config"
-	"github.com/primandproper/platform-go/v8/observability/metrics/otelgrpc"
-	profilingcfg "github.com/primandproper/platform-go/v8/observability/profiling/config"
-	"github.com/primandproper/platform-go/v8/observability/profiling/pprof"
-	tracingcfg "github.com/primandproper/platform-go/v8/observability/tracing/config"
-	"github.com/primandproper/platform-go/v8/observability/tracing/oteltrace"
-	"github.com/primandproper/platform-go/v8/routing/backends/chi"
-	routingcfg "github.com/primandproper/platform-go/v8/routing/config"
-	"github.com/primandproper/platform-go/v8/search/text/algolia"
-	textsearchcfg "github.com/primandproper/platform-go/v8/search/text/config"
-	"github.com/primandproper/platform-go/v8/server/http"
-	uploadscfg "github.com/primandproper/platform-go/v8/uploads/config"
-	"github.com/primandproper/platform-go/v8/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
+	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
+	cachecfg "github.com/primandproper/platform-go/v9/cache/config"
+	cacheredis "github.com/primandproper/platform-go/v9/cache/redis"
+	circuitbreakingcfg "github.com/primandproper/platform-go/v9/circuitbreaking/config"
+	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
+	databasecfg "github.com/primandproper/platform-go/v9/database/config"
+	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
+	pglock "github.com/primandproper/platform-go/v9/distributedlock/postgres"
+	emailcfg "github.com/primandproper/platform-go/v9/email/config"
+	"github.com/primandproper/platform-go/v9/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v9/featureflags/config"
+	idempotencycfg "github.com/primandproper/platform-go/v9/idempotency/config"
+	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
+	"github.com/primandproper/platform-go/v9/messagequeue/redis"
+	notificationscfg "github.com/primandproper/platform-go/v9/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	loggingcfg "github.com/primandproper/platform-go/v9/observability/logging/config"
+	logotelgrpc "github.com/primandproper/platform-go/v9/observability/logging/otelgrpc"
+	metricscfg "github.com/primandproper/platform-go/v9/observability/metrics/config"
+	"github.com/primandproper/platform-go/v9/observability/metrics/otelgrpc"
+	profilingcfg "github.com/primandproper/platform-go/v9/observability/profiling/config"
+	"github.com/primandproper/platform-go/v9/observability/profiling/pprof"
+	tracingcfg "github.com/primandproper/platform-go/v9/observability/tracing/config"
+	"github.com/primandproper/platform-go/v9/observability/tracing/oteltrace"
+	"github.com/primandproper/platform-go/v9/routing/backends/chi"
+	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
+	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
+	"github.com/primandproper/platform-go/v9/server/http"
+	uploadscfg "github.com/primandproper/platform-go/v9/uploads/config"
+	"github.com/primandproper/platform-go/v9/uploads/objectstorage"
 )
 
 const (
@@ -132,8 +135,8 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 				Cache: cachecfg.Config{
 					Provider: cachecfg.ProviderRedis,
 					Redis: &cacheredis.Config{
-						QueueAddresses: []string{dockerComposeWorkerQueueAddress},
-						Namespace:      "idempotency:",
+						Addresses: []string{dockerComposeWorkerQueueAddress},
+						Namespace: "idempotency:",
 					},
 				},
 				Lock: distributedlockcfg.Config{
@@ -144,7 +147,7 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 				InFlightTTL: 2 * time.Minute,
 			},
 		},
-		Queues: msgconfig.QueuesConfig{
+		Queues: queuescfg.Config{
 			DataChangesTopicName:              dataChangesTopicName,
 			OutboundEmailsTopicName:           outboundEmailsTopicName,
 			SearchIndexRequestsTopicName:      searchIndexRequestsTopicName,
@@ -175,15 +178,22 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 		},
 		FeatureFlags: featureflagscfg.Config{
 			// we're using a noop version of this in localdev right now, but it still tries to instantiate a circuit breaker.
+			Provider: featureflagscfg.ProviderNoop,
 			CircuitBreaker: circuitbreakingcfg.Config{
 				Name:                   "feature_flagger",
 				ErrorRate:              .5,
 				MinimumSampleThreshold: 100,
 			},
 		},
+		Email: emailcfg.Config{
+			// Nothing sends mail in this environment; v9 makes that say so rather than assume it.
+			Provider: emailcfg.ProviderNoop,
+		},
 		Analytics: analyticscfg.Config{
-			// we're using a noop version of this in localdev right now, but it still tries to instantiate a circuit breaker.
 			SourceConfig: analyticscfg.SourceConfig{
+				// Analytics are off here, which the provider now says rather than
+				// leaving it to an unset value. The circuit breaker is still built.
+				Provider: analyticscfg.ProviderNoop,
 				CircuitBreaker: circuitbreakingcfg.Config{
 					Name:                   "feature_flagger",
 					ErrorRate:              .5,
@@ -192,8 +202,9 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 			},
 		},
 		TextSearch: textsearchcfg.Config{
-			Algolia:  &algolia.Config{},
-			Provider: textsearchcfg.AlgoliaProvider,
+			// localdev has no Algolia account and never had one, so the index was
+			// being built against empty credentials. Off, and said so.
+			Provider: textsearchcfg.ProviderNoop,
 			CircuitBreaker: circuitbreakingcfg.Config{
 				Name:                   "dev_text_searcher",
 				ErrorRate:              .5,
@@ -201,7 +212,6 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 			},
 		},
 		HTTPServer: http.Config{
-			Debug:           true,
 			Port:            defaultHTTPPort,
 			StartupDeadline: time.Minute,
 			AppleAppSiteAssociation: &http.AppleAppSiteAssociationConfig{
@@ -209,20 +219,22 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 				BundleID: appleBundleID,
 			},
 		},
-		Database: databasecfg.Config{
-			Provider:                 databasecfg.ProviderPostgres,
+		Database: dbcfg.Config{
+			Config: databasecfg.Config{
+				Provider:        databasecfg.ProviderPostgres,
+				Debug:           true,
+				RunMigrations:   true,
+				LogQueries:      true,
+				MaxPingAttempts: maxAttempts,
+				PingWaitPeriod:  time.Second,
+				MaxIdleConns:    5,
+				MaxOpenConns:    7,
+				ConnMaxLifetime: 30 * time.Minute,
+				ReadConnection:  localdevPostgresDBConnectionDetails,
+				WriteConnection: localdevPostgresDBConnectionDetails,
+			},
 			Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
 			OAuth2TokenEncryptionKey: localOAuth2TokenEncryptionKey,
-			Debug:                    true,
-			RunMigrations:            true,
-			LogQueries:               true,
-			MaxPingAttempts:          maxAttempts,
-			PingWaitPeriod:           time.Second,
-			MaxIdleConns:             5,
-			MaxOpenConns:             7,
-			ConnMaxLifetime:          30 * time.Minute,
-			ReadConnection:           localdevPostgresDBConnectionDetails,
-			WriteConnection:          localdevPostgresDBConnectionDetails,
 		},
 		Observability: localObservabilityConfig,
 		Services: config.ServicesConfig{
@@ -238,11 +250,13 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 				MinimumUsernameLength: 3,
 				MinimumPasswordLength: 8,
 				TokenLifetime:         5 * time.Minute,
-				Tokens: tokenscfg.Config{
-					Provider:                tokenscfg.ProviderPASETO,
-					Issuer:                  "dinner-done-better",
-					Audience:                "https://api.dinnerdonebetter.dev",
-					Base64EncodedSigningKey: base64.URLEncoding.EncodeToString([]byte(testutils.Example32ByteKey)),
+				Tokens: authcfg.TokensConfig{
+					Config: tokenscfg.Config{
+						Provider:                tokenscfg.ProviderPASETO,
+						Issuer:                  "dinner-done-better",
+						Audience:                "https://api.dinnerdonebetter.dev",
+						Base64EncodedSigningKey: base64.URLEncoding.EncodeToString([]byte(testutils.Example32ByteKey)),
+					},
 				},
 			},
 			DataPrivacy: dataprivacycfg.Config{

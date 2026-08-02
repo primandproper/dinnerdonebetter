@@ -13,10 +13,10 @@ import (
 	webhookssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/webhooks/grpc/converters"
 
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"

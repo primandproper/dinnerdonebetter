@@ -6,12 +6,12 @@ import (
 	"log"
 	"strings"
 
-	notifications "github.com/primandproper/platform-go/v8/notifications/mobile"
-	"github.com/primandproper/platform-go/v8/notifications/mobile/apns"
-	"github.com/primandproper/platform-go/v8/notifications/mobile/fcm"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v8/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"
+	"github.com/primandproper/platform-go/v9/notifications/mobile/apns"
+	"github.com/primandproper/platform-go/v9/notifications/mobile/fcm"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/spf13/pflag"
 )

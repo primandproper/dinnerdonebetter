@@ -10,12 +10,12 @@ import (
 	issuereportkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/issuereports/generated"
 
-	"github.com/primandproper/platform-go/v8/database"
-	platformerrors "github.com/primandproper/platform-go/v8/errors"
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/identifiers"
-	"github.com/primandproper/platform-go/v8/observability"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/database"
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
 
 const (
@@ -80,7 +80,7 @@ func (r *repository) GetIssueReports(ctx context.Context, filter *filtering.Quer
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint8Pointer(filter.MaxResponseSize),
+		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")
@@ -148,7 +148,7 @@ func (r *repository) GetIssueReportsForAccount(ctx context.Context, accountID st
 		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		BelongsToAccount: accountID,
 		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint8Pointer(filter.MaxResponseSize),
+		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")
@@ -340,7 +340,7 @@ func (r *repository) GetIssueReportsForTable(ctx context.Context, tableName stri
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint8Pointer(filter.MaxResponseSize),
+		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")
@@ -415,7 +415,7 @@ func (r *repository) GetIssueReportsForRecord(ctx context.Context, tableName, re
 		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint8Pointer(filter.MaxResponseSize),
+		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")

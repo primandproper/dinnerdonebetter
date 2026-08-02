@@ -10,9 +10,9 @@ import (
 	commentsmanagermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/manager/mock"
 	commentssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
 
-	"github.com/primandproper/platform-go/v8/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"

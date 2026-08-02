@@ -1,13 +1,15 @@
 package oauth
 
 import (
+	"context"
+
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	domainoauth "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 
-	"github.com/primandproper/platform-go/v8/database"
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/database"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -16,10 +18,11 @@ import (
 func RegisterOAuthRepository(i do.Injector) {
 	do.Provide[domainoauth.Repository](i, func(i do.Injector) (domainoauth.Repository, error) {
 		return ProvideOAuthRepository(
+			do.MustInvoke[context.Context](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[audit.Repository](i),
-			do.MustInvoke[*databasecfg.Config](i),
+			do.MustInvoke[*dbcfg.Config](i),
 			do.MustInvoke[database.Client](i),
 		), nil
 	})

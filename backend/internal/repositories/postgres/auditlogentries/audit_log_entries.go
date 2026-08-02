@@ -11,11 +11,11 @@ import (
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries/generated"
 
-	"github.com/primandproper/platform-go/v8/database"
-	platformerrors "github.com/primandproper/platform-go/v8/errors"
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/observability"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/database"
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
 
 var (
@@ -81,7 +81,7 @@ func (q *repository) GetAuditLogEntriesForUser(ctx context.Context, userID strin
 		CreatedBefore: database.NullTimeFromTimePointer(filter.CreatedBefore),
 		CreatedAfter:  database.NullTimeFromTimePointer(filter.CreatedAfter),
 		Cursor:        database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:   database.NullInt32FromUint8Pointer(filter.MaxResponseSize),
+		ResultLimit:   database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entries from database")
@@ -155,7 +155,7 @@ func (q *repository) GetAuditLogEntriesForUserAndResourceTypes(ctx context.Conte
 		CreatedBefore: database.NullTimeFromTimePointer(filter.CreatedBefore),
 		CreatedAfter:  database.NullTimeFromTimePointer(filter.CreatedAfter),
 		Cursor:        database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:   database.NullInt32FromUint8Pointer(filter.MaxResponseSize),
+		ResultLimit:   database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entries from database")
@@ -222,7 +222,7 @@ func (q *repository) GetAuditLogEntriesForAccount(ctx context.Context, accountID
 		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
 		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
 		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint8Pointer(filter.MaxResponseSize),
+		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entries from database")
@@ -296,7 +296,7 @@ func (q *repository) GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Co
 		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
 		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
 		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint8Pointer(filter.MaxResponseSize),
+		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entries from database")

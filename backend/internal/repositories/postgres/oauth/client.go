@@ -1,16 +1,18 @@
 package oauth
 
 import (
+	"context"
+
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/oauth/generated"
 
-	"github.com/primandproper/platform-go/v8/cryptography/encryption"
-	encryptioncfg "github.com/primandproper/platform-go/v8/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v8/database"
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/cryptography/encryption"
+	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v9/database"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
 
 const (
@@ -32,13 +34,20 @@ type repository struct {
 
 // ProvideOAuthRepository provides a new repository.
 func ProvideOAuthRepository(
+	ctx context.Context,
 	logger logging.Logger,
 	tracerProvider tracing.TracerProvider,
 	auditLogEntryRepo audit.Repository,
-	cfg *databasecfg.Config,
+	cfg *dbcfg.Config,
 	client database.Client,
 ) oauth.Repository {
-	encDec, err := encryptioncfg.NewEncryptorDecryptor(&cfg.Encryption, tracerProvider, logger, []byte(cfg.OAuth2TokenEncryptionKey))
+	encDec, err := encryptioncfg.NewEncryptorDecryptor(
+		ctx,
+		&cfg.Encryption,
+		[]byte(cfg.OAuth2TokenEncryptionKey),
+		encryptioncfg.WithLogger(logger),
+		encryptioncfg.WithTracerProvider(tracerProvider),
+	)
 	if err != nil {
 		return nil
 	}

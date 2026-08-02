@@ -1,12 +1,13 @@
 package events
 
 import (
-	"github.com/primandproper/platform-go/v8/database/dialect"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/metrics"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	"github.com/primandproper/platform-go/v8/outbox"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
+
+	"github.com/primandproper/platform-go/v9/database/dialect"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/metrics"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v9/outbox"
 
 	"github.com/samber/do/v2"
 )
@@ -31,7 +32,7 @@ func RegisterOutboxEmitter(i do.Injector) {
 		// nil for an empty topic and a nil Emitter emits nothing, so those keep working
 		// rather than failing to construct a repository they only read through.
 		topic := ""
-		if queues, err := do.Invoke[*msgconfig.QueuesConfig](i); err == nil {
+		if queues, err := do.Invoke[*queuescfg.Config](i); err == nil {
 			topic = queues.DataChangesTopicName
 		}
 

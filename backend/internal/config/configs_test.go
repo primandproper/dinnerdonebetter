@@ -9,13 +9,20 @@ import (
 	"time"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config/envvars"
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	"github.com/primandproper/platform-go/v8/encoding"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability"
-	loggingcfg "github.com/primandproper/platform-go/v8/observability/logging/config"
-	"github.com/primandproper/platform-go/v8/server/http"
+	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
+	databasecfg "github.com/primandproper/platform-go/v9/database/config"
+	emailcfg "github.com/primandproper/platform-go/v9/email/config"
+	"github.com/primandproper/platform-go/v9/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v9/featureflags/config"
+	"github.com/primandproper/platform-go/v9/observability"
+	loggingcfg "github.com/primandproper/platform-go/v9/observability/logging/config"
+	"github.com/primandproper/platform-go/v9/routing/backends/chi"
+	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
+	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
+	"github.com/primandproper/platform-go/v9/server/http"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,7 +37,6 @@ func TestAPIServiceConfig_EncodeToFile(T *testing.T) {
 		cfg := &APIServiceConfig{
 			HTTPServer: http.Config{
 				Port:            1234,
-				Debug:           false,
 				StartupDeadline: time.Minute,
 			},
 			Meta: MetaSettings{
@@ -41,15 +47,17 @@ func TestAPIServiceConfig_EncodeToFile(T *testing.T) {
 			},
 			Observability: observability.Config{},
 			Services:      ServicesConfig{},
-			Database: databasecfg.Config{
-				Debug:         true,
-				RunMigrations: true,
-				ReadConnection: databasecfg.ConnectionDetails{
-					Username:   "username",
-					Password:   "password",
-					Database:   "table",
-					Host:       "host",
-					DisableSSL: true,
+			Database: dbcfg.Config{
+				Config: databasecfg.Config{
+					Debug:         true,
+					RunMigrations: true,
+					ReadConnection: databasecfg.ConnectionDetails{
+						Username:   "username",
+						Password:   "password",
+						Database:   "table",
+						Host:       "host",
+						DisableSSL: true,
+					},
 				},
 			},
 		}
@@ -91,8 +99,10 @@ func TestAPIServiceConfig_EncodeToFile(T *testing.T) {
 func TestLoadConfigFromEnvironment(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		cfg := &APIServiceConfig{
-			Database: databasecfg.Config{
-				Debug: true,
+			Database: dbcfg.Config{
+				Config: databasecfg.Config{
+					Debug: true,
+				},
 			},
 		}
 		cfgBytes, err := json.Marshal(cfg)
@@ -113,8 +123,10 @@ func TestLoadConfigFromEnvironment(T *testing.T) {
 	// prior TODOs count here too
 	T.Run("overrides meta", func(t *testing.T) {
 		cfg := &APIServiceConfig{
-			Database: databasecfg.Config{
-				Debug: true,
+			Database: dbcfg.Config{
+				Config: databasecfg.Config{
+					Debug: true,
+				},
 			},
 		}
 		cfgBytes, err := json.Marshal(cfg)
@@ -321,7 +333,7 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 				Port:            8080,
 				StartupDeadline: time.Minute,
 			},
-			Queues: msgconfig.QueuesConfig{
+			Queues: queuescfg.Config{
 				DataChangesTopicName:              "data-changes",
 				OutboundEmailsTopicName:           "outbound-emails",
 				SearchIndexRequestsTopicName:      "search-index-requests",
@@ -329,16 +341,25 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 				WebhookExecutionRequestsTopicName: "webhook-execution-requests",
 				MobileNotificationsTopicName:      "mobile-notifications",
 			},
-			Database: databasecfg.Config{
-				Debug: true,
-				ReadConnection: databasecfg.ConnectionDetails{
-					Username: "user",
-					Password: "pass",
-					Database: "db",
-					Host:     "host",
-					Port:     5432,
+			Database: dbcfg.Config{
+				Config: databasecfg.Config{
+					Debug: true,
+					ReadConnection: databasecfg.ConnectionDetails{
+						Username: "user",
+						Password: "pass",
+						Database: "db",
+						Host:     "host",
+						Port:     5432,
+					},
 				},
 			},
+			// Each of these has to name a provider: platform-go v9 reports an unset
+			// one rather than substituting a noop that looks configured.
+			Routing:      routingcfg.Config{Provider: routingcfg.ProviderChi, Chi: &chi.Config{ServiceName: "service"}},
+			FeatureFlags: featureflagscfg.Config{Provider: featureflagscfg.ProviderNoop},
+			Analytics:    analyticscfg.Config{SourceConfig: analyticscfg.SourceConfig{Provider: analyticscfg.ProviderNoop}},
+			TextSearch:   textsearchcfg.Config{Provider: textsearchcfg.ProviderNoop},
+			Email:        emailcfg.Config{Provider: emailcfg.ProviderNoop},
 		}
 
 		err := cfg.ValidateWithContext(ctx)
@@ -362,20 +383,22 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 				Port:            8080,
 				StartupDeadline: time.Minute,
 			},
-			Queues: msgconfig.QueuesConfig{
+			Queues: queuescfg.Config{
 				DataChangesTopicName:              "data-changes",
 				OutboundEmailsTopicName:           "outbound-emails",
 				SearchIndexRequestsTopicName:      "search-index-requests",
 				UserDataAggregationTopicName:      "user-data-aggregation",
 				WebhookExecutionRequestsTopicName: "webhook-execution-requests",
 			},
-			Database: databasecfg.Config{
-				Debug: true,
-				ReadConnection: databasecfg.ConnectionDetails{
-					Username: "user",
-					Password: "pass",
-					Database: "db",
-					Host:     "host",
+			Database: dbcfg.Config{
+				Config: databasecfg.Config{
+					Debug: true,
+					ReadConnection: databasecfg.ConnectionDetails{
+						Username: "user",
+						Password: "pass",
+						Database: "db",
+						Host:     "host",
+					},
 				},
 			},
 			Services: ServicesConfig{},
@@ -398,14 +421,16 @@ func TestDBCleanerConfig_ValidateWithContext(T *testing.T) {
 			Observability: observability.Config{
 				Logging: loggingcfg.Config{ServiceName: "service"},
 			},
-			Database: databasecfg.Config{
-				Debug: true,
-				ReadConnection: databasecfg.ConnectionDetails{
-					Username: "user",
-					Password: "pass",
-					Database: "db",
-					Host:     "host",
-					Port:     5432,
+			Database: dbcfg.Config{
+				Config: databasecfg.Config{
+					Debug: true,
+					ReadConnection: databasecfg.ConnectionDetails{
+						Username: "user",
+						Password: "pass",
+						Database: "db",
+						Host:     "host",
+						Port:     5432,
+					},
 				},
 			},
 		}
@@ -424,13 +449,15 @@ func TestAsyncMessageHandlerConfig_ValidateWithContext(T *testing.T) {
 		ctx := t.Context()
 		cfg := &AsyncMessageHandlerConfig{
 			Observability: observability.Config{},
-			Database: databasecfg.Config{
-				Debug: true,
-				ReadConnection: databasecfg.ConnectionDetails{
-					Username: "user",
-					Password: "pass",
-					Database: "db",
-					Host:     "host",
+			Database: dbcfg.Config{
+				Config: databasecfg.Config{
+					Debug: true,
+					ReadConnection: databasecfg.ConnectionDetails{
+						Username: "user",
+						Password: "pass",
+						Database: "db",
+						Host:     "host",
+					},
 				},
 			},
 		}

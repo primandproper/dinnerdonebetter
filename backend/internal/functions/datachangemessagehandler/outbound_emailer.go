@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/primandproper/platform-go/v8/email"
-	"github.com/primandproper/platform-go/v8/observability"
-	"github.com/primandproper/platform-go/v8/retry"
+	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
+
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/retry"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -29,7 +30,7 @@ func (a *AsyncDataChangeMessageHandler) OutboundEmailsEventHandler(topicName str
 			a.recordMessagesProcessed(ctx, topicOutboundEmails, status)
 		}()
 
-		var emailMessage email.OutboundEmailMessage
+		var emailMessage queuemessages.OutboundEmailMessage
 		if err := json.NewDecoder(bytes.NewReader(rawMsg)).Decode(&emailMessage); err != nil {
 			a.messageDecodeErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicOutboundEmails)))
 			status = statusFailure
@@ -55,7 +56,7 @@ func (a *AsyncDataChangeMessageHandler) OutboundEmailsEventHandler(topicName str
 
 func (a *AsyncDataChangeMessageHandler) handleEmailRequest(
 	ctx context.Context,
-	mail *email.OutboundEmailMessage,
+	mail *queuemessages.OutboundEmailMessage,
 ) error {
 	ctx, span := a.tracer.StartSpan(ctx)
 	defer span.End()
@@ -64,7 +65,7 @@ func (a *AsyncDataChangeMessageHandler) handleEmailRequest(
 		return errRequiredDataIsNil
 	}
 
-	if err := a.emailer.SendEmail(ctx, mail); err != nil {
+	if err := a.emailer.SendEmail(ctx, &mail.OutboundEmailMessage); err != nil {
 		observability.AcknowledgeError(err, a.logger, span, "sending email")
 		a.emailsFailedCounter.Add(ctx, 1)
 		return fmt.Errorf("sending email: %w", err)

@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"time"
 
+	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
 	coreindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v8/retry"
-	textsearch "github.com/primandproper/platform-go/v8/search/text"
+	"github.com/primandproper/platform-go/v9/retry"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -35,8 +35,8 @@ func (a *AsyncDataChangeMessageHandler) SearchIndexRequestsEventHandler(topicNam
 			a.recordMessagesProcessed(ctx, topicSearchIndexRequests, status)
 		}()
 
-		var searchIndexRequest textsearch.IndexRequest
-		if err := json.NewDecoder(bytes.NewReader(rawMsg)).Decode(&searchIndexRequest); err != nil {
+		var searchIndexRequest queuemessages.IndexRequest
+		if err := json.NewDecoder(bytes.NewReader(rawMsg)).Decode(&searchIndexRequest.IndexRequest); err != nil {
 			a.messageDecodeErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicSearchIndexRequests)))
 			status = statusFailure
 			// Unretryable: a payload that fails to decode will fail to decode on every
@@ -61,7 +61,7 @@ func (a *AsyncDataChangeMessageHandler) SearchIndexRequestsEventHandler(topicNam
 			eatingindexing.IndexTypeValidIngredientStates,
 			eatingindexing.IndexTypeValidVessels:
 			// we don't want to retry indexing perpetually in the event of a fundamental error, so we just log it and move on
-			if err := a.mealPlanningDataIndexer.HandleIndexRequest(ctx, &searchIndexRequest); err != nil {
+			if err := a.mealPlanningDataIndexer.HandleIndexRequest(ctx, &searchIndexRequest.IndexRequest); err != nil {
 				a.handlerErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicSearchIndexRequests)))
 				status = statusFailure
 				return fmt.Errorf("handling search indexing request: %w", err)
@@ -69,7 +69,7 @@ func (a *AsyncDataChangeMessageHandler) SearchIndexRequestsEventHandler(topicNam
 
 		case coreindexing.IndexTypeUsers:
 			// we don't want to retry indexing perpetually in the event of a fundamental error, so we just log it and move on
-			if err := a.userDataIndexer.HandleIndexRequest(ctx, &searchIndexRequest); err != nil {
+			if err := a.userDataIndexer.HandleIndexRequest(ctx, &searchIndexRequest.IndexRequest); err != nil {
 				a.handlerErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicSearchIndexRequests)))
 				status = statusFailure
 				return fmt.Errorf("handling search indexing request: %w", err)

@@ -14,12 +14,12 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
 
-	"github.com/primandproper/platform-go/v8/encoding"
-	"github.com/primandproper/platform-go/v8/httpclient"
-	"github.com/primandproper/platform-go/v8/observability"
-	platformkeys "github.com/primandproper/platform-go/v8/observability/keys"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	"github.com/primandproper/platform-go/v8/retry"
+	"github.com/primandproper/platform-go/v9/encoding"
+	"github.com/primandproper/platform-go/v9/httpclient"
+	"github.com/primandproper/platform-go/v9/observability"
+	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v9/retry"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -89,12 +89,12 @@ func (a *AsyncDataChangeMessageHandler) handleWebhookExecutionRequest(
 
 	var payloadBody []byte
 	switch webhook.ContentType {
-	case encoding.ContentTypeToString(encoding.ContentTypeJSON):
+	case encoding.ContentTypeJSON.String():
 		payloadBody, err = json.Marshal(webhookExecutionRequest.Payload)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "marshaling webhook payload")
 		}
-	case encoding.ContentTypeToString(encoding.ContentTypeXML):
+	case encoding.ContentTypeXML.String():
 		payloadBody, err = xml.Marshal(webhookExecutionRequest.Payload)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "marshaling webhook payload")

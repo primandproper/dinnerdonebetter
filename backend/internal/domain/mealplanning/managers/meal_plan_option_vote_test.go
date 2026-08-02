@@ -9,7 +9,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
-	"github.com/primandproper/platform-go/v8/filtering"
+	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
 )

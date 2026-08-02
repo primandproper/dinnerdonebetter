@@ -8,11 +8,12 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	platformerrors "github.com/primandproper/platform-go/v8/errors"
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/observability"
-	platformkeys "github.com/primandproper/platform-go/v8/observability/keys"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/observability"
+	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	textsearch "github.com/primandproper/platform-go/v9/search/text"
 )
 
 func (m *mealPlanningManager) SearchValidIngredientStates(ctx context.Context, query string, useSearchService bool, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidIngredientState], error) {
@@ -35,11 +36,13 @@ func (m *mealPlanningManager) SearchValidIngredientStates(ctx context.Context, q
 	if !useSearchService {
 		results, err = m.db.SearchForValidIngredientStates(ctx, query, filter)
 	} else {
-		var validIngredientStateSubsets []*eatingindexing.ValidIngredientStateSearchSubset
-		validIngredientStateSubsets, err = m.validIngredientStatesSearchIndex.Search(ctx, query)
+		var indexHits *textsearch.SearchResults[eatingindexing.ValidIngredientStateSearchSubset]
+		indexHits, err = m.validIngredientStatesSearchIndex.Search(ctx, textsearch.SearchRequest{Query: query})
 		if err != nil {
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching valid ingredient states")
 		}
+
+		validIngredientStateSubsets := indexHits.Hits
 
 		ids := []string{}
 		for _, validIngredientStateSubset := range validIngredientStateSubsets {

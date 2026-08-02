@@ -165,10 +165,6 @@
 		"postmark": null,
 		"ses": null,
 		"provider": "resend",
-		"baseURL": "",
-		"outboundInvitesEmailAddress": "",
-		"passwordResetCreationEmailAddress": "",
-		"passwordResetRedemptionEmailAddress": "",
 		"circuitBreakerConfig": {
 			"name": "prod_emailer",
 			"circuitBreakerErrorPercentage": 0.5,
@@ -177,8 +173,8 @@
 	},
 	"search": {
 		"algolia": {
-			"appID": "",
-			"writeAPIKey": "",
+			"appID": "placeholder",
+			"writeAPIKey": "placeholder",
 			"timeout": 0
 		},
 		"elasticsearch": null,
@@ -226,6 +222,7 @@
 		"dataChanges": {
 			"topic": "",
 			"retry": {
+				"provider": "",
 				"maxAttempts": 3,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,
@@ -238,6 +235,7 @@
 		"outboundEmails": {
 			"topic": "",
 			"retry": {
+				"provider": "",
 				"maxAttempts": 4,
 				"initialDelay": 100000000,
 				"maxDelay": 30000000000,
@@ -250,6 +248,7 @@
 		"searchIndexRequests": {
 			"topic": "",
 			"retry": {
+				"provider": "",
 				"maxAttempts": 3,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,
@@ -262,6 +261,7 @@
 		"webhookExecutionRequests": {
 			"topic": "",
 			"retry": {
+				"provider": "",
 				"maxAttempts": 4,
 				"initialDelay": 100000000,
 				"maxDelay": 30000000000,
@@ -274,6 +274,7 @@
 		"userDataAggregation": {
 			"topic": "",
 			"retry": {
+				"provider": "",
 				"maxAttempts": 2,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,
@@ -286,6 +287,7 @@
 		"mobileNotifications": {
 			"topic": "",
 			"retry": {
+				"provider": "",
 				"maxAttempts": 3,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	tokenscfg "github.com/primandproper/platform-go/v8/authentication/tokens/config"
+	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -14,13 +14,13 @@ type (
 	Config struct {
 		_ struct{} `json:"-"`
 
-		Tokens                tokenscfg.Config `envPrefix:"TOKENS_"           json:"tokens"`
-		OAuth2                OAuth2Config     `envPrefix:"OAUTH2"            json:"oauth2"`
-		TokenLifetime         time.Duration    `env:"JWT_LIFETIME"            json:"jwtLifetime"`
-		Debug                 bool             `env:"DEBUG"                   json:"debug,omitempty"`
-		EnableUserSignup      bool             `env:"ENABLE_USER_SIGNUP"      json:"enableUserSignup,omitempty"`
-		MinimumUsernameLength uint8            `env:"MINIMUM_USERNAME_LENGTH" json:"minimumUsernameLength,omitempty"`
-		MinimumPasswordLength uint8            `env:"MINIMUM_PASSWORD_LENGTH" json:"minimumPasswordLength,omitempty"`
+		Tokens                authcfg.TokensConfig `envPrefix:"TOKENS_"           json:"tokens"`
+		OAuth2                OAuth2Config         `envPrefix:"OAUTH2"            json:"oauth2"`
+		TokenLifetime         time.Duration        `env:"JWT_LIFETIME"            json:"jwtLifetime"`
+		Debug                 bool                 `env:"DEBUG"                   json:"debug,omitempty"`
+		EnableUserSignup      bool                 `env:"ENABLE_USER_SIGNUP"      json:"enableUserSignup,omitempty"`
+		MinimumUsernameLength uint8                `env:"MINIMUM_USERNAME_LENGTH" json:"minimumUsernameLength,omitempty"`
+		MinimumPasswordLength uint8                `env:"MINIMUM_PASSWORD_LENGTH" json:"minimumPasswordLength,omitempty"`
 	}
 )
 

@@ -7,8 +7,8 @@ import (
 
 	internalopsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/internalops/mock"
 
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
 )

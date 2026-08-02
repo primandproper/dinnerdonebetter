@@ -9,12 +9,12 @@ import (
 	commentskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/comments/generated"
 
-	"github.com/primandproper/platform-go/v8/database"
-	platformerrors "github.com/primandproper/platform-go/v8/errors"
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/identifiers"
-	"github.com/primandproper/platform-go/v8/observability"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/database"
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
 
 const (
@@ -173,7 +173,7 @@ func (q *repository) GetCommentsForReference(ctx context.Context, targetType, re
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	limit := database.NullInt32FromUint8Pointer(filter.MaxResponseSize)
+	limit := database.NullInt32FromUint16Pointer(filter.MaxResponseSize)
 
 	results, err := q.generatedQuerier.GetCommentsForReference(ctx, q.readDB, &generated.GetCommentsForReferenceParams{
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
@@ -236,7 +236,7 @@ func (q *repository) GetCommentsForUser(ctx context.Context, userID string, filt
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		BelongsToUser:   userID,
 		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint8Pointer(filter.MaxResponseSize),
+		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing user comments list retrieval query")
@@ -377,7 +377,7 @@ func (q *repository) ArchiveCommentsForReference(ctx context.Context, targetType
 	tracing.AttachToSpan(span, "referenced_id", referencedID)
 
 	filter := filtering.DefaultQueryFilter()
-	maxSize := uint8(filtering.MaxQueryFilterLimit)
+	maxSize := uint16(filtering.MaxQueryFilterLimit)
 	filter.MaxResponseSize = &maxSize
 	commentsResult, err := q.GetCommentsForReference(ctx, targetType, referencedID, filter)
 	if err != nil {

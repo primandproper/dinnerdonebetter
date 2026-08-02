@@ -10,8 +10,9 @@ import (
 	"sync/atomic"
 	"testing"
 
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	"github.com/primandproper/platform-go/v8/testutils/containers"
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
+
+	"github.com/primandproper/platform-go/v9/testutils/containers"
 
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -201,7 +202,7 @@ func prepareTemplate(ctx context.Context, admin *sql.DB, baseDSN string, migrate
 // It is the drop-in replacement for BuildDatabaseContainerForTest in suites whose
 // TestMain calls RunTestsWithSharedDatabase — with the difference that the database it
 // returns is already migrated, so callers no longer run the migrator themselves.
-func NewIsolatedDatabaseForTest(t *testing.T) (*sql.DB, *databasecfg.Config) {
+func NewIsolatedDatabaseForTest(t *testing.T) (*sql.DB, *dbcfg.Config) {
 	t.Helper()
 
 	containers.SkipIfNotRunning(t)
@@ -212,7 +213,7 @@ func NewIsolatedDatabaseForTest(t *testing.T) (*sql.DB, *databasecfg.Config) {
 }
 
 // clone mints one database for a test and registers its teardown.
-func (s *sharedDatabase) clone(t *testing.T) (*sql.DB, *databasecfg.Config) {
+func (s *sharedDatabase) clone(t *testing.T) (*sql.DB, *dbcfg.Config) {
 	t.Helper()
 
 	ctx := t.Context()

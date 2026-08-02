@@ -10,12 +10,12 @@ import (
 	eatingemails "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/emails"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningnotifications "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
+	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
 	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v8/email"
-	notifications "github.com/primandproper/platform-go/v8/notifications/mobile"
-	"github.com/primandproper/platform-go/v8/observability"
-	textsearch "github.com/primandproper/platform-go/v8/search/text"
+	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"
+	"github.com/primandproper/platform-go/v9/observability"
+	textsearch "github.com/primandproper/platform-go/v9/search/text"
 )
 
 // handleMealPlanTaskNotification processes a meal plan task reminder notification.
@@ -252,7 +252,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanningOutboundNotification(
 ) (
 	handled bool,
 	emailType string,
-	outgoingMessages []*email.OutboundEmailMessage,
+	outgoingMessages []*queuemessages.OutboundEmailMessage,
 	err error,
 ) {
 	if changeMessage.EventType != mealplanning.MealPlanCreatedServiceEventType {
@@ -271,7 +271,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanningOutboundNotification(
 func (a *AsyncDataChangeMessageHandler) handleMealPlanCreatedNotification(
 	ctx context.Context,
 	changeMessage *audit.DataChangeMessage,
-) ([]*email.OutboundEmailMessage, error) {
+) ([]*queuemessages.OutboundEmailMessage, error) {
 	ctx, span := a.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -298,7 +298,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanCreatedNotification(
 		return nil, observability.PrepareError(err, span, "getting account")
 	}
 
-	var outboundEmailMessages []*email.OutboundEmailMessage
+	var outboundEmailMessages []*queuemessages.OutboundEmailMessage
 	for _, member := range account.Members {
 		if member.BelongsToUser.EmailAddressVerifiedAt != nil {
 			msg, emailErr := eatingemails.BuildMealPlanCreatedEmail(member.BelongsToUser, mealPlan, a.baseURL)

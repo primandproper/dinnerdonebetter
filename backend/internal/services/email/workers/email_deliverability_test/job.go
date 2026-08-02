@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
+	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
 
-	"github.com/primandproper/platform-go/v8/email"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/email"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
 
 const (
@@ -57,15 +58,17 @@ func (j *Job) Do(ctx context.Context) error {
 
 	sentAt := time.Now().UTC().Format(time.RFC3339)
 
-	msg := &email.OutboundEmailMessage{
-		ToAddress:   j.recipientEmail,
-		FromAddress: branding.FromEmail,
-		FromName:    branding.CompanyName,
-		Subject:     fmt.Sprintf("%s – Email Deliverability Test", branding.CompanyName),
-		HTMLContent: fmt.Sprintf("<p>Test sent at %s</p>", sentAt),
+	msg := &queuemessages.OutboundEmailMessage{
+		OutboundEmailMessage: email.OutboundEmailMessage{
+			ToAddress:   j.recipientEmail,
+			FromAddress: branding.FromEmail,
+			FromName:    branding.CompanyName,
+			Subject:     fmt.Sprintf("%s – Email Deliverability Test", branding.CompanyName),
+			HTMLContent: fmt.Sprintf("<p>Test sent at %s</p>", sentAt),
+		},
 	}
 
-	if err := j.emailer.SendEmail(ctx, msg); err != nil {
+	if err := j.emailer.SendEmail(ctx, &msg.OutboundEmailMessage); err != nil {
 		j.logger.Error("sending deliverability test email", err)
 		return fmt.Errorf("sending email: %w", err)
 	}

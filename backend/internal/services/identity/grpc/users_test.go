@@ -13,9 +13,9 @@ import (
 	identitysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	uploadedmediasvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/uploads"
-	mockuploads "github.com/primandproper/platform-go/v8/uploads/mock"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/uploads"
+	mockuploads "github.com/primandproper/platform-go/v9/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"

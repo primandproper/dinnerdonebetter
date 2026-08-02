@@ -7,18 +7,19 @@ import (
 	"testing"
 	"time"
 
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	encryptioncfg "github.com/primandproper/platform-go/v8/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v8/database"
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	mockdatabase "github.com/primandproper/platform-go/v8/database/mock"
-	"github.com/primandproper/platform-go/v8/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v9/database"
+	databasecfg "github.com/primandproper/platform-go/v9/database/config"
+	mockdatabase "github.com/primandproper/platform-go/v9/database/mock"
+	"github.com/primandproper/platform-go/v9/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/stretchr/testify/require"
 )
@@ -56,7 +57,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 
 	auditLogEntryRepo := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
 
-	c := ProvideOAuthRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, config, pgc)
+	c := ProvideOAuthRepository(t.Context(), loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, config, pgc)
 	require.NoError(t, err)
 
 	return c.(*repository), auditLogEntryRepo
@@ -65,19 +66,21 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	config := &databasecfg.Config{
-		Provider:                 databasecfg.ProviderPostgres,
-		ReadConnection:           databasecfg.ConnectionDetails{},
+	config := &dbcfg.Config{
+		Config: databasecfg.Config{
+			Provider:        databasecfg.ProviderPostgres,
+			ReadConnection:  databasecfg.ConnectionDetails{},
+			Debug:           false,
+			LogQueries:      false,
+			RunMigrations:   true,
+			MaxPingAttempts: 10,
+			PingWaitPeriod:  time.Second,
+		},
 		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
-		Debug:                    false,
-		LogQueries:               false,
-		RunMigrations:            true,
-		MaxPingAttempts:          10,
-		PingWaitPeriod:           time.Second,
 		OAuth2TokenEncryptionKey: "blahblahblahblahblahblahblahblah",
 	}
 
-	c := ProvideOAuthRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, config, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
+	c := ProvideOAuthRepository(t.Context(), loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, config, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
 
 	return c.(*repository)
 }

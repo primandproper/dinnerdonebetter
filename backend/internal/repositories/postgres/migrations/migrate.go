@@ -4,12 +4,12 @@ import (
 	"embed"
 	"io/fs"
 
-	"github.com/primandproper/platform-go/v8/database/dialect"
-	"github.com/primandproper/platform-go/v8/database/migrate"
-	"github.com/primandproper/platform-go/v8/errors"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/outbox"
-	outboxmigrations "github.com/primandproper/platform-go/v8/outbox/migrations"
+	"github.com/primandproper/platform-go/v9/database/dialect"
+	"github.com/primandproper/platform-go/v9/database/migrate"
+	"github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/outbox"
+	outboxmigrations "github.com/primandproper/platform-go/v9/outbox/migrations"
 )
 
 var (
@@ -42,7 +42,7 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 
 	// The outbox table's DDL is rendered from the platform rather than copied into
 	// migration_files, so it stays in sync as that package evolves.
-	outboxDDL, err := outboxmigrations.SQL(dialect.Postgres, outbox.DefaultTableName)
+	outboxDDL, err := outboxmigrations.SQL(dialect.Postgres, outbox.DefaultTablePrefix)
 	if err != nil {
 		return nil, errors.Wrap(err, "rendering outbox migration")
 	}

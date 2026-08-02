@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/internalops"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v8/identifiers"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/metrics"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/metrics"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -31,7 +31,7 @@ const (
 
 // JobParams holds configuration for the queue test job.
 type JobParams struct {
-	Queues msgconfig.QueuesConfig
+	Queues queuescfg.Config
 }
 
 // Job sends a test message to a random queue and reports round-trip latency.
@@ -41,7 +41,7 @@ type Job struct {
 	logger             logging.Logger
 	tracer             tracing.Tracer
 	roundTripHistogram metrics.Float64Histogram
-	queues             msgconfig.QueuesConfig
+	queues             queuescfg.Config
 }
 
 // NewJob creates a new queue test job.

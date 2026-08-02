@@ -8,14 +8,14 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/fakes"
 	oauthmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/mock"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v8/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v8/random"
-	randommock "github.com/primandproper/platform-go/v8/random/mock"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	mockpublishers "github.com/primandproper/platform-go/v9/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v9/random"
+	randommock "github.com/primandproper/platform-go/v9/random/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,7 +26,7 @@ func buildOAuthManagerForTest(t *testing.T) *manager {
 
 	ctx := t.Context()
 	repo := &oauthmock.RepositoryMock{}
-	queueCfg := &msgconfig.QueuesConfig{DataChangesTopicName: t.Name()}
+	queueCfg := &queuescfg.Config{DataChangesTopicName: t.Name()}
 
 	mpp := &mockpublishers.PublisherProviderMock{
 		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {

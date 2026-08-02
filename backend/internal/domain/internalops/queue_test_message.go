@@ -6,10 +6,9 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
+	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
 
-	"github.com/primandproper/platform-go/v8/email"
-	notifications "github.com/primandproper/platform-go/v8/notifications/mobile"
-	textsearch "github.com/primandproper/platform-go/v8/search/text"
+	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"
 )
 
 // BuildQueueTestMessage returns a message with TestID set for the given topic. Non-empty TestID triggers queue test behavior.
@@ -18,9 +17,9 @@ func BuildQueueTestMessage(topicName, testID, userID string) (any, error) {
 	case "data_changes":
 		return &audit.DataChangeMessage{TestID: testID, UserID: userID}, nil
 	case "outbound_emails":
-		return &email.OutboundEmailMessage{TestID: testID, UserID: userID}, nil
+		return &queuemessages.OutboundEmailMessage{TestID: testID, UserID: userID}, nil
 	case "search_index_requests":
-		return &textsearch.IndexRequest{TestID: testID}, nil
+		return &queuemessages.IndexRequest{TestID: testID}, nil
 	case "webhook_execution_requests":
 		return &webhooks.WebhookExecutionRequest{TestID: testID}, nil
 	case "user_data_aggregation", "user_data_aggregation_requests":

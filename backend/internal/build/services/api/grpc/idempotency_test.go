@@ -9,12 +9,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 	paymentssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 
-	cachecfg "github.com/primandproper/platform-go/v8/cache/config"
-	idempotencycfg "github.com/primandproper/platform-go/v8/idempotency/config"
-	idempotencygrpc "github.com/primandproper/platform-go/v8/idempotency/grpc"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v8/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	cachecfg "github.com/primandproper/platform-go/v9/cache/config"
+	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
+	idempotencycfg "github.com/primandproper/platform-go/v9/idempotency/config"
+	idempotencygrpc "github.com/primandproper/platform-go/v9/idempotency/grpc"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,6 +34,7 @@ func enabledIdempotencyConfig() *config.APIServiceConfig {
 			Manager: idempotencycfg.Config{
 				KeyPrefix:   "test.",
 				Cache:       cachecfg.Config{Provider: cachecfg.ProviderMemory, Expiry: time.Hour},
+				Lock:        distributedlockcfg.Config{Provider: distributedlockcfg.MemoryProvider},
 				TTL:         time.Hour,
 				InFlightTTL: time.Minute,
 			},

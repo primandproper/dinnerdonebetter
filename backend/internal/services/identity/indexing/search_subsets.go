@@ -3,7 +3,7 @@ package indexing
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 
-	textsearch "github.com/primandproper/platform-go/v8/search/text"
+	textsearch "github.com/primandproper/platform-go/v9/search/text"
 )
 
 type UserTextSearcher textsearch.Index[UserSearchSubset]

@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/primandproper/platform-go/v8/jobs"
-	"github.com/primandproper/platform-go/v8/observability"
+	"github.com/primandproper/platform-go/v9/jobs"
+	"github.com/primandproper/platform-go/v9/observability"
 )
 
 // partialStartDrainTimeout bounds the teardown of pools that did start when a later one failed

@@ -34,7 +34,7 @@ require (
 	github.com/matcornic/hermes/v2 v2.1.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/pquerna/otp v1.5.0
-	github.com/primandproper/platform-go/v8 v8.0.0
+	github.com/primandproper/platform-go/v9 v9.0.0
 	github.com/samber/do/v2 v2.0.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/spf13/cobra v1.10.2
@@ -181,6 +181,7 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/resend/resend-go/v3 v3.9.2 // indirect
 	github.com/riandyrn/otelchi v0.12.3 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rogpeppe/go-internal v1.15.0 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/rs/zerolog v1.35.1 // indirect
@@ -420,3 +421,8 @@ require (
 	rsc.io/omap v1.2.0 // indirect
 	rsc.io/ordered v1.1.1 // indirect
 )
+
+// TODO: remove once platform-go v9.0.0 is tagged, and pin the require above to it.
+// v9 does not exist as a published version yet, so this branch cannot build without
+// a local checkout. Do not merge with this in place.
+replace github.com/primandproper/platform-go/v9 => ../../../primandproper/platform-go

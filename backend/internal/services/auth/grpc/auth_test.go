@@ -16,8 +16,8 @@ import (
 	identityfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	authsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
-	"github.com/primandproper/platform-go/v8/featureflags"
-	"github.com/primandproper/platform-go/v8/filtering"
+	"github.com/primandproper/platform-go/v9/featureflags"
+	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"

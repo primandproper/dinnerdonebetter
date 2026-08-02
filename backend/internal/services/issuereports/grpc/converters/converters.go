@@ -5,7 +5,7 @@ import (
 	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
 	issuereportssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 
-	"github.com/primandproper/platform-go/v8/identifiers"
+	"github.com/primandproper/platform-go/v9/identifiers"
 )
 
 func ConvertIssueReportToGRPCIssueReport(issueReport *issuereports.IssueReport) *issuereportssvc.IssueReport {

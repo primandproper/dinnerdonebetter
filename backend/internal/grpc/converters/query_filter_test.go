@@ -5,7 +5,7 @@ import (
 
 	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 
-	"github.com/primandproper/platform-go/v8/filtering"
+	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,7 +22,7 @@ func TestConvertGRPCQueryFilterToQueryFilter(T *testing.T) {
 		})
 
 		require.NotNil(t, actual.MaxResponseSize)
-		assert.Equal(t, uint8(25), *actual.MaxResponseSize)
+		assert.Equal(t, uint16(25), *actual.MaxResponseSize)
 	})
 
 	T.Run("with nil filter", func(t *testing.T) {
@@ -43,7 +43,7 @@ func TestConvertGRPCQueryFilterToQueryFilter(T *testing.T) {
 			})
 
 			require.NotNil(t, actual.MaxResponseSize)
-			assert.Equal(t, uint8(filtering.MaxQueryFilterLimit), *actual.MaxResponseSize)
+			assert.Equal(t, uint16(filtering.MaxQueryFilterLimit), *actual.MaxResponseSize)
 		}
 	})
 
@@ -53,6 +53,6 @@ func TestConvertGRPCQueryFilterToQueryFilter(T *testing.T) {
 		actual := ConvertGRPCQueryFilterToQueryFilter(&grpcfiltering.QueryFilter{})
 
 		require.NotNil(t, actual.MaxResponseSize)
-		assert.Equal(t, uint8(50), *actual.MaxResponseSize)
+		assert.Equal(t, uint16(50), *actual.MaxResponseSize)
 	})
 }

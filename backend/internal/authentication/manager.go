@@ -7,20 +7,20 @@ import (
 	"strings"
 	"time"
 
+	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v8/authentication/tokens"
-	tokenscfg "github.com/primandproper/platform-go/v8/authentication/tokens/config"
-	"github.com/primandproper/platform-go/v8/authentication/totp"
-	"github.com/primandproper/platform-go/v8/identifiers"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/authentication/tokens"
+	"github.com/primandproper/platform-go/v9/authentication/totp"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
 
 const (
@@ -56,7 +56,7 @@ type (
 
 func NewManager(
 	ctx context.Context,
-	queuesConfig *msgconfig.QueuesConfig,
+	queuesConfig *queuescfg.Config,
 	tokenIssuer tokens.Issuer,
 	authenticator Authenticator,
 	totpVerifier totp.Verifier,
@@ -65,7 +65,7 @@ func NewManager(
 	publisherProvider messagequeue.PublisherProvider,
 	userAuthDataManager identity.Repository,
 	sessionDataManager auth.UserSessionDataManager,
-	cfg *tokenscfg.Config,
+	cfg *authcfg.TokensConfig,
 ) (Manager, error) {
 	dataChangesPublisher, err := publisherProvider.NewPublisher(ctx, queuesConfig.DataChangesTopicName)
 	if err != nil {

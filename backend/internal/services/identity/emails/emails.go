@@ -7,8 +7,9 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
+	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
 
-	"github.com/primandproper/platform-go/v8/email"
+	"github.com/primandproper/platform-go/v9/email"
 
 	"github.com/matcornic/hermes/v2"
 )
@@ -18,7 +19,7 @@ var (
 )
 
 // BuildInviteMemberEmail builds an email notifying a user that they've been invited to join an account.
-func BuildInviteMemberEmail(recipient *identity.User, accountInvitation *identity.AccountInvitation, baseURL string) (*email.OutboundEmailMessage, error) {
+func BuildInviteMemberEmail(recipient *identity.User, accountInvitation *identity.AccountInvitation, baseURL string) (*queuemessages.OutboundEmailMessage, error) {
 	e := hermes.Email{
 		Body: hermes.Body{
 			Name: accountInvitation.ToEmail,
@@ -42,21 +43,23 @@ func BuildInviteMemberEmail(recipient *identity.User, accountInvitation *identit
 		return nil, fmt.Errorf("error rendering email template: %w", err)
 	}
 
-	msg := &email.OutboundEmailMessage{
-		UserID:      recipient.ID,
-		ToAddress:   accountInvitation.ToEmail,
-		ToName:      recipient.FullName(),
-		FromAddress: branding.FromEmail,
-		FromName:    branding.CompanyName,
-		Subject:     "You've been invited!",
-		HTMLContent: htmlContent,
+	msg := &queuemessages.OutboundEmailMessage{
+		OutboundEmailMessage: email.OutboundEmailMessage{
+			ToAddress:   accountInvitation.ToEmail,
+			ToName:      recipient.FullName(),
+			FromAddress: branding.FromEmail,
+			FromName:    branding.CompanyName,
+			Subject:     "You've been invited!",
+			HTMLContent: htmlContent,
+		},
+		UserID: recipient.ID,
 	}
 
 	return msg, nil
 }
 
 // BuildGeneratedPasswordResetTokenEmail builds an email notifying a user that they've been invited to join an account.
-func BuildGeneratedPasswordResetTokenEmail(recipient *identity.User, passwordResetToken *auth.PasswordResetToken, baseURL string) (*email.OutboundEmailMessage, error) {
+func BuildGeneratedPasswordResetTokenEmail(recipient *identity.User, passwordResetToken *auth.PasswordResetToken, baseURL string) (*queuemessages.OutboundEmailMessage, error) {
 	if recipient.EmailAddressVerifiedAt == nil {
 		return nil, ErrUnverifiedEmailRecipient
 	}
@@ -87,21 +90,23 @@ func BuildGeneratedPasswordResetTokenEmail(recipient *identity.User, passwordRes
 		return nil, fmt.Errorf("error rendering email template: %w", err)
 	}
 
-	msg := &email.OutboundEmailMessage{
-		UserID:      recipient.ID,
-		ToAddress:   recipient.EmailAddress,
-		ToName:      recipient.FullName(),
-		FromAddress: branding.FromEmail,
-		FromName:    branding.CompanyName,
-		Subject:     fmt.Sprintf("A password reset link was requested for your %s account", branding.CompanyName),
-		HTMLContent: htmlContent,
+	msg := &queuemessages.OutboundEmailMessage{
+		OutboundEmailMessage: email.OutboundEmailMessage{
+			ToAddress:   recipient.EmailAddress,
+			ToName:      recipient.FullName(),
+			FromAddress: branding.FromEmail,
+			FromName:    branding.CompanyName,
+			Subject:     fmt.Sprintf("A password reset link was requested for your %s account", branding.CompanyName),
+			HTMLContent: htmlContent,
+		},
+		UserID: recipient.ID,
 	}
 
 	return msg, nil
 }
 
 // BuildUsernameReminderEmail builds an email notifying a user that they've been invited to join an account.
-func BuildUsernameReminderEmail(recipient *identity.User, baseURL string) (*email.OutboundEmailMessage, error) {
+func BuildUsernameReminderEmail(recipient *identity.User, baseURL string) (*queuemessages.OutboundEmailMessage, error) {
 	if recipient.EmailAddressVerifiedAt == nil {
 		return nil, ErrUnverifiedEmailRecipient
 	}
@@ -123,21 +128,23 @@ func BuildUsernameReminderEmail(recipient *identity.User, baseURL string) (*emai
 		return nil, fmt.Errorf("error rendering email template: %w", err)
 	}
 
-	msg := &email.OutboundEmailMessage{
-		UserID:      recipient.ID,
-		ToName:      recipient.FullName(),
-		ToAddress:   recipient.EmailAddress,
-		FromAddress: branding.FromEmail,
-		FromName:    branding.CompanyName,
-		Subject:     fmt.Sprintf("A password reset link was requested for your %s account", branding.CompanyName),
-		HTMLContent: htmlContent,
+	msg := &queuemessages.OutboundEmailMessage{
+		OutboundEmailMessage: email.OutboundEmailMessage{
+			ToName:      recipient.FullName(),
+			ToAddress:   recipient.EmailAddress,
+			FromAddress: branding.FromEmail,
+			FromName:    branding.CompanyName,
+			Subject:     fmt.Sprintf("A password reset link was requested for your %s account", branding.CompanyName),
+			HTMLContent: htmlContent,
+		},
+		UserID: recipient.ID,
 	}
 
 	return msg, nil
 }
 
 // BuildPasswordResetTokenRedeemedEmail builds an email notifying a user that they've been invited to join an account.
-func BuildPasswordResetTokenRedeemedEmail(recipient *identity.User, baseURL string) (*email.OutboundEmailMessage, error) {
+func BuildPasswordResetTokenRedeemedEmail(recipient *identity.User, baseURL string) (*queuemessages.OutboundEmailMessage, error) {
 	if recipient.EmailAddressVerifiedAt == nil {
 		return nil, ErrUnverifiedEmailRecipient
 	}
@@ -159,21 +166,23 @@ func BuildPasswordResetTokenRedeemedEmail(recipient *identity.User, baseURL stri
 		return nil, fmt.Errorf("error rendering email template: %w", err)
 	}
 
-	msg := &email.OutboundEmailMessage{
-		UserID:      recipient.ID,
-		ToAddress:   recipient.EmailAddress,
-		ToName:      recipient.FullName(),
-		FromAddress: branding.FromEmail,
-		FromName:    branding.CompanyName,
-		Subject:     fmt.Sprintf("Your %s account password has been changed.", branding.CompanyName),
-		HTMLContent: htmlContent,
+	msg := &queuemessages.OutboundEmailMessage{
+		OutboundEmailMessage: email.OutboundEmailMessage{
+			ToAddress:   recipient.EmailAddress,
+			ToName:      recipient.FullName(),
+			FromAddress: branding.FromEmail,
+			FromName:    branding.CompanyName,
+			Subject:     fmt.Sprintf("Your %s account password has been changed.", branding.CompanyName),
+			HTMLContent: htmlContent,
+		},
+		UserID: recipient.ID,
 	}
 
 	return msg, nil
 }
 
 // BuildPasswordChangedEmail builds an email notifying a user that they've been invited to join an account.
-func BuildPasswordChangedEmail(recipient *identity.User, baseURL string) (*email.OutboundEmailMessage, error) {
+func BuildPasswordChangedEmail(recipient *identity.User, baseURL string) (*queuemessages.OutboundEmailMessage, error) {
 	if recipient.EmailAddressVerifiedAt == nil {
 		return nil, ErrUnverifiedEmailRecipient
 	}
@@ -195,14 +204,16 @@ func BuildPasswordChangedEmail(recipient *identity.User, baseURL string) (*email
 		return nil, fmt.Errorf("error rendering email template: %w", err)
 	}
 
-	msg := &email.OutboundEmailMessage{
-		UserID:      recipient.ID,
-		ToAddress:   recipient.EmailAddress,
-		ToName:      recipient.FullName(),
-		FromAddress: branding.FromEmail,
-		FromName:    branding.CompanyName,
-		Subject:     fmt.Sprintf("Your %s account password has been changed.", branding.CompanyName),
-		HTMLContent: htmlContent,
+	msg := &queuemessages.OutboundEmailMessage{
+		OutboundEmailMessage: email.OutboundEmailMessage{
+			ToAddress:   recipient.EmailAddress,
+			ToName:      recipient.FullName(),
+			FromAddress: branding.FromEmail,
+			FromName:    branding.CompanyName,
+			Subject:     fmt.Sprintf("Your %s account password has been changed.", branding.CompanyName),
+			HTMLContent: htmlContent,
+		},
+		UserID: recipient.ID,
 	}
 
 	return msg, nil
@@ -211,7 +222,7 @@ func BuildPasswordChangedEmail(recipient *identity.User, baseURL string) (*email
 var errEmailVerificationTokenRequired = errors.New("email verification token required")
 
 // BuildVerifyEmailAddressEmail builds an email notifying a user that they've been invited to join an account.
-func BuildVerifyEmailAddressEmail(recipient *identity.User, emailVerificationToken, baseURL string) (*email.OutboundEmailMessage, error) {
+func BuildVerifyEmailAddressEmail(recipient *identity.User, emailVerificationToken, baseURL string) (*queuemessages.OutboundEmailMessage, error) {
 	if emailVerificationToken == "" {
 		return nil, errEmailVerificationTokenRequired
 	}
@@ -246,14 +257,16 @@ func BuildVerifyEmailAddressEmail(recipient *identity.User, emailVerificationTok
 		return nil, fmt.Errorf("error rendering email template: %w", err)
 	}
 
-	msg := &email.OutboundEmailMessage{
-		UserID:      recipient.ID,
-		ToAddress:   recipient.EmailAddress,
-		ToName:      recipient.FullName(),
-		FromAddress: branding.FromEmail,
-		FromName:    branding.CompanyName,
-		Subject:     fmt.Sprintf("Verify your email with %s", branding.CompanyName),
-		HTMLContent: htmlContent,
+	msg := &queuemessages.OutboundEmailMessage{
+		OutboundEmailMessage: email.OutboundEmailMessage{
+			ToAddress:   recipient.EmailAddress,
+			ToName:      recipient.FullName(),
+			FromAddress: branding.FromEmail,
+			FromName:    branding.CompanyName,
+			Subject:     fmt.Sprintf("Verify your email with %s", branding.CompanyName),
+			HTMLContent: htmlContent,
+		},
+		UserID: recipient.ID,
 	}
 
 	return msg, nil

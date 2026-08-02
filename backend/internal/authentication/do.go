@@ -3,17 +3,17 @@ package authentication
 import (
 	"context"
 
+	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v8/authentication/argon2"
-	"github.com/primandproper/platform-go/v8/authentication/tokens"
-	tokenscfg "github.com/primandproper/platform-go/v8/authentication/tokens/config"
-	"github.com/primandproper/platform-go/v8/authentication/totp"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/authentication/argon2"
+	"github.com/primandproper/platform-go/v9/authentication/tokens"
+	"github.com/primandproper/platform-go/v9/authentication/totp"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -38,7 +38,7 @@ func RegisterAuth(i do.Injector) {
 	do.Provide[Manager](i, func(i do.Injector) (Manager, error) {
 		return NewManager(
 			do.MustInvoke[context.Context](i),
-			do.MustInvoke[*msgconfig.QueuesConfig](i),
+			do.MustInvoke[*queuescfg.Config](i),
 			do.MustInvoke[tokens.Issuer](i),
 			do.MustInvoke[Authenticator](i),
 			do.MustInvoke[totp.Verifier](i),
@@ -47,7 +47,7 @@ func RegisterAuth(i do.Injector) {
 			do.MustInvoke[messagequeue.PublisherProvider](i),
 			do.MustInvoke[identity.Repository](i),
 			do.MustInvoke[auth.Repository](i),
-			do.MustInvoke[*tokenscfg.Config](i),
+			do.MustInvoke[*authcfg.TokensConfig](i),
 		)
 	})
 }

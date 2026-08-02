@@ -13,14 +13,15 @@ import (
 	dataprivacymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy/mock"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	dataprivacysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/identifiers"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
-	mockuploads "github.com/primandproper/platform-go/v8/uploads/mock"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	mockuploads "github.com/primandproper/platform-go/v9/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -53,9 +54,12 @@ func buildTestService(t *testing.T, mockRepo *dataprivacymock.RepositoryMock, mo
 		sessionContextDataFetcher: sessionFetcher,
 		dataPrivacyManager:        mockRepo,
 		uploadManager:             mockUploads,
-		// An empty config resolves to a noop publisher provider, so Publish succeeds without a real message queue.
-		msgConfig:    &msgconfig.Config{},
-		queuesConfig: &msgconfig.QueuesConfig{},
+		// The noop provider discards published messages, so Publish succeeds without a real message queue.
+		msgConfig: &msgconfig.Config{
+			Publisher: msgconfig.MessageQueueConfig{Provider: msgconfig.ProviderNoop},
+			Consumer:  msgconfig.MessageQueueConfig{Provider: msgconfig.ProviderNoop},
+		},
+		queuesConfig: &queuescfg.Config{},
 	}
 }
 
@@ -82,7 +86,7 @@ func TestNewDataPrivacyService(t *testing.T) {
 			return &sessions.ContextData{}, nil
 		}
 
-		service := NewDataPrivacyService(logger, tracerProvider, sessionFetcher, mockRepo, mockUploads, &msgconfig.Config{}, &msgconfig.QueuesConfig{})
+		service := NewDataPrivacyService(logger, tracerProvider, sessionFetcher, mockRepo, mockUploads, &msgconfig.Config{}, &queuescfg.Config{})
 
 		assert.NotNil(t, service)
 		assert.Implements(t, (*dataprivacysvc.DataPrivacyServiceServer)(nil), service)

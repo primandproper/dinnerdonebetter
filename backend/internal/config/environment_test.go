@@ -7,21 +7,23 @@ import (
 	"testing"
 
 	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 	dataprivacycfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v8/analytics/config"
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	emailcfg "github.com/primandproper/platform-go/v8/email/config"
-	"github.com/primandproper/platform-go/v8/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v8/featureflags/config"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability"
-	routingcfg "github.com/primandproper/platform-go/v8/routing/config"
-	textsearchcfg "github.com/primandproper/platform-go/v8/search/text/config"
-	"github.com/primandproper/platform-go/v8/server/grpc"
-	"github.com/primandproper/platform-go/v8/server/http"
-	uploadscfg "github.com/primandproper/platform-go/v8/uploads/config"
-	"github.com/primandproper/platform-go/v8/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
+	databasecfg "github.com/primandproper/platform-go/v9/database/config"
+	emailcfg "github.com/primandproper/platform-go/v9/email/config"
+	"github.com/primandproper/platform-go/v9/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v9/featureflags/config"
+	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
+	"github.com/primandproper/platform-go/v9/observability"
+	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
+	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
+	"github.com/primandproper/platform-go/v9/server/grpc"
+	"github.com/primandproper/platform-go/v9/server/http"
+	uploadscfg "github.com/primandproper/platform-go/v9/uploads/config"
+	"github.com/primandproper/platform-go/v9/uploads/objectstorage"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -130,7 +132,7 @@ func TestEnvironmentConfigSet_Render(T *testing.T) {
 
 		rootConfig := &APIServiceConfig{
 			Auth: authcfg.Config{},
-			Queues: msgconfig.QueuesConfig{
+			Queues: queuescfg.Config{
 				DataChangesTopicName:              "data-changes",
 				OutboundEmailsTopicName:           "outbound-emails",
 				SearchIndexRequestsTopicName:      "search-index-requests",
@@ -152,13 +154,15 @@ func TestEnvironmentConfigSet_Render(T *testing.T) {
 			Routing:    routingcfg.Config{},
 			HTTPServer: http.Config{},
 			GRPCServer: grpc.Config{},
-			Database: databasecfg.Config{
-				Debug: true,
-				ReadConnection: databasecfg.ConnectionDetails{
-					Username: "user",
-					Password: "pass",
-					Database: "db",
-					Host:     "host",
+			Database: dbcfg.Config{
+				Config: databasecfg.Config{
+					Debug: true,
+					ReadConnection: databasecfg.ConnectionDetails{
+						Username: "user",
+						Password: "pass",
+						Database: "db",
+						Host:     "host",
+					},
 				},
 			},
 			Services: ServicesConfig{
@@ -219,13 +223,15 @@ func TestEnvironmentConfigSet_Render(T *testing.T) {
 					BundleID: "com.example.ios",
 				},
 			},
-			Database: databasecfg.Config{
-				Debug: true,
-				ReadConnection: databasecfg.ConnectionDetails{
-					Username: "user",
-					Password: "pass",
-					Database: "db",
-					Host:     "host",
+			Database: dbcfg.Config{
+				Config: databasecfg.Config{
+					Debug: true,
+					ReadConnection: databasecfg.ConnectionDetails{
+						Username: "user",
+						Password: "pass",
+						Database: "db",
+						Host:     "host",
+					},
 				},
 			},
 			Services: ServicesConfig{
@@ -268,13 +274,15 @@ func TestEnvironmentConfigSet_Render(T *testing.T) {
 				RunMode: DevelopmentRunMode,
 			},
 			Observability: observability.Config{},
-			Database: databasecfg.Config{
-				Debug: true,
-				ReadConnection: databasecfg.ConnectionDetails{
-					Username: "user",
-					Password: "pass",
-					Database: "db",
-					Host:     "host",
+			Database: dbcfg.Config{
+				Config: databasecfg.Config{
+					Debug: true,
+					ReadConnection: databasecfg.ConnectionDetails{
+						Username: "user",
+						Password: "pass",
+						Database: "db",
+						Host:     "host",
+					},
 				},
 			},
 			Services: ServicesConfig{
@@ -313,13 +321,15 @@ func TestEnvironmentConfigSet_Render(T *testing.T) {
 				RunMode: DevelopmentRunMode,
 			},
 			Observability: observability.Config{},
-			Database: databasecfg.Config{
-				Debug: true,
-				ReadConnection: databasecfg.ConnectionDetails{
-					Username: "user",
-					Password: "pass",
-					Database: "db",
-					Host:     "host",
+			Database: dbcfg.Config{
+				Config: databasecfg.Config{
+					Debug: true,
+					ReadConnection: databasecfg.ConnectionDetails{
+						Username: "user",
+						Password: "pass",
+						Database: "db",
+						Host:     "host",
+					},
 				},
 			},
 			Services: ServicesConfig{

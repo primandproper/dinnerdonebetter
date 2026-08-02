@@ -9,9 +9,9 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
 	commentsconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/comments/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v8/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v8/errors/grpc"
-	"github.com/primandproper/platform-go/v8/observability"
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
+	"github.com/primandproper/platform-go/v9/observability"
 
 	"google.golang.org/grpc/codes"
 )

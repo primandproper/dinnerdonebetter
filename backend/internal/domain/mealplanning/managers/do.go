@@ -5,15 +5,15 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 	mealplangrocerylistinitializer "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_grocery_list_initializer"
 	mealplantaskcreator "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_creator"
 
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/metrics"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	textsearchcfg "github.com/primandproper/platform-go/v8/search/text/config"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/metrics"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
 
 	"github.com/samber/do/v2"
 )
@@ -34,7 +34,7 @@ func RegisterManagers(i do.Injector) {
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[mealplanning.Repository](i),
-			do.MustInvoke[*msgconfig.QueuesConfig](i),
+			do.MustInvoke[*queuescfg.Config](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),
 			do.MustInvoke[recipeanalysis.RecipeAnalyzer](i),
 			do.MustInvoke[*textsearchcfg.Config](i),

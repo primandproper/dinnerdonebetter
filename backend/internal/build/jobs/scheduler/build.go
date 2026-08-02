@@ -10,6 +10,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	identityrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity"
@@ -20,22 +21,22 @@ import (
 	mealplangrocerylistinitializer "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_grocery_list_initializer"
 	mealplantaskcreator "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_creator"
 
-	"github.com/primandproper/platform-go/v8/database"
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	"github.com/primandproper/platform-go/v8/database/postgres"
-	"github.com/primandproper/platform-go/v8/distributedlock"
-	distributedlockcfg "github.com/primandproper/platform-go/v8/distributedlock/config"
-	"github.com/primandproper/platform-go/v8/jobs"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v8/observability/logging/config"
-	"github.com/primandproper/platform-go/v8/observability/metrics"
-	metricscfg "github.com/primandproper/platform-go/v8/observability/metrics/config"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	tracingcfg "github.com/primandproper/platform-go/v8/observability/tracing/config"
-	"github.com/primandproper/platform-go/v8/search/text/indexing"
+	"github.com/primandproper/platform-go/v9/database"
+	databasecfg "github.com/primandproper/platform-go/v9/database/config"
+	"github.com/primandproper/platform-go/v9/database/postgres"
+	"github.com/primandproper/platform-go/v9/distributedlock"
+	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
+	"github.com/primandproper/platform-go/v9/jobs"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	loggingcfg "github.com/primandproper/platform-go/v9/observability/logging/config"
+	"github.com/primandproper/platform-go/v9/observability/metrics"
+	metricscfg "github.com/primandproper/platform-go/v9/observability/metrics/config"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	tracingcfg "github.com/primandproper/platform-go/v9/observability/tracing/config"
+	"github.com/primandproper/platform-go/v9/search/text/indexing"
 
 	"github.com/samber/do/v2"
 )
@@ -83,7 +84,7 @@ func BuildInjector(
 	queuetest.RegisterQueueTest(i)
 
 	do.Provide[*queuetest.JobParams](i, func(i do.Injector) (*queuetest.JobParams, error) {
-		return &queuetest.JobParams{Queues: *do.MustInvoke[*msgconfig.QueuesConfig](i)}, nil
+		return &queuetest.JobParams{Queues: *do.MustInvoke[*queuescfg.Config](i)}, nil
 	})
 
 	// The mobile notification scheduler is constructed here rather than through its own
@@ -93,7 +94,7 @@ func BuildInjector(
 	do.Provide[*mobilenotificationscheduler.Scheduler](i, func(i do.Injector) (*mobilenotificationscheduler.Scheduler, error) {
 		publisher, err := do.MustInvoke[messagequeue.PublisherProvider](i).NewPublisher(
 			do.MustInvoke[context.Context](i),
-			do.MustInvoke[*msgconfig.QueuesConfig](i).MobileNotificationsTopicName,
+			do.MustInvoke[*queuescfg.Config](i).MobileNotificationsTopicName,
 		)
 		if err != nil {
 			return nil, err
@@ -114,17 +115,17 @@ func BuildInjector(
 			do.MustInvoke[mealplanning.Repository](i),
 		), nil
 	})
-	indexing.RegisterIndexScheduler(i)
+	indexing.RegisterIndexScheduler(i, do.MustInvoke[*queuescfg.Config](i).SearchIndexRequestsTopicName)
 
 	// the lock that decides which replica runs a given tick
 	do.Provide[distributedlock.Locker](i, func(i do.Injector) (distributedlock.Locker, error) {
 		return distributedlockcfg.NewLocker(
 			do.MustInvoke[context.Context](i),
 			&do.MustInvoke[*config.ScheduledJobsConfig](i).Lock,
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
-			do.MustInvoke[metrics.Provider](i),
 			do.MustInvoke[database.Client](i),
+			distributedlockcfg.WithLogger(do.MustInvoke[logging.Logger](i)),
+			distributedlockcfg.WithTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			distributedlockcfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 	})
 

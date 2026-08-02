@@ -11,12 +11,13 @@ import (
 	identitymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/mock"
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	"github.com/primandproper/platform-go/v8/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v8/qrcodes"
-	randommock "github.com/primandproper/platform-go/v8/random/mock"
-	mocksearch "github.com/primandproper/platform-go/v8/search/text/mock"
+	"github.com/primandproper/platform-go/v9/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v9/qrcodes"
+	randommock "github.com/primandproper/platform-go/v9/random/mock"
+	textsearch "github.com/primandproper/platform-go/v9/search/text"
+	mocksearch "github.com/primandproper/platform-go/v9/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -677,9 +678,9 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 			},
 		}
 		searchIndex := &mocksearch.IndexMock[identityindexing.UserSearchSubset]{
-			SearchFunc: func(_ context.Context, q string) ([]*identityindexing.UserSearchSubset, error) {
-				assert.Equal(t, query, q)
-				return searchResults, nil
+			SearchFunc: func(_ context.Context, req textsearch.SearchRequest) (*textsearch.SearchResults[identityindexing.UserSearchSubset], error) {
+				assert.Equal(t, query, req.Query)
+				return &textsearch.SearchResults[identityindexing.UserSearchSubset]{Hits: searchResults}, nil
 			},
 		}
 		attachMocksToIdentityDataManager(m, db, nil, nil, searchIndex)
@@ -713,7 +714,7 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 		users[1].ID = searchResults[1].ID
 
 		filter := filtering.DefaultQueryFilter()
-		filter.MaxResponseSize = new(uint8(2))
+		filter.MaxResponseSize = new(uint16(2))
 
 		db := &identitymock.RepositoryMock{
 			GetUsersWithIDsFunc: func(_ context.Context, ids []string) ([]*identity.User, error) {
@@ -722,9 +723,9 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 			},
 		}
 		searchIndex := &mocksearch.IndexMock[identityindexing.UserSearchSubset]{
-			SearchFunc: func(_ context.Context, q string) ([]*identityindexing.UserSearchSubset, error) {
-				assert.Equal(t, query, q)
-				return searchResults, nil
+			SearchFunc: func(_ context.Context, req textsearch.SearchRequest) (*textsearch.SearchResults[identityindexing.UserSearchSubset], error) {
+				assert.Equal(t, query, req.Query)
+				return &textsearch.SearchResults[identityindexing.UserSearchSubset]{Hits: searchResults}, nil
 			},
 		}
 		attachMocksToIdentityDataManager(m, db, nil, nil, searchIndex)

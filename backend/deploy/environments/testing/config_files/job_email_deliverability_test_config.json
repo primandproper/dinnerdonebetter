@@ -26,11 +26,7 @@
 		"resend": null,
 		"postmark": null,
 		"ses": null,
-		"provider": "",
-		"baseURL": "",
-		"outboundInvitesEmailAddress": "",
-		"passwordResetCreationEmailAddress": "",
-		"passwordResetRedemptionEmailAddress": "",
+		"provider": "noop",
 		"circuitBreakerConfig": {
 			"name": "",
 			"circuitBreakerErrorPercentage": 0,

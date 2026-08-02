@@ -8,15 +8,15 @@ import (
 	"time"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v8/jobs"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	msgqueuemock "github.com/primandproper/platform-go/v8/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v8/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v9/jobs"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	msgqueuemock "github.com/primandproper/platform-go/v9/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,15 +30,15 @@ type blockingConsumer struct {
 	once    sync.Once
 }
 
-func (c *blockingConsumer) Consume(_ context.Context, stopChan chan bool, _ chan error) {
+func (c *blockingConsumer) Consume(ctx context.Context, _ chan<- error) {
 	c.once.Do(func() { close(c.started) })
-	<-stopChan
+	<-ctx.Done()
 }
 
 func buildTestPoolsHandler(t *testing.T, consumerProvider messagequeue.ConsumerProvider) *AsyncDataChangeMessageHandler {
 	t.Helper()
 
-	queues := msgconfig.QueuesConfig{
+	queues := queuescfg.Config{
 		DataChangesTopicName:              "data-changes",
 		OutboundEmailsTopicName:           "outbound-emails",
 		SearchIndexRequestsTopicName:      "search-index-requests",

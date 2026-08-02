@@ -15,20 +15,21 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	notificationsmanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/manager"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
+	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v8/analytics"
-	"github.com/primandproper/platform-go/v8/email"
-	"github.com/primandproper/platform-go/v8/encoding"
-	"github.com/primandproper/platform-go/v8/jobs"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	platformnotifications "github.com/primandproper/platform-go/v8/notifications/mobile"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/metrics"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	"github.com/primandproper/platform-go/v8/uploads"
+	"github.com/primandproper/platform-go/v9/analytics"
+	"github.com/primandproper/platform-go/v9/email"
+	"github.com/primandproper/platform-go/v9/encoding"
+	"github.com/primandproper/platform-go/v9/jobs"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	platformnotifications "github.com/primandproper/platform-go/v9/notifications/mobile"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/metrics"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v9/uploads"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -55,7 +56,7 @@ type SearchIndexEventHandler func(ctx context.Context, msg *audit.DataChangeMess
 
 // OutboundNotificationHandler handles outbound notifications for a domain's events.
 // Returns true if the event was handled. May return emails to be published by the caller.
-type OutboundNotificationHandler func(ctx context.Context, msg *audit.DataChangeMessage, user *identity.User) (handled bool, emailType string, emails []*email.OutboundEmailMessage, err error)
+type OutboundNotificationHandler func(ctx context.Context, msg *audit.DataChangeMessage, user *identity.User) (handled bool, emailType string, emails []*queuemessages.OutboundEmailMessage, err error)
 
 var (
 	errRequiredDataIsNil = errors.New("required data is nil")
@@ -105,7 +106,7 @@ type AsyncDataChangeMessageHandler struct {
 	mealPlanningDataIndexer                   *mealplanningindexing.MealPlanningDataIndexer
 	userDataIndexer                           *identityindexing.UserDataIndexer
 	deadLetter                                jobs.DeadLetterFunc
-	queuesConfig                              msgconfig.QueuesConfig
+	queuesConfig                              queuescfg.Config
 	baseURL                                   string
 	searchIndexHandlers                       []SearchIndexEventHandler
 	outboundNotificationHandlers              []OutboundNotificationHandler

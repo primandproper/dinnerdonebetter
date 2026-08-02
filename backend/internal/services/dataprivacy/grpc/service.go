@@ -13,17 +13,18 @@ import (
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	dataprivacysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/dataprivacy/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v8/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v8/errors/grpc"
-	"github.com/primandproper/platform-go/v8/identifiers"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	metricsnoop "github.com/primandproper/platform-go/v8/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v8/uploads"
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v9/uploads"
 
 	"google.golang.org/grpc/codes"
 )
@@ -46,7 +47,7 @@ type (
 		dataPrivacyManager        dataprivacymanager.DataPrivacyManager
 		uploadManager             uploads.UploadManager
 		msgConfig                 *msgconfig.Config
-		queuesConfig              *msgconfig.QueuesConfig
+		queuesConfig              *queuescfg.Config
 	}
 )
 
@@ -58,7 +59,7 @@ func NewDataPrivacyService(
 	dataPrivacyManager dataprivacymanager.DataPrivacyManager,
 	uploadManager uploads.UploadManager,
 	msgConfig *msgconfig.Config,
-	queuesConfig *msgconfig.QueuesConfig,
+	queuesConfig *queuescfg.Config,
 ) dataprivacysvc.DataPrivacyServiceServer {
 	return &serviceImpl{
 		logger:                    logging.NewNamedLogger(logger, o11yName),
@@ -129,7 +130,11 @@ func (s *serviceImpl) publishAggregationRequest(ctx context.Context, disclosureI
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	pp, err := msgconfig.NewPublisherProvider(ctx, s.logger, tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), s.msgConfig)
+	pp, err := msgconfig.NewPublisherProvider(ctx, s.msgConfig,
+		msgconfig.WithLogger(s.logger),
+		msgconfig.WithTracerProvider(tracingnoop.NewTracerProvider()),
+		msgconfig.WithMetricsProvider(metricsnoop.NewMetricsProvider()),
+	)
 	if err != nil {
 		return fmt.Errorf("establishing publisher provider: %w", err)
 	}

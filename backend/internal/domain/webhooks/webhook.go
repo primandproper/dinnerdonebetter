@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/primandproper/platform-go/v8/encoding"
-	"github.com/primandproper/platform-go/v8/filtering"
+	"github.com/primandproper/platform-go/v9/encoding"
+	"github.com/primandproper/platform-go/v9/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
@@ -194,7 +194,7 @@ func (w *WebhookDatabaseCreationInput) ValidateWithContext(ctx context.Context) 
 		validation.Field(&w.Name, validation.Required),
 		validation.Field(&w.URL, validation.Required, is.URL),
 		validation.Field(&w.Method, validation.Required, validation.In(http.MethodGet, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete)),
-		validation.Field(&w.ContentType, validation.Required, validation.In(encoding.ContentTypeToString(encoding.ContentTypeJSON), encoding.ContentTypeToString(encoding.ContentTypeXML))),
+		validation.Field(&w.ContentType, validation.Required, validation.In(encoding.ContentTypeJSON.String(), encoding.ContentTypeXML.String())),
 		validation.Field(&w.TriggerConfigs, validation.Required),
 		validation.Field(&w.BelongsToAccount, validation.Required),
 		validation.Field(&w.CreatedByUser, validation.Required),

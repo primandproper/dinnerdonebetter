@@ -5,7 +5,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 
-	"github.com/primandproper/platform-go/v8/encoding"
+	"github.com/primandproper/platform-go/v9/encoding"
 )
 
 const (
@@ -37,7 +37,7 @@ const (
 )
 
 var (
-	contentTypeJSON = encoding.ContentTypeToString(encoding.ContentTypeJSON)
+	contentTypeJSON = encoding.ContentTypeJSON.String()
 )
 
 func main() {

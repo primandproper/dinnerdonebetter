@@ -2,17 +2,19 @@ package datachangemessagehandler
 
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v8/analytics/config"
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	emailcfg "github.com/primandproper/platform-go/v8/email/config"
-	"github.com/primandproper/platform-go/v8/encoding"
-	httpclientcfg "github.com/primandproper/platform-go/v8/httpclient"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	notificationscfg "github.com/primandproper/platform-go/v8/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v8/observability"
-	textsearchcfg "github.com/primandproper/platform-go/v8/search/text/config"
-	"github.com/primandproper/platform-go/v8/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
+	databasecfg "github.com/primandproper/platform-go/v9/database/config"
+	emailcfg "github.com/primandproper/platform-go/v9/email/config"
+	"github.com/primandproper/platform-go/v9/encoding"
+	httpclientcfg "github.com/primandproper/platform-go/v9/httpclient"
+	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
+	notificationscfg "github.com/primandproper/platform-go/v9/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v9/observability"
+	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
+	"github.com/primandproper/platform-go/v9/uploads/objectstorage"
 
 	"github.com/samber/do/v2"
 )
@@ -23,7 +25,7 @@ func RegisterConfigs(i do.Injector) {
 		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
 		return &cfg.Storage, nil
 	})
-	do.Provide[*msgconfig.QueuesConfig](i, func(i do.Injector) (*msgconfig.QueuesConfig, error) {
+	do.Provide[*queuescfg.Config](i, func(i do.Injector) (*queuescfg.Config, error) {
 		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
 		return &cfg.Queues, nil
 	})
@@ -51,9 +53,12 @@ func RegisterConfigs(i do.Injector) {
 		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
 		return &cfg.Observability, nil
 	})
-	do.Provide[*databasecfg.Config](i, func(i do.Injector) (*databasecfg.Config, error) {
+	do.Provide[*dbcfg.Config](i, func(i do.Injector) (*dbcfg.Config, error) {
 		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
 		return &cfg.Database, nil
+	})
+	do.Provide[*databasecfg.Config](i, func(i do.Injector) (*databasecfg.Config, error) {
+		return &do.MustInvoke[*dbcfg.Config](i).Config, nil
 	})
 	do.Provide[encoding.Config](i, func(i do.Injector) (encoding.Config, error) {
 		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)

@@ -89,13 +89,10 @@
 		"debug": false
 	},
 	"analytics": {
-		"proxySources": {
-			"ios": null,
-			"web": null
-		},
+		"proxySources": null,
 		"segment": null,
 		"posthog": null,
-		"provider": "",
+		"provider": "noop",
 		"circuitBreaker": {
 			"name": "feature_flagger",
 			"circuitBreakerErrorPercentage": 0.5,
@@ -109,11 +106,7 @@
 		"resend": null,
 		"postmark": null,
 		"ses": null,
-		"provider": "",
-		"baseURL": "",
-		"outboundInvitesEmailAddress": "",
-		"passwordResetCreationEmailAddress": "",
-		"passwordResetRedemptionEmailAddress": "",
+		"provider": "noop",
 		"circuitBreakerConfig": {
 			"name": "",
 			"circuitBreakerErrorPercentage": 0,
@@ -123,7 +116,7 @@
 	"featureFlags": {
 		"launchDarkly": null,
 		"posthog": null,
-		"provider": "",
+		"provider": "noop",
 		"circuitBreakerConfig": {
 			"name": "feature_flagger",
 			"circuitBreakerErrorPercentage": 0.5,
@@ -133,7 +126,7 @@
 	"search": {
 		"algolia": null,
 		"elasticsearch": null,
-		"provider": "",
+		"provider": "noop",
 		"circuitBreakerConfig": {
 			"name": "feature_flagger",
 			"circuitBreakerErrorPercentage": 0.5,
@@ -142,8 +135,7 @@
 	},
 	"http": {
 		"startupDeadline": 60000000000,
-		"port": 8000,
-		"debug": false
+		"port": 8000
 	},
 	"auth": {
 		"sessionStore": {
@@ -216,7 +208,7 @@
 				"storageConfig": {
 					"filesystem": {
 						"rootDirectory": "/tmp",
-						"directoryMode": 0
+						"directoryMode": "0o0"
 					},
 					"bucketName": "userdata",
 					"provider": "filesystem",

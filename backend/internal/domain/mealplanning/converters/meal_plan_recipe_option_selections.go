@@ -3,7 +3,7 @@ package converters
 import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v8/identifiers"
+	"github.com/primandproper/platform-go/v9/identifiers"
 )
 
 // ConvertMealPlanRecipeOptionSelectionToMealPlanRecipeOptionSelectionDatabaseCreationInput builds a MealPlanRecipeOptionSelectionDatabaseCreationInput from a MealPlanRecipeOptionSelection.

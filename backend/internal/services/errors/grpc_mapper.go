@@ -7,7 +7,7 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
 
-	"github.com/primandproper/platform-go/v8/errors/grpc"
+	"github.com/primandproper/platform-go/v9/errors/grpc"
 
 	"google.golang.org/grpc/codes"
 )

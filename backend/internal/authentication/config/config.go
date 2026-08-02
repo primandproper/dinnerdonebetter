@@ -6,13 +6,22 @@ import (
 
 	webauthncfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/webauthn/config"
 
-	tokenscfg "github.com/primandproper/platform-go/v8/authentication/tokens/config"
+	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 type (
-	TokenRefreshConfig struct {
+	// TokensConfig is the platform's token issuer configuration plus the token
+	// lifetimes this application enforces.
+	//
+	// platform-go v9 dropped MaxAccessTokenLifetime and MaxRefreshTokenLifetime
+	// because nothing in that module read them. The refresh flow in
+	// internal/authentication does, so they live here. The embedding keeps the
+	// JSON and env var shape identical to what v8 produced.
+	TokensConfig struct {
+		tokenscfg.Config
+
 		MaxAccessTokenLifetime  time.Duration `env:"MAX_ACCESS_TOKEN_LIFETIME"  json:"maxAccessTokenLifetime"`
 		MaxRefreshTokenLifetime time.Duration `env:"MAX_REFRESH_TOKEN_LIFETIME" json:"maxRefreshTokenLifetime"`
 	}
@@ -30,7 +39,7 @@ type (
 		_                     struct{}           `json:"-"`
 		SessionStore          webauthncfg.Config `envPrefix:"SESSION_STORE_"    json:"sessionStore"`
 		Passkey               PasskeyConfig      `envPrefix:"PASSKEY_"          json:"passkey"`
-		Tokens                tokenscfg.Config   `envPrefix:"TOKENS_"           json:"tokens"`
+		Tokens                TokensConfig       `envPrefix:"TOKENS_"           json:"tokens"`
 		Debug                 bool               `env:"DEBUG"                   json:"debug,omitempty"`
 		EnableUserSignup      bool               `env:"ENABLE_USER_SIGNUP"      json:"enableUserSignup,omitempty"`
 		MinimumUsernameLength uint8              `env:"MINIMUM_USERNAME_LENGTH" json:"minimumUsernameLength,omitempty"`

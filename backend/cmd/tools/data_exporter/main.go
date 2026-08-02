@@ -14,14 +14,14 @@ import (
 	identityrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
-	"github.com/primandproper/platform-go/v8/database"
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	"github.com/primandproper/platform-go/v8/database/postgres"
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v9/database"
+	databasecfg "github.com/primandproper/platform-go/v9/database/config"
+	"github.com/primandproper/platform-go/v9/database/postgres"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )
@@ -176,7 +176,7 @@ func fetchAll[T any](
 ) ([]*T, error) {
 	var all []*T
 	filter := filtering.DefaultQueryFilter()
-	pageSize := uint8(filtering.MaxQueryFilterLimit)
+	pageSize := uint16(filtering.MaxQueryFilterLimit)
 	filter.MaxResponseSize = &pageSize
 
 	var cursor *string
@@ -345,7 +345,7 @@ func exportEnumerations(ctx context.Context, repo mealplanning.Repository, expor
 func exportRecipes(ctx context.Context, repo mealplanning.Repository, export *ExportData) error {
 	// First get all recipe IDs via pagination
 	filter := filtering.DefaultQueryFilter()
-	pageSize := uint8(filtering.MaxQueryFilterLimit)
+	pageSize := uint16(filtering.MaxQueryFilterLimit)
 	filter.MaxResponseSize = &pageSize
 
 	var recipeIDs []string

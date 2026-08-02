@@ -5,12 +5,12 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/metrics"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/metrics"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -26,7 +26,7 @@ func RegisterMealPlanGroceryListInitializer(i do.Injector) {
 			do.MustInvoke[messagequeue.PublisherProvider](i),
 			do.MustInvoke[mealplanning.Repository](i),
 			do.MustInvoke[grocerylistpreparation.GroceryListCreator](i),
-			do.MustInvoke[*msgconfig.QueuesConfig](i),
+			do.MustInvoke[*queuescfg.Config](i),
 		)
 	})
 }

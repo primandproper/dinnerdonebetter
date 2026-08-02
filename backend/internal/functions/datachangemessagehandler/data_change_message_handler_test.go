@@ -12,23 +12,23 @@ import (
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	notificationsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/mock"
 	webhooksmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/mock"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	analyticsmock "github.com/primandproper/platform-go/v8/analytics/mock"
-	emailmock "github.com/primandproper/platform-go/v8/email/mock"
-	encodingmock "github.com/primandproper/platform-go/v8/encoding/mock"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	msgqueuemock "github.com/primandproper/platform-go/v8/messagequeue/mock"
-	noopnotifications "github.com/primandproper/platform-go/v8/notifications/mobile/noop"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	"github.com/primandproper/platform-go/v8/observability/metrics"
-	mockmetrics "github.com/primandproper/platform-go/v8/observability/metrics/mock"
-	metricsnoop "github.com/primandproper/platform-go/v8/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
-	uploadsmock "github.com/primandproper/platform-go/v8/uploads/mock"
+	analyticsmock "github.com/primandproper/platform-go/v9/analytics/mock"
+	emailmock "github.com/primandproper/platform-go/v9/email/mock"
+	encodingmock "github.com/primandproper/platform-go/v9/encoding/mock"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	msgqueuemock "github.com/primandproper/platform-go/v9/messagequeue/mock"
+	noopnotifications "github.com/primandproper/platform-go/v9/notifications/mobile/noop"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	"github.com/primandproper/platform-go/v9/observability/metrics"
+	mockmetrics "github.com/primandproper/platform-go/v9/observability/metrics/mock"
+	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	uploadsmock "github.com/primandproper/platform-go/v9/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/metric"
@@ -125,7 +125,7 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		emailsFailedCounter:                       noopCounter,
 		pushNotificationsSentCounter:              noopCounter,
 		badDeviceTokensArchivedCounter:            noopCounter,
-		queuesConfig: msgconfig.QueuesConfig{
+		queuesConfig: queuescfg.Config{
 			SearchIndexRequestsTopicName: "search-index-requests",
 		},
 		searchDataIndexPublisher:         mockPublisher,
@@ -161,7 +161,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
 		cfg := &config.AsyncMessageHandlerConfig{
-			Queues: msgconfig.QueuesConfig{
+			Queues: queuescfg.Config{
 				OutboundEmailsTopicName:           "outbound-emails",
 				SearchIndexRequestsTopicName:      "search-index-requests",
 				WebhookExecutionRequestsTopicName: "webhook-execution-requests",

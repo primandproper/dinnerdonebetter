@@ -8,9 +8,9 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/fakes"
 
-	platformerrors "github.com/primandproper/platform-go/v8/errors"
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/identifiers"
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -213,7 +213,7 @@ func TestQuerier_Integration_Products_GetProducts(t *testing.T) {
 		createProductForTest(t, ctx, input, dbc)
 	}
 
-	result, err := dbc.GetProducts(ctx, &filtering.QueryFilter{MaxResponseSize: new(uint8(10))})
+	result, err := dbc.GetProducts(ctx, &filtering.QueryFilter{MaxResponseSize: new(uint16(10))})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.GreaterOrEqual(t, len(result.Data), exampleQuantity)

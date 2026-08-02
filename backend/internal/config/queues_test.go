@@ -3,7 +3,7 @@ package config
 import (
 	"testing"
 
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +15,7 @@ func TestQueueSettings_ValidateWithContext(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		cfg := msgconfig.QueuesConfig{}
+		cfg := queuescfg.Config{}
 
 		assert.Error(t, cfg.ValidateWithContext(ctx))
 	})
