@@ -10,7 +10,7 @@ Go backend for Dinner Done Better — meal planning, recipes, grocery lists, and
 
 ```bash
 cd backend
-make setup      # first-time: vendor, wire, configs, install tools
+make setup      # first-time: generate configs
 make dev        # start local dev server
 ```
 
@@ -52,8 +52,10 @@ rewrite) and skips generated and test files by default.
 make setup
 ```
 
-Runs: `revendor` and `configs`. The Go tools above do not need installing separately —
-they are declared in the `tool` block of `go.mod` and invoked as `go tool <name>`.
+Runs: `configs`. Dependencies are not vendored; `go.mod` and `go.sum` are the committed
+source of truth and Go resolves them from the module cache on demand. The Go tools above do
+not need installing separately — they are declared in the `tool` block of `go.mod` and
+invoked as `go tool <name>`.
 
 ### Running locally
 

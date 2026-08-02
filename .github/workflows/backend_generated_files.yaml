@@ -32,18 +32,6 @@ jobs:
           cache: true
           cache-dependency-path: backend/go.sum
 
-      - name: Cache vendor directory
-        uses: actions/cache@v4
-        with:
-          path: backend/vendor
-          key: go-vendor-${{ hashFiles('backend/go.sum') }}
-          restore-keys: |
-            go-vendor-
-
-      - name: Vendor dependencies
-        working-directory: backend
-        run: make vendor
-
       - name: Ensure configs can be generated
         working-directory: backend
         run: make configs
@@ -68,18 +56,6 @@ jobs:
           cache: true
           cache-dependency-path: backend/go.sum
 
-      - name: Cache vendor directory
-        uses: actions/cache@v4
-        with:
-          path: backend/vendor
-          key: go-vendor-${{ hashFiles('backend/go.sum') }}
-          restore-keys: |
-            go-vendor-
-
-      - name: Vendor dependencies
-        working-directory: backend
-        run: make vendor
-
       - name: Ensure queries and querier can be generated
         working-directory: backend
         run: make queries struct_usage_check format_golang
@@ -103,18 +79,6 @@ jobs:
           go-version: '${{ matrix.go-version }}'
           cache: true
           cache-dependency-path: backend/go.sum
-
-      - name: Cache vendor directory
-        uses: actions/cache@v4
-        with:
-          path: backend/vendor
-          key: go-vendor-${{ hashFiles('backend/go.sum') }}
-          restore-keys: |
-            go-vendor-
-
-      - name: Vendor dependencies
-        working-directory: backend
-        run: make vendor
 
       - name: generate env vars file
         working-directory: backend
