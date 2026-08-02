@@ -1,7 +1,8 @@
 package adapters
 
 import (
-	"context"
+	"io"
+	"net/http"
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
@@ -12,7 +13,12 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
 
-const bearerPrefix = "Bearer "
+const (
+	bearerPrefix = "Bearer "
+
+	// revenueCatAuthHeader is the header RevenueCat sends its webhook auth token in.
+	revenueCatAuthHeader = "Authorization"
+)
 
 // RevenueCatConfig holds configuration for the RevenueCat adapter.
 type RevenueCatConfig struct {
@@ -72,11 +78,8 @@ type revenueCatWebhookPayload struct {
 	EntitlementIDs   []string `json:"entitlement_ids"`
 }
 
-// VerifyWebhookSignature validates the Authorization header (RevenueCat uses Bearer or custom header).
-func (r *RevenueCatPaymentProcessor) VerifyWebhookSignature(ctx context.Context, _ []byte, signature, _ string) bool {
-	_, span := r.tracer.StartSpan(ctx)
-	defer span.End()
-
+// verifyWebhookSignature validates the Authorization header (RevenueCat uses Bearer or custom header).
+func (r *RevenueCatPaymentProcessor) verifyWebhookSignature(signature string) bool {
 	if r.cfg.WebhookAuthHeader == "" {
 		return true // no config = accept (for dev)
 	}
@@ -91,15 +94,28 @@ func (r *RevenueCatPaymentProcessor) VerifyWebhookSignature(ctx context.Context,
 	return expected == got
 }
 
-// ParseWebhookEvent parses RevenueCat webhook JSON and returns event details.
-func (r *RevenueCatPaymentProcessor) ParseWebhookEvent(ctx context.Context, payload []byte) (*payments.ParsedWebhookEvent, error) {
-	_, span := r.tracer.StartSpan(ctx)
+// HandleWebhook validates a RevenueCat webhook's Authorization header and parses its JSON body.
+func (r *RevenueCatPaymentProcessor) HandleWebhook(req *http.Request) (*payments.ParsedWebhookEvent, error) {
+	ctx, span := r.tracer.StartSpan(req.Context())
 	defer span.End()
 
-	logger := r.logger.WithValue("payload_size", len(payload))
+	logger := r.logger.WithSpan(span)
+
+	if !r.verifyWebhookSignature(req.Header.Get(revenueCatAuthHeader)) {
+		return nil, observability.PrepareAndLogError(ErrInvalidWebhookSignature, logger, span, "verifying webhook signature")
+	}
+
+	// Bound the body of this public, unauthenticated endpoint so a hostile client can't force an
+	// unbounded allocation. RevenueCat's events are well under this.
+	payload, err := io.ReadAll(http.MaxBytesReader(nil, req.Body, maxWebhookBodyBytes))
+	if err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "reading webhook body")
+	}
+
+	logger = logger.WithValue("payload_size", len(payload))
 
 	var p revenueCatWebhookPayload
-	if err := r.encoder.DecodeBytes(ctx, payload, &p); err != nil {
+	if err = r.encoder.DecodeBytes(ctx, payload, &p); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "decoding webhook payload")
 	}
 

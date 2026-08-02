@@ -11,11 +11,13 @@ import (
 	authservice "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
+	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
+	capitalismcfg "github.com/primandproper/platform-go/v9/capitalism/config"
 	circuitbreakingcfg "github.com/primandproper/platform-go/v9/circuitbreaking/config"
 	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"
@@ -156,6 +158,14 @@ func buildIntegrationTestsConfig() *config.APIServiceConfig {
 			},
 		},
 		Services: config.ServicesConfig{
+			// The capitalism provider is named rather than left empty: platform-go treats an
+			// unset provider as an error precisely so that "we forgot to configure billing"
+			// cannot masquerade as "we chose not to bill".
+			Payments: paymentscfg.Config{
+				Capitalism: capitalismcfg.Config{
+					Provider: capitalismcfg.NoopProvider,
+				},
+			},
 			Auth: authservice.Config{
 				OAuth2: authservice.OAuth2Config{
 					Domain:               "http://localhost:9000",
