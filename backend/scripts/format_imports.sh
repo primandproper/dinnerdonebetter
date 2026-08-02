@@ -14,10 +14,11 @@ while IFS= read -r -d '' file; do
 done < <(find "${PROJECT_ROOT}" -type f -not -path '*/vendor/*' -name "*.go" -print0)
 
 if [ ${#go_files[@]} -gt 0 ]; then
+  # Sections must stay in sync with the gci block in .golangci.yml, or `make format`
+  # and `make lint` will disagree about import order.
   go tool gci write \
     --section standard \
     --section "prefix(${PACKAGE_PREFIX})" \
-    --section "prefix($(dirname "${PACKAGE_PREFIX}"))" \
     --section "prefix(github.com/primandproper)" \
     --section default \
     --custom-order \
