@@ -4,6 +4,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 
+	capitalismcfg "github.com/primandproper/platform-go/v9/capitalism/config"
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
@@ -17,7 +19,7 @@ func RegisterPaymentProcessorRegistry(i do.Injector) {
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.TracerProvider](i),
 			*do.MustInvoke[*paymentscfg.Config](i),
-		), nil
+		)
 	})
 
 	// Bind the interface
@@ -27,24 +29,34 @@ func RegisterPaymentProcessorRegistry(i do.Injector) {
 }
 
 // ProvidePaymentProcessorRegistry creates a registry with stripe and revenuecat processors.
-// Uses stub when a provider is not configured.
+//
+// The Stripe entry follows the capitalism provider: naming the noop provider gets the stub, and
+// an unset or unrecognized one is an error. That is deliberately louder than the old
+// "no API key means stub" rule, under which a deployment that had merely forgotten to set its
+// Stripe secret looked exactly like one that had chosen not to bill anybody.
+//
+// RevenueCat has no such selector, and still falls back to the stub when unconfigured.
 func ProvidePaymentProcessorRegistry(
 	logger logging.Logger,
 	tracerProvider tracing.TracerProvider,
 	cfg paymentscfg.Config,
-) *payments.MapProcessorRegistry {
+) (*payments.MapProcessorRegistry, error) {
 	processors := make(map[string]payments.PaymentProcessor)
 
 	noopStubPaymentProcessor := NewStubPaymentProcessor(logger)
 
-	// Stripe: use real adapter when configured, else stub
-	if cfg.Stripe != nil && cfg.Stripe.APIKey != "" {
-		processors["stripe"] = NewStripePaymentProcessor(logger, tracerProvider, &StripeConfig{
-			APIKey:        cfg.Stripe.APIKey,
-			WebhookSecret: cfg.Stripe.WebhookSecret,
-		})
-	} else {
+	switch cfg.Capitalism.Provider {
+	case capitalismcfg.StripeProvider:
+		stripeProcessor, err := NewStripePaymentProcessor(logger, tracerProvider, cfg.Capitalism.Stripe)
+		if err != nil {
+			return nil, err
+		}
+
+		processors["stripe"] = stripeProcessor
+	case capitalismcfg.NoopProvider:
 		processors["stripe"] = noopStubPaymentProcessor
+	default:
+		return nil, platformerrors.Wrapf(platformerrors.ErrUnknownProvider, "payments provider %q", cfg.Capitalism.Provider)
 	}
 
 	// RevenueCat: use real adapter when configured, else stub
@@ -57,5 +69,5 @@ func ProvidePaymentProcessorRegistry(
 		processors["revenuecat"] = noopStubPaymentProcessor
 	}
 
-	return payments.NewMapProcessorRegistry(processors)
+	return payments.NewMapProcessorRegistry(processors), nil
 }

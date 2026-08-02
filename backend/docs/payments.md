@@ -7,7 +7,7 @@ This document describes how the payments domain works, its architecture, and how
 The payments domain handles:
 
 - **Products** — Sellable items (one-time or recurring)
-- **Subscriptions** — Account subscriptions linked to products and external providers (Stripe, Paddle, etc.)
+- **Subscriptions** — Account subscriptions linked to products and external providers (Stripe for web, RevenueCat for mobile)
 - **Purchases** — One-time purchases
 - **Payment transactions** — Records of payments for auditing and reporting
 
@@ -29,11 +29,16 @@ flowchart TB
     
     subgraph Domain
         PM[PaymentsDataManager]
-        PP[PaymentProcessor]
     end
-    
+
+    subgraph Adapters
+        PP[PaymentProcessor]
+        CAP[capitalism.PaymentManager]
+    end
+
     subgraph External
-        Stripe[Stripe / Paddle]
+        Stripe[Stripe]
+        RC[RevenueCat]
     end
     
     subgraph Identity
@@ -44,13 +49,15 @@ flowchart TB
         PR[Payments Repository]
     end
     
+    WH --> PP
     WH --> PM
     PS --> PM
     PM --> PR
-    PM --> PP
     PM --> IM
+    PP --> CAP
     Stripe -.webhooks.-> WH
-    PP -.API calls.-> Stripe
+    RC -.webhooks.-> WH
+    CAP -.verify + decode.-> Stripe
 ```
 
 ### Components
@@ -58,7 +65,8 @@ flowchart TB
 | Component               | Location                                   | Role                                                                  |
 |-------------------------|--------------------------------------------|-----------------------------------------------------------------------|
 | **PaymentsDataManager** | `internal/domain/payments/manager/`        | Business logic: products, subscriptions, checkout, webhook processing |
-| **PaymentProcessor**    | `internal/domain/payments/processor.go`    | Interface for provider integrations (Stripe, Paddle, etc.)            |
+| **PaymentProcessor**    | `internal/domain/payments/processor.go`    | Interface for provider webhook verification and parsing               |
+| **Adapters**            | `internal/services/payments/adapters/`     | Stripe (via platform-go `capitalism`), RevenueCat, and a dev stub     |
 | **Repository**          | `internal/repositories/postgres/payments/` | Persistence for products, subscriptions, purchases, transactions      |
 | **gRPC Service**        | `internal/services/payments/grpc/`         | API for CreateProduct, GetSubscription, etc.                          |
 | **WebhookHandler**      | `internal/services/payments/http/`         | HTTP POST endpoint for provider webhooks                              |
@@ -90,42 +98,72 @@ These are updated by `UpdateAccountBillingFields` when webhooks arrive.
 
 ## PaymentProcessor Interface
 
-All provider-specific logic lives behind `payments.PaymentProcessor`:
+All provider-specific webhook logic lives behind `payments.PaymentProcessor`:
 
 ```go
 type PaymentProcessor interface {
-    CreateCustomer(ctx context.Context, accountID, email, name string) (externalCustomerID string, err error)
-    CreateCheckoutSession(ctx context.Context, params CheckoutSessionParams) (sessionURL, sessionID string, err error)
-    GetSubscriptionStatus(ctx context.Context, externalSubscriptionID string) (status string, err error)
-    CancelSubscription(ctx context.Context, externalSubscriptionID string) error
-    VerifyWebhookSignature(ctx context.Context, payload []byte, signature string, accountID string) bool
-    ParseWebhookEvent(ctx context.Context, payload []byte) (eventType string, accountID string, subscriptionID string, err error)
+    HandleWebhook(req *http.Request) (*ParsedWebhookEvent, error)
 }
 ```
 
+It takes the whole request rather than a payload plus a signature because verification is the
+provider's business: a provider decides which headers it signs and how much of a body it will
+read, and pulling those apart at the seam would mean deciding them on its behalf. platform-go's
+`capitalism.PaymentManager` draws the same line.
+
+Verification and parsing happen at the HTTP edge, where the request still exists. What reaches
+`PaymentsDataManager` is a `ParsedWebhookEvent` — domain data — so the manager knows nothing
+about HTTP.
+
 ### Implementations
 
-| Implementation            | Location                                        | Use case                                                               |
-|---------------------------|-------------------------------------------------|------------------------------------------------------------------------|
-| **StubPaymentProcessor**  | `internal/services/payments/adapters/stub.go`   | Local dev, integration tests. No external calls, accepts all webhooks. |
-| **Stripe** (to implement) | `internal/services/payments/adapters/stripe.go` | Production Stripe integration                                          |
+| Implementation           | Location                                        | Use case                                                                             |
+|--------------------------|-------------------------------------------------|--------------------------------------------------------------------------------------|
+| **StripePaymentProcessor**     | `internal/services/payments/adapters/stripe.go`     | Production Stripe. Delegates verification and decoding to platform-go's `capitalism`. |
+| **RevenueCatPaymentProcessor** | `internal/services/payments/adapters/revenuecat.go` | Mobile in-app purchases. Verifies the `Authorization` header RevenueCat sends.        |
+| **StubPaymentProcessor**       | `internal/services/payments/adapters/stub.go`       | Local dev, integration tests. No external calls, accepts all webhooks.                |
+
+### The Stripe adapter and `capitalism`
+
+`StripePaymentProcessor` owns none of the Stripe protocol. It builds a
+`capitalism.PaymentManager` from `platform-go/v9/capitalism/stripe`, which reads the body (capped
+at 64 KiB), verifies the `Stripe-Signature` header, and hands back a platform-owned
+`capstripe.Event` carrying the event ID, its type, and the raw JSON of its data object.
+
+The adapter decodes that JSON into `stripe-go/v81` structs itself, in `parseStripeEvent`. That is
+the point of the platform-owned event: no stripe-go type appears in `capitalism`'s API, so the SDK
+version we decode with is ours to pick and ours to bump on our own schedule.
+
+Two consequences worth knowing:
+
+- `capitalism` registers exactly one event handler, at construction, and one processor serves
+  every request. The adapter therefore passes a per-request sink down on the request's context and
+  the handler leaves the event there — see `stripeEventSink`.
+- `webhook.ConstructEvent` refuses an event stamped with an API version other than the one
+  stripe-go was built against (`2025-02-24.acacia` for v81). **The Stripe webhook endpoint must be
+  configured at that API version**, and bumping stripe-go means bumping it in the Stripe dashboard
+  too.
 
 ---
 
 ## Webhook Flow
 
-1. **Endpoint**: `POST /api/payments/webhooks/{provider}`  
-   - `{provider}` is currently unused but allows future routing (e.g. `stripe`, `paddle`).
+1. **Endpoint**: `POST /api/payments/webhooks/{provider}`
+   - `{provider}` selects the processor from `PaymentProcessorRegistry`: `stripe` or `revenuecat`.
+     An unregistered provider is a 400.
 
-2. **Header**: Signature in `Stripe-Signature` (configurable via `WebhookSignatureHeader`).
+2. **Headers**: each adapter reads its own. Stripe signs `Stripe-Signature`; RevenueCat sends a
+   shared secret in `Authorization`.
 
 3. **Processing**:
-   - `WebhookHandler.Handle` reads body and signature.
-   - Calls `PaymentsDataManager.ProcessWebhookEvent(ctx, payload, signature, accountID)`.
-   - Manager:
-     - Verifies signature via `processor.VerifyWebhookSignature`.
-     - Parses event via `processor.ParseWebhookEvent`.
-     - Handles `subscription.updated`, `subscription.created`, `subscription.deleted`, etc.
+   - `WebhookHandler.Handle` resolves the processor and hands it the whole request — it does not
+     read the body itself.
+   - `processor.HandleWebhook(r)` verifies and returns a `ParsedWebhookEvent`.
+   - Calls `PaymentsDataManager.ProcessWebhookEvent(ctx, provider, event, accountID)`, where
+     `accountID` comes from the `account_id` query parameter and falls back to the event's own
+     (e.g. RevenueCat's `app_user_id`).
+   - Manager handles `subscription.updated`, `subscription.created`, `subscription.deleted`, the
+     RevenueCat event types, etc.
    - Updates subscription status in DB and account billing fields via `IdentityDataManager.UpdateAccountBillingFields`.
 
 4. **Event types supported**:
@@ -134,94 +172,91 @@ type PaymentProcessor interface {
 
 ---
 
-## Wire and Build
+## Configuration and Build
 
-### HTTP API Server
+### Configuration
 
-**`internal/build/services/api/http/build.go`**:
+`ServicesConfig.Payments` (`internal/services/payments/config`) holds two things:
 
 ```go
-paymentsrepo.PaymentsRepoProviders
-paymentsmanager.PaymentsManagerProviders
-paymentsadapters.PaymentsAdapterProviders   # Binds StubPaymentProcessor
-paymentshttp.PaymentsHTTPProviders
+type Config struct {
+    RevenueCat *RevenueCatConfig    `env:"init"              envPrefix:"REVENUECAT_" json:"revenueCat"`
+    Capitalism capitalismcfg.Config `envPrefix:"CAPITALISM_" json:"capitalism"`
+}
 ```
 
-**`internal/build/services/api/http/http_routes.go`**:
+`Capitalism` is platform-go's own config. Its `Provider` **must** be named — `stripe` or `noop` —
+and an unset or unrecognized value fails at startup. That is deliberate: platform-go removed the
+old `Enabled` flag because a payment manager that silently accepts every call without charging
+anyone looks like a working deployment right up until someone reconciles the books. Naming `noop`
+is how a deployment says it has chosen not to bill.
+
+| Environment variable                                              | Purpose                             |
+|-------------------------------------------------------------------|-------------------------------------|
+| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_PROVIDER`          | `stripe` or `noop`                  |
+| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_STRIPE_API_KEY`    | Stripe secret key                   |
+| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret   |
+| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_REVENUECAT_API_KEY`           | RevenueCat secret API key           |
+| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_REVENUECAT_WEBHOOK_AUTH_HEADER` | Expected RevenueCat `Authorization` |
+
+All generated environment configs ship with `"provider": "noop"`; change it in
+`cmd/tools/codegen/configs/` and run `make configs`, never by editing the JSON.
+
+The Stripe API key is optional: `capitalism` needs only the webhook secret for the inbound path,
+and refuses outbound operations without a key rather than failing at construction. RevenueCat has
+no provider selector and falls back to the stub when its API key is unset.
+
+### Dependency Injection
+
+The container is `samber/do`. The relevant registrations:
+
+- `paymentsrepo.RegisterPaymentsRepository`
+- `paymentsmanager.RegisterPaymentsDataManager`
+- `paymentsadapters.RegisterPaymentProcessorRegistry` — builds the Stripe/RevenueCat/stub map from
+  config. Registered in **both** `api/grpc/build.go` and `api/http/build.go`: the combined
+  HTTP+gRPC server layers `RegisterHTTPServerServices` onto the shared gRPC injector, and the
+  webhook handler resolves the registry from there.
+- `paymentshttp.RegisterPaymentsHTTP` — the `WebhookHandler`.
+
+**Routes** (`internal/build/services/api/http/http_routes.go`):
 
 - `ProvideAPIRouter` receives `*paymentswebhook.WebhookHandler`.
 - Route: `router.Route("/api/payments/webhooks", ...)` with `Post("/{provider}", webhookHandler.Handle)`.
 
-### gRPC API Server
-
-**`internal/build/services/api/grpc/build.go`**:
-
-- `paymentsrepo.PaymentsRepoProviders`
-- `paymentsmanager.PaymentsManagerProviders`
-- `paymentsadapters.PaymentsAdapterProviders`
-- `paymentsService` registered in `extras.go`.
+The gRPC payments service is registered in `api/grpc/extras.go`.
 
 ---
 
-## Going Live: Swapping Stub for Stripe
+## Going Live with Stripe
 
-To use a real provider (e.g., Stripe):
+### 1. Configure the provider
 
-### 1. Implement StripePaymentProcessor
+Set `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_PROVIDER=stripe` and supply the webhook
+secret (and the API key, if outbound calls are wanted).
 
-Create `internal/services/payments/adapters/stripe.go` implementing `payments.PaymentProcessor`:
+### 2. Webhook URL
 
-- `CreateCustomer` → Stripe Customers API
-- `CreateCheckoutSession` → Stripe Checkout Sessions API
-- `GetSubscriptionStatus` → Stripe Subscriptions API
-- `CancelSubscription` → Stripe Subscriptions API
-- `VerifyWebhookSignature` → `stripe/webhook.ConstructEvent` with webhook secret
-- `ParseWebhookEvent` → Parse Stripe event JSON, return event type, account ID, subscription ID
-
-### 2. Config
-
-Add payments config (e.g., to `ServicesConfig`):
-
-- `StripeAPIKey` — secret key
-- `StripeWebhookSecret` — webhook signing secret (per endpoint)
-- Optionally `StripePublishableKey` for client-side
-
-Wire these via `wire.FieldsOf` and environment or codegen configs.
-
-### 3. Swap Wire Binding
-
-In `internal/services/payments/adapters/wire.go`:
-
-```go
-// Instead of:
-var PaymentsAdapterProviders = wire.NewSet(
-    NewStubPaymentProcessor,
-    wire.Bind(new(payments.PaymentProcessor), new(*StubPaymentProcessor)),
-)
-
-// Use (for production):
-var PaymentsAdapterProviders = wire.NewSet(
-    NewStripePaymentProcessor,  // takes config, logger, tracer
-    wire.Bind(new(payments.PaymentProcessor), new(*StripePaymentProcessor)),
-)
-```
-
-Use build tags or env-specific wire sets if you want to keep stub for local dev and Stripe for prod.
-
-### 4. Webhook URL
-
-Configure your provider to send webhooks to:
+Configure Stripe to send webhooks to:
 
 ```text
 https://<your-api-host>/api/payments/webhooks/stripe
 ```
 
-Use the same webhook secret in provider dashboard and `StripeWebhookSecret` config.
+Use the same signing secret in the Stripe dashboard and in
+`..._CAPITALISM_STRIPE_WEBHOOK_SECRET`, and set the endpoint's **API version** to the one
+stripe-go expects (see above) — a mismatch fails verification.
 
-### 5. Products in Stripe
+### 3. Products in Stripe
 
 - Create products/prices in Stripe.
 - Store `external_product_id` when creating products in our system (admin CRUD or bootstrap).
+  Subscription events report the price ID, which is what `external_product_id` is matched against.
+
+### 4. New event types
+
+`parseStripeEvent` in `adapters/stripe.go` currently decodes only the
+`customer.subscription.*` events. Adding another means adding a case there and a matching case in
+`PaymentsDataManager.ProcessWebhookEvent`.
 
 ---
 
@@ -268,8 +303,11 @@ Admin uses gRPC or repository directly to list/create/edit products and subscrip
 | Processor interface | `internal/domain/payments/processor.go`                 |
 | Manager             | `internal/domain/payments/manager/`                     |
 | Repository          | `internal/repositories/postgres/payments/`              |
+| Stripe adapter      | `internal/services/payments/adapters/stripe.go`         |
+| RevenueCat adapter  | `internal/services/payments/adapters/revenuecat.go`     |
 | Stub adapter        | `internal/services/payments/adapters/stub.go`           |
-| Adapter wire        | `internal/services/payments/adapters/wire.go`           |
+| Adapter DI          | `internal/services/payments/adapters/do.go`             |
+| Payments config     | `internal/services/payments/config/config.go`           |
 | Webhook HTTP        | `internal/services/payments/http/`                      |
 | gRPC service        | `internal/services/payments/grpc/`                      |
 | Migration           | `migrations/migration_files/00011_payments.sql`         |

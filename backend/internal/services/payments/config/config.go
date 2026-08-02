@@ -1,15 +1,18 @@
 package config
 
-// Config holds payments service configuration.
-type Config struct {
-	Stripe     *StripeConfig     `env:"init" envPrefix:"STRIPE_"     json:"stripe"`
-	RevenueCat *RevenueCatConfig `env:"init" envPrefix:"REVENUECAT_" json:"revenueCat"`
-}
+import (
+	capitalismcfg "github.com/primandproper/platform-go/v9/capitalism/config"
+)
 
-// StripeConfig holds Stripe-specific configuration.
-type StripeConfig struct {
-	APIKey        string `env:"API_KEY"        json:"apiKey"`
-	WebhookSecret string `env:"WEBHOOK_SECRET" json:"webhookSecret"`
+// Config holds payments service configuration.
+//
+// Capitalism carries the web billing provider (Stripe today) and is the platform's own
+// config, so the Stripe client we talk to is the one platform-go maintains and bumps.
+// RevenueCat stays ours: mobile in-app purchases aren't something capitalism models, and
+// its webhooks are a different shape entirely.
+type Config struct {
+	RevenueCat *RevenueCatConfig    `env:"init"              envPrefix:"REVENUECAT_" json:"revenueCat"`
+	Capitalism capitalismcfg.Config `envPrefix:"CAPITALISM_" json:"capitalism"`
 }
 
 // RevenueCatConfig holds RevenueCat-specific configuration.

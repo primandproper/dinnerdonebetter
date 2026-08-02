@@ -20,7 +20,6 @@ func RegisterPaymentsDataManager(i do.Injector) {
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[payments.Repository](i),
-			do.MustInvoke[payments.PaymentProcessorRegistry](i),
 			do.MustInvoke[identitymanager.IdentityDataManager](i),
 		)
 	})

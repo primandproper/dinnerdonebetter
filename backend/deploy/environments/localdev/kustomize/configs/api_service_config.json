@@ -214,7 +214,10 @@
 	},
 	"services": {
 		"payments": {
-			"stripe": null,
+			"capitalism": {
+				"stripe": null,
+				"provider": "noop"
+			},
 			"revenueCat": null
 		},
 		"users": {
