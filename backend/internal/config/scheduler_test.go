@@ -118,7 +118,7 @@ func TestScheduledJobConfig_ValidateWithContext(T *testing.T) {
 func TestScheduledJobConfig_Job(T *testing.T) {
 	T.Parallel()
 
-	noop := func(context.Context) error { return nil }
+	noopRun := func(context.Context) error { return nil }
 
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
@@ -130,7 +130,7 @@ func TestScheduledJobConfig_Job(T *testing.T) {
 			RunOnStart: true,
 		}
 
-		job, err := cfg.Job("example", noop)
+		job, err := cfg.Job("example", noopRun)
 
 		require.NoError(t, err)
 		assert.Equal(t, "example", job.Name)
@@ -146,7 +146,7 @@ func TestScheduledJobConfig_Job(T *testing.T) {
 	T.Run("with a cron schedule", func(t *testing.T) {
 		t.Parallel()
 
-		job, err := (&ScheduledJobConfig{Schedule: "0 3 * * *"}).Job("example", noop)
+		job, err := (&ScheduledJobConfig{Schedule: "0 3 * * *"}).Job("example", noopRun)
 
 		require.NoError(t, err)
 		require.NotNil(t, job.Schedule)
@@ -164,7 +164,7 @@ func TestScheduledJobConfig_Job(T *testing.T) {
 
 		// A CRON_TZ prefix beats the scheduler's own Timezone, which is how one job opts
 		// into a calendar the rest do not share.
-		job, err := (&ScheduledJobConfig{Schedule: "CRON_TZ=America/Chicago 0 8 * * *"}).Job("example", noop)
+		job, err := (&ScheduledJobConfig{Schedule: "CRON_TZ=America/Chicago 0 8 * * *"}).Job("example", noopRun)
 
 		require.NoError(t, err)
 		require.NotNil(t, job.Schedule)
@@ -180,7 +180,7 @@ func TestScheduledJobConfig_Job(T *testing.T) {
 	T.Run("with an unparseable schedule", func(t *testing.T) {
 		t.Parallel()
 
-		job, err := (&ScheduledJobConfig{Schedule: "0 3 * *"}).Job("example", noop)
+		job, err := (&ScheduledJobConfig{Schedule: "0 3 * *"}).Job("example", noopRun)
 
 		assert.Error(t, err)
 		assert.Zero(t, job)

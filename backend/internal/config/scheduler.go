@@ -37,14 +37,14 @@ type (
 		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability"`
 		Analytics     analyticscfg.Config  `envPrefix:"ANALYTICS_"     json:"analytics"`
 		Search        textsearchcfg.Config `envPrefix:"SEARCH_"        json:"search"`
+		Jobs          ScheduledJobsConfig  `envPrefix:"JOBS_"          json:"jobs"`
 		Database      dbcfg.Config         `envPrefix:"DATABASE_"      json:"database"`
 
 		// Outbox moves events written inside a caller's transaction onto the broker. It
 		// lives here because it is a background loop, which is what this process is for,
 		// and because it needs exactly what this process already has: the database and a
 		// publisher provider.
-		Outbox outbox.RelayConfig  `envPrefix:"OUTBOX_" json:"outbox"`
-		Jobs   ScheduledJobsConfig `envPrefix:"JOBS_"   json:"jobs"`
+		Outbox outbox.RelayConfig `envPrefix:"OUTBOX_" json:"outbox"`
 	}
 
 	// ScheduledJobsConfig carries the scheduler's own knobs, the lock backend that serializes
