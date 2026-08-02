@@ -1,13 +1,9 @@
 package mealplantaskcreator
 
 import (
-	"context"
-
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
-	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v9/messagequeue"
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/metrics"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
@@ -19,14 +15,11 @@ import (
 func RegisterMealPlanTaskCreator(i do.Injector) {
 	do.Provide[*Worker](i, func(i do.Injector) (*Worker, error) {
 		return NewMealPlanTaskCreator(
-			do.MustInvoke[context.Context](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[recipeanalysis.RecipeAnalyzer](i),
 			do.MustInvoke[mealplanning.Repository](i),
-			do.MustInvoke[messagequeue.PublisherProvider](i),
 			do.MustInvoke[metrics.Provider](i),
-			do.MustInvoke[*queuescfg.Config](i),
 		)
 	})
 }
