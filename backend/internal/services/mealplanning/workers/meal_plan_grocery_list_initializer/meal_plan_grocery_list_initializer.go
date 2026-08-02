@@ -3,14 +3,11 @@ package mealplangrocerylistinitializer
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v9/messagequeue"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/metrics"
@@ -29,26 +26,22 @@ type Worker struct {
 	logger                  logging.Logger
 	tracer                  tracing.Tracer
 	dataManager             mealplanning.Repository // TODO: make this less potent
-	postUpdatesPublisher    messagequeue.Publisher
 	recordsProcessedCounter metrics.Int64Counter
 	groceryListCreator      grocerylistpreparation.GroceryListCreator
 }
 
+// NewMealPlanGroceryListInitializer builds the grocery list initializer.
+//
+// It constructs no publisher: the grocery list item created events are enqueued into the outbox
+// inside the transaction that writes the items. This job used to publish them a second time after
+// the repository had already emitted them transactionally, so every item announced itself twice.
 func NewMealPlanGroceryListInitializer(
-	ctx context.Context,
 	logger logging.Logger,
 	tracerProvider tracing.TracerProvider,
 	metricsProvider metrics.Provider,
-	publisherProvider messagequeue.PublisherProvider,
 	dataManager mealplanning.Repository,
 	groceryListCreator grocerylistpreparation.GroceryListCreator,
-	cfg *queuescfg.Config,
 ) (*Worker, error) {
-	postUpdatesPublisher, err := publisherProvider.NewPublisher(ctx, cfg.DataChangesTopicName)
-	if err != nil {
-		return nil, err
-	}
-
 	recordsProcessedCounter, err := metricsProvider.NewInt64Counter("meal_plan_grocery_list_initializer.records_processed")
 	if err != nil {
 		return nil, err
@@ -56,7 +49,6 @@ func NewMealPlanGroceryListInitializer(
 
 	return &Worker{
 		recordsProcessedCounter: recordsProcessedCounter,
-		postUpdatesPublisher:    postUpdatesPublisher,
 		dataManager:             dataManager,
 		groceryListCreator:      groceryListCreator,
 		logger:                  logging.NewNamedLogger(logger, serviceName),
@@ -97,42 +89,19 @@ func (w *Worker) Work(ctx context.Context) error {
 		l = l.WithValue("to_create", len(dbInputs))
 		l.Info("creating grocery list items for meal plan")
 
-		var createdCount int64
-		for _, dbInput := range dbInputs {
-			var createdItem *mealplanning.MealPlanGroceryListItem
-			createdItem, err = w.dataManager.CreateMealPlanGroceryListItem(ctx, dbInput)
-			if err != nil {
-				errorResult = multierror.Append(errorResult, err)
-				l.Error("failed to create grocery list for meal plan", err)
-				continue
-			}
-			createdCount++
-
-			if err = w.postUpdatesPublisher.Publish(ctx, &audit.DataChangeMessage{
-				EventType: mealplanning.MealPlanGroceryListItemCreatedServiceEventType,
-				Context: map[string]any{
-					"groceryListItem": createdItem,
-					mealplanningkeys.MealPlanGroceryListItemIDKey: createdItem.ID,
-					mealplanningkeys.MealPlanIDKey:                dbInput.BelongsToMealPlan,
-				},
-			}); err != nil {
-				l.Error("failed to write update message for meal plan grocery list item", err)
-			}
-		}
-		w.recordsProcessedCounter.Add(ctx, createdCount)
-
-		// Only mark the plan initialized once every item was created. If some items failed, leave the plan
-		// unmarked so it is retried on a later run instead of being permanently missing items.
-		if createdCount != int64(len(dbInputs)) {
-			l.WithValue("created", createdCount).Info("not marking meal plan as grocery list initialized because some items failed to create")
-			continue
-		}
-
-		if err = w.dataManager.MarkMealPlanAsGroceryListInitialized(ctx, mealPlan.ID); err != nil {
+		// The items, their data change events, and the flag saying the list was initialized all
+		// commit together. Creating them one at a time meant a failure partway through left the
+		// earlier items behind, and the retry — which regenerates the whole list with fresh IDs —
+		// wrote them again.
+		var createdItems []*mealplanning.MealPlanGroceryListItem
+		createdItems, err = w.dataManager.InitializeMealPlanGroceryList(ctx, mealPlan.ID, mealPlan.BelongsToAccount, dbInputs)
+		if err != nil {
 			errorResult = multierror.Append(errorResult, err)
-			l.Error("failed to mark meal plan as grocery list initialized", err)
+			l.Error("failed to initialize grocery list for meal plan", err)
 			continue
 		}
+
+		w.recordsProcessedCounter.Add(ctx, int64(len(createdItems)))
 
 		l.Info("marked meal plan as grocery list initialized")
 	}

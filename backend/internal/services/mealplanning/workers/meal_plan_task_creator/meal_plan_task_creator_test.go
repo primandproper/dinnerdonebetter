@@ -9,10 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
-	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	mockpublishers "github.com/primandproper/platform-go/v9/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
@@ -24,28 +21,12 @@ import (
 func buildNewMealPlanTaskCreatorForTest(t *testing.T) *Worker {
 	t.Helper()
 
-	ctx := t.Context()
-	cfg := &queuescfg.Config{DataChangesTopicName: "data_changes"}
-
-	pp := &mockpublishers.PublisherProviderMock{
-		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
-			return &mockpublishers.PublisherMock{
-				PublishFunc:      func(_ context.Context, _ any) error { return nil },
-				PublishAsyncFunc: func(_ context.Context, _ any) {},
-				StopFunc:         func() {},
-			}, nil
-		},
-	}
-
 	x, err := NewMealPlanTaskCreator(
-		ctx,
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		&recipeanalysis.RecipeAnalyzerMock{},
 		&mealplanningmock.RepositoryMock{},
-		pp,
 		metricsnoop.NewMetricsProvider(),
-		cfg,
 	)
 	require.NoError(t, err)
 
@@ -73,7 +54,7 @@ func TestWorker_Work(T *testing.T) {
 		assert.NoError(t, w.Work(ctx))
 
 		assert.Len(t, mdm.GetFinalizedMealPlanIDsForTheNextWeekCalls(), 1)
-		assert.Empty(t, mdm.CreateMealPlanTasksForMealPlanOptionCalls())
+		assert.Empty(t, mdm.CreateMealPlanTasksForMealPlanCalls())
 	})
 
 	T.Run("standard", func(t *testing.T) {
@@ -176,15 +157,11 @@ func TestWorker_Work(T *testing.T) {
 
 				return recipe, nil
 			},
-			CreateMealPlanTasksForMealPlanOptionFunc: func(_ context.Context, inputs []*mealplanning.MealPlanTaskDatabaseCreationInput) ([]*mealplanning.MealPlanTask, error) {
+			CreateMealPlanTasksForMealPlanFunc: func(_ context.Context, mealPlanID string, inputs []*mealplanning.MealPlanTaskDatabaseCreationInput) ([]*mealplanning.MealPlanTask, error) {
+				assert.Equal(t, exampleMealPlan.ID, mealPlanID)
 				assert.NotNil(t, inputs)
 
 				return createdMealPlanTasks, nil
-			},
-			MarkMealPlanAsHavingTasksCreatedFunc: func(_ context.Context, mealPlanID string) error {
-				assert.Equal(t, exampleMealPlan.ID, mealPlanID)
-
-				return nil
 			},
 		}
 
@@ -200,17 +177,11 @@ func TestWorker_Work(T *testing.T) {
 		w.analyzer = mockAnalyzer
 		w.dataManager = mdm
 
-		mmp := &mockpublishers.PublisherMock{
-			PublishFunc: func(_ context.Context, _ any) error { return nil },
-		}
-		w.postUpdatesPublisher = mmp
-
 		assert.NoError(t, w.Work(ctx))
 
 		assert.Len(t, mdm.GetFinalizedMealPlanIDsForTheNextWeekCalls(), 1)
 		assert.Len(t, mdm.GetRecipeCalls(), 1)
-		assert.Len(t, mdm.CreateMealPlanTasksForMealPlanOptionCalls(), 1)
-		assert.Len(t, mdm.MarkMealPlanAsHavingTasksCreatedCalls(), 1)
+		assert.Len(t, mdm.CreateMealPlanTasksForMealPlanCalls(), 1)
 		assert.Len(t, mockAnalyzer.GenerateMealPlanTasksForRecipeCalls(), 1)
 	})
 }

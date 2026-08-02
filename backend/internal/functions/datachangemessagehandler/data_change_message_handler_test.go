@@ -20,6 +20,7 @@ import (
 	analyticsmock "github.com/primandproper/platform-go/v9/analytics/mock"
 	emailmock "github.com/primandproper/platform-go/v9/email/mock"
 	encodingmock "github.com/primandproper/platform-go/v9/encoding/mock"
+	"github.com/primandproper/platform-go/v9/httpclient"
 	"github.com/primandproper/platform-go/v9/messagequeue"
 	msgqueuemock "github.com/primandproper/platform-go/v9/messagequeue/mock"
 	noopnotifications "github.com/primandproper/platform-go/v9/notifications/mobile/noop"
@@ -137,6 +138,7 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		passwordResetTokenDataManager:    noopPasswordResetTokenDataManager{},
 		notificationsRepo:                notificationsRepo,
 		pushNotificationSender:           pushNotificationSender,
+		webhookHTTPClient:                httpclient.NewHTTPClient(),
 	}
 
 	handler.searchIndexHandlers = []SearchIndexEventHandler{

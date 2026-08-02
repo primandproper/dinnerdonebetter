@@ -24,21 +24,13 @@ const (
 	o11yName = "payments_data_manager"
 )
 
-var (
-	// ErrUnknownPaymentProvider indicates a webhook arrived for a provider that has no registered processor.
-	ErrUnknownPaymentProvider = errors.New("unknown payment provider")
-	// ErrInvalidWebhookSignature indicates a webhook payload failed signature verification.
-	ErrInvalidWebhookSignature = errors.New("invalid webhook signature")
-)
-
 var _ PaymentsDataManager = (*paymentsManager)(nil)
 
 type paymentsManager struct {
-	tracer            tracing.Tracer
-	logger            logging.Logger
-	repo              payments.Repository
-	processorRegistry payments.PaymentProcessorRegistry
-	identityMgr       identitymanager.IdentityDataManager
+	tracer      tracing.Tracer
+	logger      logging.Logger
+	repo        payments.Repository
+	identityMgr identitymanager.IdentityDataManager
 }
 
 // NewPaymentsDataManager returns a new PaymentsDataManager.
@@ -50,15 +42,13 @@ func NewPaymentsDataManager(
 	tracerProvider tracing.TracerProvider,
 	logger logging.Logger,
 	repo payments.Repository,
-	processorRegistry payments.PaymentProcessorRegistry,
 	identityMgr identitymanager.IdentityDataManager,
 ) (PaymentsDataManager, error) {
 	return &paymentsManager{
-		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:            logging.NewNamedLogger(logger, o11yName),
-		repo:              repo,
-		processorRegistry: processorRegistry,
-		identityMgr:       identityMgr,
+		tracer:      tracing.NewNamedTracer(tracerProvider, o11yName),
+		logger:      logging.NewNamedLogger(logger, o11yName),
+		repo:        repo,
+		identityMgr: identityMgr,
 	}, nil
 }
 
@@ -285,7 +275,7 @@ func (m *paymentsManager) GetPaymentTransactionsForAccount(ctx context.Context, 
 	return m.repo.GetPaymentTransactionsForAccount(ctx, accountID, filter)
 }
 
-func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider string, payload []byte, signature, accountID string) error {
+func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider string, parsed *payments.ParsedWebhookEvent, accountID string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -294,19 +284,11 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 		"provider":                provider,
 	}, span, m.logger)
 
-	processor, ok := m.processorRegistry.GetProcessor(provider)
-	if !ok {
-		return observability.PrepareAndLogError(ErrUnknownPaymentProvider, logger, span, "unknown payment provider: %s", provider)
+	if parsed == nil {
+		return platformerrors.ErrNilInputParameter
 	}
 
-	if !processor.VerifyWebhookSignature(ctx, payload, signature, accountID) {
-		return observability.PrepareAndLogError(ErrInvalidWebhookSignature, logger, span, "invalid webhook signature")
-	}
-
-	parsed, err := processor.ParseWebhookEvent(ctx, payload)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "parsing webhook event")
-	}
+	var err error
 
 	// Use account ID from event payload when not provided in URL (e.g. RevenueCat app_user_id).
 	if accountID == "" && parsed.AccountID != "" {

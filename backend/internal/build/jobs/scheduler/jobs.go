@@ -105,14 +105,12 @@ func RegisterScheduler(i do.Injector) {
 				continue
 			}
 
-			if err = scheduler.Register(jobs.Job{
-				Name:       r.name,
-				Interval:   r.cfg.Interval,
-				Timeout:    r.cfg.Timeout,
-				LeaseTTL:   r.cfg.LeaseTTL,
-				RunOnStart: r.cfg.RunOnStart,
-				Run:        r.run,
-			}); err != nil {
+			job, jobErr := r.cfg.Job(r.name, r.run)
+			if jobErr != nil {
+				return nil, jobErr
+			}
+
+			if err = scheduler.Register(job); err != nil {
 				return nil, err
 			}
 		}

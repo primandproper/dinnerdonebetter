@@ -505,6 +505,9 @@ const (
 	// JobsMealPlanningMealPlanFinalizerRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.RunOnStart`.
 	JobsMealPlanningMealPlanFinalizerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_RUN_ON_START"
 
+	// JobsMealPlanningMealPlanFinalizerScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.Schedule`.
+	JobsMealPlanningMealPlanFinalizerScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_SCHEDULE"
+
 	// JobsMealPlanningMealPlanFinalizerTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.Timeout`.
 	JobsMealPlanningMealPlanFinalizerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_TIMEOUT"
 
@@ -519,6 +522,9 @@ const (
 
 	// JobsMealPlanningMealPlanGroceryListInitializerRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.RunOnStart`.
 	JobsMealPlanningMealPlanGroceryListInitializerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_RUN_ON_START"
+
+	// JobsMealPlanningMealPlanGroceryListInitializerScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.Schedule`.
+	JobsMealPlanningMealPlanGroceryListInitializerScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_SCHEDULE"
 
 	// JobsMealPlanningMealPlanGroceryListInitializerTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.Timeout`.
 	JobsMealPlanningMealPlanGroceryListInitializerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_TIMEOUT"
@@ -535,6 +541,9 @@ const (
 	// JobsMealPlanningMealPlanTaskCreatorRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.RunOnStart`.
 	JobsMealPlanningMealPlanTaskCreatorRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_RUN_ON_START"
 
+	// JobsMealPlanningMealPlanTaskCreatorScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.Schedule`.
+	JobsMealPlanningMealPlanTaskCreatorScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_SCHEDULE"
+
 	// JobsMealPlanningMealPlanTaskCreatorTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.Timeout`.
 	JobsMealPlanningMealPlanTaskCreatorTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_TIMEOUT"
 
@@ -550,6 +559,9 @@ const (
 	// JobsMobileNotificationSchedulerRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MobileNotificationScheduler.RunOnStart`.
 	JobsMobileNotificationSchedulerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_RUN_ON_START"
 
+	// JobsMobileNotificationSchedulerScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MobileNotificationScheduler.Schedule`.
+	JobsMobileNotificationSchedulerScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_SCHEDULE"
+
 	// JobsMobileNotificationSchedulerTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MobileNotificationScheduler.Timeout`.
 	JobsMobileNotificationSchedulerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_TIMEOUT"
 
@@ -564,6 +576,9 @@ const (
 
 	// JobsQueueTestRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.QueueTest.RunOnStart`.
 	JobsQueueTestRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_QUEUE_TEST_RUN_ON_START"
+
+	// JobsQueueTestScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.QueueTest.Schedule`.
+	JobsQueueTestScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_QUEUE_TEST_SCHEDULE"
 
 	// JobsQueueTestTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.QueueTest.Timeout`.
 	JobsQueueTestTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_QUEUE_TEST_TIMEOUT"
@@ -591,6 +606,9 @@ const (
 
 	// JobsSearchDataIndexSchedulerRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.SearchDataIndexScheduler.RunOnStart`.
 	JobsSearchDataIndexSchedulerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_RUN_ON_START"
+
+	// JobsSearchDataIndexSchedulerScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.SearchDataIndexScheduler.Schedule`.
+	JobsSearchDataIndexSchedulerScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_SCHEDULE"
 
 	// JobsSearchDataIndexSchedulerTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.SearchDataIndexScheduler.Timeout`.
 	JobsSearchDataIndexSchedulerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_TIMEOUT"
@@ -1189,17 +1207,20 @@ const (
 	// ServiceOauth2ClientsCreationDisabledEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.OAuth2Clients.OAuth2ClientCreationDisabled`.
 	ServiceOauth2ClientsCreationDisabledEnvVarKey = "DINNER_DONE_BETTER_SERVICE_OAUTH2_CLIENTS_CREATION_DISABLED"
 
+	// ServicePaymentsCapitalismProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Payments.Capitalism.Provider`.
+	ServicePaymentsCapitalismProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_PROVIDER"
+
+	// ServicePaymentsCapitalismStripeAPIKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Payments.Capitalism.Stripe.APIKey`.
+	ServicePaymentsCapitalismStripeAPIKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_STRIPE_API_KEY"
+
+	// ServicePaymentsCapitalismStripeWebhookSecretEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Payments.Capitalism.Stripe.WebhookSecret`.
+	ServicePaymentsCapitalismStripeWebhookSecretEnvVarKey = "DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_STRIPE_WEBHOOK_SECRET"
+
 	// ServicePaymentsRevenuecatAPIKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Payments.RevenueCat.APIKey`.
 	ServicePaymentsRevenuecatAPIKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_PAYMENTS_REVENUECAT_API_KEY"
 
 	// ServicePaymentsRevenuecatWebhookAuthHeaderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Payments.RevenueCat.WebhookAuthHeader`.
 	ServicePaymentsRevenuecatWebhookAuthHeaderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_PAYMENTS_REVENUECAT_WEBHOOK_AUTH_HEADER"
-
-	// ServicePaymentsStripeAPIKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Payments.Stripe.APIKey`.
-	ServicePaymentsStripeAPIKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_PAYMENTS_STRIPE_API_KEY"
-
-	// ServicePaymentsStripeWebhookSecretEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Payments.Stripe.WebhookSecret`.
-	ServicePaymentsStripeWebhookSecretEnvVarKey = "DINNER_DONE_BETTER_SERVICE_PAYMENTS_STRIPE_WEBHOOK_SECRET"
 
 	// ServiceUploadedMediaUploadsDebugEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Debug`.
 	ServiceUploadedMediaUploadsDebugEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_DEBUG"
