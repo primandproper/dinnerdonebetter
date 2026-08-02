@@ -41,12 +41,46 @@ Six Kubernetes CronJobs became one long-lived `scheduler` Deployment
 (`cmd/workers/scheduler`, `internal/build/jobs/scheduler/`). Every replica ticks; the one that
 wins a Postgres advisory lock runs the job and the rest skip.
 
-Two CronJobs remain, and should: `db_cleaner` (`0 0 1,8,15,22 * *`) and
-`email_deliverability_test` (`0 0 * * *`). `jobs.Scheduler` takes intervals, not cron
-expressions, and an interval that starts whenever the pod last restarted is not "midnight UTC".
+Two CronJobs remain: `db_cleaner` (`0 0 1,8,15,22 * *`) and `email_deliverability_test`
+(`0 0 * * *`). As of v9 that is no longer a capability gap — `jobs.Scheduler` takes cron
+expressions now, so either could move in. They stay out because they are the two jobs whose
+isolation is worth a pod: `db_cleaner` keeps its own Postgres user and its own blast radius for a
+bulk delete, and a deliverability probe that shares a process with the thing it is probing is
+not much of a probe. That is a judgement about failure domains, not about what the scheduler can
+express.
 
 Postgres advisory locks rather than Redis: no new infrastructure, and a replica that dies drops
 its connection, which releases the lock without waiting for a TTL to lapse.
+
+**Intervals and calendars.** `config.ScheduledJobConfig` carries both `Interval` and `Schedule`,
+and exactly one of them is set — a job carrying both is rejected at config validation, not
+resolved by precedence. Two jobs are on a calendar:
+
+| Job | Schedule | Why not an interval |
+| --- | --- | --- |
+| `mobile_notification_scheduler` | `CRON_TZ=America/Chicago 0 8-21 * * *` | Push notifications, so the hours are the point. Hourly rather than once in the morning because each task notifies exactly once and is dropped if its event starts first, so the gap between fires bounds how much short notice the app can give. Per-user timezones are the real answer and a larger conversation. |
+| `search_data_index_scheduler` | `*/10 6-11 * * *` | A bulk sweep, so it belongs in the small hours rather than competing with daytime traffic. A window and not a single fire because `IndexScheduler.IndexTypes` sweeps one *randomly chosen* index type per run: with nine types registered, one fire a night would sweep a given type every nine days. |
+
+The rest stay on intervals. The meal plan jobs are time-sensitive — a plan should finalize soon
+after its voting deadline, not at a fixed hour — and `queue_test` is a liveness probe, which
+wants a frequency by definition.
+
+`SchedulerConfig.Timezone` is `"UTC"`, named rather than left empty. The default is UTC either
+way, but a cron expression's zone is the one thing about it you cannot read off the expression,
+and a zone that arrives by omission is a zone nobody chose. Both calendar jobs are read in it;
+the notification job overrides it in its own spec, because its hours are a fact about people
+rather than about load, and a fixed instant is the better default for everything else.
+
+Anything but UTC needs the zoneinfo database, and `NewScheduler` resolves the zone at
+construction — so a missing database is a crash loop at boot rather than a missed run.
+`cmd/workers/scheduler` imports `_ "time/tzdata"` and embeds it, which makes the binary
+independent of whatever the base image ships.
+
+**Overrun means something different on a calendar.** It is outlasting the headroom to the next
+fire, not outlasting a fixed interval, and a calendar's headroom varies — a job at `0 9 * * 1-5`
+has three days of it on Friday night and one on Monday. `TestDefaultScheduledJobsConfig` walks a
+year of each cron job's fire times and asserts its `Timeout` is below the tightest gap the
+expression ever produces.
 
 **What this trades away.** Six isolated pods became one, so an OOM in the task creator now stops
 search indexing too. Mitigated with per-job `Timeout` and `Recreate` rollout; the operational

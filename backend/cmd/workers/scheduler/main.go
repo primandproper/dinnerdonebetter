@@ -9,6 +9,11 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	// Embeds the zoneinfo database. Cron schedules name IANA zones, and both the scheduler's
+	// own Timezone and a job's CRON_TZ= prefix are resolved at startup — so without this, a
+	// zone the base image happens not to ship is a crash loop rather than a missed run. The
+	// image is Debian and does ship one today; this makes the binary not care.
+	_ "time/tzdata"
 
 	schedulerbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/scheduler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/telemetry"
