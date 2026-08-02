@@ -1,76 +1,109 @@
-# Search pagination
+# Search Pagination
 
-How a client pages through search results, and why the cursor it gets back means two different
-things depending on one flag it sent.
+Search endpoints are cursor-paginated. A request carries the query, a `useSearchService` flag, and a
+query filter; the response carries one page of results and a `pagination` block whose `cursor`
+resumes the search. `internal/searchpagination` sits between the text search index and the
+`filtering.QueryFilter` pagination the managers hand back, so both search paths page the same way.
 
-## The problem this solves
+## Overview
 
-platform-go v9's `search/text` takes a `SearchRequest` and returns `SearchResults[T]` with an
-opaque `NextCursor`. We adopted the signature during the v9 upgrade but not the feature: every
-call site passed only `Query`, so every search returned one page of the backend's choosing, and
-no call site read `NextCursor`.
+`useSearchService` picks which backend answers the search, and that decides what the cursor is:
 
-The visible symptom was worse than truncation. The managers wrapped the hits in a
-`QueryFilteredResult` whose total was `len(data)`, so the pagination metadata handed back to
-clients asserted that the truncated page *was* the whole result set. Searching for a common
-ingredient returned a page of results and a total agreeing there were only that many.
+| `useSearchService` | Backend                                          | The cursor is                  | Read by                         |
+|--------------------|--------------------------------------------------|--------------------------------|---------------------------------|
+| `false`            | Postgres (`SearchFor*` repository queries)       | The last row's ID              | The SQL, as `WHERE id > cursor` |
+| `true`             | The text search index (Elasticsearch or Algolia) | An opaque token from the index | Only the backend that issued it |
 
-`internal/searchpagination` is the adapter that fixes it. Every index-backed search goes through
-it; see the package doc for the reasoning behind each piece.
+Both kinds travel in `filtering.QueryFilter.Cursor` on the way in and come back in
+`pagination.cursor`. A client treats them the same way: a string it hands back verbatim, never one it
+constructs, parses, or persists meaning from.
 
-## The cursor is the same field either way
+## Paging through a result set
 
-`filtering.QueryFilter.Cursor` carries both kinds of cursor:
+1. Send the first request with no cursor.
+2. Read `pagination.cursor` off the response.
+3. Send it back as the filter's `cursor`, with the same query and the **same `useSearchService`
+   value**.
+4. Stop when `pagination.cursor` comes back empty.
 
-| `useSearchService` | What the cursor is | Who reads it |
-|---|---|---|
-| `false` | The last row's ID | The SQL, as `WHERE id > cursor` |
-| `true` | An opaque token from the index | Only the backend that issued it |
+An empty cursor is the only signal that the result set is exhausted. A short page is not: both
+Elasticsearch and Algolia can return fewer hits than asked for and still have more behind them, so
+each issues the next cursor from the total it knows about rather than from the page's length.
 
-A client pages the same way in both cases — send back the `cursor` from the last response's
-`pagination`, along with the **same `useSearchService` value** — and stops when `cursor` comes
-back empty.
-
-Stopping on an empty cursor is the contract, not on a short page. Both Elasticsearch and Algolia
-can return fewer hits than asked for and still have more; the cursor is the only thing that says
-whether another page exists.
-
-Changing `useSearchService` part-way through a walk invalidates the cursor. Cursors are tagged
-with the backend that issued them, so the index refuses a database cursor outright
-(`InvalidArgument`, below). The other direction cannot be caught — the database would read an
-opaque token as a row ID and answer with an arbitrary slice of the table — which is why
-`FilterForDatabaseFallback` strips the cursor whenever a manager falls back from index to
-database.
-
-## Totals
-
-`totalCount` is `0` on search responses, meaning unknown. The index reports whether another page
-exists but not how many results there are in all, and the database search path has always
-reported `0` as well. Page with the cursor, not with a count.
-
-## Statuses a paging client can get
-
-| Status | Cause | What to do |
-|---|---|---|
-| `OutOfRange` | Paged past Elasticsearch's `index.max_result_window` (10,000 by default) | Stop; narrow the query. Paging further will not work. |
-| `InvalidArgument` | A cursor the index did not issue | Start over from the first page. |
-
-Both are mapped in `internal/services/errors/search_grpc_mapper.go`. `OutOfRange` is deliberately
-not reported as an empty last page: "there are no more results" and "we will not serve results
-this deep" are different facts, and only the second one is worth telling a user about.
-
-## When the index errors
-
-`SearchRecipes` and `SearchMeals` fall back to a database search when the index fails or returns
-an empty first page. They do **not** fall back when the index rejects the cursor, because the
-database cannot take over mid-walk: it would restart at its own first page under a cursor it
-reads differently. The other search managers have no fallback and surface the error directly.
-
-An empty page part-way through a walk is the end of the results, not a reason to fall back —
-restarting the database from the top would serve the whole result set over again.
+Changing `useSearchService` part-way through a walk invalidates the cursor. Cursors are tagged with
+the backend that issued them, so the index rejects a database cursor with `InvalidArgument`. The
+reverse cannot be caught — the database would compare an opaque token against the ID column and
+answer with an arbitrary slice of the table — which is why `searchpagination.FilterForDatabaseFallback`
+strips the cursor whenever a manager falls back from index to database.
 
 ## Page sizes
 
-`filter.MaxResponseSize` becomes `SearchRequest.Limit`. Unset means `DefaultSearchLimit` (25).
-Both backends cap a single page at 200, so a request for more comes back short with a cursor
-still set, which the rule above already handles.
+The filter's `maxResponseSize` becomes `textsearch.SearchRequest.Limit`.
+
+- A gRPC request that omits `maxResponseSize` gets 50 (`filtering.DefaultQueryFilterLimit`), and
+  anything above 250 (`filtering.MaxQueryFilterLimit`) is clamped by
+  `ConvertGRPCQueryFilterToQueryFilter`.
+- A filter that reaches the index carrying no page size at all uses `textsearch.DefaultSearchLimit`
+  (25).
+- Both index backends cap a single page at 200, so a request for more comes back short with a cursor
+  still set — which the rule above already covers.
+
+## Totals
+
+Index-backed responses report `totalCount` as `0`, meaning unknown: the index reports whether another
+page exists, not how many results there are in all. Database-backed responses report a real count,
+computed by the search query itself. Page with the cursor, not with a count.
+
+## Statuses a paging client can get
+
+| Status            | Cause                                                                    | What to do                                               |
+|-------------------|--------------------------------------------------------------------------|----------------------------------------------------------|
+| `OutOfRange`      | Paged past Elasticsearch's `index.max_result_window` (10,000 by default) | Stop and narrow the query; paging further will not work. |
+| `InvalidArgument` | A cursor the index did not issue                                         | Start over from the first page.                          |
+
+`internal/services/errors/search_grpc_mapper.go` registers both mappings, and any service package
+that blank-imports it picks them up. A registered mapping wins over the handler's default code, so
+these reach the client rather than `Internal`. `OutOfRange` is deliberately not reported as an empty
+last page: "there are no more results" and "we will not serve results this deep" are different facts,
+and only the second is worth telling a user about.
+
+## Database fallback
+
+`SearchRecipes` and `SearchMeals` fall back to a database search when the index errors or returns an
+empty first page, in case the index is behind or was never populated. The fallback drops the cursor,
+so it restarts from the database's first page.
+
+They do not fall back when the index rejects the cursor (`searchpagination.CursorRejected`), because
+the database cannot take over mid-walk: it reads a cursor differently and would answer with the first
+page of its own pagination rather than the page that was asked for. Those errors surface as the
+statuses above instead.
+
+An empty page part-way through a cursor walk is the end of the results, not a reason to fall back —
+restarting the database from the top would serve the whole result set over again — so it comes back
+as an empty page carrying the index's cursor.
+
+The remaining index-backed searches (users, valid ingredients, ingredient states, instruments,
+measurement units, preparations, vessels) have no fallback and surface index errors directly. Valid
+ingredient groups always search the database, whatever `useSearchService` says.
+
+## Helpers
+
+`internal/searchpagination` is the only place that builds a search request or wraps search hits, so
+no call site can forget the limit or the cursor:
+
+| Helper                      | Role                                                                              |
+|-----------------------------|-----------------------------------------------------------------------------------|
+| `Search`                    | Runs one page against the index, taking size and resumption point from the filter |
+| `RequestFromFilter`         | Builds the `textsearch.SearchRequest` a `QueryFilter` describes                   |
+| `Resuming`                  | Reports whether a filter carries a cursor                                         |
+| `NewResult`                 | Wraps a page of hits in the `QueryFilteredResult` the managers return             |
+| `FilterForDatabaseFallback` | Returns the filter with any index cursor dropped                                  |
+| `CursorRejected`            | Reports whether an error is the index declining the cursor it was given           |
+
+## Related
+
+- `internal/searchpagination/searchpagination.go` — the adapter described above
+- `internal/services/errors/search_grpc_mapper.go` — `OutOfRange` and `InvalidArgument` mappings
+- `internal/domain/mealplanning/managers/` — index-backed searches with a database fallback
+- `internal/domain/identity/manager/user_data_manager.go` — `SearchForUsers`
+- `internal/grpc/converters/query_filter.go` — filter and pagination conversion at the gRPC boundary
