@@ -88,6 +88,52 @@ func TestQuerier_Integration_MealPlanGroceryListItems(t *testing.T) {
 	assert.NotEmpty(t, mealPlanGroceryListItems)
 	assert.Equal(t, len(createdMealPlanGroceryListItems), len(mealPlanGroceryListItems.Data))
 
+	// a batch that fails partway through commits nothing. The retry regenerates the whole list
+	// with fresh IDs and cannot tell which items it already wrote, so anything left behind by a
+	// partial failure would be written a second time on the next run.
+	goodInput := func() *types.MealPlanGroceryListItemDatabaseCreationInput {
+		return &types.MealPlanGroceryListItemDatabaseCreationInput{
+			ID:                     fakes.BuildFakeID(),
+			BelongsToMealPlan:      mealPlan.ID,
+			ValidIngredientID:      ingredient.ID,
+			ValidMeasurementUnitID: measurmentUnit.ID,
+			Status:                 types.MealPlanGroceryListItemStatusNeeds,
+			MinQuantityNeeded:      1,
+		}
+	}
+
+	doomedItem := goodInput()
+	// a nonexistent ingredient trips the foreign key, so this input fails after the one before it
+	// has already been inserted.
+	doomedItem.ValidIngredientID = fakes.BuildFakeID()
+
+	initialized, err := dbc.InitializeMealPlanGroceryList(ctx, mealPlan.ID, account.ID, []*types.MealPlanGroceryListItemDatabaseCreationInput{goodInput(), doomedItem})
+	assert.Error(t, err)
+	assert.Nil(t, initialized)
+
+	mealPlanGroceryListItems, err = dbc.GetMealPlanGroceryListItemsForMealPlan(ctx, mealPlan.ID, nil)
+	assert.NoError(t, err)
+	assert.Len(t, mealPlanGroceryListItems.Data, len(createdMealPlanGroceryListItems), "the item preceding the failure must have rolled back with it")
+
+	unmarkedMealPlan, err := dbc.GetMealPlan(ctx, mealPlan.ID, account.ID)
+	require.NoError(t, err)
+	assert.False(t, unmarkedMealPlan.GroceryListInitialized)
+
+	// a batch that succeeds writes every item and the flag together.
+	batch := []*types.MealPlanGroceryListItemDatabaseCreationInput{goodInput(), goodInput()}
+	initialized, err = dbc.InitializeMealPlanGroceryList(ctx, mealPlan.ID, account.ID, batch)
+	require.NoError(t, err)
+	assert.Len(t, initialized, len(batch))
+	createdMealPlanGroceryListItems = append(createdMealPlanGroceryListItems, initialized...)
+
+	mealPlanGroceryListItems, err = dbc.GetMealPlanGroceryListItemsForMealPlan(ctx, mealPlan.ID, nil)
+	assert.NoError(t, err)
+	assert.Len(t, mealPlanGroceryListItems.Data, len(createdMealPlanGroceryListItems))
+
+	markedMealPlan, err := dbc.GetMealPlan(ctx, mealPlan.ID, account.ID)
+	require.NoError(t, err)
+	assert.True(t, markedMealPlan.GroceryListInitialized)
+
 	// delete
 	for _, mealPlanGroceryListItem := range createdMealPlanGroceryListItems {
 		assert.NoError(t, dbc.ArchiveMealPlanGroceryListItem(ctx, mealPlanGroceryListItem.ID))

@@ -124,6 +124,11 @@ type (
 		GetMealPlanGroceryListItem(ctx context.Context, mealPlanID, mealPlanGroceryListItemID string) (*MealPlanGroceryListItem, error)
 		GetMealPlanGroceryListItemsForMealPlan(ctx context.Context, mealPlanID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[MealPlanGroceryListItem], error)
 		CreateMealPlanGroceryListItem(ctx context.Context, input *MealPlanGroceryListItemDatabaseCreationInput) (*MealPlanGroceryListItem, error)
+		// InitializeMealPlanGroceryList writes a meal plan's whole grocery list and the flag saying
+		// it was written in one transaction. Per-item creation plus a separate mark would leave a
+		// partial list behind on failure, and the retry regenerates every item — the ones that
+		// already committed included.
+		InitializeMealPlanGroceryList(ctx context.Context, mealPlanID, accountID string, inputs []*MealPlanGroceryListItemDatabaseCreationInput) ([]*MealPlanGroceryListItem, error)
 		UpdateMealPlanGroceryListItem(ctx context.Context, updated *MealPlanGroceryListItem) error
 		ArchiveMealPlanGroceryListItem(ctx context.Context, mealPlanGroceryListItemID string) error
 	}

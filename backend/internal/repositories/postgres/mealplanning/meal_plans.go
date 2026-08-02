@@ -474,26 +474,6 @@ func (q *repository) ArchiveMealPlan(ctx context.Context, mealPlanID, accountID 
 	})
 }
 
-// MarkMealPlanAsGroceryListInitialized marks a meal plan as having all its tasks created.
-func (q *repository) MarkMealPlanAsGroceryListInitialized(ctx context.Context, mealPlanID string) error {
-	ctx, span := q.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if err := q.generatedQuerier.MarkMealPlanAsGroceryListInitialized(ctx, q.writeDB, mealPlanID); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "marking meal plan as having grocery list initialized")
-	}
-
-	return nil
-}
-
 // AttemptToFinalizeMealPlan finalizes a meal plan if all of its options have a selection.
 func (q *repository) AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, accountID string) (finalized bool, err error) {
 	ctx, span := q.tracer.StartSpan(ctx)

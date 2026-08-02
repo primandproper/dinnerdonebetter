@@ -435,6 +435,60 @@ func (q *repository) CreateMealPlanGroceryListItem(ctx context.Context, input *m
 	return created, nil
 }
 
+// InitializeMealPlanGroceryList writes a meal plan's whole grocery list and marks the plan as having
+// had it initialized, in a single transaction.
+//
+// Written item by item, a failure partway through left the committed items behind with the plan still
+// flagged uninitialized. GetFinalizedMealPlansWithUninitializedGroceryLists then re-selected it, the
+// grocery list creator regenerated every item with fresh IDs, and the items that had already
+// committed were written a second time — there is no unique constraint on the table to absorb that.
+// All or nothing is the only shape that makes the retry safe, because the retry cannot tell which
+// items it already wrote.
+//
+// accountID is passed rather than read from the context because this runs in a background job with
+// no session; it is the ordering key for the events below.
+func (q *repository) InitializeMealPlanGroceryList(ctx context.Context, mealPlanID, accountID string, inputs []*mealplanning.MealPlanGroceryListItemDatabaseCreationInput) ([]*mealplanning.MealPlanGroceryListItem, error) {
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	if mealPlanID == "" {
+		return nil, platformerrors.ErrInvalidIDProvided
+	}
+
+	logger := q.logger.Clone().WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
+	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
+
+	created := []*mealplanning.MealPlanGroceryListItem{}
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		for _, input := range inputs {
+			item, createErr := q.createMealPlanGroceryListItem(ctx, tx, input)
+			if createErr != nil {
+				return observability.PrepareAndLogError(createErr, logger, span, "creating meal plan grocery list item")
+			}
+
+			if emitErr := q.events.Emit(ctx, tx, logger, mealplanning.MealPlanGroceryListItemCreatedServiceEventType, accountID, map[string]any{
+				mealplanningkeys.MealPlanGroceryListItemIDKey: item.ID,
+			}); emitErr != nil {
+				return observability.PrepareError(emitErr, span, "enqueuing meal plan grocery list item created event")
+			}
+
+			created = append(created, item)
+		}
+
+		if markErr := q.generatedQuerier.MarkMealPlanAsGroceryListInitialized(ctx, tx, mealPlanID); markErr != nil {
+			return observability.PrepareAndLogError(markErr, logger, span, "marking meal plan as having grocery list initialized")
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	logger.WithValue("created", len(created)).Info("meal plan grocery list initialized")
+
+	return created, nil
+}
+
 // UpdateMealPlanGroceryListItem updates a particular meal plan grocery list.
 func (q *repository) UpdateMealPlanGroceryListItem(ctx context.Context, updated *mealplanning.MealPlanGroceryListItem) error {
 	ctx, span := q.tracer.StartSpan(ctx)
