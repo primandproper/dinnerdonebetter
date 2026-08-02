@@ -115,6 +115,7 @@ resource "kubernetes_secret_v1" "api_service_config" {
   # service user does not require touching this block.
   data = merge(local.database_password_secret_data, {
     OAUTH2_TOKEN_ENCRYPTION_KEY        = random_string.oauth2_token_encryption_key.result
+    DISCLOSURE_ARTIFACT_ENCRYPTION_KEY = random_string.disclosure_artifact_encryption_key.result
     JWT_SIGNING_KEY                    = base64encode(random_string.jwt_signing_key.result)
     DATABASE_HOST                      = google_sql_database_instance.prod.private_ip_address
     POSTHOG_API_KEY                    = var.POSTHOG_API_KEY

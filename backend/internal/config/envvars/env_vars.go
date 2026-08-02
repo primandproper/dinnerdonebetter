@@ -73,6 +73,57 @@ const (
 	// BaseURLEnvVarKey is the environment variable name to set to override `APIServiceConfigBaseURL`.
 	BaseURLEnvVarKey = "DINNER_DONE_BETTER_BASE_URL"
 
+	// DataPrivacyArtifactEncryptionKeyEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.ArtifactEncryptionKey`.
+	DataPrivacyArtifactEncryptionKeyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACT_ENCRYPTION_KEY"
+
+	// DataPrivacyEncryptionProviderEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Encryption.Provider`.
+	DataPrivacyEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ENCRYPTION_PROVIDER"
+
+	// DataPrivacyUploadsDebugEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Debug`.
+	DataPrivacyUploadsDebugEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_DEBUG"
+
+	// DataPrivacyUploadsStorageBackblazeB2ApplicationKeyEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.BackblazeB2Config.ApplicationKey`.
+	DataPrivacyUploadsStorageBackblazeB2ApplicationKeyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY"
+
+	// DataPrivacyUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.BackblazeB2Config.ApplicationKeyID`.
+	DataPrivacyUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
+
+	// DataPrivacyUploadsStorageBackblazeB2RegionEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.BackblazeB2Config.Region`.
+	DataPrivacyUploadsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_BACKBLAZE_B2_REGION"
+
+	// DataPrivacyUploadsStorageBucketNameEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.BucketName`.
+	DataPrivacyUploadsStorageBucketNameEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_BUCKET_NAME"
+
+	// DataPrivacyUploadsStorageBucketPrefixEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.BucketPrefix`.
+	DataPrivacyUploadsStorageBucketPrefixEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_BUCKET_PREFIX"
+
+	// DataPrivacyUploadsStorageCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.CircuitBreaker.ErrorRate`.
+	DataPrivacyUploadsStorageCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// DataPrivacyUploadsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.CircuitBreaker.MinimumSampleThreshold`.
+	DataPrivacyUploadsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// DataPrivacyUploadsStorageCircuitBreakingNameEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.CircuitBreaker.Name`.
+	DataPrivacyUploadsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_CIRCUIT_BREAKING_NAME"
+
+	// DataPrivacyUploadsStorageFilesystemDirectoryModeEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.FilesystemConfig.DirectoryMode`.
+	DataPrivacyUploadsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
+
+	// DataPrivacyUploadsStorageFilesystemRootDirectoryEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.FilesystemConfig.RootDirectory`.
+	DataPrivacyUploadsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
+
+	// DataPrivacyUploadsStorageProviderEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.Provider`.
+	DataPrivacyUploadsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_PROVIDER"
+
+	// DataPrivacyUploadsStorageR2AccessKeyIDEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.R2Config.AccessKeyID`.
+	DataPrivacyUploadsStorageR2AccessKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_R2_ACCESS_KEY_ID"
+
+	// DataPrivacyUploadsStorageR2AccountIDEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.R2Config.AccountID`.
+	DataPrivacyUploadsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_R2_ACCOUNT_ID"
+
+	// DataPrivacyUploadsStorageR2SecretAccessKeyEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.R2Config.SecretAccessKey`.
+	DataPrivacyUploadsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_R2_SECRET_ACCESS_KEY"
+
 	// DatabaseConnMaxLifetimeEnvVarKey is the environment variable name to set to override `APIServiceConfig.Database.ConnMaxLifetime`.
 	DatabaseConnMaxLifetimeEnvVarKey = "DINNER_DONE_BETTER_DATABASE_CONN_MAX_LIFETIME"
 
@@ -396,6 +447,21 @@ const (
 
 	// IdempotencyManagerTTLEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.TTL`.
 	IdempotencyManagerTTLEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_TTL"
+
+	// JobsDisclosureArtifactReaperEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.DisclosureArtifactReaper.Enabled`.
+	JobsDisclosureArtifactReaperEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_DISCLOSURE_ARTIFACT_REAPER_ENABLED"
+
+	// JobsDisclosureArtifactReaperIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.DisclosureArtifactReaper.Interval`.
+	JobsDisclosureArtifactReaperIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_DISCLOSURE_ARTIFACT_REAPER_INTERVAL"
+
+	// JobsDisclosureArtifactReaperLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.DisclosureArtifactReaper.LeaseTTL`.
+	JobsDisclosureArtifactReaperLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_DISCLOSURE_ARTIFACT_REAPER_LEASE_TTL"
+
+	// JobsDisclosureArtifactReaperRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.DisclosureArtifactReaper.RunOnStart`.
+	JobsDisclosureArtifactReaperRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_DISCLOSURE_ARTIFACT_REAPER_RUN_ON_START"
+
+	// JobsDisclosureArtifactReaperTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.DisclosureArtifactReaper.Timeout`.
+	JobsDisclosureArtifactReaperTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_DISCLOSURE_ARTIFACT_REAPER_TIMEOUT"
 
 	// JobsLockCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Lock.CircuitBreaker.ErrorRate`.
 	JobsLockCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_CIRCUIT_BREAKING_ERROR_RATE"
@@ -1015,6 +1081,12 @@ const (
 	// ServiceAuthTokensSigningKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Auth.Tokens.Base64EncodedSigningKey`.
 	ServiceAuthTokensSigningKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_TOKENS_SIGNING_KEY"
 
+	// ServiceDataPrivacyArtifactEncryptionKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.ArtifactEncryptionKey`.
+	ServiceDataPrivacyArtifactEncryptionKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_ARTIFACT_ENCRYPTION_KEY"
+
+	// ServiceDataPrivacyEncryptionProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Encryption.Provider`.
+	ServiceDataPrivacyEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_ENCRYPTION_PROVIDER"
+
 	// ServiceDataPrivacyUploadsDebugEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Debug`.
 	ServiceDataPrivacyUploadsDebugEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_DEBUG"
 
@@ -1221,46 +1293,4 @@ const (
 
 	// ServiceUsersUploadsStorageR2SecretAccessKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.Users.Uploads.Storage.R2Config.SecretAccessKey`.
 	ServiceUsersUploadsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_R2_SECRET_ACCESS_KEY"
-
-	// StorageBackblazeB2ApplicationKeyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.BackblazeB2Config.ApplicationKey`.
-	StorageBackblazeB2ApplicationKeyEnvVarKey = "DINNER_DONE_BETTER_STORAGE_BACKBLAZE_B2_APPLICATION_KEY"
-
-	// StorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.BackblazeB2Config.ApplicationKeyID`.
-	StorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
-
-	// StorageBackblazeB2RegionEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.BackblazeB2Config.Region`.
-	StorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_STORAGE_BACKBLAZE_B2_REGION"
-
-	// StorageBucketNameEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.BucketName`.
-	StorageBucketNameEnvVarKey = "DINNER_DONE_BETTER_STORAGE_BUCKET_NAME"
-
-	// StorageBucketPrefixEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.BucketPrefix`.
-	StorageBucketPrefixEnvVarKey = "DINNER_DONE_BETTER_STORAGE_BUCKET_PREFIX"
-
-	// StorageCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.CircuitBreaker.ErrorRate`.
-	StorageCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_STORAGE_CIRCUIT_BREAKING_ERROR_RATE"
-
-	// StorageCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.CircuitBreaker.MinimumSampleThreshold`.
-	StorageCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_STORAGE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
-
-	// StorageCircuitBreakingNameEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.CircuitBreaker.Name`.
-	StorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_STORAGE_CIRCUIT_BREAKING_NAME"
-
-	// StorageFilesystemDirectoryModeEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.FilesystemConfig.DirectoryMode`.
-	StorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_STORAGE_FILESYSTEM_DIRECTORY_MODE"
-
-	// StorageFilesystemRootDirectoryEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.FilesystemConfig.RootDirectory`.
-	StorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
-
-	// StorageProviderEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.Provider`.
-	StorageProviderEnvVarKey = "DINNER_DONE_BETTER_STORAGE_PROVIDER"
-
-	// StorageR2AccessKeyIDEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.R2Config.AccessKeyID`.
-	StorageR2AccessKeyIDEnvVarKey = "DINNER_DONE_BETTER_STORAGE_R2_ACCESS_KEY_ID"
-
-	// StorageR2AccountIDEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.R2Config.AccountID`.
-	StorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_STORAGE_R2_ACCOUNT_ID"
-
-	// StorageR2SecretAccessKeyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.R2Config.SecretAccessKey`.
-	StorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_STORAGE_R2_SECRET_ACCESS_KEY"
 )

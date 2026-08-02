@@ -11,9 +11,11 @@ import (
 type Querier interface {
 	ArchiveUserDataDisclosure(ctx context.Context, db DBTX, id string) error
 	CreateUserDataDisclosure(ctx context.Context, db DBTX, arg *CreateUserDataDisclosureParams) error
+	GetExpiredUserDataDisclosures(ctx context.Context, db DBTX) ([]*UserDataDisclosures, error)
 	GetUserDataDisclosure(ctx context.Context, db DBTX, id string) (*UserDataDisclosures, error)
 	GetUserDataDisclosuresForUser(ctx context.Context, db DBTX, arg *GetUserDataDisclosuresForUserParams) ([]*GetUserDataDisclosuresForUserRow, error)
 	MarkUserDataDisclosureCompleted(ctx context.Context, db DBTX, arg *MarkUserDataDisclosureCompletedParams) error
+	MarkUserDataDisclosureExpired(ctx context.Context, db DBTX, id string) error
 	MarkUserDataDisclosureFailed(ctx context.Context, db DBTX, id string) error
 	MarkUserDataDisclosureProcessing(ctx context.Context, db DBTX, id string) error
 }

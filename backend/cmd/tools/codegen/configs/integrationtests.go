@@ -186,6 +186,8 @@ func buildIntegrationTestsConfig() *config.APIServiceConfig {
 					},
 					Debug: false,
 				},
+				Encryption:            encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
+				ArtifactEncryptionKey: localDisclosureArtifactEncryptionKey,
 			},
 			Users: identitycfg.Config{
 				Uploads: uploadsConfig,

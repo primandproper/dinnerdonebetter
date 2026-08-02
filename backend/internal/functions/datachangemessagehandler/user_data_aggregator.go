@@ -14,7 +14,6 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 	"github.com/primandproper/platform-go/v9/retry"
-	"github.com/primandproper/platform-go/v9/uploads"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -80,8 +79,9 @@ func (a *AsyncDataChangeMessageHandler) UserDataAggregationEventHandler(topicNam
 
 		logger.Info("saving file to object storage")
 
-		// Save to object storage with report ID as filename
-		if err = uploads.SaveFile(ctx, a.uploadManager, fmt.Sprintf("%s.json", userDataCollectionRequest.ReportID), collectionBytes); err != nil {
+		// Save to object storage, encrypted. The store owns the path and the cipher; this
+		// handler never sees where the object lands or what it looks like when it gets there.
+		if err = a.reportArtifacts.Save(ctx, userDataCollectionRequest.ReportID, collectionBytes); err != nil {
 			a.handlerErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicUserDataAggregation)))
 			status = statusFailure
 			a.markDisclosureFailed(ctx, logger, span, disclosureID)

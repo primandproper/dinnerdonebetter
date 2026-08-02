@@ -302,7 +302,11 @@
 					}
 				},
 				"debug": false
-			}
+			},
+			"encryption": {
+				"provider": "salsa20"
+			},
+			"artifactEncryptionKey": ""
 		},
 		"uploadedMedia": {
 			"uploads": {

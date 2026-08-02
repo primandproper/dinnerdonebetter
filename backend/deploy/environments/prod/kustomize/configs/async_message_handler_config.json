@@ -8,14 +8,23 @@
 		"userDataAggregationTopicName": "user_data_aggregation_requests",
 		"webhookExecutionRequestsTopicName": "webhook_execution_requests"
 	},
-	"storage": {
-		"bucketName": "userdata.dinnerdonebetter.com",
-		"provider": "gcp",
-		"circuitBreakerConfig": {
-			"name": "",
-			"circuitBreakerErrorPercentage": 0,
-			"circuitBreakerMinimumOccurrenceThreshold": 0
-		}
+	"dataPrivacy": {
+		"uploads": {
+			"storageConfig": {
+				"bucketName": "userdata.dinnerdonebetter.com",
+				"provider": "gcp",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				}
+			},
+			"debug": false
+		},
+		"encryption": {
+			"provider": "salsa20"
+		},
+		"artifactEncryptionKey": ""
 	},
 	"pushNotifications": {
 		"apns": {

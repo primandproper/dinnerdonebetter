@@ -74,6 +74,17 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 			Timeout:  time.Minute,
 			LeaseTTL: 2 * time.Minute,
 		},
+		DisclosureArtifactReaper: ScheduledJobConfig{
+			Enabled: true,
+			// Hourly is far finer than the seven-day disclosure TTL needs, and the run costs
+			// one indexed query when there is nothing to do. RunOnStart is what drains the
+			// artifacts that accumulated before anything reaped them, on the first deploy that
+			// carries this job.
+			Interval:   time.Hour,
+			Timeout:    5 * time.Minute,
+			LeaseTTL:   10 * time.Minute,
+			RunOnStart: true,
+		},
 		// Domain: mealplanning
 		MealPlanning: defaultMealPlanningScheduledJobsConfig(),
 	}
@@ -272,6 +283,7 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 		Search:        s.RootConfig.TextSearch,
 		Database:      databaseConfigForService(&s.RootConfig.Database, s.ServiceDatabaseUsers, schedulerConfigObservabilityServiceName),
 		Queues:        s.RootConfig.Queues,
+		DataPrivacy:   s.RootConfig.Services.DataPrivacy,
 		Jobs:          defaultScheduledJobsConfig(),
 		Outbox:        defaultOutboxRelayConfig(),
 	}
@@ -281,7 +293,7 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 	schedulerConfig.Observability.Profiling.ServiceName = schedulerConfigObservabilityServiceName
 
 	amhConfig := &AsyncMessageHandlerConfig{
-		Storage:           s.RootConfig.Services.DataPrivacy.Uploads.Storage,
+		DataPrivacy:       s.RootConfig.Services.DataPrivacy,
 		Queues:            s.RootConfig.Queues,
 		Email:             s.RootConfig.Email,
 		Analytics:         s.RootConfig.Analytics,

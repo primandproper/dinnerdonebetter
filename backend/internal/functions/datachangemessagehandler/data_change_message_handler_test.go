@@ -7,6 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	dataprivacymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/mock"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/reportartifacts"
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 	internalopsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops/mock"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
@@ -28,7 +29,6 @@ import (
 	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
-	uploadsmock "github.com/primandproper/platform-go/v9/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/metric"
@@ -51,7 +51,7 @@ func (noopPasswordResetTokenDataManager) RedeemPasswordResetToken(context.Contex
 }
 
 //nolint:gocritic // I know this returns too many things
-func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessageHandler, *identitymock.RepositoryMock, *webhooksmock.RepositoryMock, *msgqueuemock.ConsumerProviderMock, *msgqueuemock.PublisherProviderMock, *analyticsmock.EventReporterMock, *emailmock.EmailerMock, *uploadsmock.UploadManagerMock, *mockmetrics.ProviderMock, *encodingmock.ServerEncoderDecoderMock, *dataprivacymock.RepositoryMock) {
+func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessageHandler, *identitymock.RepositoryMock, *webhooksmock.RepositoryMock, *msgqueuemock.ConsumerProviderMock, *msgqueuemock.PublisherProviderMock, *analyticsmock.EventReporterMock, *emailmock.EmailerMock, *reportartifacts.StoreMock, *mockmetrics.ProviderMock, *encodingmock.ServerEncoderDecoderMock, *dataprivacymock.RepositoryMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
@@ -63,7 +63,7 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 	publisherProvider := &msgqueuemock.PublisherProviderMock{}
 	analyticsEventReporter := &analyticsmock.EventReporterMock{}
 	emailer := &emailmock.EmailerMock{}
-	uploadManager := &uploadsmock.UploadManagerMock{}
+	reportArtifacts := &reportartifacts.StoreMock{}
 	metricsProvider := &mockmetrics.ProviderMock{}
 	decoder := &encodingmock.ServerEncoderDecoderMock{}
 	dataPrivacyRepo := &dataprivacymock.RepositoryMock{}
@@ -105,7 +105,7 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		consumerProvider:                     consumerProvider,
 		analyticsEventReporter:               analyticsEventReporter,
 		emailer:                              emailer,
-		uploadManager:                        uploadManager,
+		reportArtifacts:                      reportArtifacts,
 		decoder:                              decoder,
 		userDataIndexer:                      userDataIndexer,
 		mealPlanningDataIndexer:              mealPlanningDataIndexer,
@@ -148,7 +148,7 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		handler.handleIdentityOutboundNotification,
 	}
 
-	return handler, identityRepo, webhookRepo, consumerProvider, publisherProvider, analyticsEventReporter, emailer, uploadManager, metricsProvider, decoder, dataPrivacyRepo
+	return handler, identityRepo, webhookRepo, consumerProvider, publisherProvider, analyticsEventReporter, emailer, reportArtifacts, metricsProvider, decoder, dataPrivacyRepo
 }
 
 func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
@@ -178,7 +178,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		publisherProvider := &msgqueuemock.PublisherProviderMock{}
 		analyticsEventReporter := &analyticsmock.EventReporterMock{}
 		emailer := &emailmock.EmailerMock{}
-		uploadManager := &uploadsmock.UploadManagerMock{}
+		reportArtifacts := &reportartifacts.StoreMock{}
 		metricsProvider := &mockmetrics.ProviderMock{}
 		decoder := &encodingmock.ServerEncoderDecoderMock{}
 		coreDataIndexer := &identityindexing.UserDataIndexer{}
@@ -224,7 +224,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 			publisherProvider,
 			analyticsEventReporter,
 			emailer,
-			uploadManager,
+			reportArtifacts,
 			metricsProvider,
 			decoder,
 			coreDataIndexer,
@@ -242,7 +242,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		assert.Equal(t, consumerProvider, handler.consumerProvider)
 		assert.Equal(t, analyticsEventReporter, handler.analyticsEventReporter)
 		assert.Equal(t, emailer, handler.emailer)
-		assert.Equal(t, uploadManager, handler.uploadManager)
+		assert.Equal(t, reportArtifacts, handler.reportArtifacts)
 		assert.Equal(t, decoder, handler.decoder)
 		assert.Equal(t, coreDataIndexer, handler.userDataIndexer)
 		assert.Equal(t, eatingDataIndexer, handler.mealPlanningDataIndexer)

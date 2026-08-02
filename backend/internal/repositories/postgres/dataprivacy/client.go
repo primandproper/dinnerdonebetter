@@ -23,24 +23,34 @@ const (
 	o11yName = "dataprivacy_db_client"
 )
 
+// disclosureRepository is the half of the data privacy repository that manages disclosure
+// records. It is separated from the whole because the two halves have wildly different
+// appetites: gathering a user's data reaches into every domain in the application, while
+// tracking the request that asked for it needs a database handle and an audit log. The
+// scheduler reaps expired disclosures and nothing else, and would otherwise have to construct
+// every repository in the system to do it.
+type disclosureRepository struct {
+	logger           logging.Logger
+	tracer           tracing.Tracer
+	generatedQuerier generated.Querier
+	auditLogRepo     audit.Repository
+	database.Client
+	readDB  database.SQLQueryExecutor
+	writeDB database.SQLQueryExecutor
+}
+
 // repository is the data privacy repository client.
 type repository struct {
+	*disclosureRepository
 	issueReportsRepo  issuereports.Repository
 	uploadedMediaRepo uploadedmedia.Repository
-	logger            logging.Logger
-	generatedQuerier  generated.Querier
-	auditLogRepo      audit.Repository
 	identityRepo      identity.Repository
-	tracer            tracing.Tracer
 	webhooksRepo      webhooks.Repository
-	database.Client
 	settingsRepo      settings.Repository
 	notificationsRepo notifications.Repository
 	waitlistsRepo     waitlists.Repository
 	commentsRepo      comments.Repository
 	paymentsRepo      payments.Repository
-	readDB            database.SQLQueryExecutor
-	writeDB           database.SQLQueryExecutor
 	dataCollectors    []dataprivacy.UserDataCollector
 }
 
@@ -62,24 +72,47 @@ func ProvideDataPrivacyRepository(
 	dataCollectors []dataprivacy.UserDataCollector,
 ) dataprivacy.Repository {
 	c := &repository{
-		Client:            client,
-		readDB:            client.Reader(),
-		writeDB:           client.Writer(),
-		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:            logging.NewNamedLogger(logger, o11yName),
-		generatedQuerier:  generated.New(),
-		auditLogRepo:      auditLogRepo,
-		identityRepo:      identityRepo,
-		issueReportsRepo:  issueReportsRepo,
-		notificationsRepo: notificationsRepo,
-		settingsRepo:      settingsRepo,
-		uploadedMediaRepo: uploadedMediaRepo,
-		waitlistsRepo:     waitlistsRepo,
-		webhooksRepo:      webhooksRepo,
-		commentsRepo:      commentsRepo,
-		paymentsRepo:      paymentsRepo,
-		dataCollectors:    dataCollectors,
+		disclosureRepository: provideDisclosureRepository(logger, tracerProvider, auditLogRepo, client),
+		identityRepo:         identityRepo,
+		issueReportsRepo:     issueReportsRepo,
+		notificationsRepo:    notificationsRepo,
+		settingsRepo:         settingsRepo,
+		uploadedMediaRepo:    uploadedMediaRepo,
+		waitlistsRepo:        waitlistsRepo,
+		webhooksRepo:         webhooksRepo,
+		commentsRepo:         commentsRepo,
+		paymentsRepo:         paymentsRepo,
+		dataCollectors:       dataCollectors,
 	}
 
 	return c
+}
+
+// ProvideUserDataDisclosureRepository provides just the disclosure-record half of the data
+// privacy repository, for processes that manage disclosure requests without ever gathering the
+// data behind them.
+func ProvideUserDataDisclosureRepository(
+	logger logging.Logger,
+	tracerProvider tracing.TracerProvider,
+	auditLogRepo audit.Repository,
+	client database.Client,
+) dataprivacy.UserDataDisclosureDataManager {
+	return provideDisclosureRepository(logger, tracerProvider, auditLogRepo, client)
+}
+
+func provideDisclosureRepository(
+	logger logging.Logger,
+	tracerProvider tracing.TracerProvider,
+	auditLogRepo audit.Repository,
+	client database.Client,
+) *disclosureRepository {
+	return &disclosureRepository{
+		Client:           client,
+		readDB:           client.Reader(),
+		writeDB:          client.Writer(),
+		tracer:           tracing.NewNamedTracer(tracerProvider, o11yName),
+		logger:           logging.NewNamedLogger(logger, o11yName),
+		generatedQuerier: generated.New(),
+		auditLogRepo:     auditLogRepo,
+	}
 }

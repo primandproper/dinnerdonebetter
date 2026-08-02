@@ -174,6 +174,24 @@
 		"runMigrations": true,
 		"enableDatabaseMetrics": false
 	},
+	"dataPrivacy": {
+		"uploads": {
+			"storageConfig": {
+				"bucketName": "userdata.dinnerdonebetter.com",
+				"provider": "gcp",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				}
+			},
+			"debug": false
+		},
+		"encryption": {
+			"provider": "salsa20"
+		},
+		"artifactEncryptionKey": ""
+	},
 	"outbox": {
 		"tablePrefix": "",
 		"claimMode": "skip_locked",
@@ -232,6 +250,13 @@
 			"leaseTTL": 120000000000,
 			"enabled": true,
 			"runOnStart": false
+		},
+		"disclosureArtifactReaper": {
+			"interval": 3600000000000,
+			"timeout": 300000000000,
+			"leaseTTL": 600000000000,
+			"enabled": true,
+			"runOnStart": true
 		},
 		"mealPlanning": {
 			"mealPlanFinalizer": {

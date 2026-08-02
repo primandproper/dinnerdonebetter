@@ -312,6 +312,9 @@ func buildProdConfig() *config.APIServiceConfig {
 					Storage: gcpUserDataStorage,
 					Debug:   false,
 				},
+				Encryption: encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
+				// Supplied from the environment, like every other secret in this file.
+				ArtifactEncryptionKey: "",
 			},
 			Users: identitycfg.Config{
 				PublicMediaURLPrefix: "https://" + prodMediaBucket + "/avatars",

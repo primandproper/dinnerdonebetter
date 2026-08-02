@@ -39,6 +39,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	authhttpsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	commentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/comments/grpc"
+	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
@@ -100,6 +101,9 @@ func BuildInjector(
 	qrcodes.RegisterBuilder(i)
 	uploadscfg.RegisterStorageConfig(i)
 	objectstorage.RegisterUploadManager(i)
+	// Disclosure artifacts get an upload manager of their own, pointed at the user data bucket
+	// rather than the media bucket the ambient one above serves.
+	dataprivacycfg.RegisterReportArtifactStore(i)
 	featureflagscfg.RegisterFeatureFlagManager(i)
 	multisource.RegisterMultiSourceEventReporter(i)
 

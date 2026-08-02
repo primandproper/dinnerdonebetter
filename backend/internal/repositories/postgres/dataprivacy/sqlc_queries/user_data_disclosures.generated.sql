@@ -60,6 +60,31 @@ WHERE user_data_disclosures.archived_at IS NULL
 ORDER BY user_data_disclosures.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
+-- name: GetExpiredUserDataDisclosures :many
+SELECT
+	user_data_disclosures.id,
+	user_data_disclosures.belongs_to_user,
+	user_data_disclosures.status,
+	user_data_disclosures.report_id,
+	user_data_disclosures.expires_at,
+	user_data_disclosures.created_at,
+	user_data_disclosures.last_updated_at,
+	user_data_disclosures.completed_at,
+	user_data_disclosures.archived_at
+FROM user_data_disclosures
+WHERE user_data_disclosures.archived_at IS NULL
+	AND user_data_disclosures.status != 'expired'
+	AND user_data_disclosures.expires_at <= NOW()
+ORDER BY user_data_disclosures.expires_at
+LIMIT 100;
+
+-- name: MarkUserDataDisclosureExpired :exec
+UPDATE user_data_disclosures SET
+	status = 'expired',
+	last_updated_at = NOW()
+WHERE user_data_disclosures.id = sqlc.arg(id)
+	AND user_data_disclosures.archived_at IS NULL;
+
 -- name: MarkUserDataDisclosureCompleted :exec
 UPDATE user_data_disclosures SET
 	status = 'completed',

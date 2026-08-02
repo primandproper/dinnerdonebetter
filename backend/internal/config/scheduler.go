@@ -7,6 +7,7 @@ import (
 
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
@@ -38,6 +39,14 @@ type (
 		Search        textsearchcfg.Config `envPrefix:"SEARCH_"        json:"search"`
 		Database      dbcfg.Config         `envPrefix:"DATABASE_"      json:"database"`
 
+		// DataPrivacy is here for the disclosure artifact bucket. The reaper only deletes, so
+		// the cipher half is dead weight for this process — it is carried anyway so that all
+		// three processes are configured from one struct and cannot drift onto different
+		// buckets, which is the failure that makes a reaper delete nothing and report success.
+		// The extra exposure is nominal: this process already holds database credentials for
+		// the data the artifacts are made of.
+		DataPrivacy dataprivacycfg.Config `envPrefix:"DATA_PRIVACY_" json:"dataPrivacy"`
+
 		// Outbox moves events written inside a caller's transaction onto the broker. It
 		// lives here because it is a background loop, which is what this process is for,
 		// and because it needs exactly what this process already has: the database and a
@@ -61,6 +70,11 @@ type (
 		SearchDataIndexScheduler    ScheduledJobConfig `envPrefix:"SEARCH_DATA_INDEX_SCHEDULER_"   json:"searchDataIndexScheduler"`
 		MobileNotificationScheduler ScheduledJobConfig `envPrefix:"MOBILE_NOTIFICATION_SCHEDULER_" json:"mobileNotificationScheduler"`
 		QueueTest                   ScheduledJobConfig `envPrefix:"QUEUE_TEST_"                    json:"queueTest"`
+
+		// DisclosureArtifactReaper destroys the object behind an expired user data disclosure.
+		// Disabling it does not pause expiry so much as abandon it: the artifacts keep
+		// accumulating and nothing else will ever delete them.
+		DisclosureArtifactReaper ScheduledJobConfig `envPrefix:"DISCLOSURE_ARTIFACT_REAPER_" json:"disclosureArtifactReaper"`
 
 		// Domain: mealplanning — swapping the domain replaces this field and the type it
 		// names, and touches nothing else in this struct.
@@ -120,6 +134,7 @@ func (cfg *ScheduledJobsConfig) ValidateWithContext(ctx context.Context) error {
 		"SearchDataIndexScheduler":    cfg.SearchDataIndexScheduler.ValidateWithContext,
 		"MobileNotificationScheduler": cfg.MobileNotificationScheduler.ValidateWithContext,
 		"QueueTest":                   cfg.QueueTest.ValidateWithContext,
+		"DisclosureArtifactReaper":    cfg.DisclosureArtifactReaper.ValidateWithContext,
 		"MealPlanning":                cfg.MealPlanning.ValidateWithContext,
 	}
 
@@ -144,6 +159,7 @@ func (cfg *SchedulerConfig) ValidateWithContext(ctx context.Context) error {
 		"Observability": cfg.Observability.ValidateWithContext,
 		"Database":      cfg.Database.ValidateWithContext,
 		"Search":        cfg.Search.ValidateWithContext,
+		"DataPrivacy":   cfg.DataPrivacy.ValidateWithContext,
 		"Jobs":          cfg.Jobs.ValidateWithContext,
 		"Outbox":        cfg.Outbox.ValidateWithContext,
 	}

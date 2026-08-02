@@ -1,0 +1,15 @@
+# At-rest encryption key for user data disclosure artifacts, as the async message handler and the
+# scheduler name it.
+#
+# All three workloads must carry the same value: the handler writes artifacts with it, the API
+# server reads them with it, and a mismatch shows up as an unreadable report rather than an error
+# at startup. The API server's env var is spelled differently — see
+# deployment-disclosure-artifact-key-api.yaml.
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACT_ENCRYPTION_KEY
+    valueFrom:
+      secretKeyRef:
+        name: api-service-config
+        key: DISCLOSURE_ARTIFACT_ENCRYPTION_KEY
