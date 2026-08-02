@@ -117,8 +117,8 @@ about HTTP.
 
 ### Implementations
 
-| Implementation           | Location                                        | Use case                                                                             |
-|--------------------------|-------------------------------------------------|--------------------------------------------------------------------------------------|
+| Implementation                 | Location                                            | Use case                                                                              |
+|--------------------------------|-----------------------------------------------------|---------------------------------------------------------------------------------------|
 | **StripePaymentProcessor**     | `internal/services/payments/adapters/stripe.go`     | Production Stripe. Delegates verification and decoding to platform-go's `capitalism`. |
 | **RevenueCatPaymentProcessor** | `internal/services/payments/adapters/revenuecat.go` | Mobile in-app purchases. Verifies the `Authorization` header RevenueCat sends.        |
 | **StubPaymentProcessor**       | `internal/services/payments/adapters/stub.go`       | Local dev, integration tests. No external calls, accepts all webhooks.                |
@@ -191,13 +191,13 @@ old `Enabled` flag because a payment manager that silently accepts every call wi
 anyone looks like a working deployment right up until someone reconciles the books. Naming `noop`
 is how a deployment says it has chosen not to bill.
 
-| Environment variable                                              | Purpose                             |
-|-------------------------------------------------------------------|-------------------------------------|
-| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_PROVIDER`          | `stripe` or `noop`                  |
-| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_STRIPE_API_KEY`    | Stripe secret key                   |
-| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret   |
-| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_REVENUECAT_API_KEY`           | RevenueCat secret API key           |
-| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_REVENUECAT_WEBHOOK_AUTH_HEADER` | Expected RevenueCat `Authorization` |
+| Environment variable                                                   | Purpose                             |
+|------------------------------------------------------------------------|-------------------------------------|
+| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_PROVIDER`              | `stripe` or `noop`                  |
+| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_STRIPE_API_KEY`        | Stripe secret key                   |
+| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret       |
+| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_REVENUECAT_API_KEY`               | RevenueCat secret API key           |
+| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_REVENUECAT_WEBHOOK_AUTH_HEADER`   | Expected RevenueCat `Authorization` |
 
 All generated environment configs ship with `"provider": "noop"`; change it in
 `cmd/tools/codegen/configs/` and run `make configs`, never by editing the JSON.
