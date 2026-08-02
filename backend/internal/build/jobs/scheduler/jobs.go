@@ -5,6 +5,7 @@ import (
 
 	mobilenotificationscheduler "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/mobile_notification_scheduler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	disclosureartifactreaper "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/workers/disclosure_artifact_reaper"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
 	mealplanfinalizer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalizer"
 	mealplangrocerylistinitializer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_grocery_list_initializer"
@@ -29,6 +30,7 @@ const (
 	jobSearchDataIndexScheduler       = "search_data_index_scheduler"
 	jobMobileNotificationScheduler    = "mobile_notification_scheduler"
 	jobQueueTest                      = "queue_test"
+	jobDisclosureArtifactReaper       = "disclosure_artifact_reaper"
 )
 
 // RegisterScheduler registers the jobs.Scheduler, with every enabled job already registered on
@@ -88,6 +90,11 @@ func RegisterScheduler(i do.Injector) {
 				name: jobQueueTest,
 				cfg:  &jobsCfg.QueueTest,
 				run:  do.MustInvoke[*queuetest.Job](i).Do,
+			},
+			{
+				name: jobDisclosureArtifactReaper,
+				cfg:  &jobsCfg.DisclosureArtifactReaper,
+				run:  do.MustInvoke[*disclosureartifactreaper.Worker](i).Work,
 			},
 		}
 

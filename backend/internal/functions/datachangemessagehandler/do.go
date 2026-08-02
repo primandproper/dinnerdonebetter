@@ -6,6 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/reportartifacts"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -22,7 +23,6 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/metrics"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/uploads"
 
 	"github.com/samber/do/v2"
 )
@@ -43,7 +43,7 @@ func RegisterAsyncDataChangeMessageHandler(i do.Injector) {
 			do.MustInvoke[messagequeue.PublisherProvider](i),
 			do.MustInvoke[analytics.EventReporter](i),
 			do.MustInvoke[email.Emailer](i),
-			do.MustInvoke[uploads.UploadManager](i),
+			do.MustInvoke[reportartifacts.Store](i),
 			do.MustInvoke[metrics.Provider](i),
 			do.MustInvoke[encoding.ServerEncoderDecoder](i),
 			do.MustInvoke[*identityindexing.UserDataIndexer](i),

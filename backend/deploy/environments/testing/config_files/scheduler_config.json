@@ -129,6 +129,14 @@
 			"enabled": true,
 			"runOnStart": false
 		},
+		"disclosureArtifactReaper": {
+			"schedule": "",
+			"interval": 3600000000000,
+			"timeout": 300000000000,
+			"leaseTTL": 600000000000,
+			"enabled": true,
+			"runOnStart": true
+		},
 		"mealPlanning": {
 			"mealPlanFinalizer": {
 				"schedule": "",
@@ -187,6 +195,28 @@
 		"logQueries": true,
 		"runMigrations": true,
 		"enableDatabaseMetrics": false
+	},
+	"dataPrivacy": {
+		"encryption": {
+			"provider": "salsa20"
+		},
+		"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
+		"uploads": {
+			"storageConfig": {
+				"filesystem": {
+					"rootDirectory": "/tmp",
+					"directoryMode": "0o0"
+				},
+				"bucketName": "userdata",
+				"provider": "filesystem",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				}
+			},
+			"debug": false
+		}
 	},
 	"outbox": {
 		"tablePrefix": "",

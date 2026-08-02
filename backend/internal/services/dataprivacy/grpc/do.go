@@ -5,13 +5,13 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	dataprivacymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/manager"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/reportartifacts"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/uploads"
 
 	"github.com/samber/do/v2"
 )
@@ -24,7 +24,7 @@ func RegisterDataPrivacyService(i do.Injector) {
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[func(context.Context) (*sessions.ContextData, error)](i),
 			do.MustInvoke[dataprivacymanager.DataPrivacyManager](i),
-			do.MustInvoke[uploads.UploadManager](i),
+			do.MustInvoke[reportartifacts.Store](i),
 			do.MustInvoke[*msgconfig.Config](i),
 			do.MustInvoke[*queuescfg.Config](i),
 		), nil

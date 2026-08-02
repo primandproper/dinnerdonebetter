@@ -10,6 +10,16 @@ resource "random_string" "jwt_signing_key" {
   special = false
 }
 
+# At-rest encryption key for user data disclosure artifacts.
+#
+# Changing this makes every artifact written under the old key permanently unreadable. That is
+# survivable — artifacts expire in seven days and a subject can request a fresh one — but it is
+# not a no-op, so this resource should not be tainted casually.
+resource "random_string" "disclosure_artifact_encryption_key" {
+  length  = 32
+  special = false
+}
+
 # Admin webapp cookie encryption key (base64-encoded 32-byte key for SvelteKit COOKIE_ENCRYPTION_KEY)
 resource "random_bytes" "admin_webapp_cookie_encryption_key" {
   length = 32

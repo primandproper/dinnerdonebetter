@@ -1,16 +1,15 @@
 package grpc
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	dataprivacymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/mock"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/reportartifacts"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
@@ -21,22 +20,21 @@ import (
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
-	mockuploads "github.com/primandproper/platform-go/v9/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 )
 
 // buildTestService builds a service backed by the given mocks. Nil arguments get unconfigured
 // mocks, which panic if any of their methods are called.
-func buildTestService(t *testing.T, mockRepo *dataprivacymock.RepositoryMock, mockUploads *mockuploads.UploadManagerMock) *serviceImpl {
+func buildTestService(t *testing.T, mockRepo *dataprivacymock.RepositoryMock, mockArtifacts *reportartifacts.StoreMock) *serviceImpl {
 	t.Helper()
 
 	if mockRepo == nil {
 		mockRepo = &dataprivacymock.RepositoryMock{}
 	}
 
-	if mockUploads == nil {
-		mockUploads = &mockuploads.UploadManagerMock{}
+	if mockArtifacts == nil {
+		mockArtifacts = &reportartifacts.StoreMock{}
 	}
 
 	exampleUserID := identifiers.New()
@@ -53,7 +51,7 @@ func buildTestService(t *testing.T, mockRepo *dataprivacymock.RepositoryMock, mo
 		logger:                    loggingnoop.NewLogger(),
 		sessionContextDataFetcher: sessionFetcher,
 		dataPrivacyManager:        mockRepo,
-		uploadManager:             mockUploads,
+		reportArtifacts:           mockArtifacts,
 		// The noop provider discards published messages, so Publish succeeds without a real message queue.
 		msgConfig: &msgconfig.Config{
 			Publisher: msgconfig.MessageQueueConfig{Provider: msgconfig.ProviderNoop},
@@ -81,12 +79,12 @@ func TestNewDataPrivacyService(t *testing.T) {
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
 		mockRepo := &dataprivacymock.RepositoryMock{}
-		mockUploads := &mockuploads.UploadManagerMock{}
+		mockArtifacts := &reportartifacts.StoreMock{}
 		sessionFetcher := func(context.Context) (*sessions.ContextData, error) {
 			return &sessions.ContextData{}, nil
 		}
 
-		service := NewDataPrivacyService(logger, tracerProvider, sessionFetcher, mockRepo, mockUploads, &msgconfig.Config{}, &queuescfg.Config{})
+		service := NewDataPrivacyService(logger, tracerProvider, sessionFetcher, mockRepo, mockArtifacts, &msgconfig.Config{}, &queuescfg.Config{})
 
 		assert.NotNil(t, service)
 		assert.Implements(t, (*dataprivacysvc.DataPrivacyServiceServer)(nil), service)
@@ -202,12 +200,12 @@ func TestServiceImpl_FetchUserDataReport(t *testing.T) {
 		collectionBytes, err := json.Marshal(collection)
 		assert.NoError(t, err)
 
-		mockUploads := &mockuploads.UploadManagerMock{
-			OpenFunc: func(_ context.Context, _ string) (io.ReadCloser, error) {
-				return io.NopCloser(bytes.NewReader(collectionBytes)), nil
+		mockArtifacts := &reportartifacts.StoreMock{
+			OpenFunc: func(_ context.Context, _ string) ([]byte, error) {
+				return collectionBytes, nil
 			},
 		}
-		service := buildTestService(t, nil, mockUploads)
+		service := buildTestService(t, nil, mockArtifacts)
 		service.sessionContextDataFetcher = sessionFetcherForUser(userID)
 
 		request := &dataprivacysvc.FetchUserDataReportRequest{

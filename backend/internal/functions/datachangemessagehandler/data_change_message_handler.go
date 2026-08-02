@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/reportartifacts"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -31,7 +32,6 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/metrics"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/uploads"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -71,7 +71,7 @@ var (
 // repositories and event types. Domain-specific handler logic lives in dedicated files
 // (e.g., mealplanning_handlers.go) to keep concerns separable.
 type AsyncDataChangeMessageHandler struct {
-	uploadManager                             uploads.UploadManager
+	reportArtifacts                           reportartifacts.Store
 	tracer                                    tracing.Tracer
 	dataPrivacyRepo                           dataprivacy.Repository
 	internalOpsRepo                           internalops.InternalOpsDataManager
@@ -146,7 +146,7 @@ func NewAsyncDataChangeMessageHandler(
 	publisherProvider messagequeue.PublisherProvider,
 	analyticsEventReporter analytics.EventReporter,
 	emailer email.Emailer,
-	uploadManager uploads.UploadManager,
+	reportArtifacts reportartifacts.Store,
 	metricsProvider metrics.Provider,
 	decoder encoding.ServerEncoderDecoder,
 	coreDataIndexer *identityindexing.UserDataIndexer,
@@ -274,7 +274,7 @@ func NewAsyncDataChangeMessageHandler(
 		webhookExecutionRequestPublisher:     webhookExecutionRequestPublisher,
 		mobileNotificationsPublisher:         mobileNotificationsPublisher,
 		emailer:                              emailer,
-		uploadManager:                        uploadManager,
+		reportArtifacts:                      reportArtifacts,
 		dataChangesExecutionTimeHistogram:    dataChangesExecutionTimeHistogram,
 		outboundEmailsExecutionTimeHistogram: outboundEmailsExecutionTimeHistogram,
 		searchIndexRequestsExecutionTimeHistogram: searchIndexRequestsExecutionTimeHistogram,

@@ -53,6 +53,10 @@ import (
 const (
 	dockerComposeWorkerQueueAddress = "worker_queue:6379"
 	localOAuth2TokenEncryptionKey   = debugCookieHashKey
+
+	// localDisclosureArtifactEncryptionKey encrypts user data disclosure artifacts locally. It
+	// is a throwaway: nothing outside a developer machine is written with it.
+	localDisclosureArtifactEncryptionKey = debugCookieHashKey
 )
 
 var (
@@ -278,6 +282,8 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 					},
 					Debug: false,
 				},
+				Encryption:            encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
+				ArtifactEncryptionKey: localDisclosureArtifactEncryptionKey,
 			},
 			Users: identitycfg.Config{
 				PublicMediaURLPrefix: "http://localhost:8000/uploads",
