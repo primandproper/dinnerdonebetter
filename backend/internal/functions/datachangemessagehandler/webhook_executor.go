@@ -5,9 +5,11 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -15,7 +17,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
 	"github.com/primandproper/platform-go/v9/encoding"
-	"github.com/primandproper/platform-go/v9/httpclient"
 	"github.com/primandproper/platform-go/v9/observability"
 	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
@@ -78,13 +79,27 @@ func (a *AsyncDataChangeMessageHandler) handleWebhookExecutionRequest(
 
 	account, err := a.identityRepo.GetAccount(ctx, webhookExecutionRequest.AccountID)
 	if err != nil {
+		// A missing account is terminal: there is nothing to sign the delivery with, and no
+		// amount of redelivery will bring it back. Anything else is presumed transient and
+		// returned so the queue retries.
+		if errors.Is(err, sql.ErrNoRows) {
+			observability.AcknowledgeError(err, logger, span, "getting account")
+			return nil
+		}
+
 		return observability.PrepareAndLogError(err, logger, span, "getting account")
 	}
 
 	webhook, err := a.webhookRepo.GetWebhook(ctx, webhookExecutionRequest.WebhookID, webhookExecutionRequest.AccountID)
 	if err != nil {
-		observability.AcknowledgeError(err, logger, span, "getting webhook")
-		return nil
+		// Same split: an archived webhook has nothing left to deliver to, but a connection
+		// blip or a timeout must not read as "this webhook is gone" and drop the delivery.
+		if errors.Is(err, sql.ErrNoRows) {
+			observability.AcknowledgeError(err, logger, span, "getting webhook")
+			return nil
+		}
+
+		return observability.PrepareAndLogError(err, logger, span, "getting webhook")
 	}
 
 	var payloadBody []byte
@@ -117,7 +132,8 @@ func (a *AsyncDataChangeMessageHandler) handleWebhookExecutionRequest(
 	digest.Write(payloadBody)
 	req.Header.Set("X-Dinner-Done-Better-Signature", hex.EncodeToString(digest.Sum(nil)))
 
-	res, err := httpclient.NewHTTPClient(httpclient.WithTracing(true)).Do(req) //nolint:gosec // G704: webhook URL is admin-configured; webhooks intentionally deliver to external URLs
+	// The webhook URL is admin-configured, and delivering to external URLs is the entire point.
+	res, err := a.webhookHTTPClient.Do(req)
 	if err != nil {
 		// Return the error so the message is retried at the queue level rather than silently dropped.
 		return observability.PrepareAndLogError(err, logger, span, "executing webhook request")
