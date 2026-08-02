@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"testing"
 
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/fakes"
-	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/fakes"
+	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 

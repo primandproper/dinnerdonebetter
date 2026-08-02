@@ -4,7 +4,7 @@ package settings;
 
 import "settings/settings_service_types.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/settings";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings";
 
 service SettingsService {
   rpc GetServiceSettingConfigurationsForAccount(GetServiceSettingConfigurationsForAccountRequest) returns (GetServiceSettingConfigurationsForAccountResponse);

@@ -1,7 +1,7 @@
 package manager
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/tracing"

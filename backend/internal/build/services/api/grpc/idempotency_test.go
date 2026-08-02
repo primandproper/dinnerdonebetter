@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
-	paymentssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 
 	cachecfg "github.com/primandproper/platform-go/v9/cache/config"
 	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"

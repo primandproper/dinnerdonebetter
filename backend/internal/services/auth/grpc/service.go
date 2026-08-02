@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	authentication2 "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/webauthn"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth/managers"
-	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
-	authsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
+	authentication2 "github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/webauthn"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
+	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
+	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
 	"github.com/primandproper/platform-go/v9/encoding"
 	"github.com/primandproper/platform-go/v9/featureflags"

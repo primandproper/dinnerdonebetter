@@ -1,7 +1,7 @@
 package converters
 
 import (
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
 	"github.com/primandproper/platform-go/v9/identifiers"
 )

@@ -4,7 +4,7 @@ package dataprivacy;
 
 import "dataprivacy/dataprivacy_service_types.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy";
 
 service DataPrivacyService {
   rpc AggregateUserDataReport(AggregateUserDataReportRequest) returns (AggregateUserDataReportResponse);

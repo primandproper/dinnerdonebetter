@@ -5,7 +5,7 @@ package identity;
 import "identity/identity_service_types.proto";
 import "uploaded_media/uploaded_media_messages.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/identity";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity";
 
 service IdentityService {
   rpc AdminSetPasswordChangeRequired(AdminSetPasswordChangeRequiredRequest) returns (AdminSetPasswordChangeRequiredResponse);

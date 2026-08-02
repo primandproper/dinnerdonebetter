@@ -4,7 +4,7 @@ set -euo pipefail
 # Run consumer service with air
 # Usage: consumer.sh <package_prefix> <artifacts_dir>
 
-PACKAGE_PREFIX="${1:-github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend}"
+PACKAGE_PREFIX="${1:-github.com/primandproper/dinnerdonebetter/backend}"
 ARTIFACTS_DIR="${2:-artifacts}"
 
 go tool air \

@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
-	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
-	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
-	dataprivacycfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/dataprivacy/config"
+	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
+	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
+	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"

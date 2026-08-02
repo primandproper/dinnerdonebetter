@@ -6,7 +6,7 @@ import "audit/audit_messages.proto";
 import "common.proto";
 import "filtering.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/audit";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit";
 
 message GetAuditLogEntriesForAccountRequest {
   filtering.QueryFilter filter = 1;

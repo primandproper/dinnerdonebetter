@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	mealplanningnotifications "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
-	domainnotifications "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	mealplanningnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
+	domainnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"

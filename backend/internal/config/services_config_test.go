@@ -3,11 +3,11 @@ package config
 import (
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
-	dataprivacycfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/dataprivacy/config"
-	identitycfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/config"
-	mealplanningcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/config"
-	oauthcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/oauth/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
+	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
+	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
+	mealplanningcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/config"
+	oauthcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/config"
 )
 
 func TestServicesConfig_ValidateWithContext(T *testing.T) {

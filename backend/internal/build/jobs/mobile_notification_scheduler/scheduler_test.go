@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	identitymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	mealplanningnotifications "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
+	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
+	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
+	mealplanningnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
 
 	msgqueuemock "github.com/primandproper/platform-go/v9/messagequeue/mock"
 	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"

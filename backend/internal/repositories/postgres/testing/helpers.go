@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
-	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
 	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
 	"github.com/primandproper/platform-go/v9/database"

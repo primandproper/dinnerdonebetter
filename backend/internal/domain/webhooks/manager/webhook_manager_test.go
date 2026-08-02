@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
-	webhookmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/mock"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
+	webhookmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/mock"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"

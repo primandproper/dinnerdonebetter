@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
-	domaininternalops "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/internalops"
-	settingssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	domaininternalops "github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
+	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 
 	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
 	"github.com/primandproper/platform-go/v9/identifiers"

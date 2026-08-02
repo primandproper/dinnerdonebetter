@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 
-	emaildeliverabilitytestbuild "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/jobs/email_deliverability_test"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/telemetry"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
-	emaildeliverabilitytest "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/email/workers/email_deliverability_test"
+	emaildeliverabilitytestbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/email_deliverability_test"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/telemetry"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	emaildeliverabilitytest "github.com/primandproper/dinnerdonebetter/backend/internal/services/email/workers/email_deliverability_test"
 
 	"github.com/samber/do/v2"
 	_ "go.uber.org/automaxprocs"

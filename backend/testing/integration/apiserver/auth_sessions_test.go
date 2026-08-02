@@ -3,7 +3,7 @@ package integration
 import (
 	"testing"
 
-	authsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
+	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -258,7 +258,7 @@ Define:
 
 - `service XxxService { rpc CreateXxx(...) returns (...); ... }`
 - Request/response messages
-- `option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/<domain>";`
+- `option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/<domain>";`
 
 **Generate**:
 

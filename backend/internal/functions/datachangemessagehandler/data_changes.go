@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/retry"

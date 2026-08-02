@@ -3,7 +3,7 @@ package config
 import (
 	"testing"
 
-	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
+	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -3,8 +3,8 @@ package errors
 import (
 	"errors"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
-	mealplanningrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
 	httperrors "github.com/primandproper/platform-go/v9/errors/http"
 )

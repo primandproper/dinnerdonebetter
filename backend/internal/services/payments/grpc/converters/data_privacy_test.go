@@ -3,8 +3,8 @@ package converters
 import (
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
-	fakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
+	fakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 
 	"github.com/primandproper/platform-go/v9/identifiers"
 

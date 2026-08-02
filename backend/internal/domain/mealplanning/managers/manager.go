@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
-	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
-	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
+	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 	"github.com/primandproper/platform-go/v9/messagequeue"

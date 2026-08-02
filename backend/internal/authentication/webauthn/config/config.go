@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/webauthn"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/webauthn"
 
 	"github.com/primandproper/platform-go/v9/database"
 	"github.com/primandproper/platform-go/v9/observability/logging"

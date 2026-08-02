@@ -1,7 +1,7 @@
 package converters
 
 import (
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 )
 
 // ConvertAuditLogEntryToAuditLogEntryDatabaseCreationInput builds a AuditLogEntryDatabaseCreationInput from a AuditLogEntry.

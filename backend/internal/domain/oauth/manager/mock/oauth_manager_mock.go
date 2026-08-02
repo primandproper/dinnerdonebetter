@@ -7,8 +7,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/manager"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/manager"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 )

@@ -11,10 +11,10 @@ import (
 	sync "sync"
 	unsafe "unsafe"
 
-	filtering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
-	comments "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
-	uploaded_media "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
+	filtering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
+	comments "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
+	uploaded_media "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

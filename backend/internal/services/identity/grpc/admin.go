@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	identityconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/converters"
-	identitysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
+	identityconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
+	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 
 	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
 

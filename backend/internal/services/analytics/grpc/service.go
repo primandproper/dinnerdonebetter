@@ -3,9 +3,9 @@ package grpc
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
-	analyticspb "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
-	grpctypes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	analyticspb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
+	grpctypes "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 
 	"github.com/primandproper/platform-go/v9/analytics/multisource"
 	"github.com/primandproper/platform-go/v9/observability"

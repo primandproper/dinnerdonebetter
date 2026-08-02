@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
-	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	"github.com/primandproper/platform-go/v9/jobs"
 	"github.com/primandproper/platform-go/v9/messagequeue"

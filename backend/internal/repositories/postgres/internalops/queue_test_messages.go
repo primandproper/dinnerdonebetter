@@ -3,8 +3,8 @@ package internalops
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/internalops"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/internalops/generated"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops/generated"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/observability"

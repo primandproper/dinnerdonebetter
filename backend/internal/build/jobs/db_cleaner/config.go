@@ -1,8 +1,8 @@
 package dbcleaner
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
-	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"
 	"github.com/primandproper/platform-go/v9/observability"

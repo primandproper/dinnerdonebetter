@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/fakes"
-	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/fakes"
+	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

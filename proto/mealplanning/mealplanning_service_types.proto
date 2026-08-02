@@ -9,7 +9,7 @@ import "google/protobuf/timestamp.proto";
 import "mealplanning/mealplanning_messages.proto";
 import "uploaded_media/uploaded_media_messages.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning";
 
 message ValidIngredientCreationRequestInput {
   optional float min_storage_temperature_in_celsius = 1;

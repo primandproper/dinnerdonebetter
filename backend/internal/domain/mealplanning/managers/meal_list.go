@@ -3,9 +3,9 @@ package managers
 import (
 	"context"
 
-	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"

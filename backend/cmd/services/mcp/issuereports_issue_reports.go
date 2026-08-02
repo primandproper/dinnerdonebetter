@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 

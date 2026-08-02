@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	mockauthn "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	identitymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/mock"
-	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
+	mockauthn "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/mock"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
+	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"

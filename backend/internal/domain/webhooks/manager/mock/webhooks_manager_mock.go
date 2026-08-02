@@ -7,8 +7,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/manager"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/manager"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 )

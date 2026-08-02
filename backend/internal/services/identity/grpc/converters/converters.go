@@ -1,12 +1,12 @@
 package converters
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
-	identitysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
-	uploadedmediasvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
-	uploadedmediaconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
+	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
+	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
+	uploadedmediaconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
 	"github.com/primandproper/platform-go/v9/pointer"
 )

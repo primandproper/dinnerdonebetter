@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/fakes"
 
 	"github.com/go-oauth2/oauth2/v4"
 	"github.com/stretchr/testify/assert"

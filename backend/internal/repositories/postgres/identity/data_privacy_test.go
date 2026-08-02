@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/stretchr/testify/assert"
 )

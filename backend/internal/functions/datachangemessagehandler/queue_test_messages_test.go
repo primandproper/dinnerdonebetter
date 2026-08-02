@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	internalopsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/internalops/mock"
+	internalopsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops/mock"
 
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	"github.com/primandproper/platform-go/v9/observability/tracing"

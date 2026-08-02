@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	mealplanningnotifications "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
-	domainnotifications "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications"
-	notificationsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/mock"
+	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
+	mealplanningnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
+	domainnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
+	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"

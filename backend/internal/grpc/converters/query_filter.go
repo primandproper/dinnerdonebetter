@@ -1,7 +1,7 @@
 package grpcconverters
 
 import (
-	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
+	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 )

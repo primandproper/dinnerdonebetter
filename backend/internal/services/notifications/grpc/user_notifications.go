@@ -3,13 +3,13 @@ package grpc
 import (
 	"context"
 
-	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications"
-	notificationkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/keys"
-	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
-	notificationssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
-	grpctypes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/notifications/grpc/converters"
+	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
+	notificationkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/keys"
+	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
+	notificationssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
+	grpctypes "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/notifications/grpc/converters"
 
 	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
 

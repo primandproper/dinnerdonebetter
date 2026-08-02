@@ -1,8 +1,8 @@
 package grpc
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
-	uploadedmediasvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 )
 
 // UploadedMediaMethodPermissions is a named type for Wire dependency injection.

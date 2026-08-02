@@ -1,9 +1,9 @@
 package converters
 
 import (
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists"
-	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
-	waitlistssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
+	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
+	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 
 	"github.com/primandproper/platform-go/v9/identifiers"
 )

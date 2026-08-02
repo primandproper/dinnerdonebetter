@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
-	mockauthn "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/mock"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
+	mockauthn "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/mock"
 
 	"github.com/primandproper/platform-go/v9/authentication/totp"
 	mocktotp "github.com/primandproper/platform-go/v9/authentication/totp/mock"

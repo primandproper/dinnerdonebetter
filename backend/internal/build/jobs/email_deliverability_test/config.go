@@ -1,8 +1,8 @@
 package emaildeliverabilitytest
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
-	emaildeliverabilitytest "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/email/workers/email_deliverability_test"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	emaildeliverabilitytest "github.com/primandproper/dinnerdonebetter/backend/internal/services/email/workers/email_deliverability_test"
 
 	emailcfg "github.com/primandproper/platform-go/v9/email/config"
 	httpclientcfg "github.com/primandproper/platform-go/v9/httpclient"

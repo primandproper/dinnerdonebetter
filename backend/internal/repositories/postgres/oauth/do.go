@@ -3,9 +3,9 @@ package oauth
 import (
 	"context"
 
-	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
-	domainoauth "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
+	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	domainoauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
 	"github.com/primandproper/platform-go/v9/database"
 	"github.com/primandproper/platform-go/v9/observability/logging"

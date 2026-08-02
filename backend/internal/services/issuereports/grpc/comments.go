@@ -3,11 +3,11 @@ package grpc
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
-	issuereportkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/keys"
-	issuereportssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
-	commentsconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/comments/grpc/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
+	issuereportkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/keys"
+	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
+	commentsconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/comments/grpc/converters"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"

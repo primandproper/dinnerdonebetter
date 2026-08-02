@@ -1,7 +1,7 @@
 package events
 
 import (
-	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
+	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	"github.com/primandproper/platform-go/v9/database/dialect"
 	"github.com/primandproper/platform-go/v9/observability/logging"

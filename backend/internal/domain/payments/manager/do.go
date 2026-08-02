@@ -3,8 +3,8 @@ package manager
 import (
 	"context"
 
-	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
+	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/tracing"

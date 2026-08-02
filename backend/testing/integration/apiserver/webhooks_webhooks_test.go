@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
-	webhookssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
-	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/webhooks/grpc/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/pkg/client"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
+	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
+	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

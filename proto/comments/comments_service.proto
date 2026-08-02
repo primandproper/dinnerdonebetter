@@ -4,7 +4,7 @@ package comments;
 
 import "comments/comments_service_types.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/comments";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments";
 
 service CommentsService {
   rpc CreateComment(CreateCommentRequest) returns (CreateCommentResponse);

@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
-	authfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth/fakes"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	authfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 	"github.com/primandproper/platform-go/v9/identifiers"

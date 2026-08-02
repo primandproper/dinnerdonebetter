@@ -4,7 +4,7 @@ package auth;
 
 import "auth/auth_service_types.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/auth";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth";
 
 service AuthService {
   rpc EvaluateBooleanFeatureFlag(EvaluateBooleanFeatureFlagRequest) returns (EvaluateBooleanFeatureFlagResponse);

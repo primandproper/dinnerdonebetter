@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings"
-	settingskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/keys"
-	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/settings/generated"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
+	settingskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/keys"
+	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings/generated"
 
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"

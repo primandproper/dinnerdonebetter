@@ -6,11 +6,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
-	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
-	paymentskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
+	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
+	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"

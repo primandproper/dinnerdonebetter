@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/pquerna/otp/totp"

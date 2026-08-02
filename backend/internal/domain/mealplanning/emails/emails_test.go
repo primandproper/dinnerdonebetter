@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
-	identityfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	mealplanningfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+	mealplanningfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -3,8 +3,8 @@ package webhooks
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 	"github.com/primandproper/platform-go/v9/observability"

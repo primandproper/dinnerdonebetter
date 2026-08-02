@@ -1,9 +1,9 @@
 package auth
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auth/generated"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth/generated"
 
 	"github.com/primandproper/platform-go/v9/database"
 	"github.com/primandproper/platform-go/v9/observability/logging"

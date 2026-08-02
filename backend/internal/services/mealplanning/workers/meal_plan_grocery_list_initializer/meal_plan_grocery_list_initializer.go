@@ -3,12 +3,12 @@ package mealplangrocerylistinitializer
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
-	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
+	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
 	"github.com/primandproper/platform-go/v9/messagequeue"
 	"github.com/primandproper/platform-go/v9/observability"

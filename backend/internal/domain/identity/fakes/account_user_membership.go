@@ -1,7 +1,7 @@
 package fakes
 
 import (
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )

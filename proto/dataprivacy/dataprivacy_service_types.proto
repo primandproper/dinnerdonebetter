@@ -6,7 +6,7 @@ import "common.proto";
 import "dataprivacy/dataprivacy_messages.proto";
 import "filtering.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy";
 
 message AggregateUserDataReportRequest {}
 

@@ -3,10 +3,10 @@ package integration
 import (
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/fakes"
-	paymentsgrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
-	paymentssvcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/grpc/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
+	paymentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
+	paymentssvcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc/converters"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

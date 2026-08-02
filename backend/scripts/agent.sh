@@ -4,7 +4,7 @@ set -euo pipefail
 # Run AI agent
 # Usage: agent.sh <package_prefix> [args...]
 
-PACKAGE_PREFIX="${1:-github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend}"
+PACKAGE_PREFIX="${1:-github.com/primandproper/dinnerdonebetter/backend}"
 shift || true
 
 # Default args if none provided

@@ -1,8 +1,8 @@
 package grpc
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
-	identitysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 )
 
 // IdentityMethodPermissions is a named type for Wire dependency injection.

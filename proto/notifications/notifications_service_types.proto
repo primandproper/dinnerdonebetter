@@ -6,7 +6,7 @@ import "common.proto";
 import "filtering.proto";
 import "notifications/notifications_messages.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/notifications";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications";
 
 message GetUserNotificationRequest {
   string user_notification_id = 1;

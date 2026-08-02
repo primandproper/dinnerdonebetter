@@ -1,8 +1,8 @@
 package grpc
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
-	webhookssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 )
 
 // WebhooksMethodPermissions is a named type for Wire dependency injection.

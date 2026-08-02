@@ -3,10 +3,10 @@ package grpc
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
-	commentsmanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/manager"
-	issuereportsmanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/manager"
-	issuereportssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	commentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager"
+	issuereportsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/manager"
+	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/tracing"

@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	identitymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/fakes"
-	paymentsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/adapters"
+	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
+	paymentsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/mock"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"

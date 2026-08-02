@@ -1,8 +1,8 @@
 package internalops
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/internalops"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/internalops/generated"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops/generated"
 
 	"github.com/primandproper/platform-go/v9/database"
 	"github.com/primandproper/platform-go/v9/observability/logging"

@@ -1,8 +1,8 @@
 package grpc
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
-	issuereportssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 )
 
 // IssueReportsMethodPermissions is a named type for Wire dependency injection.

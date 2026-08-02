@@ -1,4 +1,4 @@
-git_url("https://github.com/verygoodsoftwarenotvirus/ios-certificates")
+git_url("https://github.com/primandproper/ios-certificates")
 storage_mode("git")
 type("appstore")
 app_identifier("com.dinnerdonebetter.ios")

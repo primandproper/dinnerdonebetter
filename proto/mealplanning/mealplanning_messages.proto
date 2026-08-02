@@ -5,7 +5,7 @@ package mealplanning;
 import "google/protobuf/timestamp.proto";
 import "uploaded_media/uploaded_media_messages.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning";
 
 message DataCollection {
   repeated AccountInstrumentOwnership account_instrument_ownerships = 1;

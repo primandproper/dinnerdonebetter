@@ -5,7 +5,7 @@ package uploaded_media;
 import "uploaded_media/uploaded_media_messages.proto";
 import "uploaded_media/uploaded_media_service_types.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media";
 
 service UploadedMediaService {
   rpc Upload(stream UploadRequest) returns (UploadResponse);

@@ -3,9 +3,9 @@ package grpcapi
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 
 	platformauthz "github.com/primandproper/platform-go/v9/authorization"
 	authzgrpc "github.com/primandproper/platform-go/v9/authorization/grpc"

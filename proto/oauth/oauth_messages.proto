@@ -5,7 +5,7 @@ package oauth;
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/oauth";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth";
 
 message OAuth2Client {
   google.protobuf.Timestamp created_at = 1;

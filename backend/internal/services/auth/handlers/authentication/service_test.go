@@ -5,12 +5,12 @@ import (
 	"encoding/base64"
 	"testing"
 
-	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
-	mockauthn "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/mock"
-	identitymanagermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
-	oauthmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/mock"
-	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
+	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
+	mockauthn "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/mock"
+	identitymanagermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
+	oauthmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/mock"
+	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
 	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
 	mocktotp "github.com/primandproper/platform-go/v9/authentication/totp/mock"

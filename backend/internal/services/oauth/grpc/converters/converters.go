@@ -1,9 +1,9 @@
 package converters
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
-	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
-	oauthsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
+	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 )
 
 func ConvertGRPCOAuth2ClientCreationRequestInputToOAuth2ClientCreationRequestInput(input *oauthsvc.OAuth2ClientCreationRequestInput) *oauth.OAuth2ClientCreationRequestInput {

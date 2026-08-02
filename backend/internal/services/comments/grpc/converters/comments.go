@@ -1,9 +1,9 @@
 package grpcconverters
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments"
-	platformconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
-	commentssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
+	platformconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
+	commentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
 )
 
 // ConvertProtoCommentCreationRequestInputToDomain converts proto CommentCreationRequestInput to domain.

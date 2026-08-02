@@ -3,7 +3,7 @@ package manager
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/tracing"

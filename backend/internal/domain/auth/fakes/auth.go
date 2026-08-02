@@ -1,10 +1,10 @@
 package fakes
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )

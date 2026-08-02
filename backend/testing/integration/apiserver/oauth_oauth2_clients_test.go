@@ -3,11 +3,11 @@ package integration
 import (
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/fakes"
-	oauthsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
-	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/oauth/grpc/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/fakes"
+	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
+	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc/converters"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
 	"github.com/primandproper/platform-go/v9/authentication/totp"
 	"github.com/primandproper/platform-go/v9/observability"

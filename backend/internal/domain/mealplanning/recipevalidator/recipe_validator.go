@@ -3,7 +3,7 @@ package recipevalidator
 import (
 	"fmt"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 )
 
 // RecipeValidator validates and populates recipe creation inputs using bridge table data.

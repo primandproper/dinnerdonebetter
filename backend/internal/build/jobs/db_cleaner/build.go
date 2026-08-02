@@ -3,9 +3,9 @@ package dbcleaner
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
-	dbcleaner "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/oauth/workers/db_cleaner"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
+	dbcleaner "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/workers/db_cleaner"
 
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"
 	"github.com/primandproper/platform-go/v9/database/postgres"

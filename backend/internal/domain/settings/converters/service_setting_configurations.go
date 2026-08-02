@@ -1,7 +1,7 @@
 package converters
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 )
 
 // ConvertServiceSettingConfigurationToServiceSettingConfigurationUpdateRequestInput creates a ServiceSettingConfigurationUpdateRequestInput from a ServiceSettingConfiguration.

@@ -9,11 +9,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	identityrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity"
-	mealplanningrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
+	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
+	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
 	"github.com/primandproper/platform-go/v9/database"
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"

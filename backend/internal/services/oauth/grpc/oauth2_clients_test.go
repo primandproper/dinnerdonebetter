@@ -5,11 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
-	oauthfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/fakes"
-	managermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/manager/mock"
-	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
-	oauthsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	oauthfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/fakes"
+	managermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/manager/mock"
+	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
+	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"

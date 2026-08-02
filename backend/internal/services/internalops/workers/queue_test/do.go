@@ -1,7 +1,7 @@
 package queuetest
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/internalops"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 
 	"github.com/primandproper/platform-go/v9/messagequeue"
 	"github.com/primandproper/platform-go/v9/observability/logging"

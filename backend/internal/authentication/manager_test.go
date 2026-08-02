@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
-	authmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth/mock"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	identitymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/mock"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	authmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/mock"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 
 	"github.com/primandproper/platform-go/v9/authentication/tokens"
 	mocktokens "github.com/primandproper/platform-go/v9/authentication/tokens/mock"

@@ -3,10 +3,10 @@ package integration
 import (
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
-	commentsgrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
-	mealplanninggrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/pkg/client"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	commentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
+	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

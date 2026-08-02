@@ -4,7 +4,7 @@ package notifications;
 
 import "notifications/notifications_service_types.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/notifications";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications";
 
 service UserNotificationsService {
   rpc GetUserNotification(GetUserNotificationRequest) returns (GetUserNotificationResponse);

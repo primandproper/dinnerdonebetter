@@ -3,11 +3,11 @@ package grpc
 import (
 	"context"
 
-	settingskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings/keys"
-	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
-	settingssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/settings/grpc/converters"
+	settingskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/keys"
+	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
+	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/settings/grpc/converters"
 
 	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
 	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"

@@ -3,7 +3,7 @@ package fakes
 import (
 	"time"
 
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 

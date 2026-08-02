@@ -1,12 +1,12 @@
 package api
 
 import (
-	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
-	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
-	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
-	paymentscfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/config"
+	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
+	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
+	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"

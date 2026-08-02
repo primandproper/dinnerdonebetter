@@ -3,10 +3,10 @@ package internalops
 import (
 	"fmt"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
-	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
+	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
 	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"
 )

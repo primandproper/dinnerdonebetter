@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/fakes"
-	notificationsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/mock"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/fakes"
+	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
 
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"

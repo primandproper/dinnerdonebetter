@@ -3,7 +3,7 @@ package migrations
 import (
 	"testing"
 
-	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
+	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 

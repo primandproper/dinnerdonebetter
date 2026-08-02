@@ -3,7 +3,7 @@ package mealplanning
 import (
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 

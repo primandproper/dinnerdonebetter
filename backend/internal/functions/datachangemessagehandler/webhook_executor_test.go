@@ -7,11 +7,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	identityfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
-	webhooksfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
+	webhooksfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 
 	"github.com/primandproper/platform-go/v9/identifiers"
 

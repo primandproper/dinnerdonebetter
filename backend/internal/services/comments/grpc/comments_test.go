@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments"
-	commentsfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/fakes"
-	commentsmanagermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/manager/mock"
-	commentssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
+	commentsfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/fakes"
+	commentsmanagermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager/mock"
+	commentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"

@@ -7,7 +7,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
 	"gonum.org/v1/gonum/graph/simple"
 )

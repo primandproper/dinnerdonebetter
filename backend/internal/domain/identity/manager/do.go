@@ -3,9 +3,9 @@ package manager
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/tracing"

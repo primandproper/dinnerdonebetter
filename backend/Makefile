@@ -4,7 +4,7 @@ MYSELF   := $(shell id -u)
 MY_GROUP := $(shell id -g)
 
 # PATHS
-THIS          := github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend
+THIS          := github.com/primandproper/dinnerdonebetter/backend
 ARTIFACTS_DIR := artifacts
 SCRIPTS_DIR   := scripts
 COVERAGE_OUT  := $(ARTIFACTS_DIR)/coverage.out

@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/fakes"
-	commentsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments/mock"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/fakes"
+	commentsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/mock"
 
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"

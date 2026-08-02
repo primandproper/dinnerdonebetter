@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
-	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
 	"github.com/primandproper/platform-go/v9/email"
 	"github.com/primandproper/platform-go/v9/observability/logging"

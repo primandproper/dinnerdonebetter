@@ -1,8 +1,8 @@
 package grpc
 
 import (
-	auditmanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit/manager"
-	auditsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
+	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
+	auditsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/tracing"

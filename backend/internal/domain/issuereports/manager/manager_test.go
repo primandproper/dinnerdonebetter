@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/fakes"
-	issuereportsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports/mock"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/fakes"
+	issuereportsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/mock"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"

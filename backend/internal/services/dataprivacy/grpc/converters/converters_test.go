@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
 	"github.com/primandproper/platform-go/v9/identifiers"
 

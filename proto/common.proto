@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package common;
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types";
 
 message NamedID {
   string id = 1;

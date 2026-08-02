@@ -1,8 +1,8 @@
 package grpc
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
-	dataprivacysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 )
 
 // DataPrivacyMethodPermissions is a named type for Wire dependency injection.

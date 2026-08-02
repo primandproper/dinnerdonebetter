@@ -4,7 +4,7 @@ package mealplanning;
 
 import "mealplanning/mealplanning_service_types.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning";
 
 service MealPlanningService {
   rpc AddCommentToMeal(AddCommentToMealRequest) returns (AddCommentToMealResponse);
