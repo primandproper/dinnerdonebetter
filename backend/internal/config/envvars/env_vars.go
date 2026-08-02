@@ -460,6 +460,9 @@ const (
 	// JobsDisclosureArtifactReaperRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.DisclosureArtifactReaper.RunOnStart`.
 	JobsDisclosureArtifactReaperRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_DISCLOSURE_ARTIFACT_REAPER_RUN_ON_START"
 
+	// JobsDisclosureArtifactReaperScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.DisclosureArtifactReaper.Schedule`.
+	JobsDisclosureArtifactReaperScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_DISCLOSURE_ARTIFACT_REAPER_SCHEDULE"
+
 	// JobsDisclosureArtifactReaperTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.DisclosureArtifactReaper.Timeout`.
 	JobsDisclosureArtifactReaperTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_DISCLOSURE_ARTIFACT_REAPER_TIMEOUT"
 
