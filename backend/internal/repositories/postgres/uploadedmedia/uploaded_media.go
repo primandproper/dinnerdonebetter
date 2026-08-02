@@ -13,7 +13,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -192,9 +191,8 @@ func (r *repository) CreateUploadedMedia(ctx context.Context, input *types.Uploa
 		}
 
 		userID := x.CreatedByUser
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToUser: userID,
-			ID:            identifiers.New(),
 			ResourceType:  resourceTypeUploadedMedia,
 			RelevantID:    x.ID,
 			EventType:     audit.AuditLogEventTypeCreated,
@@ -240,9 +238,8 @@ func (r *repository) UpdateUploadedMedia(ctx context.Context, uploadedMedia *typ
 		}
 
 		userID := uploadedMedia.CreatedByUser
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToUser: userID,
-			ID:            identifiers.New(),
 			ResourceType:  resourceTypeUploadedMedia,
 			RelevantID:    uploadedMedia.ID,
 			EventType:     audit.AuditLogEventTypeUpdated,
@@ -283,8 +280,7 @@ func (r *repository) ArchiveUploadedMedia(ctx context.Context, uploadedMediaID s
 			return sql.ErrNoRows
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			ResourceType: resourceTypeUploadedMedia,
 			RelevantID:   uploadedMediaID,
 			EventType:    audit.AuditLogEventTypeArchived,

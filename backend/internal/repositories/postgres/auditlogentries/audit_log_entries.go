@@ -2,15 +2,13 @@ package auditlogentries
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
-	"strings"
+	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	auditkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/keys"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries/generated"
 
+	platformaudit "github.com/primandproper/platform-go/v9/audit"
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
@@ -35,26 +33,12 @@ func (q *repository) GetAuditLogEntry(ctx context.Context, auditLogEntryID strin
 	logger = logger.WithValue(auditkeys.AuditLogEntryIDKey, auditLogEntryID)
 	tracing.AttachToSpan(span, auditkeys.AuditLogEntryIDKey, auditLogEntryID)
 
-	result, err := q.generatedQuerier.GetAuditLogEntry(ctx, q.readDB, auditLogEntryID)
+	entry, err := q.reader.Get(ctx, auditLogEntryID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entry")
 	}
 
-	auditLogEntry := &audit.AuditLogEntry{
-		CreatedAt:        result.CreatedAt,
-		BelongsToAccount: database.StringPointerFromNullString(result.BelongsToAccount),
-		ID:               result.ID,
-		ResourceType:     result.ResourceType,
-		RelevantID:       result.RelevantID,
-		EventType:        string(result.EventType),
-		BelongsToUser:    database.StringFromNullString(result.BelongsToUser),
-	}
-
-	if err = json.Unmarshal(result.Changes, &auditLogEntry.Changes); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "parsing audit log entry JSON data")
-	}
-
-	return auditLogEntry, nil
+	return fromPlatformEntry(entry), nil
 }
 
 // GetAuditLogEntriesForUser fetches a list of audit log entries from the database that meet a particular filter.
@@ -62,66 +46,12 @@ func (q *repository) GetAuditLogEntriesForUser(ctx context.Context, userID strin
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
 	if userID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
-
-	results, err := q.generatedQuerier.GetAuditLogEntriesForUser(ctx, q.readDB, &generated.GetAuditLogEntriesForUserParams{
-		BelongsToUser: database.NullStringFromString(userID),
-		CreatedBefore: database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:  database.NullTimeFromTimePointer(filter.CreatedAfter),
-		Cursor:        database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:   database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-	})
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entries from database")
-	}
-
-	var (
-		data                      []*audit.AuditLogEntry
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		auditLogEntry := &audit.AuditLogEntry{
-			CreatedAt:        result.CreatedAt,
-			BelongsToAccount: database.StringPointerFromNullString(result.BelongsToAccount),
-			ID:               result.ID,
-			ResourceType:     result.ResourceType,
-			RelevantID:       result.RelevantID,
-			EventType:        string(result.EventType),
-			BelongsToUser:    database.StringFromNullString(result.BelongsToUser),
-		}
-
-		if err = json.Unmarshal(result.Changes, &auditLogEntry.Changes); err != nil {
-			return nil, observability.PrepareAndLogError(err, logger, span, "parsing audit log entry JSON data")
-		}
-
-		data = append(data, auditLogEntry)
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
-		func(t *audit.AuditLogEntry) string {
-			return t.ID
-		},
-		filter,
-	)
-
-	return x, nil
+	return q.list(ctx, span, &platformaudit.Query{ActorID: userID}, filter,
+		identitykeys.UserIDKey, userID)
 }
 
 // GetAuditLogEntriesForUserAndResourceTypes fetches a list of audit log entries from the database that meet a particular filter.
@@ -129,73 +59,17 @@ func (q *repository) GetAuditLogEntriesForUserAndResourceTypes(ctx context.Conte
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
 	if userID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
-
 	if len(resourceTypes) == 0 {
 		return nil, platformerrors.ErrEmptyInputProvided
 	}
-	logger = logger.WithValue(auditkeys.AuditLogEntryResourceTypesKey, resourceTypes)
+
 	tracing.AttachToSpan(span, auditkeys.AuditLogEntryResourceTypesKey, resourceTypes)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
-
-	results, err := q.generatedQuerier.GetAuditLogEntriesForUserAndResourceType(ctx, q.readDB, &generated.GetAuditLogEntriesForUserAndResourceTypeParams{
-		BelongsToUser: database.NullStringFromString(userID),
-		Resources:     resourceTypes,
-		CreatedBefore: database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:  database.NullTimeFromTimePointer(filter.CreatedAfter),
-		Cursor:        database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:   database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-	})
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entries from database")
-	}
-
-	var (
-		data                      []*audit.AuditLogEntry
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		auditLogEntry := &audit.AuditLogEntry{
-			CreatedAt:        result.CreatedAt,
-			BelongsToAccount: database.StringPointerFromNullString(result.BelongsToAccount),
-			ID:               result.ID,
-			ResourceType:     result.ResourceType,
-			RelevantID:       result.RelevantID,
-			EventType:        string(result.EventType),
-			BelongsToUser:    database.StringFromNullString(result.BelongsToUser),
-		}
-
-		if err = json.Unmarshal(result.Changes, &auditLogEntry.Changes); err != nil {
-			return nil, observability.PrepareAndLogError(err, logger, span, "parsing audit log entry JSON data")
-		}
-
-		data = append(data, auditLogEntry)
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
-		func(t *audit.AuditLogEntry) string {
-			return t.ID
-		},
-		filter,
-	)
-
-	return x, nil
+	return q.list(ctx, span, &platformaudit.Query{ActorID: userID, ResourceTypes: resourceTypes}, filter,
+		identitykeys.UserIDKey, userID)
 }
 
 // GetAuditLogEntriesForAccount fetches a list of audit log entries from the database that meet a particular filter.
@@ -203,66 +77,15 @@ func (q *repository) GetAuditLogEntriesForAccount(ctx context.Context, accountID
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
 	if accountID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
-
-	results, err := q.generatedQuerier.GetAuditLogEntriesForAccount(ctx, q.readDB, &generated.GetAuditLogEntriesForAccountParams{
-		BelongsToAccount: database.NullStringFromString(accountID),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-	})
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entries from database")
-	}
-
-	var (
-		data                      []*audit.AuditLogEntry
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		auditLogEntry := &audit.AuditLogEntry{
-			CreatedAt:        result.CreatedAt,
-			BelongsToAccount: database.StringPointerFromNullString(result.BelongsToAccount),
-			ID:               result.ID,
-			ResourceType:     result.ResourceType,
-			RelevantID:       result.RelevantID,
-			EventType:        string(result.EventType),
-			BelongsToUser:    database.StringFromNullString(result.BelongsToUser),
-		}
-
-		if err = json.Unmarshal(result.Changes, &auditLogEntry.Changes); err != nil {
-			return nil, observability.PrepareAndLogError(err, logger, span, "parsing audit log entry JSON data")
-		}
-
-		data = append(data, auditLogEntry)
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
-		func(t *audit.AuditLogEntry) string {
-			return t.ID
-		},
-		filter,
-	)
-
-	return x, nil
+	// Scope is a pointer in the platform query because the empty string is a real
+	// scope. Taking the address of the parameter rather than passing nil is what
+	// keeps this from reading every tenant's entries.
+	return q.list(ctx, span, &platformaudit.Query{Scope: &accountID}, filter,
+		identitykeys.AccountIDKey, accountID)
 }
 
 // GetAuditLogEntriesForAccountAndResourceTypes fetches a list of audit log entries from the database that meet a particular filter.
@@ -270,19 +93,33 @@ func (q *repository) GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Co
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
 	if accountID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
-
 	if len(resourceTypes) == 0 {
 		return nil, platformerrors.ErrEmptyInputProvided
 	}
-	logger = logger.WithValue(auditkeys.AuditLogEntryResourceTypesKey, resourceTypes)
+
 	tracing.AttachToSpan(span, auditkeys.AuditLogEntryResourceTypesKey, resourceTypes)
+
+	return q.list(ctx, span, &platformaudit.Query{Scope: &accountID, ResourceTypes: resourceTypes}, filter,
+		identitykeys.AccountIDKey, accountID)
+}
+
+// list runs one platform query and converts the page it returns.
+//
+// The five read methods differ only in the query they build and the identifier
+// they log, so everything after that lives here — including the conversion,
+// which is the part that would otherwise be copied five times and drift.
+func (q *repository) list(
+	ctx context.Context,
+	span tracing.Span,
+	query *platformaudit.Query,
+	filter *filtering.QueryFilter,
+	logKey, logValue string,
+) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
+	logger := q.logger.Clone().WithValue(logKey, logValue)
+	tracing.AttachToSpan(span, logKey, logValue)
 
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
@@ -290,101 +127,73 @@ func (q *repository) GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Co
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	results, err := q.generatedQuerier.GetAuditLogEntriesForAccountAndResourceType(ctx, q.readDB, &generated.GetAuditLogEntriesForAccountAndResourceTypeParams{
-		BelongsToAccount: database.NullStringFromString(accountID),
-		Resources:        resourceTypes,
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-	})
+	results, err := q.reader.List(ctx, query, filter)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entries from database")
 	}
 
-	var (
-		data                      []*audit.AuditLogEntry
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		auditLogEntry := &audit.AuditLogEntry{
-			CreatedAt:        result.CreatedAt,
-			BelongsToAccount: database.StringPointerFromNullString(result.BelongsToAccount),
-			ID:               result.ID,
-			ResourceType:     result.ResourceType,
-			RelevantID:       result.RelevantID,
-			EventType:        string(result.EventType),
-			BelongsToUser:    database.StringFromNullString(result.BelongsToUser),
-		}
-
-		if err = json.Unmarshal(result.Changes, &auditLogEntry.Changes); err != nil {
-			return nil, observability.PrepareAndLogError(err, logger, span, "parsing audit log entry JSON data")
-		}
-
-		data = append(data, auditLogEntry)
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
+	data := make([]*audit.AuditLogEntry, 0, len(results.Data))
+	for _, result := range results.Data {
+		data = append(data, fromPlatformEntry(result))
 	}
 
-	x := filtering.NewQueryFilteredResult(
+	return filtering.NewQueryFilteredResult(
 		data,
-		filteredCount,
-		totalCount,
+		results.FilteredCount,
+		results.TotalCount,
 		func(t *audit.AuditLogEntry) string {
 			return t.ID
 		},
 		filter,
-	)
-
-	return x, nil
+	), nil
 }
 
-// CreateAuditLogEntry creates an audit log entry in a database.
-func (q *repository) CreateAuditLogEntry(ctx context.Context, querier database.SQLQueryExecutor, input *audit.AuditLogEntryDatabaseCreationInput) (*audit.AuditLogEntry, error) {
+// Record appends audit log entries inside the caller's transaction.
+func (q *repository) Record(ctx context.Context, querier database.SQLQueryExecutor, entries ...*audit.AuditLogEntry) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := q.logger.Clone()
 
-	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+	if len(entries) == 0 {
+		return nil
 	}
 
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, input.BelongsToAccount)
-	logger = logger.WithValue(identitykeys.AccountIDKey, input.BelongsToAccount)
+	converted := make([]*platformaudit.Entry, 0, len(entries))
+	for _, entry := range entries {
+		if entry == nil {
+			return observability.PrepareAndLogError(platformerrors.ErrNilInputProvided, logger, span, "recording audit log entries")
+		}
 
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, input.BelongsToUser)
-	logger = logger.WithValue(identitykeys.UserIDKey, input.BelongsToUser)
+		converted = append(converted, toPlatformEntry(entry))
+	}
 
-	marshaledChanges, err := json.Marshal(input.Changes)
+	if err := q.recorder.Record(ctx, querier, converted...); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "recording audit log entries")
+	}
+
+	// Record assigns the ID, timestamp, and chain fields, and applies redaction to
+	// the changes. Copying them back means a caller that logs or returns the entry
+	// it just wrote describes the row that actually landed, rather than the value
+	// it hoped to write.
+	for i, entry := range entries {
+		applyRecorded(entry, converted[i])
+	}
+
+	tracing.AttachToSpan(span, auditkeys.AuditLogEntryIDKey, entries[0].ID)
+
+	return nil
+}
+
+// VerifyChain walks one scope's hash chain and reports the first break.
+func (q *repository) VerifyChain(ctx context.Context, scope string, from, to time.Time) (*audit.VerificationResult, error) {
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	result, err := q.reader.Verify(ctx, scope, from, to)
 	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "serializing audit log change list")
+		return nil, observability.PrepareAndLogError(err, q.logger.Clone(), span, "verifying audit log chain")
 	}
 
-	if err = q.generatedQuerier.CreateAuditLogEntry(ctx, querier, &generated.CreateAuditLogEntryParams{
-		ID:               input.ID,
-		ResourceType:     input.ResourceType,
-		RelevantID:       input.RelevantID,
-		EventType:        generated.AuditLogEventType(input.EventType),
-		Changes:          marshaledChanges,
-		BelongsToUser:    sql.NullString{String: input.BelongsToUser, Valid: strings.TrimSpace(input.BelongsToUser) != ""},
-		BelongsToAccount: database.NullStringFromStringPointer(input.BelongsToAccount),
-	}); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "performing audit log creation query")
-	}
-
-	x := &audit.AuditLogEntry{
-		ID:               input.ID,
-		Changes:          input.Changes,
-		BelongsToAccount: input.BelongsToAccount,
-		CreatedAt:        q.CurrentTime(),
-		ResourceType:     input.ResourceType,
-		RelevantID:       input.RelevantID,
-		EventType:        input.EventType,
-		BelongsToUser:    input.BelongsToUser,
-	}
-
-	tracing.AttachToSpan(span, auditkeys.AuditLogEntryIDKey, x.ID)
-
-	return x, nil
+	return result, nil
 }

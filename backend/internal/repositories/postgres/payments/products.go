@@ -11,7 +11,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -46,18 +45,17 @@ func (r *repository) CreateProduct(ctx context.Context, input *payments.ProductD
 	if err := r.withEvent(ctx, logger, payments.ProductCreatedServiceEventType, "", map[string]any{
 		paymentskeys.ProductIDKey: input.ID,
 	}, func(tx database.SQLQueryExecutor) error {
-		return r.generatedQuerier.CreateProduct(ctx, tx, arg)
+		if err := r.generatedQuerier.CreateProduct(ctx, tx, arg); err != nil {
+			return err
+		}
+
+		return r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+			ResourceType: resourceTypeProducts,
+			RelevantID:   input.ID,
+			EventType:    audit.AuditLogEventTypeCreated,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating product")
-	}
-
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeProducts,
-		RelevantID:   input.ID,
-		EventType:    audit.AuditLogEventTypeCreated,
-	}); err != nil {
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
 	}
 
 	return r.GetProduct(ctx, input.ID)
@@ -161,8 +159,7 @@ func (r *repository) UpdateProduct(ctx context.Context, product *payments.Produc
 			return observability.PrepareAndLogError(err, logger, span, "updating product")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			ResourceType: resourceTypeProducts,
 			RelevantID:   product.ID,
 			EventType:    audit.AuditLogEventTypeUpdated,
@@ -193,8 +190,7 @@ func (r *repository) ArchiveProduct(ctx context.Context, id string) error {
 			return observability.PrepareAndLogError(err, logger, span, "archiving product")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			ResourceType: resourceTypeProducts,
 			RelevantID:   id,
 			EventType:    audit.AuditLogEventTypeArchived,

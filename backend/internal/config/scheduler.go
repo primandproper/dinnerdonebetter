@@ -9,6 +9,7 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
+	"github.com/primandproper/platform-go/v9/audit"
 	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
 	"github.com/primandproper/platform-go/v9/jobs"
 	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
@@ -42,8 +43,15 @@ type (
 		// lives here because it is a background loop, which is what this process is for,
 		// and because it needs exactly what this process already has: the database and a
 		// publisher provider.
-		Outbox outbox.RelayConfig  `envPrefix:"OUTBOX_" json:"outbox"`
-		Jobs   ScheduledJobsConfig `envPrefix:"JOBS_"   json:"jobs"`
+		Outbox outbox.RelayConfig `envPrefix:"OUTBOX_" json:"outbox"`
+
+		// Audit carries the retention window for the audit log. It lives here for the
+		// same reason the outbox does — the sweeper is a background loop over the
+		// database — and it runs in exactly one process, unlike the Recorder, which runs
+		// wherever a mutation does.
+		Audit audit.SweeperConfig `envPrefix:"AUDIT_" json:"audit"`
+
+		Jobs ScheduledJobsConfig `envPrefix:"JOBS_" json:"jobs"`
 	}
 
 	// ScheduledJobsConfig carries the scheduler's own knobs, the lock backend that serializes
@@ -146,6 +154,7 @@ func (cfg *SchedulerConfig) ValidateWithContext(ctx context.Context) error {
 		"Search":        cfg.Search.ValidateWithContext,
 		"Jobs":          cfg.Jobs.ValidateWithContext,
 		"Outbox":        cfg.Outbox.ValidateWithContext,
+		"Audit":         cfg.Audit.ValidateWithContext,
 	}
 
 	for name, validator := range validators {

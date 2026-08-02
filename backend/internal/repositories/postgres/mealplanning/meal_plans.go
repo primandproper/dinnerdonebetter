@@ -237,9 +237,8 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 			return observability.PrepareAndLogError(err, logger, span, "creating meal plan")
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &input.BelongsToAccount,
-			ID:               identifiers.New(),
 			ResourceType:     resourceTypeMealPlans,
 			RelevantID:       input.ID,
 			EventType:        audit.AuditLogEventTypeCreated,
@@ -394,9 +393,8 @@ func (q *repository) UpdateMealPlan(ctx context.Context, updated *types.MealPlan
 			return sql.ErrNoRows
 		}
 
-		if _, auditErr := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if auditErr := q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &updated.BelongsToAccount,
-			ID:               identifiers.New(),
 			ResourceType:     resourceTypeMealPlans,
 			RelevantID:       updated.ID,
 			EventType:        audit.AuditLogEventTypeUpdated,
@@ -454,9 +452,8 @@ func (q *repository) ArchiveMealPlan(ctx context.Context, mealPlanID, accountID 
 			return sql.ErrNoRows
 		}
 
-		if _, auditErr := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if auditErr := q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
-			ID:               identifiers.New(),
 			ResourceType:     resourceTypeMealPlans,
 			RelevantID:       mealPlanID,
 			EventType:        audit.AuditLogEventTypeArchived,

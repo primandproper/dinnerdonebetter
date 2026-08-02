@@ -13,7 +13,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -239,8 +238,7 @@ func (q *Repository) UpdateUserDeviceToken(ctx context.Context, updated *types.U
 			return observability.PrepareAndLogError(err, logger, span, "updating user device token")
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUserDeviceTokens,
 			RelevantID:    updated.ID,
 			EventType:     audit.AuditLogEventTypeUpdated,
@@ -292,8 +290,7 @@ func (q *Repository) ArchiveUserDeviceToken(ctx context.Context, userID, tokenID
 			return sql.ErrNoRows
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUserDeviceTokens,
 			RelevantID:    tokenID,
 			EventType:     audit.AuditLogEventTypeArchived,

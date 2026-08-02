@@ -11,6 +11,8 @@ import (
 
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 
+	"github.com/primandproper/platform-go/v9/audit"
+	"github.com/primandproper/platform-go/v9/database/dialect"
 	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
 	pglock "github.com/primandproper/platform-go/v9/distributedlock/postgres"
 	"github.com/primandproper/platform-go/v9/jobs"
@@ -76,6 +78,32 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 		},
 		// Domain: mealplanning
 		MealPlanning: defaultMealPlanningScheduledJobsConfig(),
+	}
+}
+
+// defaultAuditSweeperConfig returns the audit log's retention knobs.
+//
+// Two years, against the platform's seven-year default. Seven is the window the regulations
+// that ask for an audit log in the first place tend to name, and this application is under
+// none of them; two still comfortably covers a dispute, an incident review, or a question
+// about an account somebody closed last year, which is what this log actually gets asked.
+//
+// It is a knob rather than a constant because the right answer is a deployment's to make, and
+// shortening it is a config change rather than a code change. Lengthening it is too — but note
+// that lengthening only affects what has not already been swept. Retention deletes; a window
+// that was too short is not recoverable by widening it afterwards.
+//
+// The batch and scope limits are the platform defaults: one sweep removes at most a thousand
+// entries from any one scope and visits at most a hundred scopes, so a long-neglected log is
+// trimmed over several passes rather than by one DELETE holding locks for minutes.
+func defaultAuditSweeperConfig() audit.SweeperConfig {
+	return audit.SweeperConfig{
+		Dialect:       dialect.Postgres,
+		TablePrefix:   audit.DefaultTablePrefix,
+		Retention:     2 * 365 * 24 * time.Hour,
+		SweepInterval: time.Hour,
+		BatchSize:     audit.DefaultSweepBatchSize,
+		ScopeLimit:    audit.DefaultSweepScopeLimit,
 	}
 }
 
@@ -274,6 +302,7 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 		Queues:        s.RootConfig.Queues,
 		Jobs:          defaultScheduledJobsConfig(),
 		Outbox:        defaultOutboxRelayConfig(),
+		Audit:         defaultAuditSweeperConfig(),
 	}
 	schedulerConfig.Observability.Tracing.ServiceName = schedulerConfigObservabilityServiceName
 	schedulerConfig.Observability.Metrics.ServiceName = schedulerConfigObservabilityServiceName

@@ -13,7 +13,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -170,8 +169,7 @@ func (q *repository) CreateOAuth2Client(ctx context.Context, input *types.OAuth2
 
 		tracing.AttachToSpan(span, oauthkeys.OAuth2ClientClientIDKey, input.ID)
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			ResourceType: resourceTypeOAuth2Clients,
 			RelevantID:   input.ID,
 			EventType:    audit.AuditLogEventTypeCreated,
@@ -208,25 +206,26 @@ func (q *repository) ArchiveOAuth2Client(ctx context.Context, clientID string) e
 	tracing.AttachToSpan(span, oauthkeys.OAuth2ClientClientIDKey, clientID)
 	logger := q.logger.WithValue(oauthkeys.OAuth2ClientIDKey, clientID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveOAuth2Client(ctx, q.writeDB, clientID)
-	if err != nil {
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveOAuth2Client(ctx, tx, clientID)
+		if archiveErr != nil {
+			return archiveErr
+		}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+			ResourceType: resourceTypeOAuth2Clients,
+			RelevantID:   clientID,
+			EventType:    audit.AuditLogEventTypeArchived,
+		})
+	}); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return err
 		}
+
 		return observability.PrepareAndLogError(err, logger, span, "archiving OAuth2 client")
-	}
-
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
-
-	if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, q.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeOAuth2Clients,
-		RelevantID:   clientID,
-		EventType:    audit.AuditLogEventTypeArchived,
-	}); err != nil {
-		return observability.PrepareError(err, span, "creating audit log entry")
 	}
 
 	return nil

@@ -10,7 +10,6 @@ import (
 
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -99,8 +98,7 @@ func (r *repository) CreatePasswordResetToken(ctx context.Context, input *auth.P
 			return observability.PrepareAndLogError(err, logger, span, "performing password reset token creation query")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			ResourceType:  resourceTypePasswordResetTokens,
 			RelevantID:    input.ID,
 			EventType:     audit.AuditLogEventTypeCreated,
@@ -150,8 +148,7 @@ func (r *repository) RedeemPasswordResetToken(ctx context.Context, passwordReset
 			return observability.PrepareAndLogError(err, logger, span, "redeeming password reset token")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			ResourceType:  resourceTypePasswordResetTokens,
 			RelevantID:    passwordResetTokenID,
 			EventType:     audit.AuditLogEventTypeUpdated,

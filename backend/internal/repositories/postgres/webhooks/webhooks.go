@@ -14,7 +14,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -273,9 +272,8 @@ func (r *repository) CreateWebhook(ctx context.Context, input *types.WebhookData
 			CreatedAt:        r.CurrentTime(),
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &x.BelongsToAccount,
-			ID:               identifiers.New(),
 			ResourceType:     resourceTypeWebhooks,
 			RelevantID:       x.ID,
 			EventType:        audit.AuditLogEventTypeCreated,
@@ -339,9 +337,8 @@ func (r *repository) createWebhookTriggerConfig(ctx context.Context, querier dat
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing webhook trigger config creation query")
 	}
 
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, querier, &audit.AuditLogEntryDatabaseCreationInput{
+	if err := r.auditLogEntryRepo.Record(ctx, querier, &audit.AuditLogEntry{
 		BelongsToAccount: &accountID,
-		ID:               identifiers.New(),
 		ResourceType:     resourceTypeWebhookTriggerConfigs,
 		RelevantID:       input.ID,
 		EventType:        audit.AuditLogEventTypeCreated,
@@ -391,9 +388,8 @@ func (r *repository) ArchiveWebhook(ctx context.Context, webhookID, accountID st
 			return sql.ErrNoRows
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
-			ID:               identifiers.New(),
 			ResourceType:     resourceTypeWebhooks,
 			RelevantID:       webhookID,
 			EventType:        audit.AuditLogEventTypeArchived,
@@ -493,8 +489,7 @@ func (r *repository) ArchiveWebhookTriggerConfig(ctx context.Context, webhookID,
 			return observability.PrepareAndLogError(err, logger, span, "archiving webhook trigger config")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			ResourceType: resourceTypeWebhookTriggerConfigs,
 			RelevantID:   configID,
 			EventType:    audit.AuditLogEventTypeArchived,
@@ -530,21 +525,26 @@ func (r *repository) CreateWebhookTriggerEvent(ctx context.Context, input *types
 		return nil, platformerrors.ErrNilInputProvided
 	}
 
-	if err := r.generatedQuerier.CreateWebhookTriggerEvent(ctx, r.writeDB, &generated.CreateWebhookTriggerEventParams{
-		ID:          input.ID,
-		Name:        input.Name,
-		Description: input.Description,
+	// The write and its audit entry share a transaction: the entry has to commit
+	// with the row it describes, and Record holds the scope's chain head for the
+	// length of that transaction, which is what stops two concurrent writers from
+	// claiming the same position in the chain.
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		if err := r.generatedQuerier.CreateWebhookTriggerEvent(ctx, tx, &generated.CreateWebhookTriggerEventParams{
+			ID:          input.ID,
+			Name:        input.Name,
+			Description: input.Description,
+		}); err != nil {
+			return err
+		}
+
+		return r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+			ResourceType: resourceTypeWebhookTriggerEvents,
+			RelevantID:   input.ID,
+			EventType:    audit.AuditLogEventTypeCreated,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating webhook trigger event")
-	}
-
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeWebhookTriggerEvents,
-		RelevantID:   input.ID,
-		EventType:    audit.AuditLogEventTypeCreated,
-	}); err != nil {
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
 	}
 
 	return &types.WebhookTriggerEvent{
@@ -635,25 +635,26 @@ func (r *repository) UpdateWebhookTriggerEvent(ctx context.Context, id string, i
 		return platformerrors.ErrNilInputProvided
 	}
 
-	rowsAffected, err := r.generatedQuerier.UpdateWebhookTriggerEvent(ctx, r.writeDB, &generated.UpdateWebhookTriggerEventParams{
-		ID:          id,
-		Name:        input.Name,
-		Description: input.Description,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, r.logger.Clone(), span, "updating webhook trigger event")
-	}
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, updateErr := r.generatedQuerier.UpdateWebhookTriggerEvent(ctx, tx, &generated.UpdateWebhookTriggerEventParams{
+			ID:          id,
+			Name:        input.Name,
+			Description: input.Description,
+		})
+		if updateErr != nil {
+			return updateErr
+		}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeWebhookTriggerEvents,
-		RelevantID:   id,
-		EventType:    audit.AuditLogEventTypeUpdated,
+		return r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+			ResourceType: resourceTypeWebhookTriggerEvents,
+			RelevantID:   id,
+			EventType:    audit.AuditLogEventTypeUpdated,
+		})
 	}); err != nil {
-		return observability.PrepareError(err, span, "creating audit log entry")
+		return observability.PrepareAndLogError(err, r.logger.Clone(), span, "updating webhook trigger event")
 	}
 
 	return nil
@@ -668,21 +669,22 @@ func (r *repository) ArchiveWebhookTriggerEvent(ctx context.Context, id string) 
 		return platformerrors.ErrInvalidIDProvided
 	}
 
-	rowsAffected, err := r.generatedQuerier.ArchiveWebhookTriggerEvent(ctx, r.writeDB, id)
-	if err != nil {
-		return observability.PrepareAndLogError(err, r.logger.Clone(), span, "archiving webhook trigger event")
-	}
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		rowsAffected, archiveErr := r.generatedQuerier.ArchiveWebhookTriggerEvent(ctx, tx, id)
+		if archiveErr != nil {
+			return archiveErr
+		}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeWebhookTriggerEvents,
-		RelevantID:   id,
-		EventType:    audit.AuditLogEventTypeArchived,
+		return r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+			ResourceType: resourceTypeWebhookTriggerEvents,
+			RelevantID:   id,
+			EventType:    audit.AuditLogEventTypeArchived,
+		})
 	}); err != nil {
-		return observability.PrepareError(err, span, "creating audit log entry")
+		return observability.PrepareAndLogError(err, r.logger.Clone(), span, "archiving webhook trigger event")
 	}
 
 	return nil

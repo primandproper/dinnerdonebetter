@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/fakes"
 	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
 
@@ -90,7 +89,7 @@ func TestAuditDataManager_GetAuditLogEntriesForAccount(t *testing.T) {
 	})
 }
 
-func TestAuditDataManager_CreateAuditLogEntry(t *testing.T) {
+func TestAuditDataManager_Record(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
@@ -99,24 +98,49 @@ func TestAuditDataManager_CreateAuditLogEntry(t *testing.T) {
 		ctx := t.Context()
 
 		exampleEntry := fakes.BuildFakeAuditLogEntry()
-		dbInput := converters.ConvertAuditLogEntryToAuditLogEntryDatabaseCreationInput(exampleEntry)
 		querier := &mockdatabase.SQLQueryExecutorMock{}
 
 		repo := &auditmock.RepositoryMock{
-			CreateAuditLogEntryFunc: func(_ context.Context, _ database.SQLQueryExecutor, in *types.AuditLogEntryDatabaseCreationInput) (*types.AuditLogEntry, error) {
-				assert.Equal(t, dbInput.ID, in.ID)
-				assert.Equal(t, dbInput.BelongsToUser, in.BelongsToUser)
+			RecordFunc: func(_ context.Context, _ database.SQLQueryExecutor, entries ...*types.AuditLogEntry) error {
+				require.Len(t, entries, 1)
+				assert.Equal(t, exampleEntry.ID, entries[0].ID)
+				assert.Equal(t, exampleEntry.BelongsToUser, entries[0].BelongsToUser)
 
-				return exampleEntry, nil
+				return nil
 			},
 		}
 		manager := buildAuditManagerForTest(t, repo)
 
-		created, err := manager.CreateAuditLogEntry(ctx, querier, dbInput)
+		err := manager.Record(ctx, querier, exampleEntry)
 
 		require.NoError(t, err)
-		assert.NotNil(t, created)
-		assert.Equal(t, exampleEntry.ID, created.ID)
-		assert.Len(t, repo.CreateAuditLogEntryCalls(), 1)
+		assert.Len(t, repo.RecordCalls(), 1)
+	})
+
+	// The variadic form is the point of Record: a transaction touching three
+	// resources should pay one chain-head lookup and one INSERT, not three of each.
+	t.Run("passes a batch through as one call", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+
+		first, second := fakes.BuildFakeAuditLogEntry(), fakes.BuildFakeAuditLogEntry()
+		querier := &mockdatabase.SQLQueryExecutorMock{}
+
+		repo := &auditmock.RepositoryMock{
+			RecordFunc: func(_ context.Context, _ database.SQLQueryExecutor, entries ...*types.AuditLogEntry) error {
+				require.Len(t, entries, 2)
+				assert.Equal(t, first.ID, entries[0].ID)
+				assert.Equal(t, second.ID, entries[1].ID)
+
+				return nil
+			},
+		}
+		manager := buildAuditManagerForTest(t, repo)
+
+		err := manager.Record(ctx, querier, first, second)
+
+		require.NoError(t, err)
+		assert.Len(t, repo.RecordCalls(), 1)
 	})
 }

@@ -413,7 +413,7 @@ func (r *repository) CreateAccountInvitation(ctx context.Context, input *identit
 		identitykeys.UserIDKey:               input.FromUser,
 		identitykeys.DestinationAccountIDKey: input.DestinationAccountID,
 	}, func(tx database.SQLQueryExecutor) error {
-		return r.generatedQuerier.CreateAccountInvitation(ctx, tx, &generated.CreateAccountInvitationParams{
+		if err := r.generatedQuerier.CreateAccountInvitation(ctx, tx, &generated.CreateAccountInvitationParams{
 			ExpiresAt:          input.ExpiresAt,
 			ID:                 input.ID,
 			FromUser:           input.FromUser,
@@ -423,19 +423,18 @@ func (r *repository) CreateAccountInvitation(ctx context.Context, input *identit
 			Token:              input.Token,
 			DestinationAccount: input.DestinationAccountID,
 			ToUser:             database.NullStringFromStringPointer(input.ToUser),
+		}); err != nil {
+			return err
+		}
+
+		return r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+			BelongsToAccount: &input.DestinationAccountID,
+			ResourceType:     resourceTypeAccountInvitations,
+			RelevantID:       input.ID,
+			EventType:        audit.AuditLogEventTypeCreated,
 		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing account invitation creation query")
-	}
-
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &input.DestinationAccountID,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeAccountInvitations,
-		RelevantID:       input.ID,
-		EventType:        audit.AuditLogEventTypeCreated,
-	}); err != nil {
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
 	}
 
 	x := &identity.AccountInvitation{

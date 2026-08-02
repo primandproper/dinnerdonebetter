@@ -141,7 +141,10 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 		}
 	}()
 
-	auditRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, client)
+	auditRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, client)
+	if err != nil {
+		return fmt.Errorf("building audit log repository: %w", err)
+	}
 	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil)
 	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, client, nil)
 

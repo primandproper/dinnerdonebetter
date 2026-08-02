@@ -52,7 +52,8 @@ func buildDatabaseClientForTest(t *testing.T) (c *Repository, auditLogEntryRepo 
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
-	auditLogEntryRepo = auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
+	auditLogEntryRepo, err = auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, pgc)
+	require.NoError(t, err)
 
 	c = ProvideNotificationsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, &config.Config, pgc, nil)
 

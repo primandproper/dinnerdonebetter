@@ -131,6 +131,7 @@ func BuildInjector(
 
 	RegisterScheduler(i)
 	RegisterOutboxRelay(i)
+	RegisterAuditSweeper(i)
 
 	return i
 }

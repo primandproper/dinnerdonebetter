@@ -34,6 +34,11 @@ public struct Audit_DataCollection: Sendable {
   public init() {}
 }
 
+/// ChangeLog is one field's before and after.
+///
+/// The values are rendered strings rather than a typed Value because that is what
+/// they have always been on this wire, and a client that shows an audit trail
+/// shows text. The stored form is typed; the rendering happens at the edge.
 public struct Audit_ChangeLog: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -75,6 +80,31 @@ public struct Audit_AuditLogEntry: Sendable {
   public var eventType: String = String()
 
   public var belongsToUser: String = String()
+
+  /// What kind of principal acted, and where from. Recorded rather than derived at
+  /// read time: the association between a principal and an address is what an
+  /// investigation needs and is not recoverable afterwards.
+  public var actorType: String = String()
+
+  public var actorIp: String = String()
+
+  /// The hash chain. Entries chain per scope, each carrying its predecessor's hash
+  /// and its own hash over that plus its own contents, so any edit, removal or
+  /// reordering breaks the chain at a nameable position.
+  ///
+  /// These are exposed so a caller can check the chain without trusting this
+  /// service to check it for them — which is the only version of the check worth
+  /// much. A clean walk proves nobody altered an entry without also rewriting every
+  /// entry after it; it does not prove the table was not replaced wholesale, and
+  /// nothing self-contained can. Publishing hash somewhere this database's owner
+  /// does not control is the answer to that.
+  public var scope: String = String()
+
+  public var prevHash: String = String()
+
+  public var hash: String = String()
+
+  public var seq: Int64 = 0
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -159,7 +189,7 @@ extension Audit_ChangeLog: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
 
 extension Audit_AuditLogEntry: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".AuditLogEntry"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{1}changes\0\u{3}belongs_to_account\0\u{1}id\0\u{3}resource_type\0\u{3}relevant_id\0\u{3}event_type\0\u{3}belongs_to_user\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{1}changes\0\u{3}belongs_to_account\0\u{1}id\0\u{3}resource_type\0\u{3}relevant_id\0\u{3}event_type\0\u{3}belongs_to_user\0\u{3}actor_type\0\u{3}actor_ip\0\u{1}scope\0\u{3}prev_hash\0\u{1}hash\0\u{1}seq\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -175,6 +205,12 @@ extension Audit_AuditLogEntry: SwiftProtobuf.Message, SwiftProtobuf._MessageImpl
       case 6: try { try decoder.decodeSingularStringField(value: &self.relevantID) }()
       case 7: try { try decoder.decodeSingularStringField(value: &self.eventType) }()
       case 8: try { try decoder.decodeSingularStringField(value: &self.belongsToUser) }()
+      case 9: try { try decoder.decodeSingularStringField(value: &self.actorType) }()
+      case 10: try { try decoder.decodeSingularStringField(value: &self.actorIp) }()
+      case 11: try { try decoder.decodeSingularStringField(value: &self.scope) }()
+      case 12: try { try decoder.decodeSingularStringField(value: &self.prevHash) }()
+      case 13: try { try decoder.decodeSingularStringField(value: &self.hash) }()
+      case 14: try { try decoder.decodeSingularInt64Field(value: &self.seq) }()
       default: break
       }
     }
@@ -209,6 +245,24 @@ extension Audit_AuditLogEntry: SwiftProtobuf.Message, SwiftProtobuf._MessageImpl
     if !self.belongsToUser.isEmpty {
       try visitor.visitSingularStringField(value: self.belongsToUser, fieldNumber: 8)
     }
+    if !self.actorType.isEmpty {
+      try visitor.visitSingularStringField(value: self.actorType, fieldNumber: 9)
+    }
+    if !self.actorIp.isEmpty {
+      try visitor.visitSingularStringField(value: self.actorIp, fieldNumber: 10)
+    }
+    if !self.scope.isEmpty {
+      try visitor.visitSingularStringField(value: self.scope, fieldNumber: 11)
+    }
+    if !self.prevHash.isEmpty {
+      try visitor.visitSingularStringField(value: self.prevHash, fieldNumber: 12)
+    }
+    if !self.hash.isEmpty {
+      try visitor.visitSingularStringField(value: self.hash, fieldNumber: 13)
+    }
+    if self.seq != 0 {
+      try visitor.visitSingularInt64Field(value: self.seq, fieldNumber: 14)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -221,6 +275,12 @@ extension Audit_AuditLogEntry: SwiftProtobuf.Message, SwiftProtobuf._MessageImpl
     if lhs.relevantID != rhs.relevantID {return false}
     if lhs.eventType != rhs.eventType {return false}
     if lhs.belongsToUser != rhs.belongsToUser {return false}
+    if lhs.actorType != rhs.actorType {return false}
+    if lhs.actorIp != rhs.actorIp {return false}
+    if lhs.scope != rhs.scope {return false}
+    if lhs.prevHash != rhs.prevHash {return false}
+    if lhs.hash != rhs.hash {return false}
+    if lhs.seq != rhs.seq {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

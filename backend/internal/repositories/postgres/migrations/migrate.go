@@ -3,7 +3,10 @@ package migrations
 import (
 	"embed"
 	"io/fs"
+	"strings"
 
+	"github.com/primandproper/platform-go/v9/audit"
+	auditmigrations "github.com/primandproper/platform-go/v9/audit/migrations"
 	"github.com/primandproper/platform-go/v9/database/dialect"
 	"github.com/primandproper/platform-go/v9/database/migrate"
 	"github.com/primandproper/platform-go/v9/errors"
@@ -22,11 +25,14 @@ var (
 // replica applies migrations while the rest wait rather than racing.
 const lockKey = "dinnerdonebetter"
 
-// outboxMigrationVersion is where the platform's outbox table lands in this repository's
-// migration ordering. The platform does not ship a numbered file — numbering is global per
-// consumer, so a platform-owned number would collide the moment either side added one — and
-// hands us the DDL instead. Keep it above every file in migration_files.
-const outboxMigrationVersion = 22
+// Where the platform's own tables land in this repository's migration ordering.
+// The platform does not ship numbered files — numbering is global per consumer, so a
+// platform-owned number would collide the moment either side added one — and hands us the
+// DDL instead. Keep these above every file in migration_files.
+const (
+	outboxMigrationVersion = 22
+	auditMigrationVersion  = 23
+)
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
 //
@@ -47,16 +53,62 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, errors.Wrap(err, "rendering outbox migration")
 	}
 
+	auditDDL, err := renderAuditDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
 		migrate.WithLogger(logging.EnsureLogger(logger)),
 		migrate.WithLockKey(lockKey),
 		migrate.WithGeneratedMigration(outboxMigrationVersion, "create_outbox_messages", outboxDDL),
+		migrate.WithGeneratedMigration(auditMigrationVersion, "create_audit_tables", auditDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
 	}
 
 	return migrator, nil
+}
+
+// renderAuditDDL renders the audit tables and the triggers that make them
+// append-only, as one migration body.
+//
+// The triggers are the half worth explaining. Without them, editing a recorded
+// entry is something the hash chain reveals after the fact; with them it is
+// something the database refuses outright, and a guarantee enforced at write time
+// is worth more than one enforced at audit time. DELETE is deliberately still
+// permitted — retention has to remove aged entries and no trigger can tell that
+// sweep apart from an attacker — and the chain covers deletion instead.
+//
+// The platform hands the triggers back pre-split and refuses to join them,
+// because goose splits a migration into statements on semicolons and the
+// Postgres trigger function has semicolons inside its body — joined naively, the
+// migrator would be handed two halves of a trigger. Each statement is therefore
+// fenced individually with StatementBegin/StatementEnd, which is what tells goose
+// to execute it whole. Getting this wrong fails at construction rather than
+// mid-deploy: the annotator refuses a dollar-quoted body with no fence.
+func renderAuditDDL() (string, error) {
+	schema, err := auditmigrations.SQL(dialect.Postgres, audit.DefaultTablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering audit migration")
+	}
+
+	appendOnly, err := auditmigrations.AppendOnlyStatements(dialect.Postgres, audit.DefaultTablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering audit append-only triggers")
+	}
+
+	body := &strings.Builder{}
+	body.WriteString(schema)
+
+	for _, statement := range appendOnly {
+		body.WriteString("\n-- +goose StatementBegin\n")
+		body.WriteString(statement)
+		body.WriteString(";\n-- +goose StatementEnd\n")
+	}
+
+	return body.String(), nil
 }

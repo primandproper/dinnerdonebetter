@@ -192,6 +192,14 @@
 		"reapInterval": 3600000000000,
 		"reapBatchSize": 1000
 	},
+	"audit": {
+		"dialect": "postgres",
+		"tablePrefix": "",
+		"retention": 63072000000000000,
+		"sweepInterval": 3600000000000,
+		"batchSize": 1000,
+		"scopeLimit": 100
+	},
 	"jobs": {
 		"scheduler": {
 			"lockKeyPrefix": "dinner_done_better.scheduler.",
