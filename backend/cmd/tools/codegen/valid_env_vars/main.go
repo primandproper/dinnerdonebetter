@@ -286,7 +286,7 @@ func handleSelectorExpr(currentEntry *structEntry, structs map[string]*structEnt
 
 // handleEmbedded merges an embedded struct's environment variables into the outer struct's,
 // carrying the outer struct's prefixes unchanged because the fields are promoted.
-func handleEmbedded(currentEntry *structEntry, structs map[string]*structEntry, relDir, typeName string, envVars map[string]envVarInfo, envVarPrefix, fieldNamePrefix string, visited map[string]bool) {
+func handleEmbedded(structs map[string]*structEntry, relDir, typeName string, envVars map[string]envVarInfo, envVarPrefix, fieldNamePrefix string, visited map[string]bool) {
 	if nestedEntry, found := structs[fmt.Sprintf("%s.%s", relDir, typeName)]; found {
 		maps.Copy(envVars, extractEnvVars(nestedEntry, structs, envVarPrefix, fieldNamePrefix, visited))
 	}
@@ -318,11 +318,11 @@ func extractEnvVars(entry *structEntry, structs map[string]*structEntry, envVarP
 		if len(field.Names) == 0 {
 			switch fieldType := field.Type.(type) {
 			case *ast.Ident:
-				handleEmbedded(entry, structs, entry.relDir, fieldType.Name, envVars, envVarPrefix, fieldNamePrefix, visited)
+				handleEmbedded(structs, entry.relDir, fieldType.Name, envVars, envVarPrefix, fieldNamePrefix, visited)
 			case *ast.SelectorExpr:
 				if pkgIdent, isIdentifier := fieldType.X.(*ast.Ident); isIdentifier {
 					if importRelDir, found := entry.imports[pkgIdent.Name]; found {
-						handleEmbedded(entry, structs, importRelDir, fieldType.Sel.Name, envVars, envVarPrefix, fieldNamePrefix, visited)
+						handleEmbedded(structs, importRelDir, fieldType.Sel.Name, envVars, envVarPrefix, fieldNamePrefix, visited)
 					}
 				}
 			}

@@ -49,7 +49,11 @@ func main() {
 
 	// Run server
 	ctx := context.Background()
-	go srv.Serve(ctx)
+	go func() {
+		if serveErr := srv.Serve(ctx); serveErr != nil {
+			logger.Error("serving gRPC", serveErr)
+		}
+	}()
 
 	// os.Interrupt
 	<-signalChan

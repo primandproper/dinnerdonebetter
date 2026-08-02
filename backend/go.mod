@@ -421,8 +421,3 @@ require (
 	rsc.io/omap v1.2.0 // indirect
 	rsc.io/ordered v1.1.1 // indirect
 )
-
-// TODO: remove once platform-go v9.0.0 is tagged, and pin the require above to it.
-// v9 does not exist as a published version yet, so this branch cannot build without
-// a local checkout. Do not merge with this in place.
-replace github.com/primandproper/platform-go/v9 => ../../../primandproper/platform-go
