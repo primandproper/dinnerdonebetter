@@ -185,11 +185,11 @@
 	},
 	"services": {
 		"payments": {
+			"revenueCat": null,
 			"capitalism": {
 				"stripe": null,
 				"provider": "noop"
-			},
-			"revenueCat": null
+			}
 		},
 		"users": {
 			"publicMediaURLPrefix": "",
