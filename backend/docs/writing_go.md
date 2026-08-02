@@ -282,12 +282,14 @@ The codebase follows a clean architecture approach. The platform framework (`git
 │   └── services/        # Application services and handlers (gRPC + HTTP)
 ├── pkg/                 # Public API packages
 │   └── client/          # Public API client library for external consumers
-├── testing/             # Integration and load tests
-│   ├── integration/
-│   │   └── apiserver/   # API server integration tests
-│   └── load/            # k6 load tests
-└── vendor/              # Go module dependencies (vendored)
+└── testing/             # Integration and load tests
+    ├── integration/
+    │   └── apiserver/   # API server integration tests
+    └── load/            # k6 load tests
 ```
+
+Dependencies are not vendored — `go.mod` and `go.sum` are the committed source of truth,
+and Go resolves packages from the module cache.
 
 ### Platform as External Framework
 
