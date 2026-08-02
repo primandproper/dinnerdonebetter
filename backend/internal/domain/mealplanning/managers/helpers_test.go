@@ -7,6 +7,7 @@ import (
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 	mealplanningworkers "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
 	"github.com/primandproper/platform-go/v9/messagequeue"
@@ -14,6 +15,7 @@ import (
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	textsearch "github.com/primandproper/platform-go/v9/search/text"
 	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
 
 	"github.com/stretchr/testify/require"
@@ -82,6 +84,17 @@ func buildValidEnumerationsManagerForTest(t *testing.T) *mealPlanningManager {
 // repository, inside the transaction that writes the row they describe.
 func attachRepositoryToManager(manager *mealPlanningManager, db *mealplanningmock.RepositoryMock) {
 	manager.db = db
+}
+
+// attachRecipeSearchIndexToManager swaps in a configured recipe search index. The manager is
+// otherwise built against the noop index, which answers every query with no hits and no cursor.
+func attachRecipeSearchIndexToManager(manager *mealPlanningManager, index textsearch.IndexSearcher[eatingindexing.RecipeSearchSubset]) {
+	manager.recipeSearchIndex = index
+}
+
+// attachValidIngredientSearchIndexToManager swaps in a configured valid ingredient search index.
+func attachValidIngredientSearchIndexToManager(manager *mealPlanningManager, index textsearch.IndexSearcher[eatingindexing.ValidIngredientSearchSubset]) {
+	manager.validIngredientSearchIndex = index
 }
 
 // attachRepositoryAndAnalyzerToManager additionally swaps in a configured recipe analyzer. A nil

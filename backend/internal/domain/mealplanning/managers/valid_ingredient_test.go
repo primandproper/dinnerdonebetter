@@ -7,8 +7,12 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
+	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v9/filtering"
+	textsearch "github.com/primandproper/platform-go/v9/search/text"
+	"github.com/primandproper/platform-go/v9/search/text/elasticsearch"
+	mocksearch "github.com/primandproper/platform-go/v9/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -51,6 +55,86 @@ func TestValidEnumerationManager_SearchValidIngredients(T *testing.T) {
 
 		assert.Len(t, db.SearchForValidIngredientsCalls(), 1)
 		assert.Len(t, db.GetIngredientMediaByIngredientCalls(), len(expected.Data))
+	})
+
+	T.Run("with search service asking the index for the filter's page", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		vem := buildValidEnumerationsManagerForTest(t)
+
+		exampleQuery := fakes.BuildFakeID()
+		expected := fakes.BuildFakeValidIngredient()
+
+		cursor := "cursor-from-a-previous-page"
+		filter := filtering.DefaultQueryFilter()
+		filter.MaxResponseSize = new(uint16(11))
+		filter.Cursor = &cursor
+
+		db := &mealplanningmock.RepositoryMock{
+			GetValidIngredientsWithIDsFunc: func(_ context.Context, ids []string) ([]*types.ValidIngredient, error) {
+				assert.Equal(t, []string{expected.ID}, ids)
+
+				return []*types.ValidIngredient{expected}, nil
+			},
+			GetIngredientMediaByIngredientFunc: func(_ context.Context, id string) ([]*types.IngredientMediaRow, error) {
+				assert.Equal(t, expected.ID, id)
+
+				return []*types.IngredientMediaRow{}, nil
+			},
+		}
+		attachRepositoryToManager(vem, db)
+
+		index := &mocksearch.IndexMock[eatingindexing.ValidIngredientSearchSubset]{
+			SearchFunc: func(_ context.Context, req textsearch.SearchRequest) (*textsearch.SearchResults[eatingindexing.ValidIngredientSearchSubset], error) {
+				assert.Equal(t, exampleQuery, req.Query)
+				assert.Equal(t, 11, req.Limit)
+				assert.Equal(t, textsearch.Cursor(cursor), req.Cursor)
+
+				return &textsearch.SearchResults[eatingindexing.ValidIngredientSearchSubset]{
+					Hits:       []*eatingindexing.ValidIngredientSearchSubset{{ID: expected.ID}},
+					NextCursor: textsearch.Cursor("cursor-for-the-next-page"),
+				}, nil
+			},
+		}
+		attachValidIngredientSearchIndexToManager(vem, index)
+
+		actual, err := vem.SearchValidIngredients(ctx, exampleQuery, true, filter)
+		assert.NoError(t, err)
+		assert.Equal(t, []*types.ValidIngredient{expected}, actual.Data)
+		assert.Equal(t, "cursor-for-the-next-page", actual.Cursor)
+
+		assert.Len(t, index.SearchCalls(), 1)
+		assert.Empty(t, db.SearchForValidIngredientsCalls())
+	})
+
+	T.Run("with search service refusing to page deeper", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		vem := buildValidEnumerationsManagerForTest(t)
+
+		exampleQuery := fakes.BuildFakeID()
+
+		cursor := "cursor-past-the-result-window"
+		filter := filtering.DefaultQueryFilter()
+		filter.Cursor = &cursor
+
+		db := &mealplanningmock.RepositoryMock{}
+		attachRepositoryToManager(vem, db)
+
+		index := &mocksearch.IndexMock[eatingindexing.ValidIngredientSearchSubset]{
+			SearchFunc: func(_ context.Context, _ textsearch.SearchRequest) (*textsearch.SearchResults[eatingindexing.ValidIngredientSearchSubset], error) {
+				return nil, elasticsearch.ErrResultWindowExceeded
+			},
+		}
+		attachValidIngredientSearchIndexToManager(vem, index)
+
+		actual, err := vem.SearchValidIngredients(ctx, exampleQuery, true, filter)
+		assert.Nil(t, actual)
+		// The refusal survives wrapping so the service layer can turn it into a status
+		// the client can act on, rather than a generic internal error.
+		assert.ErrorIs(t, err, elasticsearch.ErrResultWindowExceeded)
 	})
 }
 

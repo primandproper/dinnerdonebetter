@@ -8,13 +8,13 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/searchpagination"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
 	"github.com/primandproper/platform-go/v9/observability"
 	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
-	textsearch "github.com/primandproper/platform-go/v9/search/text"
 )
 
 func (m *mealPlanningManager) ListMeals(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Meal], error) {
@@ -100,10 +100,13 @@ func (m *mealPlanningManager) SearchMeals(ctx context.Context, query string, use
 
 	if useSearchService {
 		results, err = m.searchMealsViaIndex(ctx, query, filter)
+		if searchpagination.CursorRejected(err) {
+			return nil, observability.PrepareAndLogError(err, logger, span, "searching for meals")
+		}
 	}
 
 	if err != nil || results == nil {
-		results, err = m.db.SearchForMeals(ctx, query, filter)
+		results, err = m.db.SearchForMeals(ctx, query, searchpagination.FilterForDatabaseFallback(filter))
 		if err != nil {
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching for meals")
 		}
@@ -112,14 +115,26 @@ func (m *mealPlanningManager) SearchMeals(ctx context.Context, query string, use
 	return results, nil
 }
 
-// searchMealsViaIndex searches meals via the external search index. Returns (nil, err) on search failure, empty results, or GetMealsWithIDs failure.
+// searchMealsViaIndex searches meals via the external search index. Returns (nil, err) on search failure or GetMealsWithIDs failure, and (nil, errIndexHadNothing) on an empty first page.
 func (m *mealPlanningManager) searchMealsViaIndex(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Meal], error) {
-	indexHits, err := m.mealsSearchIndex.Search(ctx, textsearch.SearchRequest{Query: query})
-	if err != nil || len(indexHits.Hits) == 0 {
+	indexHits, err := searchpagination.Search(ctx, m.mealsSearchIndex, query, filter)
+	if err != nil {
 		return nil, err
 	}
 
 	mealSubsets := indexHits.Hits
+
+	if len(mealSubsets) == 0 {
+		// An empty first page falls through to the database, in case the index is
+		// behind or was never populated. An empty page part-way through a cursor walk
+		// is just the end of the results, and restarting the database from the top
+		// would serve them all over again.
+		if !searchpagination.Resuming(filter) {
+			return nil, errIndexHadNothing
+		}
+
+		return searchpagination.NewResult([]*types.Meal{}, indexHits.NextCursor, filter), nil
+	}
 
 	ids := make([]string, 0, len(mealSubsets))
 	for _, mealSubset := range mealSubsets {
@@ -131,9 +146,7 @@ func (m *mealPlanningManager) searchMealsViaIndex(ctx context.Context, query str
 		return nil, err
 	}
 
-	return filtering.NewQueryFilteredResult(idResults, uint64(len(idResults)), uint64(len(idResults)), func(meal *types.Meal) string {
-		return meal.ID
-	}, filter), nil
+	return searchpagination.NewResult(idResults, indexHits.NextCursor, filter), nil
 }
 
 func (m *mealPlanningManager) ArchiveMeal(ctx context.Context, mealID, ownerID string) error {

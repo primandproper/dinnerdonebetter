@@ -6,6 +6,7 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/searchpagination"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
@@ -37,7 +38,7 @@ func (m *mealPlanningManager) SearchValidInstruments(ctx context.Context, query 
 		results, err = m.db.SearchForValidInstruments(ctx, query, filter)
 	} else {
 		var indexHits *textsearch.SearchResults[eatingindexing.ValidInstrumentSearchSubset]
-		indexHits, err = m.validInstrumentSearchIndex.Search(ctx, textsearch.SearchRequest{Query: query})
+		indexHits, err = searchpagination.Search(ctx, m.validInstrumentSearchIndex, query, filter)
 		if err != nil {
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching for valid instruments")
 		}
@@ -54,15 +55,7 @@ func (m *mealPlanningManager) SearchValidInstruments(ctx context.Context, query 
 			return nil, observability.PrepareAndLogError(searchErr, logger, span, "fetching valid instruments")
 		}
 
-		results = filtering.NewQueryFilteredResult(
-			searchResults,
-			uint64(len(searchResults)),
-			uint64(len(searchResults)),
-			func(v *types.ValidInstrument) string {
-				return v.ID
-			},
-			filter,
-		)
+		results = searchpagination.NewResult(searchResults, indexHits.NextCursor, filter)
 	}
 
 	if err != nil {

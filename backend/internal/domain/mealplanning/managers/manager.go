@@ -10,6 +10,7 @@ import (
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
 	"github.com/primandproper/platform-go/v9/messagequeue"
 	"github.com/primandproper/platform-go/v9/observability"
@@ -353,6 +354,12 @@ type (
 
 var (
 	_ MealPlanningManager = (*mealPlanningManager)(nil)
+
+	// errIndexHadNothing is how the index-backed search helpers report an empty first
+	// page. It is a failure only in the sense that the caller should ask the database
+	// instead, in case the index is behind or was never populated, and it does not
+	// leave this package.
+	errIndexHadNothing = platformerrors.New("search index returned no hits")
 )
 
 // NewMealPlanningManager returns a new MealPlanningManager.

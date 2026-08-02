@@ -6,6 +6,7 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/searchpagination"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
@@ -37,7 +38,7 @@ func (m *mealPlanningManager) SearchValidMeasurementUnits(ctx context.Context, q
 		results, err = m.db.SearchForValidMeasurementUnits(ctx, query, filter)
 	} else {
 		var indexHits *textsearch.SearchResults[eatingindexing.ValidMeasurementUnitSearchSubset]
-		indexHits, err = m.validMeasurementUnitSearchIndex.Search(ctx, textsearch.SearchRequest{Query: query})
+		indexHits, err = searchpagination.Search(ctx, m.validMeasurementUnitSearchIndex, query, filter)
 		if err != nil {
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching for valid measurement units")
 		}
@@ -54,9 +55,7 @@ func (m *mealPlanningManager) SearchValidMeasurementUnits(ctx context.Context, q
 			return nil, observability.PrepareAndLogError(searchErr, logger, span, "fetching valid measurement units")
 		}
 
-		results = filtering.NewQueryFilteredResult(searchResults, uint64(len(searchResults)), uint64(len(searchResults)), func(v *types.ValidMeasurementUnit) string {
-			return v.ID
-		}, filter)
+		results = searchpagination.NewResult(searchResults, indexHits.NextCursor, filter)
 	}
 
 	if err != nil {
