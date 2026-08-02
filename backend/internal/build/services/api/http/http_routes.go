@@ -1,22 +1,24 @@
 package api
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	paymentswebhook "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/http"
 
-	"github.com/primandproper/platform-go/v8/encoding"
-	"github.com/primandproper/platform-go/v8/healthcheck"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/metrics"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	"github.com/primandproper/platform-go/v8/routing"
-	routingcfg "github.com/primandproper/platform-go/v8/routing/config"
-	"github.com/primandproper/platform-go/v8/version"
+	"github.com/primandproper/platform-go/v9/encoding"
+	"github.com/primandproper/platform-go/v9/healthcheck"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/metrics"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v9/routing"
+	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
+	"github.com/primandproper/platform-go/v9/version"
 )
 
 func ProvideAPIRouter(
+	ctx context.Context,
 	routingConfig routingcfg.Config,
 	logger logging.Logger,
 	tracerProvider tracing.TracerProvider,
@@ -27,7 +29,11 @@ func ProvideAPIRouter(
 ) (*routing.Router, error) {
 	encoder := encoding.NewServerEncoderDecoder(encoding.ContentTypeJSON, encoding.WithLogger(logger), encoding.WithTracerProvider(tracerProvider))
 
-	router, err := routingcfg.NewRouter(&routingConfig, encoder, logger, tracerProvider, metricsProvider)
+	router, err := routingcfg.NewRouter(ctx, &routingConfig, encoder,
+		routingcfg.WithLogger(logger),
+		routingcfg.WithTracerProvider(tracerProvider),
+		routingcfg.WithMetricsProvider(metricsProvider),
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -1,15 +1,19 @@
 package authcfg
 
 import (
-	tokenscfg "github.com/primandproper/platform-go/v8/authentication/tokens/config"
+	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
 
 	"github.com/samber/do/v2"
 )
 
 // RegisterConfigs registers auth config sub-fields with the injector.
 func RegisterConfigs(i do.Injector) {
-	do.Provide[*tokenscfg.Config](i, func(i do.Injector) (*tokenscfg.Config, error) {
+	do.Provide[*TokensConfig](i, func(i do.Injector) (*TokensConfig, error) {
 		cfg := do.MustInvoke[*Config](i)
 		return &cfg.Tokens, nil
+	})
+
+	do.Provide[*tokenscfg.Config](i, func(i do.Injector) (*tokenscfg.Config, error) {
+		return &do.MustInvoke[*TokensConfig](i).Config, nil
 	})
 }

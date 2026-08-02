@@ -9,11 +9,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	platformerrors "github.com/primandproper/platform-go/v8/errors"
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/observability"
-	platformkeys "github.com/primandproper/platform-go/v8/observability/keys"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/observability"
+	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	textsearch "github.com/primandproper/platform-go/v9/search/text"
 )
 
 func (m *mealPlanningManager) SearchValidPreparations(ctx context.Context, query string, useSearchService bool, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPreparation], error) {
@@ -36,11 +37,13 @@ func (m *mealPlanningManager) SearchValidPreparations(ctx context.Context, query
 	if !useSearchService {
 		results, err = m.db.SearchForValidPreparations(ctx, query, filter)
 	} else {
-		var validPreparationSubsets []*eatingindexing.ValidPreparationSearchSubset
-		validPreparationSubsets, err = m.validPreparationsSearchIndex.Search(ctx, query)
+		var indexHits *textsearch.SearchResults[eatingindexing.ValidPreparationSearchSubset]
+		indexHits, err = m.validPreparationsSearchIndex.Search(ctx, textsearch.SearchRequest{Query: query})
 		if err != nil {
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching valid preparations")
 		}
+
+		validPreparationSubsets := indexHits.Hits
 
 		ids := []string{}
 		for _, validPreparationSubset := range validPreparationSubsets {

@@ -8,11 +8,12 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	platformerrors "github.com/primandproper/platform-go/v8/errors"
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/observability"
-	platformkeys "github.com/primandproper/platform-go/v8/observability/keys"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/observability"
+	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	textsearch "github.com/primandproper/platform-go/v9/search/text"
 )
 
 func (m *mealPlanningManager) SearchValidInstruments(ctx context.Context, query string, useSearchService bool, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidInstrument], error) {
@@ -35,11 +36,13 @@ func (m *mealPlanningManager) SearchValidInstruments(ctx context.Context, query 
 	if !useSearchService {
 		results, err = m.db.SearchForValidInstruments(ctx, query, filter)
 	} else {
-		var validInstrumentSubsets []*eatingindexing.ValidInstrumentSearchSubset
-		validInstrumentSubsets, err = m.validInstrumentSearchIndex.Search(ctx, query)
+		var indexHits *textsearch.SearchResults[eatingindexing.ValidInstrumentSearchSubset]
+		indexHits, err = m.validInstrumentSearchIndex.Search(ctx, textsearch.SearchRequest{Query: query})
 		if err != nil {
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching for valid instruments")
 		}
+
+		validInstrumentSubsets := indexHits.Hits
 
 		ids := []string{}
 		for _, validInstrumentSubset := range validInstrumentSubsets {

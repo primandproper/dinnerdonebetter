@@ -170,10 +170,6 @@
 		"postmark": null,
 		"ses": null,
 		"provider": "resend",
-		"baseURL": "",
-		"outboundInvitesEmailAddress": "",
-		"passwordResetCreationEmailAddress": "",
-		"passwordResetRedemptionEmailAddress": "",
 		"circuitBreakerConfig": {
 			"name": "prod_emailer",
 			"circuitBreakerErrorPercentage": 0.5,
@@ -185,12 +181,7 @@
 		"posthog": {
 			"projectAPIKey": "placeholder",
 			"personalAPIKey": "",
-			"endpoint": "",
-			"circuitBreakerConfig": {
-				"name": "",
-				"circuitBreakerErrorPercentage": 0,
-				"circuitBreakerMinimumOccurrenceThreshold": 0
-			}
+			"endpoint": ""
 		},
 		"provider": "posthog",
 		"circuitBreakerConfig": {
@@ -201,8 +192,8 @@
 	},
 	"search": {
 		"algolia": {
-			"appID": "",
-			"writeAPIKey": "",
+			"appID": "placeholder",
+			"writeAPIKey": "placeholder",
 			"timeout": 0
 		},
 		"elasticsearch": null,
@@ -219,8 +210,7 @@
 			"bundleID": "com.dinnerdonebetter.ios"
 		},
 		"startupDeadline": 60000000000,
-		"port": 8000,
-		"debug": false
+		"port": 8000
 	},
 	"auth": {
 		"sessionStore": {

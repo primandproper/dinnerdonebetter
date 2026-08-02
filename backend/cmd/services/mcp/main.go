@@ -21,12 +21,12 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks"
 	waitlistsrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 
-	"github.com/primandproper/platform-go/v8/authentication/totp"
-	"github.com/primandproper/platform-go/v8/encoding"
-	"github.com/primandproper/platform-go/v8/observability"
-	"github.com/primandproper/platform-go/v8/routing"
-	routingcfg "github.com/primandproper/platform-go/v8/routing/config"
-	"github.com/primandproper/platform-go/v8/version"
+	"github.com/primandproper/platform-go/v9/authentication/totp"
+	"github.com/primandproper/platform-go/v9/encoding"
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/routing"
+	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
+	"github.com/primandproper/platform-go/v9/version"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -140,7 +140,7 @@ func main() {
 			return server
 		}, &mcp.SSEOptions{})
 
-		router, routerErr := buildRouter(sseHandler, tokens, pillars, &cfg.Routing, *baseURL, identityRepo, authenticator, totpVerifier)
+		router, routerErr := buildRouter(ctx, sseHandler, tokens, pillars, &cfg.Routing, *baseURL, identityRepo, authenticator, totpVerifier)
 		if routerErr != nil {
 			log.Fatalf("failed to build router: %v", routerErr)
 		}
@@ -168,7 +168,7 @@ func main() {
 			return server
 		}, handlerOpts)
 
-		router, routerErr := buildRouter(streamHandler, tokens, pillars, &cfg.Routing, *baseURL, identityRepo, authenticator, totpVerifier)
+		router, routerErr := buildRouter(ctx, streamHandler, tokens, pillars, &cfg.Routing, *baseURL, identityRepo, authenticator, totpVerifier)
 		if routerErr != nil {
 			log.Fatalf("failed to build router: %v", routerErr)
 		}
@@ -188,10 +188,10 @@ func main() {
 }
 
 // buildRouter creates a router with OAuth2 routes (unauthenticated) and the MCP handler (authenticated).
-func buildRouter(mcpHandler http.Handler, tokens *tokenStore, pillars *observability.Pillars, routingCfg *routingcfg.Config, baseURL string, identityRepo identity.Repository, authenticator authentication.Authenticator, totpVerifier totp.Verifier) (*routing.Router, error) {
+func buildRouter(ctx context.Context, mcpHandler http.Handler, tokens *tokenStore, pillars *observability.Pillars, routingCfg *routingcfg.Config, baseURL string, identityRepo identity.Repository, authenticator authentication.Authenticator, totpVerifier totp.Verifier) (*routing.Router, error) {
 	encoder := encoding.NewServerEncoderDecoder(encoding.ContentTypeJSON, encoding.WithLogger(pillars.Logger), encoding.WithTracerProvider(pillars.TracerProvider))
 
-	router, err := routingcfg.NewRouter(routingCfg, encoder, pillars.Logger, pillars.TracerProvider, pillars.MetricsProvider)
+	router, err := routingcfg.NewRouter(ctx, routingCfg, encoder, routingcfg.WithPillars(pillars))
 	if err != nil {
 		return nil, err
 	}

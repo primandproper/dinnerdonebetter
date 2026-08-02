@@ -10,14 +10,14 @@ import (
 	authkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
+	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
 	coreemails "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/emails"
 	coreindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	"github.com/primandproper/platform-go/v8/email"
-	"github.com/primandproper/platform-go/v8/filtering"
-	notifications "github.com/primandproper/platform-go/v8/notifications/mobile"
-	"github.com/primandproper/platform-go/v8/observability"
-	textsearch "github.com/primandproper/platform-go/v8/search/text"
+	"github.com/primandproper/platform-go/v9/filtering"
+	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"
+	"github.com/primandproper/platform-go/v9/observability"
+	textsearch "github.com/primandproper/platform-go/v9/search/text"
 )
 
 // handleIdentitySearchIndexUpdate handles search index updates for identity domain events.
@@ -63,7 +63,7 @@ func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(
 ) (
 	handled bool,
 	emailType string,
-	outboundEmailMessages []*email.OutboundEmailMessage,
+	outboundEmailMessages []*queuemessages.OutboundEmailMessage,
 	err error,
 ) {
 	ctx, span := a.tracer.StartSpan(ctx)
@@ -72,7 +72,7 @@ func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(
 	logger := a.logger.WithValue("event_type", changeMessage.EventType)
 
 	var (
-		msg *email.OutboundEmailMessage
+		msg *queuemessages.OutboundEmailMessage
 	)
 
 	switch changeMessage.EventType {

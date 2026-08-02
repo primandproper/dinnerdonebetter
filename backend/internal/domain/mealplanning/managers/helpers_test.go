@@ -6,15 +6,15 @@ import (
 
 	mealplanningmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 	mealplanningworkers "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v8/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v8/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
-	textsearchcfg "github.com/primandproper/platform-go/v8/search/text/config"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	mockpublishers "github.com/primandproper/platform-go/v9/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
 
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +24,7 @@ import (
 func newManagerForTest(t *testing.T, groceryWorker, taskWorker mealplanningworkers.Worker) *mealPlanningManager {
 	t.Helper()
 
-	queueCfg := &msgconfig.QueuesConfig{
+	queueCfg := &queuescfg.Config{
 		DataChangesTopicName: t.Name(),
 	}
 
@@ -42,7 +42,7 @@ func newManagerForTest(t *testing.T, groceryWorker, taskWorker mealplanningworke
 		queueCfg,
 		mpp,
 		&recipeanalysis.RecipeAnalyzerMock{},
-		&textsearchcfg.Config{},
+		&textsearchcfg.Config{Provider: textsearchcfg.ProviderNoop},
 		metricsnoop.NewMetricsProvider(),
 		groceryWorker,
 		taskWorker,

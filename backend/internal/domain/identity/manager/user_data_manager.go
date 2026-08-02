@@ -14,16 +14,17 @@ import (
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	"github.com/primandproper/platform-go/v8/database"
-	platformerrors "github.com/primandproper/platform-go/v8/errors"
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/identifiers"
-	"github.com/primandproper/platform-go/v8/observability"
-	platformkeys "github.com/primandproper/platform-go/v8/observability/keys"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	"github.com/primandproper/platform-go/v8/qrcodes"
-	"github.com/primandproper/platform-go/v8/random"
+	"github.com/primandproper/platform-go/v9/database"
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v9/observability"
+	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v9/qrcodes"
+	"github.com/primandproper/platform-go/v9/random"
+	textsearch "github.com/primandproper/platform-go/v9/search/text"
 
 	passwordvalidator "github.com/wagslane/go-password-validator"
 )
@@ -651,10 +652,12 @@ func (m *manager) SearchForUsers(ctx context.Context, query string, useSearchSer
 
 		return users, nil
 	} else {
-		uss, err := m.userSearchIndex.Search(ctx, query)
+		searchResults, err := m.userSearchIndex.Search(ctx, textsearch.SearchRequest{Query: query})
 		if err != nil {
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching for users")
 		}
+
+		uss := searchResults.Hits
 
 		// The search index has no notion of cursor pagination, so the best we can do is
 		// honor the filter's page size and report the index's full hit count as the total.

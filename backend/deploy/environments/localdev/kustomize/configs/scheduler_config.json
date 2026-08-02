@@ -90,13 +90,10 @@
 		}
 	},
 	"analytics": {
-		"proxySources": {
-			"ios": null,
-			"web": null
-		},
+		"proxySources": null,
 		"segment": null,
 		"posthog": null,
-		"provider": "",
+		"provider": "noop",
 		"circuitBreaker": {
 			"name": "feature_flagger",
 			"circuitBreakerErrorPercentage": 0.5,
@@ -104,13 +101,9 @@
 		}
 	},
 	"search": {
-		"algolia": {
-			"appID": "",
-			"writeAPIKey": "",
-			"timeout": 0
-		},
+		"algolia": null,
 		"elasticsearch": null,
-		"provider": "algolia",
+		"provider": "noop",
 		"circuitBreakerConfig": {
 			"name": "dev_text_searcher",
 			"circuitBreakerErrorPercentage": 0.5,
@@ -150,10 +143,10 @@
 		"enableDatabaseMetrics": false
 	},
 	"outbox": {
-		"dialect": "postgres",
-		"tableName": "outbox_messages",
+		"tablePrefix": "",
 		"claimMode": "skip_locked",
 		"backoff": {
+			"provider": "",
 			"maxAttempts": 8,
 			"initialDelay": 1000000000,
 			"maxDelay": 60000000000,
@@ -170,6 +163,7 @@
 	"jobs": {
 		"scheduler": {
 			"lockKeyPrefix": "dinner_done_better.scheduler.",
+			"timezone": "",
 			"defaultLeaseTTL": 120000000000,
 			"defaultTimeout": 60000000000
 		},

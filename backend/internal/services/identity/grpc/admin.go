@@ -7,7 +7,7 @@ import (
 	identityconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/converters"
 	identitysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 
-	errorsgrpc "github.com/primandproper/platform-go/v8/errors/grpc"
+	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
 
 	"google.golang.org/grpc/codes"
 )

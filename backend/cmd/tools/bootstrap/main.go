@@ -12,23 +12,24 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	identityrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	oauthrepo "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 
-	"github.com/primandproper/platform-go/v8/authentication/argon2"
-	encryptioncfg "github.com/primandproper/platform-go/v8/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v8/database"
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	"github.com/primandproper/platform-go/v8/database/postgres"
-	"github.com/primandproper/platform-go/v8/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v8/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v8/random"
-	"github.com/primandproper/platform-go/v8/secrets/kubectl"
+	"github.com/primandproper/platform-go/v9/authentication/argon2"
+	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v9/database"
+	databasecfg "github.com/primandproper/platform-go/v9/database/config"
+	"github.com/primandproper/platform-go/v9/database/postgres"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v9/random"
+	"github.com/primandproper/platform-go/v9/secrets/kubernetes"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
@@ -184,12 +185,14 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 		DisableSSL: db.sslDisable,
 	}
 
-	dbConfig := &databasecfg.Config{
-		Provider:                 databasecfg.ProviderPostgres,
-		MaxPingAttempts:          10,
-		PingWaitPeriod:           time.Second,
-		ReadConnection:           connDetails,
-		WriteConnection:          connDetails,
+	dbConfig := &dbcfg.Config{
+		Config: databasecfg.Config{
+			Provider:        databasecfg.ProviderPostgres,
+			MaxPingAttempts: 10,
+			PingWaitPeriod:  time.Second,
+			ReadConnection:  connDetails,
+			WriteConnection: connDetails,
+		},
 		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
 		OAuth2TokenEncryptionKey: db.oauth2TokenEncryptionKey,
 	}
@@ -217,7 +220,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 
 	auditRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, client)
 	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil)
-	oauthRepo := oauthrepo.ProvideOAuthRepository(logger, tracerProvider, auditRepo, dbConfig, client)
+	oauthRepo := oauthrepo.ProvideOAuthRepository(ctx, logger, tracerProvider, auditRepo, dbConfig, client)
 
 	// --- Admin user (idempotent) ---
 	user, err := identityRepo.GetUserByUsername(ctx, adminUsername)
@@ -395,18 +398,18 @@ func fetchProdSecrets(ctx context.Context, kubeconfigPath string) (*prodSecrets,
 	tracerProvider := tracingnoop.NewTracerProvider()
 	metricsProvider := metricsnoop.NewMetricsProvider()
 
-	cfg := &kubectl.Config{
+	cfg := &kubernetes.Config{
 		Namespace:  prodNamespace,
 		Kubeconfig: kubeconfigPath,
 	}
 
-	secretSource, err := kubectl.NewKubectlSecretSource(ctx, cfg, nil,
-		kubectl.WithLogger(logger),
-		kubectl.WithTracerProvider(tracerProvider),
-		kubectl.WithMetricsProvider(metricsProvider),
+	secretSource, err := kubernetes.NewSecretSource(ctx, cfg, nil,
+		kubernetes.WithLogger(logger),
+		kubernetes.WithTracerProvider(tracerProvider),
+		kubernetes.WithMetricsProvider(metricsProvider),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("creating kubectl secret source: %w", err)
+		return nil, fmt.Errorf("creating kubernetes secret source: %w", err)
 	}
 	defer func() {
 		if err = secretSource.Close(); err != nil {

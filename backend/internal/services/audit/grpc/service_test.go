@@ -13,11 +13,11 @@ import (
 	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	auditsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -73,7 +73,7 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 		ctx := t.Context()
 
 		fakeAuditLogEntries := auditfakes.BuildFakeAuditLogEntriesList()
-		pageSize := uint8(20)
+		pageSize := uint16(20)
 		filter := &filtering.QueryFilter{
 			MaxResponseSize: &pageSize,
 		}
@@ -121,7 +121,7 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 
 		ctx := t.Context()
 
-		pageSize := uint8(20)
+		pageSize := uint16(20)
 		filter := &filtering.QueryFilter{
 			MaxResponseSize: &pageSize,
 		}
@@ -172,7 +172,7 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 		ctx := t.Context()
 
 		fakeAuditLogEntries := auditfakes.BuildFakeAuditLogEntriesList()
-		pageSize := uint8(20)
+		pageSize := uint16(20)
 		filter := &filtering.QueryFilter{
 			MaxResponseSize: &pageSize,
 		}
@@ -217,7 +217,7 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 
 		ctx := t.Context()
 
-		pageSize := uint8(20)
+		pageSize := uint16(20)
 		filter := &filtering.QueryFilter{
 			MaxResponseSize: &pageSize,
 		}

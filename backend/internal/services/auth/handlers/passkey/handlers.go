@@ -10,11 +10,11 @@ import (
 	authsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v8/cookies"
-	"github.com/primandproper/platform-go/v8/encoding"
-	"github.com/primandproper/platform-go/v8/observability"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/cookies"
+	"github.com/primandproper/platform-go/v9/encoding"
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
 
 // AuthOptionsRequest is the request body for passkey authentication options.
@@ -155,7 +155,7 @@ func (h *Handlers) AuthVerifyHandler(res http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	encodedCookie, err := h.cookieManager.Encode(ctx, h.cookieConfig.CookieName, &identity.TokenResponse{AccessToken: tokenRes.Result.AccessToken})
+	encodedCookie, err := h.cookieManager.Encode(ctx, CookieName, &identity.TokenResponse{AccessToken: tokenRes.Result.AccessToken})
 	if err != nil {
 		observability.AcknowledgeError(err, logger, span, "encoding auth cookie")
 		h.encoder.EncodeResponseWithStatus(ctx, res, map[string]string{"error": "failed to complete login"}, http.StatusInternalServerError)

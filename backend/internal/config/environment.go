@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	"github.com/primandproper/platform-go/v8/database/dialect"
-	distributedlockcfg "github.com/primandproper/platform-go/v8/distributedlock/config"
-	pglock "github.com/primandproper/platform-go/v8/distributedlock/postgres"
-	"github.com/primandproper/platform-go/v8/jobs"
-	"github.com/primandproper/platform-go/v8/observability"
-	"github.com/primandproper/platform-go/v8/outbox"
-	"github.com/primandproper/platform-go/v8/retry"
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
+
+	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
+	pglock "github.com/primandproper/platform-go/v9/distributedlock/postgres"
+	"github.com/primandproper/platform-go/v9/jobs"
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/outbox"
+	retrycfg "github.com/primandproper/platform-go/v9/retry/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -86,10 +86,9 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 // message with that key is still pending, and the emitter keys every event by account.
 func defaultOutboxRelayConfig() outbox.RelayConfig {
 	return outbox.RelayConfig{
-		Dialect:   dialect.Postgres,
-		TableName: outbox.DefaultTableName,
-		ClaimMode: outbox.ClaimSkipLocked,
-		Backoff: retry.Config{
+		TablePrefix: outbox.DefaultTablePrefix,
+		ClaimMode:   outbox.ClaimSkipLocked,
+		Backoff: retrycfg.Config{
 			MaxAttempts:  8,
 			InitialDelay: time.Second,
 			MaxDelay:     time.Minute,
@@ -124,7 +123,7 @@ func defaultWorkerPoolsConfig() WorkerPoolsConfig {
 		return jobs.PoolConfig{
 			Concurrency:    8,
 			HandlerTimeout: 30 * time.Second,
-			Retry: retry.Config{
+			Retry: retrycfg.Config{
 				MaxAttempts:  3,
 				InitialDelay: 100 * time.Millisecond,
 				MaxDelay:     5 * time.Second,
@@ -214,7 +213,7 @@ func disableWorkerOtelMetrics(obs *observability.Config) {
 
 // databaseConfigForService returns a copy of the given database config with the username
 // overridden for the named service, if a mapping exists in users. Otherwise returns a copy unchanged.
-func databaseConfigForService(cfg *databasecfg.Config, users map[string]string, serviceName string) databasecfg.Config {
+func databaseConfigForService(cfg *dbcfg.Config, users map[string]string, serviceName string) dbcfg.Config {
 	out := *cfg
 	if username, ok := users[serviceName]; ok {
 		out.ReadConnection.Username = username

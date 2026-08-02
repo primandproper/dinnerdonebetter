@@ -11,19 +11,20 @@ import (
 	"time"
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	encryptioncfg "github.com/primandproper/platform-go/v8/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v8/database"
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	mockdatabase "github.com/primandproper/platform-go/v8/database/mock"
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/identifiers"
-	"github.com/primandproper/platform-go/v8/testutils/containers"
-	"github.com/primandproper/platform-go/v8/testutils/containers/pgtest"
+	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v9/database"
+	databasecfg "github.com/primandproper/platform-go/v9/database/config"
+	mockdatabase "github.com/primandproper/platform-go/v9/database/mock"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v9/testutils/containers"
+	"github.com/primandproper/platform-go/v9/testutils/containers/pgtest"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"
@@ -167,9 +168,11 @@ func credentialsFor(name string) (dbName, username, password string) {
 
 // databaseConfigForConnectionString renders a container's DSN as the database config the
 // repositories expect.
-func databaseConfigForConnectionString(connectionString string) (*databasecfg.Config, error) {
-	dbConfig := &databasecfg.Config{
-		RunMigrations:            false,
+func databaseConfigForConnectionString(connectionString string) (*dbcfg.Config, error) {
+	dbConfig := &dbcfg.Config{
+		Config: databasecfg.Config{
+			RunMigrations: false,
+		},
 		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
 		OAuth2TokenEncryptionKey: testOAuth2TokenEncryptionKey,
 	}
@@ -191,14 +194,14 @@ func databaseConfigForConnectionString(connectionString string) (*databasecfg.Co
 //
 // The container is gated on RUN_CONTAINER_TESTS=true (see containers.SkipIfNotRunning),
 // which pgtest.Run enforces on the caller's behalf.
-func BuildDatabaseContainerForTest(t *testing.T) (*sql.DB, *databasecfg.Config) {
+func BuildDatabaseContainerForTest(t *testing.T) (*sql.DB, *dbcfg.Config) {
 	t.Helper()
 
 	dbName, username, password := credentialsFor(t.Name())
 
 	var (
 		db       *sql.DB
-		dbConfig *databasecfg.Config
+		dbConfig *dbcfg.Config
 	)
 
 	pgtest.Run(t,
@@ -224,7 +227,7 @@ func BuildDatabaseContainerForTest(t *testing.T) (*sql.DB, *databasecfg.Config) 
 //
 // Extra customizers are applied after the defaults, so a caller can override them —
 // RunTestsWithSharedDatabase uses this to raise the server's connection ceiling.
-func BuildDatabaseContainer(ctx context.Context, dbName string, customizers ...testcontainers.ContainerCustomizer) (*postgres.PostgresContainer, *sql.DB, *databasecfg.Config, error) {
+func BuildDatabaseContainer(ctx context.Context, dbName string, customizers ...testcontainers.ContainerCustomizer) (*postgres.PostgresContainer, *sql.DB, *dbcfg.Config, error) {
 	name, username, password := credentialsFor(dbName)
 
 	options := append([]testcontainers.ContainerCustomizer{
@@ -446,7 +449,7 @@ func TestCursorBasedPagination[T any](t *testing.T, ctx context.Context, config 
 			Cursor:          cursor,
 		}
 		// Override the default page size with our test page size
-		customPageSize := uint8(config.PageSize)
+		customPageSize := uint16(config.PageSize)
 		filter.MaxResponseSize = &customPageSize
 
 		result, err := config.FetchPage(ctx, filter)

@@ -14,7 +14,7 @@ import (
 
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 
-	reflast "github.com/primandproper/platform-go/v8/reflection/ast"
+	reflast "github.com/primandproper/platform-go/v9/reflection/ast"
 
 	"github.com/codemodus/kace"
 )
@@ -160,7 +160,7 @@ func parseGoFiles(dir, modulePath string) (structs map[string]*structEntry, unio
 			return nil
 		}
 
-		if strings.Contains(path, "/vendor/") && !strings.Contains(path, "/vendor/github.com/primandproper/platform-go/v8/") {
+		if strings.Contains(path, "/vendor/") && !strings.Contains(path, "/vendor/github.com/primandproper/platform-go/v9/") {
 			return filepath.SkipDir
 		}
 
@@ -284,6 +284,14 @@ func handleSelectorExpr(currentEntry *structEntry, structs map[string]*structEnt
 	}
 }
 
+// handleEmbedded merges an embedded struct's environment variables into the outer struct's,
+// carrying the outer struct's prefixes unchanged because the fields are promoted.
+func handleEmbedded(structs map[string]*structEntry, relDir, typeName string, envVars map[string]envVarInfo, envVarPrefix, fieldNamePrefix string, visited map[string]bool) {
+	if nestedEntry, found := structs[fmt.Sprintf("%s.%s", relDir, typeName)]; found {
+		maps.Copy(envVars, extractEnvVars(nestedEntry, structs, envVarPrefix, fieldNamePrefix, visited))
+	}
+}
+
 // extractEnvVars traverses a struct definition and collects environment variables, resolving nested structs.
 // visited keys by (typeKey, prefix) so the same type can be processed when reached via different paths (e.g. IOS vs Web).
 func extractEnvVars(entry *structEntry, structs map[string]*structEntry, envVarPrefix, fieldNamePrefix string, visited map[string]bool) map[string]envVarInfo {
@@ -302,7 +310,27 @@ func extractEnvVars(entry *structEntry, structs map[string]*structEntry, envVarP
 	}
 
 	for _, field := range structType.Fields.List {
-		if field.Tag == nil || len(field.Names) == 0 {
+		// An embedded field has no name. Both env parsing and encoding/json promote its
+		// fields into the outer struct, so it is traversed with the outer struct's own
+		// prefixes rather than a nested one — otherwise a config that embeds another
+		// (dbcfg.Config embedding databasecfg.Config) silently loses every key it
+		// inherits.
+		if len(field.Names) == 0 {
+			switch fieldType := field.Type.(type) {
+			case *ast.Ident:
+				handleEmbedded(structs, entry.relDir, fieldType.Name, envVars, envVarPrefix, fieldNamePrefix, visited)
+			case *ast.SelectorExpr:
+				if pkgIdent, isIdentifier := fieldType.X.(*ast.Ident); isIdentifier {
+					if importRelDir, found := entry.imports[pkgIdent.Name]; found {
+						handleEmbedded(structs, importRelDir, fieldType.Sel.Name, envVars, envVarPrefix, fieldNamePrefix, visited)
+					}
+				}
+			}
+
+			continue
+		}
+
+		if field.Tag == nil {
 			continue
 		}
 

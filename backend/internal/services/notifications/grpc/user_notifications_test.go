@@ -13,9 +13,9 @@ import (
 	notificationssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/notifications/grpc/converters"
 
-	"github.com/primandproper/platform-go/v8/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -154,7 +154,7 @@ func TestServiceImpl_GetUserNotifications(t *testing.T) {
 		ctx := t.Context()
 
 		fakeNotifications := notificationsfakes.BuildFakeUserNotificationsList()
-		pageSize := uint8(20)
+		pageSize := uint16(20)
 		filter := &filtering.QueryFilter{
 			MaxResponseSize: &pageSize,
 		}

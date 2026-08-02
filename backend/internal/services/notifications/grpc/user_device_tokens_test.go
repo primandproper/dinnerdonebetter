@@ -12,7 +12,7 @@ import (
 	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	notificationssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 
-	"github.com/primandproper/platform-go/v8/filtering"
+	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -219,7 +219,7 @@ func TestServiceImpl_GetUserDeviceTokens(t *testing.T) {
 		ctx := t.Context()
 
 		fakeTokens := notificationsfakes.BuildFakeUserDeviceTokensList()
-		pageSize := uint8(20)
+		pageSize := uint16(20)
 		filter := &filtering.QueryFilter{
 			MaxResponseSize: &pageSize,
 		}

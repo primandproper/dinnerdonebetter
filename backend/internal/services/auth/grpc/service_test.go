@@ -11,13 +11,13 @@ import (
 	identitymanagermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	authsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
-	"github.com/primandproper/platform-go/v8/encoding"
-	"github.com/primandproper/platform-go/v8/featureflags"
-	"github.com/primandproper/platform-go/v8/featureflags/mock"
-	"github.com/primandproper/platform-go/v8/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v9/encoding"
+	"github.com/primandproper/platform-go/v9/featureflags"
+	featureflagsmock "github.com/primandproper/platform-go/v9/featureflags/mock"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +27,7 @@ var (
 	testUserID    = identifiers.New()
 )
 
-func buildTestService(t *testing.T) (*serviceImpl, *identitymanagermock.IdentityDataManagerMock, *authmanagermock.AuthManagerInterfaceMock, *authenticationmock.ManagerMock, *mock.FeatureFlagManagerMock) {
+func buildTestService(t *testing.T) (*serviceImpl, *identitymanagermock.IdentityDataManagerMock, *authmanagermock.AuthManagerInterfaceMock, *authenticationmock.ManagerMock, *featureflagsmock.FeatureFlagManagerMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
@@ -36,7 +36,7 @@ func buildTestService(t *testing.T) (*serviceImpl, *identitymanagermock.Identity
 	identityDataManager := &identitymanagermock.IdentityDataManagerMock{}
 	authManager := &authmanagermock.AuthManagerInterfaceMock{}
 	authenticationManager := &authenticationmock.ManagerMock{}
-	featureFlagManager := &mock.FeatureFlagManagerMock{
+	featureFlagManager := &featureflagsmock.FeatureFlagManagerMock{
 		CanUseFeatureFunc: func(_ context.Context, _ string, _ featureflags.EvaluationContext) (bool, error) {
 			return false, nil
 		},
@@ -82,7 +82,7 @@ func TestNewAuthService(t *testing.T) {
 		authManager := &authmanagermock.AuthManagerInterfaceMock{}
 		authenticationManager := &authenticationmock.ManagerMock{}
 
-		featureFlagManager := &mock.FeatureFlagManagerMock{
+		featureFlagManager := &featureflagsmock.FeatureFlagManagerMock{
 			CanUseFeatureFunc: func(_ context.Context, _ string, _ featureflags.EvaluationContext) (bool, error) {
 				return false, nil
 			},

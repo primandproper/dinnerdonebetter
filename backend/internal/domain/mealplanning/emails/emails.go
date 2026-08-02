@@ -7,8 +7,9 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
+	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
 
-	"github.com/primandproper/platform-go/v8/email"
+	"github.com/primandproper/platform-go/v9/email"
 
 	"github.com/matcornic/hermes/v2"
 )
@@ -18,7 +19,7 @@ var (
 )
 
 // BuildMealPlanCreatedEmail builds an email notifying a user that they've been invited to join an account.
-func BuildMealPlanCreatedEmail(recipient *identity.User, mealPlan *mealplanning.MealPlan, baseURL string) (*email.OutboundEmailMessage, error) {
+func BuildMealPlanCreatedEmail(recipient *identity.User, mealPlan *mealplanning.MealPlan, baseURL string) (*queuemessages.OutboundEmailMessage, error) {
 	if recipient.EmailAddressVerifiedAt == nil {
 		return nil, ErrUnverifiedEmailRecipient
 	}
@@ -60,12 +61,14 @@ func BuildMealPlanCreatedEmail(recipient *identity.User, mealPlan *mealplanning.
 		return nil, fmt.Errorf("error rendering email template: %w", err)
 	}
 
-	msg := &email.OutboundEmailMessage{
-		ToAddress:   recipient.EmailAddress,
-		FromAddress: branding.FromEmail,
-		FromName:    branding.CompanyName,
-		Subject:     "A new meal plan has been created!",
-		HTMLContent: htmlContent,
+	msg := &queuemessages.OutboundEmailMessage{
+		OutboundEmailMessage: email.OutboundEmailMessage{
+			ToAddress:   recipient.EmailAddress,
+			FromAddress: branding.FromEmail,
+			FromName:    branding.CompanyName,
+			Subject:     "A new meal plan has been created!",
+			HTMLContent: htmlContent,
+		},
 	}
 
 	return msg, nil

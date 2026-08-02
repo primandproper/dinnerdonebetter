@@ -16,19 +16,19 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitymock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/mock"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
-	platformtotp "github.com/primandproper/platform-go/v8/authentication/totp"
-	mocktotp "github.com/primandproper/platform-go/v8/authentication/totp/mock"
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v8/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v8/qrcodes"
-	"github.com/primandproper/platform-go/v8/random"
-	randommock "github.com/primandproper/platform-go/v8/random/mock"
+	platformtotp "github.com/primandproper/platform-go/v9/authentication/totp"
+	mocktotp "github.com/primandproper/platform-go/v9/authentication/totp/mock"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	mockpublishers "github.com/primandproper/platform-go/v9/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v9/qrcodes"
+	"github.com/primandproper/platform-go/v9/random"
+	randommock "github.com/primandproper/platform-go/v9/random/mock"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +42,7 @@ func TestProvideAuthManager(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		queueCfg := &msgconfig.QueuesConfig{DataChangesTopicName: t.Name()}
+		queueCfg := &queuescfg.Config{DataChangesTopicName: t.Name()}
 
 		mpp := &mockpublishers.PublisherProviderMock{
 			NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {

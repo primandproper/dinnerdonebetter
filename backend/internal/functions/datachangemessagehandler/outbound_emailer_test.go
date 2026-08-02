@@ -6,7 +6,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/primandproper/platform-go/v8/email"
+	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
+
+	"github.com/primandproper/platform-go/v9/email"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -21,14 +23,16 @@ func TestAsyncDataChangeMessageHandler_OutboundEmailsEventHandler(t *testing.T) 
 
 		ctx := t.Context()
 
-		emailMessage := &email.OutboundEmailMessage{
-			ToAddress:   "test@example.com",
-			ToName:      "Test User",
-			FromAddress: "noreply@example.com",
-			FromName:    "Test App",
-			Subject:     "Test Subject",
-			HTMLContent: "<p>Test content</p>",
-			UserID:      "test-user-id",
+		emailMessage := &queuemessages.OutboundEmailMessage{
+			OutboundEmailMessage: email.OutboundEmailMessage{
+				ToAddress:   "test@example.com",
+				ToName:      "Test User",
+				FromAddress: "noreply@example.com",
+				FromName:    "Test App",
+				Subject:     "Test Subject",
+				HTMLContent: "<p>Test content</p>",
+			},
+			UserID: "test-user-id",
 		}
 
 		rawMsg, err := json.Marshal(emailMessage)
@@ -61,14 +65,16 @@ func TestAsyncDataChangeMessageHandler_OutboundEmailsEventHandler(t *testing.T) 
 
 		ctx := t.Context()
 
-		emailMessage := &email.OutboundEmailMessage{
-			ToAddress:   "test@example.com",
-			ToName:      "Test User",
-			FromAddress: "noreply@example.com",
-			FromName:    "Test App",
-			Subject:     "Test Subject",
-			HTMLContent: "<p>Test content</p>",
-			UserID:      "test-user-id",
+		emailMessage := &queuemessages.OutboundEmailMessage{
+			OutboundEmailMessage: email.OutboundEmailMessage{
+				ToAddress:   "test@example.com",
+				ToName:      "Test User",
+				FromAddress: "noreply@example.com",
+				FromName:    "Test App",
+				Subject:     "Test Subject",
+				HTMLContent: "<p>Test content</p>",
+			},
+			UserID: "test-user-id",
 		}
 
 		rawMsg, err := json.Marshal(emailMessage)
@@ -89,14 +95,16 @@ func TestAsyncDataChangeMessageHandler_OutboundEmailsEventHandler(t *testing.T) 
 
 		ctx := t.Context()
 
-		emailMessage := &email.OutboundEmailMessage{
-			ToAddress:   "test@example.com",
-			ToName:      "Test User",
-			FromAddress: "noreply@example.com",
-			FromName:    "Test App",
-			Subject:     "Test Subject",
-			HTMLContent: "<p>Test content</p>",
-			UserID:      "test-user-id",
+		emailMessage := &queuemessages.OutboundEmailMessage{
+			OutboundEmailMessage: email.OutboundEmailMessage{
+				ToAddress:   "test@example.com",
+				ToName:      "Test User",
+				FromAddress: "noreply@example.com",
+				FromName:    "Test App",
+				Subject:     "Test Subject",
+				HTMLContent: "<p>Test content</p>",
+			},
+			UserID: "test-user-id",
 		}
 
 		rawMsg, err := json.Marshal(emailMessage)
@@ -133,14 +141,16 @@ func TestAsyncDataChangeMessageHandler_handleEmailRequest(t *testing.T) {
 
 		ctx := t.Context()
 
-		emailMessage := &email.OutboundEmailMessage{
-			ToAddress:   "test@example.com",
-			ToName:      "Test User",
-			FromAddress: "noreply@example.com",
-			FromName:    "Test App",
-			Subject:     "Test Subject",
-			HTMLContent: "<p>Test content</p>",
-			UserID:      "test-user-id",
+		emailMessage := &queuemessages.OutboundEmailMessage{
+			OutboundEmailMessage: email.OutboundEmailMessage{
+				ToAddress:   "test@example.com",
+				ToName:      "Test User",
+				FromAddress: "noreply@example.com",
+				FromName:    "Test App",
+				Subject:     "Test Subject",
+				HTMLContent: "<p>Test content</p>",
+			},
+			UserID: "test-user-id",
 		}
 
 		emailer.SendEmailFunc = func(_ context.Context, _ *email.OutboundEmailMessage) error { return nil }
@@ -157,14 +167,16 @@ func TestAsyncDataChangeMessageHandler_handleEmailRequest(t *testing.T) {
 
 		ctx := t.Context()
 
-		emailMessage := &email.OutboundEmailMessage{
-			ToAddress:   "test@example.com",
-			ToName:      "Test User",
-			FromAddress: "noreply@example.com",
-			FromName:    "Test App",
-			Subject:     "Test Subject",
-			HTMLContent: "<p>Test content</p>",
-			UserID:      "test-user-id",
+		emailMessage := &queuemessages.OutboundEmailMessage{
+			OutboundEmailMessage: email.OutboundEmailMessage{
+				ToAddress:   "test@example.com",
+				ToName:      "Test User",
+				FromAddress: "noreply@example.com",
+				FromName:    "Test App",
+				Subject:     "Test Subject",
+				HTMLContent: "<p>Test content</p>",
+			},
+			UserID: "test-user-id",
 		}
 
 		expectedError := errors.New("email sending error")
@@ -182,14 +194,16 @@ func TestAsyncDataChangeMessageHandler_handleEmailRequest(t *testing.T) {
 
 		ctx := t.Context()
 
-		emailMessage := &email.OutboundEmailMessage{
-			ToAddress:   "test@example.com",
-			ToName:      "Test User",
-			FromAddress: "noreply@example.com",
-			FromName:    "Test App",
-			Subject:     "Test Subject",
-			HTMLContent: "<p>Test content</p>",
-			UserID:      "test-user-id",
+		emailMessage := &queuemessages.OutboundEmailMessage{
+			OutboundEmailMessage: email.OutboundEmailMessage{
+				ToAddress:   "test@example.com",
+				ToName:      "Test User",
+				FromAddress: "noreply@example.com",
+				FromName:    "Test App",
+				Subject:     "Test Subject",
+				HTMLContent: "<p>Test content</p>",
+			},
+			UserID: "test-user-id",
 		}
 
 		emailer.SendEmailFunc = func(_ context.Context, _ *email.OutboundEmailMessage) error { return nil }

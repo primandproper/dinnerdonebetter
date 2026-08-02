@@ -16,19 +16,19 @@ import (
 	authkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth/keys"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
-	platformtotp "github.com/primandproper/platform-go/v8/authentication/totp"
-	perrors "github.com/primandproper/platform-go/v8/errors"
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/identifiers"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability"
-	platformkeys "github.com/primandproper/platform-go/v8/observability/keys"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	"github.com/primandproper/platform-go/v8/qrcodes"
-	"github.com/primandproper/platform-go/v8/random"
+	platformtotp "github.com/primandproper/platform-go/v9/authentication/totp"
+	perrors "github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	"github.com/primandproper/platform-go/v9/observability"
+	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v9/qrcodes"
+	"github.com/primandproper/platform-go/v9/random"
 
 	passwordvalidator "github.com/wagslane/go-password-validator"
 )
@@ -90,7 +90,7 @@ func ProvideAuthManager(
 	publisherProvider messagequeue.PublisherProvider,
 	secretGenerator random.Generator,
 	qrCodeBuilder qrcodes.Builder,
-	queueConfig *msgconfig.QueuesConfig,
+	queueConfig *queuescfg.Config,
 ) (AuthManagerInterface, error) {
 	if queueConfig == nil {
 		return nil, perrors.ErrNilInputProvided

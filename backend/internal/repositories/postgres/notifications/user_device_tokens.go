@@ -10,12 +10,12 @@ import (
 	notificationkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/keys"
 	generated "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/notifications/generated"
 
-	"github.com/primandproper/platform-go/v8/database"
-	platformerrors "github.com/primandproper/platform-go/v8/errors"
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/identifiers"
-	"github.com/primandproper/platform-go/v8/observability"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/database"
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
 
 const (
@@ -124,7 +124,7 @@ func (q *Repository) GetUserDeviceTokens(ctx context.Context, userID string, fil
 		CreatedAfter:   database.NullTimeFromTimePointer(filter.CreatedAfter),
 		CreatedBefore:  database.NullTimeFromTimePointer(filter.CreatedBefore),
 		Cursor:         database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:    database.NullInt32FromUint8Pointer(filter.MaxResponseSize),
+		ResultLimit:    database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing user device tokens list retrieval query")

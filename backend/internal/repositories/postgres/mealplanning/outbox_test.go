@@ -11,7 +11,7 @@ import (
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	pgtesting "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v8/database"
+	"github.com/primandproper/platform-go/v9/database"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

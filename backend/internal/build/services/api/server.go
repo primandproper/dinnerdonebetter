@@ -12,10 +12,10 @@ import (
 	httpapi "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/services/api/http"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 
-	"github.com/primandproper/platform-go/v8/observability"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/profiling"
-	"github.com/primandproper/platform-go/v8/server/http"
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/profiling"
+	"github.com/primandproper/platform-go/v9/server/http"
 
 	"github.com/samber/do/v2"
 )
@@ -93,7 +93,9 @@ func (s *Server) Run(ctx context.Context) error {
 				panic(err)
 			}
 		}()
-		s.httpServer.Serve()
+		if err := s.httpServer.Serve(ctx); err != nil {
+			s.logger.Error("HTTP server stopped serving", err)
+		}
 	}()
 	go func() {
 		defer func() {
@@ -108,7 +110,9 @@ func (s *Server) Run(ctx context.Context) error {
 			default:
 			}
 		}()
-		s.grpcServer.Serve(ctx)
+		if err := s.grpcServer.Serve(ctx); err != nil {
+			s.logger.Error("gRPC server stopped serving", err)
+		}
 	}()
 
 	// Wait for a shutdown signal or an unexpected gRPC serve exit (e.g. bind failure).
@@ -134,7 +138,9 @@ func (s *Server) Run(ctx context.Context) error {
 		s.logger.Error("shutting down HTTP server", err)
 	}
 
-	s.grpcServer.Shutdown(cancelCtx)
+	if err := s.grpcServer.Shutdown(cancelCtx); err != nil {
+		s.logger.Error("shutting down gRPC server", err)
+	}
 
 	// Shut down the DI container last, so services (DB pool, message queue connections,
 	// telemetry) release their resources after the servers have stopped using them.

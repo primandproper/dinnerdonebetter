@@ -7,13 +7,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v8/authentication/tokens"
-	"github.com/primandproper/platform-go/v8/authentication/totp"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/authentication/tokens"
+	"github.com/primandproper/platform-go/v9/authentication/totp"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/go-oauth2/oauth2/v4/manage"
 	"github.com/go-oauth2/oauth2/v4/server"
@@ -53,7 +53,7 @@ func RegisterAuthHTTPService(i do.Injector) {
 			do.MustInvoke[identitymanager.IdentityDataManager](i),
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),
-			do.MustInvoke[*msgconfig.QueuesConfig](i),
+			do.MustInvoke[*queuescfg.Config](i),
 		)
 	})
 }

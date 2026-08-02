@@ -8,13 +8,14 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v8/authentication/totp"
-	perrors "github.com/primandproper/platform-go/v8/errors"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
+	"github.com/primandproper/platform-go/v9/authentication/totp"
+	perrors "github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/go-oauth2/oauth2/v4/server"
 )
@@ -47,7 +48,7 @@ func ProvideService(
 	identityDataManager identitymanager.IdentityDataManager,
 	tracerProvider tracing.TracerProvider,
 	publisherProvider messagequeue.PublisherProvider,
-	queuesConfig *msgconfig.QueuesConfig,
+	queuesConfig *queuescfg.Config,
 ) (auth.AuthDataService, error) {
 	if queuesConfig == nil {
 		return nil, perrors.ErrNilInputProvided
@@ -58,7 +59,7 @@ func ProvideService(
 		return nil, fmt.Errorf("setting up %s data changes publisher: %w", serviceName, publisherProviderErr)
 	}
 
-	signer, err := cfg.Tokens.NewTokenIssuer(logger, tracerProvider)
+	signer, err := cfg.Tokens.NewTokenIssuer(tokenscfg.WithLogger(logger), tokenscfg.WithTracerProvider(tracerProvider))
 	if err != nil {
 		return nil, fmt.Errorf("creating json web token signer: %w", err)
 	}

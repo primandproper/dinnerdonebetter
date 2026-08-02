@@ -7,14 +7,14 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 	paymentssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 
-	"github.com/primandproper/platform-go/v8/database"
-	platformerrors "github.com/primandproper/platform-go/v8/errors"
-	"github.com/primandproper/platform-go/v8/idempotency"
-	idempotencycfg "github.com/primandproper/platform-go/v8/idempotency/config"
-	idempotencygrpc "github.com/primandproper/platform-go/v8/idempotency/grpc"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/metrics"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/database"
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/idempotency"
+	idempotencycfg "github.com/primandproper/platform-go/v9/idempotency/config"
+	idempotencygrpc "github.com/primandproper/platform-go/v9/idempotency/grpc"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/metrics"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"google.golang.org/grpc"
 )
@@ -80,11 +80,11 @@ func ProvideIdempotencyInterceptor(
 	manager, err := idempotencycfg.NewManager[idempotencygrpc.Response](
 		ctx,
 		&cfg.Idempotency.Manager,
-		logger,
-		tracerProvider,
-		metricsProvider,
 		dbClient,
-		idempotency.WithRecordable(idempotencygrpc.Recordable),
+		idempotencycfg.WithLogger(logger),
+		idempotencycfg.WithTracerProvider(tracerProvider),
+		idempotencycfg.WithMetricsProvider(metricsProvider),
+		idempotencycfg.WithManagerOptions(idempotency.WithRecordable(idempotencygrpc.Recordable)),
 	)
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "building payments idempotency manager")

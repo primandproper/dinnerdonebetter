@@ -48,7 +48,11 @@ func main() {
 	)
 
 	// Run server
-	go srv.Serve()
+	go func() {
+		if serveErr := srv.Serve(rootCtx); serveErr != nil {
+			logger.Error("serving HTTP", serveErr)
+		}
+	}()
 
 	// os.Interrupt
 	<-signalChan

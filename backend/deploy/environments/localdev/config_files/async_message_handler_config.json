@@ -11,7 +11,7 @@
 	"storage": {
 		"filesystem": {
 			"rootDirectory": "/tmp",
-			"directoryMode": 0
+			"directoryMode": "0o0"
 		},
 		"bucketName": "userdata",
 		"provider": "filesystem",
@@ -113,13 +113,10 @@
 		}
 	},
 	"analytics": {
-		"proxySources": {
-			"ios": null,
-			"web": null
-		},
+		"proxySources": null,
 		"segment": null,
 		"posthog": null,
-		"provider": "",
+		"provider": "noop",
 		"circuitBreaker": {
 			"name": "feature_flagger",
 			"circuitBreakerErrorPercentage": 0.5,
@@ -133,11 +130,7 @@
 		"resend": null,
 		"postmark": null,
 		"ses": null,
-		"provider": "",
-		"baseURL": "",
-		"outboundInvitesEmailAddress": "",
-		"passwordResetCreationEmailAddress": "",
-		"passwordResetRedemptionEmailAddress": "",
+		"provider": "noop",
 		"circuitBreakerConfig": {
 			"name": "",
 			"circuitBreakerErrorPercentage": 0,
@@ -145,13 +138,9 @@
 		}
 	},
 	"search": {
-		"algolia": {
-			"appID": "",
-			"writeAPIKey": "",
-			"timeout": 0
-		},
+		"algolia": null,
 		"elasticsearch": null,
-		"provider": "algolia",
+		"provider": "noop",
 		"circuitBreakerConfig": {
 			"name": "dev_text_searcher",
 			"circuitBreakerErrorPercentage": 0.5,
@@ -195,6 +184,7 @@
 		"dataChanges": {
 			"topic": "",
 			"retry": {
+				"provider": "",
 				"maxAttempts": 3,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,
@@ -207,6 +197,7 @@
 		"outboundEmails": {
 			"topic": "",
 			"retry": {
+				"provider": "",
 				"maxAttempts": 4,
 				"initialDelay": 100000000,
 				"maxDelay": 30000000000,
@@ -219,6 +210,7 @@
 		"searchIndexRequests": {
 			"topic": "",
 			"retry": {
+				"provider": "",
 				"maxAttempts": 3,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,
@@ -231,6 +223,7 @@
 		"webhookExecutionRequests": {
 			"topic": "",
 			"retry": {
+				"provider": "",
 				"maxAttempts": 4,
 				"initialDelay": 100000000,
 				"maxDelay": 30000000000,
@@ -243,6 +236,7 @@
 		"userDataAggregation": {
 			"topic": "",
 			"retry": {
+				"provider": "",
 				"maxAttempts": 2,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,
@@ -255,6 +249,7 @@
 		"mobileNotifications": {
 			"topic": "",
 			"retry": {
+				"provider": "",
 				"maxAttempts": 3,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,

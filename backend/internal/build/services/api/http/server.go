@@ -1,15 +1,17 @@
 package api
 
 import (
+	"context"
+
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
 	paymentswebhook "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/http"
 
-	"github.com/primandproper/platform-go/v8/healthcheck"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/metrics"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	"github.com/primandproper/platform-go/v8/routing"
-	routingcfg "github.com/primandproper/platform-go/v8/routing/config"
+	"github.com/primandproper/platform-go/v9/healthcheck"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/metrics"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v9/routing"
+	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
 
 	"github.com/samber/do/v2"
 )
@@ -18,6 +20,7 @@ import (
 func RegisterAPIRouter(i do.Injector) {
 	do.Provide[*routing.Router](i, func(i do.Injector) (*routing.Router, error) {
 		return ProvideAPIRouter(
+			do.MustInvoke[context.Context](i),
 			*do.MustInvoke[*routingcfg.Config](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.TracerProvider](i),

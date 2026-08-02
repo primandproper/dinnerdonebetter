@@ -3,18 +3,20 @@ package api
 import (
 	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	paymentscfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v8/analytics/config"
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	emailcfg "github.com/primandproper/platform-go/v8/email/config"
-	"github.com/primandproper/platform-go/v8/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v8/featureflags/config"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability"
-	routingcfg "github.com/primandproper/platform-go/v8/routing/config"
-	"github.com/primandproper/platform-go/v8/server/http"
+	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
+	databasecfg "github.com/primandproper/platform-go/v9/database/config"
+	emailcfg "github.com/primandproper/platform-go/v9/email/config"
+	"github.com/primandproper/platform-go/v9/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v9/featureflags/config"
+	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
+	"github.com/primandproper/platform-go/v9/observability"
+	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
+	"github.com/primandproper/platform-go/v9/server/http"
 
 	"github.com/samber/do/v2"
 )
@@ -30,7 +32,7 @@ func RegisterConfigs(i do.Injector) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)
 		return &cfg.Observability, nil
 	})
-	do.Provide[*msgconfig.QueuesConfig](i, func(i do.Injector) (*msgconfig.QueuesConfig, error) {
+	do.Provide[*queuescfg.Config](i, func(i do.Injector) (*queuescfg.Config, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)
 		return &cfg.Queues, nil
 	})
@@ -66,9 +68,12 @@ func RegisterConfigs(i do.Injector) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)
 		return cfg.HTTPServer, nil
 	})
-	do.Provide[*databasecfg.Config](i, func(i do.Injector) (*databasecfg.Config, error) {
+	do.Provide[*dbcfg.Config](i, func(i do.Injector) (*dbcfg.Config, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)
 		return &cfg.Database, nil
+	})
+	do.Provide[*databasecfg.Config](i, func(i do.Injector) (*databasecfg.Config, error) {
+		return &do.MustInvoke[*dbcfg.Config](i).Config, nil
 	})
 	do.Provide[*config.ServicesConfig](i, func(i do.Injector) (*config.ServicesConfig, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)

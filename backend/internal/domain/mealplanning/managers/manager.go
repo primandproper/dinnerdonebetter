@@ -6,18 +6,18 @@ import (
 
 	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/metrics"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	textsearch "github.com/primandproper/platform-go/v8/search/text"
-	textsearchcfg "github.com/primandproper/platform-go/v8/search/text/config"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/metrics"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	textsearch "github.com/primandproper/platform-go/v9/search/text"
+	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
 )
 
 const (
@@ -364,7 +364,7 @@ func NewMealPlanningManager(
 	logger logging.Logger,
 	tracerProvider tracing.TracerProvider,
 	db types.Repository,
-	cfg *msgconfig.QueuesConfig,
+	cfg *queuescfg.Config,
 	publisherProvider messagequeue.PublisherProvider,
 	recipeAnalyzer recipeanalysis.RecipeAnalyzer,
 	searchConfig *textsearchcfg.Config,
@@ -372,42 +372,42 @@ func NewMealPlanningManager(
 	groceryListInitializer mealPlanGroceryListInitializerWorker,
 	taskCreator mealPlanTaskCreatorWorker,
 ) (MealPlanningManager, error) {
-	mealsSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.MealSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchConfig, eatingindexing.IndexTypeMeals)
+	mealsSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.MealSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeMeals, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
 		return nil, observability.PrepareError(err, nil, "initializing meals search index")
 	}
 
-	recipeSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.RecipeSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchConfig, eatingindexing.IndexTypeRecipes)
+	recipeSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.RecipeSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeRecipes, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
 		return nil, fmt.Errorf("failed to provide search index for %s index: %w", eatingindexing.IndexTypeRecipes, err)
 	}
 
-	validIngredientStatesSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidIngredientStateSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchConfig, eatingindexing.IndexTypeValidIngredientStates)
+	validIngredientStatesSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidIngredientStateSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeValidIngredientStates, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
 		return nil, fmt.Errorf("failed to provide search index for %s index: %w", eatingindexing.IndexTypeValidIngredientStates, err)
 	}
 
-	validInstrumentSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidInstrumentSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchConfig, eatingindexing.IndexTypeValidInstruments)
+	validInstrumentSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidInstrumentSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeValidInstruments, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
 		return nil, fmt.Errorf("failed to provide search index for %s index: %w", eatingindexing.IndexTypeValidInstruments, err)
 	}
 
-	validMeasurementUnitSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidMeasurementUnitSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchConfig, eatingindexing.IndexTypeValidMeasurementUnits)
+	validMeasurementUnitSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidMeasurementUnitSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeValidMeasurementUnits, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
 		return nil, fmt.Errorf("failed to provide search index for %s index: %w", eatingindexing.IndexTypeValidMeasurementUnits, err)
 	}
 
-	validIngredientSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidIngredientSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchConfig, eatingindexing.IndexTypeValidIngredients)
+	validIngredientSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidIngredientSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeValidIngredients, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
 		return nil, fmt.Errorf("failed to provide search index for %s index: %w", eatingindexing.IndexTypeValidIngredients, err)
 	}
 
-	validPreparationsSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidPreparationSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchConfig, eatingindexing.IndexTypeValidPreparations)
+	validPreparationsSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidPreparationSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeValidPreparations, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
 		return nil, fmt.Errorf("failed to provide search index for %s index: %w", eatingindexing.IndexTypeValidPreparations, err)
 	}
 
-	validVesselsSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidVesselSearchSubset](ctx, logger, tracerProvider, metricsProvider, searchConfig, eatingindexing.IndexTypeValidVessels)
+	validVesselsSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidVesselSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeValidVessels, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
 		return nil, fmt.Errorf("failed to provide search index for %s index: %w", eatingindexing.IndexTypeValidVessels, err)
 	}

@@ -3,7 +3,7 @@ package grpcconverters
 import (
 	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 
-	"github.com/primandproper/platform-go/v8/filtering"
+	"github.com/primandproper/platform-go/v9/filtering"
 )
 
 func ConvertGRPCQueryFilterToQueryFilter(qf *grpcfiltering.QueryFilter) *filtering.QueryFilter {
@@ -12,7 +12,7 @@ func ConvertGRPCQueryFilterToQueryFilter(qf *grpcfiltering.QueryFilter) *filteri
 	}
 
 	filter := &filtering.QueryFilter{
-		MaxResponseSize: new(uint8(50)),
+		MaxResponseSize: new(uint16(50)),
 		IncludeArchived: qf.IncludeArchived,
 		Cursor:          qf.Cursor,
 		SortBy:          qf.SortBy,
@@ -23,7 +23,7 @@ func ConvertGRPCQueryFilterToQueryFilter(qf *grpcfiltering.QueryFilter) *filteri
 	}
 	if qf.MaxResponseSize != nil {
 		size := min(*qf.MaxResponseSize, filtering.MaxQueryFilterLimit)
-		filter.MaxResponseSize = new(uint8(size))
+		filter.MaxResponseSize = new(uint16(size))
 	}
 
 	return filter

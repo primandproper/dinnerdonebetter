@@ -130,8 +130,8 @@
 	},
 	"search": {
 		"algolia": {
-			"appID": "",
-			"writeAPIKey": "",
+			"appID": "placeholder",
+			"writeAPIKey": "placeholder",
 			"timeout": 0
 		},
 		"elasticsearch": null,
@@ -175,10 +175,10 @@
 		"enableDatabaseMetrics": false
 	},
 	"outbox": {
-		"dialect": "postgres",
-		"tableName": "outbox_messages",
+		"tablePrefix": "",
 		"claimMode": "skip_locked",
 		"backoff": {
+			"provider": "",
 			"maxAttempts": 8,
 			"initialDelay": 1000000000,
 			"maxDelay": 60000000000,
@@ -195,6 +195,7 @@
 	"jobs": {
 		"scheduler": {
 			"lockKeyPrefix": "dinner_done_better.scheduler.",
+			"timezone": "",
 			"defaultLeaseTTL": 120000000000,
 			"defaultTimeout": 60000000000
 		},

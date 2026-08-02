@@ -11,9 +11,9 @@ import (
 	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	oauthsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 
-	"github.com/primandproper/platform-go/v8/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	"github.com/primandproper/platform-go/v9/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -178,7 +178,7 @@ func TestServiceImpl_GetOAuth2Clients(t *testing.T) {
 		ctx := t.Context()
 
 		fakeClients := oauthfakes.BuildFakeOAuth2ClientsList()
-		pageSize := uint8(20)
+		pageSize := uint16(20)
 		filter := &filtering.QueryFilter{
 			MaxResponseSize: &pageSize,
 		}
@@ -214,7 +214,7 @@ func TestServiceImpl_GetOAuth2Clients(t *testing.T) {
 
 		ctx := t.Context()
 
-		pageSize := uint8(20)
+		pageSize := uint16(20)
 		filter := &filtering.QueryFilter{
 			MaxResponseSize: &pageSize,
 		}

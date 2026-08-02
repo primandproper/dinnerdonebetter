@@ -49,7 +49,11 @@ func main() {
 
 	// Run server
 	ctx := context.Background()
-	go srv.Serve(ctx)
+	go func() {
+		if serveErr := srv.Serve(ctx); serveErr != nil {
+			logger.Error("serving gRPC", serveErr)
+		}
+	}()
 
 	// os.Interrupt
 	<-signalChan
@@ -62,5 +66,7 @@ func main() {
 	logger.Info("shutting down")
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
-	srv.Shutdown(shutdownCtx)
+	if err = srv.Shutdown(shutdownCtx); err != nil {
+		logger.Error("shutting down gRPC server", err)
+	}
 }

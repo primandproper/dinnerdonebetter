@@ -6,10 +6,10 @@ import (
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/metrics"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	textsearchcfg "github.com/primandproper/platform-go/v8/search/text/config"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/metrics"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
 
 	"github.com/samber/do/v2"
 )
@@ -99,10 +99,11 @@ func ProvideUserTextSearcher(
 ) (identityindexing.UserTextSearcher, error) {
 	return textsearchcfg.NewIndex[identityindexing.UserSearchSubset](
 		ctx,
-		logger,
-		tracerProvider, metricsProvider,
 		cfg,
 		identityindexing.IndexTypeUsers,
+		textsearchcfg.WithLogger(logger),
+		textsearchcfg.WithTracerProvider(tracerProvider),
+		textsearchcfg.WithMetricsProvider(metricsProvider),
 	)
 }
 
@@ -115,10 +116,11 @@ func ProvideRecipeTextSearcher(
 ) (eatingindexing.RecipeTextSearcher, error) {
 	return textsearchcfg.NewIndex[eatingindexing.RecipeSearchSubset](
 		ctx,
-		logger,
-		tracerProvider, metricsProvider,
 		cfg,
 		eatingindexing.IndexTypeRecipes,
+		textsearchcfg.WithLogger(logger),
+		textsearchcfg.WithTracerProvider(tracerProvider),
+		textsearchcfg.WithMetricsProvider(metricsProvider),
 	)
 }
 
@@ -131,10 +133,11 @@ func ProvideMealTextSearcher(
 ) (eatingindexing.MealTextSearcher, error) {
 	return textsearchcfg.NewIndex[eatingindexing.MealSearchSubset](
 		ctx,
-		logger,
-		tracerProvider, metricsProvider,
 		cfg,
 		eatingindexing.IndexTypeMeals,
+		textsearchcfg.WithLogger(logger),
+		textsearchcfg.WithTracerProvider(tracerProvider),
+		textsearchcfg.WithMetricsProvider(metricsProvider),
 	)
 }
 
@@ -147,10 +150,11 @@ func ProvideValidIngredientTextSearcher(
 ) (eatingindexing.ValidIngredientTextSearcher, error) {
 	return textsearchcfg.NewIndex[eatingindexing.ValidIngredientSearchSubset](
 		ctx,
-		logger,
-		tracerProvider, metricsProvider,
 		cfg,
 		eatingindexing.IndexTypeValidIngredients,
+		textsearchcfg.WithLogger(logger),
+		textsearchcfg.WithTracerProvider(tracerProvider),
+		textsearchcfg.WithMetricsProvider(metricsProvider),
 	)
 }
 
@@ -163,10 +167,11 @@ func ProvideValidInstrumentTextSearcher(
 ) (eatingindexing.ValidInstrumentTextSearcher, error) {
 	return textsearchcfg.NewIndex[eatingindexing.ValidInstrumentSearchSubset](
 		ctx,
-		logger,
-		tracerProvider, metricsProvider,
 		cfg,
 		eatingindexing.IndexTypeValidInstruments,
+		textsearchcfg.WithLogger(logger),
+		textsearchcfg.WithTracerProvider(tracerProvider),
+		textsearchcfg.WithMetricsProvider(metricsProvider),
 	)
 }
 
@@ -179,10 +184,11 @@ func ProvideValidMeasurementUnitTextSearcher(
 ) (eatingindexing.ValidMeasurementUnitTextSearcher, error) {
 	return textsearchcfg.NewIndex[eatingindexing.ValidMeasurementUnitSearchSubset](
 		ctx,
-		logger,
-		tracerProvider, metricsProvider,
 		cfg,
 		eatingindexing.IndexTypeValidMeasurementUnits,
+		textsearchcfg.WithLogger(logger),
+		textsearchcfg.WithTracerProvider(tracerProvider),
+		textsearchcfg.WithMetricsProvider(metricsProvider),
 	)
 }
 
@@ -195,10 +201,11 @@ func ProvideValidPreparationTextSearcher(
 ) (eatingindexing.ValidPreparationTextSearcher, error) {
 	return textsearchcfg.NewIndex[eatingindexing.ValidPreparationSearchSubset](
 		ctx,
-		logger,
-		tracerProvider, metricsProvider,
 		cfg,
 		eatingindexing.IndexTypeValidPreparations,
+		textsearchcfg.WithLogger(logger),
+		textsearchcfg.WithTracerProvider(tracerProvider),
+		textsearchcfg.WithMetricsProvider(metricsProvider),
 	)
 }
 
@@ -211,10 +218,11 @@ func ProvideValidIngredientStateTextSearcher(
 ) (eatingindexing.ValidIngredientStateTextSearcher, error) {
 	return textsearchcfg.NewIndex[eatingindexing.ValidIngredientStateSearchSubset](
 		ctx,
-		logger,
-		tracerProvider, metricsProvider,
 		cfg,
 		eatingindexing.IndexTypeValidIngredientStates,
+		textsearchcfg.WithLogger(logger),
+		textsearchcfg.WithTracerProvider(tracerProvider),
+		textsearchcfg.WithMetricsProvider(metricsProvider),
 	)
 }
 
@@ -227,9 +235,10 @@ func ProvideValidVesselTextSearcher(
 ) (eatingindexing.ValidVesselTextSearcher, error) {
 	return textsearchcfg.NewIndex[eatingindexing.ValidVesselSearchSubset](
 		ctx,
-		logger,
-		tracerProvider, metricsProvider,
 		cfg,
 		eatingindexing.IndexTypeValidVessels,
+		textsearchcfg.WithLogger(logger),
+		textsearchcfg.WithTracerProvider(tracerProvider),
+		textsearchcfg.WithMetricsProvider(metricsProvider),
 	)
 }

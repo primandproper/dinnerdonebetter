@@ -42,15 +42,15 @@ import (
 	waitlistsgrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/waitlists/grpc"
 	webhooksgrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/webhooks/grpc"
 
-	analyticscfg "github.com/primandproper/platform-go/v8/analytics/config"
-	authzgrpc "github.com/primandproper/platform-go/v8/authorization/grpc"
-	"github.com/primandproper/platform-go/v8/database"
-	errorsgrpc "github.com/primandproper/platform-go/v8/errors/grpc"
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/metrics"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	textsearchcfg "github.com/primandproper/platform-go/v8/search/text/config"
-	platformgrpc "github.com/primandproper/platform-go/v8/server/grpc"
+	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
+	authzgrpc "github.com/primandproper/platform-go/v9/authorization/grpc"
+	"github.com/primandproper/platform-go/v9/database"
+	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/metrics"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
+	platformgrpc "github.com/primandproper/platform-go/v9/server/grpc"
 
 	"github.com/samber/do/v2"
 	grpc "google.golang.org/grpc"
@@ -285,10 +285,11 @@ func ProvideUserTextSearcher(
 ) (identityindexing.UserTextSearcher, error) {
 	return textsearchcfg.NewIndex[identityindexing.UserSearchSubset](
 		ctx,
-		logger,
-		tracerProvider, metricsProvider,
 		cfg,
 		identityindexing.IndexTypeUsers,
+		textsearchcfg.WithLogger(logger),
+		textsearchcfg.WithTracerProvider(tracerProvider),
+		textsearchcfg.WithMetricsProvider(metricsProvider),
 	)
 }
 

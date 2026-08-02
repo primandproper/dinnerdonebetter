@@ -6,10 +6,10 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
 	identityindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	"github.com/primandproper/platform-go/v8/observability/logging"
-	"github.com/primandproper/platform-go/v8/observability/metrics"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
-	textsearchcfg "github.com/primandproper/platform-go/v8/search/text/config"
+	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v9/observability/metrics"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
 
 	"github.com/samber/do/v2"
 )
@@ -29,10 +29,11 @@ func ProvideUserTextSearcher(
 ) (identityindexing.UserTextSearcher, error) {
 	return textsearchcfg.NewIndex[identityindexing.UserSearchSubset](
 		ctx,
-		logger,
-		tracerProvider, metricsProvider,
 		cfg,
 		identityindexing.IndexTypeUsers,
+		textsearchcfg.WithLogger(logger),
+		textsearchcfg.WithTracerProvider(tracerProvider),
+		textsearchcfg.WithMetricsProvider(metricsProvider),
 	)
 }
 

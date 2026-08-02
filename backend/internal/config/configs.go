@@ -11,24 +11,25 @@ import (
 
 	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v8/analytics/config"
-	platformconfig "github.com/primandproper/platform-go/v8/config"
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	emailcfg "github.com/primandproper/platform-go/v8/email/config"
-	"github.com/primandproper/platform-go/v8/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v8/featureflags/config"
-	httpclientcfg "github.com/primandproper/platform-go/v8/httpclient"
-	idempotencycfg "github.com/primandproper/platform-go/v8/idempotency/config"
-	"github.com/primandproper/platform-go/v8/jobs"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	notificationscfg "github.com/primandproper/platform-go/v8/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v8/observability"
-	routingcfg "github.com/primandproper/platform-go/v8/routing/config"
-	textsearchcfg "github.com/primandproper/platform-go/v8/search/text/config"
-	"github.com/primandproper/platform-go/v8/server/grpc"
-	"github.com/primandproper/platform-go/v8/server/http"
-	"github.com/primandproper/platform-go/v8/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
+	platformconfig "github.com/primandproper/platform-go/v9/config"
+	emailcfg "github.com/primandproper/platform-go/v9/email/config"
+	"github.com/primandproper/platform-go/v9/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v9/featureflags/config"
+	httpclientcfg "github.com/primandproper/platform-go/v9/httpclient"
+	idempotencycfg "github.com/primandproper/platform-go/v9/idempotency/config"
+	"github.com/primandproper/platform-go/v9/jobs"
+	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
+	notificationscfg "github.com/primandproper/platform-go/v9/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v9/observability"
+	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
+	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
+	"github.com/primandproper/platform-go/v9/server/grpc"
+	"github.com/primandproper/platform-go/v9/server/http"
+	"github.com/primandproper/platform-go/v9/uploads/objectstorage"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -73,7 +74,7 @@ type (
 	APIServiceConfig struct {
 		_                 struct{}                `json:"-"`
 		HTTPClient        *httpclientcfg.Config   `envPrefix:"HTTP_CLIENT_"        json:"httpClient"`
-		Queues            msgconfig.QueuesConfig  `envPrefix:"QUEUES_"             json:"queues"`
+		Queues            queuescfg.Config        `envPrefix:"QUEUES_"             json:"queues"`
 		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications"`
 		Routing           routingcfg.Config       `envPrefix:"ROUTING_"            json:"routing"`
 		Encoding          encoding.Config         `envPrefix:"ENCODING_"           json:"encoding"`
@@ -88,7 +89,7 @@ type (
 		TextSearch        textsearchcfg.Config    `envPrefix:"SEARCH_"             json:"search"`
 		HTTPServer        http.Config             `envPrefix:"HTTP_"               json:"http"`
 		Auth              authcfg.Config          `envPrefix:"AUTH_"               json:"auth"`
-		Database          databasecfg.Config      `envPrefix:"DATABASE_"           json:"database"`
+		Database          dbcfg.Config            `envPrefix:"DATABASE_"           json:"database"`
 		Services          ServicesConfig          `envPrefix:"SERVICE_"            json:"services"`
 
 		// Idempotency guards the mutations where running the work twice costs real money.
@@ -125,14 +126,15 @@ type (
 		_ struct{} `json:"-"`
 
 		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability"`
-		Database      databasecfg.Config   `envPrefix:"DATABASE_"      json:"database"`
+
+		Database dbcfg.Config `envPrefix:"DATABASE_" json:"database"`
 	}
 
 	// AsyncMessageHandlerConfig configures an instance of the search data index scheduler job.
 	AsyncMessageHandlerConfig struct {
 		_                 struct{}                `json:"-"`
 		HTTPClient        *httpclientcfg.Config   `envPrefix:"HTTP_CLIENT_"        json:"httpClient"`
-		Queues            msgconfig.QueuesConfig  `envPrefix:"QUEUES_"             json:"queues"`
+		Queues            queuescfg.Config        `envPrefix:"QUEUES_"             json:"queues"`
 		Storage           objectstorage.Config    `envPrefix:"STORAGE_"            json:"storage"`
 		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications"`
 		Encoding          encoding.Config         `envPrefix:"ENCODING_"           json:"encoding"`
@@ -142,7 +144,7 @@ type (
 		Analytics         analyticscfg.Config     `envPrefix:"ANALYTICS_"          json:"analytics"`
 		Email             emailcfg.Config         `envPrefix:"EMAIL_"              json:"email"`
 		Search            textsearchcfg.Config    `envPrefix:"SEARCH_"             json:"search"`
-		Database          databasecfg.Config      `envPrefix:"DATABASE_"           json:"database"`
+		Database          dbcfg.Config            `envPrefix:"DATABASE_"           json:"database"`
 		Pools             WorkerPoolsConfig       `envPrefix:"POOLS_"              json:"pools"`
 	}
 
@@ -178,11 +180,11 @@ type (
 	// MCPServiceConfig configures an instance of the service. It is composed of all the other setting structs.
 	MCPServiceConfig struct {
 		_             struct{}             `json:"-"`
+		Database      dbcfg.Config         `envPrefix:"DATABASE_"      json:"database"`
 		Routing       routingcfg.Config    `envPrefix:"ROUTING_"       json:"routing"`
 		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability"`
 		Meta          MetaSettings         `envPrefix:"META_"          json:"meta"`
 		HTTPServer    http.Config          `envPrefix:"HTTP_"          json:"http"`
-		Database      databasecfg.Config   `envPrefix:"DATABASE_"      json:"database"`
 	}
 )
 

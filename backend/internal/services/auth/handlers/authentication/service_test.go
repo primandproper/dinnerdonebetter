@@ -5,18 +5,19 @@ import (
 	"encoding/base64"
 	"testing"
 
+	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
 	mockauthn "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/mock"
 	identitymanagermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	oauthmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/mock"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/testutils"
 
-	tokenscfg "github.com/primandproper/platform-go/v8/authentication/tokens/config"
-	mocktotp "github.com/primandproper/platform-go/v8/authentication/totp/mock"
-	"github.com/primandproper/platform-go/v8/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	mockpublishers "github.com/primandproper/platform-go/v8/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
+	mocktotp "github.com/primandproper/platform-go/v9/authentication/totp/mock"
+	"github.com/primandproper/platform-go/v9/messagequeue"
+	mockpublishers "github.com/primandproper/platform-go/v9/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,13 +30,15 @@ func buildTestService(t *testing.T) *service {
 	logger := loggingnoop.NewLogger()
 
 	cfg := &Config{
-		Tokens: tokenscfg.Config{
-			Provider:                tokenscfg.ProviderJWT,
-			Audience:                "",
-			Base64EncodedSigningKey: base64.URLEncoding.EncodeToString([]byte(testutils.Example32ByteKey)),
+		Tokens: authcfg.TokensConfig{
+			Config: tokenscfg.Config{
+				Provider:                tokenscfg.ProviderJWT,
+				Audience:                "",
+				Base64EncodedSigningKey: base64.URLEncoding.EncodeToString([]byte(testutils.Example32ByteKey)),
+			},
 		},
 	}
-	queueCfg := &msgconfig.QueuesConfig{DataChangesTopicName: "data_changes"}
+	queueCfg := &queuescfg.Config{DataChangesTopicName: "data_changes"}
 
 	pp := &mockpublishers.PublisherProviderMock{
 		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
@@ -74,13 +77,15 @@ func TestProvideService(T *testing.T) {
 		logger := loggingnoop.NewLogger()
 
 		cfg := &Config{
-			Tokens: tokenscfg.Config{
-				Provider:                tokenscfg.ProviderJWT,
-				Audience:                "",
-				Base64EncodedSigningKey: base64.URLEncoding.EncodeToString([]byte(testutils.Example32ByteKey)),
+			Tokens: authcfg.TokensConfig{
+				Config: tokenscfg.Config{
+					Provider:                tokenscfg.ProviderJWT,
+					Audience:                "",
+					Base64EncodedSigningKey: base64.URLEncoding.EncodeToString([]byte(testutils.Example32ByteKey)),
+				},
 			},
 		}
-		queueCfg := &msgconfig.QueuesConfig{DataChangesTopicName: "data_changes"}
+		queueCfg := &queuescfg.Config{DataChangesTopicName: "data_changes"}
 
 		pp := &mockpublishers.PublisherProviderMock{
 			NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {

@@ -8,12 +8,13 @@ import (
 	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 
-	platformerrors "github.com/primandproper/platform-go/v8/errors"
-	"github.com/primandproper/platform-go/v8/filtering"
-	"github.com/primandproper/platform-go/v8/identifiers"
-	"github.com/primandproper/platform-go/v8/observability"
-	platformkeys "github.com/primandproper/platform-go/v8/observability/keys"
-	"github.com/primandproper/platform-go/v8/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v9/observability"
+	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
+	"github.com/primandproper/platform-go/v9/observability/tracing"
+	textsearch "github.com/primandproper/platform-go/v9/search/text"
 )
 
 func (m *mealPlanningManager) ListRecipes(ctx context.Context, status string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error) {
@@ -134,10 +135,12 @@ func (m *mealPlanningManager) SearchRecipes(ctx context.Context, query string, u
 
 // searchRecipesViaIndex searches recipes via the external search index. Returns (nil, err) on search failure, empty results, or GetRecipesWithIDs failure.
 func (m *mealPlanningManager) searchRecipesViaIndex(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error) {
-	recipeSubsets, err := m.recipeSearchIndex.Search(ctx, query)
-	if err != nil || len(recipeSubsets) == 0 {
+	searchResults, err := m.recipeSearchIndex.Search(ctx, textsearch.SearchRequest{Query: query})
+	if err != nil || len(searchResults.Hits) == 0 {
 		return nil, err
 	}
+
+	recipeSubsets := searchResults.Hits
 
 	ids := make([]string, 0, len(recipeSubsets))
 	for _, recipeSubset := range recipeSubsets {

@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"time"
 
-	analyticscfg "github.com/primandproper/platform-go/v8/analytics/config"
-	databasecfg "github.com/primandproper/platform-go/v8/database/config"
-	distributedlockcfg "github.com/primandproper/platform-go/v8/distributedlock/config"
-	"github.com/primandproper/platform-go/v8/jobs"
-	msgconfig "github.com/primandproper/platform-go/v8/messagequeue/config"
-	"github.com/primandproper/platform-go/v8/observability"
-	"github.com/primandproper/platform-go/v8/outbox"
-	textsearchcfg "github.com/primandproper/platform-go/v8/search/text/config"
+	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
+	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
+
+	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
+	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
+	"github.com/primandproper/platform-go/v9/jobs"
+	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/outbox"
+	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -29,12 +31,12 @@ type (
 	SchedulerConfig struct {
 		_ struct{} `json:"-"`
 
-		Queues        msgconfig.QueuesConfig `envPrefix:"QUEUES_"        json:"queues"`
-		Events        msgconfig.Config       `envPrefix:"EVENTS_"        json:"events"`
-		Observability observability.Config   `envPrefix:"OBSERVABILITY_" json:"observability"`
-		Analytics     analyticscfg.Config    `envPrefix:"ANALYTICS_"     json:"analytics"`
-		Search        textsearchcfg.Config   `envPrefix:"SEARCH_"        json:"search"`
-		Database      databasecfg.Config     `envPrefix:"DATABASE_"      json:"database"`
+		Queues        queuescfg.Config     `envPrefix:"QUEUES_"        json:"queues"`
+		Events        msgconfig.Config     `envPrefix:"EVENTS_"        json:"events"`
+		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability"`
+		Analytics     analyticscfg.Config  `envPrefix:"ANALYTICS_"     json:"analytics"`
+		Search        textsearchcfg.Config `envPrefix:"SEARCH_"        json:"search"`
+		Database      dbcfg.Config         `envPrefix:"DATABASE_"      json:"database"`
 
 		// Outbox moves events written inside a caller's transaction onto the broker. It
 		// lives here because it is a background loop, which is what this process is for,

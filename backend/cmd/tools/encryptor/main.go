@@ -6,10 +6,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/primandproper/platform-go/v8/cryptography/encryption"
-	"github.com/primandproper/platform-go/v8/cryptography/encryption/config"
-	loggingnoop "github.com/primandproper/platform-go/v8/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v8/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v9/cryptography/encryption"
+	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
+	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )
@@ -24,7 +24,7 @@ func main() {
 		Short: "Encrypt or decrypt payloads using AES or Salsa20",
 	}
 	root.PersistentFlags().StringVar(&secret, "secret", "", "hex-encoded 32-byte secret key (64 hex chars, required)")
-	root.PersistentFlags().StringVar(&provider, "provider", config.ProviderSalsa20, "Encryption provider: aes or salsa20")
+	root.PersistentFlags().StringVar(&provider, "provider", encryptioncfg.ProviderSalsa20, "Encryption provider: aes or salsa20")
 
 	if err := root.MarkPersistentFlagRequired("secret"); err != nil {
 		log.Fatal(err)
@@ -98,11 +98,12 @@ func newEncryptorDecryptor(key, provider string) (encryption.EncryptorDecryptor,
 		return nil, fmt.Errorf("secret must decode to 32 bytes (64 hex chars), got %d bytes", len(key))
 	}
 
-	encDec, err := config.NewEncryptorDecryptor(
-		&config.Config{Provider: provider},
-		tracingnoop.NewTracerProvider(),
-		loggingnoop.NewLogger(),
+	encDec, err := encryptioncfg.NewEncryptorDecryptor(
+		context.Background(),
+		&encryptioncfg.Config{Provider: provider},
 		[]byte(key),
+		encryptioncfg.WithLogger(loggingnoop.NewLogger()),
+		encryptioncfg.WithTracerProvider(tracingnoop.NewTracerProvider()),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create encryptor: %w", err)

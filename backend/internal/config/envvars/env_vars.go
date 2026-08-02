@@ -7,47 +7,26 @@ This file contains a reference of all valid service environment variables.
 */
 
 const (
-	// AnalyticsProxySourcesIosCircuitBreakerErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.IOS.CircuitBreaker.ErrorRate`.
-	AnalyticsProxySourcesIosCircuitBreakerErrorRateEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_IOS_CIRCUIT_BREAKER_ERROR_RATE"
+	// AnalyticsCircuitBreakerErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.CircuitBreaker.ErrorRate`.
+	AnalyticsCircuitBreakerErrorRateEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_CIRCUIT_BREAKER_ERROR_RATE"
 
-	// AnalyticsProxySourcesIosCircuitBreakerMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.IOS.CircuitBreaker.MinimumSampleThreshold`.
-	AnalyticsProxySourcesIosCircuitBreakerMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_IOS_CIRCUIT_BREAKER_MINIMUM_SAMPLE_THRESHOLD"
+	// AnalyticsCircuitBreakerMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.CircuitBreaker.MinimumSampleThreshold`.
+	AnalyticsCircuitBreakerMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_CIRCUIT_BREAKER_MINIMUM_SAMPLE_THRESHOLD"
 
-	// AnalyticsProxySourcesIosCircuitBreakerNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.IOS.CircuitBreaker.Name`.
-	AnalyticsProxySourcesIosCircuitBreakerNameEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_IOS_CIRCUIT_BREAKER_NAME"
+	// AnalyticsCircuitBreakerNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.CircuitBreaker.Name`.
+	AnalyticsCircuitBreakerNameEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_CIRCUIT_BREAKER_NAME"
 
-	// AnalyticsProxySourcesIosPosthogAPIKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.IOS.Posthog.APIKey`.
-	AnalyticsProxySourcesIosPosthogAPIKeyEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_IOS_POSTHOG_API_KEY"
+	// AnalyticsPosthogAPIKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.Posthog.APIKey`.
+	AnalyticsPosthogAPIKeyEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_POSTHOG_API_KEY"
 
-	// AnalyticsProxySourcesIosPosthogEndpointEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.IOS.Posthog.Endpoint`.
-	AnalyticsProxySourcesIosPosthogEndpointEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_IOS_POSTHOG_ENDPOINT"
+	// AnalyticsPosthogEndpointEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.Posthog.Endpoint`.
+	AnalyticsPosthogEndpointEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_POSTHOG_ENDPOINT"
 
-	// AnalyticsProxySourcesIosProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.IOS.Provider`.
-	AnalyticsProxySourcesIosProviderEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_IOS_PROVIDER"
+	// AnalyticsProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.Provider`.
+	AnalyticsProviderEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROVIDER"
 
-	// AnalyticsProxySourcesIosSegmentAPITokenEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.IOS.Segment.APIToken`.
-	AnalyticsProxySourcesIosSegmentAPITokenEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_IOS_SEGMENT_API_TOKEN"
-
-	// AnalyticsProxySourcesWebCircuitBreakerErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.Web.CircuitBreaker.ErrorRate`.
-	AnalyticsProxySourcesWebCircuitBreakerErrorRateEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_WEB_CIRCUIT_BREAKER_ERROR_RATE"
-
-	// AnalyticsProxySourcesWebCircuitBreakerMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.Web.CircuitBreaker.MinimumSampleThreshold`.
-	AnalyticsProxySourcesWebCircuitBreakerMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_WEB_CIRCUIT_BREAKER_MINIMUM_SAMPLE_THRESHOLD"
-
-	// AnalyticsProxySourcesWebCircuitBreakerNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.Web.CircuitBreaker.Name`.
-	AnalyticsProxySourcesWebCircuitBreakerNameEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_WEB_CIRCUIT_BREAKER_NAME"
-
-	// AnalyticsProxySourcesWebPosthogAPIKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.Web.Posthog.APIKey`.
-	AnalyticsProxySourcesWebPosthogAPIKeyEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_WEB_POSTHOG_API_KEY"
-
-	// AnalyticsProxySourcesWebPosthogEndpointEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.Web.Posthog.Endpoint`.
-	AnalyticsProxySourcesWebPosthogEndpointEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_WEB_POSTHOG_ENDPOINT"
-
-	// AnalyticsProxySourcesWebProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.Web.Provider`.
-	AnalyticsProxySourcesWebProviderEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_WEB_PROVIDER"
-
-	// AnalyticsProxySourcesWebSegmentAPITokenEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.ProxySources.Web.Segment.APIToken`.
-	AnalyticsProxySourcesWebSegmentAPITokenEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROXY_SOURCES_WEB_SEGMENT_API_TOKEN"
+	// AnalyticsSegmentAPITokenEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.Segment.APIToken`.
+	AnalyticsSegmentAPITokenEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_SEGMENT_API_TOKEN"
 
 	// AuthDebugEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Debug`.
 	AuthDebugEnvVarKey = "DINNER_DONE_BETTER_AUTH_DEBUG"
@@ -166,9 +145,6 @@ const (
 	// DatabaseWriteConnectionUsernameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Database.WriteConnection.Username`.
 	DatabaseWriteConnectionUsernameEnvVarKey = "DINNER_DONE_BETTER_DATABASE_WRITE_CONNECTION_USERNAME"
 
-	// EmailBaseURLEnvVarKey is the environment variable name to set to override `APIServiceConfig.Email.BaseURL`.
-	EmailBaseURLEnvVarKey = "DINNER_DONE_BETTER_EMAIL_BASE_URL"
-
 	// EmailCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.Email.CircuitBreaker.ErrorRate`.
 	EmailCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_EMAIL_CIRCUIT_BREAKING_ERROR_RATE"
 
@@ -189,15 +165,6 @@ const (
 
 	// EmailMailjetSecretKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Email.Mailjet.SecretKey`.
 	EmailMailjetSecretKeyEnvVarKey = "DINNER_DONE_BETTER_EMAIL_MAILJET_SECRET_KEY"
-
-	// EmailOutboundInvitesEmailAddressEnvVarKey is the environment variable name to set to override `APIServiceConfig.Email.OutboundInvitesEmailAddress`.
-	EmailOutboundInvitesEmailAddressEnvVarKey = "DINNER_DONE_BETTER_EMAIL_OUTBOUND_INVITES_EMAIL_ADDRESS"
-
-	// EmailPasswordResetCreationEmailAddressEnvVarKey is the environment variable name to set to override `APIServiceConfig.Email.PasswordResetCreationEmailAddress`.
-	EmailPasswordResetCreationEmailAddressEnvVarKey = "DINNER_DONE_BETTER_EMAIL_PASSWORD_RESET_CREATION_EMAIL_ADDRESS"
-
-	// EmailPasswordResetRedemptionEmailAddressEnvVarKey is the environment variable name to set to override `APIServiceConfig.Email.PasswordResetRedemptionEmailAddress`.
-	EmailPasswordResetRedemptionEmailAddressEnvVarKey = "DINNER_DONE_BETTER_EMAIL_PASSWORD_RESET_REDEMPTION_EMAIL_ADDRESS"
 
 	// EmailPostmarkBaseURLEnvVarKey is the environment variable name to set to override `APIServiceConfig.Email.Postmark.BaseURL`.
 	EmailPostmarkBaseURLEnvVarKey = "DINNER_DONE_BETTER_EMAIL_POSTMARK_BASE_URL"
@@ -277,29 +244,11 @@ const (
 	// FeatureFlagsCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.CircuitBreaker.Name`.
 	FeatureFlagsCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_CIRCUIT_BREAKING_NAME"
 
-	// FeatureFlagsLaunchDarklyCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.CircuitBreakerConfig.ErrorRate`.
-	FeatureFlagsLaunchDarklyCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLY_CIRCUIT_BREAKING_ERROR_RATE"
-
-	// FeatureFlagsLaunchDarklyCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.CircuitBreakerConfig.MinimumSampleThreshold`.
-	FeatureFlagsLaunchDarklyCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLY_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
-
-	// FeatureFlagsLaunchDarklyCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.CircuitBreakerConfig.Name`.
-	FeatureFlagsLaunchDarklyCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLY_CIRCUIT_BREAKING_NAME"
-
 	// FeatureFlagsLaunchDarklyInitTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.InitTimeout`.
 	FeatureFlagsLaunchDarklyInitTimeoutEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLY_INIT_TIMEOUT"
 
 	// FeatureFlagsLaunchDarklySdkKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.LaunchDarkly.SDKKey`.
 	FeatureFlagsLaunchDarklySdkKeyEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLY_SDK_KEY"
-
-	// FeatureFlagsPosthogCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.PostHog.CircuitBreakerConfig.ErrorRate`.
-	FeatureFlagsPosthogCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_POSTHOG_CIRCUIT_BREAKING_ERROR_RATE"
-
-	// FeatureFlagsPosthogCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.PostHog.CircuitBreakerConfig.MinimumSampleThreshold`.
-	FeatureFlagsPosthogCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_POSTHOG_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
-
-	// FeatureFlagsPosthogCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.PostHog.CircuitBreakerConfig.Name`.
-	FeatureFlagsPosthogCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_POSTHOG_CIRCUIT_BREAKING_NAME"
 
 	// FeatureFlagsPosthogEndpointEnvVarKey is the environment variable name to set to override `APIServiceConfig.FeatureFlags.PostHog.Endpoint`.
 	FeatureFlagsPosthogEndpointEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_POSTHOG_ENDPOINT"
@@ -316,7 +265,7 @@ const (
 	// GrpcPortEnvVarKey is the environment variable name to set to override `APIServiceConfig.GRPCServer.Port`.
 	GrpcPortEnvVarKey = "DINNER_DONE_BETTER_GRPC_PORT"
 
-	// GrpcTLSCertificateFilepathEnvVarKey is the environment variable name to set to override `APIServiceConfig.GRPCServer.HTTPSCertificateFile`.
+	// GrpcTLSCertificateFilepathEnvVarKey is the environment variable name to set to override `APIServiceConfig.GRPCServer.TLSCertificateFile`.
 	GrpcTLSCertificateFilepathEnvVarKey = "DINNER_DONE_BETTER_GRPC_TLS_CERTIFICATE_FILEPATH"
 
 	// GrpcTLSCertificateKeyFilepathEnvVarKey is the environment variable name to set to override `APIServiceConfig.GRPCServer.TLSCertificateKeyFile`.
@@ -345,9 +294,6 @@ const (
 
 	// HTTPClientTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPClient.Timeout`.
 	HTTPClientTimeoutEnvVarKey = "DINNER_DONE_BETTER_HTTP_CLIENT_TIMEOUT"
-
-	// HTTPDebugEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.Debug`.
-	HTTPDebugEnvVarKey = "DINNER_DONE_BETTER_HTTP_DEBUG"
 
 	// HTTPIdleTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.HTTPServer.IdleTimeout`.
 	HTTPIdleTimeoutEnvVarKey = "DINNER_DONE_BETTER_HTTP_IDLE_TIMEOUT"
@@ -391,6 +337,9 @@ const (
 	// IdempotencyManagerCacheProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Provider`.
 	IdempotencyManagerCacheProviderEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_PROVIDER"
 
+	// IdempotencyManagerCacheRedisAddressesEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.Addresses`.
+	IdempotencyManagerCacheRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_ADDRESSES"
+
 	// IdempotencyManagerCacheRedisClusterEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.Cluster`.
 	IdempotencyManagerCacheRedisClusterEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_CLUSTER"
 
@@ -399,9 +348,6 @@ const (
 
 	// IdempotencyManagerCacheRedisPasswordEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.Password`.
 	IdempotencyManagerCacheRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_PASSWORD"
-
-	// IdempotencyManagerCacheRedisQueueAddressesEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.QueueAddresses`.
-	IdempotencyManagerCacheRedisQueueAddressesEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_QUEUE_ADDRESSES"
 
 	// IdempotencyManagerCacheRedisUsernameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Redis.Username`.
 	IdempotencyManagerCacheRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_REDIS_USERNAME"
@@ -565,6 +511,9 @@ const (
 	// JobsSchedulerLockKeyPrefixEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Scheduler.LockKeyPrefix`.
 	JobsSchedulerLockKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_LOCK_KEY_PREFIX"
 
+	// JobsSchedulerTimezoneEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Scheduler.Timezone`.
+	JobsSchedulerTimezoneEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_TIMEZONE"
+
 	// JobsSearchDataIndexSchedulerEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.SearchDataIndexScheduler.Enabled`.
 	JobsSearchDataIndexSchedulerEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_ENABLED"
 
@@ -697,6 +646,9 @@ const (
 	// OutboxBackoffMultiplierEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.Backoff.Multiplier`.
 	OutboxBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_MULTIPLIER"
 
+	// OutboxBackoffProviderEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.Backoff.Provider`.
+	OutboxBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_PROVIDER"
+
 	// OutboxBackoffUseJitterEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.Backoff.UseJitter`.
 	OutboxBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_USE_JITTER"
 
@@ -705,9 +657,6 @@ const (
 
 	// OutboxClaimModeEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.ClaimMode`.
 	OutboxClaimModeEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_CLAIM_MODE"
-
-	// OutboxDialectEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.Dialect`.
-	OutboxDialectEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_DIALECT"
 
 	// OutboxLeaseDurationEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.LeaseDuration`.
 	OutboxLeaseDurationEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_LEASE_DURATION"
@@ -724,8 +673,8 @@ const (
 	// OutboxRetentionEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.Retention`.
 	OutboxRetentionEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RETENTION"
 
-	// OutboxTableNameEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.TableName`.
-	OutboxTableNameEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_TABLE_NAME"
+	// OutboxTablePrefixEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.TablePrefix`.
+	OutboxTablePrefixEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_TABLE_PREFIX"
 
 	// PoolsDataChangesConcurrencyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.DataChanges.Concurrency`.
 	PoolsDataChangesConcurrencyEnvVarKey = "DINNER_DONE_BETTER_POOLS_DATA_CHANGES_CONCURRENCY"
@@ -744,6 +693,9 @@ const (
 
 	// PoolsDataChangesRetryMultiplierEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.DataChanges.Retry.Multiplier`.
 	PoolsDataChangesRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_DATA_CHANGES_RETRY_MULTIPLIER"
+
+	// PoolsDataChangesRetryProviderEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.DataChanges.Retry.Provider`.
+	PoolsDataChangesRetryProviderEnvVarKey = "DINNER_DONE_BETTER_POOLS_DATA_CHANGES_RETRY_PROVIDER"
 
 	// PoolsDataChangesRetryUseJitterEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.DataChanges.Retry.UseJitter`.
 	PoolsDataChangesRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_DATA_CHANGES_RETRY_USE_JITTER"
@@ -772,6 +724,9 @@ const (
 	// PoolsMobileNotificationsRetryMultiplierEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.MobileNotifications.Retry.Multiplier`.
 	PoolsMobileNotificationsRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_MOBILE_NOTIFICATIONS_RETRY_MULTIPLIER"
 
+	// PoolsMobileNotificationsRetryProviderEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.MobileNotifications.Retry.Provider`.
+	PoolsMobileNotificationsRetryProviderEnvVarKey = "DINNER_DONE_BETTER_POOLS_MOBILE_NOTIFICATIONS_RETRY_PROVIDER"
+
 	// PoolsMobileNotificationsRetryUseJitterEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.MobileNotifications.Retry.UseJitter`.
 	PoolsMobileNotificationsRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_MOBILE_NOTIFICATIONS_RETRY_USE_JITTER"
 
@@ -795,6 +750,9 @@ const (
 
 	// PoolsOutboundEmailsRetryMultiplierEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.OutboundEmails.Retry.Multiplier`.
 	PoolsOutboundEmailsRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_OUTBOUND_EMAILS_RETRY_MULTIPLIER"
+
+	// PoolsOutboundEmailsRetryProviderEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.OutboundEmails.Retry.Provider`.
+	PoolsOutboundEmailsRetryProviderEnvVarKey = "DINNER_DONE_BETTER_POOLS_OUTBOUND_EMAILS_RETRY_PROVIDER"
 
 	// PoolsOutboundEmailsRetryUseJitterEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.OutboundEmails.Retry.UseJitter`.
 	PoolsOutboundEmailsRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_OUTBOUND_EMAILS_RETRY_USE_JITTER"
@@ -820,6 +778,9 @@ const (
 	// PoolsSearchIndexRequestsRetryMultiplierEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.SearchIndexRequests.Retry.Multiplier`.
 	PoolsSearchIndexRequestsRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_SEARCH_INDEX_REQUESTS_RETRY_MULTIPLIER"
 
+	// PoolsSearchIndexRequestsRetryProviderEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.SearchIndexRequests.Retry.Provider`.
+	PoolsSearchIndexRequestsRetryProviderEnvVarKey = "DINNER_DONE_BETTER_POOLS_SEARCH_INDEX_REQUESTS_RETRY_PROVIDER"
+
 	// PoolsSearchIndexRequestsRetryUseJitterEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.SearchIndexRequests.Retry.UseJitter`.
 	PoolsSearchIndexRequestsRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_SEARCH_INDEX_REQUESTS_RETRY_USE_JITTER"
 
@@ -844,6 +805,9 @@ const (
 	// PoolsUserDataAggregationRetryMultiplierEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Retry.Multiplier`.
 	PoolsUserDataAggregationRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_RETRY_MULTIPLIER"
 
+	// PoolsUserDataAggregationRetryProviderEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Retry.Provider`.
+	PoolsUserDataAggregationRetryProviderEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_RETRY_PROVIDER"
+
 	// PoolsUserDataAggregationRetryUseJitterEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Retry.UseJitter`.
 	PoolsUserDataAggregationRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_RETRY_USE_JITTER"
 
@@ -867,6 +831,9 @@ const (
 
 	// PoolsWebhookExecutionRequestsRetryMultiplierEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Retry.Multiplier`.
 	PoolsWebhookExecutionRequestsRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_RETRY_MULTIPLIER"
+
+	// PoolsWebhookExecutionRequestsRetryProviderEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Retry.Provider`.
+	PoolsWebhookExecutionRequestsRetryProviderEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_RETRY_PROVIDER"
 
 	// PoolsWebhookExecutionRequestsRetryUseJitterEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Retry.UseJitter`.
 	PoolsWebhookExecutionRequestsRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_RETRY_USE_JITTER"

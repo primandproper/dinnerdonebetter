@@ -8,15 +8,15 @@ import (
 	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
 	webhookssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 
-	"github.com/primandproper/platform-go/v8/encoding"
-	"github.com/primandproper/platform-go/v8/identifiers"
+	"github.com/primandproper/platform-go/v9/encoding"
+	"github.com/primandproper/platform-go/v9/identifiers"
 )
 
 func ConvertStringToWebhookContentType(s string) webhookssvc.WebhookContentType {
 	switch s {
-	case encoding.ContentTypeToString(encoding.ContentTypeXML):
+	case encoding.ContentTypeXML.String():
 		return webhookssvc.WebhookContentType_WEBHOOK_CONTENT_TYPE_XML
-	case encoding.ContentTypeToString(encoding.ContentTypeJSON):
+	case encoding.ContentTypeJSON.String():
 		return webhookssvc.WebhookContentType_WEBHOOK_CONTENT_TYPE_JSON
 	default:
 		log.Printf("unknown content type: %q", s)
@@ -27,12 +27,12 @@ func ConvertStringToWebhookContentType(s string) webhookssvc.WebhookContentType 
 func ConvertWebhookContentTypeToString(s webhookssvc.WebhookContentType) string {
 	switch s {
 	case webhookssvc.WebhookContentType_WEBHOOK_CONTENT_TYPE_XML:
-		return encoding.ContentTypeToString(encoding.ContentTypeXML)
+		return encoding.ContentTypeXML.String()
 	case webhookssvc.WebhookContentType_WEBHOOK_CONTENT_TYPE_JSON:
-		return encoding.ContentTypeToString(encoding.ContentTypeJSON)
+		return encoding.ContentTypeJSON.String()
 	default:
 		log.Printf("unknown content type: %q", s)
-		return encoding.ContentTypeToString(encoding.ContentTypeJSON)
+		return encoding.ContentTypeJSON.String()
 	}
 }
 

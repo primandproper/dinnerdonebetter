@@ -56,10 +56,6 @@
 		"postmark": null,
 		"ses": null,
 		"provider": "resend",
-		"baseURL": "",
-		"outboundInvitesEmailAddress": "",
-		"passwordResetCreationEmailAddress": "",
-		"passwordResetRedemptionEmailAddress": "",
 		"circuitBreakerConfig": {
 			"name": "prod_emailer",
 			"circuitBreakerErrorPercentage": 0.5,
