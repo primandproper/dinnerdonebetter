@@ -202,7 +202,6 @@ formatters:
       sections:
         - standard
         - prefix(github.com/primandproper/dinnerdonebetter/backend)
-        - prefix(github.com/dinnerdonebetter)
         - prefix(github.com/primandproper)
         - default
       custom-order: true
