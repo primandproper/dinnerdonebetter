@@ -2,9 +2,12 @@ package datachangemessagehandler
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
@@ -62,6 +65,35 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 		assert.Len(t, identityRepo.GetAccountCalls(), 1)
 	})
 
+	t.Run("with missing account", func(t *testing.T) {
+		t.Parallel()
+
+		handler, identityRepo, webhookRepo, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+
+		ctx := t.Context()
+
+		accountID := identifiers.New()
+		webhookExecutionRequest := &webhooks.WebhookExecutionRequest{
+			WebhookID: identifiers.New(),
+			AccountID: accountID,
+			RequestID: identifiers.New(),
+			Payload:   &audit.DataChangeMessage{},
+		}
+
+		identityRepo.GetAccountFunc = func(_ context.Context, actualAccountID string) (*identity.Account, error) {
+			assert.Equal(t, accountID, actualAccountID)
+
+			return nil, sql.ErrNoRows
+		}
+
+		// Nothing to deliver, so the message is acked rather than redelivered forever.
+		err := handler.handleWebhookExecutionRequest(ctx, webhookExecutionRequest)
+		assert.NoError(t, err)
+
+		assert.Len(t, identityRepo.GetAccountCalls(), 1)
+		assert.Empty(t, webhookRepo.GetWebhookCalls())
+	})
+
 	t.Run("with webhook fetch error", func(t *testing.T) {
 		t.Parallel()
 
@@ -92,8 +124,47 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 			return nil, expectedError
 		}
 
+		// A transient failure must be returned so the queue redelivers, not swallowed.
 		err := handler.handleWebhookExecutionRequest(ctx, webhookExecutionRequest)
-		assert.NoError(t, err) // Should not return error, just log it
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "getting webhook")
+
+		assert.Len(t, identityRepo.GetAccountCalls(), 1)
+		assert.Len(t, webhookRepo.GetWebhookCalls(), 1)
+	})
+
+	t.Run("with missing webhook", func(t *testing.T) {
+		t.Parallel()
+
+		handler, identityRepo, webhookRepo, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+
+		ctx := t.Context()
+
+		account := identityfakes.BuildFakeAccount()
+		webhookID := identifiers.New()
+
+		webhookExecutionRequest := &webhooks.WebhookExecutionRequest{
+			WebhookID: webhookID,
+			AccountID: account.ID,
+			RequestID: identifiers.New(),
+			Payload:   &audit.DataChangeMessage{},
+		}
+
+		identityRepo.GetAccountFunc = func(_ context.Context, accountID string) (*identity.Account, error) {
+			assert.Equal(t, account.ID, accountID)
+
+			return account, nil
+		}
+		webhookRepo.GetWebhookFunc = func(_ context.Context, actualWebhookID string, accountID string) (*webhooks.Webhook, error) {
+			assert.Equal(t, webhookID, actualWebhookID)
+			assert.Equal(t, account.ID, accountID)
+
+			return nil, sql.ErrNoRows
+		}
+
+		// An archived webhook has nowhere to deliver to, so the message is acked.
+		err := handler.handleWebhookExecutionRequest(ctx, webhookExecutionRequest)
+		assert.NoError(t, err)
 
 		assert.Len(t, identityRepo.GetAccountCalls(), 1)
 		assert.Len(t, webhookRepo.GetWebhookCalls(), 1)
@@ -187,6 +258,66 @@ func TestAsyncDataChangeMessageHandler_handleWebhookExecutionRequest(t *testing.
 
 		assert.Len(t, identityRepo.GetAccountCalls(), 1)
 		assert.Len(t, webhookRepo.GetWebhookCalls(), 1)
+	})
+
+	t.Run("reuses one connection across deliveries", func(t *testing.T) {
+		t.Parallel()
+
+		handler, identityRepo, webhookRepo, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+
+		ctx := t.Context()
+
+		var (
+			connsHat sync.Mutex
+			conns    int
+		)
+
+		webhookServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		webhookServer.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+			if state == http.StateNew {
+				connsHat.Lock()
+				conns++
+				connsHat.Unlock()
+			}
+		}
+		webhookServer.Start()
+		defer webhookServer.Close()
+
+		account := identityfakes.BuildFakeAccount()
+		account.WebhookEncryptionKey = "deadbeefdeadbeefdeadbeefdeadbeef" // Valid 32-char hex key
+
+		webhook := webhooksfakes.BuildFakeWebhook()
+		webhook.ContentType = "application/json"
+		webhook.Method = http.MethodPost
+		webhook.URL = webhookServer.URL
+
+		identityRepo.GetAccountFunc = func(_ context.Context, _ string) (*identity.Account, error) {
+			return account, nil
+		}
+		webhookRepo.GetWebhookFunc = func(_ context.Context, _, _ string) (*webhooks.Webhook, error) {
+			return webhook, nil
+		}
+
+		for range 3 {
+			err := handler.handleWebhookExecutionRequest(ctx, &webhooks.WebhookExecutionRequest{
+				WebhookID: webhook.ID,
+				AccountID: account.ID,
+				RequestID: identifiers.New(),
+				Payload: &audit.DataChangeMessage{
+					EventType: identity.UserSignedUpServiceEventType,
+					UserID:    identifiers.New(),
+					AccountID: account.ID,
+				},
+			})
+			assert.NoError(t, err)
+		}
+
+		// A client built per delivery would dial three times.
+		connsHat.Lock()
+		assert.Equal(t, 1, conns)
+		connsHat.Unlock()
 	})
 
 	t.Run("with non-2xx webhook response", func(t *testing.T) {

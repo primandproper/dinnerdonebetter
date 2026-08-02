@@ -271,8 +271,11 @@
 	},
 	"services": {
 		"payments": {
-			"stripe": null,
-			"revenueCat": null
+			"revenueCat": null,
+			"capitalism": {
+				"stripe": null,
+				"provider": "noop"
+			}
 		},
 		"users": {
 			"publicMediaURLPrefix": "https://media.dinnerdonebetter.com/avatars",

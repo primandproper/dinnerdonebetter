@@ -8,7 +8,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 	paymentsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/mock"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
@@ -21,17 +20,11 @@ func buildPaymentsManagerForTest(t *testing.T) *paymentsManager {
 	t.Helper()
 
 	ctx := t.Context()
-	stub := adapters.NewStubPaymentProcessor(nil)
-	registry := payments.NewMapProcessorRegistry(map[string]payments.PaymentProcessor{
-		"stripe":     stub,
-		"revenuecat": stub,
-	})
 	m, err := NewPaymentsDataManager(
 		ctx,
 		tracingnoop.NewTracerProvider(),
 		loggingnoop.NewLogger(),
 		&paymentsmock.RepositoryMock{},
-		registry,
 		&identitymock.IdentityDataManagerMock{},
 	)
 	require.NoError(t, err)

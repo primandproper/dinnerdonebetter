@@ -3,14 +3,11 @@ package mealplantaskcreator
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
-	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v9/messagequeue"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/metrics"
@@ -30,25 +27,20 @@ type Worker struct {
 	tracer                  tracing.Tracer
 	analyzer                recipeanalysis.RecipeAnalyzer
 	dataManager             mealplanning.Repository
-	postUpdatesPublisher    messagequeue.Publisher
 	processedRecordsCounter metrics.Int64Counter
 }
 
+// NewMealPlanTaskCreator builds the task creator.
+//
+// It constructs no publisher: the meal plan task created events are enqueued into the outbox inside
+// the transaction that writes the tasks, so there is nothing left for this job to publish.
 func NewMealPlanTaskCreator(
-	ctx context.Context,
 	logger logging.Logger,
 	tracerProvider tracing.TracerProvider,
 	analyzer recipeanalysis.RecipeAnalyzer,
 	dataManager mealplanning.Repository,
-	publisherProvider messagequeue.PublisherProvider,
 	metricsProvider metrics.Provider,
-	cfg *queuescfg.Config,
 ) (*Worker, error) {
-	postUpdatesPublisher, err := publisherProvider.NewPublisher(ctx, cfg.DataChangesTopicName)
-	if err != nil {
-		return nil, err
-	}
-
 	processedRecordsCounter, err := metricsProvider.NewInt64Counter("meal_plan_task_creator.records_processed")
 	if err != nil {
 		return nil, err
@@ -57,7 +49,6 @@ func NewMealPlanTaskCreator(
 	return &Worker{
 		analyzer:                analyzer,
 		dataManager:             dataManager,
-		postUpdatesPublisher:    postUpdatesPublisher,
 		processedRecordsCounter: processedRecordsCounter,
 		logger:                  logging.NewNamedLogger(logger, serviceName),
 		tracer:                  tracing.NewNamedTracer(tracerProvider, serviceName),
@@ -81,31 +72,17 @@ func (w *Worker) Work(ctx context.Context) error {
 	for mealPlanID, steps := range mealPlansAndSteps {
 		l := logger.Clone().WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID).WithValue("creatable_prep_step_qty", len(steps))
 
-		createdMealPlanTasks, creationErr := w.dataManager.CreateMealPlanTasksForMealPlanOption(ctx, steps)
+		// The tasks, their data change events, and the flag saying the plan has had its tasks
+		// created all commit together. A plan that fails here is left untouched and retried whole
+		// on the next run, rather than retried against tasks that already exist.
+		createdMealPlanTasks, creationErr := w.dataManager.CreateMealPlanTasksForMealPlan(ctx, mealPlanID, steps)
 		if creationErr != nil {
 			result = multierror.Append(result, creationErr)
-			observability.AcknowledgeError(creationErr, l, span, "creating meal plan tasks for meal plan option")
+			observability.AcknowledgeError(creationErr, l, span, "creating meal plan tasks for meal plan")
 			continue
 		}
 
 		w.processedRecordsCounter.Add(ctx, int64(len(createdMealPlanTasks)))
-
-		for _, createdTask := range createdMealPlanTasks {
-			if publishErr := w.postUpdatesPublisher.Publish(ctx, &audit.DataChangeMessage{
-				EventType: mealplanning.MealPlanTaskCreatedServiceEventType,
-				Context: map[string]any{
-					mealplanningkeys.MealPlanIDKey:     mealPlanID,
-					mealplanningkeys.MealPlanTaskIDKey: createdTask.ID,
-					"meal_plan_task":                   createdTask,
-				},
-			}); publishErr != nil {
-				observability.AcknowledgeError(publishErr, l, span, "publishing data change event")
-			}
-		}
-
-		if err = w.dataManager.MarkMealPlanAsHavingTasksCreated(ctx, mealPlanID); err != nil {
-			result = multierror.Append(result, err)
-		}
 	}
 
 	return result.ErrorOrNil()

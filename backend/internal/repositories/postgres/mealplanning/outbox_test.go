@@ -12,6 +12,7 @@ import (
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/platform-go/v9/database"
+	"github.com/primandproper/platform-go/v9/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -125,6 +126,69 @@ func TestQuerier_Integration_MealPlanOutboxRollsBackWithItsWrite(t *testing.T) {
 	require.Error(t, dbc.ArchiveMealPlan(ctx, "nonexistent", account.ID))
 
 	assert.Empty(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic))
+}
+
+func TestQuerier_Integration_GroceryListInitializationEmitsOneEventPerItem(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
+
+	recipe := createRecipeForTest(t, ctx, nil, dbc, true)
+	meal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+
+	exampleMealPlan := buildMealPlanForIntegrationTest(user.ID, meal)
+	exampleMealPlan.BelongsToAccount = account.ID
+	mealPlan := createMealPlanForTest(t, ctx, exampleMealPlan, dbc)
+
+	ingredient := createValidIngredientForTest(t, ctx, nil, dbc)
+	unit := createValidMeasurementUnitForTest(t, ctx, nil, dbc)
+
+	buildInput := func() *types.MealPlanGroceryListItemDatabaseCreationInput {
+		return &types.MealPlanGroceryListItemDatabaseCreationInput{
+			ID:                     identifiers.New(),
+			BelongsToMealPlan:      mealPlan.ID,
+			ValidIngredientID:      ingredient.ID,
+			ValidMeasurementUnitID: unit.ID,
+			Status:                 types.MealPlanGroceryListItemStatusNeeds,
+			MinQuantityNeeded:      1,
+		}
+	}
+
+	countCreatedEvents := func() int {
+		msgs := decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic))
+
+		var found int
+		for _, msg := range msgs {
+			if msg.EventType == types.MealPlanGroceryListItemCreatedServiceEventType {
+				found++
+				assert.Equal(t, account.ID, msg.AccountID,
+					"a background job has no session, so the account has to come from the caller")
+			}
+		}
+
+		return found
+	}
+
+	// a batch that fails announces nothing: the events are statements in the transaction that
+	// rolled back.
+	doomed := buildInput()
+	doomed.ValidIngredientID = identifiers.New()
+
+	_, err := dbc.InitializeMealPlanGroceryList(ctx, mealPlan.ID, account.ID, []*types.MealPlanGroceryListItemDatabaseCreationInput{buildInput(), doomed})
+	require.Error(t, err)
+	assert.Zero(t, countCreatedEvents())
+
+	// and a batch that succeeds announces each item exactly once. The initializer job used to
+	// publish these itself on top of the repository's transactional emit, so every item announced
+	// itself twice.
+	inputs := []*types.MealPlanGroceryListItemDatabaseCreationInput{buildInput(), buildInput()}
+	created, err := dbc.InitializeMealPlanGroceryList(ctx, mealPlan.ID, account.ID, inputs)
+	require.NoError(t, err)
+	require.Len(t, created, len(inputs))
+
+	assert.Equal(t, len(inputs), countCreatedEvents())
 }
 
 func TestQuerier_Integration_CatalogOutboxEvents(t *testing.T) {
