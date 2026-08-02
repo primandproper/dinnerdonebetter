@@ -4,7 +4,7 @@ package webhooks;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks";
 
 message WebhookList {
   repeated Webhook webhooks = 1;

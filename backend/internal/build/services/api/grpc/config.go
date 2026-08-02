@@ -1,17 +1,17 @@
 package grpcapi
 
 import (
-	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
-	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
-	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
-	dataprivacycfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/dataprivacy/config"
-	identitycfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/config"
-	mealplanningcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/config"
-	oauthcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/oauth/config"
-	paymentscfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/config"
-	uploadedmediacfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
+	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
+	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
+	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
+	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
+	mealplanningcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/config"
+	oauthcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/config"
+	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
+	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"

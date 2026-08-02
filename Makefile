@@ -19,7 +19,7 @@ PROTO_FILES_PATH          := $(shell find proto -name "*.proto" -type f ! -regex
 PROTO_GO_OUTPUT_PATH      := backend
 PROTO_OUTPUT_BACKEND_PATH := backend/internal/grpc
 PROTO_OUTPUT_IOS_PATH     := ios/ios/Generated
-BACKEND_REPO_NAME         := github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend
+BACKEND_REPO_NAME         := github.com/primandproper/dinnerdonebetter/backend
 PROTO_TS_OUTPUT_PATH      := frontend/packages/api-client/src
 PROTO_TS_PLUGIN           := frontend/node_modules/.bin/protoc-gen-ts_proto
 
@@ -251,7 +251,7 @@ proto: format_proto proto_golang proto_swift proto_typescript
 .PHONY: regit
 regit:
 	cd ../
-	git clone git@github.com:verygoodsoftwarenotvirus/dinnerdonebetter tempdir
+	git clone git@github.com:primandproper/dinnerdonebetter tempdir
 	@if [ -n "$(BRANCH)" ]; then \
 	  (cd tempdir && git checkout $(BRANCH)); \
 	fi

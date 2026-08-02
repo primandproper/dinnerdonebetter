@@ -3,8 +3,8 @@ package integration
 import (
 	"testing"
 
-	auditgrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
-	identitysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
+	auditgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
+	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -7,7 +7,7 @@ import "common.proto";
 import "filtering.proto";
 import "issue_reports/issue_reports_messages.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports";
 
 message IssueReportCreationRequestInput {
   string issue_type = 1;

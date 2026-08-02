@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/fakes"
-	oauthmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/mock"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/fakes"
+	oauthmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/mock"
 
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	"github.com/primandproper/platform-go/v9/observability/tracing"

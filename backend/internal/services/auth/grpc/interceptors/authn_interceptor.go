@@ -9,10 +9,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
-	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 
 	"github.com/primandproper/platform-go/v9/authentication/tokens"
 	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"

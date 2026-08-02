@@ -4,7 +4,7 @@ package waitlists;
 
 import "waitlists/waitlists_service_types.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists";
 
 service WaitlistsService {
   rpc CreateWaitlist(CreateWaitlistRequest) returns (CreateWaitlistResponse);

@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
-	dataprivacycfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/dataprivacy/config"
-	identitycfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/config"
-	mealplanningcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/config"
-	oauthcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/oauth/config"
-	paymentscfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/config"
-	uploadedmediacfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
+	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
+	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
+	mealplanningcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/config"
+	oauthcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/config"
+	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
+	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 
 	"github.com/hashicorp/go-multierror"
 )

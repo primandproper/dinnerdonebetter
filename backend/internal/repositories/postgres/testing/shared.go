@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
+	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 
 	"github.com/primandproper/platform-go/v9/testutils/containers"
 

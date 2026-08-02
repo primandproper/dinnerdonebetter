@@ -6,9 +6,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
-	oauthkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/keys"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/oauth/generated"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	oauthkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth/generated"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/observability"

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
-	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
+	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
+	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"

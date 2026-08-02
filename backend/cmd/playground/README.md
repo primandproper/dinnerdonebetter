@@ -26,9 +26,9 @@ import (
  "net/url"
  "time"
 
- "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/observability/tracing"
- "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/pkg/apiclient"
- "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/pkg/types"
+ "github.com/primandproper/dinnerdonebetter/backend/internal/observability/tracing"
+ "github.com/primandproper/dinnerdonebetter/backend/pkg/apiclient"
+ "github.com/primandproper/dinnerdonebetter/backend/pkg/types"
 
  "github.com/pquerna/otp/totp"
 )
@@ -74,10 +74,10 @@ import (
  "log"
  "time"
  
- databasecfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/routingcfg"
- "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/postgres"
- "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/observability/logging"
- "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/observability/tracing"
+ databasecfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/routingcfg"
+ "github.com/primandproper/dinnerdonebetter/backend/internal/database/postgres"
+ "github.com/primandproper/dinnerdonebetter/backend/internal/observability/logging"
+ "github.com/primandproper/dinnerdonebetter/backend/internal/observability/tracing"
 )
 
 const dbString = `user=%s password=%s database=%s host=127.0.0.1 port=5434 sslmode=disable`

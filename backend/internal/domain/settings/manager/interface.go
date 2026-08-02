@@ -1,7 +1,7 @@
 package manager
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/settings"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 )
 
 // SettingsDataManager defines the interface for settings business logic.

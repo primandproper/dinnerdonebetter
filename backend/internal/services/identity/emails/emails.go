@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
 	"github.com/primandproper/platform-go/v9/email"
 

@@ -1,11 +1,11 @@
 # build stage
 FROM golang:1.26-trixie AS build-stage
 
-WORKDIR /go/src/github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend
+WORKDIR /go/src/github.com/primandproper/dinnerdonebetter/backend
 
 COPY . .
 
-RUN ./scripts/build.sh -o /server github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/cmd/services/api
+RUN ./scripts/build.sh -o /server github.com/primandproper/dinnerdonebetter/backend/cmd/services/api
 
 # final stage
 FROM debian:bullseye

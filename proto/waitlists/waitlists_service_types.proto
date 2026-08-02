@@ -7,7 +7,7 @@ import "filtering.proto";
 import "google/protobuf/timestamp.proto";
 import "waitlists/waitlists_messages.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists";
 
 message WaitlistCreationRequestInput {
   string name = 1;

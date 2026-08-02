@@ -3,8 +3,8 @@ package converters_test
 import (
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 
 	"github.com/stretchr/testify/assert"
 )

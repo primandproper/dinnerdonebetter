@@ -1,9 +1,9 @@
 package comments
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
-	domaincomments "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/comments"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	domaincomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	"github.com/primandproper/platform-go/v9/database"
 	"github.com/primandproper/platform-go/v9/observability/logging"

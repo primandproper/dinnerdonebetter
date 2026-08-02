@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/converters"
-	waitlistfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
-	waitlistssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
-	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/waitlists/grpc/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/pkg/client"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/converters"
+	waitlistfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
+	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
+	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

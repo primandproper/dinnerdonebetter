@@ -3,7 +3,7 @@ package integration
 import (
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

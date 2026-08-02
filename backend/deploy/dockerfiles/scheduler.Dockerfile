@@ -1,11 +1,11 @@
 # build stage
 FROM golang:1.26-trixie AS build-stage
 
-WORKDIR /go/src/github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend
+WORKDIR /go/src/github.com/primandproper/dinnerdonebetter/backend
 
 COPY . .
 
-RUN go build -trimpath -o /action github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/cmd/workers/scheduler
+RUN go build -trimpath -o /action github.com/primandproper/dinnerdonebetter/backend/cmd/workers/scheduler
 
 # final stage
 FROM debian:bullseye

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	authsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/pkg/client"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
 	"github.com/primandproper/platform-go/v9/cookies"
 	"github.com/primandproper/platform-go/v9/encoding"

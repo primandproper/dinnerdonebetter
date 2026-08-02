@@ -1,8 +1,8 @@
 package converters
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
-	paymentssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
+	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 )
 
 // ConvertUserDataCollectionToGRPCDataCollection converts a domain payments UserDataCollection to a proto DataCollection.

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
-	identitykeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/keys"
-	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
-	oauthkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
+	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
+	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	oauthkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/keys"
 
 	"github.com/primandproper/platform-go/v9/authentication/tokens"
 	"github.com/primandproper/platform-go/v9/observability"

@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit/fakes"
-	auditmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/audit/mock"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/fakes"
+	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
 
 	"github.com/primandproper/platform-go/v9/database"
 	mockdatabase "github.com/primandproper/platform-go/v9/database/mock"

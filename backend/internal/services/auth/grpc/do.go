@@ -1,15 +1,15 @@
 package grpc
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/webauthn"
-	webauthncfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/webauthn/config"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth/managers"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	identitymanager "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity/manager"
-	authsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/webauthn"
+	webauthncfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/webauthn/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
+	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
 	"github.com/primandproper/platform-go/v9/database"
 	"github.com/primandproper/platform-go/v9/featureflags"

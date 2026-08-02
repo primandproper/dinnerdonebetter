@@ -7,7 +7,7 @@ import "filtering.proto";
 import "google/protobuf/any.proto";
 import "webhooks/webhooks_messages.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks";
 
 message WebhookCreationRequestInput {
   string name = 1;

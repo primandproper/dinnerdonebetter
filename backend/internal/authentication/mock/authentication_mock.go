@@ -7,8 +7,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 )
 
 // Ensure, that ManagerMock does implement authentication.Manager.

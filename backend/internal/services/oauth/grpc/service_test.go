@@ -3,8 +3,8 @@ package grpc
 import (
 	"testing"
 
-	managermock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/manager/mock"
-	oauthsvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
+	managermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/manager/mock"
+	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"

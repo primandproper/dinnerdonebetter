@@ -3,8 +3,8 @@ package grpc
 import (
 	"testing"
 
-	webhookmgrmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/webhooks/manager/mock"
-	webhookssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
+	webhookmgrmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/manager/mock"
+	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"

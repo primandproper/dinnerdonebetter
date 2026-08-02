@@ -1,9 +1,9 @@
 package converters
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
-	platformconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
-	dataprivacysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
+	platformconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
+	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 )
 
 // ConvertUserDataDisclosureToGRPCUserDataDisclosure converts a domain UserDataDisclosure to a proto UserDataDisclosure.

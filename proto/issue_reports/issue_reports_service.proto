@@ -4,7 +4,7 @@ package issue_reports;
 
 import "issue_reports/issue_reports_service_types.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports";
 
 service IssueReportsService {
   rpc AddCommentToIssueReport(AddCommentToIssueReportRequest) returns (AddCommentToIssueReportResponse);

@@ -4,7 +4,7 @@ package audit;
 
 import "audit/audit_service_types.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/audit";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit";
 
 service AuditService {
   rpc GetAuditLogEntriesForAccount(GetAuditLogEntriesForAccountRequest) returns (GetAuditLogEntriesForAccountResponse);

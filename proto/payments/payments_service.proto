@@ -4,7 +4,7 @@ package payments;
 
 import "payments/payments_service_types.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/payments";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments";
 
 service PaymentsService {
   rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);

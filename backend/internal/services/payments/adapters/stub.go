@@ -3,7 +3,7 @@ package adapters
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
 	"github.com/primandproper/platform-go/v9/observability/logging"
 )

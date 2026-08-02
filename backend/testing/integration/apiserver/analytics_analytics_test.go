@@ -3,7 +3,7 @@ package integration
 import (
 	"testing"
 
-	analyticsgrpc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
+	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

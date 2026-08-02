@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 
-	dbcleanerbuild "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/jobs/db_cleaner"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/telemetry"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
-	dbcleaner "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/oauth/workers/db_cleaner"
+	dbcleanerbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/db_cleaner"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/telemetry"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	dbcleaner "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/workers/db_cleaner"
 
 	"github.com/samber/do/v2"
 	_ "go.uber.org/automaxprocs"

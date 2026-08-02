@@ -1,7 +1,7 @@
 package converters
 
 import (
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 )
 
 // ConvertUserDeviceTokenToUserDeviceTokenDatabaseCreationInput builds a UserDeviceTokenDatabaseCreationInput from a UserDeviceToken.

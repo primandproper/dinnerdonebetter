@@ -12,4 +12,4 @@ set -euo pipefail
 export RUN_CONTAINER_TESTS="${RUN_CONTAINER_TESTS:-true}"
 
 # shellcheck disable=SC2086,SC2046
-CGO_ENABLED=1 go test -shuffle=on -race -vet=all -failfast $(go list github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/... | grep -Ev '(cmd|integration|mock|fakes|converters|utils|generated)')
+CGO_ENABLED=1 go test -shuffle=on -race -vet=all -failfast $(go list github.com/primandproper/dinnerdonebetter/backend/... | grep -Ev '(cmd|integration|mock|fakes|converters|utils|generated)')

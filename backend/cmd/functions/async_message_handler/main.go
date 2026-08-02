@@ -8,12 +8,12 @@ import (
 	"syscall"
 	"time"
 
-	datachangemessagehandlerbuild "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/functions/data_change_message_handler"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/telemetry"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
+	datachangemessagehandlerbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/functions/data_change_message_handler"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/telemetry"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
 
 	"github.com/samber/do/v2"
 	_ "go.uber.org/automaxprocs"

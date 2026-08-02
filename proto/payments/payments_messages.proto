@@ -4,7 +4,7 @@ package payments;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/payments";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments";
 
 message Product {
   google.protobuf.Timestamp created_at = 1;

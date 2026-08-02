@@ -3,8 +3,8 @@ package manager
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications"
-	notificationkeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
+	notificationkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/keys"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"

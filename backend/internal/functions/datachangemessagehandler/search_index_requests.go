@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
-	coreindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/indexing"
-	eatingindexing "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
+	coreindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
+	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v9/retry"
 

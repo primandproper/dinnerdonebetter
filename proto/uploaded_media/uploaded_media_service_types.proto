@@ -6,7 +6,7 @@ import "common.proto";
 import "filtering.proto";
 import "uploaded_media/uploaded_media_messages.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media";
 
 // CreateUploadedMedia
 message CreateUploadedMediaRequest {

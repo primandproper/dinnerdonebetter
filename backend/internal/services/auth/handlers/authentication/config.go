@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
+	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

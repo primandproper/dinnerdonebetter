@@ -6,11 +6,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications"
-	notificationsfakes "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/fakes"
-	notificationsmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/notifications/mock"
-	grpcfiltering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
-	notificationssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
+	notificationsfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/fakes"
+	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
+	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
+	notificationssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 

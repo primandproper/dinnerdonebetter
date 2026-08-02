@@ -3,12 +3,12 @@ package grpc
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/sessions"
-	paymentskeys "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments/keys"
-	grpcconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/converters"
-	paymentssvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/grpc/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
+	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
+	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc/converters"
 
 	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
 

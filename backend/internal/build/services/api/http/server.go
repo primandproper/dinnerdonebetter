@@ -3,8 +3,8 @@ package api
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
-	paymentswebhook "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/http"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	paymentswebhook "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
 
 	"github.com/primandproper/platform-go/v9/healthcheck"
 	"github.com/primandproper/platform-go/v9/observability/logging"

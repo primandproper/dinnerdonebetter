@@ -1,8 +1,8 @@
 package adapters
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
-	paymentscfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
+	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/tracing"

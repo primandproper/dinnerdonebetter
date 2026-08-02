@@ -3,7 +3,7 @@ package identity
 import (
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
 	"github.com/stretchr/testify/assert"
 )

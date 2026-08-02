@@ -1,7 +1,7 @@
 package dbcleaner
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/internalops"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/metrics"

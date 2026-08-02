@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Build packages. Two modes:
 # 1) Single binary with VCS ldflags: build.sh -o <output_path> <package>
-#    e.g. build.sh -o /server github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/cmd/services/api
+#    e.g. build.sh -o /server github.com/primandproper/dinnerdonebetter/backend/cmd/services/api
 # 2) Build all packages (no VCS): build.sh <package_list>
 #    e.g. build.sh "$(go list ./...)"
 

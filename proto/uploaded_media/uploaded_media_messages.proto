@@ -4,7 +4,7 @@ package uploaded_media;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media";
 
 message DataCollection {
   map<string, UploadedMedia> uploaded_media = 1;

@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	schedulerbuild "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/jobs/scheduler"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/telemetry"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
+	schedulerbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/scheduler"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/telemetry"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
 	"github.com/primandproper/platform-go/v9/jobs"
 	"github.com/primandproper/platform-go/v9/outbox"

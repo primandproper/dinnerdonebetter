@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	queuemessages "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/messages"
+	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/retry"

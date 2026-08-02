@@ -4,7 +4,7 @@ package oauth;
 
 import "oauth/oauth_service_types.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/oauth";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth";
 
 service OAuthService {
   rpc ArchiveOAuth2Client(ArchiveOAuth2ClientRequest) returns (ArchiveOAuth2ClientResponse);

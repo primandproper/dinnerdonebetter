@@ -4,7 +4,7 @@ package analytics;
 
 import "common.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/analytics";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics";
 
 message TrackEventRequest {
   string source = 1;

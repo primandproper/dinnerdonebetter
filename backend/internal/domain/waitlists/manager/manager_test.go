@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
-	waitlistmock "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/waitlists/mock"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
+	waitlistmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/mock"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"

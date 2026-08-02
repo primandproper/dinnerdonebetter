@@ -1,7 +1,7 @@
 package manager
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/issuereports"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 )
 
 // IssueReportsDataManager defines the interface for issue reports business logic.

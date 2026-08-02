@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"testing"
 
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/converters"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/oauth/fakes"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/fakes"
 
 	"github.com/stretchr/testify/assert"
 )

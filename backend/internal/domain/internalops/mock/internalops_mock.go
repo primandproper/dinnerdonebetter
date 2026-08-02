@@ -7,7 +7,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/internalops"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 )
 
 // Ensure, that InternalOpsDataManagerMock does implement internalops.InternalOpsDataManager.

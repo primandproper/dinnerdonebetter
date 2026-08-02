@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
+	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 
 	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
 	pglock "github.com/primandproper/platform-go/v9/distributedlock/postgres"

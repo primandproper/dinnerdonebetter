@@ -6,7 +6,7 @@ import "common.proto";
 import "filtering.proto";
 import "oauth/oauth_messages.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/oauth";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth";
 
 message CreateOAuth2ClientRequest {
   OAuth2ClientCreationRequestInput input = 1;

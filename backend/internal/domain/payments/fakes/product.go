@@ -1,7 +1,7 @@
 package fakes
 
 import (
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/payments"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 

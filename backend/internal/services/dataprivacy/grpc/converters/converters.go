@@ -1,19 +1,19 @@
 package converters
 
 import (
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/dataprivacy"
-	dataprivacysvc "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
-	auditconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/audit/grpc/converters"
-	commentsconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/comments/grpc/converters"
-	identityconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
-	issuereportsconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/issuereports/grpc/converters"
-	mealplanningconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
-	notificationsconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/notifications/grpc/converters"
-	paymentsconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/payments/grpc/converters"
-	settingsconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/settings/grpc/converters"
-	uploadedmediaconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
-	waitlistsconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/waitlists/grpc/converters"
-	webhooksconverters "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/services/webhooks/grpc/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
+	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
+	auditconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/audit/grpc/converters"
+	commentsconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/comments/grpc/converters"
+	identityconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
+	issuereportsconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/issuereports/grpc/converters"
+	mealplanningconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
+	notificationsconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/notifications/grpc/converters"
+	paymentsconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc/converters"
+	settingsconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/settings/grpc/converters"
+	uploadedmediaconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
+	waitlistsconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc/converters"
+	webhooksconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc/converters"
 )
 
 // ConvertUserDataCollectionToGRPCUserDataCollection converts a domain UserDataCollection to a proto UserDataCollection.

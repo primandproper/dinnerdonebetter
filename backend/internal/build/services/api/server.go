@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	grpcapi "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/services/api/grpc"
-	httpapi "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/build/services/api/http"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/config"
+	grpcapi "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api/grpc"
+	httpapi "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api/http"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/logging"

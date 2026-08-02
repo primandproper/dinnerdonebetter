@@ -4,7 +4,7 @@ package issue_reports;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports";
 
 message DataCollection {
   map<string, IssueReport> issue_reports = 1;

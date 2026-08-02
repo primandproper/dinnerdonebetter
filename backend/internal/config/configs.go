@@ -9,10 +9,10 @@ import (
 	"runtime/debug"
 	"strings"
 
-	authcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/authentication/config"
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/branding"
-	dbcfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/database/config"
-	queuescfg "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/queues/config"
+	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
+	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	platformconfig "github.com/primandproper/platform-go/v9/config"

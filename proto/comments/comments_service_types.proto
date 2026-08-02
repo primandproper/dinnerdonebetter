@@ -6,7 +6,7 @@ import "comments/comments_messages.proto";
 import "common.proto";
 import "filtering.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/comments";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments";
 
 message CreateCommentRequest {
   CommentCreationRequestInput input = 1;

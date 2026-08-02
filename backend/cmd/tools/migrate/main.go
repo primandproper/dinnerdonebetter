@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	postgresmigrations "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
+	postgresmigrations "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 
 	"github.com/primandproper/platform-go/v9/database"
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"

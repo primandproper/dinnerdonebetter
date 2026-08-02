@@ -4,7 +4,7 @@ package internalops;
 
 import "common.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/internalops";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops";
 
 message TestQueueMessageRequest {
   string queue_name = 1;

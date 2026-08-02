@@ -201,7 +201,7 @@ formatters:
     gci:
       sections:
         - standard
-        - prefix(github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend)
+        - prefix(github.com/primandproper/dinnerdonebetter/backend)
         - prefix(github.com/dinnerdonebetter)
         - prefix(github.com/primandproper)
         - default

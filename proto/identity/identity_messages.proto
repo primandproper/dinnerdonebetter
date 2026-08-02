@@ -5,7 +5,7 @@ package identity;
 import "google/protobuf/timestamp.proto";
 import "uploaded_media/uploaded_media_messages.proto";
 
-option go_package = "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/identity";
+option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity";
 
 message DataCollection {
   User user = 1;

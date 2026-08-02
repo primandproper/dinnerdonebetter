@@ -11,9 +11,9 @@ import (
 	sync "sync"
 	unsafe "unsafe"
 
-	filtering "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/filtering"
-	identity "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
-	types "github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/grpc/generated/types"
+	filtering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
+	identity "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

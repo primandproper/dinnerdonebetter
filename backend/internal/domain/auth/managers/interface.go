@@ -3,7 +3,7 @@ package managers
 import (
 	"context"
 
-	"github.com/verygoodsoftwarenotvirus/dinnerdonebetter/backend/internal/domain/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 )
