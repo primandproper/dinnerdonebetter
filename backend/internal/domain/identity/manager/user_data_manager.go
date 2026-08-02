@@ -12,6 +12,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/searchpagination"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
 	"github.com/primandproper/platform-go/v9/database"
@@ -24,7 +25,6 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 	"github.com/primandproper/platform-go/v9/qrcodes"
 	"github.com/primandproper/platform-go/v9/random"
-	textsearch "github.com/primandproper/platform-go/v9/search/text"
 
 	passwordvalidator "github.com/wagslane/go-password-validator"
 )
@@ -652,24 +652,14 @@ func (m *manager) SearchForUsers(ctx context.Context, query string, useSearchSer
 
 		return users, nil
 	} else {
-		searchResults, err := m.userSearchIndex.Search(ctx, textsearch.SearchRequest{Query: query})
+		searchResults, err := searchpagination.Search(ctx, m.userSearchIndex, query, filter)
 		if err != nil {
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching for users")
 		}
 
-		uss := searchResults.Hits
-
-		// The search index has no notion of cursor pagination, so the best we can do is
-		// honor the filter's page size and report the index's full hit count as the total.
-		totalHits := uint64(len(uss))
-
 		userIDs := []string{}
-		for _, us := range uss {
+		for _, us := range searchResults.Hits {
 			userIDs = append(userIDs, us.ID)
-		}
-
-		if filter.MaxResponseSize != nil && len(userIDs) > int(*filter.MaxResponseSize) {
-			userIDs = userIDs[:*filter.MaxResponseSize]
 		}
 
 		users, err := m.identityRepo.GetUsersWithIDs(ctx, userIDs)
@@ -677,11 +667,7 @@ func (m *manager) SearchForUsers(ctx context.Context, query string, useSearchSer
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching for users")
 		}
 
-		result := filtering.NewQueryFilteredResult(users, uint64(len(users)), totalHits, func(u *identity.User) string {
-			return u.ID
-		}, filter)
-
-		return result, nil
+		return searchpagination.NewResult(users, searchResults.NextCursor, filter), nil
 	}
 }
 

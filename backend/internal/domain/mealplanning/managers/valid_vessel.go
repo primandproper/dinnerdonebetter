@@ -6,6 +6,7 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/searchpagination"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
@@ -37,7 +38,7 @@ func (m *mealPlanningManager) SearchValidVessels(ctx context.Context, query stri
 		validVessels, err = m.db.SearchForValidVessels(ctx, query, filter)
 	} else {
 		var indexHits *textsearch.SearchResults[eatingindexing.ValidVesselSearchSubset]
-		indexHits, err = m.validVesselsSearchIndex.Search(ctx, textsearch.SearchRequest{Query: query})
+		indexHits, err = searchpagination.Search(ctx, m.validVesselsSearchIndex, query, filter)
 		if err != nil {
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching index for valid vessels")
 		}
@@ -54,9 +55,7 @@ func (m *mealPlanningManager) SearchValidVessels(ctx context.Context, query stri
 			return nil, observability.PrepareAndLogError(searchErr, logger, span, "searching database for valid vessels")
 		}
 
-		validVessels = filtering.NewQueryFilteredResult(searchResults, uint64(len(searchResults)), uint64(len(searchResults)), func(v *types.ValidVessel) string {
-			return v.ID
-		}, filter)
+		validVessels = searchpagination.NewResult(searchResults, indexHits.NextCursor, filter)
 	}
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "searching valid vessels")

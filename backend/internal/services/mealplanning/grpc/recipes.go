@@ -1375,6 +1375,7 @@ func (s *serviceImpl) SearchForRecipes(ctx context.Context, request *mealplannin
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
+		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(recipes.Pagination, filter),
 	}
 
 	for _, recipe := range recipes.Data {
@@ -1404,6 +1405,7 @@ func (s *serviceImpl) SearchForMealEligibleRecipes(ctx context.Context, request 
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
+		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(recipes.Pagination, filter),
 	}
 
 	for _, recipe := range recipes.Data {
@@ -1438,6 +1440,7 @@ func (s *serviceImpl) SearchForRecipesWithInstrumentOwnership(ctx context.Contex
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
+		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(recipes.Pagination, filter),
 	}
 
 	for _, recipe := range recipes.Data {
