@@ -132,8 +132,7 @@ func (a *AsyncDataChangeMessageHandler) handleWebhookExecutionRequest(
 	digest.Write(payloadBody)
 	req.Header.Set("X-Dinner-Done-Better-Signature", hex.EncodeToString(digest.Sum(nil)))
 
-	// The webhook URL is admin-configured, and delivering to external URLs is the entire point.
-	res, err := a.webhookHTTPClient.Do(req)
+	res, err := a.webhookHTTPClient.Do(req) //nolint:gosec // G704: webhook URL is admin-configured; webhooks intentionally deliver to external URLs
 	if err != nil {
 		// Return the error so the message is retried at the queue level rather than silently dropped.
 		return observability.PrepareAndLogError(err, logger, span, "executing webhook request")
