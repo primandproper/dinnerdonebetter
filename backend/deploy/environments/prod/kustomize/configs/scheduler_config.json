@@ -142,6 +142,77 @@
 			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
 	},
+	"jobs": {
+		"scheduler": {
+			"lockKeyPrefix": "dinner_done_better.scheduler.",
+			"timezone": "UTC",
+			"defaultLeaseTTL": 120000000000,
+			"defaultTimeout": 60000000000
+		},
+		"lock": {
+			"redis": null,
+			"postgres": {
+				"namespace": 0,
+				"connWaitTimeout": 5000000000
+			},
+			"provider": "postgres",
+			"circuitBreakerConfig": {
+				"name": "",
+				"circuitBreakerErrorPercentage": 0,
+				"circuitBreakerMinimumOccurrenceThreshold": 0
+			}
+		},
+		"searchDataIndexScheduler": {
+			"schedule": "*/10 6-11 * * *",
+			"interval": 0,
+			"timeout": 300000000000,
+			"leaseTTL": 600000000000,
+			"enabled": true,
+			"runOnStart": true
+		},
+		"mobileNotificationScheduler": {
+			"schedule": "CRON_TZ=America/Chicago 0 8-21 * * *",
+			"interval": 0,
+			"timeout": 300000000000,
+			"leaseTTL": 600000000000,
+			"enabled": true,
+			"runOnStart": false
+		},
+		"queueTest": {
+			"schedule": "",
+			"interval": 900000000000,
+			"timeout": 60000000000,
+			"leaseTTL": 120000000000,
+			"enabled": true,
+			"runOnStart": false
+		},
+		"mealPlanning": {
+			"mealPlanFinalizer": {
+				"schedule": "",
+				"interval": 300000000000,
+				"timeout": 600000000000,
+				"leaseTTL": 900000000000,
+				"enabled": true,
+				"runOnStart": false
+			},
+			"mealPlanGroceryListInitializer": {
+				"schedule": "",
+				"interval": 60000000000,
+				"timeout": 120000000000,
+				"leaseTTL": 300000000000,
+				"enabled": true,
+				"runOnStart": false
+			},
+			"mealPlanTaskCreator": {
+				"schedule": "",
+				"interval": 60000000000,
+				"timeout": 120000000000,
+				"leaseTTL": 300000000000,
+				"enabled": true,
+				"runOnStart": false
+			}
+		}
+	},
 	"database": {
 		"encryption": {
 			"provider": "salsa20"
@@ -191,70 +262,5 @@
 		"retention": 604800000000000,
 		"reapInterval": 3600000000000,
 		"reapBatchSize": 1000
-	},
-	"jobs": {
-		"scheduler": {
-			"lockKeyPrefix": "dinner_done_better.scheduler.",
-			"timezone": "",
-			"defaultLeaseTTL": 120000000000,
-			"defaultTimeout": 60000000000
-		},
-		"lock": {
-			"redis": null,
-			"postgres": {
-				"namespace": 0,
-				"connWaitTimeout": 5000000000
-			},
-			"provider": "postgres",
-			"circuitBreakerConfig": {
-				"name": "",
-				"circuitBreakerErrorPercentage": 0,
-				"circuitBreakerMinimumOccurrenceThreshold": 0
-			}
-		},
-		"searchDataIndexScheduler": {
-			"interval": 600000000000,
-			"timeout": 300000000000,
-			"leaseTTL": 600000000000,
-			"enabled": true,
-			"runOnStart": false
-		},
-		"mobileNotificationScheduler": {
-			"interval": 120000000000,
-			"timeout": 60000000000,
-			"leaseTTL": 180000000000,
-			"enabled": true,
-			"runOnStart": false
-		},
-		"queueTest": {
-			"interval": 900000000000,
-			"timeout": 60000000000,
-			"leaseTTL": 120000000000,
-			"enabled": true,
-			"runOnStart": false
-		},
-		"mealPlanning": {
-			"mealPlanFinalizer": {
-				"interval": 300000000000,
-				"timeout": 600000000000,
-				"leaseTTL": 900000000000,
-				"enabled": true,
-				"runOnStart": false
-			},
-			"mealPlanGroceryListInitializer": {
-				"interval": 60000000000,
-				"timeout": 120000000000,
-				"leaseTTL": 300000000000,
-				"enabled": true,
-				"runOnStart": false
-			},
-			"mealPlanTaskCreator": {
-				"interval": 60000000000,
-				"timeout": 120000000000,
-				"leaseTTL": 300000000000,
-				"enabled": true,
-				"runOnStart": false
-			}
-		}
 	}
 }

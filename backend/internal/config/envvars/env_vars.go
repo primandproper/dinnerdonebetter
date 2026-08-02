@@ -439,6 +439,9 @@ const (
 	// JobsMealPlanningMealPlanFinalizerRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.RunOnStart`.
 	JobsMealPlanningMealPlanFinalizerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_RUN_ON_START"
 
+	// JobsMealPlanningMealPlanFinalizerScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.Schedule`.
+	JobsMealPlanningMealPlanFinalizerScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_SCHEDULE"
+
 	// JobsMealPlanningMealPlanFinalizerTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.Timeout`.
 	JobsMealPlanningMealPlanFinalizerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_TIMEOUT"
 
@@ -453,6 +456,9 @@ const (
 
 	// JobsMealPlanningMealPlanGroceryListInitializerRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.RunOnStart`.
 	JobsMealPlanningMealPlanGroceryListInitializerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_RUN_ON_START"
+
+	// JobsMealPlanningMealPlanGroceryListInitializerScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.Schedule`.
+	JobsMealPlanningMealPlanGroceryListInitializerScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_SCHEDULE"
 
 	// JobsMealPlanningMealPlanGroceryListInitializerTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.Timeout`.
 	JobsMealPlanningMealPlanGroceryListInitializerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_TIMEOUT"
@@ -469,6 +475,9 @@ const (
 	// JobsMealPlanningMealPlanTaskCreatorRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.RunOnStart`.
 	JobsMealPlanningMealPlanTaskCreatorRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_RUN_ON_START"
 
+	// JobsMealPlanningMealPlanTaskCreatorScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.Schedule`.
+	JobsMealPlanningMealPlanTaskCreatorScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_SCHEDULE"
+
 	// JobsMealPlanningMealPlanTaskCreatorTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.Timeout`.
 	JobsMealPlanningMealPlanTaskCreatorTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_TIMEOUT"
 
@@ -484,6 +493,9 @@ const (
 	// JobsMobileNotificationSchedulerRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MobileNotificationScheduler.RunOnStart`.
 	JobsMobileNotificationSchedulerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_RUN_ON_START"
 
+	// JobsMobileNotificationSchedulerScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MobileNotificationScheduler.Schedule`.
+	JobsMobileNotificationSchedulerScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_SCHEDULE"
+
 	// JobsMobileNotificationSchedulerTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MobileNotificationScheduler.Timeout`.
 	JobsMobileNotificationSchedulerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_TIMEOUT"
 
@@ -498,6 +510,9 @@ const (
 
 	// JobsQueueTestRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.QueueTest.RunOnStart`.
 	JobsQueueTestRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_QUEUE_TEST_RUN_ON_START"
+
+	// JobsQueueTestScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.QueueTest.Schedule`.
+	JobsQueueTestScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_QUEUE_TEST_SCHEDULE"
 
 	// JobsQueueTestTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.QueueTest.Timeout`.
 	JobsQueueTestTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_QUEUE_TEST_TIMEOUT"
@@ -525,6 +540,9 @@ const (
 
 	// JobsSearchDataIndexSchedulerRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.SearchDataIndexScheduler.RunOnStart`.
 	JobsSearchDataIndexSchedulerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_RUN_ON_START"
+
+	// JobsSearchDataIndexSchedulerScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.SearchDataIndexScheduler.Schedule`.
+	JobsSearchDataIndexSchedulerScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_SCHEDULE"
 
 	// JobsSearchDataIndexSchedulerTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.SearchDataIndexScheduler.Timeout`.
 	JobsSearchDataIndexSchedulerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_TIMEOUT"

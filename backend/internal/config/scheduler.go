@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -21,13 +22,13 @@ import (
 )
 
 type (
-	// SchedulerConfig configures the long-lived worker that runs every interval-shaped periodic
-	// job. It replaces one Kubernetes CronJob per job: each execution is held under a
-	// distributedlock lease, so every replica ticks and only the one that wins the lock runs.
+	// SchedulerConfig configures the long-lived worker that runs every periodic job. It
+	// replaces one Kubernetes CronJob per job: each execution is held under a distributedlock
+	// lease, so every replica ticks and only the one that wins the lock runs.
 	//
-	// Calendar-shaped work ("at midnight on the 1st") is deliberately not here. jobs.Scheduler
-	// takes intervals, not cron expressions, and an interval that starts whenever the pod last
-	// restarted is not the same thing as a wall-clock time. Those jobs stay CronJobs.
+	// Both shapes of periodic work live here. A job that wants a frequency takes an Interval;
+	// a job that wants a wall-clock time takes a cron Schedule, which every replica reads the
+	// same way rather than phasing off whenever its pod last restarted.
 	SchedulerConfig struct {
 		_ struct{} `json:"-"`
 
@@ -36,14 +37,14 @@ type (
 		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability"`
 		Analytics     analyticscfg.Config  `envPrefix:"ANALYTICS_"     json:"analytics"`
 		Search        textsearchcfg.Config `envPrefix:"SEARCH_"        json:"search"`
+		Jobs          ScheduledJobsConfig  `envPrefix:"JOBS_"          json:"jobs"`
 		Database      dbcfg.Config         `envPrefix:"DATABASE_"      json:"database"`
 
 		// Outbox moves events written inside a caller's transaction onto the broker. It
 		// lives here because it is a background loop, which is what this process is for,
 		// and because it needs exactly what this process already has: the database and a
 		// publisher provider.
-		Outbox outbox.RelayConfig  `envPrefix:"OUTBOX_" json:"outbox"`
-		Jobs   ScheduledJobsConfig `envPrefix:"JOBS_"   json:"jobs"`
+		Outbox outbox.RelayConfig `envPrefix:"OUTBOX_" json:"outbox"`
 	}
 
 	// ScheduledJobsConfig carries the scheduler's own knobs, the lock backend that serializes
@@ -67,9 +68,23 @@ type (
 		MealPlanning MealPlanningScheduledJobsConfig `envPrefix:"MEAL_PLANNING_" json:"mealPlanning"`
 	}
 
-	// ScheduledJobConfig is one job's schedule.
+	// ScheduledJobConfig is one job's schedule. Exactly one of Schedule and Interval is set:
+	// a job either belongs at an hour or at a frequency, and a job carrying both is rejected
+	// rather than resolved by precedence.
 	ScheduledJobConfig struct {
 		_ struct{} `json:"-"`
+
+		// Schedule is a five-field crontab expression — minute, hour, day of month, month,
+		// day of week — for work that belongs at a wall-clock time rather than at a
+		// frequency. The usual descriptors (@daily, @hourly) are accepted too.
+		//
+		// The zone is the scheduler's Timezone unless the expression names its own with a
+		// CRON_TZ= prefix, which is how one job opts into a calendar the rest do not share.
+		// Anything but UTC needs the zoneinfo database; cmd/workers/scheduler embeds it.
+		//
+		// There is no catch-up. A fire time that passes while the process is down, or while
+		// the previous run is still going, is skipped rather than queued.
+		Schedule string `env:"SCHEDULE" json:"schedule"`
 
 		// Interval is how often the job fires. Ticks are not queued: a job that overruns its
 		// interval fires again as soon as it finishes rather than accumulating a backlog.
@@ -87,10 +102,39 @@ type (
 		// registered and skipped, so it costs nothing and reports nothing.
 		Enabled bool `env:"ENABLED" json:"enabled"`
 
-		// RunOnStart fires the job once at startup instead of waiting a full interval.
+		// RunOnStart fires the job once at startup instead of waiting a full interval or for
+		// the schedule's next fire time.
 		RunOnStart bool `env:"RUN_ON_START" json:"runOnStart"`
 	}
 )
+
+// Job renders the config as the jobs.Job the Scheduler registers, under the given name and
+// running the given work.
+//
+// Which of Interval and Schedule a job is shaped by stays in here rather than at the call site:
+// jobs.Job takes the two as separate fields and rejects a job that sets both, so the mapping is
+// the other half of the invariant ValidateWithContext enforces.
+func (cfg *ScheduledJobConfig) Job(name string, run func(context.Context) error) (jobs.Job, error) {
+	job := jobs.Job{
+		Name:       name,
+		Interval:   cfg.Interval,
+		Timeout:    cfg.Timeout,
+		LeaseTTL:   cfg.LeaseTTL,
+		RunOnStart: cfg.RunOnStart,
+		Run:        run,
+	}
+
+	if cfg.Schedule != "" {
+		schedule, err := jobs.Cron(cfg.Schedule)
+		if err != nil {
+			return jobs.Job{}, fmt.Errorf("parsing cron schedule for job %q: %w", name, err)
+		}
+
+		job.Schedule = schedule
+	}
+
+	return job, nil
+}
 
 var _ validation.ValidatableWithContext = (*ScheduledJobConfig)(nil)
 
@@ -101,8 +145,24 @@ func (cfg *ScheduledJobConfig) ValidateWithContext(ctx context.Context) error {
 		return nil
 	}
 
+	// Checked here rather than left to jobs.Job.validate so that a bad schedule fails config
+	// rendering in CI, where it is a red build, instead of scheduler startup, where it is a
+	// crash loop.
+	switch {
+	case cfg.Schedule != "" && cfg.Interval > 0:
+		return fmt.Errorf("scheduled job sets both an interval and a cron schedule %q", cfg.Schedule)
+	case cfg.Schedule == "" && cfg.Interval <= 0:
+		return errors.New("scheduled job sets neither an interval nor a cron schedule")
+	}
+
+	if cfg.Schedule != "" {
+		if _, err := jobs.Cron(cfg.Schedule); err != nil {
+			return fmt.Errorf("parsing cron schedule: %w", err)
+		}
+	}
+
 	return validation.ValidateStructWithContext(ctx, cfg,
-		validation.Field(&cfg.Interval, validation.Required, validation.Min(time.Second)),
+		validation.Field(&cfg.Interval, validation.When(cfg.Schedule == "", validation.Min(time.Second))),
 		validation.Field(&cfg.LeaseTTL, validation.Required, validation.Min(time.Second)),
 		validation.Field(&cfg.Timeout, validation.Min(time.Duration(0))),
 	)
