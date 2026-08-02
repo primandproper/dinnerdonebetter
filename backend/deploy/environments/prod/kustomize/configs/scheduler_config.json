@@ -175,6 +175,10 @@
 		"enableDatabaseMetrics": false
 	},
 	"dataPrivacy": {
+		"encryption": {
+			"provider": "salsa20"
+		},
+		"artifactEncryptionKey": "",
 		"uploads": {
 			"storageConfig": {
 				"bucketName": "userdata.dinnerdonebetter.com",
@@ -186,11 +190,7 @@
 				}
 			},
 			"debug": false
-		},
-		"encryption": {
-			"provider": "salsa20"
-		},
-		"artifactEncryptionKey": ""
+		}
 	},
 	"outbox": {
 		"tablePrefix": "",

@@ -237,6 +237,10 @@
 			}
 		},
 		"dataPrivacy": {
+			"encryption": {
+				"provider": "salsa20"
+			},
+			"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
 			"uploads": {
 				"storageConfig": {
 					"filesystem": {
@@ -252,11 +256,7 @@
 					}
 				},
 				"debug": false
-			},
-			"encryption": {
-				"provider": "salsa20"
-			},
-			"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP"
+			}
 		},
 		"uploadedMedia": {
 			"uploads": {
