@@ -85,56 +85,6 @@
 			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
 	},
-	"database": {
-		"encryption": {
-			"provider": "salsa20"
-		},
-		"oauth2TokenEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
-		"provider": "postgres",
-		"readConnection": {
-			"username": "dbuser",
-			"password": "hunter2",
-			"database": "dinner-done-better",
-			"hostname": "pgdatabase",
-			"port": 5432,
-			"disableSSL": true
-		},
-		"writeConnection": {
-			"username": "dbuser",
-			"password": "hunter2",
-			"database": "dinner-done-better",
-			"hostname": "pgdatabase",
-			"port": 5432,
-			"disableSSL": true
-		},
-		"pingWaitPeriod": 1500000000,
-		"maxPingAttempts": 50,
-		"connMaxLifetime": 1800000000000,
-		"maxIdleConns": 5,
-		"maxOpenConns": 7,
-		"debug": true,
-		"logQueries": true,
-		"runMigrations": true,
-		"enableDatabaseMetrics": false
-	},
-	"outbox": {
-		"tablePrefix": "",
-		"claimMode": "skip_locked",
-		"backoff": {
-			"provider": "",
-			"maxAttempts": 8,
-			"initialDelay": 1000000000,
-			"maxDelay": 60000000000,
-			"multiplier": 2,
-			"useJitter": true
-		},
-		"batchSize": 100,
-		"pollInterval": 1000000000,
-		"leaseDuration": 30000000000,
-		"retention": 604800000000000,
-		"reapInterval": 3600000000000,
-		"reapBatchSize": 1000
-	},
 	"jobs": {
 		"scheduler": {
 			"lockKeyPrefix": "dinner_done_better.scheduler.",
@@ -205,5 +155,55 @@
 				"runOnStart": false
 			}
 		}
+	},
+	"database": {
+		"encryption": {
+			"provider": "salsa20"
+		},
+		"oauth2TokenEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
+		"provider": "postgres",
+		"readConnection": {
+			"username": "dbuser",
+			"password": "hunter2",
+			"database": "dinner-done-better",
+			"hostname": "pgdatabase",
+			"port": 5432,
+			"disableSSL": true
+		},
+		"writeConnection": {
+			"username": "dbuser",
+			"password": "hunter2",
+			"database": "dinner-done-better",
+			"hostname": "pgdatabase",
+			"port": 5432,
+			"disableSSL": true
+		},
+		"pingWaitPeriod": 1500000000,
+		"maxPingAttempts": 50,
+		"connMaxLifetime": 1800000000000,
+		"maxIdleConns": 5,
+		"maxOpenConns": 7,
+		"debug": true,
+		"logQueries": true,
+		"runMigrations": true,
+		"enableDatabaseMetrics": false
+	},
+	"outbox": {
+		"tablePrefix": "",
+		"claimMode": "skip_locked",
+		"backoff": {
+			"provider": "",
+			"maxAttempts": 8,
+			"initialDelay": 1000000000,
+			"maxDelay": 60000000000,
+			"multiplier": 2,
+			"useJitter": true
+		},
+		"batchSize": 100,
+		"pollInterval": 1000000000,
+		"leaseDuration": 30000000000,
+		"retention": 604800000000000,
+		"reapInterval": 3600000000000,
+		"reapBatchSize": 1000
 	}
 }
