@@ -39,7 +39,7 @@ func TestRecipeStepVessel_Update(T *testing.T) {
 			ScaleFactor: new(float32(0.5)),
 		}
 		x.Update(input)
-		assert.Equal(t, float32(0.5), x.ScaleFactor)
+		assert.Equal(t, float32(0.5), x.ScaleFactor) //nolint:testifylint // verbatim assignment; exact equality is the assertion
 	})
 }
 

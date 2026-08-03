@@ -27,7 +27,7 @@ func checkRecipeStepIngredientEquality(t *testing.T, stepIndex, ingIndex int, ex
 	assert.False(t, actual.CreatedAt.IsZero(), "expected step %d ingredient %d to have CreatedAt", stepIndex, ingIndex)
 	assert.NotEmpty(t, actual.BelongsToRecipeStep, "expected step %d ingredient %d to have BelongsToRecipeStep", stepIndex, ingIndex)
 	assert.Equal(t, expected.Name, actual.Name, "expected step %d ingredient %d Name", stepIndex, ingIndex)
-	assert.Equal(t, expected.MinQuantity, actual.MinQuantity, "expected step %d ingredient %d MinQuantity", stepIndex, ingIndex)
+	assert.Equal(t, expected.MinQuantity, actual.MinQuantity, "expected step %d ingredient %d MinQuantity", stepIndex, ingIndex) //nolint:testifylint // round-trip value; exact equality is the assertion
 	assert.Equal(t, expected.MaxQuantity, actual.MaxQuantity, "expected step %d ingredient %d MaxQuantity", stepIndex, ingIndex)
 	assert.Equal(t, expected.QuantityNotes, actual.QuantityNotes, "expected step %d ingredient %d QuantityNotes", stepIndex, ingIndex)
 	assert.Equal(t, expected.IngredientNotes, actual.IngredientNotes, "expected step %d ingredient %d IngredientNotes", stepIndex, ingIndex)
@@ -41,7 +41,7 @@ func checkRecipeStepIngredientEquality(t *testing.T, stepIndex, ingIndex int, ex
 	}
 	if expected.ProductPercentageToUse != nil {
 		require.NotNil(t, actual.ProductPercentageToUse, "expected step %d ingredient %d ProductPercentageToUse non-nil", stepIndex, ingIndex)
-		assert.Equal(t, *expected.ProductPercentageToUse, *actual.ProductPercentageToUse, "expected step %d ingredient %d ProductPercentageToUse", stepIndex, ingIndex)
+		assert.Equal(t, *expected.ProductPercentageToUse, *actual.ProductPercentageToUse, "expected step %d ingredient %d ProductPercentageToUse", stepIndex, ingIndex) //nolint:testifylint // round-trip value; exact equality is the assertion
 	}
 	// MeasurementUnit comparison by ID (and ranges already compared above)
 	assert.Equal(t, expected.MeasurementUnit.ID, actual.MeasurementUnit.ID, "expected step %d ingredient %d MeasurementUnit.ID", stepIndex, ingIndex)

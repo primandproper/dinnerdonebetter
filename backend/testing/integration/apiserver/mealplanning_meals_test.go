@@ -27,7 +27,7 @@ func checkMealEquality(t *testing.T, expected, actual *types.Meal) {
 
 	assert.Equal(t, expected.Name, actual.Name, "expected Name for meal %s to be %v, but it was %v", expected.ID, expected.Name, actual.Name)
 	assert.Equal(t, expected.Description, actual.Description, "expected Description for meal %s to be %v, but it was %v", expected.ID, expected.Description, actual.Description)
-	assert.Equal(t, expected.MinEstimatedPortions, actual.MinEstimatedPortions, "expected MinEstimatedPortions for meal %s to be %v, but it was %v", expected.ID, expected.MinEstimatedPortions, actual.MinEstimatedPortions)
+	assert.Equal(t, expected.MinEstimatedPortions, actual.MinEstimatedPortions, "expected MinEstimatedPortions for meal %s to be %v, but it was %v", expected.ID, expected.MinEstimatedPortions, actual.MinEstimatedPortions) //nolint:testifylint // round-trip value; exact equality is the assertion
 	assert.Equal(t, expected.MaxEstimatedPortions, actual.MaxEstimatedPortions, "expected MaxEstimatedPortions for meal %s to be %v, but it was %v", expected.ID, expected.MaxEstimatedPortions, actual.MaxEstimatedPortions)
 	assert.Equal(t, expected.EligibleForMealPlans, actual.EligibleForMealPlans, "expected EligibleForMealPlans for meal %s to be %v, but it was %v", expected.ID, expected.EligibleForMealPlans, actual.EligibleForMealPlans)
 

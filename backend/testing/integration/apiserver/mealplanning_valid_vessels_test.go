@@ -25,10 +25,10 @@ func checkValidVesselEquality(t *testing.T, expected, actual *mealplanning.Valid
 	assert.Equal(t, expected.PluralName, actual.PluralName, "expected ValidVessel PluralName")
 	assert.Equal(t, expected.IconPath, actual.IconPath, "expected ValidVessel IconPath")
 	assert.Equal(t, expected.Shape, actual.Shape, "expected ValidVessel Shape")
-	assert.Equal(t, expected.WidthInMillimeters, actual.WidthInMillimeters, "expected ValidVessel WidthInMillimeters")
-	assert.Equal(t, expected.LengthInMillimeters, actual.LengthInMillimeters, "expected ValidVessel LengthInMillimeters")
-	assert.Equal(t, expected.HeightInMillimeters, actual.HeightInMillimeters, "expected ValidVessel HeightInMillimeters")
-	assert.Equal(t, expected.Capacity, actual.Capacity, "expected ValidVessel Capacity")
+	assert.Equal(t, expected.WidthInMillimeters, actual.WidthInMillimeters, "expected ValidVessel WidthInMillimeters")    //nolint:testifylint // round-trip value; exact equality is the assertion
+	assert.Equal(t, expected.LengthInMillimeters, actual.LengthInMillimeters, "expected ValidVessel LengthInMillimeters") //nolint:testifylint // round-trip value; exact equality is the assertion
+	assert.Equal(t, expected.HeightInMillimeters, actual.HeightInMillimeters, "expected ValidVessel HeightInMillimeters") //nolint:testifylint // round-trip value; exact equality is the assertion
+	assert.Equal(t, expected.Capacity, actual.Capacity, "expected ValidVessel Capacity")                                  //nolint:testifylint // round-trip value; exact equality is the assertion
 	assert.Equal(t, expected.DisplayInSummaryLists, actual.DisplayInSummaryLists, "expected ValidVessel DisplayInSummaryLists")
 	assert.Equal(t, expected.IncludeInGeneratedInstructions, actual.IncludeInGeneratedInstructions, "expected ValidVessel IncludeInGeneratedInstructions")
 	assert.Equal(t, expected.UsableForStorage, actual.UsableForStorage, "expected ValidVessel UsableForStorage")
