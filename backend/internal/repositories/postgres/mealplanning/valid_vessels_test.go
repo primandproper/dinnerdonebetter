@@ -77,7 +77,7 @@ func TestQuerier_Integration_ValidVessels(t *testing.T) {
 	validVessels, err := dbc.GetValidVessels(ctx, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, validVessels.Data)
-	assert.Equal(t, len(createdValidVessels), len(validVessels.Data))
+	assert.Len(t, validVessels.Data, len(createdValidVessels))
 
 	// fetch as list of IDs
 	validVesselIDs := []string{}

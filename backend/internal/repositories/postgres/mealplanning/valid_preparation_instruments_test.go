@@ -82,7 +82,7 @@ func TestQuerier_Integration_ValidPreparationInstruments(t *testing.T) {
 	validPreparationInstruments, err := dbc.GetValidPreparationInstruments(ctx, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, validPreparationInstruments.Data)
-	assert.Equal(t, len(createdValidPreparationInstruments), len(validPreparationInstruments.Data))
+	assert.Len(t, validPreparationInstruments.Data, len(createdValidPreparationInstruments))
 
 	forPreparation, err := dbc.GetValidPreparationInstrumentsForPreparation(ctx, createdValidPreparationInstruments[0].Preparation.ID, nil)
 	assert.NoError(t, err)

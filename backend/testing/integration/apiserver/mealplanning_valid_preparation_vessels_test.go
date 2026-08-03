@@ -208,7 +208,7 @@ func TestValidPreparationVessels_Listing(T *testing.T) {
 		results, err := adminClient.GetValidPreparationVessels(ctx, &mealplanningsvc.GetValidPreparationVesselsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidPreparationVessels))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidPreparationVessels))
 	})
 
 	T.Run("by vessel", func(t *testing.T) {
@@ -218,7 +218,7 @@ func TestValidPreparationVessels_Listing(T *testing.T) {
 		results, err := adminClient.GetValidPreparationVesselsByVessel(ctx, &mealplanningsvc.GetValidPreparationVesselsByVesselRequest{ValidVesselId: validVessel.ID})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidPreparationVessels))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidPreparationVessels))
 	})
 
 	T.Run("by preparation", func(t *testing.T) {
@@ -228,6 +228,6 @@ func TestValidPreparationVessels_Listing(T *testing.T) {
 		results, err := adminClient.GetValidPreparationVesselsByPreparation(ctx, &mealplanningsvc.GetValidPreparationVesselsByPreparationRequest{ValidPreparationId: validPreparation.ID})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= 1, "at least one VPV for this preparation")
+		assert.GreaterOrEqual(t, len(results.Results), 1, "at least one VPV for this preparation")
 	})
 }

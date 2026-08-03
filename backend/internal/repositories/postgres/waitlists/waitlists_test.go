@@ -68,7 +68,7 @@ func TestQuerier_Integration_Waitlists(t *testing.T) {
 	waitlists, err := dbc.GetWaitlists(ctx, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, waitlists.Data)
-	assert.Equal(t, len(createdWaitlists), len(waitlists.Data))
+	assert.Len(t, waitlists.Data, len(createdWaitlists))
 
 	// fetch active waitlists
 	activeWaitlists, err := dbc.GetActiveWaitlists(ctx, nil)

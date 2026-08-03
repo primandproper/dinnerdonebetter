@@ -256,7 +256,7 @@ func TestServiceImpl_GetUsers(T *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
-		assert.Equal(t, len(exampleUsers.Data), len(result.Results))
+		assert.Len(t, result.Results, len(exampleUsers.Data))
 		for i := range result.Results {
 			assert.Equal(t, result.Results[i].Id, exampleUsers.Data[i].ID)
 		}
@@ -309,7 +309,7 @@ func TestServiceImpl_SearchForUsers(T *testing.T) {
 
 		identityDataManager.SearchForUsersFunc = func(_ context.Context, query string, useSearchService bool, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.User], error) {
 			assert.Equal(t, exampleQuery, query)
-			assert.Equal(t, false, useSearchService)
+			assert.False(t, useSearchService)
 
 			return exampleUsers, nil
 		}
@@ -328,7 +328,7 @@ func TestServiceImpl_SearchForUsers(T *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
-		assert.Equal(t, len(exampleUsers.Data), len(result.Results))
+		assert.Len(t, result.Results, len(exampleUsers.Data))
 		for i := range result.Results {
 			assert.Equal(t, result.Results[i].Id, exampleUsers.Data[i].ID)
 		}
@@ -348,7 +348,7 @@ func TestServiceImpl_SearchForUsers(T *testing.T) {
 
 		identityDataManager.SearchForUsersFunc = func(_ context.Context, query string, useSearchService bool, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.User], error) {
 			assert.Equal(t, exampleQuery, query)
-			assert.Equal(t, true, useSearchService)
+			assert.True(t, useSearchService)
 
 			return exampleUsers, nil
 		}
@@ -367,7 +367,7 @@ func TestServiceImpl_SearchForUsers(T *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
-		assert.Equal(t, len(exampleUsers.Data), len(result.Results))
+		assert.Len(t, result.Results, len(exampleUsers.Data))
 		for i := range result.Results {
 			assert.Equal(t, result.Results[i].Id, exampleUsers.Data[i].ID)
 		}
@@ -382,7 +382,7 @@ func TestServiceImpl_SearchForUsers(T *testing.T) {
 
 		identityDataManager.SearchForUsersFunc = func(_ context.Context, query string, useSearchService bool, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.User], error) {
 			assert.Equal(t, exampleQuery, query)
-			assert.Equal(t, false, useSearchService)
+			assert.False(t, useSearchService)
 
 			return nil, errors.New("search error")
 		}

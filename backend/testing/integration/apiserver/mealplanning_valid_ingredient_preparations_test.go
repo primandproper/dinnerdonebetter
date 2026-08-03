@@ -99,7 +99,7 @@ func TestValidIngredientPreparations_Listing(T *testing.T) {
 		results, err := adminClient.GetValidIngredientPreparations(ctx, &mealplanningsvc.GetValidIngredientPreparationsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidIngredientPreparations))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidIngredientPreparations))
 	})
 
 	T.Run("by Preparation", func(t *testing.T) {
@@ -109,7 +109,7 @@ func TestValidIngredientPreparations_Listing(T *testing.T) {
 		results, err := adminClient.GetValidIngredientPreparationsByPreparation(ctx, &mealplanningsvc.GetValidIngredientPreparationsByPreparationRequest{ValidPreparationId: validPreparation.ID})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidIngredientPreparations))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidIngredientPreparations))
 	})
 
 	T.Run("by ingredient", func(t *testing.T) {
@@ -119,7 +119,7 @@ func TestValidIngredientPreparations_Listing(T *testing.T) {
 		results, err := adminClient.GetValidIngredientPreparationsByIngredient(ctx, &mealplanningsvc.GetValidIngredientPreparationsByIngredientRequest{ValidIngredientId: validIngredient.ID})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= 1, "at least one VIP for this ingredient")
+		assert.GreaterOrEqual(t, len(results.Results), 1, "at least one VIP for this ingredient")
 	})
 }
 
@@ -138,7 +138,7 @@ func TestValidIngredientPreparations_SearchByPreparation(T *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= 1, "expected at least one result when searching by preparation")
+		assert.GreaterOrEqual(t, len(results.Results), 1, "expected at least one result when searching by preparation")
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

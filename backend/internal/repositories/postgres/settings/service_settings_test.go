@@ -65,7 +65,7 @@ func TestQuerier_Integration_ServiceSettings(t *testing.T) {
 	serviceSettings, err := dbc.GetServiceSettings(ctx, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, serviceSettings.Data)
-	assert.Equal(t, len(createdServiceSettings)+migratedServiceSettingsCount, len(serviceSettings.Data))
+	assert.Len(t, serviceSettings.Data, len(createdServiceSettings)+migratedServiceSettingsCount)
 
 	// fetch via name search (returns only settings matching the name, not migrated ones)
 	byName, err := dbc.SearchForServiceSettings(ctx, exampleServiceSetting.Name, nil)

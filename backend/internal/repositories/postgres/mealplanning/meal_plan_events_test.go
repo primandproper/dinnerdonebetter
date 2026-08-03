@@ -102,7 +102,7 @@ func TestQuerier_Integration_MealPlanEvents(t *testing.T) {
 	mealPlanEvents, err := dbc.GetMealPlanEvents(ctx, mealPlan.ID, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, mealPlanEvents)
-	assert.Equal(t, len(createdMealPlanEvents), len(mealPlanEvents.Data))
+	assert.Len(t, mealPlanEvents.Data, len(createdMealPlanEvents))
 
 	assert.NoError(t, dbc.UpdateMealPlanEvent(ctx, createdMealPlanEvents[0]))
 

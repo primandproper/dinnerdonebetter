@@ -234,7 +234,7 @@ func TestUploadedMedia_ListingForUser(T *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdUploadedMedia))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdUploadedMedia))
 	})
 
 	T.Run("cannot access other user's media", func(t *testing.T) {

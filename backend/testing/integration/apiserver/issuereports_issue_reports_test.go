@@ -149,7 +149,7 @@ func TestIssueReports_Listing(T *testing.T) {
 		results, err := testClient.GetIssueReports(ctx, &issuereportssvc.GetIssueReportsRequest{})
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdIssueReports))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdIssueReports))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -184,7 +184,7 @@ func TestIssueReports_ListingForAccount(T *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdIssueReports))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdIssueReports))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -223,7 +223,7 @@ func TestIssueReports_ListingForTable(T *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= exampleQuantity)
+		assert.GreaterOrEqual(t, len(results.Results), exampleQuantity)
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -265,7 +265,7 @@ func TestIssueReports_ListingForRecord(T *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= exampleQuantity)
+		assert.GreaterOrEqual(t, len(results.Results), exampleQuantity)
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

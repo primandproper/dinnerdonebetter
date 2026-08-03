@@ -81,7 +81,7 @@ func TestQuerier_Integration_ValidIngredientStateIngredients(t *testing.T) {
 	validIngredientStateIngredients, err := dbc.GetValidIngredientStateIngredients(ctx, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, validIngredientStateIngredients.Data)
-	assert.Equal(t, len(createdValidIngredientStateIngredients), len(validIngredientStateIngredients.Data))
+	assert.Len(t, validIngredientStateIngredients.Data, len(createdValidIngredientStateIngredients))
 
 	forIngredientState, err := dbc.GetValidIngredientStateIngredientsForIngredientState(ctx, createdValidIngredientStateIngredients[0].IngredientState.ID, nil)
 	assert.NoError(t, err)

@@ -16,7 +16,7 @@ import (
 func checkMealPlanOptionVoteEquality(t *testing.T, expected, actual *mealplanning.MealPlanOptionVote) {
 	t.Helper()
 
-	assert.NotZero(t, actual.ID)
+	assert.NotEmpty(t, actual.ID)
 	assert.Equal(t, expected.Rank, actual.Rank, "expected Rank for meal plan option vote %s to be %v, but it was %v", expected.ID, expected.Rank, actual.Rank)
 	assert.Equal(t, expected.Abstain, actual.Abstain, "expected Abstain for meal plan option vote %s to be %v, but it was %v", expected.ID, expected.Abstain, actual.Abstain)
 	assert.Equal(t, expected.Notes, actual.Notes, "expected StatusExplanation for meal plan option vote %s to be %v, but it was %v", expected.ID, expected.Notes, actual.Notes)

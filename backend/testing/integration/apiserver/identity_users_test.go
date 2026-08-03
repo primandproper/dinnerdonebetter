@@ -113,10 +113,10 @@ func TestUsers_PermissionChecking(T *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
 
-		assert.Equal(t, response.Permissions, map[string]bool{
+		assert.Equal(t, map[string]bool{
 			string(authorization.ImpersonateUserPermission): false,
 			string(authorization.ReadWebhooksPermission):    true,
-		})
+		}, response.Permissions)
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -150,7 +150,7 @@ func TestUsers_Searching(T *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= 1)
+		assert.GreaterOrEqual(t, len(results.Results), 1)
 	})
 
 	T.Run("only admins can do it", func(t *testing.T) {
@@ -182,7 +182,7 @@ func TestUsers_GetUsers(T *testing.T) {
 		results, err := adminClient.GetUsers(ctx, &identitysvc.GetUsersRequest{})
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= exampleQuantity)
+		assert.GreaterOrEqual(t, len(results.Results), exampleQuantity)
 	})
 
 	T.Run("only admins can do it", func(t *testing.T) {
@@ -220,7 +220,7 @@ func TestUsers_GetUsersForAccount(T *testing.T) {
 		// get the user's account via admin
 		accountsRes, err := adminClient.GetAccountsForUser(ctx, &identitysvc.GetAccountsForUserRequest{UserId: user.ID})
 		require.NoError(t, err)
-		require.True(t, len(accountsRes.Results) >= 1)
+		require.GreaterOrEqual(t, len(accountsRes.Results), 1)
 		accountID := accountsRes.Results[0].Id
 
 		results, err := adminClient.GetUsersForAccount(ctx, &identitysvc.GetUsersForAccountRequest{
@@ -228,7 +228,7 @@ func TestUsers_GetUsersForAccount(T *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= 1)
+		assert.GreaterOrEqual(t, len(results.Results), 1)
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

@@ -26,7 +26,7 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 
 		identityDataManager.AdminSetPasswordChangeRequiredFunc = func(_ context.Context, userID string, requiresChange bool) error {
 			assert.Equal(t, exampleUserID, userID)
-			assert.Equal(t, true, requiresChange)
+			assert.True(t, requiresChange)
 
 			return nil
 		}
@@ -69,7 +69,7 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 		service, identityDataManager := buildTestService(t)
 
 		identityDataManager.AdminSetPasswordChangeRequiredFunc = func(_ context.Context, _ string, requiresChange bool) error {
-			assert.Equal(t, true, requiresChange)
+			assert.True(t, requiresChange)
 
 			return errors.New("update error")
 		}

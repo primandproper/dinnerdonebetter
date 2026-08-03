@@ -65,7 +65,7 @@ func TestQuerier_Integration_ValidIngredientStates(t *testing.T) {
 	validIngredientStates, err := dbc.GetValidIngredientStates(ctx, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, validIngredientStates.Data)
-	assert.Equal(t, len(createdValidIngredientStates), len(validIngredientStates.Data))
+	assert.Len(t, validIngredientStates.Data, len(createdValidIngredientStates))
 
 	// fetch as list of IDs
 	validIngredientStateIDs := []string{}

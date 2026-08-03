@@ -242,7 +242,7 @@ func createRecipeStepForTest(t *testing.T, ctx context.Context, recipeID string,
 	assert.WithinDuration(t, exampleRecipeStep.CreatedAt, recipeStep.CreatedAt, 5*time.Second)
 
 	// Compare nested collections by checking their lengths and non-timestamp fields
-	assert.Equal(t, len(exampleRecipeStep.Ingredients), len(recipeStep.Ingredients))
+	assert.Len(t, recipeStep.Ingredients, len(exampleRecipeStep.Ingredients))
 	for i := range recipeStep.Ingredients {
 		if i > len(exampleRecipeStep.Ingredients) {
 			continue
@@ -255,7 +255,7 @@ func createRecipeStepForTest(t *testing.T, ctx context.Context, recipeID string,
 		assert.WithinDuration(t, exampleRecipeStep.Ingredients[i].CreatedAt, recipeStep.Ingredients[i].CreatedAt, 5*time.Second)
 	}
 
-	assert.Equal(t, len(exampleRecipeStep.Instruments), len(recipeStep.Instruments))
+	assert.Len(t, recipeStep.Instruments, len(exampleRecipeStep.Instruments))
 	for i := range recipeStep.Instruments {
 		if i > len(exampleRecipeStep.Instruments) {
 			continue
@@ -266,7 +266,7 @@ func createRecipeStepForTest(t *testing.T, ctx context.Context, recipeID string,
 		assert.WithinDuration(t, exampleRecipeStep.Instruments[i].CreatedAt, recipeStep.Instruments[i].CreatedAt, 5*time.Second)
 	}
 
-	assert.Equal(t, len(exampleRecipeStep.Vessels), len(recipeStep.Vessels))
+	assert.Len(t, recipeStep.Vessels, len(exampleRecipeStep.Vessels))
 	for i := range recipeStep.Vessels {
 		if i > len(exampleRecipeStep.Vessels) {
 			continue
@@ -277,7 +277,7 @@ func createRecipeStepForTest(t *testing.T, ctx context.Context, recipeID string,
 		assert.WithinDuration(t, exampleRecipeStep.Vessels[i].CreatedAt, recipeStep.Vessels[i].CreatedAt, 5*time.Second)
 	}
 
-	assert.Equal(t, len(exampleRecipeStep.Products), len(recipeStep.Products))
+	assert.Len(t, recipeStep.Products, len(exampleRecipeStep.Products))
 	for i := range recipeStep.Products {
 		if i > len(exampleRecipeStep.Products) {
 			continue
@@ -289,7 +289,7 @@ func createRecipeStepForTest(t *testing.T, ctx context.Context, recipeID string,
 		assert.WithinDuration(t, exampleRecipeStep.Products[i].CreatedAt, recipeStep.Products[i].CreatedAt, 5*time.Second)
 	}
 
-	assert.Equal(t, len(exampleRecipeStep.CompletionConditions), len(recipeStep.CompletionConditions))
+	assert.Len(t, recipeStep.CompletionConditions, len(exampleRecipeStep.CompletionConditions))
 	for i := range recipeStep.CompletionConditions {
 		if i > len(exampleRecipeStep.CompletionConditions) {
 			continue
@@ -334,7 +334,7 @@ func TestQuerier_Integration_RecipeSteps(t *testing.T) {
 	recipeSteps, err := dbc.GetRecipeSteps(ctx, exampleRecipe.ID, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, recipeSteps.Data)
-	assert.Equal(t, len(createdRecipeSteps), len(recipeSteps.Data))
+	assert.Len(t, recipeSteps.Data, len(createdRecipeSteps))
 
 	// delete
 	for _, recipeStep := range createdRecipeSteps {

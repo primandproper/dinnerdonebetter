@@ -159,7 +159,7 @@ func TestQuerier_Integration_MealPlans(t *testing.T) {
 	mealPlans, err := dbc.GetMealPlansForAccount(ctx, accountID, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, mealPlans.Data)
-	assert.Equal(t, len(createdMealPlans), len(mealPlans.Data))
+	assert.Len(t, mealPlans.Data, len(createdMealPlans))
 
 	_, err = dbc.GetMealPlansAwaitingFinalizationSaga(ctx, 10)
 	assert.NoError(t, err)

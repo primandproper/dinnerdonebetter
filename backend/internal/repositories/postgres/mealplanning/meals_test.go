@@ -77,7 +77,7 @@ func TestQuerier_Integration_Meals(t *testing.T) {
 	meals, err := dbc.GetMeals(ctx, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, meals.Data)
-	assert.Equal(t, len(createdMeals), len(meals.Data))
+	assert.Len(t, meals.Data, len(createdMeals))
 
 	results, err := dbc.GetMealsWithIDs(ctx, []string{createdMeals[0].ID})
 	assert.NoError(t, err)

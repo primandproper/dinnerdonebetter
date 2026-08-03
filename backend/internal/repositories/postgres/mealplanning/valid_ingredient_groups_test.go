@@ -80,7 +80,7 @@ func TestQuerier_Integration_ValidIngredientGroups(t *testing.T) {
 	validIngredientGroups, err := dbc.GetValidIngredientGroups(ctx, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, validIngredientGroups.Data)
-	assert.Equal(t, len(createdValidIngredientGroups), len(validIngredientGroups.Data))
+	assert.Len(t, validIngredientGroups.Data, len(createdValidIngredientGroups))
 
 	// fetch via name search
 	byName, err := dbc.SearchForValidIngredientGroups(ctx, updatedValidIngredientGroup.Name, nil)

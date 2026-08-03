@@ -94,7 +94,7 @@ func TestQuerier_Integration_RecipeStepInstruments(t *testing.T) {
 	recipeStepInstruments, err := dbc.GetRecipeStepInstruments(ctx, exampleRecipe.ID, createdRecipeStepInstruments[0].BelongsToRecipeStep, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, recipeStepInstruments.Data)
-	assert.Equal(t, len(createdRecipeStepInstruments), len(recipeStepInstruments.Data))
+	assert.Len(t, recipeStepInstruments.Data, len(createdRecipeStepInstruments))
 
 	// delete
 	for _, recipeStepInstrument := range createdRecipeStepInstruments {

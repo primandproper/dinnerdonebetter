@@ -15,7 +15,7 @@ import (
 
 func checkRecipeStepVesselSliceEquality(t *testing.T, stepIndex int, expected, actual []*mealplanning.RecipeStepVessel) {
 	t.Helper()
-	require.Equal(t, len(expected), len(actual), "expected recipe step %d vessels length", stepIndex)
+	require.Len(t, actual, len(expected), "expected recipe step %d vessels length", stepIndex)
 	for i := range expected {
 		checkRecipeStepVesselEquality(t, stepIndex, i, expected[i], actual[i])
 	}
@@ -370,9 +370,9 @@ func TestRecipeStepVessels_Listing(T *testing.T) {
 		})
 		require.NotNil(t, actual)
 		require.NoError(t, err)
-		assert.True(
+		assert.LessOrEqual(
 			t,
-			len(expected) <= len(actual.Results),
+			len(expected), len(actual.Results),
 			"expected %d to be <= %d",
 			len(expected),
 			len(actual.Results),

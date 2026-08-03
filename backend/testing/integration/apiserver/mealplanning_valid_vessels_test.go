@@ -328,7 +328,7 @@ func TestValidVessels_Listing(T *testing.T) {
 		retrieved, err := testClient.GetValidVessels(ctx, &mealplanningsvc.GetValidVesselsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdValidVessels))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdValidVessels))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

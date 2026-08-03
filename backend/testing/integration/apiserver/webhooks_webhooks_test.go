@@ -26,7 +26,7 @@ func checkWebhookEquality(t *testing.T, expected, actual *webhooks.Webhook) {
 	assert.Equal(t, expected.ContentType, actual.ContentType, "expected Webhook ContentType")
 	assert.NotEmpty(t, actual.BelongsToAccount, "expected Webhook to have BelongsToAccount")
 
-	require.Equal(t, len(expected.TriggerConfigs), len(actual.TriggerConfigs), "expected Webhook TriggerConfigs length")
+	require.Len(t, actual.TriggerConfigs, len(expected.TriggerConfigs), "expected Webhook TriggerConfigs length")
 	for i, expectedCfg := range expected.TriggerConfigs {
 		if i >= len(actual.TriggerConfigs) {
 			continue
@@ -162,7 +162,7 @@ func TestWebhooks_Listing(T *testing.T) {
 		results, err := testClient.GetWebhooks(ctx, &webhookssvc.GetWebhooksRequest{})
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdWebhooks))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdWebhooks))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

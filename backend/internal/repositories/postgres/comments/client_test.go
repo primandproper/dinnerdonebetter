@@ -115,7 +115,7 @@ func TestQuerier_Integration_Comments(t *testing.T) {
 	result, err := dbc.GetCommentsForReference(ctx, targetType, referencedID, nil)
 	assert.NoError(t, err)
 	require.NotEmpty(t, result.Data)
-	assert.Equal(t, 1, len(result.Data))
+	assert.Len(t, result.Data, 1)
 	assert.Equal(t, created.ID, result.Data[0].ID)
 
 	// update

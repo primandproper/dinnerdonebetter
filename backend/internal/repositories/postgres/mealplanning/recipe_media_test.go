@@ -59,7 +59,7 @@ func TestQuerier_Integration_RecipeMedia(t *testing.T) {
 	recipeMediaList, err := dbc.getRecipeMediaForRecipe(ctx, exampleRecipe.ID)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, recipeMediaList)
-	assert.Equal(t, len(createdRecipeMedias), len(recipeMediaList))
+	assert.Len(t, recipeMediaList, len(createdRecipeMedias))
 
 	// delete
 	for _, recipeMedia := range createdRecipeMedias {

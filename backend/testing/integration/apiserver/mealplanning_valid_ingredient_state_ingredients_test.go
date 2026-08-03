@@ -98,7 +98,7 @@ func TestValidIngredientStateIngredients_Listing(T *testing.T) {
 		results, err := adminClient.GetValidIngredientStateIngredients(ctx, &mealplanningsvc.GetValidIngredientStateIngredientsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidIngredientStateIngredients))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidIngredientStateIngredients))
 	})
 
 	T.Run("by ingredient", func(t *testing.T) {
@@ -108,7 +108,7 @@ func TestValidIngredientStateIngredients_Listing(T *testing.T) {
 		results, err := adminClient.GetValidIngredientStateIngredientsByIngredient(ctx, &mealplanningsvc.GetValidIngredientStateIngredientsByIngredientRequest{ValidIngredientId: validIngredient.ID})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= 1, "at least one VSI for this ingredient")
+		assert.GreaterOrEqual(t, len(results.Results), 1, "at least one VSI for this ingredient")
 	})
 
 	T.Run("by ingredient state", func(t *testing.T) {
@@ -118,7 +118,7 @@ func TestValidIngredientStateIngredients_Listing(T *testing.T) {
 		results, err := adminClient.GetValidIngredientStateIngredientsByIngredientState(ctx, &mealplanningsvc.GetValidIngredientStateIngredientsByIngredientStateRequest{ValidIngredientStateId: validIngredientState.ID})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidIngredientStateIngredients))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidIngredientStateIngredients))
 	})
 }
 

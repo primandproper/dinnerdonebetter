@@ -113,7 +113,7 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 		}
 
 		settingsRepo.CreateServiceSettingConfigurationFunc = func(_ context.Context, input *settings.ServiceSettingConfigurationDatabaseCreationInput) (*settings.ServiceSettingConfiguration, error) {
-			assert.True(t, input != nil)
+			assert.NotNil(t, input)
 
 			return nil, errors.New("repository error")
 		}
@@ -228,7 +228,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 
 		settingsRepo.GetServiceSettingConfigurationsForAccountFunc = func(_ context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
 			assert.Equal(t, testAccountID, accountID)
-			assert.True(t, filter != nil)
+			assert.NotNil(t, filter)
 
 			return exampleServiceSettingConfigurationsList, nil
 		}
@@ -280,7 +280,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 
 		settingsRepo.GetServiceSettingConfigurationsForAccountFunc = func(_ context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
 			assert.Equal(t, testAccountID, accountID)
-			assert.True(t, filter != nil)
+			assert.NotNil(t, filter)
 
 			return nil, errors.New("repository error")
 		}
@@ -315,7 +315,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 
 		settingsRepo.GetServiceSettingConfigurationsForUserFunc = func(_ context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
 			assert.Equal(t, testUserID, userID)
-			assert.True(t, filter != nil)
+			assert.NotNil(t, filter)
 
 			return exampleServiceSettingConfigurationsList, nil
 		}
@@ -367,7 +367,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 
 		settingsRepo.GetServiceSettingConfigurationsForUserFunc = func(_ context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
 			assert.Equal(t, testUserID, userID)
-			assert.True(t, filter != nil)
+			assert.NotNil(t, filter)
 
 			return nil, errors.New("repository error")
 		}

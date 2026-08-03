@@ -742,7 +742,7 @@ func TestAccounts_GetAccountsForUser(T *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, accounts)
 		// 1 default account + 3 created accounts
-		assert.Equal(t, 4, len(accounts.Results))
+		assert.Len(t, accounts.Results, 4)
 	})
 
 	T.Run("nonexistent user", func(t *testing.T) {

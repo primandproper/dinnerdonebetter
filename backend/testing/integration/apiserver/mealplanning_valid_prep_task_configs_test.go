@@ -98,7 +98,7 @@ func TestValidPrepTaskConfigs_Listing(T *testing.T) {
 		results, err := adminClient.GetValidPrepTaskConfigs(ctx, &mealplanningsvc.GetValidPrepTaskConfigsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidPrepTaskConfigs))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidPrepTaskConfigs))
 	})
 
 	T.Run("by preparation", func(t *testing.T) {
@@ -108,7 +108,7 @@ func TestValidPrepTaskConfigs_Listing(T *testing.T) {
 		results, err := adminClient.GetValidPrepTaskConfigsByPreparation(ctx, &mealplanningsvc.GetValidPrepTaskConfigsByPreparationRequest{ValidPreparationId: validPreparation.ID})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidPrepTaskConfigs))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidPrepTaskConfigs))
 	})
 
 	T.Run("by ingredient", func(t *testing.T) {
@@ -118,7 +118,7 @@ func TestValidPrepTaskConfigs_Listing(T *testing.T) {
 		results, err := adminClient.GetValidPrepTaskConfigsByIngredient(ctx, &mealplanningsvc.GetValidPrepTaskConfigsByIngredientRequest{ValidIngredientId: validIngredient.ID})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidPrepTaskConfigs))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidPrepTaskConfigs))
 	})
 
 	T.Run("by ingredient and preparation", func(t *testing.T) {
@@ -131,7 +131,7 @@ func TestValidPrepTaskConfigs_Listing(T *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidPrepTaskConfigs))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidPrepTaskConfigs))
 	})
 }
 

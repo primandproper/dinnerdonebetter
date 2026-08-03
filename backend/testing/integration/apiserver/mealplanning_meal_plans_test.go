@@ -23,7 +23,7 @@ import (
 func checkMealPlanEquality(t *testing.T, expected, actual *mealplanning.MealPlan) {
 	t.Helper()
 
-	assert.NotZero(t, actual.ID)
+	assert.NotEmpty(t, actual.ID)
 	assert.Equal(t, expected.Notes, actual.Notes, "expected Notes for meal plan %s to be %v, but it was %v", expected.ID, expected.Notes, actual.Notes)
 	assert.Equal(t, expected.Status, actual.Status, "expected Status for meal plan %s to be %v, but it was %v", expected.ID, expected.Status, actual.Status)
 	assert.WithinDuration(t, expected.VotingDeadline, actual.VotingDeadline, time.Nanosecond*1000, "expected VotingDeadline for meal plan %s to be %v, but it was %v", expected.ID, expected.VotingDeadline, actual.VotingDeadline)
@@ -149,9 +149,9 @@ func TestMealPlans_Listing(T *testing.T) {
 			Filter: &filtering.QueryFilter{CreatedAfter: createdAfterProto},
 		})
 		require.NoError(t, err)
-		assert.True(
+		assert.LessOrEqual(
 			t,
-			len(expected) <= len(actual.Results),
+			len(expected), len(actual.Results),
 			"expected %d to be <= %d",
 			len(expected),
 			len(actual.Results),

@@ -211,7 +211,7 @@ func TestAccountInstrumentOwnerships_Listing(T *testing.T) {
 		retrieved, err := testClient.GetAccountInstrumentOwnerships(ctx, &settingssvc.GetAccountInstrumentOwnershipsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdAccountInstrumentOwnerships))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdAccountInstrumentOwnerships))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

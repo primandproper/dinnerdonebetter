@@ -74,7 +74,7 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 	mealPlanTasks, err := dbc.GetMealPlanTasksForMealPlan(ctx, mealPlan.ID, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, mealPlanTasks)
-	assert.Equal(t, len(createdMealPlanTasks), len(mealPlanTasks.Data))
+	assert.Len(t, mealPlanTasks.Data, len(createdMealPlanTasks))
 
 	// create an ad-hoc thaw task: no backing recipe prep task, so
 	// belongs_to_recipe_prep_task is persisted as NULL.
@@ -98,7 +98,7 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 
 	mealPlanTasks, err = dbc.GetMealPlanTasksForMealPlan(ctx, mealPlan.ID, nil)
 	assert.NoError(t, err)
-	assert.Equal(t, len(createdMealPlanTasks), len(mealPlanTasks.Data))
+	assert.Len(t, mealPlanTasks.Data, len(createdMealPlanTasks))
 
 	// a batch that fails partway through commits nothing, and leaves the plan unmarked. The task
 	// creator re-selects unmarked plans and regenerates every task, so anything left behind by a
@@ -122,7 +122,7 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 
 	mealPlanTasks, err = dbc.GetMealPlanTasksForMealPlan(ctx, mealPlan.ID, nil)
 	assert.NoError(t, err)
-	assert.Equal(t, len(createdMealPlanTasks), len(mealPlanTasks.Data), "the task preceding the failure must have rolled back with it")
+	assert.Len(t, mealPlanTasks.Data, len(createdMealPlanTasks), "the task preceding the failure must have rolled back with it")
 
 	unmarkedMealPlan, err := dbc.GetMealPlan(ctx, mealPlan.ID, account.ID)
 	require.NoError(t, err)
@@ -137,7 +137,7 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 
 	mealPlanTasks, err = dbc.GetMealPlanTasksForMealPlan(ctx, mealPlan.ID, nil)
 	assert.NoError(t, err)
-	assert.Equal(t, len(createdMealPlanTasks), len(mealPlanTasks.Data))
+	assert.Len(t, mealPlanTasks.Data, len(createdMealPlanTasks))
 
 	markedMealPlan, err := dbc.GetMealPlan(ctx, mealPlan.ID, account.ID)
 	require.NoError(t, err)

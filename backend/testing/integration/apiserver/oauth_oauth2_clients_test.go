@@ -212,7 +212,7 @@ func TestOAuth2Clients_Listing(T *testing.T) {
 		retrieved, err := testClient.GetOAuth2Clients(ctx, &oauthsvc.GetOAuth2ClientsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdOAuth2Clients))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdOAuth2Clients))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

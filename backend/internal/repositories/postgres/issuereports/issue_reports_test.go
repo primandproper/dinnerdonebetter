@@ -82,13 +82,13 @@ func TestQuerier_Integration_IssueReports(t *testing.T) {
 	issueReports, err := dbc.GetIssueReports(ctx, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, issueReports.Data)
-	assert.Equal(t, len(createdIssueReports), len(issueReports.Data))
+	assert.Len(t, issueReports.Data, len(createdIssueReports))
 
 	// fetch as list for account
 	issueReportsByAccount, err := dbc.GetIssueReportsForAccount(ctx, account.ID, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, issueReportsByAccount.Data)
-	assert.Equal(t, len(createdIssueReports), len(issueReportsByAccount.Data))
+	assert.Len(t, issueReportsByAccount.Data, len(createdIssueReports))
 
 	// fetch as list for table
 	issueReportsByTable, err := dbc.GetIssueReportsForTable(ctx, createdIssueReports[0].RelevantTable, nil)

@@ -119,7 +119,7 @@ func TestLoadConfigFromEnvironment(T *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, actual)
 
-		assert.Equal(t, actual.Database.Debug, true)
+		assert.True(t, actual.Database.Debug)
 	})
 
 	// prior TODOs count here too
@@ -144,7 +144,7 @@ func TestLoadConfigFromEnvironment(T *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, actual)
 
-		assert.Equal(t, actual.Meta.Debug, false)
+		assert.False(t, actual.Meta.Debug)
 	})
 
 	T.Run("with invalid config file", func(t *testing.T) {

@@ -15,7 +15,7 @@ import (
 
 func checkRecipeStepProductSliceEquality(t *testing.T, stepIndex int, expected, actual []*mealplanning.RecipeStepProduct) {
 	t.Helper()
-	require.Equal(t, len(expected), len(actual), "expected recipe step %d products length", stepIndex)
+	require.Len(t, actual, len(expected), "expected recipe step %d products length", stepIndex)
 	for i := range expected {
 		checkRecipeStepProductEquality(t, stepIndex, i, expected[i], actual[i])
 	}
@@ -183,9 +183,9 @@ func TestRecipeStepProducts_Listing(T *testing.T) {
 			RecipeStepId: createdRecipeStepID,
 		})
 		require.NoError(t, err)
-		assert.True(
+		assert.LessOrEqual(
 			t,
-			len(expected) <= len(actual.Results),
+			len(expected), len(actual.Results),
 			"expected %d to be <= %d",
 			len(expected),
 			len(actual.Results),

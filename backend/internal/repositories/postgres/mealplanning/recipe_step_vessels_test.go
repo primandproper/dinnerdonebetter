@@ -94,7 +94,7 @@ func TestQuerier_Integration_RecipeStepVessels(t *testing.T) {
 	recipeStepVessels, err := dbc.GetRecipeStepVessels(ctx, exampleRecipe.ID, createdRecipeStepVessels[0].BelongsToRecipeStep, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, recipeStepVessels.Data)
-	assert.Equal(t, len(createdRecipeStepVessels), len(recipeStepVessels.Data))
+	assert.Len(t, recipeStepVessels.Data, len(createdRecipeStepVessels))
 
 	// delete
 	for _, recipeStepVessel := range createdRecipeStepVessels {

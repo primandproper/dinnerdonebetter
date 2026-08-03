@@ -99,7 +99,7 @@ func TestValidIngredientMeasurementUnits_Listing(T *testing.T) {
 		results, err := adminClient.GetValidIngredientMeasurementUnits(ctx, &mealplanningsvc.GetValidIngredientMeasurementUnitsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidIngredientMeasurementUnits))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidIngredientMeasurementUnits))
 	})
 
 	T.Run("by MeasurementUnit", func(t *testing.T) {
@@ -109,7 +109,7 @@ func TestValidIngredientMeasurementUnits_Listing(T *testing.T) {
 		results, err := adminClient.GetValidIngredientMeasurementUnitsByMeasurementUnit(ctx, &mealplanningsvc.GetValidIngredientMeasurementUnitsByMeasurementUnitRequest{ValidMeasurementUnitId: validMeasurementUnit.ID})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidIngredientMeasurementUnits))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidIngredientMeasurementUnits))
 	})
 
 	T.Run("by ingredient", func(t *testing.T) {
@@ -119,7 +119,7 @@ func TestValidIngredientMeasurementUnits_Listing(T *testing.T) {
 		results, err := adminClient.GetValidIngredientMeasurementUnitsByIngredient(ctx, &mealplanningsvc.GetValidIngredientMeasurementUnitsByIngredientRequest{ValidIngredientId: validIngredient.ID})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= 1, "at least one VIMU for this ingredient")
+		assert.GreaterOrEqual(t, len(results.Results), 1, "at least one VIMU for this ingredient")
 	})
 }
 
@@ -138,7 +138,7 @@ func TestValidIngredientMeasurementUnits_SearchByIngredient(T *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= 1, "expected at least one result when searching by ingredient")
+		assert.GreaterOrEqual(t, len(results.Results), 1, "expected at least one result when searching by ingredient")
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

@@ -435,7 +435,7 @@ func TestRecipeManager_RecipeEstimatedPrepSteps(T *testing.T) {
 		results, err := rm.RecipeEstimatedPrepSteps(ctx, exampleRecipe.ID)
 		assert.NoError(t, err)
 
-		assert.Equal(t, len(results), len(expectedResults))
+		assert.Len(t, results, len(expectedResults))
 
 		assert.Len(t, db.GetRecipeCalls(), 1)
 		assert.Len(t, analyzer.GenerateMealPlanTasksForRecipeCalls(), 1)
@@ -502,7 +502,7 @@ func TestRecipeManager_RecipeMermaid(T *testing.T) {
 
 		result, err := rm.RecipeMermaid(ctx, exampleRecipe.ID)
 		assert.NoError(t, err)
-		assert.Equal(t, result, expectedResult)
+		assert.Equal(t, expectedResult, result)
 
 		assert.Len(t, db.GetRecipeCalls(), 1)
 		assert.Len(t, analyzer.RenderMermaidDiagramForRecipeCalls(), 1)

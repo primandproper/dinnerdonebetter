@@ -12,7 +12,7 @@ import (
 func checkRecipeMediaSliceEquality(t *testing.T, stepIndex int, expected, actual []*mealplanning.RecipeMedia) {
 	t.Helper()
 
-	require.Equal(t, len(expected), len(actual), "expected recipe step %d media length", stepIndex)
+	require.Len(t, actual, len(expected), "expected recipe step %d media length", stepIndex)
 	for i := range expected {
 		e, a := expected[i], actual[i]
 		checkRecipeMediaEquality(t, stepIndex, i, e, a)
@@ -41,7 +41,7 @@ func checkRecipeMediaEquality(t *testing.T, stepIndex, mediaIndex int, expected,
 func checkRecipeLevelMediaSliceEquality(t *testing.T, expected, actual []*mealplanning.RecipeMedia) {
 	t.Helper()
 
-	require.Equal(t, len(expected), len(actual), "expected recipe media length")
+	require.Len(t, actual, len(expected), "expected recipe media length")
 	for i := range expected {
 		checkRecipeLevelMediaEquality(t, i, expected[i], actual[i])
 	}

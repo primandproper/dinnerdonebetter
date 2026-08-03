@@ -327,7 +327,7 @@ func TestValidPreparations_Listing(T *testing.T) {
 		retrieved, err := testClient.GetValidPreparations(ctx, &mealplanningsvc.GetValidPreparationsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdValidPreparations))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdValidPreparations))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

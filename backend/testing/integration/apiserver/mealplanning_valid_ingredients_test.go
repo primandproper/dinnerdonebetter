@@ -331,7 +331,7 @@ func TestValidIngredients_Listing(T *testing.T) {
 		retrieved, err := testClient.GetValidIngredients(ctx, &mealplanningsvc.GetValidIngredientsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdValidIngredients))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdValidIngredients))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

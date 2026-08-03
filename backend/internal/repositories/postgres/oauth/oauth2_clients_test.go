@@ -57,7 +57,7 @@ func TestQuerier_Integration_OAuth2Clients(t *testing.T) {
 	oauth2Clients, err := dbc.GetOAuth2Clients(ctx, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, oauth2Clients.Data)
-	assert.Equal(t, len(createdOAuth2Clients), len(oauth2Clients.Data))
+	assert.Len(t, oauth2Clients.Data, len(createdOAuth2Clients))
 
 	// delete
 	for _, oauth2Client := range createdOAuth2Clients {

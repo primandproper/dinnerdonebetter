@@ -81,7 +81,7 @@ func TestQuerier_Integration_UserIngredientPreferences(t *testing.T) {
 	userIngredientPreferences, err := dbc.GetUserIngredientPreferences(ctx, user.ID, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, userIngredientPreferences.Data)
-	assert.Equal(t, len(createdUserIngredientPreferences), len(userIngredientPreferences.Data))
+	assert.Len(t, userIngredientPreferences.Data, len(createdUserIngredientPreferences))
 
 	// delete
 	for _, userIngredientPreference := range createdUserIngredientPreferences {

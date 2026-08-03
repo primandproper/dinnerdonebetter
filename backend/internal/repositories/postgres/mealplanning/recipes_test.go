@@ -186,12 +186,12 @@ func createRecipeForTest(t *testing.T, ctx context.Context, exampleRecipe *mealp
 			exampleRecipe.Steps[i].Media[j] = recipe.Steps[i].Media[j]
 		}
 
-		require.Equal(t, len(exampleRecipe.Steps[i].Products), len(recipe.Steps[i].Products))
-		require.Equal(t, len(exampleRecipe.Steps[i].Instruments), len(recipe.Steps[i].Instruments))
-		require.Equal(t, len(exampleRecipe.Steps[i].Vessels), len(recipe.Steps[i].Vessels))
-		require.Equal(t, len(exampleRecipe.Steps[i].Ingredients), len(recipe.Steps[i].Ingredients))
-		require.Equal(t, len(exampleRecipe.Steps[i].Media), len(recipe.Steps[i].Media))
-		require.Equal(t, len(exampleRecipe.Steps[i].CompletionConditions), len(recipe.Steps[i].CompletionConditions))
+		require.Len(t, recipe.Steps[i].Products, len(exampleRecipe.Steps[i].Products))
+		require.Len(t, recipe.Steps[i].Instruments, len(exampleRecipe.Steps[i].Instruments))
+		require.Len(t, recipe.Steps[i].Vessels, len(exampleRecipe.Steps[i].Vessels))
+		require.Len(t, recipe.Steps[i].Ingredients, len(exampleRecipe.Steps[i].Ingredients))
+		require.Len(t, recipe.Steps[i].Media, len(exampleRecipe.Steps[i].Media))
+		require.Len(t, recipe.Steps[i].CompletionConditions, len(exampleRecipe.Steps[i].CompletionConditions))
 
 		expectedStep := exampleRecipe.Steps[i]
 		actualStep := recipe.Steps[i]
@@ -231,7 +231,7 @@ func TestQuerier_Integration_Recipes(t *testing.T) {
 	recipes, err := dbc.GetRecipes(ctx, mealplanning.RecipeStatusSubmitted, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, recipes.Data)
-	assert.Equal(t, len(createdRecipes), len(recipes.Data))
+	assert.Len(t, recipes.Data, len(createdRecipes))
 
 	needingIndexing, err := dbc.GetRecipeIDsThatNeedSearchIndexing(ctx)
 	assert.NoError(t, err)

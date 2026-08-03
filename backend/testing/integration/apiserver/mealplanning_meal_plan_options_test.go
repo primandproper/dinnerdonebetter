@@ -18,7 +18,7 @@ import (
 func checkMealPlanOptionEquality(t *testing.T, expected, actual *types.MealPlanOption) {
 	t.Helper()
 
-	assert.NotZero(t, actual.ID)
+	assert.NotEmpty(t, actual.ID)
 	assert.Equal(t, expected.Meal.ID, actual.Meal.ID, "expected RecipeID for meal plan option %s to be %v, but it was %v", expected.ID, expected.Meal.ID, actual.Meal.ID)
 	assert.Equal(t, expected.Notes, actual.Notes, "expected StatusExplanation for meal plan option %s to be %v, but it was %v", expected.ID, expected.Notes, actual.Notes)
 	assert.Equal(t, expected.AssignedCook, actual.AssignedCook, "expected AssignedCook for meal plan option %s to be %v, but it was %v", expected.ID, expected.AssignedCook, actual.AssignedCook)
@@ -148,9 +148,9 @@ func TestMealPlanOptions_Listing(T *testing.T) {
 		})
 		require.NotNil(t, actual)
 		require.NoError(t, err)
-		assert.True(
+		assert.LessOrEqual(
 			t,
-			len(expected) <= len(actual.Results),
+			len(expected), len(actual.Results),
 			"expected %d to be <= %d",
 			len(expected),
 			len(actual.Results),

@@ -2434,7 +2434,7 @@ func TestServiceImpl_GetRecipes(T *testing.T) {
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
 			ListRecipesFunc: func(_ context.Context, status string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error) {
-				assert.Equal(t, "", status)
+				assert.Empty(t, status)
 
 				return exampleResult, nil
 			},

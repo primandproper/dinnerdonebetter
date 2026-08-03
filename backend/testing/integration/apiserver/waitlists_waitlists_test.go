@@ -204,7 +204,7 @@ func TestWaitlists_Listing(T *testing.T) {
 		results, err := testClient.GetWaitlists(ctx, &waitlistssvc.GetWaitlistsRequest{})
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdWaitlists))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdWaitlists))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -235,7 +235,7 @@ func TestWaitlists_ListingActive(T *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
 		// All created waitlists should be active (not expired)
-		assert.True(t, len(results.Results) >= len(createdWaitlists))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdWaitlists))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -481,7 +481,7 @@ func TestWaitlistSignups_Listing(T *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdSignups))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdSignups))
 	})
 
 	T.Run("denied for regular users", func(t *testing.T) {

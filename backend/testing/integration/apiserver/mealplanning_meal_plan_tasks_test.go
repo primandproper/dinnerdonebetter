@@ -21,7 +21,7 @@ import (
 func checkMealPlanTaskEquality(t *testing.T, expected, actual *mealplanning.MealPlanTask) {
 	t.Helper()
 
-	assert.NotZero(t, actual.ID)
+	assert.NotEmpty(t, actual.ID)
 	assert.Equal(t, expected.CreationExplanation, actual.CreationExplanation, "expected CreationExplanation for meal plan %s to be %v, but it was %v", expected.CreationExplanation, expected.CreationExplanation, actual.CreationExplanation)
 	assert.Equal(t, expected.Status, actual.Status, "expected Status for meal plan %s to be %v, but it was %v", expected.Status, expected.Status, actual.Status)
 	assert.Equal(t, expected.StatusExplanation, actual.StatusExplanation, "expected StatusExplanation for meal plan %s to be %v, but it was %v", expected.StatusExplanation, expected.StatusExplanation, actual.StatusExplanation)

@@ -97,7 +97,7 @@ func TestQuerier_Integration_RecipeStepCompletionConditions(t *testing.T) {
 	recipeStepCompletionConditions, err := dbc.GetRecipeStepCompletionConditions(ctx, exampleRecipe.ID, createdRecipeStepCompletionConditions[0].BelongsToRecipeStep, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, recipeStepCompletionConditions.Data)
-	assert.Equal(t, len(createdRecipeStepCompletionConditions), len(recipeStepCompletionConditions.Data))
+	assert.Len(t, recipeStepCompletionConditions.Data, len(createdRecipeStepCompletionConditions))
 
 	// delete
 	for _, recipeStepCompletionCondition := range createdRecipeStepCompletionConditions {

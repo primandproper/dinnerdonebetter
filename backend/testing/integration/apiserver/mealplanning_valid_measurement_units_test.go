@@ -321,7 +321,7 @@ func TestValidMeasurementUnits_Listing(T *testing.T) {
 		retrieved, err := testClient.GetValidMeasurementUnits(ctx, &mealplanningsvc.GetValidMeasurementUnitsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdValidMeasurementUnits))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdValidMeasurementUnits))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

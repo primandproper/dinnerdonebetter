@@ -81,7 +81,7 @@ func TestQuerier_Integration_ValidPreparationVessels(t *testing.T) {
 	validPreparationVessels, err := dbc.GetValidPreparationVessels(ctx, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, validPreparationVessels.Data)
-	assert.Equal(t, len(createdValidPreparationVessels), len(validPreparationVessels.Data))
+	assert.Len(t, validPreparationVessels.Data, len(createdValidPreparationVessels))
 
 	forPreparation, err := dbc.GetValidPreparationVesselsForPreparation(ctx, createdValidPreparationVessels[0].Preparation.ID, nil)
 	assert.NoError(t, err)

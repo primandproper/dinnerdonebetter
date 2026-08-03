@@ -77,7 +77,7 @@ func TestQuerier_Integration_UploadedMedia(t *testing.T) {
 	uploadedMediaList, err := dbc.GetUploadedMediaForUser(ctx, user.ID, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, uploadedMediaList.Data)
-	assert.Equal(t, len(createdUploadedMedia), len(uploadedMediaList.Data))
+	assert.Len(t, uploadedMediaList.Data, len(createdUploadedMedia))
 
 	// fetch with IDs
 	ids := []string{createdUploadedMedia[0].ID, createdUploadedMedia[1].ID}

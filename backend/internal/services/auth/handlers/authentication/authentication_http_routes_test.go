@@ -23,7 +23,7 @@ func TestAuthenticationService_AuthorizeHandler(T *testing.T) {
 
 		// The response code will depend on the oauth2 library's behavior
 		// We're mainly testing that the method doesn't panic
-		assert.True(t, res.Code >= 400) // Expect some error since we don't have a real OAuth2 setup
+		assert.GreaterOrEqual(t, res.Code, 400) // Expect some error since we don't have a real OAuth2 setup
 	})
 }
 
@@ -44,6 +44,6 @@ func TestAuthenticationService_TokenHandler(T *testing.T) {
 
 		// The response code will depend on the oauth2 library's behavior
 		// We're mainly testing that the method doesn't panic
-		assert.True(t, res.Code >= 400) // Expect some error since we don't have a real OAuth2 setup
+		assert.GreaterOrEqual(t, res.Code, 400) // Expect some error since we don't have a real OAuth2 setup
 	})
 }

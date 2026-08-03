@@ -65,7 +65,7 @@ func TestQuerier_Integration_ValidInstruments(t *testing.T) {
 	validInstruments, err := dbc.GetValidInstruments(ctx, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, validInstruments.Data)
-	assert.Equal(t, len(createdValidInstruments), len(validInstruments.Data))
+	assert.Len(t, validInstruments.Data, len(createdValidInstruments))
 
 	// fetch as list of IDs
 	validInstrumentIDs := []string{}

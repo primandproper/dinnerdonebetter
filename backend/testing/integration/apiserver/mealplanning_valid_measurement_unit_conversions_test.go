@@ -232,7 +232,7 @@ func TestValidMeasurementUnitConversions_Listing(T *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.Equal(t, len(results.Results), len(createdValidMeasurementUnitConversions))
+		assert.Len(t, createdValidMeasurementUnitConversions, len(results.Results))
 		assert.Equal(t, results.Results[0].Id, createdValidMeasurementUnitConversions[0].ID)
 
 		results, err = adminClient.GetValidMeasurementUnitConversionsForUnit(ctx, &mealplanningsvc.GetValidMeasurementUnitConversionsForUnitRequest{
@@ -240,7 +240,7 @@ func TestValidMeasurementUnitConversions_Listing(T *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.Equal(t, len(results.Results), len(createdValidMeasurementUnitConversions))
+		assert.Len(t, createdValidMeasurementUnitConversions, len(results.Results))
 		assert.Equal(t, results.Results[0].Id, createdValidMeasurementUnitConversions[0].ID)
 	})
 }

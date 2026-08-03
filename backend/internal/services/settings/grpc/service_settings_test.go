@@ -76,7 +76,7 @@ func TestServiceImpl_CreateServiceSetting(t *testing.T) {
 		}
 
 		settingsRepo.CreateServiceSettingFunc = func(_ context.Context, input *settings.ServiceSettingDatabaseCreationInput) (*settings.ServiceSetting, error) {
-			assert.True(t, input != nil)
+			assert.NotNil(t, input)
 
 			return exampleServiceSetting, nil
 		}
@@ -132,7 +132,7 @@ func TestServiceImpl_CreateServiceSetting(t *testing.T) {
 		}
 
 		settingsRepo.CreateServiceSettingFunc = func(_ context.Context, input *settings.ServiceSettingDatabaseCreationInput) (*settings.ServiceSetting, error) {
-			assert.True(t, input != nil)
+			assert.NotNil(t, input)
 
 			return nil, errors.New("repository error")
 		}
@@ -226,7 +226,7 @@ func TestServiceImpl_GetServiceSettings(t *testing.T) {
 		}
 
 		settingsRepo.GetServiceSettingsFunc = func(_ context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSetting], error) {
-			assert.True(t, filter != nil)
+			assert.NotNil(t, filter)
 
 			return exampleServiceSettingsList, nil
 		}

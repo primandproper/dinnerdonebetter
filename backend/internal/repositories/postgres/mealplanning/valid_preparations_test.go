@@ -65,7 +65,7 @@ func TestQuerier_Integration_ValidPreparations(t *testing.T) {
 	validPreparations, err := dbc.GetValidPreparations(ctx, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, validPreparations.Data)
-	assert.Equal(t, len(createdValidPreparations), len(validPreparations.Data))
+	assert.Len(t, validPreparations.Data, len(createdValidPreparations))
 
 	// fetch as list of IDs
 	validPreparationIDs := []string{}

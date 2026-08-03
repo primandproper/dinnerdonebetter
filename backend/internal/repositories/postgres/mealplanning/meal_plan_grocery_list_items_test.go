@@ -86,7 +86,7 @@ func TestQuerier_Integration_MealPlanGroceryListItems(t *testing.T) {
 	mealPlanGroceryListItems, err := dbc.GetMealPlanGroceryListItemsForMealPlan(ctx, mealPlan.ID, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, mealPlanGroceryListItems)
-	assert.Equal(t, len(createdMealPlanGroceryListItems), len(mealPlanGroceryListItems.Data))
+	assert.Len(t, mealPlanGroceryListItems.Data, len(createdMealPlanGroceryListItems))
 
 	// a batch that fails partway through commits nothing. The retry regenerates the whole list
 	// with fresh IDs and cannot tell which items it already wrote, so anything left behind by a

@@ -265,7 +265,7 @@ func TestUserIngredientPreferences_Listing(T *testing.T) {
 		retrieved, err := testClient.GetUserIngredientPreferences(ctx, &settingssvc.GetUserIngredientPreferencesRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdUserIngredientPreferences))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdUserIngredientPreferences))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

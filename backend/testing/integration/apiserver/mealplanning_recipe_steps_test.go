@@ -231,9 +231,9 @@ func TestRecipeSteps_Listing(T *testing.T) {
 		// assert recipe step list equality
 		actual, err := adminClient.GetRecipeSteps(ctx, &mealplanninggrpc.GetRecipeStepsRequest{RecipeId: createdRecipe.ID})
 		require.NoError(t, err)
-		assert.True(
+		assert.LessOrEqual(
 			t,
-			len(expected) <= len(actual.Results),
+			len(expected), len(actual.Results),
 			"expected %d to be <= %d",
 			len(expected),
 			len(actual.Results),

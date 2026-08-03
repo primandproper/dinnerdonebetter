@@ -102,7 +102,7 @@ func TestQuerier_GetDefaultAccountIDForUser(T *testing.T) {
 
 		actual, err := c.GetDefaultAccountIDForUser(ctx, "")
 		assert.Error(t, err)
-		assert.Zero(t, actual)
+		assert.Empty(t, actual)
 	})
 }
 

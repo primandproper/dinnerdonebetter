@@ -92,7 +92,7 @@ func TestQuerier_Integration_ValidPrepTaskConfigs(t *testing.T) {
 	validPrepTaskConfigs, err := dbc.GetValidPrepTaskConfigs(ctx, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, validPrepTaskConfigs.Data)
-	assert.Equal(t, len(createdValidPrepTaskConfigs), len(validPrepTaskConfigs.Data))
+	assert.Len(t, validPrepTaskConfigs.Data, len(createdValidPrepTaskConfigs))
 
 	forIngredient, err := dbc.GetValidPrepTaskConfigsForIngredient(ctx, createdValidPrepTaskConfigs[0].Ingredient.ID, nil)
 	assert.NoError(t, err)

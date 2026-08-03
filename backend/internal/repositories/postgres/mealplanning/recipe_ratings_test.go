@@ -62,7 +62,7 @@ func TestQuerier_Integration_RecipeRatings(t *testing.T) {
 	recipeRatings, err := dbc.GetRecipeRatingsForRecipe(ctx, createdRecipe.ID, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, recipeRatings.Data)
-	assert.Equal(t, len(createdRecipeRatings), len(recipeRatings.Data))
+	assert.Len(t, recipeRatings.Data, len(createdRecipeRatings))
 
 	// delete
 	for _, recipeRating := range createdRecipeRatings {

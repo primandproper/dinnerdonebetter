@@ -39,7 +39,7 @@ func createRecipeRatingForTest(t *testing.T, recipeID string, clientToUse client
 func checkRecipeRatingEquality(t *testing.T, expected, actual *types.RecipeRating) {
 	t.Helper()
 
-	assert.NotZero(t, actual.ID)
+	assert.NotEmpty(t, actual.ID)
 	assert.Equal(t, expected.Notes, actual.Notes, "expected Notes for recipe rating %s to be %v, but it was %v", expected.ID, expected.Notes, actual.Notes)
 	assert.Equal(t, expected.BelongsToRecipe, actual.BelongsToRecipe, "expected RecipeID for recipe rating %s to be %v, but it was %v", expected.ID, expected.BelongsToRecipe, actual.BelongsToRecipe)
 	assert.Equal(t, expected.Taste, actual.Taste, "expected Taste for recipe rating %s to be %v, but it was %v", expected.ID, expected.Taste, actual.Taste)
@@ -233,7 +233,7 @@ func TestRecipeRatings_Listing(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, actualRes)
 
-		assert.Equal(t, len(actualRes.Results), 1, "expected %d to be <= %d", len(actualRes.Results), 1)
+		assert.Len(t, actualRes.Results, 1, "expected %d to be <= %d", len(actualRes.Results), 1)
 
 		_, err = testClient.ArchiveRecipeRating(ctx, &mealplanninggrpc.ArchiveRecipeRatingRequest{
 			RecipeId:       createdRecipe.ID,

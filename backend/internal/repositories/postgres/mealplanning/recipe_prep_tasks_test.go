@@ -72,7 +72,7 @@ func TestQuerier_Integration_RecipePrepTasks(t *testing.T) {
 	recipePrepTasks, err := dbc.GetRecipePrepTasksForRecipe(ctx, exampleRecipe.ID)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, recipePrepTasks)
-	assert.Equal(t, len(createdRecipePrepTasks), len(recipePrepTasks))
+	assert.Len(t, recipePrepTasks, len(createdRecipePrepTasks))
 
 	// delete
 	for _, recipePrepTask := range createdRecipePrepTasks {

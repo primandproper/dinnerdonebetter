@@ -83,7 +83,7 @@ func TestQuerier_Integration_AccountInstrumentOwnerships(t *testing.T) {
 	accountInstrumentOwnerships, err := dbc.GetAccountInstrumentOwnerships(ctx, account.ID, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, accountInstrumentOwnerships.Data)
-	assert.Equal(t, len(createdAccountInstrumentOwnerships), len(accountInstrumentOwnerships.Data))
+	assert.Len(t, accountInstrumentOwnerships.Data, len(createdAccountInstrumentOwnerships))
 
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: createdAccountInstrumentOwnerships[0].ID},

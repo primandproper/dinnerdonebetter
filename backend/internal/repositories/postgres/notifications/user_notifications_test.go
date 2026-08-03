@@ -83,7 +83,7 @@ func TestQuerier_Integration_UserNotifications(t *testing.T) {
 	userNotifications, err := dbc.GetUserNotifications(ctx, user.ID, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, userNotifications.Data)
-	assert.Equal(t, len(createdUserNotifications), len(userNotifications.Data))
+	assert.Len(t, userNotifications.Data, len(createdUserNotifications))
 
 	// delete
 	for _, userNotification := range createdUserNotifications {

@@ -23,7 +23,7 @@ import (
 func checkMealEquality(t *testing.T, expected, actual *types.Meal) {
 	t.Helper()
 
-	assert.NotZero(t, actual.ID)
+	assert.NotEmpty(t, actual.ID)
 
 	assert.Equal(t, expected.Name, actual.Name, "expected Name for meal %s to be %v, but it was %v", expected.ID, expected.Name, actual.Name)
 	assert.Equal(t, expected.Description, actual.Description, "expected Description for meal %s to be %v, but it was %v", expected.ID, expected.Description, actual.Description)
@@ -137,9 +137,9 @@ func TestMeals_Listing(T *testing.T) {
 			Filter: &filtering.QueryFilter{CreatedAfter: createdAfterProto},
 		})
 		require.NoError(t, err)
-		assert.True(
+		assert.LessOrEqual(
 			t,
-			len(expected) <= len(actual.Results),
+			len(expected), len(actual.Results),
 			"expected %d to be <= %d",
 			len(expected),
 			len(actual.Results),
@@ -189,9 +189,9 @@ func TestMeals_Searching(T *testing.T) {
 			UseSearchService: false,
 		})
 		require.NoError(t, err)
-		assert.True(
+		assert.LessOrEqual(
 			t,
-			len(expected) <= len(actual.Results),
+			len(expected), len(actual.Results),
 			"expected %d to be <= %d",
 			len(expected),
 			len(actual.Results),

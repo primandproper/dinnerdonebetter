@@ -487,7 +487,7 @@ func TestCursorBasedPagination[T any](t *testing.T, ctx context.Context, config 
 		}
 
 		// Safety check to prevent infinite loops
-		assert.False(t, pageCount > expectedTotal+5, "Too many pages fetched, possible infinite loop")
+		assert.LessOrEqual(t, pageCount, expectedTotal+5, "Too many pages fetched, possible infinite loop")
 	}
 
 	// With cursor-based pagination: when the last page is partial we break on it (pageCount = expectedPages);
@@ -519,7 +519,7 @@ func TestCursorBasedPagination[T any](t *testing.T, ctx context.Context, config 
 	for i := 1; i < len(allPaginatedItems); i++ {
 		prevID := config.GetID(allPaginatedItems[i-1])
 		currID := config.GetID(allPaginatedItems[i])
-		assert.True(t, prevID < currID,
+		assert.Less(t, prevID, currID,
 			"%ss should be ordered by ID ascending: %s should be < %s (position %d and %d)",
 			config.ItemName, prevID, currID, i-1, i)
 	}

@@ -318,7 +318,7 @@ func TestValidInstruments_Listing(T *testing.T) {
 		retrieved, err := testClient.GetValidInstruments(ctx, &mealplanningsvc.GetValidInstrumentsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdValidInstruments))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdValidInstruments))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

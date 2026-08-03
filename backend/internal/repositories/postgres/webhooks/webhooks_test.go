@@ -85,7 +85,7 @@ func TestQuerier_Integration_Webhooks(t *testing.T) {
 	webhooks, err := dbc.GetWebhooks(ctx, account.ID, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, webhooks.Data)
-	assert.Equal(t, len(createdWebhooks), len(webhooks.Data))
+	assert.Len(t, webhooks.Data, len(createdWebhooks))
 
 	// Subscribe the webhook to a second event type. It has to differ from the one the fake
 	// already carries: (trigger_event, belongs_to_webhook, archived_at) is unique.

@@ -74,7 +74,7 @@ func TestQuerier_Integration_MealPlanOptionVotes(t *testing.T) {
 	mealPlanOptionVotes, err := dbc.GetMealPlanOptionVotes(ctx, mealPlan.ID, mealPlanEvent.ID, mealPlanOption.ID, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, mealPlanOptionVotes)
-	assert.Equal(t, len(createdMealPlanOptionVotes), len(mealPlanOptionVotes.Data))
+	assert.Len(t, mealPlanOptionVotes.Data, len(createdMealPlanOptionVotes))
 
 	assert.NoError(t, dbc.UpdateMealPlanOptionVote(ctx, createdMealPlanOptionVotes[0]))
 

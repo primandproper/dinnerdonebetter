@@ -199,7 +199,7 @@ func TestServiceSettings_Listing(T *testing.T) {
 		retrieved, err := testClient.GetServiceSettings(ctx, &settingssvc.GetServiceSettingsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdServiceSettings))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdServiceSettings))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
