@@ -13,7 +13,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
-	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	platformconfig "github.com/primandproper/platform-go/v9/config"
@@ -91,7 +90,6 @@ type (
 		Auth              authcfg.Config          `envPrefix:"AUTH_"               json:"auth"`
 		Database          dbcfg.Config            `envPrefix:"DATABASE_"           json:"database"`
 		HTTPServer        http.Config             `envPrefix:"HTTP_"               json:"http"`
-		Services          ServicesConfig          `envPrefix:"SERVICE_"            json:"services"`
 
 		// Idempotency guards the mutations where running the work twice costs real money.
 		// A client that never sees a response and retries is indistinguishable from a
@@ -103,6 +101,8 @@ type (
 		// write side lives here: dispatch rows are written inside the transactions that
 		// caused them, and the worker that delivers them runs in the scheduler.
 		Webhooks webhookscfg.Config `envPrefix:"WEBHOOKS_" json:"webhooks"`
+
+		Services ServicesConfig `envPrefix:"SERVICE_" json:"services"`
 
 		validateServices bool
 	}
@@ -142,19 +142,13 @@ type (
 		HTTPClient *httpclientcfg.Config `envPrefix:"HTTP_CLIENT_" json:"httpClient"`
 		Queues     queuescfg.Config      `envPrefix:"QUEUES_"      json:"queues"`
 
-		// DataPrivacy is here for the object storage and cipher the user data aggregation
-		// handler writes disclosure artifacts with. It is the same struct the API server and
-		// the scheduler are configured with, because all three have to agree on the bucket and
-		// the key or an artifact one writes is not one the others can read or find.
-		DataPrivacy dataprivacycfg.Config `envPrefix:"DATA_PRIVACY_" json:"dataPrivacy"`
-
 		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications"`
 		Encoding          encoding.Config         `envPrefix:"ENCODING_"           json:"encoding"`
 		BaseURL           string                  `env:"BASE_URL"                  json:"baseURL"`
 		Events            msgconfig.Config        `envPrefix:"EVENTS_"             json:"events"`
 		Observability     observability.Config    `envPrefix:"OBSERVABILITY_"      json:"observability"`
-		Analytics         analyticscfg.Config     `envPrefix:"ANALYTICS_"          json:"analytics"`
 		Email             emailcfg.Config         `envPrefix:"EMAIL_"              json:"email"`
+		Analytics         analyticscfg.Config     `envPrefix:"ANALYTICS_"          json:"analytics"`
 		Search            textsearchcfg.Config    `envPrefix:"SEARCH_"             json:"search"`
 		Database          dbcfg.Config            `envPrefix:"DATABASE_"           json:"database"`
 		Pools             WorkerPoolsConfig       `envPrefix:"POOLS_"              json:"pools"`
@@ -174,7 +168,6 @@ type (
 		DataChanges         jobs.PoolConfig `envPrefix:"DATA_CHANGES_"          json:"dataChanges"`
 		OutboundEmails      jobs.PoolConfig `envPrefix:"OUTBOUND_EMAILS_"       json:"outboundEmails"`
 		SearchIndexRequests jobs.PoolConfig `envPrefix:"SEARCH_INDEX_REQUESTS_" json:"searchIndexRequests"`
-		UserDataAggregation jobs.PoolConfig `envPrefix:"USER_DATA_AGGREGATION_" json:"userDataAggregation"`
 		MobileNotifications jobs.PoolConfig `envPrefix:"MOBILE_NOTIFICATIONS_"  json:"mobileNotifications"`
 	}
 
@@ -319,7 +312,6 @@ func (cfg *AsyncMessageHandlerConfig) ValidateWithContext(ctx context.Context) e
 		"Database":      cfg.Database.ValidateWithContext,
 		"Email":         cfg.Email.ValidateWithContext,
 		"TextSearch":    cfg.Search.ValidateWithContext,
-		"DataPrivacy":   cfg.DataPrivacy.ValidateWithContext,
 		"Pools":         cfg.Pools.ValidateWithContext,
 	}
 

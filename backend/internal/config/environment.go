@@ -117,12 +117,12 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 			Timeout:  time.Minute,
 			LeaseTTL: 2 * time.Minute,
 		},
-		DisclosureArtifactReaper: ScheduledJobConfig{
+		DataPrivacySweep: ScheduledJobConfig{
 			Enabled: true,
-			// Hourly is far finer than the seven-day disclosure TTL needs, and the run costs
-			// one indexed query when there is nothing to do. RunOnStart is what drains the
-			// artifacts that accumulated before anything reaped them, on the first deploy that
-			// carries this job.
+			// Hourly is far finer than the seven-day artifact TTL needs, and a sweep with
+			// nothing to do costs three indexed queries against partial indexes. It is also
+			// the cadence the overdue gauge is sampled at, which is the reason not to make it
+			// coarser: a deadline nobody is looking at is the same as no deadline.
 			Interval:   time.Hour,
 			Timeout:    5 * time.Minute,
 			LeaseTTL:   10 * time.Minute,
@@ -282,19 +282,11 @@ func defaultWorkerPoolsConfig() WorkerPoolsConfig {
 	// dispatch row is claimed by the delivery worker, whose own concurrency, retry schedule,
 	// and per-endpoint circuit breaking live in the webhooks config.
 
-	// GDPR data exports: slow, heavy, and duplicated work means a user gets two archives. A
-	// crash can lose Concurrency+1 messages, so this is the one topic where that bound is 1.
-	userDataAggregation := standard()
-	userDataAggregation.Concurrency = 1
-	userDataAggregation.Retry.MaxAttempts = 2
-	userDataAggregation.HandlerTimeout = 10 * time.Minute
-
 	return WorkerPoolsConfig{
 		DeadLetterTopicName: DefaultDeadLetterTopicName,
 		DataChanges:         dataChanges,
 		OutboundEmails:      outboundEmails,
 		SearchIndexRequests: standard(),
-		UserDataAggregation: userDataAggregation,
 		MobileNotifications: standard(),
 	}
 }
@@ -417,7 +409,6 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 	schedulerConfig.Observability.Profiling.ServiceName = schedulerConfigObservabilityServiceName
 
 	amhConfig := &AsyncMessageHandlerConfig{
-		DataPrivacy:       s.RootConfig.Services.DataPrivacy,
 		Queues:            s.RootConfig.Queues,
 		Email:             s.RootConfig.Email,
 		Analytics:         s.RootConfig.Analytics,

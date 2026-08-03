@@ -8,6 +8,7 @@
 // For information on using the generated types, please see the documentation:
 //   https://github.com/apple/swift-protobuf/
 
+import Foundation
 import SwiftProtobuf
 
 // If the compiler emits an error on this type, it is because this file
@@ -44,13 +45,24 @@ public struct Dataprivacy_AggregateUserDataReportResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var reportID: String = String()
+  /// request is the submitted export request. Its id is what FetchUserDataReport and
+  /// GetDataPrivacyRequest take; there is no separate report ID any more, because a request now
+  /// owns its artifact rather than naming one.
+  public var request: Dataprivacy_DataPrivacyRequest {
+    get {return _request ?? Dataprivacy_DataPrivacyRequest()}
+    set {_request = newValue}
+  }
+  /// Returns true if `request` has been explicitly set.
+  public var hasRequest: Bool {return self._request != nil}
+  /// Clears the value of `request`. Subsequent reads from it will return its default value.
+  public mutating func clearRequest() {self._request = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
+  fileprivate var _request: Dataprivacy_DataPrivacyRequest? = nil
 }
 
 public struct Dataprivacy_DestroyAllUserDataRequest: Sendable {
@@ -77,13 +89,27 @@ public struct Dataprivacy_DestroyAllUserDataResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var successful: Bool = false
+  /// request is the submitted erasure request, which begins pending rather than complete.
+  ///
+  /// Erasure is a durable job now rather than a synchronous DELETE. Every domain's eraser shares
+  /// one transaction with the bookkeeping that records the erasure happened, so a subject is
+  /// never left deleted from eight domains and present in three — and a request that survives
+  /// the process that accepted it is the one guarantee this needs.
+  public var request: Dataprivacy_DataPrivacyRequest {
+    get {return _request ?? Dataprivacy_DataPrivacyRequest()}
+    set {_request = newValue}
+  }
+  /// Returns true if `request` has been explicitly set.
+  public var hasRequest: Bool {return self._request != nil}
+  /// Clears the value of `request`. Subsequent reads from it will return its default value.
+  public mutating func clearRequest() {self._request = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
+  fileprivate var _request: Dataprivacy_DataPrivacyRequest? = nil
 }
 
 public struct Dataprivacy_FetchUserDataReportRequest: Sendable {
@@ -91,7 +117,7 @@ public struct Dataprivacy_FetchUserDataReportRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var userDataAggregationReportID: String = String()
+  public var dataPrivacyRequestID: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -112,36 +138,35 @@ public struct Dataprivacy_FetchUserDataReportResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var userDataCollection: Dataprivacy_UserDataCollection {
-    get {return _userDataCollection ?? Dataprivacy_UserDataCollection()}
-    set {_userDataCollection = newValue}
-  }
-  /// Returns true if `userDataCollection` has been explicitly set.
-  public var hasUserDataCollection: Bool {return self._userDataCollection != nil}
-  /// Clears the value of `userDataCollection`. Subsequent reads from it will return its default value.
-  public mutating func clearUserDataCollection() {self._userDataCollection = nil}
+  /// artifact is the export document as canonical JSON: an object of per-domain sections, plus a
+  /// manifest naming any section that could not be collected and why.
+  ///
+  /// Bytes rather than a typed message. The typed one named every domain in the application, so
+  /// a schema change in any of them was a proto change, a regeneration in three languages, and a
+  /// client release. What a subject is owed is their data, not a shape this repository has to
+  /// keep eleven domains in sync with.
+  public var artifact: Data = Data()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _userDataCollection: Dataprivacy_UserDataCollection? = nil
 }
 
-public struct Dataprivacy_GetUserDataDisclosureRequest: Sendable {
+public struct Dataprivacy_GetDataPrivacyRequestRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var userDataDisclosureID: String = String()
+  public var dataPrivacyRequestID: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 }
 
-public struct Dataprivacy_GetUserDataDisclosureResponse: Sendable {
+public struct Dataprivacy_GetDataPrivacyRequestResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -155,24 +180,24 @@ public struct Dataprivacy_GetUserDataDisclosureResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var userDataDisclosure: Dataprivacy_UserDataDisclosure {
-    get {return _userDataDisclosure ?? Dataprivacy_UserDataDisclosure()}
-    set {_userDataDisclosure = newValue}
+  public var request: Dataprivacy_DataPrivacyRequest {
+    get {return _request ?? Dataprivacy_DataPrivacyRequest()}
+    set {_request = newValue}
   }
-  /// Returns true if `userDataDisclosure` has been explicitly set.
-  public var hasUserDataDisclosure: Bool {return self._userDataDisclosure != nil}
-  /// Clears the value of `userDataDisclosure`. Subsequent reads from it will return its default value.
-  public mutating func clearUserDataDisclosure() {self._userDataDisclosure = nil}
+  /// Returns true if `request` has been explicitly set.
+  public var hasRequest: Bool {return self._request != nil}
+  /// Clears the value of `request`. Subsequent reads from it will return its default value.
+  public mutating func clearRequest() {self._request = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _userDataDisclosure: Dataprivacy_UserDataDisclosure? = nil
+  fileprivate var _request: Dataprivacy_DataPrivacyRequest? = nil
 }
 
-public struct Dataprivacy_ListUserDataDisclosuresRequest: Sendable {
+public struct Dataprivacy_ListDataPrivacyRequestsRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -193,7 +218,7 @@ public struct Dataprivacy_ListUserDataDisclosuresRequest: Sendable {
   fileprivate var _filter: Filtering_QueryFilter? = nil
 }
 
-public struct Dataprivacy_ListUserDataDisclosuresResponse: Sendable {
+public struct Dataprivacy_ListDataPrivacyRequestsResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -207,7 +232,7 @@ public struct Dataprivacy_ListUserDataDisclosuresResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var data: [Dataprivacy_UserDataDisclosure] = []
+  public var data: [Dataprivacy_DataPrivacyRequest] = []
 
   public var pagination: Filtering_Pagination {
     get {return _pagination ?? Filtering_Pagination()}
@@ -251,7 +276,7 @@ extension Dataprivacy_AggregateUserDataReportRequest: SwiftProtobuf.Message, Swi
 
 extension Dataprivacy_AggregateUserDataReportResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".AggregateUserDataReportResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{3}report_id\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}request\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -260,7 +285,7 @@ extension Dataprivacy_AggregateUserDataReportResponse: SwiftProtobuf.Message, Sw
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self.reportID) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._request) }()
       default: break
       }
     }
@@ -274,15 +299,15 @@ extension Dataprivacy_AggregateUserDataReportResponse: SwiftProtobuf.Message, Sw
     try { if let v = self._responseDetails {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
     } }()
-    if !self.reportID.isEmpty {
-      try visitor.visitSingularStringField(value: self.reportID, fieldNumber: 2)
-    }
+    try { if let v = self._request {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Dataprivacy_AggregateUserDataReportResponse, rhs: Dataprivacy_AggregateUserDataReportResponse) -> Bool {
     if lhs._responseDetails != rhs._responseDetails {return false}
-    if lhs.reportID != rhs.reportID {return false}
+    if lhs._request != rhs._request {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -309,7 +334,7 @@ extension Dataprivacy_DestroyAllUserDataRequest: SwiftProtobuf.Message, SwiftPro
 
 extension Dataprivacy_DestroyAllUserDataResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".DestroyAllUserDataResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}successful\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}request\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -318,7 +343,7 @@ extension Dataprivacy_DestroyAllUserDataResponse: SwiftProtobuf.Message, SwiftPr
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      case 2: try { try decoder.decodeSingularBoolField(value: &self.successful) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._request) }()
       default: break
       }
     }
@@ -332,15 +357,15 @@ extension Dataprivacy_DestroyAllUserDataResponse: SwiftProtobuf.Message, SwiftPr
     try { if let v = self._responseDetails {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
     } }()
-    if self.successful != false {
-      try visitor.visitSingularBoolField(value: self.successful, fieldNumber: 2)
-    }
+    try { if let v = self._request {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Dataprivacy_DestroyAllUserDataResponse, rhs: Dataprivacy_DestroyAllUserDataResponse) -> Bool {
     if lhs._responseDetails != rhs._responseDetails {return false}
-    if lhs.successful != rhs.successful {return false}
+    if lhs._request != rhs._request {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -348,7 +373,7 @@ extension Dataprivacy_DestroyAllUserDataResponse: SwiftProtobuf.Message, SwiftPr
 
 extension Dataprivacy_FetchUserDataReportRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".FetchUserDataReportRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}user_data_aggregation_report_id\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}data_privacy_request_id\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -356,21 +381,21 @@ extension Dataprivacy_FetchUserDataReportRequest: SwiftProtobuf.Message, SwiftPr
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.userDataAggregationReportID) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.dataPrivacyRequestID) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.userDataAggregationReportID.isEmpty {
-      try visitor.visitSingularStringField(value: self.userDataAggregationReportID, fieldNumber: 1)
+    if !self.dataPrivacyRequestID.isEmpty {
+      try visitor.visitSingularStringField(value: self.dataPrivacyRequestID, fieldNumber: 1)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Dataprivacy_FetchUserDataReportRequest, rhs: Dataprivacy_FetchUserDataReportRequest) -> Bool {
-    if lhs.userDataAggregationReportID != rhs.userDataAggregationReportID {return false}
+    if lhs.dataPrivacyRequestID != rhs.dataPrivacyRequestID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -378,7 +403,7 @@ extension Dataprivacy_FetchUserDataReportRequest: SwiftProtobuf.Message, SwiftPr
 
 extension Dataprivacy_FetchUserDataReportResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".FetchUserDataReportResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{3}user_data_collection\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}artifact\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -387,7 +412,7 @@ extension Dataprivacy_FetchUserDataReportResponse: SwiftProtobuf.Message, SwiftP
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._userDataCollection) }()
+      case 2: try { try decoder.decodeSingularBytesField(value: &self.artifact) }()
       default: break
       }
     }
@@ -401,23 +426,23 @@ extension Dataprivacy_FetchUserDataReportResponse: SwiftProtobuf.Message, SwiftP
     try { if let v = self._responseDetails {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
     } }()
-    try { if let v = self._userDataCollection {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-    } }()
+    if !self.artifact.isEmpty {
+      try visitor.visitSingularBytesField(value: self.artifact, fieldNumber: 2)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Dataprivacy_FetchUserDataReportResponse, rhs: Dataprivacy_FetchUserDataReportResponse) -> Bool {
     if lhs._responseDetails != rhs._responseDetails {return false}
-    if lhs._userDataCollection != rhs._userDataCollection {return false}
+    if lhs.artifact != rhs.artifact {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
 }
 
-extension Dataprivacy_GetUserDataDisclosureRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".GetUserDataDisclosureRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}user_data_disclosure_id\0")
+extension Dataprivacy_GetDataPrivacyRequestRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".GetDataPrivacyRequestRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}data_privacy_request_id\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -425,29 +450,29 @@ extension Dataprivacy_GetUserDataDisclosureRequest: SwiftProtobuf.Message, Swift
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.userDataDisclosureID) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.dataPrivacyRequestID) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.userDataDisclosureID.isEmpty {
-      try visitor.visitSingularStringField(value: self.userDataDisclosureID, fieldNumber: 1)
+    if !self.dataPrivacyRequestID.isEmpty {
+      try visitor.visitSingularStringField(value: self.dataPrivacyRequestID, fieldNumber: 1)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Dataprivacy_GetUserDataDisclosureRequest, rhs: Dataprivacy_GetUserDataDisclosureRequest) -> Bool {
-    if lhs.userDataDisclosureID != rhs.userDataDisclosureID {return false}
+  public static func ==(lhs: Dataprivacy_GetDataPrivacyRequestRequest, rhs: Dataprivacy_GetDataPrivacyRequestRequest) -> Bool {
+    if lhs.dataPrivacyRequestID != rhs.dataPrivacyRequestID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
 }
 
-extension Dataprivacy_GetUserDataDisclosureResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".GetUserDataDisclosureResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{3}user_data_disclosure\0")
+extension Dataprivacy_GetDataPrivacyRequestResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".GetDataPrivacyRequestResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}request\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -456,7 +481,7 @@ extension Dataprivacy_GetUserDataDisclosureResponse: SwiftProtobuf.Message, Swif
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._userDataDisclosure) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._request) }()
       default: break
       }
     }
@@ -470,22 +495,22 @@ extension Dataprivacy_GetUserDataDisclosureResponse: SwiftProtobuf.Message, Swif
     try { if let v = self._responseDetails {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
     } }()
-    try { if let v = self._userDataDisclosure {
+    try { if let v = self._request {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
     } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Dataprivacy_GetUserDataDisclosureResponse, rhs: Dataprivacy_GetUserDataDisclosureResponse) -> Bool {
+  public static func ==(lhs: Dataprivacy_GetDataPrivacyRequestResponse, rhs: Dataprivacy_GetDataPrivacyRequestResponse) -> Bool {
     if lhs._responseDetails != rhs._responseDetails {return false}
-    if lhs._userDataDisclosure != rhs._userDataDisclosure {return false}
+    if lhs._request != rhs._request {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
 }
 
-extension Dataprivacy_ListUserDataDisclosuresRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".ListUserDataDisclosuresRequest"
+extension Dataprivacy_ListDataPrivacyRequestsRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".ListDataPrivacyRequestsRequest"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}filter\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -511,15 +536,15 @@ extension Dataprivacy_ListUserDataDisclosuresRequest: SwiftProtobuf.Message, Swi
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Dataprivacy_ListUserDataDisclosuresRequest, rhs: Dataprivacy_ListUserDataDisclosuresRequest) -> Bool {
+  public static func ==(lhs: Dataprivacy_ListDataPrivacyRequestsRequest, rhs: Dataprivacy_ListDataPrivacyRequestsRequest) -> Bool {
     if lhs._filter != rhs._filter {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
 }
 
-extension Dataprivacy_ListUserDataDisclosuresResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".ListUserDataDisclosuresResponse"
+extension Dataprivacy_ListDataPrivacyRequestsResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".ListDataPrivacyRequestsResponse"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}data\0\u{1}pagination\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -553,7 +578,7 @@ extension Dataprivacy_ListUserDataDisclosuresResponse: SwiftProtobuf.Message, Sw
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Dataprivacy_ListUserDataDisclosuresResponse, rhs: Dataprivacy_ListUserDataDisclosuresResponse) -> Bool {
+  public static func ==(lhs: Dataprivacy_ListDataPrivacyRequestsResponse, rhs: Dataprivacy_ListDataPrivacyRequestsResponse) -> Bool {
     if lhs._responseDetails != rhs._responseDetails {return false}
     if lhs.data != rhs.data {return false}
     if lhs._pagination != rhs._pagination {return false}

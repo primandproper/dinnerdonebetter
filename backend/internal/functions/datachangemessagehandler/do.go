@@ -5,8 +5,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/reportartifacts"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -35,13 +33,11 @@ func RegisterAsyncDataChangeMessageHandler(i do.Injector) {
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[*config.AsyncMessageHandlerConfig](i),
 			do.MustInvoke[identity.Repository](i),
-			do.MustInvoke[dataprivacy.Repository](i),
 			do.MustInvoke[internalops.InternalOpsDataManager](i),
 			do.MustInvoke[messagequeue.ConsumerProvider](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),
 			do.MustInvoke[analytics.EventReporter](i),
 			do.MustInvoke[email.Emailer](i),
-			do.MustInvoke[reportartifacts.Store](i),
 			do.MustInvoke[metrics.Provider](i),
 			do.MustInvoke[encoding.ServerEncoderDecoder](i),
 			do.MustInvoke[*identityindexing.UserDataIndexer](i),

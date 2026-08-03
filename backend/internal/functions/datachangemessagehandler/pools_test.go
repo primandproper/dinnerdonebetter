@@ -42,7 +42,6 @@ func buildTestPoolsHandler(t *testing.T, consumerProvider messagequeue.ConsumerP
 		DataChangesTopicName:         "data-changes",
 		OutboundEmailsTopicName:      "outbound-emails",
 		SearchIndexRequestsTopicName: "search-index-requests",
-		UserDataAggregationTopicName: "user-data-aggregation",
 		MobileNotificationsTopicName: "mobile-notifications",
 	}
 
@@ -92,7 +91,7 @@ func TestAsyncDataChangeMessageHandler_Start(T *testing.T) {
 			assert.NoError(t, handler.Close(closeCtx))
 		})
 
-		assert.Len(t, handler.pools, 5)
+		assert.Len(t, handler.pools, 4)
 
 		hat.Lock()
 		defer hat.Unlock()
@@ -100,7 +99,6 @@ func TestAsyncDataChangeMessageHandler_Start(T *testing.T) {
 			"data-changes",
 			"outbound-emails",
 			"search-index-requests",
-			"user-data-aggregation",
 			"mobile-notifications",
 		}, topics)
 	})

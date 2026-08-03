@@ -9,8 +9,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/reportartifacts"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -40,7 +38,6 @@ const (
 	topicDataChanges         = "data_changes"
 	topicOutboundEmails      = "outbound_emails"
 	topicSearchIndexRequests = "search_index_requests"
-	topicUserDataAggregation = "user_data_aggregation"
 	topicMobileNotifications = "mobile_notifications"
 
 	statusSuccess = "success"
@@ -67,13 +64,10 @@ var (
 // repositories and event types. Domain-specific handler logic lives in dedicated files
 // (e.g., mealplanning_handlers.go) to keep concerns separable.
 type AsyncDataChangeMessageHandler struct {
-	reportArtifacts                           reportartifacts.Store
 	tracer                                    tracing.Tracer
-	dataPrivacyRepo                           dataprivacy.Repository
 	internalOpsRepo                           internalops.InternalOpsDataManager
 	logger                                    logging.Logger
 	decoder                                   encoding.ServerEncoderDecoder
-	userDataAggregationExecutionTimeHistogram metrics.Float64Histogram
 	outboundEmailsPublisher                   messagequeue.Publisher
 	outboundEmailsExecutionTimeHistogram      metrics.Float64Histogram
 	analyticsEventReporter                    analytics.EventReporter
@@ -123,13 +117,11 @@ func NewAsyncDataChangeMessageHandler(
 	tracerProvider tracing.TracerProvider,
 	cfg *config.AsyncMessageHandlerConfig,
 	identityRepo identity.Repository,
-	dataPrivacyRepo dataprivacy.Repository,
 	internalOpsRepo internalops.InternalOpsDataManager,
 	consumerProvider messagequeue.ConsumerProvider,
 	publisherProvider messagequeue.PublisherProvider,
 	analyticsEventReporter analytics.EventReporter,
 	emailer email.Emailer,
-	reportArtifacts reportartifacts.Store,
 	metricsProvider metrics.Provider,
 	decoder encoding.ServerEncoderDecoder,
 	coreDataIndexer *identityindexing.UserDataIndexer,
@@ -152,11 +144,6 @@ func NewAsyncDataChangeMessageHandler(
 	searchIndexRequestsExecutionTimeHistogram, err := metricsProvider.NewFloat64Histogram("search_index_requests_execution_time")
 	if err != nil {
 		return nil, fmt.Errorf("setting up searchIndexRequests execution time histogram: %w", err)
-	}
-
-	userDataAggregationExecutionTimeHistogram, err := metricsProvider.NewFloat64Histogram("user_data_aggregation_execution_time")
-	if err != nil {
-		return nil, fmt.Errorf("setting up userDataAggregation execution time histogram: %w", err)
 	}
 
 	mobileNotificationsExecutionTimeHistogram, err := metricsProvider.NewFloat64Histogram("mobile_notifications_execution_time")
@@ -233,7 +220,6 @@ func NewAsyncDataChangeMessageHandler(
 		poolsConfig:                          cfg.Pools,
 		deadLetter:                           deadLetter,
 		identityRepo:                         identityRepo,
-		dataPrivacyRepo:                      dataPrivacyRepo,
 		internalOpsRepo:                      internalOpsRepo,
 		consumerProvider:                     consumerProvider,
 		analyticsEventReporter:               analyticsEventReporter,
@@ -242,11 +228,9 @@ func NewAsyncDataChangeMessageHandler(
 		queuesConfig:                         cfg.Queues,
 		mobileNotificationsPublisher:         mobileNotificationsPublisher,
 		emailer:                              emailer,
-		reportArtifacts:                      reportArtifacts,
 		dataChangesExecutionTimeHistogram:    dataChangesExecutionTimeHistogram,
 		outboundEmailsExecutionTimeHistogram: outboundEmailsExecutionTimeHistogram,
 		searchIndexRequestsExecutionTimeHistogram: searchIndexRequestsExecutionTimeHistogram,
-		userDataAggregationExecutionTimeHistogram: userDataAggregationExecutionTimeHistogram,
 		mobileNotificationsExecutionTimeHistogram: mobileNotificationsExecutionTimeHistogram,
 		messagesProcessedCounter:                  messagesProcessedCounter,
 		messageDecodeErrorsCounter:                messageDecodeErrorsCounter,

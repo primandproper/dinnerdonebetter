@@ -19,6 +19,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/telemetry"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
+	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
 	"github.com/primandproper/platform-go/v9/jobs"
 	"github.com/primandproper/platform-go/v9/outbox"
 	"github.com/primandproper/platform-go/v9/saga"
@@ -58,6 +59,7 @@ func run(ctx context.Context, cfg *config.SchedulerConfig) error {
 	relay := do.MustInvoke[*outbox.Relay](i)
 	sagaWorker := do.MustInvoke[*saga.Worker](i)
 	webhookWorker := do.MustInvoke[*webhooks.Worker](i)
+	dataPrivacyWorker := do.MustInvoke[*platformdataprivacy.Worker](i)
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(
@@ -69,31 +71,35 @@ func run(ctx context.Context, cfg *config.SchedulerConfig) error {
 	)
 
 	// None of these Runs takes a context, on purpose: tied to a server context they would stop
-	// mid-job, mid-publish, mid-saga, and mid-delivery the instant that context was canceled,
-	// which is the worst moment to stop. Close is the stop signal, and it lets in-flight work
-	// finish.
+	// mid-job, mid-publish, mid-saga, mid-delivery, and mid-erasure the instant that context
+	// was canceled, which is the worst moment to stop. Close is the stop signal, and it lets
+	// in-flight work finish.
 	go scheduler.Run()
 	go relay.Run()
 	go sagaWorker.Run()
 	go webhookWorker.Run()
+	go dataPrivacyWorker.Run()
 
 	<-signalChan
 
 	closeCtx, cancel := context.WithTimeout(ctx, drainTimeout)
 	defer cancel()
 
-	// All four are closed even if an earlier one fails, so a scheduler that will not drain
+	// All five are closed even if an earlier one fails, so a scheduler that will not drain
 	// cannot leave the relay holding claims it is never going to publish, the saga worker
-	// holding leases on instances it is never going to advance, or the webhook worker holding
-	// leases on dispatches it is never going to deliver.
+	// holding leases on instances it is never going to advance, the webhook worker holding
+	// leases on dispatches it is never going to deliver, or the data privacy worker holding
+	// a lease on an erasure it is never going to run.
 	//
-	// The audit sweeper is not among them: it runs as a scheduled job rather than as a loop
-	// of its own, so the scheduler's own drain is what waits for a sweep in flight.
+	// The audit sweeper and the data privacy sweep are not among them: both run as scheduled
+	// jobs rather than loops of their own, so the scheduler's own drain is what waits for a
+	// sweep in flight.
 	return errors.Join(
 		wrapClose("scheduler", scheduler.Close(closeCtx)),
 		wrapClose("saga worker", sagaWorker.Close(closeCtx)),
 		wrapClose("outbox relay", relay.Close(closeCtx)),
 		wrapClose("webhook worker", webhookWorker.Close(closeCtx)),
+		wrapClose("data privacy worker", dataPrivacyWorker.Close(closeCtx)),
 	)
 }
 

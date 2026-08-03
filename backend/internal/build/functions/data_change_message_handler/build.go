@@ -12,7 +12,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 	commentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issue_reports "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
@@ -20,7 +19,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
-	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
@@ -64,7 +62,6 @@ func BuildInjector(
 	emailcfg.RegisterEmailer(i)
 	databasecfg.RegisterClientConfig(i)
 	postgres.RegisterDatabaseClient(i)
-	dataprivacycfg.RegisterReportArtifactStore(i)
 	notificationscfg.RegisterPushSender(i)
 
 	// Domain: mealplanning
@@ -75,7 +72,6 @@ func BuildInjector(
 	auth.RegisterAuthRepository(i)
 	commentsrepo.RegisterCommentsRepository(i)
 	paymentsrepo.RegisterPaymentsRepository(i)
-	dataprivacy.RegisterDataPrivacyRepository(i)
 	identity.RegisterIdentityRepository(i)
 	issue_reports.RegisterIssueReportsRepository(i)
 	uploadedmedia.RegisterUploadedMediaRepository(i)

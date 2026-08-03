@@ -10,6 +10,6 @@ service DataPrivacyService {
   rpc AggregateUserDataReport(AggregateUserDataReportRequest) returns (AggregateUserDataReportResponse);
   rpc DestroyAllUserData(DestroyAllUserDataRequest) returns (DestroyAllUserDataResponse);
   rpc FetchUserDataReport(FetchUserDataReportRequest) returns (FetchUserDataReportResponse);
-  rpc GetUserDataDisclosure(GetUserDataDisclosureRequest) returns (GetUserDataDisclosureResponse);
-  rpc ListUserDataDisclosures(ListUserDataDisclosuresRequest) returns (ListUserDataDisclosuresResponse);
+  rpc GetDataPrivacyRequest(GetDataPrivacyRequestRequest) returns (GetDataPrivacyRequestResponse);
+  rpc ListDataPrivacyRequests(ListDataPrivacyRequestsRequest) returns (ListDataPrivacyRequestsResponse);
 }

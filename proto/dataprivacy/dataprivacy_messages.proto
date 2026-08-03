@@ -2,44 +2,62 @@ syntax = "proto3";
 
 package dataprivacy;
 
-import "audit/audit_messages.proto";
-import "comments/comments_messages.proto";
 import "google/protobuf/timestamp.proto";
-import "identity/identity_messages.proto";
-import "issue_reports/issue_reports_messages.proto";
-import "mealplanning/mealplanning_messages.proto";
-import "notifications/notifications_messages.proto";
-import "payments/payments_messages.proto";
-import "settings/settings_messages.proto";
-import "uploaded_media/uploaded_media_messages.proto";
-import "waitlists/waitlists_messages.proto";
-import "webhooks/webhooks_messages.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy";
 
-message UserDataCollection {
-  string report_id = 1;
-  identity.DataCollection identity_data_collection = 2;
-  settings.DataCollection settings_data_collection = 3;
-  webhooks.DataCollection webhooks_data_collection = 4;
-  mealplanning.DataCollection meal_planning_data_collection = 5;
-  notifications.DataCollection notifications_data_collection = 6;
-  repeated audit.AuditLogEntry audit_log_entries = 7;
-  repeated issue_reports.IssueReport issue_reports = 8;
-  repeated uploaded_media.UploadedMedia uploaded_media = 9;
-  repeated waitlists.WaitlistSignup waitlist_signups = 10;
-  payments.DataCollection payments_data_collection = 11;
-  repeated comments.Comment comments = 12;
-}
-
-message UserDataDisclosure {
+// DataPrivacyRequest is one GDPR/CCPA export or erasure and everything known about how it went.
+//
+// It replaces UserDataDisclosure, and the twelve-field UserDataCollection message that used to
+// sit beside it. That message named every domain in the application, so adding a domain meant
+// editing it, regenerating three client languages, and shipping all of it together. An export's
+// contents are now opaque JSON delivered by FetchUserDataReport, and this message describes the
+// request rather than its payload — which is the part a client actually renders.
+message DataPrivacyRequest {
   string id = 1;
-  string belongs_to_user = 2;
-  string status = 3;
-  string report_id = 4;
-  google.protobuf.Timestamp created_at = 5;
-  google.protobuf.Timestamp expires_at = 6;
-  optional google.protobuf.Timestamp last_updated_at = 7;
+
+  // subject_id is the user the request is about.
+  string subject_id = 2;
+
+  // request_type is "export" or "erasure".
+  string request_type = 3;
+
+  // status is one of: awaiting_confirmation, pending, processing, completed, failed, expired,
+  // cancelled. Only completed exports have a retrievable artifact, and only until expires_at.
+  string status = 4;
+
+  // requested_at is when the statutory clock started. It is never rewritten, not by a
+  // confirmation and not by a retry.
+  google.protobuf.Timestamp requested_at = 5;
+
+  // due_at is when the response is legally owed, stamped at submission from the configured
+  // response window for the request type.
+  google.protobuf.Timestamp due_at = 6;
+
+  // expires_at is when a completed export's artifact is deleted. Absent for an erasure.
+  optional google.protobuf.Timestamp expires_at = 7;
+
   optional google.protobuf.Timestamp completed_at = 8;
-  optional google.protobuf.Timestamp archived_at = 9;
+
+  // failures names the sections that could not be collected, against the reason. A completed
+  // export with entries here is a partial export: the artifact was still delivered, and its
+  // manifest names these same sections as missing. A client showing "completed" over three
+  // missing sections is misleading somebody who has thirty days to complain about it.
+  map<string, string> failures = 9;
+
+  // retained records, per eraser, what an erasure kept and the basis for keeping it.
+  map<string, string> retained = 10;
+
+  // deleted and anonymized are the erasure totals across every domain.
+  int64 deleted = 11;
+  int64 anonymized = 12;
+
+  // artifact_bytes is the stored size of an export artifact, after compression and encryption.
+  int64 artifact_bytes = 13;
+
+  // attempts is how many times a worker has claimed this request.
+  int32 attempts = 14;
+
+  // last_error is why a failed request failed.
+  string last_error = 15;
 }

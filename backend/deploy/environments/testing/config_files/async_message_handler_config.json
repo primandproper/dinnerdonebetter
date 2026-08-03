@@ -4,30 +4,7 @@
 		"dataChangesTopicName": "data_changes",
 		"outboundEmailsTopicName": "outbound_emails",
 		"searchIndexRequestsTopicName": "search_index_requests",
-		"mobileNotificationsTopicName": "mobile_notifications",
-		"userDataAggregationTopicName": "user_data_aggregation_requests"
-	},
-	"dataPrivacy": {
-		"encryption": {
-			"provider": "salsa20"
-		},
-		"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
-		"uploads": {
-			"storageConfig": {
-				"filesystem": {
-					"rootDirectory": "/tmp",
-					"directoryMode": "0o0"
-				},
-				"bucketName": "userdata",
-				"provider": "filesystem",
-				"circuitBreakerConfig": {
-					"name": "",
-					"circuitBreakerErrorPercentage": 0,
-					"circuitBreakerMinimumOccurrenceThreshold": 0
-				}
-			},
-			"debug": false
-		}
+		"mobileNotificationsTopicName": "mobile_notifications"
 	},
 	"pushNotifications": {
 		"apns": null,
@@ -95,17 +72,6 @@
 			"service_name": "async_message_handler"
 		}
 	},
-	"analytics": {
-		"proxySources": null,
-		"segment": null,
-		"posthog": null,
-		"provider": "noop",
-		"circuitBreaker": {
-			"name": "feature_flagger",
-			"circuitBreakerErrorPercentage": 0.5,
-			"circuitBreakerMinimumOccurrenceThreshold": 100
-		}
-	},
 	"email": {
 		"sendgrid": null,
 		"mailgun": null,
@@ -118,6 +84,17 @@
 			"name": "",
 			"circuitBreakerErrorPercentage": 0,
 			"circuitBreakerMinimumOccurrenceThreshold": 0
+		}
+	},
+	"analytics": {
+		"proxySources": null,
+		"segment": null,
+		"posthog": null,
+		"provider": "noop",
+		"circuitBreaker": {
+			"name": "feature_flagger",
+			"circuitBreakerErrorPercentage": 0.5,
+			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
 	},
 	"search": {
@@ -202,19 +179,6 @@
 			},
 			"concurrency": 8,
 			"handlerTimeout": 30000000000
-		},
-		"userDataAggregation": {
-			"topic": "",
-			"retry": {
-				"provider": "",
-				"maxAttempts": 2,
-				"initialDelay": 100000000,
-				"maxDelay": 5000000000,
-				"multiplier": 2,
-				"useJitter": true
-			},
-			"concurrency": 1,
-			"handlerTimeout": 600000000000
 		},
 		"mobileNotifications": {
 			"topic": "",

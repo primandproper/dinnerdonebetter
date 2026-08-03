@@ -4,7 +4,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
-	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"
@@ -21,10 +20,6 @@ import (
 
 // RegisterConfigs registers all config sub-fields with the injector.
 func RegisterConfigs(i do.Injector) {
-	do.Provide[*dataprivacycfg.Config](i, func(i do.Injector) (*dataprivacycfg.Config, error) {
-		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
-		return &cfg.DataPrivacy, nil
-	})
 	do.Provide[*queuescfg.Config](i, func(i do.Injector) (*queuescfg.Config, error) {
 		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
 		return &cfg.Queues, nil

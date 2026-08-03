@@ -3,13 +3,15 @@ package keys
 const (
 	idSuffix = ".id"
 
-	// UserDataAggregationReportIDKey is the standard key for referring to a user data aggregation report.
-	UserDataAggregationReportIDKey = "user_data_aggregation_report" + idSuffix
+	// RequestIDKey is the standard key for referring to a data privacy request — an
+	// export or an erasure — by ID.
+	//
+	// One key where there were two. The old model had a disclosure ID naming a row and
+	// a report ID naming an object, and a log line carrying one told you nothing about
+	// the other. A request is now a single row that owns its artifact, so there is one
+	// identifier to correlate on.
+	RequestIDKey = "data_privacy_request" + idSuffix
 
-	// UserDataDisclosureIDKey is the standard key for referring to a user data disclosure.
-	UserDataDisclosureIDKey = "user_data_disclosure" + idSuffix
-
-	// UserDataDisclosureArtifactPathKey is the standard key for referring to the object storage
-	// path of a user data disclosure's report artifact.
-	UserDataDisclosureArtifactPathKey = "user_data_disclosure.artifact_path"
+	// RequestTypeKey distinguishes an export from an erasure.
+	RequestTypeKey = "data_privacy_request.type"
 )

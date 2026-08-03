@@ -1525,22 +1525,6 @@ public struct Identity_UserCreationResponse: Sendable {
   fileprivate var _birthday: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 }
 
-public struct Identity_UserDataAggregationRequest: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var requestID: String = String()
-
-  public var reportID: String = String()
-
-  public var userID: String = String()
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
-}
-
 public struct Identity_UserDetailsUpdateRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -3993,46 +3977,6 @@ extension Identity_UserCreationResponse: SwiftProtobuf.Message, SwiftProtobuf._M
     if lhs.twoFactorSecret != rhs.twoFactorSecret {return false}
     if lhs.firstName != rhs.firstName {return false}
     if lhs.lastName != rhs.lastName {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension Identity_UserDataAggregationRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".UserDataAggregationRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}request_id\0\u{3}report_id\0\u{3}user_id\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.requestID) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self.reportID) }()
-      case 3: try { try decoder.decodeSingularStringField(value: &self.userID) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.requestID.isEmpty {
-      try visitor.visitSingularStringField(value: self.requestID, fieldNumber: 1)
-    }
-    if !self.reportID.isEmpty {
-      try visitor.visitSingularStringField(value: self.reportID, fieldNumber: 2)
-    }
-    if !self.userID.isEmpty {
-      try visitor.visitSingularStringField(value: self.userID, fieldNumber: 3)
-    }
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Identity_UserDataAggregationRequest, rhs: Identity_UserDataAggregationRequest) -> Bool {
-    if lhs.requestID != rhs.requestID {return false}
-    if lhs.reportID != rhs.reportID {return false}
-    if lhs.userID != rhs.userID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

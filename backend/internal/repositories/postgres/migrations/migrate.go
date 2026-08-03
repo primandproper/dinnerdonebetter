@@ -6,10 +6,12 @@ import (
 	"strings"
 
 	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
 	auditmigrations "github.com/primandproper/platform-go/v9/audit/migrations"
 	"github.com/primandproper/platform-go/v9/database/dialect"
 	"github.com/primandproper/platform-go/v9/database/migrate"
+	dataprivacymigrations "github.com/primandproper/platform-go/v9/dataprivacy/migrations"
 	"github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/outbox"
@@ -38,10 +40,11 @@ const lockKey = "dinnerdonebetter"
 // filename and must never be renumbered once applied. Adding another means taking the next
 // free number, whichever side it comes from.
 const (
-	outboxMigrationVersion   = 22
-	sagaMigrationVersion     = 24
-	webhooksMigrationVersion = 25
-	auditMigrationVersion    = 27
+	outboxMigrationVersion      = 22
+	sagaMigrationVersion        = 24
+	webhooksMigrationVersion    = 25
+	auditMigrationVersion       = 27
+	dataPrivacyMigrationVersion = 28
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -82,6 +85,16 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, errors.Wrap(err, "rendering webhooks migration")
 	}
 
+	// And the data privacy request table, which is one row per export or erasure —
+	// replacing user_data_disclosures, whose partial indexes it also carries. The
+	// claim, expiry, and overdue predicates all depend on those being partial; copied
+	// by hand, they are how a sweep that should touch the backlog starts scanning
+	// every request the system has ever served.
+	dataPrivacyDDL, err := dataprivacymigrations.SQL(dialect.Postgres, ddbdataprivacy.TablePrefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "rendering data privacy migration")
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -91,6 +104,7 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithGeneratedMigration(sagaMigrationVersion, "create_saga_instances", sagaDDL),
 		migrate.WithGeneratedMigration(webhooksMigrationVersion, "create_webhooks_tables", webhooksDDL),
 		migrate.WithGeneratedMigration(auditMigrationVersion, "create_audit_tables", auditDDL),
+		migrate.WithGeneratedMigration(dataPrivacyMigrationVersion, "create_dataprivacy_requests", dataPrivacyDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")

@@ -6,409 +6,147 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
-import { AuditLogEntry } from '../audit/audit_messages';
-import { Comment } from '../comments/comments_messages';
 import { Timestamp } from '../google/protobuf/timestamp';
-import { DataCollection } from '../identity/identity_messages';
-import { IssueReport } from '../issue_reports/issue_reports_messages';
-import { DataCollection as DataCollection3 } from '../mealplanning/mealplanning_messages';
-import { DataCollection as DataCollection4 } from '../notifications/notifications_messages';
-import { DataCollection as DataCollection5 } from '../payments/payments_messages';
-import { DataCollection as DataCollection1 } from '../settings/settings_messages';
-import { UploadedMedia } from '../uploaded_media/uploaded_media_messages';
-import { WaitlistSignup } from '../waitlists/waitlists_messages';
-import { DataCollection as DataCollection2 } from '../webhooks/webhooks_messages';
 
 export const protobufPackage = 'dataprivacy';
 
-export interface UserDataCollection {
-  reportId: string;
-  identityDataCollection: DataCollection | undefined;
-  settingsDataCollection: DataCollection1 | undefined;
-  webhooksDataCollection: DataCollection2 | undefined;
-  mealPlanningDataCollection: DataCollection3 | undefined;
-  notificationsDataCollection: DataCollection4 | undefined;
-  auditLogEntries: AuditLogEntry[];
-  issueReports: IssueReport[];
-  uploadedMedia: UploadedMedia[];
-  waitlistSignups: WaitlistSignup[];
-  paymentsDataCollection: DataCollection5 | undefined;
-  comments: Comment[];
-}
-
-export interface UserDataDisclosure {
+/**
+ * DataPrivacyRequest is one GDPR/CCPA export or erasure and everything known about how it went.
+ *
+ * It replaces UserDataDisclosure, and the twelve-field UserDataCollection message that used to
+ * sit beside it. That message named every domain in the application, so adding a domain meant
+ * editing it, regenerating three client languages, and shipping all of it together. An export's
+ * contents are now opaque JSON delivered by FetchUserDataReport, and this message describes the
+ * request rather than its payload — which is the part a client actually renders.
+ */
+export interface DataPrivacyRequest {
   id: string;
-  belongsToUser: string;
+  /** subject_id is the user the request is about. */
+  subjectId: string;
+  /** request_type is "export" or "erasure". */
+  requestType: string;
+  /**
+   * status is one of: awaiting_confirmation, pending, processing, completed, failed, expired,
+   * cancelled. Only completed exports have a retrievable artifact, and only until expires_at.
+   */
   status: string;
-  reportId: string;
-  createdAt: Date | undefined;
-  expiresAt: Date | undefined;
-  lastUpdatedAt?: Date | undefined;
+  /**
+   * requested_at is when the statutory clock started. It is never rewritten, not by a
+   * confirmation and not by a retry.
+   */
+  requestedAt: Date | undefined;
+  /**
+   * due_at is when the response is legally owed, stamped at submission from the configured
+   * response window for the request type.
+   */
+  dueAt: Date | undefined;
+  /** expires_at is when a completed export's artifact is deleted. Absent for an erasure. */
+  expiresAt?: Date | undefined;
   completedAt?: Date | undefined;
-  archivedAt?: Date | undefined;
+  /**
+   * failures names the sections that could not be collected, against the reason. A completed
+   * export with entries here is a partial export: the artifact was still delivered, and its
+   * manifest names these same sections as missing. A client showing "completed" over three
+   * missing sections is misleading somebody who has thirty days to complain about it.
+   */
+  failures: { [key: string]: string };
+  /** retained records, per eraser, what an erasure kept and the basis for keeping it. */
+  retained: { [key: string]: string };
+  /** deleted and anonymized are the erasure totals across every domain. */
+  deleted: number;
+  anonymized: number;
+  /** artifact_bytes is the stored size of an export artifact, after compression and encryption. */
+  artifactBytes: number;
+  /** attempts is how many times a worker has claimed this request. */
+  attempts: number;
+  /** last_error is why a failed request failed. */
+  lastError: string;
 }
 
-function createBaseUserDataCollection(): UserDataCollection {
-  return {
-    reportId: '',
-    identityDataCollection: undefined,
-    settingsDataCollection: undefined,
-    webhooksDataCollection: undefined,
-    mealPlanningDataCollection: undefined,
-    notificationsDataCollection: undefined,
-    auditLogEntries: [],
-    issueReports: [],
-    uploadedMedia: [],
-    waitlistSignups: [],
-    paymentsDataCollection: undefined,
-    comments: [],
-  };
+export interface DataPrivacyRequest_FailuresEntry {
+  key: string;
+  value: string;
 }
 
-export const UserDataCollection: MessageFns<UserDataCollection> = {
-  encode(message: UserDataCollection, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.reportId !== '') {
-      writer.uint32(10).string(message.reportId);
-    }
-    if (message.identityDataCollection !== undefined) {
-      DataCollection.encode(message.identityDataCollection, writer.uint32(18).fork()).join();
-    }
-    if (message.settingsDataCollection !== undefined) {
-      DataCollection1.encode(message.settingsDataCollection, writer.uint32(26).fork()).join();
-    }
-    if (message.webhooksDataCollection !== undefined) {
-      DataCollection2.encode(message.webhooksDataCollection, writer.uint32(34).fork()).join();
-    }
-    if (message.mealPlanningDataCollection !== undefined) {
-      DataCollection3.encode(message.mealPlanningDataCollection, writer.uint32(42).fork()).join();
-    }
-    if (message.notificationsDataCollection !== undefined) {
-      DataCollection4.encode(message.notificationsDataCollection, writer.uint32(50).fork()).join();
-    }
-    for (const v of message.auditLogEntries) {
-      AuditLogEntry.encode(v!, writer.uint32(58).fork()).join();
-    }
-    for (const v of message.issueReports) {
-      IssueReport.encode(v!, writer.uint32(66).fork()).join();
-    }
-    for (const v of message.uploadedMedia) {
-      UploadedMedia.encode(v!, writer.uint32(74).fork()).join();
-    }
-    for (const v of message.waitlistSignups) {
-      WaitlistSignup.encode(v!, writer.uint32(82).fork()).join();
-    }
-    if (message.paymentsDataCollection !== undefined) {
-      DataCollection5.encode(message.paymentsDataCollection, writer.uint32(90).fork()).join();
-    }
-    for (const v of message.comments) {
-      Comment.encode(v!, writer.uint32(98).fork()).join();
-    }
-    return writer;
-  },
+export interface DataPrivacyRequest_RetainedEntry {
+  key: string;
+  value: string;
+}
 
-  decode(input: BinaryReader | Uint8Array, length?: number): UserDataCollection {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUserDataCollection();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.reportId = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.identityDataCollection = DataCollection.decode(reader, reader.uint32());
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.settingsDataCollection = DataCollection1.decode(reader, reader.uint32());
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
-
-          message.webhooksDataCollection = DataCollection2.decode(reader, reader.uint32());
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
-            break;
-          }
-
-          message.mealPlanningDataCollection = DataCollection3.decode(reader, reader.uint32());
-          continue;
-        }
-        case 6: {
-          if (tag !== 50) {
-            break;
-          }
-
-          message.notificationsDataCollection = DataCollection4.decode(reader, reader.uint32());
-          continue;
-        }
-        case 7: {
-          if (tag !== 58) {
-            break;
-          }
-
-          message.auditLogEntries.push(AuditLogEntry.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 8: {
-          if (tag !== 66) {
-            break;
-          }
-
-          message.issueReports.push(IssueReport.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 9: {
-          if (tag !== 74) {
-            break;
-          }
-
-          message.uploadedMedia.push(UploadedMedia.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 10: {
-          if (tag !== 82) {
-            break;
-          }
-
-          message.waitlistSignups.push(WaitlistSignup.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 11: {
-          if (tag !== 90) {
-            break;
-          }
-
-          message.paymentsDataCollection = DataCollection5.decode(reader, reader.uint32());
-          continue;
-        }
-        case 12: {
-          if (tag !== 98) {
-            break;
-          }
-
-          message.comments.push(Comment.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): UserDataCollection {
-    return {
-      reportId: isSet(object.reportId)
-        ? globalThis.String(object.reportId)
-        : isSet(object.report_id)
-          ? globalThis.String(object.report_id)
-          : '',
-      identityDataCollection: isSet(object.identityDataCollection)
-        ? DataCollection.fromJSON(object.identityDataCollection)
-        : isSet(object.identity_data_collection)
-          ? DataCollection.fromJSON(object.identity_data_collection)
-          : undefined,
-      settingsDataCollection: isSet(object.settingsDataCollection)
-        ? DataCollection1.fromJSON(object.settingsDataCollection)
-        : isSet(object.settings_data_collection)
-          ? DataCollection1.fromJSON(object.settings_data_collection)
-          : undefined,
-      webhooksDataCollection: isSet(object.webhooksDataCollection)
-        ? DataCollection2.fromJSON(object.webhooksDataCollection)
-        : isSet(object.webhooks_data_collection)
-          ? DataCollection2.fromJSON(object.webhooks_data_collection)
-          : undefined,
-      mealPlanningDataCollection: isSet(object.mealPlanningDataCollection)
-        ? DataCollection3.fromJSON(object.mealPlanningDataCollection)
-        : isSet(object.meal_planning_data_collection)
-          ? DataCollection3.fromJSON(object.meal_planning_data_collection)
-          : undefined,
-      notificationsDataCollection: isSet(object.notificationsDataCollection)
-        ? DataCollection4.fromJSON(object.notificationsDataCollection)
-        : isSet(object.notifications_data_collection)
-          ? DataCollection4.fromJSON(object.notifications_data_collection)
-          : undefined,
-      auditLogEntries: globalThis.Array.isArray(object?.auditLogEntries)
-        ? object.auditLogEntries.map((e: any) => AuditLogEntry.fromJSON(e))
-        : globalThis.Array.isArray(object?.audit_log_entries)
-          ? object.audit_log_entries.map((e: any) => AuditLogEntry.fromJSON(e))
-          : [],
-      issueReports: globalThis.Array.isArray(object?.issueReports)
-        ? object.issueReports.map((e: any) => IssueReport.fromJSON(e))
-        : globalThis.Array.isArray(object?.issue_reports)
-          ? object.issue_reports.map((e: any) => IssueReport.fromJSON(e))
-          : [],
-      uploadedMedia: globalThis.Array.isArray(object?.uploadedMedia)
-        ? object.uploadedMedia.map((e: any) => UploadedMedia.fromJSON(e))
-        : globalThis.Array.isArray(object?.uploaded_media)
-          ? object.uploaded_media.map((e: any) => UploadedMedia.fromJSON(e))
-          : [],
-      waitlistSignups: globalThis.Array.isArray(object?.waitlistSignups)
-        ? object.waitlistSignups.map((e: any) => WaitlistSignup.fromJSON(e))
-        : globalThis.Array.isArray(object?.waitlist_signups)
-          ? object.waitlist_signups.map((e: any) => WaitlistSignup.fromJSON(e))
-          : [],
-      paymentsDataCollection: isSet(object.paymentsDataCollection)
-        ? DataCollection5.fromJSON(object.paymentsDataCollection)
-        : isSet(object.payments_data_collection)
-          ? DataCollection5.fromJSON(object.payments_data_collection)
-          : undefined,
-      comments: globalThis.Array.isArray(object?.comments) ? object.comments.map((e: any) => Comment.fromJSON(e)) : [],
-    };
-  },
-
-  toJSON(message: UserDataCollection): unknown {
-    const obj: any = {};
-    if (message.reportId !== '') {
-      obj.reportId = message.reportId;
-    }
-    if (message.identityDataCollection !== undefined) {
-      obj.identityDataCollection = DataCollection.toJSON(message.identityDataCollection);
-    }
-    if (message.settingsDataCollection !== undefined) {
-      obj.settingsDataCollection = DataCollection1.toJSON(message.settingsDataCollection);
-    }
-    if (message.webhooksDataCollection !== undefined) {
-      obj.webhooksDataCollection = DataCollection2.toJSON(message.webhooksDataCollection);
-    }
-    if (message.mealPlanningDataCollection !== undefined) {
-      obj.mealPlanningDataCollection = DataCollection3.toJSON(message.mealPlanningDataCollection);
-    }
-    if (message.notificationsDataCollection !== undefined) {
-      obj.notificationsDataCollection = DataCollection4.toJSON(message.notificationsDataCollection);
-    }
-    if (message.auditLogEntries?.length) {
-      obj.auditLogEntries = message.auditLogEntries.map((e) => AuditLogEntry.toJSON(e));
-    }
-    if (message.issueReports?.length) {
-      obj.issueReports = message.issueReports.map((e) => IssueReport.toJSON(e));
-    }
-    if (message.uploadedMedia?.length) {
-      obj.uploadedMedia = message.uploadedMedia.map((e) => UploadedMedia.toJSON(e));
-    }
-    if (message.waitlistSignups?.length) {
-      obj.waitlistSignups = message.waitlistSignups.map((e) => WaitlistSignup.toJSON(e));
-    }
-    if (message.paymentsDataCollection !== undefined) {
-      obj.paymentsDataCollection = DataCollection5.toJSON(message.paymentsDataCollection);
-    }
-    if (message.comments?.length) {
-      obj.comments = message.comments.map((e) => Comment.toJSON(e));
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<UserDataCollection>, I>>(base?: I): UserDataCollection {
-    return UserDataCollection.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<UserDataCollection>, I>>(object: I): UserDataCollection {
-    const message = createBaseUserDataCollection();
-    message.reportId = object.reportId ?? '';
-    message.identityDataCollection =
-      object.identityDataCollection !== undefined && object.identityDataCollection !== null
-        ? DataCollection.fromPartial(object.identityDataCollection)
-        : undefined;
-    message.settingsDataCollection =
-      object.settingsDataCollection !== undefined && object.settingsDataCollection !== null
-        ? DataCollection1.fromPartial(object.settingsDataCollection)
-        : undefined;
-    message.webhooksDataCollection =
-      object.webhooksDataCollection !== undefined && object.webhooksDataCollection !== null
-        ? DataCollection2.fromPartial(object.webhooksDataCollection)
-        : undefined;
-    message.mealPlanningDataCollection =
-      object.mealPlanningDataCollection !== undefined && object.mealPlanningDataCollection !== null
-        ? DataCollection3.fromPartial(object.mealPlanningDataCollection)
-        : undefined;
-    message.notificationsDataCollection =
-      object.notificationsDataCollection !== undefined && object.notificationsDataCollection !== null
-        ? DataCollection4.fromPartial(object.notificationsDataCollection)
-        : undefined;
-    message.auditLogEntries = object.auditLogEntries?.map((e) => AuditLogEntry.fromPartial(e)) || [];
-    message.issueReports = object.issueReports?.map((e) => IssueReport.fromPartial(e)) || [];
-    message.uploadedMedia = object.uploadedMedia?.map((e) => UploadedMedia.fromPartial(e)) || [];
-    message.waitlistSignups = object.waitlistSignups?.map((e) => WaitlistSignup.fromPartial(e)) || [];
-    message.paymentsDataCollection =
-      object.paymentsDataCollection !== undefined && object.paymentsDataCollection !== null
-        ? DataCollection5.fromPartial(object.paymentsDataCollection)
-        : undefined;
-    message.comments = object.comments?.map((e) => Comment.fromPartial(e)) || [];
-    return message;
-  },
-};
-
-function createBaseUserDataDisclosure(): UserDataDisclosure {
+function createBaseDataPrivacyRequest(): DataPrivacyRequest {
   return {
     id: '',
-    belongsToUser: '',
+    subjectId: '',
+    requestType: '',
     status: '',
-    reportId: '',
-    createdAt: undefined,
+    requestedAt: undefined,
+    dueAt: undefined,
     expiresAt: undefined,
-    lastUpdatedAt: undefined,
     completedAt: undefined,
-    archivedAt: undefined,
+    failures: {},
+    retained: {},
+    deleted: 0,
+    anonymized: 0,
+    artifactBytes: 0,
+    attempts: 0,
+    lastError: '',
   };
 }
 
-export const UserDataDisclosure: MessageFns<UserDataDisclosure> = {
-  encode(message: UserDataDisclosure, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const DataPrivacyRequest: MessageFns<DataPrivacyRequest> = {
+  encode(message: DataPrivacyRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== '') {
       writer.uint32(10).string(message.id);
     }
-    if (message.belongsToUser !== '') {
-      writer.uint32(18).string(message.belongsToUser);
+    if (message.subjectId !== '') {
+      writer.uint32(18).string(message.subjectId);
+    }
+    if (message.requestType !== '') {
+      writer.uint32(26).string(message.requestType);
     }
     if (message.status !== '') {
-      writer.uint32(26).string(message.status);
+      writer.uint32(34).string(message.status);
     }
-    if (message.reportId !== '') {
-      writer.uint32(34).string(message.reportId);
+    if (message.requestedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.requestedAt), writer.uint32(42).fork()).join();
     }
-    if (message.createdAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(42).fork()).join();
+    if (message.dueAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.dueAt), writer.uint32(50).fork()).join();
     }
     if (message.expiresAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.expiresAt), writer.uint32(50).fork()).join();
-    }
-    if (message.lastUpdatedAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.lastUpdatedAt), writer.uint32(58).fork()).join();
+      Timestamp.encode(toTimestamp(message.expiresAt), writer.uint32(58).fork()).join();
     }
     if (message.completedAt !== undefined) {
       Timestamp.encode(toTimestamp(message.completedAt), writer.uint32(66).fork()).join();
     }
-    if (message.archivedAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.archivedAt), writer.uint32(74).fork()).join();
+    globalThis.Object.entries(message.failures).forEach(([key, value]: [string, string]) => {
+      DataPrivacyRequest_FailuresEntry.encode({ key: key as any, value }, writer.uint32(74).fork()).join();
+    });
+    globalThis.Object.entries(message.retained).forEach(([key, value]: [string, string]) => {
+      DataPrivacyRequest_RetainedEntry.encode({ key: key as any, value }, writer.uint32(82).fork()).join();
+    });
+    if (message.deleted !== 0) {
+      writer.uint32(88).int64(message.deleted);
+    }
+    if (message.anonymized !== 0) {
+      writer.uint32(96).int64(message.anonymized);
+    }
+    if (message.artifactBytes !== 0) {
+      writer.uint32(104).int64(message.artifactBytes);
+    }
+    if (message.attempts !== 0) {
+      writer.uint32(112).int32(message.attempts);
+    }
+    if (message.lastError !== '') {
+      writer.uint32(122).string(message.lastError);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): UserDataDisclosure {
+  decode(input: BinaryReader | Uint8Array, length?: number): DataPrivacyRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUserDataDisclosure();
+    const message = createBaseDataPrivacyRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -425,7 +163,7 @@ export const UserDataDisclosure: MessageFns<UserDataDisclosure> = {
             break;
           }
 
-          message.belongsToUser = reader.string();
+          message.subjectId = reader.string();
           continue;
         }
         case 3: {
@@ -433,7 +171,7 @@ export const UserDataDisclosure: MessageFns<UserDataDisclosure> = {
             break;
           }
 
-          message.status = reader.string();
+          message.requestType = reader.string();
           continue;
         }
         case 4: {
@@ -441,7 +179,7 @@ export const UserDataDisclosure: MessageFns<UserDataDisclosure> = {
             break;
           }
 
-          message.reportId = reader.string();
+          message.status = reader.string();
           continue;
         }
         case 5: {
@@ -449,7 +187,7 @@ export const UserDataDisclosure: MessageFns<UserDataDisclosure> = {
             break;
           }
 
-          message.createdAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          message.requestedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
         case 6: {
@@ -457,7 +195,7 @@ export const UserDataDisclosure: MessageFns<UserDataDisclosure> = {
             break;
           }
 
-          message.expiresAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          message.dueAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
         case 7: {
@@ -465,7 +203,7 @@ export const UserDataDisclosure: MessageFns<UserDataDisclosure> = {
             break;
           }
 
-          message.lastUpdatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          message.expiresAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
         case 8: {
@@ -481,7 +219,61 @@ export const UserDataDisclosure: MessageFns<UserDataDisclosure> = {
             break;
           }
 
-          message.archivedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          const entry9 = DataPrivacyRequest_FailuresEntry.decode(reader, reader.uint32());
+          if (entry9.value !== undefined) {
+            message.failures[entry9.key] = entry9.value;
+          }
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          const entry10 = DataPrivacyRequest_RetainedEntry.decode(reader, reader.uint32());
+          if (entry10.value !== undefined) {
+            message.retained[entry10.key] = entry10.value;
+          }
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.deleted = longToNumber(reader.int64());
+          continue;
+        }
+        case 12: {
+          if (tag !== 96) {
+            break;
+          }
+
+          message.anonymized = longToNumber(reader.int64());
+          continue;
+        }
+        case 13: {
+          if (tag !== 104) {
+            break;
+          }
+
+          message.artifactBytes = longToNumber(reader.int64());
+          continue;
+        }
+        case 14: {
+          if (tag !== 112) {
+            break;
+          }
+
+          message.attempts = reader.int32();
+          continue;
+        }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+
+          message.lastError = reader.string();
           continue;
         }
       }
@@ -493,94 +285,332 @@ export const UserDataDisclosure: MessageFns<UserDataDisclosure> = {
     return message;
   },
 
-  fromJSON(object: any): UserDataDisclosure {
+  fromJSON(object: any): DataPrivacyRequest {
     return {
       id: isSet(object.id) ? globalThis.String(object.id) : '',
-      belongsToUser: isSet(object.belongsToUser)
-        ? globalThis.String(object.belongsToUser)
-        : isSet(object.belongs_to_user)
-          ? globalThis.String(object.belongs_to_user)
+      subjectId: isSet(object.subjectId)
+        ? globalThis.String(object.subjectId)
+        : isSet(object.subject_id)
+          ? globalThis.String(object.subject_id)
+          : '',
+      requestType: isSet(object.requestType)
+        ? globalThis.String(object.requestType)
+        : isSet(object.request_type)
+          ? globalThis.String(object.request_type)
           : '',
       status: isSet(object.status) ? globalThis.String(object.status) : '',
-      reportId: isSet(object.reportId)
-        ? globalThis.String(object.reportId)
-        : isSet(object.report_id)
-          ? globalThis.String(object.report_id)
-          : '',
-      createdAt: isSet(object.createdAt)
-        ? fromJsonTimestamp(object.createdAt)
-        : isSet(object.created_at)
-          ? fromJsonTimestamp(object.created_at)
+      requestedAt: isSet(object.requestedAt)
+        ? fromJsonTimestamp(object.requestedAt)
+        : isSet(object.requested_at)
+          ? fromJsonTimestamp(object.requested_at)
+          : undefined,
+      dueAt: isSet(object.dueAt)
+        ? fromJsonTimestamp(object.dueAt)
+        : isSet(object.due_at)
+          ? fromJsonTimestamp(object.due_at)
           : undefined,
       expiresAt: isSet(object.expiresAt)
         ? fromJsonTimestamp(object.expiresAt)
         : isSet(object.expires_at)
           ? fromJsonTimestamp(object.expires_at)
           : undefined,
-      lastUpdatedAt: isSet(object.lastUpdatedAt)
-        ? fromJsonTimestamp(object.lastUpdatedAt)
-        : isSet(object.last_updated_at)
-          ? fromJsonTimestamp(object.last_updated_at)
-          : undefined,
       completedAt: isSet(object.completedAt)
         ? fromJsonTimestamp(object.completedAt)
         : isSet(object.completed_at)
           ? fromJsonTimestamp(object.completed_at)
           : undefined,
-      archivedAt: isSet(object.archivedAt)
-        ? fromJsonTimestamp(object.archivedAt)
-        : isSet(object.archived_at)
-          ? fromJsonTimestamp(object.archived_at)
-          : undefined,
+      failures: isObject(object.failures)
+        ? (globalThis.Object.entries(object.failures) as [string, any][]).reduce(
+            (acc: { [key: string]: string }, [key, value]: [string, any]) => {
+              acc[key] = globalThis.String(value);
+              return acc;
+            },
+            {},
+          )
+        : {},
+      retained: isObject(object.retained)
+        ? (globalThis.Object.entries(object.retained) as [string, any][]).reduce(
+            (acc: { [key: string]: string }, [key, value]: [string, any]) => {
+              acc[key] = globalThis.String(value);
+              return acc;
+            },
+            {},
+          )
+        : {},
+      deleted: isSet(object.deleted) ? globalThis.Number(object.deleted) : 0,
+      anonymized: isSet(object.anonymized) ? globalThis.Number(object.anonymized) : 0,
+      artifactBytes: isSet(object.artifactBytes)
+        ? globalThis.Number(object.artifactBytes)
+        : isSet(object.artifact_bytes)
+          ? globalThis.Number(object.artifact_bytes)
+          : 0,
+      attempts: isSet(object.attempts) ? globalThis.Number(object.attempts) : 0,
+      lastError: isSet(object.lastError)
+        ? globalThis.String(object.lastError)
+        : isSet(object.last_error)
+          ? globalThis.String(object.last_error)
+          : '',
     };
   },
 
-  toJSON(message: UserDataDisclosure): unknown {
+  toJSON(message: DataPrivacyRequest): unknown {
     const obj: any = {};
     if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.belongsToUser !== '') {
-      obj.belongsToUser = message.belongsToUser;
+    if (message.subjectId !== '') {
+      obj.subjectId = message.subjectId;
+    }
+    if (message.requestType !== '') {
+      obj.requestType = message.requestType;
     }
     if (message.status !== '') {
       obj.status = message.status;
     }
-    if (message.reportId !== '') {
-      obj.reportId = message.reportId;
+    if (message.requestedAt !== undefined) {
+      obj.requestedAt = message.requestedAt.toISOString();
     }
-    if (message.createdAt !== undefined) {
-      obj.createdAt = message.createdAt.toISOString();
+    if (message.dueAt !== undefined) {
+      obj.dueAt = message.dueAt.toISOString();
     }
     if (message.expiresAt !== undefined) {
       obj.expiresAt = message.expiresAt.toISOString();
     }
-    if (message.lastUpdatedAt !== undefined) {
-      obj.lastUpdatedAt = message.lastUpdatedAt.toISOString();
-    }
     if (message.completedAt !== undefined) {
       obj.completedAt = message.completedAt.toISOString();
     }
-    if (message.archivedAt !== undefined) {
-      obj.archivedAt = message.archivedAt.toISOString();
+    if (message.failures) {
+      const entries = globalThis.Object.entries(message.failures) as [string, string][];
+      if (entries.length > 0) {
+        obj.failures = {};
+        entries.forEach(([k, v]) => {
+          obj.failures[k] = v;
+        });
+      }
+    }
+    if (message.retained) {
+      const entries = globalThis.Object.entries(message.retained) as [string, string][];
+      if (entries.length > 0) {
+        obj.retained = {};
+        entries.forEach(([k, v]) => {
+          obj.retained[k] = v;
+        });
+      }
+    }
+    if (message.deleted !== 0) {
+      obj.deleted = Math.round(message.deleted);
+    }
+    if (message.anonymized !== 0) {
+      obj.anonymized = Math.round(message.anonymized);
+    }
+    if (message.artifactBytes !== 0) {
+      obj.artifactBytes = Math.round(message.artifactBytes);
+    }
+    if (message.attempts !== 0) {
+      obj.attempts = Math.round(message.attempts);
+    }
+    if (message.lastError !== '') {
+      obj.lastError = message.lastError;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UserDataDisclosure>, I>>(base?: I): UserDataDisclosure {
-    return UserDataDisclosure.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<DataPrivacyRequest>, I>>(base?: I): DataPrivacyRequest {
+    return DataPrivacyRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UserDataDisclosure>, I>>(object: I): UserDataDisclosure {
-    const message = createBaseUserDataDisclosure();
+  fromPartial<I extends Exact<DeepPartial<DataPrivacyRequest>, I>>(object: I): DataPrivacyRequest {
+    const message = createBaseDataPrivacyRequest();
     message.id = object.id ?? '';
-    message.belongsToUser = object.belongsToUser ?? '';
+    message.subjectId = object.subjectId ?? '';
+    message.requestType = object.requestType ?? '';
     message.status = object.status ?? '';
-    message.reportId = object.reportId ?? '';
-    message.createdAt = object.createdAt ?? undefined;
+    message.requestedAt = object.requestedAt ?? undefined;
+    message.dueAt = object.dueAt ?? undefined;
     message.expiresAt = object.expiresAt ?? undefined;
-    message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
     message.completedAt = object.completedAt ?? undefined;
-    message.archivedAt = object.archivedAt ?? undefined;
+    message.failures = (globalThis.Object.entries(object.failures ?? {}) as [string, string][]).reduce(
+      (acc: { [key: string]: string }, [key, value]: [string, string]) => {
+        if (value !== undefined) {
+          acc[key] = globalThis.String(value);
+        }
+        return acc;
+      },
+      {},
+    );
+    message.retained = (globalThis.Object.entries(object.retained ?? {}) as [string, string][]).reduce(
+      (acc: { [key: string]: string }, [key, value]: [string, string]) => {
+        if (value !== undefined) {
+          acc[key] = globalThis.String(value);
+        }
+        return acc;
+      },
+      {},
+    );
+    message.deleted = object.deleted ?? 0;
+    message.anonymized = object.anonymized ?? 0;
+    message.artifactBytes = object.artifactBytes ?? 0;
+    message.attempts = object.attempts ?? 0;
+    message.lastError = object.lastError ?? '';
+    return message;
+  },
+};
+
+function createBaseDataPrivacyRequest_FailuresEntry(): DataPrivacyRequest_FailuresEntry {
+  return { key: '', value: '' };
+}
+
+export const DataPrivacyRequest_FailuresEntry: MessageFns<DataPrivacyRequest_FailuresEntry> = {
+  encode(message: DataPrivacyRequest_FailuresEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.key !== '') {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== '') {
+      writer.uint32(18).string(message.value);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DataPrivacyRequest_FailuresEntry {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDataPrivacyRequest_FailuresEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.key = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.value = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DataPrivacyRequest_FailuresEntry {
+    return {
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
+      value: isSet(object.value) ? globalThis.String(object.value) : '',
+    };
+  },
+
+  toJSON(message: DataPrivacyRequest_FailuresEntry): unknown {
+    const obj: any = {};
+    if (message.key !== '') {
+      obj.key = message.key;
+    }
+    if (message.value !== '') {
+      obj.value = message.value;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DataPrivacyRequest_FailuresEntry>, I>>(
+    base?: I,
+  ): DataPrivacyRequest_FailuresEntry {
+    return DataPrivacyRequest_FailuresEntry.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DataPrivacyRequest_FailuresEntry>, I>>(
+    object: I,
+  ): DataPrivacyRequest_FailuresEntry {
+    const message = createBaseDataPrivacyRequest_FailuresEntry();
+    message.key = object.key ?? '';
+    message.value = object.value ?? '';
+    return message;
+  },
+};
+
+function createBaseDataPrivacyRequest_RetainedEntry(): DataPrivacyRequest_RetainedEntry {
+  return { key: '', value: '' };
+}
+
+export const DataPrivacyRequest_RetainedEntry: MessageFns<DataPrivacyRequest_RetainedEntry> = {
+  encode(message: DataPrivacyRequest_RetainedEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.key !== '') {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== '') {
+      writer.uint32(18).string(message.value);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DataPrivacyRequest_RetainedEntry {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDataPrivacyRequest_RetainedEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.key = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.value = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DataPrivacyRequest_RetainedEntry {
+    return {
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
+      value: isSet(object.value) ? globalThis.String(object.value) : '',
+    };
+  },
+
+  toJSON(message: DataPrivacyRequest_RetainedEntry): unknown {
+    const obj: any = {};
+    if (message.key !== '') {
+      obj.key = message.key;
+    }
+    if (message.value !== '') {
+      obj.value = message.value;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DataPrivacyRequest_RetainedEntry>, I>>(
+    base?: I,
+  ): DataPrivacyRequest_RetainedEntry {
+    return DataPrivacyRequest_RetainedEntry.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DataPrivacyRequest_RetainedEntry>, I>>(
+    object: I,
+  ): DataPrivacyRequest_RetainedEntry {
+    const message = createBaseDataPrivacyRequest_RetainedEntry();
+    message.key = object.key ?? '';
+    message.value = object.value ?? '';
     return message;
   },
 };
@@ -622,6 +652,21 @@ function fromJsonTimestamp(o: any): Date {
   } else {
     return fromTimestamp(Timestamp.fromJSON(o));
   }
+}
+
+function longToNumber(int64: { toString(): string }): number {
+  const num = globalThis.Number(int64.toString());
+  if (num > globalThis.Number.MAX_SAFE_INTEGER) {
+    throw new globalThis.Error('Value is larger than Number.MAX_SAFE_INTEGER');
+  }
+  if (num < globalThis.Number.MIN_SAFE_INTEGER) {
+    throw new globalThis.Error('Value is smaller than Number.MIN_SAFE_INTEGER');
+  }
+  return num;
+}
+
+function isObject(value: any): boolean {
+  return typeof value === 'object' && value !== null;
 }
 
 function isSet(value: any): boolean {
