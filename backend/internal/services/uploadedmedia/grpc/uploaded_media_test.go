@@ -12,16 +12,21 @@ import (
 	uploadedmediamock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/mock"
 	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
+	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
+	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
 	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v9/metering"
+	meteringmock "github.com/primandproper/platform-go/v9/metering/mock"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 	"github.com/primandproper/platform-go/v9/uploads"
 	mockuploads "github.com/primandproper/platform-go/v9/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -35,19 +40,37 @@ var (
 func buildTestService(t *testing.T) (*serviceImpl, *uploadedmediamock.RepositoryMock, *mockuploads.UploadManagerMock) {
 	t.Helper()
 
+	service, repo, uploadManager, _ := buildTestServiceWithRecorder(t)
+
+	return service, repo, uploadManager
+}
+
+// buildTestServiceWithRecorder is buildTestService with the usage recorder handed back, for the
+// tests that care what got metered.
+//
+// The recorder accepts everything by default. Upload counts bytes after the file and its row are
+// already committed, so a recorder that failed would be testing the swallow rather than the
+// count — see recordUploadUsage.
+func buildTestServiceWithRecorder(t *testing.T) (*serviceImpl, *uploadedmediamock.RepositoryMock, *mockuploads.UploadManagerMock, *meteringmock.RecorderMock) {
+	t.Helper()
+
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
 	uploadedMediaRepo := &uploadedmediamock.RepositoryMock{}
 	uploadManager := &mockuploads.UploadManagerMock{}
+	usageRecorder := &meteringmock.RecorderMock{
+		RecordFunc: func(context.Context, ...metering.Usage) error { return nil },
+	}
 
 	service := &serviceImpl{
 		tracer:               tracer,
 		logger:               logger,
 		uploadedMediaManager: uploadedMediaRepo,
 		uploadManager:        uploadManager,
+		usageRecorder:        usageRecorder,
 	}
 
-	return service, uploadedMediaRepo, uploadManager
+	return service, uploadedMediaRepo, uploadManager, usageRecorder
 }
 
 // mockUploadStream is a fake upload stream. Recv yields queued messages in order and then
@@ -830,7 +853,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		service, mockRepo, mockUploadMgr := buildTestService(t)
+		service, mockRepo, mockUploadMgr, usageRecorder := buildTestServiceWithRecorder(t)
 
 		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
 		fakeUploadedMedia.MimeType = uploadedmedia.MimeTypeImagePNG
@@ -886,6 +909,50 @@ func TestServiceImpl_Upload(t *testing.T) {
 		// Assert
 		assert.NoError(t, err)
 		assert.Len(t, mockRepo.CreateUploadedMediaCalls(), 1)
+
+		// The bytes are counted against the account, keyed by the row that was created —
+		// not by anything request-scoped, because a retried upload stores a second object
+		// and is genuinely a second charge.
+		require.Len(t, usageRecorder.RecordCalls(), 1)
+		require.Len(t, usageRecorder.RecordCalls()[0].U, 1)
+
+		usage := usageRecorder.RecordCalls()[0].U[0]
+		assert.Equal(t, appmetering.UploadedMediaBytesMeter, usage.Meter)
+		assert.Equal(t, testAccountID, usage.Subject)
+		assert.Equal(t, fakeUploadedMedia.ID, usage.IdempotencyKey)
+		assert.Equal(t, int64(len(chunk1)+len(chunk2)), usage.Quantity)
+		assert.Equal(t, uploadedmedia.MimeTypeImagePNG, usage.Dimensions["mime_type"])
+	})
+
+	t.Run("a failed usage record does not fail the upload", func(t *testing.T) {
+		t.Parallel()
+
+		// The file is in the bucket and its row is in the database before the meter is
+		// touched, so failing here would tell the client an upload did not happen that did.
+		service, mockRepo, mockUploadMgr, usageRecorder := buildTestServiceWithRecorder(t)
+
+		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
+
+		mockStream := &mockUploadStream{ctx: buildSessionContextForTest(t)}
+		mockStream.recvQueue = []*uploadedmediasvc.UploadRequest{
+			{Payload: &uploadedmediasvc.UploadRequest_Metadata{Metadata: &uploadedmediasvc.UploadMetadata{
+				Bucket:      "test-bucket",
+				ObjectName:  "test-file.png",
+				ContentType: uploadedmedia.MimeTypeImagePNG,
+			}}},
+			{Payload: &uploadedmediasvc.UploadRequest_Chunk{Chunk: []byte("test file content")}},
+		}
+
+		mockUploadMgr.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
+		mockRepo.CreateUploadedMediaFunc = func(_ context.Context, _ *uploadedmedia.UploadedMediaDatabaseCreationInput) (*uploadedmedia.UploadedMedia, error) {
+			return fakeUploadedMedia, nil
+		}
+		usageRecorder.RecordFunc = func(context.Context, ...metering.Usage) error {
+			return platformerrors.New("blah")
+		}
+
+		assert.NoError(t, service.Upload(mockStream))
+		assert.Len(t, usageRecorder.RecordCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {

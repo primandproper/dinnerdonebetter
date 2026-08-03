@@ -13,6 +13,8 @@ import (
 	"github.com/primandproper/platform-go/v9/database/migrate"
 	dataprivacymigrations "github.com/primandproper/platform-go/v9/dataprivacy/migrations"
 	"github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/metering"
+	meteringmigrations "github.com/primandproper/platform-go/v9/metering/migrations"
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/outbox"
 	outboxmigrations "github.com/primandproper/platform-go/v9/outbox/migrations"
@@ -45,6 +47,7 @@ const (
 	webhooksMigrationVersion    = 25
 	auditMigrationVersion       = 27
 	dataPrivacyMigrationVersion = 28
+	meteringMigrationVersion    = 29
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -64,6 +67,14 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 	outboxDDL, err := outboxmigrations.SQL(dialect.Postgres, outbox.DefaultTablePrefix)
 	if err != nil {
 		return nil, errors.Wrap(err, "rendering outbox migration")
+	}
+
+	// Likewise the metering event ledger and totals tables. The library owns that schema
+	// because its counting logic is inseparable from it — the ingest dedupe is a primary key,
+	// the concurrent fold is an UPDATE expression, and Consume's atomicity is a row lock.
+	meteringDDL, err := meteringmigrations.SQL(dialect.Postgres, metering.DefaultTablePrefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "rendering metering migration")
 	}
 
 	auditDDL, err := renderAuditDDL()
@@ -105,6 +116,7 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithGeneratedMigration(webhooksMigrationVersion, "create_webhooks_tables", webhooksDDL),
 		migrate.WithGeneratedMigration(auditMigrationVersion, "create_audit_tables", auditDDL),
 		migrate.WithGeneratedMigration(dataPrivacyMigrationVersion, "create_dataprivacy_requests", dataPrivacyDDL),
+		migrate.WithGeneratedMigration(meteringMigrationVersion, "create_metering_tables", meteringDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")

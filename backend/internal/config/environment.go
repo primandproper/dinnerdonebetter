@@ -17,6 +17,8 @@ import (
 	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
 	pglock "github.com/primandproper/platform-go/v9/distributedlock/postgres"
 	"github.com/primandproper/platform-go/v9/jobs"
+	"github.com/primandproper/platform-go/v9/metering"
+	meteringcfg "github.com/primandproper/platform-go/v9/metering/config"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/outbox"
 	retrycfg "github.com/primandproper/platform-go/v9/retry/config"
@@ -141,6 +143,22 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 			Timeout:  10 * time.Minute,
 			LeaseTTL: 20 * time.Minute,
 		},
+		// Every five minutes, which is the cadence the metering package recommends and the
+		// one its lease and timeout defaults are sized for. A pass claims a bounded batch,
+		// so a longer gap does not mean a bigger pass — it means a longer tail of usage
+		// the provider has not been told about, and a longer wait before a period that
+		// closed overnight is settled.
+		//
+		// LeaseTTL is well clear of the flusher's own FlushTimeout, and for the same
+		// reason that config validates the relation: two flushers posting the same total
+		// concurrently is the one duplicate charge an idempotency key cannot undo, because
+		// the two posts carry different sequence numbers.
+		MeteringFlusher: ScheduledJobConfig{
+			Enabled:  true,
+			Interval: 5 * time.Minute,
+			Timeout:  2 * time.Minute,
+			LeaseTTL: 10 * time.Minute,
+		},
 		// Domain: mealplanning
 		MealPlanning: defaultMealPlanningScheduledJobsConfig(),
 	}
@@ -170,6 +188,59 @@ func defaultAuditSweeperConfig() audit.SweeperConfig {
 		BatchSize:     audit.DefaultSweepBatchSize,
 		ScopeLimit:    audit.DefaultSweepScopeLimit,
 	}
+}
+
+// DefaultMeteringConfig returns the metering knobs every process shares.
+//
+// The values are the platform's own defaults, written out rather than left zero so that a
+// rendered config shows what a deployment is actually running — an empty object in a config file
+// says nothing about whether usage events are kept for a week or a quarter.
+func DefaultMeteringConfig() meteringcfg.Config {
+	cfg := meteringcfg.Config{
+		Recorder: metering.RecorderConfig{
+			BatchSize: metering.DefaultBatchSize,
+			// Drop and count a record naming an unregistered meter rather than
+			// returning an error to the write site. A deploy that adds a meter reaches
+			// the ingest path before it reaches every replica's wiring, and a Record
+			// that failed in that window would turn a rollout into an outage on a path
+			// that is supposed to be incidental to the request it rides on.
+			RejectUnknownMeters: false,
+		},
+		Enforcer: metering.EnforcerConfig{
+			CachePrefix: metering.DefaultCachePrefix,
+			Staleness:   metering.DefaultStaleness,
+			// Nothing is enforced yet, so this decides nothing today. Fail closed is
+			// the value to have inherited when that changes: a quota that guards spend
+			// and fails open during an outage bills us rather than the customer.
+			FailOpen: false,
+		},
+		Flusher: metering.FlusherConfig{
+			Backoff: retrycfg.Config{
+				MaxAttempts:  metering.DefaultMaxFlushAttempts,
+				InitialDelay: time.Second,
+				MaxDelay:     5 * time.Minute,
+				Multiplier:   2,
+				UseJitter:    true,
+			},
+			LeaseDuration: metering.DefaultFlushLeaseDuration,
+			FlushTimeout:  metering.DefaultFlushTimeout,
+			// Ninety days of the event ledger, which is what makes ingest idempotent
+			// for as long as anything could plausibly re-present a key: a dead-letter
+			// redelivery, a batch replayed by hand after a bad deploy. It is also the
+			// only record of what a total is made of when somebody disputes it.
+			EventRetention: metering.DefaultEventRetention,
+			BatchSize:      metering.DefaultFlushBatchSize,
+			Concurrency:    metering.DefaultFlushConcurrency,
+			MaxAttempts:    metering.DefaultMaxFlushAttempts,
+			ReapBatchSize:  metering.DefaultReapBatchSize,
+			DisableReap:    false,
+		},
+		TablePrefix: metering.DefaultTablePrefix,
+	}
+
+	cfg.EnsureDefaults()
+
+	return cfg
 }
 
 // defaultOutboxRelayConfig returns the relay's knobs.
@@ -402,6 +473,13 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 		// The same webhook configuration the API service writes with, so the worker
 		// claims from the tables the dispatch rows are written into.
 		Webhooks: s.RootConfig.Webhooks,
+		// Taken from the API server's config rather than rebuilt, so the tables the
+		// recorder writes are by construction the tables the flusher flushes.
+		Metering: s.RootConfig.Metering,
+		// Likewise the billing provider: the flusher posts through whichever one the
+		// payments service was configured with, so enabling real usage billing is one
+		// provider setting rather than two that can disagree.
+		Capitalism: s.RootConfig.Services.Payments.Capitalism,
 	}
 	schedulerConfig.Observability.Tracing.ServiceName = schedulerConfigObservabilityServiceName
 	schedulerConfig.Observability.Metrics.ServiceName = schedulerConfigObservabilityServiceName

@@ -15,11 +15,15 @@ import (
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
+	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
 	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v9/metering"
+	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/uploads"
 
 	"google.golang.org/grpc/codes"
@@ -180,6 +184,8 @@ func (s *serviceImpl) Upload(stream uploadedmediasvc.UploadedMediaService_Upload
 
 	logger = logger.WithValue(uploadedmediakeys.UploadedMediaIDKey, created.ID)
 
+	s.recordUploadUsage(ctx, sessionContextData.GetActiveAccountID(), created.ID, mimeType, totalSize, logger)
+
 	// Send response
 	response := &uploadedmediasvc.UploadResponse{
 		ObjectUrl: storagePath,
@@ -193,6 +199,40 @@ func (s *serviceImpl) Upload(stream uploadedmediasvc.UploadedMediaService_Upload
 	logger.Info("file uploaded successfully")
 
 	return nil
+}
+
+// recordUploadUsage counts the bytes an upload added against the account that owns it.
+//
+// A failure is logged and swallowed rather than returned. The file is already in the bucket and
+// its row is already in the database by the time this runs, so failing the call would tell the
+// client an upload did not happen that did — and nothing enforces this meter, so an uncounted
+// record costs a gap in a dashboard rather than a wrong invoice. The log line is what makes the
+// gap findable; the metering package's own dropped-record metric is what makes it alertable.
+//
+// The idempotency key is the uploaded media row's ID rather than a request ID, because that is
+// what is actually stable here. A client that retries a timed-out upload sends the bytes again,
+// gets a new ID, and stores a second object — genuinely new usage that a request-scoped key
+// would have deduped away into an object nobody is charged for.
+func (s *serviceImpl) recordUploadUsage(ctx context.Context, accountID, mediaID, mimeType string, sizeBytes int64, logger logging.Logger) {
+	ctx, span := s.tracer.StartSpan(ctx)
+	defer span.End()
+
+	if err := s.usageRecorder.Record(ctx, metering.Usage{
+		Subject:        accountID,
+		Meter:          appmetering.UploadedMediaBytesMeter,
+		Quantity:       sizeBytes,
+		IdempotencyKey: mediaID,
+		Dimensions: map[string]string{
+			// Stored against the event for later analysis and deliberately not part of
+			// the aggregate or of enforcement: the totals table answers "how much", and
+			// only the ledger can answer "how much of it was video". The cardinality is
+			// bounded because uploadedmedia.IsValidMimeType already refused everything
+			// outside a fixed set before this ran.
+			"mime_type": mimeType,
+		},
+	}); err != nil {
+		observability.AcknowledgeError(err, logger, span, "recording uploaded media usage")
+	}
 }
 
 func (s *serviceImpl) CreateUploadedMedia(ctx context.Context, request *uploadedmediasvc.CreateUploadedMediaRequest) (*uploadedmediasvc.CreateUploadedMediaResponse, error) {

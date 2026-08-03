@@ -20,6 +20,7 @@ import (
 	uploadedmediamanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/manager"
 	waitlistsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/manager"
 	webhooksmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/manager"
+	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	auditrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
@@ -107,6 +108,15 @@ func BuildInjector(
 	dataprivacycfg.RegisterRequestService(i)
 	featureflagscfg.RegisterFeatureFlagManager(i)
 	multisource.RegisterMultiSourceEventReporter(i)
+
+	// Usage metering. Only the ingest half runs here: the flusher that posts usage to a
+	// billing provider is a scheduled pass in the scheduler process. The enforcer is
+	// registered but nothing consults it yet — see its registration for what has to change
+	// before the first limit goes on.
+	appmetering.RegisterRegistry(i)
+	appmetering.RegisterStore(i)
+	appmetering.RegisterRecorder(i)
+	appmetering.RegisterEnforcer(i)
 
 	// authentication
 	authentication.RegisterAuth(i)

@@ -133,6 +133,7 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 	return &config.APIServiceConfig{
 		Webhooks: buildWebhooksConfig(),
 		Routing:  localRoutingConfig,
+		Metering: config.DefaultMeteringConfig(),
 		// Localdev has a Redis, so the record store is shared and the interceptor means
 		// something. Prod does not yet; see the prod config.
 		Idempotency: config.IdempotencyConfig{

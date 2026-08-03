@@ -4,6 +4,7 @@ import (
 	uploadedmediamanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/manager"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
+	"github.com/primandproper/platform-go/v9/metering"
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 	"github.com/primandproper/platform-go/v9/uploads"
@@ -23,6 +24,7 @@ func RegisterUploadedMediaService(i do.Injector) {
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[uploadedmediamanager.UploadedMediaManager](i),
 			do.MustInvoke[uploads.UploadManager](i),
+			do.MustInvoke[metering.Recorder](i),
 		), nil
 	})
 }

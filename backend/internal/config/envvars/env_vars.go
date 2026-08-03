@@ -91,6 +91,15 @@ const (
 	// BaseURLEnvVarKey is the environment variable name to set to override `APIServiceConfigBaseURL`.
 	BaseURLEnvVarKey = "DINNER_DONE_BETTER_BASE_URL"
 
+	// CapitalismProviderEnvVarKey is the environment variable name to set to override `SchedulerConfig.Capitalism.Provider`.
+	CapitalismProviderEnvVarKey = "DINNER_DONE_BETTER_CAPITALISM_PROVIDER"
+
+	// CapitalismStripeAPIKeyEnvVarKey is the environment variable name to set to override `SchedulerConfig.Capitalism.Stripe.APIKey`.
+	CapitalismStripeAPIKeyEnvVarKey = "DINNER_DONE_BETTER_CAPITALISM_STRIPE_API_KEY"
+
+	// CapitalismStripeWebhookSecretEnvVarKey is the environment variable name to set to override `SchedulerConfig.Capitalism.Stripe.WebhookSecret`.
+	CapitalismStripeWebhookSecretEnvVarKey = "DINNER_DONE_BETTER_CAPITALISM_STRIPE_WEBHOOK_SECRET"
+
 	// DataPrivacyArtifactEncryptionKeyEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.ArtifactEncryptionKey`.
 	DataPrivacyArtifactEncryptionKeyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACT_ENCRYPTION_KEY"
 
@@ -634,6 +643,24 @@ const (
 	// JobsMealPlanningMealPlanFinalizationStarterTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizationStarter.Timeout`.
 	JobsMealPlanningMealPlanFinalizationStarterTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZATION_STARTER_TIMEOUT"
 
+	// JobsMeteringFlusherEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MeteringFlusher.Enabled`.
+	JobsMeteringFlusherEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_METERING_FLUSHER_ENABLED"
+
+	// JobsMeteringFlusherIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MeteringFlusher.Interval`.
+	JobsMeteringFlusherIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_METERING_FLUSHER_INTERVAL"
+
+	// JobsMeteringFlusherLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MeteringFlusher.LeaseTTL`.
+	JobsMeteringFlusherLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_METERING_FLUSHER_LEASE_TTL"
+
+	// JobsMeteringFlusherRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MeteringFlusher.RunOnStart`.
+	JobsMeteringFlusherRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_METERING_FLUSHER_RUN_ON_START"
+
+	// JobsMeteringFlusherScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MeteringFlusher.Schedule`.
+	JobsMeteringFlusherScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_METERING_FLUSHER_SCHEDULE"
+
+	// JobsMeteringFlusherTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MeteringFlusher.Timeout`.
+	JobsMeteringFlusherTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_METERING_FLUSHER_TIMEOUT"
+
 	// JobsMobileNotificationSchedulerEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MobileNotificationScheduler.Enabled`.
 	JobsMobileNotificationSchedulerEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_ENABLED"
 
@@ -705,6 +732,66 @@ const (
 
 	// MetaRunModeEnvVarKey is the environment variable name to set to override `APIServiceConfig.Meta.RunMode`.
 	MetaRunModeEnvVarKey = "DINNER_DONE_BETTER_META_RUN_MODE"
+
+	// MeteringEnforcerCachePrefixEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Enforcer.CachePrefix`.
+	MeteringEnforcerCachePrefixEnvVarKey = "DINNER_DONE_BETTER_METERING_ENFORCER_CACHE_PREFIX"
+
+	// MeteringEnforcerFailOpenEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Enforcer.FailOpen`.
+	MeteringEnforcerFailOpenEnvVarKey = "DINNER_DONE_BETTER_METERING_ENFORCER_FAIL_OPEN"
+
+	// MeteringEnforcerStalenessEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Enforcer.Staleness`.
+	MeteringEnforcerStalenessEnvVarKey = "DINNER_DONE_BETTER_METERING_ENFORCER_STALENESS"
+
+	// MeteringFlusherBackoffInitialDelayEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Flusher.Backoff.InitialDelay`.
+	MeteringFlusherBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_BACKOFF_INITIAL_DELAY"
+
+	// MeteringFlusherBackoffMaxAttemptsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Flusher.Backoff.MaxAttempts`.
+	MeteringFlusherBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_BACKOFF_MAX_ATTEMPTS"
+
+	// MeteringFlusherBackoffMaxDelayEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Flusher.Backoff.MaxDelay`.
+	MeteringFlusherBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_BACKOFF_MAX_DELAY"
+
+	// MeteringFlusherBackoffMultiplierEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Flusher.Backoff.Multiplier`.
+	MeteringFlusherBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_BACKOFF_MULTIPLIER"
+
+	// MeteringFlusherBackoffProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Flusher.Backoff.Provider`.
+	MeteringFlusherBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_BACKOFF_PROVIDER"
+
+	// MeteringFlusherBackoffUseJitterEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Flusher.Backoff.UseJitter`.
+	MeteringFlusherBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_BACKOFF_USE_JITTER"
+
+	// MeteringFlusherBatchSizeEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Flusher.BatchSize`.
+	MeteringFlusherBatchSizeEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_BATCH_SIZE"
+
+	// MeteringFlusherConcurrencyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Flusher.Concurrency`.
+	MeteringFlusherConcurrencyEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_CONCURRENCY"
+
+	// MeteringFlusherDisableReapEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Flusher.DisableReap`.
+	MeteringFlusherDisableReapEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_DISABLE_REAP"
+
+	// MeteringFlusherEventRetentionEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Flusher.EventRetention`.
+	MeteringFlusherEventRetentionEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_EVENT_RETENTION"
+
+	// MeteringFlusherFlushTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Flusher.FlushTimeout`.
+	MeteringFlusherFlushTimeoutEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_FLUSH_TIMEOUT"
+
+	// MeteringFlusherLeaseDurationEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Flusher.LeaseDuration`.
+	MeteringFlusherLeaseDurationEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_LEASE_DURATION"
+
+	// MeteringFlusherMaxAttemptsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Flusher.MaxAttempts`.
+	MeteringFlusherMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_MAX_ATTEMPTS"
+
+	// MeteringFlusherReapBatchSizeEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Flusher.ReapBatchSize`.
+	MeteringFlusherReapBatchSizeEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_REAP_BATCH_SIZE"
+
+	// MeteringRecorderBatchSizeEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Recorder.BatchSize`.
+	MeteringRecorderBatchSizeEnvVarKey = "DINNER_DONE_BETTER_METERING_RECORDER_BATCH_SIZE"
+
+	// MeteringRecorderRejectUnknownMetersEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.Recorder.RejectUnknownMeters`.
+	MeteringRecorderRejectUnknownMetersEnvVarKey = "DINNER_DONE_BETTER_METERING_RECORDER_REJECT_UNKNOWN_METERS"
+
+	// MeteringTablePrefixEnvVarKey is the environment variable name to set to override `APIServiceConfig.Metering.TablePrefix`.
+	MeteringTablePrefixEnvVarKey = "DINNER_DONE_BETTER_METERING_TABLE_PREFIX"
 
 	// ObservabilityLoggingLevelEnvVarKey is the environment variable name to set to override `APIServiceConfig.Observability.Logging.Level`.
 	ObservabilityLoggingLevelEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_LOGGING_LEVEL"
