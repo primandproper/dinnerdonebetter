@@ -21,9 +21,11 @@ spec:
     spec:
       containers:
         - name: dinner-done-better-mcp-server
-          image: dinner-done-better-mcp-server
+          image: dinner-done-better-backend
           imagePullPolicy: Always
           args:
+            - "serve"
+            - "mcp"
             - "--transport=http"
           env:
             - name: "CONFIGURATION_FILEPATH"

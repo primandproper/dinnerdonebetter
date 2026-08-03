@@ -14,7 +14,7 @@ COPY internal internal
 COPY pkg pkg
 COPY scripts scripts
 
-RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg/mod ./scripts/build.sh -o /dinnerdonebetter github.com/primandproper/dinnerdonebetter/backend/cmd/services/api
+RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg/mod ./scripts/build.sh -o /dinnerdonebetter github.com/primandproper/dinnerdonebetter/backend/cmd/ddb
 
 # final stage
 FROM debian:bullseye

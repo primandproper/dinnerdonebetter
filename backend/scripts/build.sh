@@ -3,11 +3,13 @@ set -euo pipefail
 
 # Build packages. Two modes:
 # 1) Single binary with VCS ldflags: build.sh -o <output_path> <package>
-#    e.g. build.sh -o /server github.com/primandproper/dinnerdonebetter/backend/cmd/services/api
+#    e.g. build.sh -o /ddb github.com/primandproper/dinnerdonebetter/backend/cmd/ddb
 # 2) Build all packages (no VCS): build.sh <package_list>
 #    e.g. build.sh "$(go list ./...)"
 
-VERSION_PKG="github.com/primandproper/platform-go/v2/version"
+# Must track the platform-go major version the binary actually links, or every -X below silently
+# stamps a package that is not in the build and `ddb version` reports "unknown" forever.
+VERSION_PKG="github.com/primandproper/platform-go/v9/version"
 
 if [[ "${1:-}" == "-o" ]]; then
 	OUT="${2:?missing output path after -o}"

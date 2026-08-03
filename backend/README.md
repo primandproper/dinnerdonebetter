@@ -82,7 +82,7 @@ make test lint integration_tests
 | `make lint`              | Lint Go, SQL, containers, shell             |
 | `make integration_tests` | Run integration tests (Postgres)            |
 | `make format`            | Format Go and Terraform                     |
-| `make build-api`         | Build API binary to `artifacts/api`         |
+| `make build-ddb`         | Build the `ddb` binary to `artifacts/ddb`   |
 | `make proxy_db`          | Connect Cloud SQL Proxy to prod DB          |
 
 ---

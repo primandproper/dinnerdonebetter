@@ -340,9 +340,10 @@ Always regenerate code after schema changes.
 
 Everything in `cmd/` compiles to a binary:
 
-- `cmd/services/api/` - Main API server
-- `cmd/tools/codegen/` - Code generation utilities  
-- `cmd/workers/` - Background job processors
+- `cmd/ddb/` - The one deployed binary. The API server, MCP server, workers, jobs, and migrations
+  are all subcommands of it, so a release ships one image rather than one per workload. See
+  `cmd/ddb/README.md`.
+- `cmd/tools/` - Development-time tools (codegen, bootstrap, importers), never deployed.
 
 ## Getting Started
 

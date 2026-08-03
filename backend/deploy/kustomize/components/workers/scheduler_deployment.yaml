@@ -31,7 +31,10 @@ spec:
       terminationGracePeriodSeconds: 90
       containers:
         - name: dinner-done-better-scheduler
-          image: dinner-done-better-scheduler
+          image: dinner-done-better-backend
+          args:
+            - "worker"
+            - "scheduler"
           imagePullPolicy: Always
           env:
             - name: "CONFIGURATION_FILEPATH"
