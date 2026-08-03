@@ -109,6 +109,28 @@
 			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
 	},
+	"dataPrivacy": {
+		"encryption": {
+			"provider": "salsa20"
+		},
+		"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
+		"uploads": {
+			"storageConfig": {
+				"filesystem": {
+					"rootDirectory": "/tmp",
+					"directoryMode": "0o0"
+				},
+				"bucketName": "userdata",
+				"provider": "filesystem",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				}
+			},
+			"debug": false
+		}
+	},
 	"jobs": {
 		"scheduler": {
 			"lockKeyPrefix": "dinner_done_better.scheduler.",
@@ -204,28 +226,6 @@
 		"runMigrations": true,
 		"enableDatabaseMetrics": false
 	},
-	"dataPrivacy": {
-		"encryption": {
-			"provider": "salsa20"
-		},
-		"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
-		"uploads": {
-			"storageConfig": {
-				"filesystem": {
-					"rootDirectory": "/tmp",
-					"directoryMode": "0o0"
-				},
-				"bucketName": "userdata",
-				"provider": "filesystem",
-				"circuitBreakerConfig": {
-					"name": "",
-					"circuitBreakerErrorPercentage": 0,
-					"circuitBreakerMinimumOccurrenceThreshold": 0
-				}
-			},
-			"debug": false
-		}
-	},
 	"outbox": {
 		"tablePrefix": "",
 		"claimMode": "skip_locked",
@@ -243,6 +243,33 @@
 		"retention": 604800000000000,
 		"reapInterval": 3600000000000,
 		"reapBatchSize": 1000
+	},
+	"sagas": {
+		"lockKeyPrefix": "saga:instance:",
+		"idempotencyKeyPrefix": "saga:",
+		"backoff": {
+			"provider": "",
+			"maxAttempts": 3,
+			"initialDelay": 1000000000,
+			"maxDelay": 60000000000,
+			"multiplier": 2,
+			"useJitter": true
+		},
+		"compensationBackoff": {
+			"provider": "",
+			"maxAttempts": 10,
+			"initialDelay": 1000000000,
+			"maxDelay": 60000000000,
+			"multiplier": 2,
+			"useJitter": true
+		},
+		"pollInterval": 1000000000,
+		"leaseDuration": 600000000000,
+		"lockTTL": 600000000000,
+		"advanceTimeout": 300000000000,
+		"stepTimeout": 120000000000,
+		"batchSize": 10,
+		"concurrency": 4
 	},
 	"webhooks": {
 		"tablePrefix": "",
@@ -277,32 +304,5 @@
 			"maxIdleConnsPerHost": 100,
 			"enableTracing": false
 		}
-	},
-	"sagas": {
-		"lockKeyPrefix": "saga:instance:",
-		"idempotencyKeyPrefix": "saga:",
-		"backoff": {
-			"provider": "",
-			"maxAttempts": 3,
-			"initialDelay": 1000000000,
-			"maxDelay": 60000000000,
-			"multiplier": 2,
-			"useJitter": true
-		},
-		"compensationBackoff": {
-			"provider": "",
-			"maxAttempts": 10,
-			"initialDelay": 1000000000,
-			"maxDelay": 60000000000,
-			"multiplier": 2,
-			"useJitter": true
-		},
-		"pollInterval": 1000000000,
-		"leaseDuration": 600000000000,
-		"lockTTL": 600000000000,
-		"advanceTimeout": 300000000000,
-		"stepTimeout": 120000000000,
-		"batchSize": 10,
-		"concurrency": 4
 	}
 }

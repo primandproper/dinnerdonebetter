@@ -18,7 +18,7 @@ deprecate.
 ## The model
 
 | Thing | Where it lives | What it is |
-|---|---|---|
+| --- | --- | --- |
 | Webhook | `webhooks` | The account-facing record: name, URL, owner, account |
 | Trigger config | `webhook_trigger_configs` | One webhook's subscription to one event type |
 | Endpoint | `webhooks_endpoints` | The delivery record: URL, content type, signing secret |
@@ -34,7 +34,7 @@ platform-go's dispatcher has no tenant dimension — it delivers an event to eve
 subscribed to that type, which is wrong when a webhook belongs to an account. The account
 therefore travels inside the subscription's event type:
 
-```
+```text
 webhooks_subscriptions
   endpoint_id  | event_type
   wh_abc123    | acct_9f2:meal_plan_created
@@ -72,7 +72,7 @@ reaps delivered dispatches past the retention window, so retention needs no sepa
 Every request carries:
 
 | Header | Meaning |
-|---|---|
+| --- | --- |
 | `X-Platform-Signature` | `v1,t=<unix>,s=<hex>` — see below |
 | `X-Platform-Timestamp` | The signing timestamp, so you can reject a stale request before doing any HMAC work |
 | `X-Platform-Event` | The event type, so you can route without parsing the body |
