@@ -9,7 +9,11 @@ set -euo pipefail
 # to converge today, but the loop shape is the hazard, not the tool.
 
 MAX_PASSES="${1:-5}"
-TAG_ORDER="env,envDefault,envPrefix,json,mapstructure,toml,yaml"
+# Alphabetical, which is what tagalign's own sort falls back to for anything not named
+# here. Keeping the two in agreement is the point: a tag missing from this list gets
+# sorted to the end by the formatter and to its alphabetical place by the linter, so
+# `make format` and `make lint` would each undo the other.
+TAG_ORDER="audit,env,envDefault,envPrefix,json,mapstructure,toml,yaml"
 
 marker="$(mktemp)"
 # shellcheck disable=SC2064
