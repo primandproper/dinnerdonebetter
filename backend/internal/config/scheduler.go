@@ -38,45 +38,45 @@ type (
 	SchedulerConfig struct {
 		_ struct{} `json:"-"`
 
-		Queues queuescfg.Config `envPrefix:"QUEUES_" json:"queues"`
+		Queues queuescfg.Config `envPrefix:"QUEUES_" json:"queues,omitzero"`
 
 		// Capitalism is where the flusher's usage reporter comes from. It lives in this
 		// process rather than the API server's because usage reporting happens on a
 		// scheduler tick, and a request path has no business holding the credentials for
 		// it. A provider of "noop" is a supported deployment and the current one: usage
 		// accumulates durably and nothing reaches a billing provider.
-		Capitalism    capitalismcfg.Config `envPrefix:"CAPITALISM_"    json:"capitalism"`
-		Events        msgconfig.Config     `envPrefix:"EVENTS_"        json:"events"`
-		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability"`
-		Analytics     analyticscfg.Config  `envPrefix:"ANALYTICS_"     json:"analytics"`
-		Search        textsearchcfg.Config `envPrefix:"SEARCH_"        json:"search"`
+		Capitalism    capitalismcfg.Config `envPrefix:"CAPITALISM_"    json:"capitalism,omitzero"`
+		Events        msgconfig.Config     `envPrefix:"EVENTS_"        json:"events,omitzero"`
+		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability,omitzero"`
+		Analytics     analyticscfg.Config  `envPrefix:"ANALYTICS_"     json:"analytics,omitzero"`
+		Search        textsearchcfg.Config `envPrefix:"SEARCH_"        json:"search,omitzero"`
 
-		Jobs ScheduledJobsConfig `envPrefix:"JOBS_" json:"jobs"`
+		Jobs ScheduledJobsConfig `envPrefix:"JOBS_" json:"jobs,omitzero"`
 
 		// Audit carries the retention window for the audit log. It lives here for the
 		// same reason the outbox does — the sweeper is a background loop over the
 		// database — and it runs in exactly one process, unlike the Recorder, which runs
 		// wherever a mutation does.
-		Audit    audit.SweeperConfig `envPrefix:"AUDIT_"    json:"audit"`
-		Database dbcfg.Config        `envPrefix:"DATABASE_" json:"database"`
+		Audit    audit.SweeperConfig `envPrefix:"AUDIT_"    json:"audit,omitzero"`
+		Database dbcfg.Config        `envPrefix:"DATABASE_" json:"database,omitzero"`
 
 		// Outbox moves events written inside a caller's transaction onto the broker. It
 		// lives here because it is a background loop, which is what this process is for,
 		// and because it needs exactly what this process already has: the database and a
 		// publisher provider.
-		Outbox outbox.RelayConfig `envPrefix:"OUTBOX_" json:"outbox"`
+		Outbox outbox.RelayConfig `envPrefix:"OUTBOX_" json:"outbox,omitzero"`
 
 		// Sagas advances every durable saga instance this build knows how to run. It is the
 		// other half of the scheduled jobs that start them: a job writes an instance, this
 		// loop steps it through, and it polls in seconds rather than minutes because the
 		// poll interval is the floor on how long a step's delay costs.
-		Sagas saga.WorkerConfig `envPrefix:"SAGAS_" json:"sagas"`
+		Sagas saga.WorkerConfig `envPrefix:"SAGAS_" json:"sagas,omitzero"`
 
 		// Metering is the same struct the API server carries, because the flusher has to
 		// read the tables the API server's recorder wrote. Only the flusher half is used
 		// here; the recorder and enforcer knobs are carried anyway so the table prefix
 		// cannot drift between the process that counts and the process that bills.
-		Metering meteringcfg.Config `envPrefix:"METERING_" json:"metering"`
+		Metering meteringcfg.Config `envPrefix:"METERING_" json:"metering,omitzero"`
 
 		// Webhooks configures the outbound webhook delivery worker, which lives here for
 		// the same reasons the outbox relay does: it is a polling loop that must not be
@@ -84,7 +84,7 @@ type (
 		//
 		// Its own tick also reaps delivered dispatches and their attempts past the
 		// retention window, so retention needs no separate scheduled job.
-		Webhooks webhookscfg.Config `envPrefix:"WEBHOOKS_" json:"webhooks"`
+		Webhooks webhookscfg.Config `envPrefix:"WEBHOOKS_" json:"webhooks,omitzero"`
 
 		// DataPrivacy configures the fulfillment worker and the expiry sweep, both of
 		// which run here: the request table, the artifact bucket, and the cipher. It is
@@ -95,7 +95,7 @@ type (
 		// The async message handler no longer carries it. It stopped touching artifacts
 		// when aggregation moved off the queue, and a process holding an encryption key it
 		// has no use for is exposure with nothing on the other side of it.
-		DataPrivacy dataprivacycfg.Config `envPrefix:"DATA_PRIVACY_" json:"dataPrivacy"`
+		DataPrivacy dataprivacycfg.Config `envPrefix:"DATA_PRIVACY_" json:"dataPrivacy,omitzero"`
 	}
 
 	// ScheduledJobsConfig carries the scheduler's own knobs, the lock backend that serializes
@@ -103,22 +103,22 @@ type (
 	ScheduledJobsConfig struct {
 		_ struct{} `json:"-"`
 
-		Scheduler jobs.SchedulerConfig `envPrefix:"SCHEDULER_" json:"scheduler"`
+		Scheduler jobs.SchedulerConfig `envPrefix:"SCHEDULER_" json:"scheduler,omitzero"`
 
 		// Lock decides which replica runs a given tick. The noop locker acquires
 		// unconditionally, which means every replica runs every job — right for a
 		// single-replica deployment, wrong the moment it scales.
-		Lock distributedlockcfg.Config `envPrefix:"LOCK_" json:"lock"`
+		Lock distributedlockcfg.Config `envPrefix:"LOCK_" json:"lock,omitzero"`
 
-		SearchDataIndexScheduler    ScheduledJobConfig `envPrefix:"SEARCH_DATA_INDEX_SCHEDULER_"   json:"searchDataIndexScheduler"`
-		MobileNotificationScheduler ScheduledJobConfig `envPrefix:"MOBILE_NOTIFICATION_SCHEDULER_" json:"mobileNotificationScheduler"`
-		QueueTest                   ScheduledJobConfig `envPrefix:"QUEUE_TEST_"                    json:"queueTest"`
+		SearchDataIndexScheduler    ScheduledJobConfig `envPrefix:"SEARCH_DATA_INDEX_SCHEDULER_"   json:"searchDataIndexScheduler,omitzero"`
+		MobileNotificationScheduler ScheduledJobConfig `envPrefix:"MOBILE_NOTIFICATION_SCHEDULER_" json:"mobileNotificationScheduler,omitzero"`
+		QueueTest                   ScheduledJobConfig `envPrefix:"QUEUE_TEST_"                    json:"queueTest,omitzero"`
 
 		// DataPrivacySweep expires export artifacts, lapses unconfirmed erasures, and
 		// samples the overdue gauge. Disabling it does not pause expiry so much as
 		// abandon it: every artifact ever written — each one everything the system knows
 		// about one person — stays in the bucket and nothing else will ever delete it.
-		DataPrivacySweep ScheduledJobConfig `envPrefix:"DATA_PRIVACY_SWEEP_" json:"dataPrivacySweep"`
+		DataPrivacySweep ScheduledJobConfig `envPrefix:"DATA_PRIVACY_SWEEP_" json:"dataPrivacySweep,omitzero"`
 
 		// AuditRetentionSweeper prunes audit entries past the retention window in
 		// SchedulerConfig.Audit. Disabling it does not pause retention so much as
@@ -129,16 +129,16 @@ type (
 		// Sweeper is safe to run concurrently — it prunes a prefix of a chain inside a
 		// transaction — but every replica sweeping every hour is the same work done
 		// several times for one result, and it is work that deletes.
-		AuditRetentionSweeper ScheduledJobConfig `envPrefix:"AUDIT_RETENTION_SWEEPER_" json:"auditRetentionSweeper"`
+		AuditRetentionSweeper ScheduledJobConfig `envPrefix:"AUDIT_RETENTION_SWEEPER_" json:"auditRetentionSweeper,omitzero"`
 		// MeteringFlusher posts accumulated usage to the billing provider and reaps the
 		// usage event ledger past its retention. Disabling it stops neither the counting
 		// nor the totals it feeds — the recorder is in the API server — but the event
 		// ledger then grows without bound.
-		MeteringFlusher ScheduledJobConfig `envPrefix:"METERING_FLUSHER_" json:"meteringFlusher"`
+		MeteringFlusher ScheduledJobConfig `envPrefix:"METERING_FLUSHER_" json:"meteringFlusher,omitzero"`
 
 		// Domain: mealplanning — swapping the domain replaces this field and the type it
 		// names, and touches nothing else in this struct.
-		MealPlanning MealPlanningScheduledJobsConfig `envPrefix:"MEAL_PLANNING_" json:"mealPlanning"`
+		MealPlanning MealPlanningScheduledJobsConfig `envPrefix:"MEAL_PLANNING_" json:"mealPlanning,omitzero"`
 	}
 
 	// ScheduledJobConfig is one job's schedule. Exactly one of Schedule and Interval is set:
@@ -157,19 +157,19 @@ type (
 		//
 		// There is no catch-up. A fire time that passes while the process is down, or while
 		// the previous run is still going, is skipped rather than queued.
-		Schedule string `env:"SCHEDULE" json:"schedule"`
+		Schedule string `env:"SCHEDULE" json:"schedule,omitempty"`
 
 		// Interval is how often the job fires. Ticks are not queued: a job that overruns its
 		// interval fires again as soon as it finishes rather than accumulating a backlog.
-		Interval time.Duration `env:"INTERVAL" json:"interval"`
+		Interval time.Duration `env:"INTERVAL" json:"interval,omitempty"`
 
 		// Timeout bounds one execution.
-		Timeout time.Duration `env:"TIMEOUT" json:"timeout"`
+		Timeout time.Duration `env:"TIMEOUT" json:"timeout,omitempty"`
 
 		// LeaseTTL is how long the lock is held. It is not renewed while the job runs, so it
 		// must comfortably exceed the job's worst-case duration — past it, a second replica
 		// may start the same job.
-		LeaseTTL time.Duration `env:"LEASE_TTL" json:"leaseTTL"`
+		LeaseTTL time.Duration `env:"LEASE_TTL" json:"leaseTTL,omitempty"`
 
 		// Enabled registers the job. A disabled job is not registered at all rather than
 		// registered and skipped, so it costs nothing and reports nothing.
@@ -177,7 +177,7 @@ type (
 
 		// RunOnStart fires the job once at startup instead of waiting a full interval or for
 		// the schedule's next fire time.
-		RunOnStart bool `env:"RUN_ON_START" json:"runOnStart"`
+		RunOnStart bool `env:"RUN_ON_START" json:"runOnStart,omitempty"`
 	}
 )
 

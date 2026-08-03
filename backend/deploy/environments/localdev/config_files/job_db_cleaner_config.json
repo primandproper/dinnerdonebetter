@@ -2,9 +2,7 @@
 	"observability": {
 		"profiling": {
 			"pprof": {
-				"port": 6060,
-				"enableMutexProfile": false,
-				"enableBlockProfile": false
+				"port": 6060
 			},
 			"serviceName": "db_cleaner",
 			"provider": "pprof"
@@ -23,9 +21,7 @@
 			"otelgrpc": {
 				"metricsCollectorEndpoint": "otel_collector:4317",
 				"collectionInterval": 1000000000,
-				"insecure": true,
-				"enableRuntimeMetrics": false,
-				"enableHostMetrics": false
+				"insecure": true
 			},
 			"serviceName": "db_cleaner",
 			"provider": "otelgrpc",
@@ -70,7 +66,6 @@
 		"maxOpenConns": 7,
 		"debug": true,
 		"logQueries": true,
-		"runMigrations": true,
-		"enableDatabaseMetrics": false
+		"runMigrations": true
 	}
 }

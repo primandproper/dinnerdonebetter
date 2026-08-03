@@ -1,5 +1,4 @@
 {
-	"httpClient": null,
 	"queues": {
 		"dataChangesTopicName": "data_changes",
 		"outboundEmailsTopicName": "outbound_emails",
@@ -9,53 +8,24 @@
 	"pushNotifications": {
 		"apns": {
 			"authKeyPath": "/mnt/apns/apns-auth-key.p8",
-			"keyID": "",
 			"teamID": "K8R2Q5UWQS",
 			"bundleID": "com.dinnerdonebetter.ios",
 			"production": true
 		},
-		"fcm": {
-			"credentialsPath": ""
-		},
+		"fcm": {},
 		"provider": "apns_fcm"
 	},
-	"encoding": {
-		"contentType": ""
-	},
-	"baseURL": "",
 	"events": {
 		"consumer": {
-			"kafka": {
-				"groupId": "",
-				"brokers": null
-			},
 			"provider": "pubsub",
-			"sqs": {
-				"queueAddress": ""
-			},
 			"pubSub": {
 				"projectID": "dinner-done-better-prod"
-			},
-			"redis": {
-				"username": "",
-				"queueAddresses": null
 			}
 		},
 		"publisher": {
-			"kafka": {
-				"groupId": "",
-				"brokers": null
-			},
 			"provider": "pubsub",
-			"sqs": {
-				"queueAddress": ""
-			},
 			"pubSub": {
 				"projectID": "dinner-done-better-prod"
-			},
-			"redis": {
-				"username": "",
-				"queueAddresses": null
 			}
 		}
 	},
@@ -63,10 +33,7 @@
 		"profiling": {
 			"pyroscope": {
 				"serverAddress": "https://profiles-prod-001.grafana.net",
-				"uploadRate": 15000000000,
-				"insecure": false,
-				"enableMutexProfile": false,
-				"enableBlockProfile": false
+				"uploadRate": 15000000000
 			},
 			"serviceName": "async_message_handler",
 			"provider": "pyroscope"
@@ -104,14 +71,9 @@
 		}
 	},
 	"email": {
-		"sendgrid": null,
-		"mailgun": null,
-		"mailjet": null,
 		"resend": {
 			"apiToken": "placeholder"
 		},
-		"postmark": null,
-		"ses": null,
 		"provider": "resend",
 		"circuitBreakerConfig": {
 			"name": "prod_emailer",
@@ -122,10 +84,8 @@
 	"analytics": {
 		"proxySources": {
 			"ios": {
-				"segment": null,
 				"posthog": {
-					"apiKey": "placeholder",
-					"endpoint": ""
+					"apiKey": "placeholder"
 				},
 				"provider": "posthog",
 				"circuitBreaker": {
@@ -135,10 +95,8 @@
 				}
 			},
 			"web": {
-				"segment": null,
 				"posthog": {
-					"apiKey": "placeholder",
-					"endpoint": ""
+					"apiKey": "placeholder"
 				},
 				"provider": "posthog",
 				"circuitBreaker": {
@@ -148,10 +106,8 @@
 				}
 			}
 		},
-		"segment": null,
 		"posthog": {
-			"apiKey": "placeholder",
-			"endpoint": ""
+			"apiKey": "placeholder"
 		},
 		"provider": "posthog",
 		"circuitBreaker": {
@@ -163,10 +119,8 @@
 	"search": {
 		"algolia": {
 			"appID": "placeholder",
-			"writeAPIKey": "placeholder",
-			"timeout": 0
+			"writeAPIKey": "placeholder"
 		},
-		"elasticsearch": null,
 		"provider": "algolia",
 		"circuitBreakerConfig": {
 			"name": "prod_text_searcher",
@@ -178,40 +132,32 @@
 		"encryption": {
 			"provider": "salsa20"
 		},
-		"oauth2TokenEncryptionKey": "",
 		"provider": "postgres",
 		"readConnection": {
 			"username": "async_message_handler",
 			"password": "REPLACE_AT_DEPLOY",
 			"database": "dinner-done-better",
 			"hostname": "REPLACE_AT_DEPLOY",
-			"port": 5432,
-			"disableSSL": false
+			"port": 5432
 		},
 		"writeConnection": {
 			"username": "async_message_handler",
 			"password": "REPLACE_AT_DEPLOY",
 			"database": "dinner-done-better",
 			"hostname": "REPLACE_AT_DEPLOY",
-			"port": 5432,
-			"disableSSL": false
+			"port": 5432
 		},
 		"pingWaitPeriod": 1000000000,
 		"maxPingAttempts": 50,
 		"connMaxLifetime": 1800000000000,
 		"maxIdleConns": 5,
 		"maxOpenConns": 7,
-		"debug": false,
-		"logQueries": false,
-		"runMigrations": true,
-		"enableDatabaseMetrics": false
+		"runMigrations": true
 	},
 	"pools": {
 		"deadLetterTopicName": "dead_letter",
 		"dataChanges": {
-			"topic": "",
 			"retry": {
-				"provider": "",
 				"maxAttempts": 3,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,
@@ -222,9 +168,7 @@
 			"handlerTimeout": 30000000000
 		},
 		"outboundEmails": {
-			"topic": "",
 			"retry": {
-				"provider": "",
 				"maxAttempts": 4,
 				"initialDelay": 100000000,
 				"maxDelay": 30000000000,
@@ -235,9 +179,7 @@
 			"handlerTimeout": 30000000000
 		},
 		"searchIndexRequests": {
-			"topic": "",
 			"retry": {
-				"provider": "",
 				"maxAttempts": 3,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,
@@ -248,9 +190,7 @@
 			"handlerTimeout": 30000000000
 		},
 		"mobileNotifications": {
-			"topic": "",
 			"retry": {
-				"provider": "",
 				"maxAttempts": 3,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,

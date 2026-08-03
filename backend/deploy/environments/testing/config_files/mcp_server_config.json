@@ -28,8 +28,7 @@
 		"maxOpenConns": 7,
 		"debug": true,
 		"logQueries": true,
-		"runMigrations": true,
-		"enableDatabaseMetrics": false
+		"runMigrations": true
 	},
 	"routing": {
 		"chiConfig": {
@@ -48,16 +47,14 @@
 			"provider": "slog"
 		},
 		"metrics": {
-			"serviceName": "dinner_done_better_mcp_server",
-			"enabled": false
+			"serviceName": "dinner_done_better_mcp_server"
 		},
 		"tracing": {
 			"service_name": "dinner_done_better_mcp_server"
 		}
 	},
 	"meta": {
-		"runMode": "testing",
-		"debug": false
+		"runMode": "testing"
 	},
 	"http": {
 		"startupDeadline": 60000000000,

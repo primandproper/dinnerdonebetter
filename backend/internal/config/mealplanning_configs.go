@@ -22,7 +22,7 @@ type (
 		// list. It only claims plans and writes a saga instance for each; the saga worker does
 		// the pipeline, so this interval is the delay before a plan enters the pipeline rather
 		// than the delay before it comes out the other end.
-		MealPlanFinalizationStarter ScheduledJobConfig `envPrefix:"MEAL_PLAN_FINALIZATION_STARTER_" json:"mealPlanFinalizationStarter"`
+		MealPlanFinalizationStarter ScheduledJobConfig `envPrefix:"MEAL_PLAN_FINALIZATION_STARTER_" json:"mealPlanFinalizationStarter,omitzero"`
 	}
 )
 

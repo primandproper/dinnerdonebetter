@@ -18,10 +18,10 @@ type (
 	Config struct {
 		_ struct{} `json:"-" yaml:"-"`
 
-		DataChangesTopicName         string `env:"DATA_CHANGES_TOPIC_NAME"          json:"dataChangesTopicName"         yaml:"dataChangesTopicName"`
-		OutboundEmailsTopicName      string `env:"OUTBOUND_EMAILS_TOPIC_NAME"       json:"outboundEmailsTopicName"      yaml:"outboundEmailsTopicName"`
-		SearchIndexRequestsTopicName string `env:"SEARCH_INDEX_REQUESTS_TOPIC_NAME" json:"searchIndexRequestsTopicName" yaml:"searchIndexRequestsTopicName"`
-		MobileNotificationsTopicName string `env:"MOBILE_NOTIFICATIONS_TOPIC_NAME"  json:"mobileNotificationsTopicName" yaml:"mobileNotificationsTopicName"`
+		DataChangesTopicName         string `env:"DATA_CHANGES_TOPIC_NAME"          json:"dataChangesTopicName,omitempty"         yaml:"dataChangesTopicName,omitempty"`
+		OutboundEmailsTopicName      string `env:"OUTBOUND_EMAILS_TOPIC_NAME"       json:"outboundEmailsTopicName,omitempty"      yaml:"outboundEmailsTopicName,omitempty"`
+		SearchIndexRequestsTopicName string `env:"SEARCH_INDEX_REQUESTS_TOPIC_NAME" json:"searchIndexRequestsTopicName,omitempty" yaml:"searchIndexRequestsTopicName,omitempty"`
+		MobileNotificationsTopicName string `env:"MOBILE_NOTIFICATIONS_TOPIC_NAME"  json:"mobileNotificationsTopicName,omitempty" yaml:"mobileNotificationsTopicName,omitempty"`
 	}
 )
 

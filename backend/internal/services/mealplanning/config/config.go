@@ -12,9 +12,9 @@ import (
 type Config struct {
 	_ struct{} `json:"-"`
 
-	PublicMediaURLPrefix string            `env:"PUBLIC_MEDIA_URL_PREFIX" json:"mediaUploadPrefix"`
-	Uploads              uploadscfg.Config `envPrefix:"UPLOADS_"          json:"uploads"`
-	UseSearchService     bool              `env:"USE_SEARCH_SERVICE"      json:"useSearchService"`
+	PublicMediaURLPrefix string            `env:"PUBLIC_MEDIA_URL_PREFIX" json:"mediaUploadPrefix,omitempty"`
+	Uploads              uploadscfg.Config `envPrefix:"UPLOADS_"          json:"uploads,omitzero"`
+	UseSearchService     bool              `env:"USE_SEARCH_SERVICE"      json:"useSearchService,omitempty"`
 }
 
 var _ validation.ValidatableWithContext = (*Config)(nil)

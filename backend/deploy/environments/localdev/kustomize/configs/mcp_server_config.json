@@ -28,8 +28,7 @@
 		"maxOpenConns": 7,
 		"debug": true,
 		"logQueries": true,
-		"runMigrations": true,
-		"enableDatabaseMetrics": false
+		"runMigrations": true
 	},
 	"routing": {
 		"chiConfig": {
@@ -41,9 +40,7 @@
 	"observability": {
 		"profiling": {
 			"pprof": {
-				"port": 6060,
-				"enableMutexProfile": false,
-				"enableBlockProfile": false
+				"port": 6060
 			},
 			"serviceName": "dinner_done_better_mcp_server",
 			"provider": "pprof"
@@ -62,9 +59,7 @@
 			"otelgrpc": {
 				"metricsCollectorEndpoint": "otel_collector:4317",
 				"collectionInterval": 1000000000,
-				"insecure": true,
-				"enableRuntimeMetrics": false,
-				"enableHostMetrics": false
+				"insecure": true
 			},
 			"serviceName": "dinner_done_better_mcp_server",
 			"provider": "otelgrpc",

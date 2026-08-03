@@ -74,42 +74,46 @@ type (
 	// APIServiceConfig configures an instance of the service. It is composed of all the other setting structs.
 	APIServiceConfig struct {
 		_                 struct{}                `json:"-"`
-		HTTPClient        *httpclientcfg.Config   `envPrefix:"HTTP_CLIENT_"        json:"httpClient"`
-		Queues            queuescfg.Config        `envPrefix:"QUEUES_"             json:"queues"`
-		Routing           routingcfg.Config       `envPrefix:"ROUTING_"            json:"routing"`
-		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications"`
-		Encoding          encoding.Config         `envPrefix:"ENCODING_"           json:"encoding"`
-		BaseURL           string                  `env:"BASE_URL"                  json:"baseURL"`
-		Events            msgconfig.Config        `envPrefix:"EVENTS_"             json:"events"`
-		Observability     observability.Config    `envPrefix:"OBSERVABILITY_"      json:"observability"`
-		GRPCServer        grpc.Config             `envPrefix:"GRPC_"               json:"grpc"`
-		Meta              MetaSettings            `envPrefix:"META_"               json:"meta"`
-		Email             emailcfg.Config         `envPrefix:"EMAIL_"              json:"email"`
-		Analytics         analyticscfg.Config     `envPrefix:"ANALYTICS_"          json:"analytics"`
-		FeatureFlags      featureflagscfg.Config  `envPrefix:"FEATURE_FLAGS_"      json:"featureFlags"`
-		TextSearch        textsearchcfg.Config    `envPrefix:"SEARCH_"             json:"search"`
-		Auth              authcfg.Config          `envPrefix:"AUTH_"               json:"auth"`
-		Database          dbcfg.Config            `envPrefix:"DATABASE_"           json:"database"`
-		HTTPServer        http.Config             `envPrefix:"HTTP_"               json:"http"`
+		HTTPClient        *httpclientcfg.Config   `envPrefix:"HTTP_CLIENT_"        json:"httpClient,omitempty"`
+		Queues            queuescfg.Config        `envPrefix:"QUEUES_"             json:"queues,omitzero"`
+		Routing           routingcfg.Config       `envPrefix:"ROUTING_"            json:"routing,omitzero"`
+		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications,omitzero"`
+		Encoding          encoding.Config         `envPrefix:"ENCODING_"           json:"encoding,omitzero"`
+		BaseURL           string                  `env:"BASE_URL"                  json:"baseURL,omitempty"`
+		Events            msgconfig.Config        `envPrefix:"EVENTS_"             json:"events,omitzero"`
+		Observability     observability.Config    `envPrefix:"OBSERVABILITY_"      json:"observability,omitzero"`
+		GRPCServer        grpc.Config             `envPrefix:"GRPC_"               json:"grpc,omitzero"`
+		Meta              MetaSettings            `envPrefix:"META_"               json:"meta,omitzero"`
+		Email             emailcfg.Config         `envPrefix:"EMAIL_"              json:"email,omitzero"`
+		Analytics         analyticscfg.Config     `envPrefix:"ANALYTICS_"          json:"analytics,omitzero"`
+		FeatureFlags      featureflagscfg.Config  `envPrefix:"FEATURE_FLAGS_"      json:"featureFlags,omitzero"`
+		TextSearch        textsearchcfg.Config    `envPrefix:"SEARCH_"             json:"search,omitzero"`
+		Auth              authcfg.Config          `envPrefix:"AUTH_"               json:"auth,omitzero"`
+		Database          dbcfg.Config            `envPrefix:"DATABASE_"           json:"database,omitzero"`
+		HTTPServer        http.Config             `envPrefix:"HTTP_"               json:"http,omitzero"`
 
 		// Idempotency guards the mutations where running the work twice costs real money.
 		// A client that never sees a response and retries is indistinguishable from a
 		// deliberate second purchase unless it supplies a key, so this is opt-in per call:
 		// a request without the idempotency-key metadata passes through untouched.
+		// Not omitzero, and Enabled is not omitempty: a deployment with the interceptor
+		// off is exactly the zero value, so omitting it would erase the distinction
+		// between "deliberately off" and "nobody configured this" — the silent failure
+		// the Enabled comment above exists to prevent.
 		Idempotency IdempotencyConfig `envPrefix:"IDEMPOTENCY_" json:"idempotency"`
 
 		// Metering counts what an account consumes. The API server holds only the ingest
 		// half of it — the flusher that posts usage to a billing provider runs in the
 		// scheduler — but both read this same struct, so the tables one writes are by
 		// construction the tables the other flushes.
-		Metering meteringcfg.Config `envPrefix:"METERING_" json:"metering"`
+		Metering meteringcfg.Config `envPrefix:"METERING_" json:"metering,omitzero"`
 
 		// Webhooks configures the outbound webhook tables this service writes into. Only the
 		// write side lives here: dispatch rows are written inside the transactions that
 		// caused them, and the worker that delivers them runs in the scheduler.
-		Webhooks webhookscfg.Config `envPrefix:"WEBHOOKS_" json:"webhooks"`
+		Webhooks webhookscfg.Config `envPrefix:"WEBHOOKS_" json:"webhooks,omitzero"`
 
-		Services ServicesConfig `envPrefix:"SERVICE_" json:"services"`
+		Services ServicesConfig `envPrefix:"SERVICE_" json:"services,omitzero"`
 
 		validateServices bool
 	}
@@ -119,7 +123,7 @@ type (
 	IdempotencyConfig struct {
 		_ struct{} `json:"-"`
 
-		Manager idempotencycfg.Config `envPrefix:"MANAGER_" json:"manager"`
+		Manager idempotencycfg.Config `envPrefix:"MANAGER_" json:"manager,omitzero"`
 
 		// Enabled installs the interceptor.
 		//
@@ -138,27 +142,27 @@ type (
 	DBCleanerConfig struct {
 		_ struct{} `json:"-"`
 
-		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability"`
+		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability,omitzero"`
 
-		Database dbcfg.Config `envPrefix:"DATABASE_" json:"database"`
+		Database dbcfg.Config `envPrefix:"DATABASE_" json:"database,omitzero"`
 	}
 
 	// AsyncMessageHandlerConfig configures an instance of the search data index scheduler job.
 	AsyncMessageHandlerConfig struct {
 		_          struct{}              `json:"-"`
-		HTTPClient *httpclientcfg.Config `envPrefix:"HTTP_CLIENT_" json:"httpClient"`
-		Queues     queuescfg.Config      `envPrefix:"QUEUES_"      json:"queues"`
+		HTTPClient *httpclientcfg.Config `envPrefix:"HTTP_CLIENT_" json:"httpClient,omitempty"`
+		Queues     queuescfg.Config      `envPrefix:"QUEUES_"      json:"queues,omitzero"`
 
-		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications"`
-		Encoding          encoding.Config         `envPrefix:"ENCODING_"           json:"encoding"`
-		BaseURL           string                  `env:"BASE_URL"                  json:"baseURL"`
-		Events            msgconfig.Config        `envPrefix:"EVENTS_"             json:"events"`
-		Observability     observability.Config    `envPrefix:"OBSERVABILITY_"      json:"observability"`
-		Email             emailcfg.Config         `envPrefix:"EMAIL_"              json:"email"`
-		Analytics         analyticscfg.Config     `envPrefix:"ANALYTICS_"          json:"analytics"`
-		Search            textsearchcfg.Config    `envPrefix:"SEARCH_"             json:"search"`
-		Database          dbcfg.Config            `envPrefix:"DATABASE_"           json:"database"`
-		Pools             WorkerPoolsConfig       `envPrefix:"POOLS_"              json:"pools"`
+		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications,omitzero"`
+		Encoding          encoding.Config         `envPrefix:"ENCODING_"           json:"encoding,omitzero"`
+		BaseURL           string                  `env:"BASE_URL"                  json:"baseURL,omitempty"`
+		Events            msgconfig.Config        `envPrefix:"EVENTS_"             json:"events,omitzero"`
+		Observability     observability.Config    `envPrefix:"OBSERVABILITY_"      json:"observability,omitzero"`
+		Email             emailcfg.Config         `envPrefix:"EMAIL_"              json:"email,omitzero"`
+		Analytics         analyticscfg.Config     `envPrefix:"ANALYTICS_"          json:"analytics,omitzero"`
+		Search            textsearchcfg.Config    `envPrefix:"SEARCH_"             json:"search,omitzero"`
+		Database          dbcfg.Config            `envPrefix:"DATABASE_"           json:"database,omitzero"`
+		Pools             WorkerPoolsConfig       `envPrefix:"POOLS_"              json:"pools,omitzero"`
 	}
 
 	// WorkerPoolsConfig configures the jobs.Pool draining each queue topic. Topics are not
@@ -170,32 +174,32 @@ type (
 		// DeadLetterTopicName is where a message goes once it has exhausted its attempts.
 		// Without it jobs.Pool has no terminal destination and silently drops exhausted
 		// messages, so it is required rather than defaulted.
-		DeadLetterTopicName string `env:"DEAD_LETTER_TOPIC_NAME" json:"deadLetterTopicName"`
+		DeadLetterTopicName string `env:"DEAD_LETTER_TOPIC_NAME" json:"deadLetterTopicName,omitempty"`
 
-		DataChanges         jobs.PoolConfig `envPrefix:"DATA_CHANGES_"          json:"dataChanges"`
-		OutboundEmails      jobs.PoolConfig `envPrefix:"OUTBOUND_EMAILS_"       json:"outboundEmails"`
-		SearchIndexRequests jobs.PoolConfig `envPrefix:"SEARCH_INDEX_REQUESTS_" json:"searchIndexRequests"`
-		MobileNotifications jobs.PoolConfig `envPrefix:"MOBILE_NOTIFICATIONS_"  json:"mobileNotifications"`
+		DataChanges         jobs.PoolConfig `envPrefix:"DATA_CHANGES_"          json:"dataChanges,omitzero"`
+		OutboundEmails      jobs.PoolConfig `envPrefix:"OUTBOUND_EMAILS_"       json:"outboundEmails,omitzero"`
+		SearchIndexRequests jobs.PoolConfig `envPrefix:"SEARCH_INDEX_REQUESTS_" json:"searchIndexRequests,omitzero"`
+		MobileNotifications jobs.PoolConfig `envPrefix:"MOBILE_NOTIFICATIONS_"  json:"mobileNotifications,omitzero"`
 	}
 
 	// EmailDeliverabilityTestConfig configures the email deliverability test cron job.
 	EmailDeliverabilityTestConfig struct {
 		_                     struct{}              `json:"-"`
-		HTTPClient            *httpclientcfg.Config `envPrefix:"HTTP_CLIENT_"      json:"httpClient"`
-		RecipientEmailAddress string                `env:"RECIPIENT_EMAIL_ADDRESS" json:"recipientEmailAddress"`
-		ServiceEnvironment    string                `env:"SERVICE_ENVIRONMENT"     json:"serviceEnvironment"`
-		Observability         observability.Config  `envPrefix:"OBSERVABILITY_"    json:"observability"`
-		Email                 emailcfg.Config       `envPrefix:"EMAIL_"            json:"email"`
+		HTTPClient            *httpclientcfg.Config `envPrefix:"HTTP_CLIENT_"      json:"httpClient,omitempty"`
+		RecipientEmailAddress string                `env:"RECIPIENT_EMAIL_ADDRESS" json:"recipientEmailAddress,omitempty"`
+		ServiceEnvironment    string                `env:"SERVICE_ENVIRONMENT"     json:"serviceEnvironment,omitempty"`
+		Observability         observability.Config  `envPrefix:"OBSERVABILITY_"    json:"observability,omitzero"`
+		Email                 emailcfg.Config       `envPrefix:"EMAIL_"            json:"email,omitzero"`
 	}
 
 	// MCPServiceConfig configures an instance of the service. It is composed of all the other setting structs.
 	MCPServiceConfig struct {
 		_             struct{}             `json:"-"`
-		Database      dbcfg.Config         `envPrefix:"DATABASE_"      json:"database"`
-		Routing       routingcfg.Config    `envPrefix:"ROUTING_"       json:"routing"`
-		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability"`
-		Meta          MetaSettings         `envPrefix:"META_"          json:"meta"`
-		HTTPServer    http.Config          `envPrefix:"HTTP_"          json:"http"`
+		Database      dbcfg.Config         `envPrefix:"DATABASE_"      json:"database,omitzero"`
+		Routing       routingcfg.Config    `envPrefix:"ROUTING_"       json:"routing,omitzero"`
+		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability,omitzero"`
+		Meta          MetaSettings         `envPrefix:"META_"          json:"meta,omitzero"`
+		HTTPServer    http.Config          `envPrefix:"HTTP_"          json:"http,omitzero"`
 	}
 )
 

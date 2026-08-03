@@ -6,43 +6,20 @@
 		"mobileNotificationsTopicName": "mobile_notifications"
 	},
 	"capitalism": {
-		"stripe": null,
 		"provider": "noop"
 	},
 	"events": {
 		"consumer": {
-			"kafka": {
-				"groupId": "",
-				"brokers": null
-			},
 			"provider": "redis",
-			"sqs": {
-				"queueAddress": ""
-			},
-			"pubSub": {
-				"projectID": ""
-			},
 			"redis": {
-				"username": "",
 				"queueAddresses": [
 					"worker_queue:6379"
 				]
 			}
 		},
 		"publisher": {
-			"kafka": {
-				"groupId": "",
-				"brokers": null
-			},
 			"provider": "redis",
-			"sqs": {
-				"queueAddress": ""
-			},
-			"pubSub": {
-				"projectID": ""
-			},
 			"redis": {
-				"username": "",
 				"queueAddresses": [
 					"worker_queue:6379"
 				]
@@ -52,9 +29,7 @@
 	"observability": {
 		"profiling": {
 			"pprof": {
-				"port": 6060,
-				"enableMutexProfile": false,
-				"enableBlockProfile": false
+				"port": 6060
 			},
 			"serviceName": "scheduler",
 			"provider": "pprof"
@@ -73,9 +48,7 @@
 			"otelgrpc": {
 				"metricsCollectorEndpoint": "otel_collector:4317",
 				"collectionInterval": 1000000000,
-				"insecure": true,
-				"enableRuntimeMetrics": false,
-				"enableHostMetrics": false
+				"insecure": true
 			},
 			"serviceName": "scheduler",
 			"provider": "otelgrpc",
@@ -92,9 +65,6 @@
 		}
 	},
 	"analytics": {
-		"proxySources": null,
-		"segment": null,
-		"posthog": null,
 		"provider": "noop",
 		"circuitBreaker": {
 			"name": "feature_flagger",
@@ -103,8 +73,6 @@
 		}
 	},
 	"search": {
-		"algolia": null,
-		"elasticsearch": null,
 		"provider": "noop",
 		"circuitBreakerConfig": {
 			"name": "dev_text_searcher",
@@ -120,21 +88,13 @@
 			"defaultTimeout": 60000000000
 		},
 		"lock": {
-			"redis": null,
 			"postgres": {
-				"namespace": 0,
 				"connWaitTimeout": 5000000000
 			},
-			"provider": "postgres",
-			"circuitBreakerConfig": {
-				"name": "",
-				"circuitBreakerErrorPercentage": 0,
-				"circuitBreakerMinimumOccurrenceThreshold": 0
-			}
+			"provider": "postgres"
 		},
 		"searchDataIndexScheduler": {
 			"schedule": "*/10 6-11 * * *",
-			"interval": 0,
 			"timeout": 300000000000,
 			"leaseTTL": 600000000000,
 			"enabled": true,
@@ -142,22 +102,17 @@
 		},
 		"mobileNotificationScheduler": {
 			"schedule": "CRON_TZ=America/Chicago 0 8-21 * * *",
-			"interval": 0,
 			"timeout": 300000000000,
 			"leaseTTL": 600000000000,
-			"enabled": true,
-			"runOnStart": false
+			"enabled": true
 		},
 		"queueTest": {
-			"schedule": "",
 			"interval": 900000000000,
 			"timeout": 60000000000,
 			"leaseTTL": 120000000000,
-			"enabled": true,
-			"runOnStart": false
+			"enabled": true
 		},
 		"dataPrivacySweep": {
-			"schedule": "",
 			"interval": 3600000000000,
 			"timeout": 300000000000,
 			"leaseTTL": 600000000000,
@@ -166,28 +121,22 @@
 		},
 		"auditRetentionSweeper": {
 			"schedule": "17 7 * * *",
-			"interval": 0,
 			"timeout": 600000000000,
 			"leaseTTL": 1200000000000,
-			"enabled": true,
-			"runOnStart": false
+			"enabled": true
 		},
 		"meteringFlusher": {
-			"schedule": "",
 			"interval": 300000000000,
 			"timeout": 120000000000,
 			"leaseTTL": 600000000000,
-			"enabled": true,
-			"runOnStart": false
+			"enabled": true
 		},
 		"mealPlanning": {
 			"mealPlanFinalizationStarter": {
-				"schedule": "",
 				"interval": 60000000000,
 				"timeout": 120000000000,
 				"leaseTTL": 300000000000,
-				"enabled": true,
-				"runOnStart": false
+				"enabled": true
 			}
 		}
 	},
@@ -228,14 +177,11 @@
 		"maxOpenConns": 7,
 		"debug": true,
 		"logQueries": true,
-		"runMigrations": true,
-		"enableDatabaseMetrics": false
+		"runMigrations": true
 	},
 	"outbox": {
-		"tablePrefix": "",
 		"claimMode": "skip_locked",
 		"backoff": {
-			"provider": "",
 			"maxAttempts": 8,
 			"initialDelay": 1000000000,
 			"maxDelay": 60000000000,
@@ -253,7 +199,6 @@
 		"lockKeyPrefix": "saga:instance:",
 		"idempotencyKeyPrefix": "saga:",
 		"backoff": {
-			"provider": "",
 			"maxAttempts": 3,
 			"initialDelay": 1000000000,
 			"maxDelay": 60000000000,
@@ -261,7 +206,6 @@
 			"useJitter": true
 		},
 		"compensationBackoff": {
-			"provider": "",
 			"maxAttempts": 10,
 			"initialDelay": 1000000000,
 			"maxDelay": 60000000000,
@@ -277,15 +221,12 @@
 		"concurrency": 4
 	},
 	"metering": {
-		"tablePrefix": "",
 		"enforcer": {
 			"cachePrefix": "metering:",
-			"staleness": 10000000000,
-			"failOpen": false
+			"staleness": 10000000000
 		},
 		"flusher": {
 			"backoff": {
-				"provider": "",
 				"maxAttempts": 10,
 				"initialDelay": 1000000000,
 				"maxDelay": 300000000000,
@@ -298,16 +239,13 @@
 			"batchSize": 100,
 			"concurrency": 4,
 			"maxAttempts": 10,
-			"reapBatchSize": 1000,
-			"disableReap": false
+			"reapBatchSize": 1000
 		},
 		"recorder": {
-			"batchSize": 100,
-			"rejectUnknownMeters": false
+			"batchSize": 100
 		}
 	},
 	"webhooks": {
-		"tablePrefix": "",
 		"circuitBreaker": {
 			"name": "webhook_delivery",
 			"circuitBreakerErrorPercentage": 0.5,
@@ -316,7 +254,6 @@
 		"worker": {
 			"userAgent": "Dinner Done Better Webhooks/1",
 			"backoff": {
-				"provider": "",
 				"maxAttempts": 10,
 				"initialDelay": 5000000000,
 				"maxDelay": 3600000000000,
@@ -336,8 +273,7 @@
 		"httpClient": {
 			"timeout": 10000000000,
 			"maxIdleConns": 100,
-			"maxIdleConnsPerHost": 100,
-			"enableTracing": false
+			"maxIdleConnsPerHost": 100
 		}
 	},
 	"dataPrivacy": {
@@ -348,57 +284,10 @@
 		"uploads": {
 			"storageConfig": {
 				"filesystem": {
-					"rootDirectory": "/tmp",
-					"directoryMode": "0o0"
+					"rootDirectory": "/tmp"
 				},
 				"bucketName": "userdata",
-				"provider": "filesystem",
-				"circuitBreakerConfig": {
-					"name": "",
-					"circuitBreakerErrorPercentage": 0,
-					"circuitBreakerMinimumOccurrenceThreshold": 0
-				}
-			},
-			"debug": false
-		},
-		"requests": {
-			"dialect": "",
-			"tablePrefix": "",
-			"auditErasure": {
-				"tablePrefix": "",
-				"retentionBasis": "",
-				"disabled": false
-			},
-			"worker": {
-				"artifactPathPrefix": "",
-				"backoff": {
-					"provider": "",
-					"maxAttempts": 0,
-					"initialDelay": 0,
-					"maxDelay": 0,
-					"multiplier": 0,
-					"useJitter": false
-				},
-				"pollInterval": 0,
-				"leaseDuration": 0,
-				"fulfillmentTimeout": 0,
-				"collectorTimeout": 0,
-				"artifactTTL": 0,
-				"maxDocumentBytes": 0,
-				"batchSize": 0,
-				"concurrency": 0,
-				"collectorConcurrency": 0
-			},
-			"service": {
-				"exportResponseWindow": 0,
-				"erasureResponseWindow": 0,
-				"confirmationWindow": 0,
-				"signedURLTTL": 0
-			},
-			"sweeper": {
-				"requestRetention": 0,
-				"batchSize": 0,
-				"disableReap": false
+				"provider": "filesystem"
 			}
 		}
 	}

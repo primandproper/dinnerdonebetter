@@ -20,13 +20,13 @@ type (
 	ServicesConfig struct {
 		_ struct{} `json:"-"`
 
-		Payments      paymentscfg.Config      `envPrefix:"PAYMENTS_"       json:"payments"`
-		Users         identitycfg.Config      `envPrefix:"USERS_"          json:"users"`
-		UploadedMedia uploadedmediacfg.Config `envPrefix:"UPLOADED_MEDIA_" json:"uploadedMedia"`
-		MealPlanning  mealplanningcfg.Config  `envPrefix:"MEAL_PLANNING_"  json:"mealPlanning"`
-		Auth          authentication.Config   `envPrefix:"AUTH_"           json:"auth"`
-		DataPrivacy   dataprivacycfg.Config   `envPrefix:"DATA_PRIVACY_"   json:"dataPrivacy"`
-		OAuth2Clients oauthcfg.Config         `envPrefix:"OAUTH2_CLIENTS_" json:"oauth2Clients"`
+		Payments      paymentscfg.Config      `envPrefix:"PAYMENTS_"       json:"payments,omitzero"`
+		Users         identitycfg.Config      `envPrefix:"USERS_"          json:"users,omitzero"`
+		UploadedMedia uploadedmediacfg.Config `envPrefix:"UPLOADED_MEDIA_" json:"uploadedMedia,omitzero"`
+		MealPlanning  mealplanningcfg.Config  `envPrefix:"MEAL_PLANNING_"  json:"mealPlanning,omitzero"`
+		Auth          authentication.Config   `envPrefix:"AUTH_"           json:"auth,omitzero"`
+		DataPrivacy   dataprivacycfg.Config   `envPrefix:"DATA_PRIVACY_"   json:"dataPrivacy,omitzero"`
+		OAuth2Clients oauthcfg.Config         `envPrefix:"OAUTH2_CLIENTS_" json:"oauth2Clients,omitzero"`
 	}
 )
 

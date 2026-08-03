@@ -1,5 +1,4 @@
 {
-	"httpClient": null,
 	"queues": {
 		"dataChangesTopicName": "data_changes",
 		"outboundEmailsTopicName": "outbound_emails",
@@ -7,48 +6,20 @@
 		"mobileNotificationsTopicName": "mobile_notifications"
 	},
 	"pushNotifications": {
-		"apns": null,
-		"fcm": null,
 		"provider": "noop"
 	},
-	"encoding": {
-		"contentType": ""
-	},
-	"baseURL": "",
 	"events": {
 		"consumer": {
-			"kafka": {
-				"groupId": "",
-				"brokers": null
-			},
 			"provider": "redis",
-			"sqs": {
-				"queueAddress": ""
-			},
-			"pubSub": {
-				"projectID": ""
-			},
 			"redis": {
-				"username": "",
 				"queueAddresses": [
 					"worker_queue:6379"
 				]
 			}
 		},
 		"publisher": {
-			"kafka": {
-				"groupId": "",
-				"brokers": null
-			},
 			"provider": "redis",
-			"sqs": {
-				"queueAddress": ""
-			},
-			"pubSub": {
-				"projectID": ""
-			},
 			"redis": {
-				"username": "",
 				"queueAddresses": [
 					"worker_queue:6379"
 				]
@@ -58,9 +29,7 @@
 	"observability": {
 		"profiling": {
 			"pprof": {
-				"port": 6060,
-				"enableMutexProfile": false,
-				"enableBlockProfile": false
+				"port": 6060
 			},
 			"serviceName": "async_message_handler",
 			"provider": "pprof"
@@ -79,9 +48,7 @@
 			"otelgrpc": {
 				"metricsCollectorEndpoint": "otel_collector:4317",
 				"collectionInterval": 1000000000,
-				"insecure": true,
-				"enableRuntimeMetrics": false,
-				"enableHostMetrics": false
+				"insecure": true
 			},
 			"serviceName": "async_message_handler",
 			"provider": "otelgrpc",
@@ -98,23 +65,9 @@
 		}
 	},
 	"email": {
-		"sendgrid": null,
-		"mailgun": null,
-		"mailjet": null,
-		"resend": null,
-		"postmark": null,
-		"ses": null,
-		"provider": "noop",
-		"circuitBreakerConfig": {
-			"name": "",
-			"circuitBreakerErrorPercentage": 0,
-			"circuitBreakerMinimumOccurrenceThreshold": 0
-		}
+		"provider": "noop"
 	},
 	"analytics": {
-		"proxySources": null,
-		"segment": null,
-		"posthog": null,
 		"provider": "noop",
 		"circuitBreaker": {
 			"name": "feature_flagger",
@@ -123,8 +76,6 @@
 		}
 	},
 	"search": {
-		"algolia": null,
-		"elasticsearch": null,
 		"provider": "noop",
 		"circuitBreakerConfig": {
 			"name": "dev_text_searcher",
@@ -161,15 +112,12 @@
 		"maxOpenConns": 7,
 		"debug": true,
 		"logQueries": true,
-		"runMigrations": true,
-		"enableDatabaseMetrics": false
+		"runMigrations": true
 	},
 	"pools": {
 		"deadLetterTopicName": "dead_letter",
 		"dataChanges": {
-			"topic": "",
 			"retry": {
-				"provider": "",
 				"maxAttempts": 3,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,
@@ -180,9 +128,7 @@
 			"handlerTimeout": 30000000000
 		},
 		"outboundEmails": {
-			"topic": "",
 			"retry": {
-				"provider": "",
 				"maxAttempts": 4,
 				"initialDelay": 100000000,
 				"maxDelay": 30000000000,
@@ -193,9 +139,7 @@
 			"handlerTimeout": 30000000000
 		},
 		"searchIndexRequests": {
-			"topic": "",
 			"retry": {
-				"provider": "",
 				"maxAttempts": 3,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,
@@ -206,9 +150,7 @@
 			"handlerTimeout": 30000000000
 		},
 		"mobileNotifications": {
-			"topic": "",
 			"retry": {
-				"provider": "",
 				"maxAttempts": 3,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,

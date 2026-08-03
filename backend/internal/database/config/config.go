@@ -16,9 +16,9 @@ import (
 // Config is the database configuration.
 type Config struct {
 	// Encryption selects the cipher used for at-rest encryption of OAuth2 tokens.
-	Encryption encryptioncfg.Config `envPrefix:"ENCRYPTION_" json:"encryption"`
+	Encryption encryptioncfg.Config `envPrefix:"ENCRYPTION_" json:"encryption,omitzero"`
 
 	// OAuth2TokenEncryptionKey is the key OAuth2 client tokens are encrypted with.
-	OAuth2TokenEncryptionKey string `env:"OAUTH2_TOKEN_ENCRYPTION_KEY" json:"oauth2TokenEncryptionKey"`
+	OAuth2TokenEncryptionKey string `env:"OAUTH2_TOKEN_ENCRYPTION_KEY" json:"oauth2TokenEncryptionKey,omitempty"`
 	databasecfg.Config
 }
