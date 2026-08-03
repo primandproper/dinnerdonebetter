@@ -9,8 +9,7 @@
 			"provider": "slog"
 		},
 		"metrics": {
-			"serviceName": "db_cleaner",
-			"enabled": false
+			"serviceName": "db_cleaner"
 		},
 		"tracing": {
 			"service_name": "db_cleaner"
@@ -45,7 +44,6 @@
 		"maxOpenConns": 7,
 		"debug": true,
 		"logQueries": true,
-		"runMigrations": true,
-		"enableDatabaseMetrics": false
+		"runMigrations": true
 	}
 }

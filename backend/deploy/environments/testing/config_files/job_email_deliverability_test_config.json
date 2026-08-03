@@ -1,5 +1,4 @@
 {
-	"httpClient": null,
 	"recipientEmailAddress": "verygoodsoftwarenotvirus@protonmail.com",
 	"serviceEnvironment": "testing",
 	"observability": {
@@ -12,25 +11,13 @@
 			"provider": "slog"
 		},
 		"metrics": {
-			"serviceName": "email_deliverability_test",
-			"enabled": false
+			"serviceName": "email_deliverability_test"
 		},
 		"tracing": {
 			"service_name": "email_deliverability_test"
 		}
 	},
 	"email": {
-		"sendgrid": null,
-		"mailgun": null,
-		"mailjet": null,
-		"resend": null,
-		"postmark": null,
-		"ses": null,
-		"provider": "noop",
-		"circuitBreakerConfig": {
-			"name": "",
-			"circuitBreakerErrorPercentage": 0,
-			"circuitBreakerMinimumOccurrenceThreshold": 0
-		}
+		"provider": "noop"
 	}
 }

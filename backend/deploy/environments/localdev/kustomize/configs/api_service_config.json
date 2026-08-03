@@ -1,5 +1,4 @@
 {
-	"httpClient": null,
 	"queues": {
 		"dataChangesTopicName": "data_changes",
 		"outboundEmailsTopicName": "outbound_emails",
@@ -14,48 +13,23 @@
 		"provider": "chi"
 	},
 	"pushNotifications": {
-		"apns": null,
-		"fcm": null,
 		"provider": "noop"
 	},
 	"encoding": {
 		"contentType": "application/json"
 	},
-	"baseURL": "",
 	"events": {
 		"consumer": {
-			"kafka": {
-				"groupId": "",
-				"brokers": null
-			},
 			"provider": "redis",
-			"sqs": {
-				"queueAddress": ""
-			},
-			"pubSub": {
-				"projectID": ""
-			},
 			"redis": {
-				"username": "",
 				"queueAddresses": [
 					"worker_queue:6379"
 				]
 			}
 		},
 		"publisher": {
-			"kafka": {
-				"groupId": "",
-				"brokers": null
-			},
 			"provider": "redis",
-			"sqs": {
-				"queueAddress": ""
-			},
-			"pubSub": {
-				"projectID": ""
-			},
 			"redis": {
-				"username": "",
 				"queueAddresses": [
 					"worker_queue:6379"
 				]
@@ -65,9 +39,7 @@
 	"observability": {
 		"profiling": {
 			"pprof": {
-				"port": 6060,
-				"enableMutexProfile": false,
-				"enableBlockProfile": false
+				"port": 6060
 			},
 			"serviceName": "api_server",
 			"provider": "pprof"
@@ -86,9 +58,7 @@
 			"otelgrpc": {
 				"metricsCollectorEndpoint": "otel_collector:4317",
 				"collectionInterval": 1000000000,
-				"insecure": true,
-				"enableRuntimeMetrics": false,
-				"enableHostMetrics": false
+				"insecure": true
 			},
 			"serviceName": "api_server",
 			"provider": "otelgrpc",
@@ -104,31 +74,14 @@
 			"spanCollectionProbability": 1
 		}
 	},
-	"grpc": {
-		"port": 0
-	},
 	"meta": {
 		"runMode": "development",
 		"debug": true
 	},
 	"email": {
-		"sendgrid": null,
-		"mailgun": null,
-		"mailjet": null,
-		"resend": null,
-		"postmark": null,
-		"ses": null,
-		"provider": "noop",
-		"circuitBreakerConfig": {
-			"name": "",
-			"circuitBreakerErrorPercentage": 0,
-			"circuitBreakerMinimumOccurrenceThreshold": 0
-		}
+		"provider": "noop"
 	},
 	"analytics": {
-		"proxySources": null,
-		"segment": null,
-		"posthog": null,
 		"provider": "noop",
 		"circuitBreaker": {
 			"name": "feature_flagger",
@@ -137,8 +90,6 @@
 		}
 	},
 	"featureFlags": {
-		"launchDarkly": null,
-		"posthog": null,
 		"provider": "noop",
 		"circuitBreakerConfig": {
 			"name": "feature_flagger",
@@ -147,27 +98,11 @@
 		}
 	},
 	"search": {
-		"algolia": null,
-		"elasticsearch": null,
 		"provider": "noop",
 		"circuitBreakerConfig": {
 			"name": "dev_text_searcher",
 			"circuitBreakerErrorPercentage": 0.5,
 			"circuitBreakerMinimumOccurrenceThreshold": 100
-		}
-	},
-	"auth": {
-		"sessionStore": {
-			"provider": ""
-		},
-		"passkey": {},
-		"tokens": {
-			"provider": "",
-			"issuer": "",
-			"audience": "",
-			"base64EncodedSigningKey": "",
-			"maxAccessTokenLifetime": 0,
-			"maxRefreshTokenLifetime": 0
 		}
 	},
 	"database": {
@@ -199,8 +134,7 @@
 		"maxOpenConns": 7,
 		"debug": true,
 		"logQueries": true,
-		"runMigrations": true,
-		"enableDatabaseMetrics": false
+		"runMigrations": true
 	},
 	"http": {
 		"appleAppSiteAssociation": {
@@ -214,53 +148,32 @@
 		"manager": {
 			"keyPrefix": "dinner_done_better.idempotency.",
 			"lock": {
-				"redis": null,
 				"postgres": {
-					"namespace": 0,
 					"connWaitTimeout": 5000000000
 				},
-				"provider": "postgres",
-				"circuitBreakerConfig": {
-					"name": "",
-					"circuitBreakerErrorPercentage": 0,
-					"circuitBreakerMinimumOccurrenceThreshold": 0
-				}
+				"provider": "postgres"
 			},
 			"cache": {
 				"redis": {
-					"username": "",
 					"namespace": "idempotency:",
 					"addresses": [
 						"worker_queue:6379"
-					],
-					"cluster": false
+					]
 				},
-				"provider": "redis",
-				"circuitBreakerConfig": {
-					"name": "",
-					"circuitBreakerErrorPercentage": 0,
-					"circuitBreakerMinimumOccurrenceThreshold": 0
-				},
-				"expiry": 0,
-				"janitorInterval": 0
+				"provider": "redis"
 			},
 			"ttl": 86400000000000,
-			"inFlightTTL": 120000000000,
-			"maxKeyLength": 0,
-			"failOpen": false
+			"inFlightTTL": 120000000000
 		},
 		"enabled": true
 	},
 	"metering": {
-		"tablePrefix": "",
 		"enforcer": {
 			"cachePrefix": "metering:",
-			"staleness": 10000000000,
-			"failOpen": false
+			"staleness": 10000000000
 		},
 		"flusher": {
 			"backoff": {
-				"provider": "",
 				"maxAttempts": 10,
 				"initialDelay": 1000000000,
 				"maxDelay": 300000000000,
@@ -273,16 +186,13 @@
 			"batchSize": 100,
 			"concurrency": 4,
 			"maxAttempts": 10,
-			"reapBatchSize": 1000,
-			"disableReap": false
+			"reapBatchSize": 1000
 		},
 		"recorder": {
-			"batchSize": 100,
-			"rejectUnknownMeters": false
+			"batchSize": 100
 		}
 	},
 	"webhooks": {
-		"tablePrefix": "",
 		"circuitBreaker": {
 			"name": "webhook_delivery",
 			"circuitBreakerErrorPercentage": 0.5,
@@ -291,7 +201,6 @@
 		"worker": {
 			"userAgent": "Dinner Done Better Webhooks/1",
 			"backoff": {
-				"provider": "",
 				"maxAttempts": 10,
 				"initialDelay": 5000000000,
 				"maxDelay": 3600000000000,
@@ -311,15 +220,12 @@
 		"httpClient": {
 			"timeout": 10000000000,
 			"maxIdleConns": 100,
-			"maxIdleConnsPerHost": 100,
-			"enableTracing": false
+			"maxIdleConnsPerHost": 100
 		}
 	},
 	"services": {
 		"payments": {
-			"revenueCat": null,
 			"capitalism": {
-				"stripe": null,
 				"provider": "noop"
 			}
 		},
@@ -328,16 +234,10 @@
 			"uploads": {
 				"storageConfig": {
 					"filesystem": {
-						"rootDirectory": "/uploads",
-						"directoryMode": "0o0"
+						"rootDirectory": "/uploads"
 					},
 					"bucketName": "avatars",
-					"provider": "filesystem",
-					"circuitBreakerConfig": {
-						"name": "",
-						"circuitBreakerErrorPercentage": 0,
-						"circuitBreakerMinimumOccurrenceThreshold": 0
-					}
+					"provider": "filesystem"
 				},
 				"debug": true
 			}
@@ -346,48 +246,25 @@
 			"uploads": {
 				"storageConfig": {
 					"filesystem": {
-						"rootDirectory": "/uploads",
-						"directoryMode": "0o0"
+						"rootDirectory": "/uploads"
 					},
 					"bucketName": "avatars",
-					"provider": "filesystem",
-					"circuitBreakerConfig": {
-						"name": "",
-						"circuitBreakerErrorPercentage": 0,
-						"circuitBreakerMinimumOccurrenceThreshold": 0
-					}
+					"provider": "filesystem"
 				},
 				"debug": true
 			}
-		},
-		"mealPlanning": {
-			"mediaUploadPrefix": "",
-			"uploads": {
-				"storageConfig": {
-					"circuitBreakerConfig": {
-						"name": "",
-						"circuitBreakerErrorPercentage": 0,
-						"circuitBreakerMinimumOccurrenceThreshold": 0
-					}
-				},
-				"debug": false
-			},
-			"useSearchService": false
 		},
 		"auth": {
 			"tokens": {
 				"provider": "paseto",
 				"issuer": "dinner-done-better",
 				"audience": "https://api.dinnerdonebetter.dev",
-				"base64EncodedSigningKey": "SEVSRUlTQTMyQ0hBUlNFQ1JFVFdISUNISVNNQURFVVA=",
-				"maxAccessTokenLifetime": 0,
-				"maxRefreshTokenLifetime": 0
+				"base64EncodedSigningKey": "SEVSRUlTQTMyQ0hBUlNFQ1JFVFdISUNISVNNQURFVVA="
 			},
 			"oauth2": {
 				"domain": "http://localhost:9000",
 				"accessTokenLifespan": 3600000000000,
-				"refreshTokenLifespan": 3600000000000,
-				"debug": false
+				"refreshTokenLifespan": 3600000000000
 			},
 			"jwtLifetime": 300000000000,
 			"debug": true,
@@ -403,62 +280,12 @@
 			"uploads": {
 				"storageConfig": {
 					"filesystem": {
-						"rootDirectory": "/tmp",
-						"directoryMode": "0o0"
+						"rootDirectory": "/tmp"
 					},
 					"bucketName": "userdata",
-					"provider": "filesystem",
-					"circuitBreakerConfig": {
-						"name": "",
-						"circuitBreakerErrorPercentage": 0,
-						"circuitBreakerMinimumOccurrenceThreshold": 0
-					}
-				},
-				"debug": false
-			},
-			"requests": {
-				"dialect": "",
-				"tablePrefix": "",
-				"auditErasure": {
-					"tablePrefix": "",
-					"retentionBasis": "",
-					"disabled": false
-				},
-				"worker": {
-					"artifactPathPrefix": "",
-					"backoff": {
-						"provider": "",
-						"maxAttempts": 0,
-						"initialDelay": 0,
-						"maxDelay": 0,
-						"multiplier": 0,
-						"useJitter": false
-					},
-					"pollInterval": 0,
-					"leaseDuration": 0,
-					"fulfillmentTimeout": 0,
-					"collectorTimeout": 0,
-					"artifactTTL": 0,
-					"maxDocumentBytes": 0,
-					"batchSize": 0,
-					"concurrency": 0,
-					"collectorConcurrency": 0
-				},
-				"service": {
-					"exportResponseWindow": 0,
-					"erasureResponseWindow": 0,
-					"confirmationWindow": 0,
-					"signedURLTTL": 0
-				},
-				"sweeper": {
-					"requestRetention": 0,
-					"batchSize": 0,
-					"disableReap": false
+					"provider": "filesystem"
 				}
 			}
-		},
-		"oauth2Clients": {
-			"creationEnabled": false
 		}
 	}
 }

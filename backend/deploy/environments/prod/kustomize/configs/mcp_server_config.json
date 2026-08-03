@@ -3,33 +3,27 @@
 		"encryption": {
 			"provider": "salsa20"
 		},
-		"oauth2TokenEncryptionKey": "",
 		"provider": "postgres",
 		"readConnection": {
 			"username": "mcp_server",
 			"password": "REPLACE_AT_DEPLOY",
 			"database": "dinner-done-better",
 			"hostname": "REPLACE_AT_DEPLOY",
-			"port": 5432,
-			"disableSSL": false
+			"port": 5432
 		},
 		"writeConnection": {
 			"username": "mcp_server",
 			"password": "REPLACE_AT_DEPLOY",
 			"database": "dinner-done-better",
 			"hostname": "REPLACE_AT_DEPLOY",
-			"port": 5432,
-			"disableSSL": false
+			"port": 5432
 		},
 		"pingWaitPeriod": 1000000000,
 		"maxPingAttempts": 50,
 		"connMaxLifetime": 1800000000000,
 		"maxIdleConns": 5,
 		"maxOpenConns": 7,
-		"debug": false,
-		"logQueries": false,
-		"runMigrations": true,
-		"enableDatabaseMetrics": false
+		"runMigrations": true
 	},
 	"routing": {
 		"chiConfig": {
@@ -42,10 +36,7 @@
 		"profiling": {
 			"pyroscope": {
 				"serverAddress": "https://profiles-prod-001.grafana.net",
-				"uploadRate": 15000000000,
-				"insecure": false,
-				"enableMutexProfile": false,
-				"enableBlockProfile": false
+				"uploadRate": 15000000000
 			},
 			"serviceName": "dinner_done_better_mcp_server",
 			"provider": "pyroscope"
@@ -64,9 +55,7 @@
 			"otelgrpc": {
 				"metricsCollectorEndpoint": "otel-collector-svc.prod.svc.cluster.local:4317",
 				"collectionInterval": 30000000000,
-				"insecure": true,
-				"enableRuntimeMetrics": false,
-				"enableHostMetrics": false
+				"insecure": true
 			},
 			"serviceName": "dinner_done_better_mcp_server",
 			"provider": "otelgrpc",
@@ -83,8 +72,7 @@
 		}
 	},
 	"meta": {
-		"runMode": "production",
-		"debug": false
+		"runMode": "production"
 	},
 	"http": {
 		"startupDeadline": 60000000000,

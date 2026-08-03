@@ -1,15 +1,11 @@
 {
-	"httpClient": null,
 	"recipientEmailAddress": "verygoodsoftwarenotvirus@protonmail.com",
 	"serviceEnvironment": "prod",
 	"observability": {
 		"profiling": {
 			"pyroscope": {
 				"serverAddress": "https://profiles-prod-001.grafana.net",
-				"uploadRate": 15000000000,
-				"insecure": false,
-				"enableMutexProfile": false,
-				"enableBlockProfile": false
+				"uploadRate": 15000000000
 			},
 			"serviceName": "email_deliverability_test",
 			"provider": "pyroscope"
@@ -28,9 +24,7 @@
 			"otelgrpc": {
 				"metricsCollectorEndpoint": "otel-collector-svc.prod.svc.cluster.local:4317",
 				"collectionInterval": 30000000000,
-				"insecure": true,
-				"enableRuntimeMetrics": false,
-				"enableHostMetrics": false
+				"insecure": true
 			},
 			"serviceName": "email_deliverability_test",
 			"provider": "otelgrpc",
@@ -47,14 +41,9 @@
 		}
 	},
 	"email": {
-		"sendgrid": null,
-		"mailgun": null,
-		"mailjet": null,
 		"resend": {
 			"apiToken": "placeholder"
 		},
-		"postmark": null,
-		"ses": null,
 		"provider": "resend",
 		"circuitBreakerConfig": {
 			"name": "prod_emailer",

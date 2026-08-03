@@ -22,8 +22,8 @@ type (
 	TokensConfig struct {
 		tokenscfg.Config
 
-		MaxAccessTokenLifetime  time.Duration `env:"MAX_ACCESS_TOKEN_LIFETIME"  json:"maxAccessTokenLifetime"`
-		MaxRefreshTokenLifetime time.Duration `env:"MAX_REFRESH_TOKEN_LIFETIME" json:"maxRefreshTokenLifetime"`
+		MaxAccessTokenLifetime  time.Duration `env:"MAX_ACCESS_TOKEN_LIFETIME"  json:"maxAccessTokenLifetime,omitempty"`
+		MaxRefreshTokenLifetime time.Duration `env:"MAX_REFRESH_TOKEN_LIFETIME" json:"maxRefreshTokenLifetime,omitempty"`
 	}
 
 	// PasskeyConfig holds WebAuthn Relying Party configuration for passkey registration and authentication.
@@ -37,9 +37,9 @@ type (
 	// Config is our configuration.
 	Config struct {
 		_                     struct{}           `json:"-"`
-		SessionStore          webauthncfg.Config `envPrefix:"SESSION_STORE_"    json:"sessionStore"`
-		Passkey               PasskeyConfig      `envPrefix:"PASSKEY_"          json:"passkey"`
-		Tokens                TokensConfig       `envPrefix:"TOKENS_"           json:"tokens"`
+		SessionStore          webauthncfg.Config `envPrefix:"SESSION_STORE_"    json:"sessionStore,omitzero"`
+		Passkey               PasskeyConfig      `envPrefix:"PASSKEY_"          json:"passkey,omitzero"`
+		Tokens                TokensConfig       `envPrefix:"TOKENS_"           json:"tokens,omitzero"`
 		Debug                 bool               `env:"DEBUG"                   json:"debug,omitempty"`
 		EnableUserSignup      bool               `env:"ENABLE_USER_SIGNUP"      json:"enableUserSignup,omitempty"`
 		MinimumUsernameLength uint8              `env:"MINIMUM_USERNAME_LENGTH" json:"minimumUsernameLength,omitempty"`

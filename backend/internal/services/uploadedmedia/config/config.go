@@ -12,7 +12,7 @@ import (
 type Config struct {
 	_ struct{} `json:"-"`
 
-	Uploads uploadscfg.Config `envPrefix:"UPLOADS_" json:"uploads"`
+	Uploads uploadscfg.Config `envPrefix:"UPLOADS_" json:"uploads,omitzero"`
 }
 
 var _ validation.ValidatableWithContext = (*Config)(nil)

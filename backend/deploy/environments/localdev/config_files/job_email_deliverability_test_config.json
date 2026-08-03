@@ -1,13 +1,10 @@
 {
-	"httpClient": null,
 	"recipientEmailAddress": "verygoodsoftwarenotvirus@protonmail.com",
 	"serviceEnvironment": "dev",
 	"observability": {
 		"profiling": {
 			"pprof": {
-				"port": 6060,
-				"enableMutexProfile": false,
-				"enableBlockProfile": false
+				"port": 6060
 			},
 			"serviceName": "email_deliverability_test",
 			"provider": "pprof"
@@ -26,9 +23,7 @@
 			"otelgrpc": {
 				"metricsCollectorEndpoint": "otel_collector:4317",
 				"collectionInterval": 1000000000,
-				"insecure": true,
-				"enableRuntimeMetrics": false,
-				"enableHostMetrics": false
+				"insecure": true
 			},
 			"serviceName": "email_deliverability_test",
 			"provider": "otelgrpc",
@@ -45,17 +40,6 @@
 		}
 	},
 	"email": {
-		"sendgrid": null,
-		"mailgun": null,
-		"mailjet": null,
-		"resend": null,
-		"postmark": null,
-		"ses": null,
-		"provider": "noop",
-		"circuitBreakerConfig": {
-			"name": "",
-			"circuitBreakerErrorPercentage": 0,
-			"circuitBreakerMinimumOccurrenceThreshold": 0
-		}
+		"provider": "noop"
 	}
 }

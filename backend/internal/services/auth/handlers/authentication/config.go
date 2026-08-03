@@ -14,9 +14,9 @@ type (
 	Config struct {
 		_ struct{} `json:"-"`
 
-		Tokens                authcfg.TokensConfig `envPrefix:"TOKENS_"           json:"tokens"`
-		OAuth2                OAuth2Config         `envPrefix:"OAUTH2"            json:"oauth2"`
-		TokenLifetime         time.Duration        `env:"JWT_LIFETIME"            json:"jwtLifetime"`
+		Tokens                authcfg.TokensConfig `envPrefix:"TOKENS_"           json:"tokens,omitzero"`
+		OAuth2                OAuth2Config         `envPrefix:"OAUTH2"            json:"oauth2,omitzero"`
+		TokenLifetime         time.Duration        `env:"JWT_LIFETIME"            json:"jwtLifetime,omitempty"`
 		Debug                 bool                 `env:"DEBUG"                   json:"debug,omitempty"`
 		EnableUserSignup      bool                 `env:"ENABLE_USER_SIGNUP"      json:"enableUserSignup,omitempty"`
 		MinimumUsernameLength uint8                `env:"MINIMUM_USERNAME_LENGTH" json:"minimumUsernameLength,omitempty"`
@@ -39,10 +39,10 @@ func (cfg *Config) ValidateWithContext(ctx context.Context) error {
 type OAuth2Config struct {
 	_ struct{} `json:"-"`
 
-	Domain               string        `env:"DOMAIN"                 json:"domain"`
-	AccessTokenLifespan  time.Duration `env:"ACCESS_TOKEN_LIFESPAN"  json:"accessTokenLifespan"`
-	RefreshTokenLifespan time.Duration `env:"REFRESH_TOKEN_LIFESPAN" json:"refreshTokenLifespan"`
-	Debug                bool          `env:"DEBUG"                  json:"debug"`
+	Domain               string        `env:"DOMAIN"                 json:"domain,omitempty"`
+	AccessTokenLifespan  time.Duration `env:"ACCESS_TOKEN_LIFESPAN"  json:"accessTokenLifespan,omitempty"`
+	RefreshTokenLifespan time.Duration `env:"REFRESH_TOKEN_LIFESPAN" json:"refreshTokenLifespan,omitempty"`
+	Debug                bool          `env:"DEBUG"                  json:"debug,omitempty"`
 }
 
 var _ validation.ValidatableWithContext = (*OAuth2Config)(nil)

@@ -41,7 +41,7 @@ type Config struct {
 	// Encryption selects the cipher used for at-rest encryption of disclosure artifacts. A
 	// disclosure artifact is everything the system knows about one person in a single object,
 	// so it is never written in the clear.
-	Encryption encryptioncfg.Config `envPrefix:"ENCRYPTION_" json:"encryption"`
+	Encryption encryptioncfg.Config `envPrefix:"ENCRYPTION_" json:"encryption,omitzero"`
 
 	// ArtifactEncryptionKey is the key disclosure artifacts are encrypted with. Rotating it
 	// makes every artifact written under the old key unreadable — which for objects that expire
@@ -51,9 +51,9 @@ type Config struct {
 	// config for a real environment carries a blank secret and takes the value from the
 	// environment. An empty key is caught where it matters instead, when the machinery is
 	// constructed at startup.
-	ArtifactEncryptionKey string `env:"ARTIFACT_ENCRYPTION_KEY" json:"artifactEncryptionKey"`
+	ArtifactEncryptionKey string `env:"ARTIFACT_ENCRYPTION_KEY" json:"artifactEncryptionKey,omitempty"`
 
-	Uploads uploadscfg.Config `envPrefix:"UPLOADS_" json:"uploads"`
+	Uploads uploadscfg.Config `envPrefix:"UPLOADS_" json:"uploads,omitzero"`
 
 	// Requests carries the platform's own knobs: the response windows a deadline is
 	// stamped from, the confirmation window, the artifact TTL, and the fulfillment
@@ -63,7 +63,7 @@ type Config struct {
 	// see prepare in do.go. Neither has a second legal value, and a deployment that
 	// set one differently would not be configuring anything, it would be pointing the
 	// Store at a table that does not exist.
-	Requests platformdataprivacycfg.Config `envPrefix:"REQUESTS_" json:"requests"`
+	Requests platformdataprivacycfg.Config `envPrefix:"REQUESTS_" json:"requests,omitzero"`
 }
 
 var _ validation.ValidatableWithContext = (*Config)(nil)

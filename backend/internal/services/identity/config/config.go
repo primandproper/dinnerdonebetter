@@ -12,8 +12,8 @@ import (
 type Config struct {
 	_ struct{} `json:"-"`
 
-	PublicMediaURLPrefix string            `env:"PUBLIC_MEDIA_URL_PREFIX" json:"publicMediaURLPrefix"`
-	Uploads              uploadscfg.Config `envPrefix:"UPLOADS_"          json:"uploads"`
+	PublicMediaURLPrefix string            `env:"PUBLIC_MEDIA_URL_PREFIX" json:"publicMediaURLPrefix,omitempty"`
+	Uploads              uploadscfg.Config `envPrefix:"UPLOADS_"          json:"uploads,omitzero"`
 }
 
 var _ validation.ValidatableWithContext = (*Config)(nil)
