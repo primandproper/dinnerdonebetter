@@ -355,8 +355,8 @@ func TestValidEnumerationManager_SearchValidIngredientsByPreparationAndIngredien
 		}
 
 		db := &mealplanningmock.RepositoryMock{
-			SearchForValidIngredientsForPreparationFunc: func(_ context.Context, preparationID string, query string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidIngredient], error) {
-				assert.Equal(t, preparationID, preparationID)
+			SearchForValidIngredientsForPreparationFunc: func(_ context.Context, prepID string, query string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidIngredient], error) {
+				assert.Equal(t, preparationID, prepID)
 				assert.Equal(t, exampleQuery, query)
 
 				return expected, nil

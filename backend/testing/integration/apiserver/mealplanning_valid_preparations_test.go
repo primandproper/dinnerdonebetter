@@ -42,7 +42,7 @@ func createValidPreparationForTest(t *testing.T) *mealplanning.ValidPreparation 
 func checkValidPreparationEquality(t *testing.T, i int, expected, actual *mealplanning.ValidPreparation) {
 	t.Helper()
 
-	assert.NotEmpty(t, expected.CreatedAt, actual.CreatedAt, "expected recipe step %d preparation CreatedAt to be %v, but it was %v", i, expected.CreatedAt, actual.CreatedAt)
+	assert.NotZero(t, actual.CreatedAt, "expected recipe step %d preparation to have CreatedAt", i)
 	assert.Equal(t, expected.MinInstrumentCount, actual.MinInstrumentCount, "expected recipe step %d preparation MinInstrumentCount to be %v, but it was %v", i, expected.MinInstrumentCount, actual.MinInstrumentCount)
 	assert.Equal(t, expected.MaxInstrumentCount, actual.MaxInstrumentCount, "expected recipe step %d preparation MaxInstrumentCount to be %v, but it was %v", i, expected.MaxInstrumentCount, actual.MaxInstrumentCount)
 	assert.Equal(t, expected.MinIngredientCount, actual.MinIngredientCount, "expected recipe step %d preparation MinIngredientCount to be %v, but it was %v", i, expected.MinIngredientCount, actual.MinIngredientCount)
