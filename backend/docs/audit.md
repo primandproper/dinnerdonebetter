@@ -10,6 +10,19 @@ the hash chain, and retention; this repository owns the vocabulary — an entry
 belongs to a *user* and usually to an *account*, where the platform speaks of an
 *actor* and a *scope*.
 
+The tables are `ddb_audit_log_entries` and `ddb_audit_log_chains`. The prefix is
+`audit.TablePrefix`, and it is deliberate: the platform's default renders
+`audit_log_entries`, which is the name the hand-rolled log this replaced already
+held. Its DDL says `CREATE TABLE IF NOT EXISTS`, so against any database that ever
+applied the old migration the new schema would be a silent no-op and the audit code
+would then run against the wrong columns — and goose records the old migration as
+applied, so deleting its file does not undo it. A prefix makes the two unable to
+collide. The constant is referenced by the migration that creates the tables, the
+Recorder that writes them, the Reader that queries them, and the Sweeper that
+prunes them; all four have to agree, and a prefix that differed between the writer
+and the reader is the one misconfiguration that stays invisible until somebody asks
+the log a question and gets an empty answer.
+
 ## Writing an entry
 
 `Record` takes the caller's query executor, which is the whole design. An entry
@@ -85,7 +98,7 @@ you would publish. Nothing does that today.
 
 Three mechanisms, in decreasing order of how much they prove:
 
-- **Append-only triggers.** `audit_log_entries` rejects `UPDATE` outright, at the
+- **Append-only triggers.** `ddb_audit_log_entries` rejects `UPDATE` outright, at the
   database. Editing a recorded entry is not something the chain reveals after the
   fact, it is something that cannot happen. Installed by the migration; asserted by
   `TestQuerier_Migrate/audit_entries_reject_updates` against real Postgres.
@@ -102,9 +115,15 @@ they cannot.
 
 ## Retention
 
-The `Sweeper` runs in the scheduler process beside the outbox relay, and prunes
-entries past **two years** (`SchedulerConfig.Audit.Retention`,
-`DINNER_DONE_BETTER_AUDIT_RETENTION`).
+The `Sweeper` runs in the scheduler process as the `audit_retention_sweeper`
+scheduled job, and prunes entries past **two years**
+(`SchedulerConfig.Audit.Retention`, `DINNER_DONE_BETTER_AUDIT_RETENTION`).
+
+A registered job rather than the Sweeper's own `Run` loop, so that exactly one
+replica prunes per tick because the distributed lock says so rather than because
+the deployment happens to run one replica. It is scheduled overnight and has no
+`RunOnStart`: the other jobs' first run is catch-up work, and this one's would be a
+deletion.
 
 Two years rather than the platform's seven-year default: seven is the window the
 regulations that ask for an audit log in the first place tend to name, and this
@@ -121,9 +140,6 @@ survivors stay contiguous and verifiable against each other. And it records the
 hash of the last entry it removed as that scope's watermark, in the same
 transaction as the delete, so the oldest surviving entry still links to something
 and `Verify` can tell retention's gap from a deletion.
-
-The sweeper is not safe to scale past one replica: each tick deletes and rewrites a
-watermark per scope, and two replicas would contend rather than divide the work.
 
 ## Redaction
 
@@ -177,20 +193,52 @@ No span or log line carries a value from `Changes` — those hold exactly what
 redaction exists to keep out of durable storage, and a span exporter is durable
 storage.
 
+## Erasure
+
+Deleting a user used to be a single cascade: every `belongs_to_user` foreign key
+carried `ON DELETE CASCADE`, the old audit table carried one too, and the entries
+went with everything else. These tables have no such key and could not — removing a
+row from the middle of a chain is indistinguishable from an attacker removing it,
+which is the property the chain exists to provide.
+
+So `dataprivacy.DeleteUser` does the one deletion the structure permits: **whole
+scopes**, entries and chain rows together. A scope that disappears entirely leaves
+no gap in any surviving chain, because there is nothing left to verify against.
+
+`ScopeFor` is what makes that cover most of a departing user's trail:
+
+| Their entries | Scope | Erased? |
+|---|---|---|
+| In accounts they own | the account | ✅ deleted whole |
+| Outside any account (signup, login, password reset) | their user ID | ✅ deleted whole |
+| In accounts they merely belong to | somebody else's account | ❌ retained, and reported |
+
+The scopes are resolved **before** the delete, because the cascade takes the
+accounts that name them and a deleted user owns nothing. The erasure runs after,
+not before: one that ran first and then failed would have destroyed the audit trail
+of an account that still exists, while one that fails afterwards leaves rows a
+re-run removes.
+
+What is retained is counted into the `ErasureOutcome` and logged rather than
+silently kept — "we kept some audit entries, on this basis" is something a subject
+can be told and a regulator can read, instead of something discovered later.
+
 ## Known gaps
 
 These are real and worth fixing; none of them is created by the adoption.
 
 **Unattributed entries.** The platform requires an actor on every entry, and it is
-right to: an event with nobody responsible for it is half a record. Roughly forty
-repository methods have no requester to give — `ArchiveServiceSetting` takes an ID
-and nothing else — and the old schema let `belongs_to_user` be NULL, so the gap
-predates this. Those entries are recorded under `audit.UnattributedActorID`
-(`"unattributed"`) with actor type `system`, which makes the gap countable:
+right to: an event with nobody responsible for it is half a record. Most repository
+methods have no requester to give — `ArchiveServiceSetting` takes an ID and nothing
+else — and the old schema let `belongs_to_user` be NULL, so the gap predates this.
+The three that already carried the acting user in their input (webhook creation,
+issue report creation, waitlist signup) now record it; the rest are recorded under
+`audit.UnattributedActorID` (`"unattributed"`) with actor type `system`, which makes
+the gap countable:
 
 ```sql
 SELECT resource_type, event_type, count(*)
-FROM audit_log_entries WHERE actor_id = 'unattributed'
+FROM ddb_audit_log_entries WHERE actor_id = 'unattributed'
 GROUP BY 1, 2 ORDER BY 3 DESC;
 ```
 
@@ -204,16 +252,12 @@ before each `UPDATE`, inside the transaction — a real behaviour change per met
 worth doing deliberately rather than in bulk. `UpdateAccount` is the shape to copy:
 it already fetches the prior record and now uses `audit.Diff`.
 
-**Entries recorded outside a transaction.** A number of call sites pass
-`r.writeDB` rather than a `tx`, so the entry and the change it describes can
-disagree if one fails — the exact failure `Record`'s signature exists to prevent.
-These were already written that way; converting them means restructuring the
-surrounding method.
-
 **No published head hashes.** Tamper *evidence* becomes tamper *proof* only when
 the head hash lives somewhere the database's owner does not control. `Record`
 returns the hash; nothing publishes it.
 
-**Erasure.** Deleting from the middle of a chain makes `Verify` report tampering
-for the rest of that scope's history. A user-deletion path that removes audit rows
-has to delete whole scopes, not individual entries. See the `dataprivacy` issue.
+**Retained entries survive erasure.** A departing user's actions inside accounts
+they merely belonged to cannot be removed without breaking those accounts' chains,
+so they are kept and reported. That is the intended trade rather than an oversight
+— see Erasure above — but it is a thing to be able to explain to a subject who
+asks.

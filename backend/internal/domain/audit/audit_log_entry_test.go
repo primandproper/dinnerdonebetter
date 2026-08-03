@@ -55,7 +55,7 @@ func TestDiff(T *testing.T) {
 
 	type resource struct {
 		Name   string `json:"name"`
-		Secret string `json:"secret" audit:"-"`
+		Secret string `audit:"-"    json:"secret"`
 		Hidden string `json:"-"`
 		Count  int    `json:"count"`
 	}

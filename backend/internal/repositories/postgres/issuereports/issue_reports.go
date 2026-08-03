@@ -231,6 +231,7 @@ func (r *repository) CreateIssueReport(ctx context.Context, input *types.IssueRe
 
 		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &x.BelongsToAccount,
+			BelongsToUser:    x.CreatedByUser,
 			ResourceType:     resourceTypeIssueReports,
 			RelevantID:       x.ID,
 			EventType:        audit.AuditLogEventTypeCreated,

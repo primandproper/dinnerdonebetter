@@ -85,6 +85,17 @@ type (
 		// accumulating and nothing else will ever delete them.
 		DisclosureArtifactReaper ScheduledJobConfig `envPrefix:"DISCLOSURE_ARTIFACT_REAPER_" json:"disclosureArtifactReaper"`
 
+		// AuditRetentionSweeper prunes audit entries past the retention window in
+		// SchedulerConfig.Audit. Disabling it does not pause retention so much as
+		// abandon it: the log grows without bound and nothing else will trim it.
+		//
+		// It is a scheduled job rather than the Sweeper's own Run loop so that one
+		// replica prunes per tick, by construction rather than by convention. The
+		// Sweeper is safe to run concurrently — it prunes a prefix of a chain inside a
+		// transaction — but every replica sweeping every hour is the same work done
+		// several times for one result, and it is work that deletes.
+		AuditRetentionSweeper ScheduledJobConfig `envPrefix:"AUDIT_RETENTION_SWEEPER_" json:"auditRetentionSweeper"`
+
 		// Domain: mealplanning — swapping the domain replaces this field and the type it
 		// names, and touches nothing else in this struct.
 		MealPlanning MealPlanningScheduledJobsConfig `envPrefix:"MEAL_PLANNING_" json:"mealPlanning"`
@@ -203,6 +214,7 @@ func (cfg *ScheduledJobsConfig) ValidateWithContext(ctx context.Context) error {
 		"MobileNotificationScheduler": cfg.MobileNotificationScheduler.ValidateWithContext,
 		"QueueTest":                   cfg.QueueTest.ValidateWithContext,
 		"DisclosureArtifactReaper":    cfg.DisclosureArtifactReaper.ValidateWithContext,
+		"AuditRetentionSweeper":       cfg.AuditRetentionSweeper.ValidateWithContext,
 		"MealPlanning":                cfg.MealPlanning.ValidateWithContext,
 	}
 

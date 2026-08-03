@@ -11,6 +11,7 @@ import (
 	mealplangrocerylistinitializer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_grocery_list_initializer"
 	mealplantaskcreator "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_creator"
 
+	"github.com/primandproper/platform-go/v9/audit"
 	"github.com/primandproper/platform-go/v9/distributedlock"
 	"github.com/primandproper/platform-go/v9/jobs"
 	"github.com/primandproper/platform-go/v9/observability/logging"
@@ -31,6 +32,7 @@ const (
 	jobMobileNotificationScheduler    = "mobile_notification_scheduler"
 	jobQueueTest                      = "queue_test"
 	jobDisclosureArtifactReaper       = "disclosure_artifact_reaper"
+	jobAuditRetentionSweeper          = "audit_retention_sweeper"
 )
 
 // RegisterScheduler registers the jobs.Scheduler, with every enabled job already registered on
@@ -95,6 +97,18 @@ func RegisterScheduler(i do.Injector) {
 				name: jobDisclosureArtifactReaper,
 				cfg:  &jobsCfg.DisclosureArtifactReaper,
 				run:  do.MustInvoke[*disclosureartifactreaper.Worker](i).Work,
+			},
+			{
+				name: jobAuditRetentionSweeper,
+				cfg:  &jobsCfg.AuditRetentionSweeper,
+				// Sweep reports how many entries it pruned and logs its own failures —
+				// there is no caller to return them to, and a scope that fails must not
+				// stop the others. The count is already a metric.
+				run: func(ctx context.Context) error {
+					do.MustInvoke[*audit.Sweeper](i).Sweep(ctx)
+
+					return nil
+				},
 			},
 		}
 

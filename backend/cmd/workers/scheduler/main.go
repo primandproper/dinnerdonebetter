@@ -19,7 +19,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/telemetry"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
-	"github.com/primandproper/platform-go/v9/audit"
 	"github.com/primandproper/platform-go/v9/jobs"
 	"github.com/primandproper/platform-go/v9/outbox"
 
@@ -55,7 +54,6 @@ func run(ctx context.Context, cfg *config.SchedulerConfig) error {
 
 	scheduler := do.MustInvoke[*jobs.Scheduler](i)
 	relay := do.MustInvoke[*outbox.Relay](i)
-	auditSweeper := do.MustInvoke[*audit.Sweeper](i)
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(
@@ -71,20 +69,20 @@ func run(ctx context.Context, cfg *config.SchedulerConfig) error {
 	// moment to stop. Close is the stop signal, and it lets in-flight work finish.
 	go scheduler.Run()
 	go relay.Run()
-	go auditSweeper.Run()
 
 	<-signalChan
 
 	closeCtx, cancel := context.WithTimeout(ctx, drainTimeout)
 	defer cancel()
 
-	// All three are closed even if an earlier one fails, so a scheduler that will not drain
-	// cannot leave the relay holding claims it is never going to publish, or the sweeper
-	// mid-transaction on the audit chain.
+	// Both are closed even if the first fails, so a scheduler that will not drain cannot
+	// leave the relay holding claims it is never going to publish.
+	//
+	// The audit sweeper is not here: it runs as a scheduled job rather than as a loop of
+	// its own, so the scheduler's own drain is what waits for a sweep in flight.
 	return errors.Join(
 		wrapClose("scheduler", scheduler.Close(closeCtx)),
 		wrapClose("outbox relay", relay.Close(closeCtx)),
-		wrapClose("audit sweeper", auditSweeper.Close(closeCtx)),
 	)
 }
 

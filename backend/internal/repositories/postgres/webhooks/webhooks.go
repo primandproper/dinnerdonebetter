@@ -274,6 +274,7 @@ func (r *repository) CreateWebhook(ctx context.Context, input *types.WebhookData
 
 		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &x.BelongsToAccount,
+			BelongsToUser:    x.CreatedByUser,
 			ResourceType:     resourceTypeWebhooks,
 			RelevantID:       x.ID,
 			EventType:        audit.AuditLogEventTypeCreated,

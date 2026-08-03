@@ -4,8 +4,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v9/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 
 	"github.com/stretchr/testify/assert"
@@ -38,19 +40,24 @@ func TestQuerier_Migrate(T *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, migrator.Migrate(ctx, db))
 
+		entryID, scope, actorID := identifiers.New(), identifiers.New(), identifiers.New()
+		entries := audit.TablePrefix + "_audit_log_entries"
+
 		_, err = db.ExecContext(ctx,
-			`INSERT INTO audit_log_entries
+			`INSERT INTO `+entries+`
 			 (id, seq, scope, recorded_at, event_type, resource_type, resource_id, actor_id, hash)
-			 VALUES ('test-entry', 0, 'test-scope', NOW(), 'created', 'recipes', 'r1', 'u1', 'deadbeef')`)
+			 VALUES ($1, 0, $2, NOW(), 'created', 'recipes', $3, $4, 'deadbeef')`,
+			entryID, scope, identifiers.New(), actorID)
 		require.NoError(t, err)
 
-		_, err = db.ExecContext(ctx, `UPDATE audit_log_entries SET resource_id = 'r2' WHERE id = 'test-entry'`)
+		_, err = db.ExecContext(ctx,
+			`UPDATE `+entries+` SET resource_id = $1 WHERE id = $2`, identifiers.New(), entryID)
 		require.Error(t, err, "the database must refuse to edit a recorded entry")
 		assert.Contains(t, err.Error(), "append-only")
 
 		// DELETE stays permitted: retention has to remove aged entries, and no trigger
 		// can tell that sweep apart from an attacker. The chain covers deletion instead.
-		_, err = db.ExecContext(ctx, `DELETE FROM audit_log_entries WHERE id = 'test-entry'`)
+		_, err = db.ExecContext(ctx, `DELETE FROM `+entries+` WHERE id = $1`, entryID)
 		require.NoError(t, err, "retention has to be able to delete")
 	})
 }
@@ -64,8 +71,9 @@ func TestRenderAuditDDL(T *testing.T) {
 		body, err := renderAuditDDL()
 		require.NoError(t, err)
 
-		assert.Contains(t, body, "audit_log_entries")
-		assert.Contains(t, body, "audit_log_chains")
+		// Prefixed, so that the DDL cannot land on the name the hand-rolled log used.
+		assert.Contains(t, body, audit.TablePrefix+"_audit_log_entries")
+		assert.Contains(t, body, audit.TablePrefix+"_audit_log_chains")
 
 		// The uniqueness constraint is the guarantee rather than an index for speed:
 		// it is what makes a forked chain something the table cannot hold, instead of

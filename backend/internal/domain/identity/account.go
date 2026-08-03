@@ -67,7 +67,7 @@ type (
 		// years, and would do it on every update whether the roster changed or not.
 		// Membership changes are audited where they happen, against
 		// account_user_memberships.
-		Members []*AccountUserMembershipWithUser `json:"members" audit:"-"`
+		Members []*AccountUserMembershipWithUser `audit:"-" json:"members"`
 	}
 
 	// AccountCreationRequestInput represents what a User could set as input for creating accounts.

@@ -466,6 +466,24 @@ const (
 	// IdempotencyManagerTTLEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.TTL`.
 	IdempotencyManagerTTLEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_TTL"
 
+	// JobsAuditRetentionSweeperEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.AuditRetentionSweeper.Enabled`.
+	JobsAuditRetentionSweeperEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_RETENTION_SWEEPER_ENABLED"
+
+	// JobsAuditRetentionSweeperIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.AuditRetentionSweeper.Interval`.
+	JobsAuditRetentionSweeperIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_RETENTION_SWEEPER_INTERVAL"
+
+	// JobsAuditRetentionSweeperLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.AuditRetentionSweeper.LeaseTTL`.
+	JobsAuditRetentionSweeperLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_RETENTION_SWEEPER_LEASE_TTL"
+
+	// JobsAuditRetentionSweeperRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.AuditRetentionSweeper.RunOnStart`.
+	JobsAuditRetentionSweeperRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_RETENTION_SWEEPER_RUN_ON_START"
+
+	// JobsAuditRetentionSweeperScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.AuditRetentionSweeper.Schedule`.
+	JobsAuditRetentionSweeperScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_RETENTION_SWEEPER_SCHEDULE"
+
+	// JobsAuditRetentionSweeperTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.AuditRetentionSweeper.Timeout`.
+	JobsAuditRetentionSweeperTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_RETENTION_SWEEPER_TIMEOUT"
+
 	// JobsDisclosureArtifactReaperEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.DisclosureArtifactReaper.Enabled`.
 	JobsDisclosureArtifactReaperEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_DISCLOSURE_ARTIFACT_REAPER_ENABLED"
 

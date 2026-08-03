@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
 	"github.com/primandproper/platform-go/v9/audit"
 	"github.com/primandproper/platform-go/v9/database"
@@ -16,11 +17,13 @@ import (
 
 // RegisterAuditSweeper registers the audit log's retention sweeper with the injector.
 //
-// It runs here, beside the outbox relay, for the same two reasons: it is a polling loop that
-// must not be tied to a request, and it needs only the database. Unlike the relay it is not
-// safe to scale casually — each tick deletes and rewrites a prune watermark per scope, and two
-// replicas sweeping the same scope would contend on those transactions rather than divide the
-// work. One replica is the intended shape.
+// It lives in this process because it is background work over the database, which is what this
+// process is for. Its Run method is deliberately unused: the scheduler drives Sweep as a
+// registered job instead, so exactly one replica prunes per tick because the distributed lock
+// says so, rather than because the deployment happens to run one replica. The Sweeper is safe
+// to run concurrently — it prunes a prefix of a chain inside a transaction — but this is work
+// that deletes, and doing it several times over for one result is not a thing to leave to
+// convention.
 //
 // It deletes from the one table this application treats as immutable, which is a strange thing
 // to schedule, so it is worth being precise about why it is safe. It only ever removes a prefix
@@ -30,9 +33,21 @@ import (
 // links to something and Verify can tell retention's gap from a deletion.
 func RegisterAuditSweeper(i do.Injector) {
 	do.Provide[*audit.Sweeper](i, func(i do.Injector) (*audit.Sweeper, error) {
+		// Copied rather than passed by reference, because the two fields below are
+		// overwritten and the config struct is shared with whatever else reads it.
+		cfg := do.MustInvoke[*config.SchedulerConfig](i).Audit
+
+		// Pinned, not validated. Neither field has a second legal value: the prefix has to
+		// equal the one the migration rendered the tables under, and the migrations are
+		// Postgres. A deployment that set either differently would not be configuring
+		// retention, it would be pointing the sweeper at tables that do not exist — and a
+		// sweeper pruning a table that isn't there reports success forever.
+		cfg.TablePrefix = ddbaudit.TablePrefix
+		cfg.Dialect = do.MustInvoke[database.Client](i).Dialect()
+
 		return audit.NewSweeper(
 			do.MustInvoke[context.Context](i),
-			&do.MustInvoke[*config.SchedulerConfig](i).Audit,
+			&cfg,
 			do.MustInvoke[database.Client](i),
 			audit.WithSweeperLogger(do.MustInvoke[logging.Logger](i)),
 			audit.WithSweeperTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),

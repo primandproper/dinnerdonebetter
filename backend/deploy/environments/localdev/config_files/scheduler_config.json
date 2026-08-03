@@ -110,6 +110,28 @@
 			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
 	},
+	"dataPrivacy": {
+		"encryption": {
+			"provider": "salsa20"
+		},
+		"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
+		"uploads": {
+			"storageConfig": {
+				"filesystem": {
+					"rootDirectory": "/tmp",
+					"directoryMode": "0o0"
+				},
+				"bucketName": "userdata",
+				"provider": "filesystem",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				}
+			},
+			"debug": false
+		}
+	},
 	"jobs": {
 		"scheduler": {
 			"lockKeyPrefix": "dinner_done_better.scheduler.",
@@ -162,6 +184,14 @@
 			"enabled": true,
 			"runOnStart": true
 		},
+		"auditRetentionSweeper": {
+			"schedule": "17 7 * * *",
+			"interval": 0,
+			"timeout": 600000000000,
+			"leaseTTL": 1200000000000,
+			"enabled": true,
+			"runOnStart": false
+		},
 		"mealPlanning": {
 			"mealPlanFinalizer": {
 				"schedule": "",
@@ -188,6 +218,14 @@
 				"runOnStart": false
 			}
 		}
+	},
+	"audit": {
+		"dialect": "postgres",
+		"tablePrefix": "ddb",
+		"retention": 63072000000000000,
+		"sweepInterval": 3600000000000,
+		"batchSize": 1000,
+		"scopeLimit": 100
 	},
 	"database": {
 		"encryption": {
@@ -221,28 +259,6 @@
 		"runMigrations": true,
 		"enableDatabaseMetrics": false
 	},
-	"dataPrivacy": {
-		"encryption": {
-			"provider": "salsa20"
-		},
-		"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
-		"uploads": {
-			"storageConfig": {
-				"filesystem": {
-					"rootDirectory": "/tmp",
-					"directoryMode": "0o0"
-				},
-				"bucketName": "userdata",
-				"provider": "filesystem",
-				"circuitBreakerConfig": {
-					"name": "",
-					"circuitBreakerErrorPercentage": 0,
-					"circuitBreakerMinimumOccurrenceThreshold": 0
-				}
-			},
-			"debug": false
-		}
-	},
 	"outbox": {
 		"tablePrefix": "",
 		"claimMode": "skip_locked",
@@ -260,13 +276,5 @@
 		"retention": 604800000000000,
 		"reapInterval": 3600000000000,
 		"reapBatchSize": 1000
-	},
-	"audit": {
-		"dialect": "postgres",
-		"tablePrefix": "ddb",
-		"retention": 63072000000000000,
-		"sweepInterval": 3600000000000,
-		"batchSize": 1000,
-		"scopeLimit": 100
 	}
 }

@@ -555,9 +555,13 @@ func (r *Repository) CreateWaitlistSignup(ctx context.Context, input *types.Wait
 
 		return r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &input.BelongsToAccount,
-			ResourceType:     resourceTypeWaitlistSignups,
-			RelevantID:       input.ID,
-			EventType:        audit.AuditLogEventTypeCreated,
+			// Optional rather than absent: a signup can arrive from someone who is not
+			// signed in, and the conversion files an empty actor under
+			// UnattributedActorID rather than refusing the write.
+			BelongsToUser: input.BelongsToUser,
+			ResourceType:  resourceTypeWaitlistSignups,
+			RelevantID:    input.ID,
+			EventType:     audit.AuditLogEventTypeCreated,
 		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing waitlist signup creation query")

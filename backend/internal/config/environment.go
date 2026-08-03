@@ -127,6 +127,19 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 			LeaseTTL:   10 * time.Minute,
 			RunOnStart: true,
 		},
+		AuditRetentionSweeper: ScheduledJobConfig{
+			Enabled: true,
+			// Daily, in the same overnight window the bulk re-index uses and for the same
+			// reason: one sweep removes a bounded batch per scope, so it is cheap, but it
+			// is a DELETE against the table every write path touches.
+			//
+			// No RunOnStart. The other jobs' first run is catch-up work; this one's would
+			// be a deletion, and a deletion from the audit log is not a thing to do a few
+			// seconds into a deploy on the strength of a config file nobody has read yet.
+			Schedule: "17 7 * * *",
+			Timeout:  10 * time.Minute,
+			LeaseTTL: 20 * time.Minute,
+		},
 		// Domain: mealplanning
 		MealPlanning: defaultMealPlanningScheduledJobsConfig(),
 	}
