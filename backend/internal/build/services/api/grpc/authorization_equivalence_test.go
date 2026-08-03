@@ -129,7 +129,7 @@ func TestAuthorizationEnforcerMatchesTheHandRolledCheck(t *testing.T) {
 		service := authorization.NewServiceRolePermissionChecker(nil, role.service)
 		account := authorization.NewAccountRolePermissionChecker(role.account)
 
-		ctx := context.WithValue(t.Context(), sessions.SessionContextDataKey, &sessions.ContextData{
+		ctx := sessions.AttachToContext(t.Context(), &sessions.ContextData{
 			Requester:          sessions.RequesterInfo{UserID: "user_1", ServicePermissions: service},
 			AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{"account_1": account},
 			ActiveAccountID:    "account_1",

@@ -307,7 +307,7 @@ func (s *AuthInterceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 			return nil, status.Error(codes.PermissionDenied, "permission denied")
 		}
 
-		requiresChange, pcErr := s.identityDataManager.UserRequiresPasswordChange(ctx, sessionContextData.Requester.UserID)
+		requiresChange, pcErr := s.identityDataManager.UserRequiresPasswordChange(ctx, sessionContextData.GetUserID())
 		if pcErr != nil {
 			return nil, status.Error(codes.Internal, "checking password change requirement")
 		}
@@ -315,7 +315,7 @@ func (s *AuthInterceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 			return nil, status.Error(codes.FailedPrecondition, "password change required")
 		}
 
-		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, sessionContextData)
+		ctx = sessions.AttachToContext(ctx, sessionContextData)
 
 		return handler(ctx, req)
 	}
@@ -383,7 +383,7 @@ func (s *AuthInterceptor) StreamServerInterceptor() grpc.StreamServerInterceptor
 			return status.Error(codes.PermissionDenied, "permission denied")
 		}
 
-		requiresChange, pcErr := s.identityDataManager.UserRequiresPasswordChange(ss.Context(), sessionContextData.Requester.UserID)
+		requiresChange, pcErr := s.identityDataManager.UserRequiresPasswordChange(ss.Context(), sessionContextData.GetUserID())
 		if pcErr != nil {
 			return status.Error(codes.Internal, "checking password change requirement")
 		}
@@ -391,7 +391,7 @@ func (s *AuthInterceptor) StreamServerInterceptor() grpc.StreamServerInterceptor
 			return status.Error(codes.FailedPrecondition, "password change required")
 		}
 
-		newCtx := context.WithValue(ss.Context(), sessions.SessionContextDataKey, sessionContextData)
+		newCtx := sessions.AttachToContext(ss.Context(), sessionContextData)
 		wrappedStream := &serverStreamWithContext{ServerStream: ss, ctx: newCtx}
 
 		return handler(srv, wrappedStream)

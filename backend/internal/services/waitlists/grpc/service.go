@@ -1,9 +1,6 @@
 package grpc
 
 import (
-	"context"
-
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	waitlistsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/manager"
 	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 
@@ -20,10 +17,9 @@ var _ waitlistssvc.WaitlistsServiceServer = (*serviceImpl)(nil)
 type (
 	serviceImpl struct {
 		waitlistssvc.UnimplementedWaitlistsServiceServer
-		tracer                    tracing.Tracer
-		logger                    logging.Logger
-		sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error)
-		waitlistsManager          waitlistsmanager.WaitlistsDataManager
+		tracer           tracing.Tracer
+		logger           logging.Logger
+		waitlistsManager waitlistsmanager.WaitlistsDataManager
 	}
 )
 
@@ -33,9 +29,8 @@ func NewService(
 	waitlistsManager waitlistsmanager.WaitlistsDataManager,
 ) waitlistssvc.WaitlistsServiceServer {
 	return &serviceImpl{
-		logger:                    logging.NewNamedLogger(logger, o11yName),
-		tracer:                    tracing.NewNamedTracer(tracerProvider, o11yName),
-		sessionContextDataFetcher: sessions.FetchContextDataFromContext,
-		waitlistsManager:          waitlistsManager,
+		logger:           logging.NewNamedLogger(logger, o11yName),
+		tracer:           tracing.NewNamedTracer(tracerProvider, o11yName),
+		waitlistsManager: waitlistsManager,
 	}
 }

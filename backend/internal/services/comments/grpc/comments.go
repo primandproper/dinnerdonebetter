@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	commentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/keys"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	commentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
@@ -30,7 +31,7 @@ func (s *serviceImpl) CreateComment(ctx context.Context, request *commentssvc.Cr
 		"referenced_id": request.Input.GetReferencedId(),
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
@@ -70,7 +71,7 @@ func (s *serviceImpl) GetCommentsForReference(ctx context.Context, request *comm
 		"target_type":             request.TargetType,
 	}, span, s.logger)
 
-	if _, err := s.sessionContextDataFetcher(ctx); err != nil {
+	if _, err := sessions.RequireFromContext(ctx); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
@@ -103,7 +104,7 @@ func (s *serviceImpl) UpdateComment(ctx context.Context, request *commentssvc.Up
 		commentskeys.CommentIDKey: request.CommentId,
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
@@ -147,7 +148,7 @@ func (s *serviceImpl) ArchiveComment(ctx context.Context, request *commentssvc.A
 		commentskeys.CommentIDKey: request.CommentId,
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}

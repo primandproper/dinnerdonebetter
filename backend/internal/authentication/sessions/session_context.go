@@ -3,11 +3,9 @@ package sessions
 import (
 	"context"
 	"encoding/gob"
-	"net/http"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/routing"
@@ -17,28 +15,39 @@ func init() {
 	gob.Register(&ContextData{})
 }
 
-var (
-	// ErrNoSessionContextDataAvailable indicates no ContextData was attached to the request.
-	ErrNoSessionContextDataAvailable = platformerrors.New("no ContextData attached to session context data")
-)
+const SessionContextDataKey routing.ContextKey = "session_context_data"
 
-// FetchContextDataFromRequest fetches a ContextData from a request.
-func FetchContextDataFromRequest(req *http.Request) (*ContextData, error) {
-	if sessionCtxData, ok := req.Context().Value(SessionContextDataKey).(*ContextData); ok && sessionCtxData != nil {
-		return sessionCtxData, nil
-	}
-
-	return nil, ErrNoSessionContextDataAvailable
+// AttachToContext returns a copy of ctx carrying x as its session data. This is the only supported
+// way to populate the session context key, so that reads and writes stay in one place.
+func AttachToContext(ctx context.Context, x *ContextData) context.Context {
+	return context.WithValue(ctx, SessionContextDataKey, x)
 }
 
-func FetchContextDataFromContext(ctx context.Context) (*ContextData, error) {
-	if sessionCtxData, ok := ctx.Value(SessionContextDataKey).(*ContextData); ok && sessionCtxData != nil {
+// FromContext returns the ContextData attached to ctx, or nil if none is present.
+//
+// Every route the authentication interceptor guards has ContextData attached before the handler
+// runs, so handlers behind it can treat a nil return as impossible. Use this on the routes that
+// are deliberately reachable without authentication, where absence is an expected state rather
+// than an error; everywhere else, prefer RequireFromContext.
+func FromContext(ctx context.Context) *ContextData {
+	sessionCtxData, ok := ctx.Value(SessionContextDataKey).(*ContextData)
+	if !ok {
+		return nil
+	}
+
+	return sessionCtxData
+}
+
+// RequireFromContext returns the ContextData attached to ctx, or ErrAuthenticationNotFound when
+// none is present. The registered gRPC and HTTP error mappers translate that sentinel into an
+// unauthenticated response, so callers do not need to classify it themselves.
+func RequireFromContext(ctx context.Context) (*ContextData, error) {
+	if sessionCtxData := FromContext(ctx); sessionCtxData != nil {
 		return sessionCtxData, nil
 	}
+
 	return nil, ErrAuthenticationNotFound
 }
-
-const SessionContextDataKey routing.ContextKey = "session_context_data"
 
 // ContextData represents what we encode in our passwords cookies.
 type ContextData struct {
@@ -62,37 +71,78 @@ type RequesterInfo struct {
 	Username                 string                                     `json:"-"`
 }
 
+// The getters below are nil-safe so that callers on unauthenticated routes can read through a nil
+// ContextData without a preceding nil check. A nil receiver yields the zero value, which is the
+// same thing an anonymous caller would produce.
+
 // GetUserID is a simple getter.
 func (x *ContextData) GetUserID() string {
+	if x == nil {
+		return ""
+	}
+
 	return x.Requester.UserID
+}
+
+// GetEmailAddress is a simple getter.
+func (x *ContextData) GetEmailAddress() string {
+	if x == nil {
+		return ""
+	}
+
+	return x.Requester.EmailAddress
+}
+
+// GetUsername is a simple getter.
+func (x *ContextData) GetUsername() string {
+	if x == nil {
+		return ""
+	}
+
+	return x.Requester.Username
 }
 
 // GetServicePermissions is a simple getter.
 func (x *ContextData) GetServicePermissions() authorization.ServiceRolePermissionChecker {
+	if x == nil {
+		return nil
+	}
+
 	return x.Requester.ServicePermissions
 }
 
 // GetActiveAccountID is a simple getter.
 func (x *ContextData) GetActiveAccountID() string {
+	if x == nil {
+		return ""
+	}
+
 	return x.ActiveAccountID
 }
 
 // GetSessionID is a simple getter.
 func (x *ContextData) GetSessionID() string {
+	if x == nil {
+		return ""
+	}
+
 	return x.SessionID
 }
 
 // AccountRolePermissionsChecker returns the relevant AccountRolePermissionsChecker.
 func (x *ContextData) AccountRolePermissionsChecker() authorization.AccountRolePermissionsChecker {
-	if checker, ok := x.AccountPermissions[x.ActiveAccountID]; ok {
-		return checker
+	if x != nil {
+		if checker, ok := x.AccountPermissions[x.ActiveAccountID]; ok {
+			return checker
+		}
 	}
+
 	return authorization.NewAccountRolePermissionChecker(nil)
 }
 
 // ServiceRolePermissionChecker returns the relevant ServiceRolePermissionChecker.
 func (x *ContextData) ServiceRolePermissionChecker() authorization.ServiceRolePermissionChecker {
-	return x.Requester.ServicePermissions
+	return x.GetServicePermissions()
 }
 
 // AttachToLogger provides a consistent way to attach a ContextData object to a logger.

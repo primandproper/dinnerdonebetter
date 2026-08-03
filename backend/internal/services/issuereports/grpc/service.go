@@ -1,9 +1,6 @@
 package grpc
 
 import (
-	"context"
-
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	commentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager"
 	issuereportsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/manager"
 	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
@@ -21,11 +18,10 @@ var _ issuereportssvc.IssueReportsServiceServer = (*serviceImpl)(nil)
 type (
 	serviceImpl struct {
 		issuereportssvc.UnimplementedIssueReportsServiceServer
-		tracer                    tracing.Tracer
-		logger                    logging.Logger
-		sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error)
-		issueReportsManager       issuereportsmanager.IssueReportsDataManager
-		commentsManager           commentsmanager.CommentsDataManager
+		tracer              tracing.Tracer
+		logger              logging.Logger
+		issueReportsManager issuereportsmanager.IssueReportsDataManager
+		commentsManager     commentsmanager.CommentsDataManager
 	}
 )
 
@@ -36,10 +32,9 @@ func NewService(
 	commentsManager commentsmanager.CommentsDataManager,
 ) issuereportssvc.IssueReportsServiceServer {
 	return &serviceImpl{
-		logger:                    logging.NewNamedLogger(logger, o11yName),
-		tracer:                    tracing.NewNamedTracer(tracerProvider, o11yName),
-		sessionContextDataFetcher: sessions.FetchContextDataFromContext,
-		issueReportsManager:       issueReportsManager,
-		commentsManager:           commentsManager,
+		logger:              logging.NewNamedLogger(logger, o11yName),
+		tracer:              tracing.NewNamedTracer(tracerProvider, o11yName),
+		issueReportsManager: issueReportsManager,
+		commentsManager:     commentsManager,
 	}
 }

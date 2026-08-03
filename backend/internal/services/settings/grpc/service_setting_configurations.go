@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	settingskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/keys"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
@@ -21,9 +22,9 @@ func (s *serviceImpl) CreateServiceSettingConfiguration(ctx context.Context, req
 
 	logger := s.logger.WithSpan(span).WithValue(settingskeys.ServiceSettingIDKey, request.Input.ServiceSettingId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	belongsToUser := sessionContextData.GetUserID()
@@ -55,13 +56,13 @@ func (s *serviceImpl) GetServiceSettingConfigurationByName(ctx context.Context, 
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
-	serviceSettingConfig, err := s.settingsManager.GetServiceSettingConfigurationForAccountByName(ctx, sessionContextData.ActiveAccountID, request.ServiceSettingConfigurationName)
+	serviceSettingConfig, err := s.settingsManager.GetServiceSettingConfigurationForAccountByName(ctx, sessionContextData.GetActiveAccountID(), request.ServiceSettingConfigurationName)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to retrieve service setting configuration for account by name")
 	}
@@ -82,15 +83,15 @@ func (s *serviceImpl) GetServiceSettingConfigurationsForAccount(ctx context.Cont
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
-	serviceSettingConfigs, err := s.settingsManager.GetServiceSettingConfigurationsForAccount(ctx, sessionContextData.ActiveAccountID, filter)
+	serviceSettingConfigs, err := s.settingsManager.GetServiceSettingConfigurationsForAccount(ctx, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to retrieve service setting configurations for account")
 	}
@@ -115,9 +116,9 @@ func (s *serviceImpl) GetServiceSettingConfigurationsForUser(ctx context.Context
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 

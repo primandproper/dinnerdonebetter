@@ -9,20 +9,16 @@ import (
 )
 
 func BuildDataChangeMessageFromContext(ctx context.Context, logger logging.Logger, eventType string, metadata map[string]any) *DataChangeMessage {
-	sessionContext, err := sessions.FetchContextDataFromContext(ctx)
-	if err != nil {
+	sessionContext := sessions.FromContext(ctx)
+	if sessionContext == nil {
 		logger.WithValue("event_type", eventType).Info("failed to extract session data from context")
 	}
 
-	x := &DataChangeMessage{
+	// The getters are nil-safe, so an absent session yields empty attribution rather than a panic.
+	return &DataChangeMessage{
 		EventType: eventType,
 		Context:   metadata,
+		UserID:    sessionContext.GetUserID(),
+		AccountID: sessionContext.GetActiveAccountID(),
 	}
-
-	if sessionContext != nil {
-		x.UserID = sessionContext.Requester.UserID
-		x.AccountID = sessionContext.ActiveAccountID
-	}
-
-	return x
 }

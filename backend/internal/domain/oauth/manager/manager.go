@@ -39,12 +39,11 @@ type OAuth2Manager interface {
 }
 
 type manager struct {
-	tracer                    tracing.Tracer
-	logger                    logging.Logger
-	sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error)
-	secretGenerator           random.Generator
-	dataChangesPublisher      messagequeue.Publisher
-	oauthRepository           oauth.Repository
+	tracer               tracing.Tracer
+	logger               logging.Logger
+	secretGenerator      random.Generator
+	dataChangesPublisher messagequeue.Publisher
+	oauthRepository      oauth.Repository
 }
 
 func NewOAuth2Manager(
@@ -52,7 +51,6 @@ func NewOAuth2Manager(
 	logger logging.Logger,
 	tracerProvider tracing.TracerProvider,
 	secretGenerator random.Generator,
-	sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error),
 	publisherProvider messagequeue.PublisherProvider,
 	oauthRepository oauth.Repository,
 	queuesConfig *queuescfg.Config,
@@ -67,12 +65,11 @@ func NewOAuth2Manager(
 	}
 
 	return &manager{
-		logger:                    logging.NewNamedLogger(logger, o11yName),
-		tracer:                    tracing.NewNamedTracer(tracerProvider, o11yName),
-		sessionContextDataFetcher: sessionContextDataFetcher,
-		secretGenerator:           secretGenerator,
-		oauthRepository:           oauthRepository,
-		dataChangesPublisher:      dataChangesPublisher,
+		logger:               logging.NewNamedLogger(logger, o11yName),
+		tracer:               tracing.NewNamedTracer(tracerProvider, o11yName),
+		secretGenerator:      secretGenerator,
+		oauthRepository:      oauthRepository,
+		dataChangesPublisher: dataChangesPublisher,
 	}, nil
 }
 
@@ -82,7 +79,7 @@ func (m *manager) CreateOAuth2Client(ctx context.Context, input *oauth.OAuth2Cli
 
 	logger := m.logger.WithSpan(span)
 
-	sessionContextData, err := m.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "fetching session context data")
 	}
@@ -158,7 +155,7 @@ func (m *manager) ArchiveOAuth2Client(ctx context.Context, oauth2ClientID string
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
-	sessionContextData, err := m.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
 		return observability.PrepareAndLogError(err, m.logger, span, "fetching session context data")
 	}

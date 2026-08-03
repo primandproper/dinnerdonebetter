@@ -78,6 +78,5 @@ func TestNewService(t *testing.T) {
 		assert.Equal(t, mealPlanningManager, impl.mealPlanningManager)
 		assert.Equal(t, mealPlanFinalizationStarter, impl.mealPlanFinalizationStarter)
 		assert.Equal(t, commentsManager, impl.commentsManager)
-		assert.NotNil(t, impl.sessionContextDataFetcher)
 	})
 }

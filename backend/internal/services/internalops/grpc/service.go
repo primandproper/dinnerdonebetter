@@ -33,11 +33,10 @@ var _ settingssvc.InternalOperationsServer = (*serviceImpl)(nil)
 type (
 	serviceImpl struct {
 		settingssvc.UnimplementedInternalOperationsServer
-		tracer                    tracing.Tracer
-		logger                    logging.Logger
-		msgConfig                 *msgconfig.Config
-		internalOpsRepo           domaininternalops.InternalOpsDataManager
-		sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error)
+		tracer          tracing.Tracer
+		logger          logging.Logger
+		msgConfig       *msgconfig.Config
+		internalOpsRepo domaininternalops.InternalOpsDataManager
 	}
 )
 
@@ -48,11 +47,10 @@ func NewService(
 	repo domaininternalops.InternalOpsDataManager,
 ) settingssvc.InternalOperationsServer {
 	return &serviceImpl{
-		msgConfig:                 msgConfig,
-		internalOpsRepo:           repo,
-		logger:                    logging.NewNamedLogger(logger, o11yName),
-		tracer:                    tracing.NewNamedTracer(tracerProvider, o11yName),
-		sessionContextDataFetcher: sessions.FetchContextDataFromContext,
+		msgConfig:       msgConfig,
+		internalOpsRepo: repo,
+		logger:          logging.NewNamedLogger(logger, o11yName),
+		tracer:          tracing.NewNamedTracer(tracerProvider, o11yName),
 	}
 }
 
@@ -62,7 +60,7 @@ func (s *serviceImpl) TestQueueMessage(ctx context.Context, request *settingssvc
 
 	logger := s.logger.WithSpan(span).WithValue("queue_name", request.QueueName)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
@@ -82,7 +80,7 @@ func (s *serviceImpl) TestQueueMessage(ctx context.Context, request *settingssvc
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating queue test message record")
 	}
 
-	msg, err := domaininternalops.BuildQueueTestMessage(request.QueueName, testID, sessionContextData.Requester.UserID)
+	msg, err := domaininternalops.BuildQueueTestMessage(request.QueueName, testID, sessionContextData.GetUserID())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "building queue test message")
 	}

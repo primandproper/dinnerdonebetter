@@ -1,9 +1,6 @@
 package grpc
 
 import (
-	"context"
-
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	commentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager"
 	commentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
 
@@ -20,10 +17,9 @@ var _ commentssvc.CommentsServiceServer = (*serviceImpl)(nil)
 type (
 	serviceImpl struct {
 		commentssvc.UnimplementedCommentsServiceServer
-		tracer                    tracing.Tracer
-		logger                    logging.Logger
-		sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error)
-		commentsManager           commentsmanager.CommentsDataManager
+		tracer          tracing.Tracer
+		logger          logging.Logger
+		commentsManager commentsmanager.CommentsDataManager
 	}
 )
 
@@ -33,9 +29,8 @@ func NewService(
 	commentsManager commentsmanager.CommentsDataManager,
 ) commentssvc.CommentsServiceServer {
 	return &serviceImpl{
-		logger:                    logging.NewNamedLogger(logger, o11yName),
-		tracer:                    tracing.NewNamedTracer(tracerProvider, o11yName),
-		sessionContextDataFetcher: sessions.FetchContextDataFromContext,
-		commentsManager:           commentsManager,
+		logger:          logging.NewNamedLogger(logger, o11yName),
+		tracer:          tracing.NewNamedTracer(tracerProvider, o11yName),
+		commentsManager: commentsManager,
 	}
 }

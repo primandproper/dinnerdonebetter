@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
@@ -111,7 +110,6 @@ func BuildInjector(
 
 	// authentication
 	authentication.RegisterAuth(i)
-	sessions.RegisterSessionProviders(i)
 	tokenscfg.RegisterTokenIssuer(i)
 	interceptors.RegisterAuthInterceptor(i)
 

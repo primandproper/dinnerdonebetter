@@ -1,9 +1,6 @@
 package grpc
 
 import (
-	"context"
-
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	dataprivacymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/reportartifacts"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
@@ -22,7 +19,6 @@ func RegisterDataPrivacyService(i do.Injector) {
 		return NewDataPrivacyService(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.TracerProvider](i),
-			do.MustInvoke[func(context.Context) (*sessions.ContextData, error)](i),
 			do.MustInvoke[dataprivacymanager.DataPrivacyManager](i),
 			do.MustInvoke[reportartifacts.Store](i),
 			do.MustInvoke[*msgconfig.Config](i),

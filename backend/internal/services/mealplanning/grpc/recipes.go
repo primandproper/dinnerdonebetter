@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	mealplanningdomain "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
@@ -22,7 +23,7 @@ import (
 )
 
 func (s *serviceImpl) verifyRecipeOwnership(ctx context.Context, recipeID string, logger logging.Logger, span tracing.Span) (string, error) {
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
 		return "", errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
@@ -49,7 +50,7 @@ func (s *serviceImpl) verifyRecipeOwnership(ctx context.Context, recipeID string
 // returning a gRPC status error otherwise. Recipe ratings are user-authored, so mutation is limited
 // to the original author (mirroring the comments service).
 func (s *serviceImpl) verifyRecipeRatingOwnership(ctx context.Context, recipeID, recipeRatingID string, logger logging.Logger, span tracing.Span) error {
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
@@ -323,9 +324,9 @@ func (s *serviceImpl) CloneRecipe(ctx context.Context, request *mealplanning.Clo
 		mealplanningkeys.RecipeIDKey: request.RecipeId,
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	cloned, err := s.mealPlanningManager.CloneRecipe(ctx, request.RecipeId, sessionContextData.GetUserID())
@@ -349,9 +350,9 @@ func (s *serviceImpl) CreateRecipe(ctx context.Context, request *mealplanning.Cr
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCRecipeCreationRequestInputToRecipeCreationRequestInput(request.Input)
@@ -408,9 +409,9 @@ func (s *serviceImpl) CreateRecipeRating(ctx context.Context, request *mealplann
 		mealplanningkeys.RecipeIDKey: request.RecipeId,
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCRecipeRatingCreationRequestInputToRecipeRatingCreationRequestInput(request.Input)
@@ -1152,9 +1153,9 @@ func (s *serviceImpl) CreateRecipeList(ctx context.Context, request *mealplannin
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCRecipeListCreationRequestInputToRecipeListCreationRequestInput(request.Input)
@@ -1182,9 +1183,9 @@ func (s *serviceImpl) UpdateRecipeList(ctx context.Context, request *mealplannin
 		mealplanningkeys.RecipeListIDKey: request.RecipeListId,
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCRecipeListUpdateRequestInputToRecipeListUpdateRequestInput(request.Input)
@@ -1209,9 +1210,9 @@ func (s *serviceImpl) ArchiveRecipeList(ctx context.Context, request *mealplanni
 		mealplanningkeys.RecipeListIDKey: request.RecipeListId,
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	if err = s.mealPlanningManager.ArchiveRecipeList(ctx, request.RecipeListId, sessionContextData.GetUserID()); err != nil {
@@ -1423,9 +1424,9 @@ func (s *serviceImpl) SearchForRecipesWithInstrumentOwnership(ctx context.Contex
 		platformkeys.SearchQueryKey: request.Query,
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)

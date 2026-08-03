@@ -80,7 +80,7 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 
 		accountID := identifiers.New()
 
-		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, &sessions.ContextData{
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
 			Requester:       sessions.RequesterInfo{UserID: identifiers.New()},
 			ActiveAccountID: accountID,
 			AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
@@ -128,7 +128,7 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 
 		accountID := identifiers.New()
 
-		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, &sessions.ContextData{
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
 			Requester:       sessions.RequesterInfo{UserID: identifiers.New()},
 			ActiveAccountID: accountID,
 			AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
@@ -179,7 +179,7 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 
 		userID := identifiers.New()
 
-		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, &sessions.ContextData{
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
 			Requester:       sessions.RequesterInfo{UserID: userID},
 			ActiveAccountID: identifiers.New(),
 		})
@@ -224,7 +224,7 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 
 		userID := identifiers.New()
 
-		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, &sessions.ContextData{
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
 			Requester:       sessions.RequesterInfo{UserID: userID},
 			ActiveAccountID: identifiers.New(),
 		})
@@ -269,7 +269,7 @@ func TestServiceImpl_GetAuditLogEntryByID(t *testing.T) {
 			Requester:       sessions.RequesterInfo{UserID: userID},
 			ActiveAccountID: identifiers.New(),
 		}
-		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, sessionContextData)
+		ctx = sessions.AttachToContext(ctx, sessionContextData)
 
 		fakeAuditLogEntry := auditfakes.BuildFakeAuditLogEntry()
 		fakeAuditLogEntry.BelongsToUser = userID
@@ -304,7 +304,7 @@ func TestServiceImpl_GetAuditLogEntryByID(t *testing.T) {
 
 		ctx := t.Context()
 
-		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, &sessions.ContextData{
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
 			Requester:       sessions.RequesterInfo{UserID: identifiers.New()},
 			ActiveAccountID: identifiers.New(),
 		})

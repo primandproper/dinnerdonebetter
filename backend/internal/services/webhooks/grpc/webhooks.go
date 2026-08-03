@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	webhookkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/keys"
@@ -22,18 +23,18 @@ func (s *serviceImpl) CreateWebhook(ctx context.Context, request *webhookssvc.Cr
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
 	requestInput := converters.ConvertGRPCWebhookCreationRequestInputToWebhookCreationRequestInput(request.Input)
 	if err = requestInput.ValidateWithContext(ctx); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate webhook creation request")
 	}
 
-	created, err := s.webhookManager.CreateWebhook(ctx, sessionContextData.GetUserID(), sessionContextData.ActiveAccountID, requestInput)
+	created, err := s.webhookManager.CreateWebhook(ctx, sessionContextData.GetUserID(), sessionContextData.GetActiveAccountID(), requestInput)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create webhook")
 	}
@@ -57,11 +58,11 @@ func (s *serviceImpl) AddWebhookTriggerConfig(ctx context.Context, request *webh
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
 	requestInput := &webhooks.WebhookTriggerConfigCreationRequestInput{
 		BelongsToWebhook: request.WebhookId,
@@ -71,7 +72,7 @@ func (s *serviceImpl) AddWebhookTriggerConfig(ctx context.Context, request *webh
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate webhook trigger config request")
 	}
 
-	created, err := s.webhookManager.AddWebhookTriggerConfig(ctx, sessionContextData.ActiveAccountID, requestInput)
+	created, err := s.webhookManager.AddWebhookTriggerConfig(ctx, sessionContextData.GetActiveAccountID(), requestInput)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to add webhook trigger config")
 	}
@@ -92,11 +93,11 @@ func (s *serviceImpl) GetWebhook(ctx context.Context, request *webhookssvc.GetWe
 
 	logger := s.logger.WithSpan(span).WithValue(webhookkeys.WebhookIDKey, request.WebhookId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
 	webhook, err := s.webhookManager.GetWebhook(ctx, request.WebhookId, sessionContextData.GetActiveAccountID())
 	if err != nil {
@@ -119,14 +120,14 @@ func (s *serviceImpl) GetWebhooks(ctx context.Context, request *webhookssvc.GetW
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
-	retrieved, err := s.webhookManager.GetWebhooks(ctx, sessionContextData.ActiveAccountID, filter)
+	retrieved, err := s.webhookManager.GetWebhooks(ctx, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch webhooks")
 	}
@@ -151,13 +152,13 @@ func (s *serviceImpl) ArchiveWebhook(ctx context.Context, request *webhookssvc.A
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
-	if err = s.webhookManager.ArchiveWebhook(ctx, request.WebhookId, sessionContextData.ActiveAccountID); err != nil {
+	if err = s.webhookManager.ArchiveWebhook(ctx, request.WebhookId, sessionContextData.GetActiveAccountID()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive webhook")
 	}
 
@@ -176,18 +177,18 @@ func (s *serviceImpl) ArchiveWebhookTriggerConfig(ctx context.Context, request *
 
 	logger := s.logger.WithSpan(span).WithValue(webhookkeys.WebhookIDKey, request.WebhookId).WithValue(webhookkeys.WebhookTriggerConfigIDKey, request.WebhookTriggerConfigId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
 	// verify the webhook belongs to the caller's active account before mutating its trigger configs.
 	if _, err = s.webhookManager.GetWebhook(ctx, request.WebhookId, sessionContextData.GetActiveAccountID()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch webhook")
 	}
 
-	if err = s.webhookManager.ArchiveWebhookTriggerConfig(ctx, request.WebhookId, sessionContextData.ActiveAccountID, request.WebhookTriggerConfigId); err != nil {
+	if err = s.webhookManager.ArchiveWebhookTriggerConfig(ctx, request.WebhookId, sessionContextData.GetActiveAccountID(), request.WebhookTriggerConfigId); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive webhook trigger config")
 	}
 
@@ -208,13 +209,13 @@ func (s *serviceImpl) RotateWebhookSecret(ctx context.Context, request *webhooks
 
 	logger := s.logger.WithSpan(span).WithValue(webhookkeys.WebhookIDKey, request.WebhookId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
-	secret, err := s.webhookManager.RotateWebhookSecret(ctx, request.WebhookId, sessionContextData.ActiveAccountID)
+	secret, err := s.webhookManager.RotateWebhookSecret(ctx, request.WebhookId, sessionContextData.GetActiveAccountID())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to rotate webhook signing secret")
 	}
@@ -235,8 +236,8 @@ func (s *serviceImpl) GetWebhookEventTypes(ctx context.Context, _ *webhookssvc.G
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if _, err := s.sessionContextDataFetcher(ctx); err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Unauthenticated, "failed to fetch session context data")
+	if _, err := sessions.RequireFromContext(ctx); err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	x := &webhookssvc.GetWebhookEventTypesResponse{

@@ -25,7 +25,7 @@ func TestServiceImpl_RegisterDeviceToken(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeToken := notificationsfakes.BuildFakeUserDeviceToken()
 
@@ -63,7 +63,7 @@ func TestServiceImpl_RegisterDeviceToken(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		request := &notificationssvc.RegisterDeviceTokenRequest{
 			Input: &notificationssvc.UserDeviceTokenCreationRequestInput{
@@ -82,7 +82,7 @@ func TestServiceImpl_RegisterDeviceToken(t *testing.T) {
 	t.Run("nil input", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		mockRepo := &notificationsmock.RepositoryMock{}
 		service := buildTestService(t, mockRepo)
 
@@ -99,7 +99,7 @@ func TestServiceImpl_RegisterDeviceToken(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		mockRepo := &notificationsmock.RepositoryMock{
 			CreateUserDeviceTokenFunc: func(_ context.Context, _ *notifications.UserDeviceTokenDatabaseCreationInput) (*notifications.UserDeviceToken, error) {
@@ -131,7 +131,7 @@ func TestServiceImpl_GetUserDeviceToken(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeToken := notificationsfakes.BuildFakeUserDeviceToken()
 		tokenID := fakeToken.ID
@@ -166,7 +166,7 @@ func TestServiceImpl_GetUserDeviceToken(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		request := &notificationssvc.GetUserDeviceTokenRequest{
 			UserDeviceTokenId: "test-token-id",
@@ -182,7 +182,7 @@ func TestServiceImpl_GetUserDeviceToken(t *testing.T) {
 	t.Run("not found", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		tokenID := "nonexistent-token"
 
@@ -216,7 +216,7 @@ func TestServiceImpl_GetUserDeviceTokens(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeTokens := notificationsfakes.BuildFakeUserDeviceTokensList()
 		pageSize := uint16(20)
@@ -256,7 +256,7 @@ func TestServiceImpl_GetUserDeviceTokens(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		grpcPageSize := uint32(20)
 		request := &notificationssvc.GetUserDeviceTokensRequest{
@@ -279,7 +279,7 @@ func TestServiceImpl_ArchiveUserDeviceToken(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		tokenID := notificationsfakes.BuildFakeID()
 
@@ -310,7 +310,7 @@ func TestServiceImpl_ArchiveUserDeviceToken(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		request := &notificationssvc.ArchiveUserDeviceTokenRequest{
 			UserDeviceTokenId: "test-token-id",
@@ -326,7 +326,7 @@ func TestServiceImpl_ArchiveUserDeviceToken(t *testing.T) {
 	t.Run("not found", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		tokenID := "nonexistent-token"
 

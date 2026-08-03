@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
@@ -30,9 +31,9 @@ func (s *serviceImpl) ArchiveAccount(ctx context.Context, request *identitysvc.A
 		identitykeys.AccountIDKey: request.AccountId,
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	if err = s.identityDataManager.ArchiveAccount(ctx, request.AccountId, sessionContextData.GetUserID()); err != nil {
@@ -52,9 +53,9 @@ func (s *serviceImpl) CreateAccount(ctx context.Context, request *identitysvc.Cr
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	belongsToUser := sessionContextData.GetUserID()
@@ -80,9 +81,9 @@ func (s *serviceImpl) CreateAccountInvitation(ctx context.Context, request *iden
 	// TODO: more fields here, probably
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCAccountInvitationCreationRequestInputToAccountInvitationCreationRequestInput(request.Input)
@@ -107,9 +108,9 @@ func (s *serviceImpl) GetAccount(ctx context.Context, request *identitysvc.GetAc
 		identitykeys.AccountIDKey: request.AccountId,
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	// verify the requester is a member of the requested account (service admins may read any account).
@@ -134,9 +135,9 @@ func (s *serviceImpl) GetAccounts(ctx context.Context, request *identitysvc.GetA
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
@@ -188,9 +189,9 @@ func (s *serviceImpl) SetDefaultAccount(ctx context.Context, request *identitysv
 		identitykeys.AccountIDKey: request.AccountId,
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	if err = s.identityDataManager.SetDefaultAccount(ctx, sessionContextData.GetUserID(), request.AccountId); err != nil {
@@ -213,9 +214,9 @@ func (s *serviceImpl) TransferAccountOwnership(ctx context.Context, request *ide
 		identitykeys.AccountIDKey: request.AccountId,
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	if request.AccountId != "" && request.AccountId != sessionContextData.GetActiveAccountID() {
@@ -244,9 +245,9 @@ func (s *serviceImpl) UpdateAccount(ctx context.Context, request *identitysvc.Up
 		identitykeys.AccountIDKey: request.AccountId,
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	if request.AccountId != "" && request.AccountId != sessionContextData.GetActiveAccountID() {
@@ -274,9 +275,9 @@ func (s *serviceImpl) UpdateAccountMemberPermissions(ctx context.Context, reques
 		identitykeys.UserIDKey: request.UserId,
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCModifyUserPermissionsInputToModifyUserPermissionsInput(request.Input)
@@ -299,9 +300,9 @@ func (s *serviceImpl) ArchiveUserMembership(ctx context.Context, request *identi
 		identitykeys.UserIDKey: request.UserId,
 	}, span, s.logger)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	// remove the member from the caller's active account only; the request's account ID is not trusted.

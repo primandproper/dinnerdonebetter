@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	dataprivacykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/keys"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
@@ -22,7 +23,7 @@ func (s *serviceImpl) GetUserDataDisclosure(ctx context.Context, request *datapr
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
@@ -38,7 +39,7 @@ func (s *serviceImpl) GetUserDataDisclosure(ctx context.Context, request *datapr
 
 	// Verify the disclosure belongs to the requester before returning it. NotFound avoids leaking the existence of
 	// other users' disclosure requests.
-	if disclosure.BelongsToUser != sessionContextData.Requester.UserID {
+	if disclosure.BelongsToUser != sessionContextData.GetUserID() {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("disclosure does not belong to requester"), logger, span, codes.NotFound, "fetching user data disclosure")
 	}
 
@@ -55,12 +56,12 @@ func (s *serviceImpl) ListUserDataDisclosures(ctx context.Context, request *data
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	userID := sessionContextData.Requester.UserID
+	userID := sessionContextData.GetUserID()
 	logger := s.logger.WithValue(identitykeys.UserIDKey, userID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 

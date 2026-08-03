@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identityconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 
@@ -20,12 +21,12 @@ func (s *serviceImpl) AdminSetPasswordChangeRequired(ctx context.Context, reques
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if !sessionContextData.Requester.ServicePermissions.CanUpdateUserAccountStatuses() {
+	if !sessionContextData.GetServicePermissions().CanUpdateUserAccountStatuses() {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedToUpdateUserStatus, logger, span, codes.PermissionDenied, "user does not have permission to set password change required")
 	}
 
@@ -44,12 +45,12 @@ func (s *serviceImpl) AdminUpdateUserStatus(ctx context.Context, request *identi
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if !sessionContextData.Requester.ServicePermissions.CanUpdateUserAccountStatuses() {
+	if !sessionContextData.GetServicePermissions().CanUpdateUserAccountStatuses() {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedToUpdateUserStatus, logger, span, codes.PermissionDenied, "user account status update requester does not have permission")
 	}
 

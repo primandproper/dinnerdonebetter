@@ -2,37 +2,109 @@ package sessions
 
 import (
 	"context"
-	"net/http"
 	"testing"
+
+	"github.com/primandproper/platform-go/v9/identifiers"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestFetchContextFromRequest(T *testing.T) {
+func TestFromContext(T *testing.T) {
 	T.Parallel()
 
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := context.WithValue(t.Context(), SessionContextDataKey, &ContextData{})
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/", http.NoBody)
-		require.NoError(t, err)
-		require.NotNil(t, req)
+		expected := &ContextData{ActiveAccountID: identifiers.New()}
+		ctx := context.WithValue(t.Context(), SessionContextDataKey, expected)
 
-		actual, err := FetchContextDataFromRequest(req)
-		require.NoError(t, err)
-		require.NotNil(t, actual)
+		require.Same(t, expected, FromContext(ctx))
 	})
 
 	T.Run("missing data", func(t *testing.T) {
 		t.Parallel()
 
-		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", http.NoBody)
-		require.NoError(t, err)
-		require.NotNil(t, req)
+		require.Nil(t, FromContext(t.Context()))
+	})
 
-		actual, err := FetchContextDataFromRequest(req)
-		require.Error(t, err)
+	T.Run("wrong type under the key", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := context.WithValue(t.Context(), SessionContextDataKey, "not session context data")
+
+		require.Nil(t, FromContext(ctx))
+	})
+}
+
+func TestRequireFromContext(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+
+		expected := &ContextData{ActiveAccountID: identifiers.New()}
+		ctx := context.WithValue(t.Context(), SessionContextDataKey, expected)
+
+		actual, err := RequireFromContext(ctx)
+		require.NoError(t, err)
+		require.Same(t, expected, actual)
+	})
+
+	T.Run("missing data", func(t *testing.T) {
+		t.Parallel()
+
+		actual, err := RequireFromContext(t.Context())
+		require.ErrorIs(t, err, ErrAuthenticationNotFound)
 		require.Nil(t, actual)
+	})
+
+	T.Run("explicit nil under the key", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := context.WithValue(t.Context(), SessionContextDataKey, (*ContextData)(nil))
+
+		actual, err := RequireFromContext(ctx)
+		require.ErrorIs(t, err, ErrAuthenticationNotFound)
+		require.Nil(t, actual)
+	})
+}
+
+func TestContextData_gettersAreNilSafe(T *testing.T) {
+	T.Parallel()
+
+	T.Run("populated", func(t *testing.T) {
+		t.Parallel()
+
+		userID, accountID, sessionID := identifiers.New(), identifiers.New(), identifiers.New()
+		x := &ContextData{
+			ActiveAccountID: accountID,
+			SessionID:       sessionID,
+			Requester: RequesterInfo{
+				UserID:       userID,
+				EmailAddress: "requester@example.com",
+				Username:     "requester",
+			},
+		}
+
+		require.Equal(t, userID, x.GetUserID())
+		require.Equal(t, accountID, x.GetActiveAccountID())
+		require.Equal(t, sessionID, x.GetSessionID())
+		require.Equal(t, "requester@example.com", x.GetEmailAddress())
+		require.Equal(t, "requester", x.GetUsername())
+	})
+
+	T.Run("nil receiver yields zero values", func(t *testing.T) {
+		t.Parallel()
+
+		var x *ContextData
+
+		require.Empty(t, x.GetUserID())
+		require.Empty(t, x.GetActiveAccountID())
+		require.Empty(t, x.GetSessionID())
+		require.Empty(t, x.GetEmailAddress())
+		require.Empty(t, x.GetUsername())
+		require.Nil(t, x.GetServicePermissions())
+		require.Nil(t, x.ServiceRolePermissionChecker())
+		require.NotNil(t, x.AccountRolePermissionsChecker())
 	})
 }

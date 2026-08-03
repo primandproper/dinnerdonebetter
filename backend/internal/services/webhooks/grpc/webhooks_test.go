@@ -39,36 +39,21 @@ func buildTestService(t *testing.T) (*serviceImpl, *webhookmgrmock.WebhookDataMa
 	webhookManager := &webhookmgrmock.WebhookDataManagerMock{}
 
 	service := &serviceImpl{
-		tracer: tracer,
-		logger: logger,
-		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				ActiveAccountID: testAccountID,
-				Requester:       sessions.RequesterInfo{UserID: testUserID},
-			}, nil
-		},
+		tracer:         tracer,
+		logger:         logger,
 		webhookManager: webhookManager,
 	}
 
 	return service, webhookManager
 }
 
-func buildTestServiceWithSessionError(t *testing.T) *serviceImpl {
+func buildSessionContextForTest(t *testing.T) context.Context {
 	t.Helper()
 
-	logger := loggingnoop.NewLogger()
-	tracer := tracing.NewTracerForTest(t.Name())
-
-	service := &serviceImpl{
-		tracer: tracer,
-		logger: logger,
-		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
-			return nil, errors.New("session error")
-		},
-		webhookManager: &webhookmgrmock.WebhookDataManagerMock{},
-	}
-
-	return service
+	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
+		ActiveAccountID: testAccountID,
+		Requester:       sessions.RequesterInfo{UserID: testUserID},
+	})
 }
 
 func TestServiceImpl_CreateWebhook(t *testing.T) {
@@ -77,7 +62,7 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
 		fakeWebhook := webhookfakes.BuildFakeWebhook()
@@ -113,7 +98,7 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		testEventID := "test_event"
 		request := &webhookssvc.CreateWebhookRequest{
@@ -136,7 +121,7 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 	t.Run("validation error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, _ := buildTestService(t)
 
 		testEventID := "test_event"
@@ -161,7 +146,7 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
 		fakeInput := webhookfakes.BuildFakeWebhookCreationRequestInput()
@@ -193,7 +178,7 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
 		fakeConfig := webhookfakes.BuildFakeWebhookTriggerConfig()
@@ -230,7 +215,7 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		webhookID := identifiers.New()
 		triggerEventID := identifiers.New()
@@ -252,7 +237,7 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
 		mockRepo.AddWebhookTriggerConfigFunc = func(_ context.Context, accountID string, _ *webhooks.WebhookTriggerConfigCreationRequestInput) (*webhooks.WebhookTriggerConfig, error) {
@@ -286,7 +271,7 @@ func TestServiceImpl_GetWebhook(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
 		fakeWebhook := webhookfakes.BuildFakeWebhook()
@@ -319,7 +304,7 @@ func TestServiceImpl_GetWebhook(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		webhookID := identifiers.New()
 		request := &webhookssvc.GetWebhookRequest{
@@ -336,7 +321,7 @@ func TestServiceImpl_GetWebhook(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
 		webhookID := identifiers.New()
@@ -368,7 +353,7 @@ func TestServiceImpl_GetWebhooks(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
 		fakeWebhooks := webhookfakes.BuildFakeWebhooksList()
@@ -400,7 +385,7 @@ func TestServiceImpl_GetWebhooks(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &webhookssvc.GetWebhooksRequest{
 			Filter: &grpcfiltering.QueryFilter{},
@@ -416,7 +401,7 @@ func TestServiceImpl_GetWebhooks(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
 		mockRepo.GetWebhooksFunc = func(_ context.Context, accountID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[webhooks.Webhook], error) {
@@ -445,7 +430,7 @@ func TestServiceImpl_ArchiveWebhook(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
 		webhookID := identifiers.New()
@@ -474,7 +459,7 @@ func TestServiceImpl_ArchiveWebhook(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		webhookID := identifiers.New()
 		request := &webhookssvc.ArchiveWebhookRequest{
@@ -491,7 +476,7 @@ func TestServiceImpl_ArchiveWebhook(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
 		webhookID := identifiers.New()
@@ -523,7 +508,7 @@ func TestServiceImpl_ArchiveWebhookTriggerConfig(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
 		webhookID := identifiers.New()
@@ -562,7 +547,7 @@ func TestServiceImpl_ArchiveWebhookTriggerConfig(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
 		webhookID := identifiers.New()

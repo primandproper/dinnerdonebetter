@@ -38,27 +38,15 @@ func buildTestService(t *testing.T, notificationsRepo *notificationsmock.Reposit
 		tracer:               tracing.NewTracerForTest(t.Name()),
 		logger:               loggingnoop.NewLogger(),
 		notificationsManager: notificationsRepo,
-		sessionContextDataFetcher: func(context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{
-					UserID: testSessionUserID,
-				},
-			}, nil
-		},
 	}
 }
 
-func buildTestServiceWithSessionError(t *testing.T) *serviceImpl {
+func buildSessionContextForTest(t *testing.T) context.Context {
 	t.Helper()
 
-	return &serviceImpl{
-		tracer:               tracing.NewTracerForTest(t.Name()),
-		logger:               loggingnoop.NewLogger(),
-		notificationsManager: &notificationsmock.RepositoryMock{},
-		sessionContextDataFetcher: func(context.Context) (*sessions.ContextData, error) {
-			return nil, errors.New("session error")
-		},
-	}
+	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
+		Requester: sessions.RequesterInfo{UserID: testSessionUserID},
+	})
 }
 
 func TestServiceImpl_GetUserNotification(t *testing.T) {
@@ -67,7 +55,7 @@ func TestServiceImpl_GetUserNotification(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeNotification := notificationsfakes.BuildFakeUserNotification()
 		notificationID := fakeNotification.ID
@@ -101,7 +89,7 @@ func TestServiceImpl_GetUserNotification(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		request := &notificationssvc.GetUserNotificationRequest{
 			UserNotificationId: "test-notification-id",
@@ -117,7 +105,7 @@ func TestServiceImpl_GetUserNotification(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		notificationID := "nonexistent-notification"
 
@@ -151,7 +139,7 @@ func TestServiceImpl_GetUserNotifications(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeNotifications := notificationsfakes.BuildFakeUserNotificationsList()
 		pageSize := uint16(20)
@@ -190,7 +178,7 @@ func TestServiceImpl_GetUserNotifications(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		grpcPageSize := uint32(20)
 		request := &notificationssvc.GetUserNotificationsRequest{
@@ -209,7 +197,7 @@ func TestServiceImpl_GetUserNotifications(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		mockRepo := &notificationsmock.RepositoryMock{
 			GetUserNotificationsFunc: func(_ context.Context, userID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[notifications.UserNotification], error) {
@@ -243,7 +231,7 @@ func TestServiceImpl_UpdateUserNotification(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeNotification := notificationsfakes.BuildFakeUserNotification()
 		notificationID := fakeNotification.ID
@@ -297,7 +285,7 @@ func TestServiceImpl_UpdateUserNotification(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		statusValue := notifications.UserNotificationStatusTypeRead
 		request := &notificationssvc.UpdateUserNotificationRequest{
@@ -317,7 +305,7 @@ func TestServiceImpl_UpdateUserNotification(t *testing.T) {
 	t.Run("repository error on get", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		notificationID := "nonexistent-notification"
 
@@ -352,7 +340,7 @@ func TestServiceImpl_UpdateUserNotification(t *testing.T) {
 	t.Run("repository error on update", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeNotification := notificationsfakes.BuildFakeUserNotification()
 		notificationID := fakeNotification.ID

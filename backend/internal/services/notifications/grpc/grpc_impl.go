@@ -1,9 +1,6 @@
 package grpc
 
 import (
-	"context"
-
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
 	notificationssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 
@@ -20,10 +17,9 @@ var _ notificationssvc.UserNotificationsServiceServer = (*serviceImpl)(nil)
 type (
 	serviceImpl struct {
 		notificationssvc.UnimplementedUserNotificationsServiceServer
-		tracer                    tracing.Tracer
-		logger                    logging.Logger
-		sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error)
-		notificationsManager      notificationsmanager.NotificationsDataManager
+		tracer               tracing.Tracer
+		logger               logging.Logger
+		notificationsManager notificationsmanager.NotificationsDataManager
 	}
 )
 
@@ -33,9 +29,8 @@ func NewService(
 	notificationsManager notificationsmanager.NotificationsDataManager,
 ) notificationssvc.UserNotificationsServiceServer {
 	return &serviceImpl{
-		logger:                    logging.NewNamedLogger(logger, o11yName),
-		tracer:                    tracing.NewNamedTracer(tracerProvider, o11yName),
-		notificationsManager:      notificationsManager,
-		sessionContextDataFetcher: sessions.FetchContextDataFromContext,
+		logger:               logging.NewNamedLogger(logger, o11yName),
+		tracer:               tracing.NewNamedTracer(tracerProvider, o11yName),
+		notificationsManager: notificationsManager,
 	}
 }

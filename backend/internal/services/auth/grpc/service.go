@@ -1,11 +1,7 @@
 package grpc
 
 import (
-	"context"
-	"errors"
-
 	authentication2 "github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/webauthn"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
 	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
@@ -60,13 +56,4 @@ func NewAuthService(
 		passkeyService:        passkeyService,
 		jsonEncoder:           passkeyJSONEncoder,
 	}
-}
-
-func (s *serviceImpl) fetchSessionContext(ctx context.Context) (*sessions.ContextData, error) {
-	sessionContext, ok := ctx.Value(sessions.SessionContextDataKey).(*sessions.ContextData)
-	if !ok {
-		return nil, errors.New("session context not found")
-	}
-
-	return sessionContext, nil
 }

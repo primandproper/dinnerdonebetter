@@ -1,9 +1,6 @@
 package grpc
 
 import (
-	"context"
-
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	commentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers"
 	uploadedmediamanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/manager"
@@ -26,10 +23,9 @@ const (
 type (
 	serviceImpl struct {
 		mealplanningsvc.UnimplementedMealPlanningServiceServer
-		tracer                    tracing.Tracer
-		logger                    logging.Logger
-		sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error)
-		mealPlanningManager       managers.MealPlanningManager
+		tracer              tracing.Tracer
+		logger              logging.Logger
+		mealPlanningManager managers.MealPlanningManager
 		// One starter, where there used to be three workers. All three of the admin RPCs that
 		// ran those on demand reach this: finalizing, creating tasks, and building the grocery
 		// list are one saga now, and the only part of it left to run on demand is entering
@@ -58,6 +54,5 @@ func NewService(
 		commentsManager:             commentsManager,
 		uploadedMediaManager:        uploadedMediaManager,
 		uploadManager:               uploadManager,
-		sessionContextDataFetcher:   sessions.FetchContextDataFromContext,
 	}
 }

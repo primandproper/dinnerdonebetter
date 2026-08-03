@@ -24,30 +24,27 @@ var _ identitysvc.IdentityServiceServer = (*serviceImpl)(nil)
 type (
 	serviceImpl struct {
 		identitysvc.UnimplementedIdentityServiceServer
-		tracer                    tracing.Tracer
-		logger                    logging.Logger
-		sessionContextDataFetcher func(ctx context.Context) (*sessions.ContextData, error)
-		identityDataManager       manager.IdentityDataManager
-		uploadedMediaManager      uploadedmediamanager.UploadedMediaManager
-		uploadManager             uploads.UploadManager
+		tracer               tracing.Tracer
+		logger               logging.Logger
+		identityDataManager  manager.IdentityDataManager
+		uploadedMediaManager uploadedmediamanager.UploadedMediaManager
+		uploadManager        uploads.UploadManager
 	}
 )
 
 func NewService(
 	logger logging.Logger,
 	tracerProvider tracing.TracerProvider,
-	sessionContextDataFetcher func(ctx context.Context) (*sessions.ContextData, error),
 	identityDataManager manager.IdentityDataManager,
 	uploadedMediaManager uploadedmediamanager.UploadedMediaManager,
 	uploadManager uploads.UploadManager,
 ) identitysvc.IdentityServiceServer {
 	return &serviceImpl{
-		logger:                    logging.NewNamedLogger(logger, o11yName),
-		tracer:                    tracing.NewNamedTracer(tracerProvider, o11yName),
-		sessionContextDataFetcher: sessionContextDataFetcher,
-		identityDataManager:       identityDataManager,
-		uploadedMediaManager:      uploadedMediaManager,
-		uploadManager:             uploadManager,
+		logger:               logging.NewNamedLogger(logger, o11yName),
+		tracer:               tracing.NewNamedTracer(tracerProvider, o11yName),
+		identityDataManager:  identityDataManager,
+		uploadedMediaManager: uploadedMediaManager,
+		uploadManager:        uploadManager,
 	}
 }
 
@@ -57,9 +54,8 @@ func (s *serviceImpl) buildResponseDetails(ctx context.Context, span tracing.Spa
 		out.TraceId = span.SpanContext().TraceID().String()
 	}
 
-	if sessionContextData, err := s.sessionContextDataFetcher(ctx); err == nil && sessionContextData != nil {
-		out.CurrentAccountId = sessionContextData.GetActiveAccountID()
-	}
+	// Response details are built for unauthenticated routes too, so absence is expected here.
+	out.CurrentAccountId = sessions.FromContext(ctx).GetActiveAccountID()
 
 	return out
 }

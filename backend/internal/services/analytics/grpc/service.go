@@ -23,10 +23,9 @@ var _ analyticspb.AnalyticsServiceServer = (*serviceImpl)(nil)
 type (
 	serviceImpl struct {
 		analyticspb.UnimplementedAnalyticsServiceServer
-		tracer                    tracing.Tracer
-		logger                    logging.Logger
-		sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error)
-		multiSourceReporter       *multisource.MultiSourceEventReporter
+		tracer              tracing.Tracer
+		logger              logging.Logger
+		multiSourceReporter *multisource.MultiSourceEventReporter
 	}
 )
 
@@ -37,10 +36,9 @@ func NewService(
 	multiSourceReporter *multisource.MultiSourceEventReporter,
 ) analyticspb.AnalyticsServiceServer {
 	return &serviceImpl{
-		logger:                    logging.NewNamedLogger(logger, o11yName),
-		tracer:                    tracing.NewNamedTracer(tracerProvider, o11yName),
-		sessionContextDataFetcher: sessions.FetchContextDataFromContext,
-		multiSourceReporter:       multiSourceReporter,
+		logger:              logging.NewNamedLogger(logger, o11yName),
+		tracer:              tracing.NewNamedTracer(tracerProvider, o11yName),
+		multiSourceReporter: multiSourceReporter,
 	}
 }
 
@@ -50,14 +48,14 @@ func (s *serviceImpl) TrackEvent(ctx context.Context, req *analyticspb.TrackEven
 
 	logger := s.logger.WithValue("event", req.Event)
 
-	sessionCtxData, err := s.sessionContextDataFetcher(ctx)
+	sessionCtxData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, observability.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	userID := sessionCtxData.GetUserID()
 	if userID == "" {
-		return nil, observability.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "user ID missing from session context")
+		return nil, observability.PrepareAndLogGRPCStatus(sessions.ErrAuthenticationNotFound, logger, span, codes.Unauthenticated, "user ID missing from session context")
 	}
 
 	properties := stringMapToAnyMap(req.GetProperties())
