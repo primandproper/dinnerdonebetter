@@ -958,33 +958,6 @@ const (
 	// PoolsSearchIndexRequestsTopicEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.SearchIndexRequests.Topic`.
 	PoolsSearchIndexRequestsTopicEnvVarKey = "DINNER_DONE_BETTER_POOLS_SEARCH_INDEX_REQUESTS_TOPIC"
 
-	// PoolsUserDataAggregationConcurrencyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Concurrency`.
-	PoolsUserDataAggregationConcurrencyEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_CONCURRENCY"
-
-	// PoolsUserDataAggregationHandlerTimeoutEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.HandlerTimeout`.
-	PoolsUserDataAggregationHandlerTimeoutEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_HANDLER_TIMEOUT"
-
-	// PoolsUserDataAggregationRetryInitialDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Retry.InitialDelay`.
-	PoolsUserDataAggregationRetryInitialDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_RETRY_INITIAL_DELAY"
-
-	// PoolsUserDataAggregationRetryMaxAttemptsEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Retry.MaxAttempts`.
-	PoolsUserDataAggregationRetryMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_RETRY_MAX_ATTEMPTS"
-
-	// PoolsUserDataAggregationRetryMaxDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Retry.MaxDelay`.
-	PoolsUserDataAggregationRetryMaxDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_RETRY_MAX_DELAY"
-
-	// PoolsUserDataAggregationRetryMultiplierEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Retry.Multiplier`.
-	PoolsUserDataAggregationRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_RETRY_MULTIPLIER"
-
-	// PoolsUserDataAggregationRetryProviderEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Retry.Provider`.
-	PoolsUserDataAggregationRetryProviderEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_RETRY_PROVIDER"
-
-	// PoolsUserDataAggregationRetryUseJitterEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Retry.UseJitter`.
-	PoolsUserDataAggregationRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_RETRY_USE_JITTER"
-
-	// PoolsUserDataAggregationTopicEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Topic`.
-	PoolsUserDataAggregationTopicEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_TOPIC"
-
 	// PushNotificationsApnsAuthKeyPathEnvVarKey is the environment variable name to set to override `APIServiceConfig.PushNotifications.APNs.AuthKeyPath`.
 	PushNotificationsApnsAuthKeyPathEnvVarKey = "DINNER_DONE_BETTER_PUSH_NOTIFICATIONS_APNS_AUTH_KEY_PATH"
 

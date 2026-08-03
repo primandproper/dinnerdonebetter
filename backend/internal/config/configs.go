@@ -13,7 +13,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
-	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	platformconfig "github.com/primandproper/platform-go/v9/config"
@@ -153,12 +152,6 @@ type (
 		Search            textsearchcfg.Config    `envPrefix:"SEARCH_"             json:"search"`
 		Database          dbcfg.Config            `envPrefix:"DATABASE_"           json:"database"`
 		Pools             WorkerPoolsConfig       `envPrefix:"POOLS_"              json:"pools"`
-
-		// DataPrivacy is here for the object storage and cipher the user data aggregation
-		// handler writes disclosure artifacts with. It is the same struct the API server and
-		// the scheduler are configured with, because all three have to agree on the bucket and
-		// the key or an artifact one writes is not one the others can read or find.
-		DataPrivacy dataprivacycfg.Config `envPrefix:"DATA_PRIVACY_" json:"dataPrivacy"`
 	}
 
 	// WorkerPoolsConfig configures the jobs.Pool draining each queue topic. Topics are not
@@ -319,7 +312,6 @@ func (cfg *AsyncMessageHandlerConfig) ValidateWithContext(ctx context.Context) e
 		"Database":      cfg.Database.ValidateWithContext,
 		"Email":         cfg.Email.ValidateWithContext,
 		"TextSearch":    cfg.Search.ValidateWithContext,
-		"DataPrivacy":   cfg.DataPrivacy.ValidateWithContext,
 		"Pools":         cfg.Pools.ValidateWithContext,
 	}
 

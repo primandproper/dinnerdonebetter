@@ -71,12 +71,15 @@ type (
 		// retention window, so retention needs no separate scheduled job.
 		Webhooks webhookscfg.Config `envPrefix:"WEBHOOKS_" json:"webhooks"`
 
-		// DataPrivacy is here for the disclosure artifact bucket. The reaper only deletes, so
-		// the cipher half is dead weight for this process — it is carried anyway so that all
-		// three processes are configured from one struct and cannot drift onto different
-		// buckets, which is the failure that makes a reaper delete nothing and report success.
-		// The extra exposure is nominal: this process already holds database credentials for
-		// the data the artifacts are made of.
+		// DataPrivacy configures the fulfillment worker and the expiry sweep, both of
+		// which run here: the request table, the artifact bucket, and the cipher. It is
+		// the same struct the API server is configured with, because the two have to agree
+		// on all three or an artifact this process writes is not one the API can read —
+		// and a sweep pointed at the wrong bucket deletes nothing and reports success.
+		//
+		// The async message handler no longer carries it. It stopped touching artifacts
+		// when aggregation moved off the queue, and a process holding an encryption key it
+		// has no use for is exposure with nothing on the other side of it.
 		DataPrivacy dataprivacycfg.Config `envPrefix:"DATA_PRIVACY_" json:"dataPrivacy"`
 	}
 

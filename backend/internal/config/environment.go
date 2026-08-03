@@ -409,7 +409,6 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 	schedulerConfig.Observability.Profiling.ServiceName = schedulerConfigObservabilityServiceName
 
 	amhConfig := &AsyncMessageHandlerConfig{
-		DataPrivacy:       s.RootConfig.Services.DataPrivacy,
 		Queues:            s.RootConfig.Queues,
 		Email:             s.RootConfig.Email,
 		Analytics:         s.RootConfig.Analytics,
