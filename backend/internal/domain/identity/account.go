@@ -41,26 +41,32 @@ type (
 	Account struct {
 		_ struct{} `json:"-"`
 
-		CreatedAt                  time.Time                        `json:"createdAt"`
-		SubscriptionPlanID         *string                          `json:"subscriptionPlanID"`
-		LastUpdatedAt              *time.Time                       `json:"lastUpdatedAt"`
-		ArchivedAt                 *time.Time                       `json:"archivedAt"`
-		Longitude                  *float64                         `json:"longitude"`
-		Latitude                   *float64                         `json:"latitude"`
-		State                      string                           `json:"state"`
-		ContactPhone               string                           `json:"contactPhone"`
-		City                       string                           `json:"city"`
-		AddressLine1               string                           `json:"addressLine1"`
-		ZipCode                    string                           `json:"zipCode"`
-		Country                    string                           `json:"country"`
-		BillingStatus              string                           `json:"billingStatus"`
-		AddressLine2               string                           `json:"addressLine2"`
-		PaymentProcessorCustomerID string                           `json:"paymentProcessorCustomer"`
-		BelongsToUser              string                           `json:"belongsToUser"`
-		ID                         string                           `json:"id"`
-		Name                       string                           `json:"name"`
-		WebhookEncryptionKey       string                           `json:"-"`
-		Members                    []*AccountUserMembershipWithUser `json:"members"`
+		CreatedAt                  time.Time  `json:"createdAt"`
+		SubscriptionPlanID         *string    `json:"subscriptionPlanID"`
+		LastUpdatedAt              *time.Time `json:"lastUpdatedAt"`
+		ArchivedAt                 *time.Time `json:"archivedAt"`
+		Longitude                  *float64   `json:"longitude"`
+		Latitude                   *float64   `json:"latitude"`
+		State                      string     `json:"state"`
+		ContactPhone               string     `json:"contactPhone"`
+		City                       string     `json:"city"`
+		AddressLine1               string     `json:"addressLine1"`
+		ZipCode                    string     `json:"zipCode"`
+		Country                    string     `json:"country"`
+		BillingStatus              string     `json:"billingStatus"`
+		AddressLine2               string     `json:"addressLine2"`
+		PaymentProcessorCustomerID string     `json:"paymentProcessorCustomer"`
+		BelongsToUser              string     `json:"belongsToUser"`
+		ID                         string     `json:"id"`
+		Name                       string     `json:"name"`
+		WebhookEncryptionKey       string     `json:"-"`
+
+		// Members is kept out of every audit diff. Memberships are audited as
+		// their own resource, with their own entries, so recording the whole list
+		// as a field of the account would duplicate that in a shape nobody can
+		// query — and would put every member's user record into the one table
+		// designed to be retained for years.
+		Members []*AccountUserMembershipWithUser `audit:"-" json:"members"`
 	}
 
 	// AccountCreationRequestInput represents what a User could set as input for creating accounts.

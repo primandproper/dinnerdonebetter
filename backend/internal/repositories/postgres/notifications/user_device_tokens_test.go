@@ -70,7 +70,7 @@ func TestQuerier_Integration_UserDeviceTokens(t *testing.T) {
 	assert.NoError(t, err)
 
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeUserDeviceTokens, RelevantID: created.ID},
+		{EventType: string(audit.EventArchived), ResourceType: resourceTypeUserDeviceTokens, RelevantID: created.ID},
 	})
 
 	// get after archive should fail

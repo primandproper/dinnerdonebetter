@@ -70,7 +70,7 @@ func TestQuerier_Integration_UploadedMedia(t *testing.T) {
 
 	// Assert audit log entries for creates (uploaded media is user-scoped)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeUploadedMedia, RelevantID: createdUploadedMedia[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeUploadedMedia, RelevantID: createdUploadedMedia[0].ID},
 	})
 
 	// fetch as list for user
@@ -93,7 +93,7 @@ func TestQuerier_Integration_UploadedMedia(t *testing.T) {
 
 	// Assert audit log entry for update
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeUploadedMedia, RelevantID: createdUploadedMedia[0].ID},
+		{EventType: string(audit.EventUpdated), ResourceType: resourceTypeUploadedMedia, RelevantID: createdUploadedMedia[0].ID},
 	})
 
 	// fetch again to verify update

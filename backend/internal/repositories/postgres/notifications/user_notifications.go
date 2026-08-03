@@ -12,7 +12,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -188,12 +187,11 @@ func (q *Repository) CreateUserNotification(ctx context.Context, input *types.Us
 		tracing.AttachToSpan(span, notificationkeys.UserNotificationIDKey, x.ID)
 		logger.Info("user notification created")
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUserNotifications,
-			RelevantID:    x.ID,
-			EventType:     audit.AuditLogEventTypeCreated,
-			BelongsToUser: x.BelongsToUser,
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUserNotifications,
+			ResourceID:   x.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.UserActor(x.BelongsToUser),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -234,12 +232,11 @@ func (q *Repository) UpdateUserNotification(ctx context.Context, updated *types.
 			return observability.PrepareAndLogError(err, logger, span, "updating user notification")
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUserNotifications,
-			RelevantID:    updated.ID,
-			EventType:     audit.AuditLogEventTypeUpdated,
-			BelongsToUser: updated.BelongsToUser,
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUserNotifications,
+			ResourceID:   updated.ID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(updated.BelongsToUser),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}

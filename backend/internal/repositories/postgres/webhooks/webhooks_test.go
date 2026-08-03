@@ -118,9 +118,9 @@ func TestQuerier_Integration_Webhooks(t *testing.T) {
 
 	// Assert audit log entries were written for creates (pre-cleanup)
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWebhooks, RelevantID: createdWebhooks[0].ID},
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWebhookTriggerConfigs, RelevantID: createdWebhooks[0].TriggerConfigs[0].ID},
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWebhookTriggerConfigs, RelevantID: createdConfig.ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeWebhooks, RelevantID: createdWebhooks[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeWebhookTriggerConfigs, RelevantID: createdWebhooks[0].TriggerConfigs[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeWebhookTriggerConfigs, RelevantID: createdConfig.ID},
 	})
 
 	// delete: archive trigger configs then archive webhook; archive catalog event if needed
@@ -135,7 +135,7 @@ func TestQuerier_Integration_Webhooks(t *testing.T) {
 	// Assert audit log entries were written for webhook archives (ArchiveWebhookTriggerConfig
 	// does not set BelongsToAccount, so those entries are not returned by GetAuditLogEntriesForAccount)
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeWebhooks, RelevantID: createdWebhooks[0].ID},
+		{EventType: string(audit.EventArchived), ResourceType: resourceTypeWebhooks, RelevantID: createdWebhooks[0].ID},
 	})
 
 	for _, webhook := range createdWebhooks {

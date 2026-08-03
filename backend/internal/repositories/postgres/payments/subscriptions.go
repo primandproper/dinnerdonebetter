@@ -12,7 +12,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -46,19 +45,19 @@ func (r *repository) CreateSubscription(ctx context.Context, input *payments.Sub
 	if err := r.withEvent(ctx, logger, payments.SubscriptionCreatedServiceEventType, "", map[string]any{
 		paymentskeys.SubscriptionIDKey: input.ID,
 	}, func(tx database.SQLQueryExecutor) error {
-		return r.generatedQuerier.CreateSubscription(ctx, tx, arg)
+		if err := r.generatedQuerier.CreateSubscription(ctx, tx, arg); err != nil {
+			return err
+		}
+
+		return r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        input.BelongsToAccount,
+			ResourceType: resourceTypeSubscriptions,
+			ResourceID:   input.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.SystemActor(),
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating subscription")
-	}
-
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &input.BelongsToAccount,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeSubscriptions,
-		RelevantID:       input.ID,
-		EventType:        audit.AuditLogEventTypeCreated,
-	}); err != nil {
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
 	}
 
 	return r.GetSubscription(ctx, input.ID)
@@ -162,12 +161,12 @@ func (r *repository) UpdateSubscription(ctx context.Context, sub *payments.Subsc
 			return observability.PrepareAndLogError(err, logger, span, "updating subscription")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			BelongsToAccount: &sub.BelongsToAccount,
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeSubscriptions,
-			RelevantID:       sub.ID,
-			EventType:        audit.AuditLogEventTypeUpdated,
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        sub.BelongsToAccount,
+			ResourceType: resourceTypeSubscriptions,
+			ResourceID:   sub.ID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.SystemActor(),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -192,19 +191,21 @@ func (r *repository) UpdateSubscriptionStatus(ctx context.Context, id, status st
 		Status: generated.SubscriptionStatus(status),
 	}
 
-	_, err := r.generatedQuerier.UpdateSubscriptionStatus(ctx, r.writeDB, arg)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating subscription status")
-	}
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		if _, err := r.generatedQuerier.UpdateSubscriptionStatus(ctx, tx, arg); err != nil {
+			return err
+		}
 
-	// UpdateSubscriptionStatus does not have account ID; create audit entry without it
-	if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeSubscriptions,
-		RelevantID:   id,
-		EventType:    audit.AuditLogEventTypeUpdated,
+		// UpdateSubscriptionStatus does not have the account ID, so this entry
+		// lands in the empty scope — the chain platform-level events belong to.
+		return r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeSubscriptions,
+			ResourceID:   id,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.SystemActor(),
+		})
 	}); err != nil {
-		return observability.PrepareError(err, span, "creating audit log entry")
+		return observability.PrepareAndLogError(err, logger, span, "updating subscription status")
 	}
 
 	return nil
@@ -230,11 +231,11 @@ func (r *repository) ArchiveSubscription(ctx context.Context, id string) error {
 		}
 
 		// ArchiveSubscription does not have account ID; create audit entry without it
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
 			ResourceType: resourceTypeSubscriptions,
-			RelevantID:   id,
-			EventType:    audit.AuditLogEventTypeArchived,
+			ResourceID:   id,
+			EventType:    audit.EventArchived,
+			Actor:        audit.SystemActor(),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}

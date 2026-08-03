@@ -12,7 +12,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -103,12 +102,11 @@ func (q *repository) CreateComment(ctx context.Context, input *types.CommentData
 			return observability.PrepareAndLogError(err, logger, span, "performing comment creation query")
 		}
 
-		if _, err := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeComments,
-			RelevantID:    x.ID,
-			EventType:     audit.AuditLogEventTypeCreated,
-			BelongsToUser: x.BelongsToUser,
+		if err := q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeComments,
+			ResourceID:   x.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.UserActor(x.BelongsToUser),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -295,12 +293,11 @@ func (q *repository) UpdateComment(ctx context.Context, id, belongsToUser, conte
 			return sql.ErrNoRows
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeComments,
-			RelevantID:    id,
-			EventType:     audit.AuditLogEventTypeUpdated,
-			BelongsToUser: belongsToUser,
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeComments,
+			ResourceID:   id,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(belongsToUser),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -342,12 +339,11 @@ func (q *repository) ArchiveComment(ctx context.Context, id string) error {
 			return sql.ErrNoRows
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeComments,
-			RelevantID:    id,
-			EventType:     audit.AuditLogEventTypeArchived,
-			BelongsToUser: comment.BelongsToUser,
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeComments,
+			ResourceID:   id,
+			EventType:    audit.EventArchived,
+			Actor:        audit.UserActor(comment.BelongsToUser),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -393,12 +389,11 @@ func (q *repository) ArchiveCommentsForReference(ctx context.Context, targetType
 		}
 
 		for _, c := range commentsResult.Data {
-			if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-				ID:            identifiers.New(),
-				ResourceType:  resourceTypeComments,
-				RelevantID:    c.ID,
-				EventType:     audit.AuditLogEventTypeArchived,
-				BelongsToUser: c.BelongsToUser,
+			if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+				ResourceType: resourceTypeComments,
+				ResourceID:   c.ID,
+				EventType:    audit.EventArchived,
+				Actor:        audit.UserActor(c.BelongsToUser),
 			}); err != nil {
 				return observability.PrepareError(err, span, "creating audit log entry")
 			}

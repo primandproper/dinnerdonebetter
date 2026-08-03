@@ -71,8 +71,8 @@ func TestQuerier_Integration_Accounts(t *testing.T) {
 	require.NotEmpty(t, accountWithMembers.Members, "account should have owner as member")
 
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, createdAccounts[0].ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccounts, RelevantID: createdAccounts[0].ID},
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccountUserMemberships, RelevantID: accountWithMembers.Members[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeAccounts, RelevantID: createdAccounts[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeAccountUserMemberships, RelevantID: accountWithMembers.Members[0].ID},
 	})
 
 	// update
@@ -82,9 +82,9 @@ func TestQuerier_Integration_Accounts(t *testing.T) {
 	assert.NoError(t, dbc.UpdateAccount(ctx, updatedAccount))
 
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, createdAccounts[0].ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccounts, RelevantID: createdAccounts[0].ID},
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccountUserMemberships, RelevantID: accountWithMembers.Members[0].ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeAccounts, RelevantID: createdAccounts[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeAccounts, RelevantID: createdAccounts[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeAccountUserMemberships, RelevantID: accountWithMembers.Members[0].ID},
+		{EventType: string(audit.EventUpdated), ResourceType: resourceTypeAccounts, RelevantID: createdAccounts[0].ID},
 	})
 
 	// create more
@@ -106,7 +106,7 @@ func TestQuerier_Integration_Accounts(t *testing.T) {
 		assert.NoError(t, dbc.ArchiveAccount(ctx, account.ID, exampleUser.ID))
 
 		pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-			{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeAccounts, RelevantID: account.ID},
+			{EventType: string(audit.EventArchived), ResourceType: resourceTypeAccounts, RelevantID: account.ID},
 		})
 
 		var y *identity.Account

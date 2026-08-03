@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
@@ -623,12 +622,11 @@ func (r *repository) CreateUser(ctx context.Context, input *identity.UserDatabas
 		logger = logger.WithValue(identitykeys.UserIDKey, user.ID)
 		tracing.AttachToSpan(span, identitykeys.UserIDKey, user.ID)
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUsers,
-			RelevantID:    input.ID,
-			EventType:     audit.AuditLogEventTypeCreated,
-			BelongsToUser: input.ID,
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUsers,
+			ResourceID:   input.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.UserActor(input.ID),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -725,13 +723,12 @@ func (r *repository) createAccountForUser(ctx context.Context, querier database.
 		return nil, observability.PrepareError(err, span, "creating account")
 	}
 
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, querier, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &accountCreationInput.ID,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeAccounts,
-		RelevantID:       accountCreationInput.ID,
-		EventType:        audit.AuditLogEventTypeCreated,
-		BelongsToUser:    accountCreationInput.BelongsToUser,
+	if err := r.auditLogEntryRepo.Record(ctx, querier, &audit.Entry{
+		Scope:        accountCreationInput.ID,
+		ResourceType: resourceTypeAccounts,
+		ResourceID:   accountCreationInput.ID,
+		EventType:    audit.EventCreated,
+		Actor:        audit.UserActor(accountCreationInput.BelongsToUser),
 	}); err != nil {
 		return nil, observability.PrepareError(err, span, "creating audit log entry")
 	}
@@ -756,13 +753,12 @@ func (r *repository) createAccountForUser(ctx context.Context, querier database.
 		return nil, observability.PrepareError(err, span, "assigning account role to user")
 	}
 
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, querier, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &accountCreationInput.ID,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeAccountUserMemberships,
-		RelevantID:       accountMembershipID,
-		EventType:        audit.AuditLogEventTypeCreated,
-		BelongsToUser:    accountCreationInput.BelongsToUser,
+	if err := r.auditLogEntryRepo.Record(ctx, querier, &audit.Entry{
+		Scope:        accountCreationInput.ID,
+		ResourceType: resourceTypeAccountUserMemberships,
+		ResourceID:   accountMembershipID,
+		EventType:    audit.EventCreated,
+		Actor:        audit.UserActor(accountCreationInput.BelongsToUser),
 	}); err != nil {
 		return nil, observability.PrepareError(err, span, "creating audit log entry")
 	}
@@ -821,16 +817,15 @@ func (r *repository) UpdateUserUsername(ctx context.Context, userID, newUsername
 			return observability.PrepareAndLogError(err, logger, span, "updating username")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUsers,
-			RelevantID:    userID,
-			EventType:     audit.AuditLogEventTypeUpdated,
-			BelongsToUser: userID,
-			Changes: map[string]*audit.ChangeLog{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUsers,
+			ResourceID:   userID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(userID),
+			Changes: map[string]audit.Change{
 				"username": {
-					OldValue: user.Username,
-					NewValue: newUsername,
+					Old: user.Username,
+					New: newUsername,
 				},
 			},
 		}); err != nil {
@@ -884,16 +879,15 @@ func (r *repository) UpdateUserEmailAddress(ctx context.Context, userID, newEmai
 			return observability.PrepareAndLogError(err, logger, span, "updating user email address")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUsers,
-			RelevantID:    userID,
-			EventType:     audit.AuditLogEventTypeUpdated,
-			BelongsToUser: userID,
-			Changes: map[string]*audit.ChangeLog{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUsers,
+			ResourceID:   userID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(userID),
+			Changes: map[string]audit.Change{
 				"email_address": {
-					OldValue: user.EmailAddress,
-					NewValue: newEmailAddress,
+					Old: user.EmailAddress,
+					New: newEmailAddress,
 				},
 			},
 		}); err != nil {
@@ -948,26 +942,26 @@ func (r *repository) UpdateUserDetails(ctx context.Context, userID string, input
 			return observability.PrepareAndLogError(err, logger, span, "updating user details")
 		}
 
-		changes := map[string]*audit.ChangeLog{}
-		if input.FirstName != user.FirstName {
-			changes["first_name"] = &audit.ChangeLog{NewValue: input.FirstName, OldValue: user.FirstName}
+		// The after-value is the fetched user with the updated columns applied, so
+		// the diff describes the row the UPDATE just wrote. HashedPassword and
+		// TwoFactorSecret are tagged json:"-" and so are skipped by Diff before
+		// Redaction ever sees them.
+		after := *user
+		after.FirstName = input.FirstName
+		after.LastName = input.LastName
+		after.Birthday = &input.Birthday
+
+		changes, err := audit.Diff(user, &after)
+		if err != nil {
+			return observability.PrepareError(err, span, "diffing user for audit log entry")
 		}
 
-		if input.LastName != user.LastName {
-			changes["last_name"] = &audit.ChangeLog{NewValue: input.LastName, OldValue: user.LastName}
-		}
-
-		if input.Birthday.Format(time.Kitchen) != user.Birthday.Format(time.Kitchen) {
-			changes["birthday"] = &audit.ChangeLog{NewValue: input.Birthday.Format(time.Kitchen), OldValue: user.Birthday.Format(time.Kitchen)}
-		}
-
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUsers,
-			RelevantID:    userID,
-			EventType:     audit.AuditLogEventTypeUpdated,
-			BelongsToUser: userID,
-			Changes:       changes,
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUsers,
+			ResourceID:   userID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(userID),
+			Changes:      changes,
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -1019,13 +1013,12 @@ func (r *repository) SetUserAvatar(ctx context.Context, userID, uploadedMediaID 
 			return observability.PrepareAndLogError(err, logger, span, "creating user avatar")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUsers,
-			RelevantID:    userID,
-			EventType:     audit.AuditLogEventTypeUpdated,
-			BelongsToUser: userID,
-			Changes: map[string]*audit.ChangeLog{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUsers,
+			ResourceID:   userID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(userID),
+			Changes: map[string]audit.Change{
 				"avatar": {},
 			},
 		}); err != nil {
@@ -1074,13 +1067,12 @@ func (r *repository) UpdateUserPassword(ctx context.Context, userID, newHash str
 			return observability.PrepareAndLogError(err, logger, span, "updating user password")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUsers,
-			RelevantID:    userID,
-			EventType:     audit.AuditLogEventTypeUpdated,
-			BelongsToUser: userID,
-			Changes: map[string]*audit.ChangeLog{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUsers,
+			ResourceID:   userID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(userID),
+			Changes: map[string]audit.Change{
 				"password": {},
 			},
 		}); err != nil {
@@ -1121,13 +1113,12 @@ func (r *repository) UpdateUserTwoFactorSecret(ctx context.Context, userID, newS
 			return observability.PrepareAndLogError(err, logger, span, "updating user 2FA secret")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUsers,
-			RelevantID:    userID,
-			EventType:     audit.AuditLogEventTypeUpdated,
-			BelongsToUser: userID,
-			Changes: map[string]*audit.ChangeLog{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUsers,
+			ResourceID:   userID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(userID),
+			Changes: map[string]audit.Change{
 				"two_factor_secret": {},
 			},
 		}); err != nil {
@@ -1161,16 +1152,15 @@ func (r *repository) MarkUserTwoFactorSecretAsVerified(ctx context.Context, user
 			return observability.PrepareAndLogError(err, logger, span, "writing verified two factor status to database")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUsers,
-			RelevantID:    userID,
-			EventType:     audit.AuditLogEventTypeUpdated,
-			BelongsToUser: userID,
-			Changes: map[string]*audit.ChangeLog{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUsers,
+			ResourceID:   userID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(userID),
+			Changes: map[string]audit.Change{
 				"two_factor_secret": {
-					OldValue: "unverified",
-					NewValue: "verified",
+					Old: "unverified",
+					New: "verified",
 				},
 			},
 		}); err != nil {
@@ -1211,26 +1201,24 @@ func (r *repository) MarkUserTwoFactorSecretAsUnverified(ctx context.Context, us
 			return observability.PrepareAndLogError(err, logger, span, "writing verified two factor status to database")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUsers,
-			RelevantID:    userID,
-			EventType:     audit.AuditLogEventTypeArchived,
-			BelongsToUser: userID,
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUsers,
+			ResourceID:   userID,
+			EventType:    audit.EventArchived,
+			Actor:        audit.UserActor(userID),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUsers,
-			RelevantID:    userID,
-			EventType:     audit.AuditLogEventTypeCreated,
-			BelongsToUser: userID,
-			Changes: map[string]*audit.ChangeLog{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUsers,
+			ResourceID:   userID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.UserActor(userID),
+			Changes: map[string]audit.Change{
 				"two_factor_secret": {
-					OldValue: "verified",
-					NewValue: "unverified",
+					Old: "verified",
+					New: "unverified",
 				},
 			},
 		}); err != nil {
@@ -1269,12 +1257,11 @@ func (r *repository) ArchiveUser(ctx context.Context, userID string) error {
 			return sql.ErrNoRows
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUsers,
-			RelevantID:    userID,
-			EventType:     audit.AuditLogEventTypeArchived,
-			BelongsToUser: userID,
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUsers,
+			ResourceID:   userID,
+			EventType:    audit.EventArchived,
+			Actor:        audit.UserActor(userID),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -1383,16 +1370,15 @@ func (r *repository) MarkUserEmailAddressAsVerified(ctx context.Context, userID,
 			return observability.PrepareAndLogError(err, logger, span, "writing verified email address status to database")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUsers,
-			RelevantID:    userID,
-			EventType:     audit.AuditLogEventTypeUpdated,
-			BelongsToUser: userID,
-			Changes: map[string]*audit.ChangeLog{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUsers,
+			ResourceID:   userID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(userID),
+			Changes: map[string]audit.Change{
 				"email_address_verification": {
-					OldValue: "unverified",
-					NewValue: "verified",
+					Old: "unverified",
+					New: "verified",
 				},
 			},
 		}); err != nil {
@@ -1436,16 +1422,15 @@ func (r *repository) MarkUserEmailAddressAsUnverified(ctx context.Context, userI
 			return observability.PrepareAndLogError(err, logger, span, "writing email address verification status to database")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUsers,
-			RelevantID:    userID,
-			EventType:     audit.AuditLogEventTypeUpdated,
-			BelongsToUser: userID,
-			Changes: map[string]*audit.ChangeLog{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUsers,
+			ResourceID:   userID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(userID),
+			Changes: map[string]audit.Change{
 				"email_address_verification": {
-					OldValue: "verified",
-					NewValue: "unverified",
+					Old: "verified",
+					New: "unverified",
 				},
 			},
 		}); err != nil {

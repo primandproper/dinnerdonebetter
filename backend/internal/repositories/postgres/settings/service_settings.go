@@ -13,7 +13,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
@@ -279,11 +278,11 @@ func (q *Repository) CreateServiceSetting(ctx context.Context, input *types.Serv
 			CreatedAt:    q.CurrentTime(),
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
 			ResourceType: resourceTypeServiceSettings,
-			RelevantID:   x.ID,
-			EventType:    audit.AuditLogEventTypeCreated,
+			ResourceID:   x.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.SystemActor(),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -329,11 +328,11 @@ func (q *Repository) ArchiveServiceSetting(ctx context.Context, serviceSettingID
 			return sql.ErrNoRows
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
 			ResourceType: resourceTypeServiceSettings,
-			RelevantID:   serviceSettingID,
-			EventType:    audit.AuditLogEventTypeArchived,
+			ResourceID:   serviceSettingID,
+			EventType:    audit.EventArchived,
+			Actor:        audit.SystemActor(),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}

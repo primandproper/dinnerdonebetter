@@ -11,7 +11,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -42,18 +41,25 @@ func (r *repository) CreatePurchase(ctx context.Context, input *payments.Purchas
 		ExternalTransactionID: database.NullStringFromString(input.ExternalTransactionID),
 	}
 
-	if err := r.generatedQuerier.CreatePurchase(ctx, r.writeDB, arg); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "creating purchase")
-	}
+	// In one transaction, so the audit entry lives or dies with the purchase it
+	// describes. It also has to be a transaction for the chain's sake: Record locks
+	// the account's chain-head row for the remainder of the caller's transaction,
+	// and against the connection pool that lock is released before the INSERT that
+	// depends on it, so two concurrent writers claim the same position.
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		if err := r.generatedQuerier.CreatePurchase(ctx, tx, arg); err != nil {
+			return err
+		}
 
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &input.BelongsToAccount,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypePurchases,
-		RelevantID:       input.ID,
-		EventType:        audit.AuditLogEventTypeCreated,
+		return r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        input.BelongsToAccount,
+			ResourceType: resourceTypePurchases,
+			ResourceID:   input.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.SystemActor(),
+		})
 	}); err != nil {
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
+		return nil, observability.PrepareAndLogError(err, logger, span, "creating purchase")
 	}
 
 	return r.GetPurchase(ctx, input.ID)

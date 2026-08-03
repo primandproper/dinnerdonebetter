@@ -18,6 +18,7 @@ import (
 
 	"github.com/primandproper/platform-go/v9/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
@@ -532,7 +533,8 @@ func TestAuth_RequestingPasswordReset(T *testing.T) {
 		queryErr := databaseClient.Reader().QueryRowContext(ctx, `SELECT token FROM password_reset_tokens WHERE belongs_to_user = $1`, user.ID).Scan(&token)
 		require.NoError(t, queryErr)
 
-		auditLogRepo := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), databaseClient)
+		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), databaseClient)
+		require.NoError(t, err)
 		authRepo := authrepo.ProvideAuthRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, databaseClient)
 
 		resetToken, err := authRepo.GetPasswordResetTokenByToken(ctx, token)

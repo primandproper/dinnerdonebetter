@@ -20,6 +20,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 	"github.com/primandproper/platform-go/v9/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
@@ -53,7 +54,8 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
-	auditLogEntryRepo := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
+	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
+	require.NoError(t, err)
 
 	c := ProvideCommentsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil)
 
@@ -107,7 +109,7 @@ func TestQuerier_Integration_Comments(t *testing.T) {
 	// create
 	created := createCommentForTest(t, ctx, input, dbc)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: created.ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeComments, RelevantID: created.ID},
 	})
 
 	// fetch as list
@@ -122,8 +124,8 @@ func TestQuerier_Integration_Comments(t *testing.T) {
 	err = dbc.UpdateComment(ctx, created.ID, user.ID, newContent)
 	assert.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, RelevantID: created.ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeComments, RelevantID: created.ID},
+		{EventType: string(audit.EventUpdated), ResourceType: resourceTypeComments, RelevantID: created.ID},
 	})
 
 	updated, err := dbc.GetComment(ctx, created.ID)
@@ -136,9 +138,9 @@ func TestQuerier_Integration_Comments(t *testing.T) {
 	err = dbc.ArchiveComment(ctx, created.ID)
 	assert.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeComments, RelevantID: created.ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeComments, RelevantID: created.ID},
+		{EventType: string(audit.EventUpdated), ResourceType: resourceTypeComments, RelevantID: created.ID},
+		{EventType: string(audit.EventArchived), ResourceType: resourceTypeComments, RelevantID: created.ID},
 	})
 
 	fetchedAfterArchive, err := dbc.GetComment(ctx, created.ID)
@@ -209,8 +211,8 @@ func TestQuerier_Integration_ArchiveCommentsForReference(t *testing.T) {
 	err := dbc.ArchiveCommentsForReference(ctx, targetType, referencedID)
 	assert.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeComments, RelevantID: created.ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeComments, RelevantID: created.ID},
+		{EventType: string(audit.EventArchived), ResourceType: resourceTypeComments, RelevantID: created.ID},
 	})
 
 	// comment should no longer be fetchable (GetComment returns archived)

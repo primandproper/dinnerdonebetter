@@ -14,7 +14,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -432,13 +431,12 @@ func (q *Repository) CreateServiceSettingConfiguration(ctx context.Context, inpu
 			CreatedAt:        q.CurrentTime(),
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			BelongsToAccount: &input.BelongsToAccount,
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeServiceSettingConfigurations,
-			RelevantID:       x.ID,
-			EventType:        audit.AuditLogEventTypeCreated,
-			BelongsToUser:    input.BelongsToUser,
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        input.BelongsToAccount,
+			ResourceType: resourceTypeServiceSettingConfigurations,
+			ResourceID:   x.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.UserActor(input.BelongsToUser),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -486,13 +484,12 @@ func (q *Repository) UpdateServiceSettingConfiguration(ctx context.Context, upda
 			return observability.PrepareAndLogError(err, logger, span, "updating service setting configuration")
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			BelongsToAccount: &updated.BelongsToAccount,
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeServiceSettingConfigurations,
-			RelevantID:       updated.ID,
-			EventType:        audit.AuditLogEventTypeUpdated,
-			BelongsToUser:    updated.BelongsToUser,
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        updated.BelongsToAccount,
+			ResourceType: resourceTypeServiceSettingConfigurations,
+			ResourceID:   updated.ID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(updated.BelongsToUser),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -540,11 +537,11 @@ func (q *Repository) ArchiveServiceSettingConfiguration(ctx context.Context, ser
 		}
 
 		// ArchiveServiceSettingConfiguration does not have account ID in signature; create audit entry without it
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
 			ResourceType: resourceTypeServiceSettingConfigurations,
-			RelevantID:   serviceSettingConfigurationID,
-			EventType:    audit.AuditLogEventTypeArchived,
+			ResourceID:   serviceSettingConfigurationID,
+			EventType:    audit.EventArchived,
+			Actor:        audit.SystemActor(),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}

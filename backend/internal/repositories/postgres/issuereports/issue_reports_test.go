@@ -66,7 +66,7 @@ func TestQuerier_Integration_IssueReports(t *testing.T) {
 	createdIssueReports = append(createdIssueReports, createIssueReportForTest(t, ctx, exampleIssueReport, dbc))
 
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, RelevantID: createdIssueReports[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeIssueReports, RelevantID: createdIssueReports[0].ID},
 	})
 
 	// create more
@@ -106,8 +106,8 @@ func TestQuerier_Integration_IssueReports(t *testing.T) {
 	assert.NoError(t, dbc.UpdateIssueReport(ctx, createdIssueReports[0]))
 
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, RelevantID: createdIssueReports[0].ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, RelevantID: createdIssueReports[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeIssueReports, RelevantID: createdIssueReports[0].ID},
+		{EventType: string(audit.EventUpdated), ResourceType: resourceTypeIssueReports, RelevantID: createdIssueReports[0].ID},
 	})
 
 	// fetch again to verify update
@@ -120,7 +120,7 @@ func TestQuerier_Integration_IssueReports(t *testing.T) {
 		assert.NoError(t, dbc.ArchiveIssueReport(ctx, issueReport.ID))
 
 		pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-			{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeIssueReports, RelevantID: issueReport.ID},
+			{EventType: string(audit.EventArchived), ResourceType: resourceTypeIssueReports, RelevantID: issueReport.ID},
 		})
 
 		var y *types.IssueReport

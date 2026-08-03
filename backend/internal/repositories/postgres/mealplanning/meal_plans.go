@@ -237,12 +237,12 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 			return observability.PrepareAndLogError(err, logger, span, "creating meal plan")
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			BelongsToAccount: &input.BelongsToAccount,
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeMealPlans,
-			RelevantID:       input.ID,
-			EventType:        audit.AuditLogEventTypeCreated,
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        input.BelongsToAccount,
+			ResourceType: resourceTypeMealPlans,
+			ResourceID:   input.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.SystemActor(),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -394,12 +394,12 @@ func (q *repository) UpdateMealPlan(ctx context.Context, updated *types.MealPlan
 			return sql.ErrNoRows
 		}
 
-		if _, auditErr := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			BelongsToAccount: &updated.BelongsToAccount,
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeMealPlans,
-			RelevantID:       updated.ID,
-			EventType:        audit.AuditLogEventTypeUpdated,
+		if auditErr := q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        updated.BelongsToAccount,
+			ResourceType: resourceTypeMealPlans,
+			ResourceID:   updated.ID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.SystemActor(),
 		}); auditErr != nil {
 			return observability.PrepareError(auditErr, span, "creating audit log entry")
 		}
@@ -454,12 +454,12 @@ func (q *repository) ArchiveMealPlan(ctx context.Context, mealPlanID, accountID 
 			return sql.ErrNoRows
 		}
 
-		if _, auditErr := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			BelongsToAccount: &accountID,
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeMealPlans,
-			RelevantID:       mealPlanID,
-			EventType:        audit.AuditLogEventTypeArchived,
+		if auditErr := q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        accountID,
+			ResourceType: resourceTypeMealPlans,
+			ResourceID:   mealPlanID,
+			EventType:    audit.EventArchived,
+			Actor:        audit.SystemActor(),
 		}); auditErr != nil {
 			return observability.PrepareError(auditErr, span, "creating audit log entry")
 		}

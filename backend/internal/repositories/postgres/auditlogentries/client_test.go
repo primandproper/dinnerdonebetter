@@ -10,9 +10,11 @@ import (
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/platform-go/v9/database"
+	"github.com/primandproper/platform-go/v9/database/dialect"
 	mockdatabase "github.com/primandproper/platform-go/v9/database/mock"
 	"github.com/primandproper/platform-go/v9/database/postgres"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/stretchr/testify/require"
@@ -49,7 +51,8 @@ func buildDatabaseClientForTest(t *testing.T) *repository {
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
-	c := ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
+	c, err := ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
+	require.NoError(t, err)
 
 	return c.(*repository)
 }
@@ -57,7 +60,12 @@ func buildDatabaseClientForTest(t *testing.T) *repository {
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
+	c, err := ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), &mockdatabase.ClientMock{
+		ReaderFunc:  func() database.SQLQueryExecutor { return nil },
+		WriterFunc:  func() database.SQLQueryExecutor { return nil },
+		DialectFunc: func() dialect.Dialect { return dialect.Postgres },
+	})
+	require.NoError(t, err)
 
 	return c.(*repository)
 }

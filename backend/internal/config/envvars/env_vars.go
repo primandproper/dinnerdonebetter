@@ -448,6 +448,27 @@ const (
 	// IdempotencyManagerTTLEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.TTL`.
 	IdempotencyManagerTTLEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_TTL"
 
+	// JobsAuditLogSweeperEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.AuditLogSweeper.Enabled`.
+	JobsAuditLogSweeperEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_LOG_SWEEPER_ENABLED"
+
+	// JobsAuditLogSweeperIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.AuditLogSweeper.Interval`.
+	JobsAuditLogSweeperIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_LOG_SWEEPER_INTERVAL"
+
+	// JobsAuditLogSweeperLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.AuditLogSweeper.LeaseTTL`.
+	JobsAuditLogSweeperLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_LOG_SWEEPER_LEASE_TTL"
+
+	// JobsAuditLogSweeperRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.AuditLogSweeper.RunOnStart`.
+	JobsAuditLogSweeperRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_LOG_SWEEPER_RUN_ON_START"
+
+	// JobsAuditLogSweeperScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.AuditLogSweeper.Schedule`.
+	JobsAuditLogSweeperScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_LOG_SWEEPER_SCHEDULE"
+
+	// JobsAuditLogSweeperTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.AuditLogSweeper.Timeout`.
+	JobsAuditLogSweeperTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_LOG_SWEEPER_TIMEOUT"
+
+	// JobsAuditRetentionEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.AuditRetention`.
+	JobsAuditRetentionEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_RETENTION"
+
 	// JobsDisclosureArtifactReaperEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.DisclosureArtifactReaper.Enabled`.
 	JobsDisclosureArtifactReaperEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_DISCLOSURE_ARTIFACT_REAPER_ENABLED"
 

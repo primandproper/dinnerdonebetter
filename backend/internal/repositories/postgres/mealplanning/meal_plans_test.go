@@ -145,7 +145,7 @@ func TestQuerier_Integration_MealPlans(t *testing.T) {
 	createdMealPlans = append(createdMealPlans, createMealPlanForTest(t, ctx, exampleMealPlan, dbc))
 
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, accountID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeMealPlans, RelevantID: createdMealPlans[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeMealPlans, RelevantID: createdMealPlans[0].ID},
 	})
 
 	// create more
@@ -178,7 +178,7 @@ func TestQuerier_Integration_MealPlans(t *testing.T) {
 		assert.NoError(t, dbc.ArchiveMealPlan(ctx, mealPlan.ID, accountID))
 
 		pgtesting.AssertAuditLogContains(t, ctx, auditRepo, accountID, []*audit.AuditLogEntry{
-			{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeMealPlans, RelevantID: mealPlan.ID},
+			{EventType: string(audit.EventArchived), ResourceType: resourceTypeMealPlans, RelevantID: mealPlan.ID},
 		})
 
 		var exists bool

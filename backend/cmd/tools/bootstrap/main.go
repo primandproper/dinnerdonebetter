@@ -218,7 +218,10 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 		return fmt.Errorf("pinging database client: %w", err)
 	}
 
-	auditRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, client)
+	auditRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, metricsnoop.NewMetricsProvider(), client)
+	if err != nil {
+		return err
+	}
 	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil)
 	oauthRepo := oauthrepo.ProvideOAuthRepository(ctx, logger, tracerProvider, auditRepo, dbConfig, client)
 

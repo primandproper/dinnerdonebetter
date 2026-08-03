@@ -12,7 +12,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -289,11 +288,11 @@ func (q *repository) createMealPlanEvent(ctx context.Context, querier database.S
 		x.Options = append(x.Options, opt)
 	}
 
-	if _, err := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, querier, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
+	if err := q.auditLogEntryRepo.Record(ctx, querier, &audit.Entry{
 		ResourceType: resourceTypeMealPlanEvents,
-		RelevantID:   input.ID,
-		EventType:    audit.AuditLogEventTypeCreated,
+		ResourceID:   input.ID,
+		EventType:    audit.EventCreated,
+		Actor:        audit.SystemActor(),
 	}); err != nil {
 		return nil, observability.PrepareError(err, span, "creating audit log entry")
 	}
@@ -353,27 +352,25 @@ func (q *repository) UpdateMealPlanEvent(ctx context.Context, updated *types.Mea
 		mealplanningkeys.MealPlanIDKey:      updated.BelongsToMealPlan,
 		mealplanningkeys.MealPlanEventIDKey: updated.ID,
 	}, func(tx database.SQLQueryExecutor) error {
-		_, updateErr := q.generatedQuerier.UpdateMealPlanEvent(ctx, tx, &generated.UpdateMealPlanEventParams{
+		if _, updateErr := q.generatedQuerier.UpdateMealPlanEvent(ctx, tx, &generated.UpdateMealPlanEventParams{
 			Notes:             updated.Notes,
 			StartsAt:          updated.StartsAt,
 			EndsAt:            updated.EndsAt,
 			MealName:          generated.MealName(updated.MealName),
 			BelongsToMealPlan: updated.BelongsToMealPlan,
 			ID:                updated.ID,
-		})
+		}); updateErr != nil {
+			return updateErr
+		}
 
-		return updateErr
+		return q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeMealPlanEvents,
+			ResourceID:   updated.ID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.SystemActor(),
+		})
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan event")
-	}
-
-	if _, err := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, q.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeMealPlanEvents,
-		RelevantID:   updated.ID,
-		EventType:    audit.AuditLogEventTypeUpdated,
-	}); err != nil {
-		return observability.PrepareError(err, span, "creating audit log entry")
 	}
 
 	logger.Info("meal plan event updated")
@@ -423,11 +420,11 @@ func (q *repository) SwapMealPlanEvents(ctx context.Context, mealPlanID, mealPla
 		}); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "updating meal plan event A during swap")
 		}
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
 			ResourceType: resourceTypeMealPlanEvents,
-			RelevantID:   eventA.ID,
-			EventType:    audit.AuditLogEventTypeUpdated,
+			ResourceID:   eventA.ID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.SystemActor(),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry for event A")
 		}
@@ -442,11 +439,11 @@ func (q *repository) SwapMealPlanEvents(ctx context.Context, mealPlanID, mealPla
 		}); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "updating meal plan event B during swap")
 		}
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
 			ResourceType: resourceTypeMealPlanEvents,
-			RelevantID:   eventB.ID,
-			EventType:    audit.AuditLogEventTypeUpdated,
+			ResourceID:   eventB.ID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.SystemActor(),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry for event B")
 		}
@@ -505,11 +502,11 @@ func (q *repository) ArchiveMealPlanEvent(ctx context.Context, mealPlanID, mealP
 
 		// The audit log entry belongs in this transaction too: it describes the same
 		// write, and half of a write is not something to record.
-		if _, auditErr := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if auditErr := q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
 			ResourceType: resourceTypeMealPlanEvents,
-			RelevantID:   mealPlanEventID,
-			EventType:    audit.AuditLogEventTypeArchived,
+			ResourceID:   mealPlanEventID,
+			EventType:    audit.EventArchived,
+			Actor:        audit.SystemActor(),
 		}); auditErr != nil {
 			return observability.PrepareError(auditErr, span, "creating audit log entry")
 		}

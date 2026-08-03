@@ -6,6 +6,7 @@ package mock
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
@@ -23,9 +24,6 @@ var _ audit.Repository = &RepositoryMock{}
 //
 //		// make and configure a mocked audit.Repository
 //		mockedRepository := &RepositoryMock{
-//			CreateAuditLogEntryFunc: func(ctx context.Context, querier database.SQLQueryExecutor, input *audit.AuditLogEntryDatabaseCreationInput) (*audit.AuditLogEntry, error) {
-//				panic("mock out the CreateAuditLogEntry method")
-//			},
 //			GetAuditLogEntriesForAccountFunc: func(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
 //				panic("mock out the GetAuditLogEntriesForAccount method")
 //			},
@@ -41,6 +39,12 @@ var _ audit.Repository = &RepositoryMock{}
 //			GetAuditLogEntryFunc: func(ctx context.Context, auditLogID string) (*audit.AuditLogEntry, error) {
 //				panic("mock out the GetAuditLogEntry method")
 //			},
+//			RecordFunc: func(ctx context.Context, querier database.SQLQueryExecutor, entries ...*audit.Entry) error {
+//				panic("mock out the Record method")
+//			},
+//			VerifyChainFunc: func(ctx context.Context, accountID string, from time.Time, to time.Time) (*audit.VerificationResult, error) {
+//				panic("mock out the VerifyChain method")
+//			},
 //		}
 //
 //		// use mockedRepository in code that requires audit.Repository
@@ -48,9 +52,6 @@ var _ audit.Repository = &RepositoryMock{}
 //
 //	}
 type RepositoryMock struct {
-	// CreateAuditLogEntryFunc mocks the CreateAuditLogEntry method.
-	CreateAuditLogEntryFunc func(ctx context.Context, querier database.SQLQueryExecutor, input *audit.AuditLogEntryDatabaseCreationInput) (*audit.AuditLogEntry, error)
-
 	// GetAuditLogEntriesForAccountFunc mocks the GetAuditLogEntriesForAccount method.
 	GetAuditLogEntriesForAccountFunc func(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error)
 
@@ -66,17 +67,14 @@ type RepositoryMock struct {
 	// GetAuditLogEntryFunc mocks the GetAuditLogEntry method.
 	GetAuditLogEntryFunc func(ctx context.Context, auditLogID string) (*audit.AuditLogEntry, error)
 
+	// RecordFunc mocks the Record method.
+	RecordFunc func(ctx context.Context, querier database.SQLQueryExecutor, entries ...*audit.Entry) error
+
+	// VerifyChainFunc mocks the VerifyChain method.
+	VerifyChainFunc func(ctx context.Context, accountID string, from time.Time, to time.Time) (*audit.VerificationResult, error)
+
 	// calls tracks calls to the methods.
 	calls struct {
-		// CreateAuditLogEntry holds details about calls to the CreateAuditLogEntry method.
-		CreateAuditLogEntry []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Querier is the querier argument value.
-			Querier database.SQLQueryExecutor
-			// Input is the input argument value.
-			Input *audit.AuditLogEntryDatabaseCreationInput
-		}
 		// GetAuditLogEntriesForAccount holds details about calls to the GetAuditLogEntriesForAccount method.
 		GetAuditLogEntriesForAccount []struct {
 			// Ctx is the ctx argument value.
@@ -124,53 +122,34 @@ type RepositoryMock struct {
 			// AuditLogID is the auditLogID argument value.
 			AuditLogID string
 		}
+		// Record holds details about calls to the Record method.
+		Record []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Querier is the querier argument value.
+			Querier database.SQLQueryExecutor
+			// Entries is the entries argument value.
+			Entries []*audit.Entry
+		}
+		// VerifyChain holds details about calls to the VerifyChain method.
+		VerifyChain []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// AccountID is the accountID argument value.
+			AccountID string
+			// From is the from argument value.
+			From time.Time
+			// To is the to argument value.
+			To time.Time
+		}
 	}
-	lockCreateAuditLogEntry                          sync.RWMutex
 	lockGetAuditLogEntriesForAccount                 sync.RWMutex
 	lockGetAuditLogEntriesForAccountAndResourceTypes sync.RWMutex
 	lockGetAuditLogEntriesForUser                    sync.RWMutex
 	lockGetAuditLogEntriesForUserAndResourceTypes    sync.RWMutex
 	lockGetAuditLogEntry                             sync.RWMutex
-}
-
-// CreateAuditLogEntry calls CreateAuditLogEntryFunc.
-func (mock *RepositoryMock) CreateAuditLogEntry(ctx context.Context, querier database.SQLQueryExecutor, input *audit.AuditLogEntryDatabaseCreationInput) (*audit.AuditLogEntry, error) {
-	if mock.CreateAuditLogEntryFunc == nil {
-		panic("RepositoryMock.CreateAuditLogEntryFunc: method is nil but Repository.CreateAuditLogEntry was just called")
-	}
-	callInfo := struct {
-		Ctx     context.Context
-		Querier database.SQLQueryExecutor
-		Input   *audit.AuditLogEntryDatabaseCreationInput
-	}{
-		Ctx:     ctx,
-		Querier: querier,
-		Input:   input,
-	}
-	mock.lockCreateAuditLogEntry.Lock()
-	mock.calls.CreateAuditLogEntry = append(mock.calls.CreateAuditLogEntry, callInfo)
-	mock.lockCreateAuditLogEntry.Unlock()
-	return mock.CreateAuditLogEntryFunc(ctx, querier, input)
-}
-
-// CreateAuditLogEntryCalls gets all the calls that were made to CreateAuditLogEntry.
-// Check the length with:
-//
-//	len(mockedRepository.CreateAuditLogEntryCalls())
-func (mock *RepositoryMock) CreateAuditLogEntryCalls() []struct {
-	Ctx     context.Context
-	Querier database.SQLQueryExecutor
-	Input   *audit.AuditLogEntryDatabaseCreationInput
-} {
-	var calls []struct {
-		Ctx     context.Context
-		Querier database.SQLQueryExecutor
-		Input   *audit.AuditLogEntryDatabaseCreationInput
-	}
-	mock.lockCreateAuditLogEntry.RLock()
-	calls = mock.calls.CreateAuditLogEntry
-	mock.lockCreateAuditLogEntry.RUnlock()
-	return calls
+	lockRecord                                       sync.RWMutex
+	lockVerifyChain                                  sync.RWMutex
 }
 
 // GetAuditLogEntriesForAccount calls GetAuditLogEntriesForAccountFunc.
@@ -374,5 +353,89 @@ func (mock *RepositoryMock) GetAuditLogEntryCalls() []struct {
 	mock.lockGetAuditLogEntry.RLock()
 	calls = mock.calls.GetAuditLogEntry
 	mock.lockGetAuditLogEntry.RUnlock()
+	return calls
+}
+
+// Record calls RecordFunc.
+func (mock *RepositoryMock) Record(ctx context.Context, querier database.SQLQueryExecutor, entries ...*audit.Entry) error {
+	if mock.RecordFunc == nil {
+		panic("RepositoryMock.RecordFunc: method is nil but Repository.Record was just called")
+	}
+	callInfo := struct {
+		Ctx     context.Context
+		Querier database.SQLQueryExecutor
+		Entries []*audit.Entry
+	}{
+		Ctx:     ctx,
+		Querier: querier,
+		Entries: entries,
+	}
+	mock.lockRecord.Lock()
+	mock.calls.Record = append(mock.calls.Record, callInfo)
+	mock.lockRecord.Unlock()
+	return mock.RecordFunc(ctx, querier, entries...)
+}
+
+// RecordCalls gets all the calls that were made to Record.
+// Check the length with:
+//
+//	len(mockedRepository.RecordCalls())
+func (mock *RepositoryMock) RecordCalls() []struct {
+	Ctx     context.Context
+	Querier database.SQLQueryExecutor
+	Entries []*audit.Entry
+} {
+	var calls []struct {
+		Ctx     context.Context
+		Querier database.SQLQueryExecutor
+		Entries []*audit.Entry
+	}
+	mock.lockRecord.RLock()
+	calls = mock.calls.Record
+	mock.lockRecord.RUnlock()
+	return calls
+}
+
+// VerifyChain calls VerifyChainFunc.
+func (mock *RepositoryMock) VerifyChain(ctx context.Context, accountID string, from time.Time, to time.Time) (*audit.VerificationResult, error) {
+	if mock.VerifyChainFunc == nil {
+		panic("RepositoryMock.VerifyChainFunc: method is nil but Repository.VerifyChain was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		AccountID string
+		From      time.Time
+		To        time.Time
+	}{
+		Ctx:       ctx,
+		AccountID: accountID,
+		From:      from,
+		To:        to,
+	}
+	mock.lockVerifyChain.Lock()
+	mock.calls.VerifyChain = append(mock.calls.VerifyChain, callInfo)
+	mock.lockVerifyChain.Unlock()
+	return mock.VerifyChainFunc(ctx, accountID, from, to)
+}
+
+// VerifyChainCalls gets all the calls that were made to VerifyChain.
+// Check the length with:
+//
+//	len(mockedRepository.VerifyChainCalls())
+func (mock *RepositoryMock) VerifyChainCalls() []struct {
+	Ctx       context.Context
+	AccountID string
+	From      time.Time
+	To        time.Time
+} {
+	var calls []struct {
+		Ctx       context.Context
+		AccountID string
+		From      time.Time
+		To        time.Time
+	}
+	mock.lockVerifyChain.RLock()
+	calls = mock.calls.VerifyChain
+	mock.lockVerifyChain.RUnlock()
 	return calls
 }

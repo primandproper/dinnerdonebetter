@@ -28,6 +28,7 @@ make test     # tests the backend frontend and iOS folders
 ## Documentation
 
 - `docs/identity.md` — Users, accounts, memberships, roles
+- `docs/audit.md` — Tamper-evident audit log: the hash chain, scopes, redaction, retention
 - `docs/data-privacy.md` — Disclosure lifecycle, artifact encryption, the expiry reaper
 - `docs/auth-flow.md` — Authentication flow (password, passkey, OAuth2, gRPC interceptor)
 - `docs/recipes.md` — Recipe object model, bridge tables, option groups, scaling

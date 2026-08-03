@@ -169,16 +169,15 @@ func (r *repository) markAccountAsUserDefault(ctx context.Context, querier datab
 			return observability.PrepareAndLogError(err, logger, span, "assigning user default account")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			BelongsToAccount: &accountID,
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeAccountUserMemberships,
-			EventType:        audit.AuditLogEventTypeUpdated,
-			BelongsToUser:    userID,
-			Changes: map[string]*audit.ChangeLog{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        accountID,
+			ResourceType: resourceTypeAccountUserMemberships,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(userID),
+			Changes: map[string]audit.Change{
 				"default_account": {
-					OldValue: "false",
-					NewValue: "true",
+					Old: "false",
+					New: "true",
 				},
 			},
 		}); err != nil {
@@ -272,15 +271,14 @@ func (r *repository) ModifyUserPermissions(ctx context.Context, accountID, userI
 			return observability.PrepareAndLogError(err, logger, span, "updating account role assignment")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			BelongsToAccount: &accountID,
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeAccountUserMemberships,
-			EventType:        audit.AuditLogEventTypeUpdated,
-			BelongsToUser:    userID,
-			Changes: map[string]*audit.ChangeLog{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        accountID,
+			ResourceType: resourceTypeAccountUserMemberships,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(userID),
+			Changes: map[string]audit.Change{
 				"role": {
-					NewValue: input.NewRole,
+					New: input.NewRole,
 				},
 			},
 		}); err != nil {
@@ -337,16 +335,15 @@ func (r *repository) TransferAccountOwnership(ctx context.Context, accountID str
 			return observability.PrepareAndLogError(err, logger, span, "transferring account to new owner")
 		}
 
-		if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			BelongsToAccount: &accountID,
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeAccountUserMemberships,
-			EventType:        audit.AuditLogEventTypeUpdated,
-			BelongsToUser:    input.NewOwner,
-			Changes: map[string]*audit.ChangeLog{
+		if err := r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        accountID,
+			ResourceType: resourceTypeAccountUserMemberships,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(input.NewOwner),
+			Changes: map[string]audit.Change{
 				"belongs_to_user": {
-					OldValue: input.CurrentOwner,
-					NewValue: input.NewOwner,
+					Old: input.CurrentOwner,
+					New: input.NewOwner,
 				},
 			},
 		}); err != nil {
@@ -430,12 +427,11 @@ func (r *repository) addUserToAccount(ctx context.Context, querier database.SQLQ
 		return observability.PrepareAndLogError(err, logger, span, "assigning account role to user")
 	}
 
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, querier, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &input.AccountID,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeAccountUserMemberships,
-		EventType:        audit.AuditLogEventTypeCreated,
-		BelongsToUser:    input.UserID,
+	if err := r.auditLogEntryRepo.Record(ctx, querier, &audit.Entry{
+		Scope:        input.AccountID,
+		ResourceType: resourceTypeAccountUserMemberships,
+		EventType:    audit.EventCreated,
+		Actor:        audit.UserActor(input.UserID),
 	}); err != nil {
 		return observability.PrepareError(err, span, "creating audit log entry")
 	}
@@ -477,12 +473,11 @@ func (r *repository) removeUserFromAccount(ctx context.Context, querier database
 		return observability.PrepareAndLogError(err, logger, span, "removing user from account")
 	}
 
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, querier, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &accountID,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeAccountUserMemberships,
-		EventType:        audit.AuditLogEventTypeArchived,
-		BelongsToUser:    userID,
+	if err := r.auditLogEntryRepo.Record(ctx, querier, &audit.Entry{
+		Scope:        accountID,
+		ResourceType: resourceTypeAccountUserMemberships,
+		EventType:    audit.EventArchived,
+		Actor:        audit.UserActor(userID),
 	}); err != nil {
 		return observability.PrepareError(err, span, "creating audit log entry")
 	}

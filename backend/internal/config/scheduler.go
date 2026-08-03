@@ -61,12 +61,16 @@ type (
 	ScheduledJobsConfig struct {
 		_ struct{} `json:"-"`
 
-		Scheduler jobs.SchedulerConfig `envPrefix:"SCHEDULER_" json:"scheduler"`
-
 		// Lock decides which replica runs a given tick. The noop locker acquires
 		// unconditionally, which means every replica runs every job — right for a
 		// single-replica deployment, wrong the moment it scales.
 		Lock distributedlockcfg.Config `envPrefix:"LOCK_" json:"lock"`
+
+		Scheduler jobs.SchedulerConfig `envPrefix:"SCHEDULER_" json:"scheduler"`
+
+		// Domain: mealplanning — swapping the domain replaces this field and the type it
+		// names, and touches nothing else in this struct.
+		MealPlanning MealPlanningScheduledJobsConfig `envPrefix:"MEAL_PLANNING_" json:"mealPlanning"`
 
 		SearchDataIndexScheduler    ScheduledJobConfig `envPrefix:"SEARCH_DATA_INDEX_SCHEDULER_"   json:"searchDataIndexScheduler"`
 		MobileNotificationScheduler ScheduledJobConfig `envPrefix:"MOBILE_NOTIFICATION_SCHEDULER_" json:"mobileNotificationScheduler"`
@@ -77,9 +81,17 @@ type (
 		// accumulating and nothing else will ever delete them.
 		DisclosureArtifactReaper ScheduledJobConfig `envPrefix:"DISCLOSURE_ARTIFACT_REAPER_" json:"disclosureArtifactReaper"`
 
-		// Domain: mealplanning — swapping the domain replaces this field and the type it
-		// names, and touches nothing else in this struct.
-		MealPlanning MealPlanningScheduledJobsConfig `envPrefix:"MEAL_PLANNING_" json:"mealPlanning"`
+		// AuditLogSweeper enforces the audit log's retention window. Disabling it means the
+		// audit tables grow without bound; there is no other reaper for them.
+		AuditLogSweeper ScheduledJobConfig `envPrefix:"AUDIT_LOG_SWEEPER_" json:"auditLogSweeper"`
+
+		// AuditRetention is how long an audit entry is kept before a sweep may remove it.
+		//
+		// It is a knob of its own rather than a field of AuditLogSweeper because it is a
+		// different kind of decision: the rest of that struct says how often a job runs,
+		// and this says how long evidence is kept, which is a compliance question and the
+		// one value here somebody outside engineering may have an opinion about.
+		AuditRetention time.Duration `env:"AUDIT_RETENTION" json:"auditRetention"`
 	}
 
 	// ScheduledJobConfig is one job's schedule. Exactly one of Schedule and Interval is set:
@@ -195,7 +207,19 @@ func (cfg *ScheduledJobsConfig) ValidateWithContext(ctx context.Context) error {
 		"MobileNotificationScheduler": cfg.MobileNotificationScheduler.ValidateWithContext,
 		"QueueTest":                   cfg.QueueTest.ValidateWithContext,
 		"DisclosureArtifactReaper":    cfg.DisclosureArtifactReaper.ValidateWithContext,
+		"AuditLogSweeper":             cfg.AuditLogSweeper.ValidateWithContext,
 		"MealPlanning":                cfg.MealPlanning.ValidateWithContext,
+	}
+
+	// An hour, not a second, and only when the sweeper is actually registered. A
+	// misplaced unit here would mean "keep nothing", and the failure mode of an
+	// audit log that quietly deleted everything is worse than one that refused to
+	// start.
+	if cfg.AuditLogSweeper.Enabled && cfg.AuditRetention < time.Hour {
+		result = multierror.Append(
+			fmt.Errorf("audit retention of %s is below the one hour minimum", cfg.AuditRetention),
+			result,
+		)
 	}
 
 	for name, validator := range validators {

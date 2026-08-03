@@ -13,7 +13,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -199,25 +198,25 @@ func (q *repository) CreateAccountInstrumentOwnership(ctx context.Context, input
 	if err := q.withEvent(ctx, logger, types.AccountInstrumentOwnershipCreatedServiceEventType, input.BelongsToAccount, map[string]any{
 		mealplanningkeys.AccountInstrumentOwnershipIDKey: input.ID,
 	}, func(tx database.SQLQueryExecutor) error {
-		return q.generatedQuerier.CreateAccountInstrumentOwnership(ctx, tx, &generated.CreateAccountInstrumentOwnershipParams{
+		if err := q.generatedQuerier.CreateAccountInstrumentOwnership(ctx, tx, &generated.CreateAccountInstrumentOwnershipParams{
 			ID:                input.ID,
 			Notes:             input.Notes,
 			ValidInstrumentID: input.ValidInstrumentID,
 			BelongsToAccount:  input.BelongsToAccount,
 			Quantity:          int32(input.Quantity),
+		}); err != nil {
+			return err
+		}
+
+		return q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        input.BelongsToAccount,
+			ResourceType: resourceTypeAccountInstrumentOwnerships,
+			ResourceID:   input.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.SystemActor(),
 		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing account instrument ownership creation query")
-	}
-
-	if _, err := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, q.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &input.BelongsToAccount,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeAccountInstrumentOwnerships,
-		RelevantID:       input.ID,
-		EventType:        audit.AuditLogEventTypeCreated,
-	}); err != nil {
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
 	}
 
 	x := &types.AccountInstrumentOwnership{
@@ -248,27 +247,25 @@ func (q *repository) UpdateAccountInstrumentOwnership(ctx context.Context, updat
 	if err := q.withEvent(ctx, logger, types.AccountInstrumentOwnershipUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
 		mealplanningkeys.AccountInstrumentOwnershipIDKey: updated.ID,
 	}, func(tx database.SQLQueryExecutor) error {
-		_, updateErr := q.generatedQuerier.UpdateAccountInstrumentOwnership(ctx, tx, &generated.UpdateAccountInstrumentOwnershipParams{
+		if _, updateErr := q.generatedQuerier.UpdateAccountInstrumentOwnership(ctx, tx, &generated.UpdateAccountInstrumentOwnershipParams{
 			Notes:             updated.Notes,
 			ValidInstrumentID: updated.Instrument.ID,
 			ID:                updated.ID,
 			BelongsToAccount:  updated.BelongsToAccount,
 			Quantity:          int32(updated.Quantity),
-		})
+		}); updateErr != nil {
+			return updateErr
+		}
 
-		return updateErr
+		return q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        updated.BelongsToAccount,
+			ResourceType: resourceTypeAccountInstrumentOwnerships,
+			ResourceID:   updated.ID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.SystemActor(),
+		})
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating account instrument ownership")
-	}
-
-	if _, err := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, q.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &updated.BelongsToAccount,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeAccountInstrumentOwnerships,
-		RelevantID:       updated.ID,
-		EventType:        audit.AuditLogEventTypeUpdated,
-	}); err != nil {
-		return observability.PrepareError(err, span, "creating audit log entry")
 	}
 
 	logger.Info("account instrument ownership updated")
@@ -312,12 +309,12 @@ func (q *repository) ArchiveAccountInstrumentOwnership(ctx context.Context, acco
 
 		// The audit log entry belongs in this transaction too: it describes the same
 		// write, and half of a write is not something to record.
-		if _, auditErr := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			BelongsToAccount: &accountID,
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeAccountInstrumentOwnerships,
-			RelevantID:       accountInstrumentOwnershipID,
-			EventType:        audit.AuditLogEventTypeArchived,
+		if auditErr := q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        accountID,
+			ResourceType: resourceTypeAccountInstrumentOwnerships,
+			ResourceID:   accountInstrumentOwnershipID,
+			EventType:    audit.EventArchived,
+			Actor:        audit.SystemActor(),
 		}); auditErr != nil {
 			return observability.PrepareError(auditErr, span, "creating audit log entry")
 		}

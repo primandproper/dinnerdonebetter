@@ -97,7 +97,7 @@ func TestQuerier_Integration_Waitlists(t *testing.T) {
 
 	// Assert audit log entries for waitlist signup create
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, RelevantID: createdSignup.ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeWaitlistSignups, RelevantID: createdSignup.ID},
 	})
 
 	// fetch signup by ID alone
@@ -113,7 +113,7 @@ func TestQuerier_Integration_Waitlists(t *testing.T) {
 
 	// Assert audit log entry for signup update
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeWaitlistSignups, RelevantID: createdSignup.ID},
+		{EventType: string(audit.EventUpdated), ResourceType: resourceTypeWaitlistSignups, RelevantID: createdSignup.ID},
 	})
 
 	// archive signup before archiving waitlists

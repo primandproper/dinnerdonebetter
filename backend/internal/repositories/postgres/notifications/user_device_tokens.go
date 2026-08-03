@@ -13,7 +13,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -239,12 +238,11 @@ func (q *Repository) UpdateUserDeviceToken(ctx context.Context, updated *types.U
 			return observability.PrepareAndLogError(err, logger, span, "updating user device token")
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUserDeviceTokens,
-			RelevantID:    updated.ID,
-			EventType:     audit.AuditLogEventTypeUpdated,
-			BelongsToUser: updated.BelongsToUser,
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUserDeviceTokens,
+			ResourceID:   updated.ID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(updated.BelongsToUser),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -292,12 +290,11 @@ func (q *Repository) ArchiveUserDeviceToken(ctx context.Context, userID, tokenID
 			return sql.ErrNoRows
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUserDeviceTokens,
-			RelevantID:    tokenID,
-			EventType:     audit.AuditLogEventTypeArchived,
-			BelongsToUser: userID,
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUserDeviceTokens,
+			ResourceID:   tokenID,
+			EventType:    audit.EventArchived,
+			Actor:        audit.UserActor(userID),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}

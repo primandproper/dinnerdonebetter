@@ -54,7 +54,7 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 	created := createPasswordResetTokenForTest(t, ctx, examplePasswordResetToken, dbc)
 	createdPasswordResetTokens = append(createdPasswordResetTokens, created)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypePasswordResetTokens, RelevantID: created.ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypePasswordResetTokens, RelevantID: created.ID},
 	})
 
 	// create more
@@ -69,8 +69,8 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 		assert.NoError(t, dbc.RedeemPasswordResetToken(ctx, passwordResetToken.ID))
 	}
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypePasswordResetTokens, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypePasswordResetTokens, RelevantID: created.ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypePasswordResetTokens, RelevantID: created.ID},
+		{EventType: string(audit.EventUpdated), ResourceType: resourceTypePasswordResetTokens, RelevantID: created.ID},
 	})
 }
 

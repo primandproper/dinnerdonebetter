@@ -15,7 +15,7 @@ func BuildFakeAuditLogEntry() *types.AuditLogEntry {
 		BelongsToAccount: nil,
 		ResourceType:     "example",
 		RelevantID:       BuildFakeID(),
-		EventType:        types.AuditLogEventTypeOther,
+		EventType:        string(types.EventOther),
 		BelongsToUser:    BuildFakeID(),
 	}
 }

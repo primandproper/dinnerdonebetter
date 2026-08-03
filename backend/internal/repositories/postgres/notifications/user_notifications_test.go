@@ -57,7 +57,7 @@ func TestQuerier_Integration_UserNotifications(t *testing.T) {
 	createdUserNotifications = append(createdUserNotifications, createUserNotificationForTest(t, ctx, user.ID, exampleUserNotification, dbc))
 
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeUserNotifications, RelevantID: createdUserNotifications[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeUserNotifications, RelevantID: createdUserNotifications[0].ID},
 	})
 
 	// update
@@ -68,8 +68,8 @@ func TestQuerier_Integration_UserNotifications(t *testing.T) {
 	createdUserNotifications[0] = updatedUserNotification
 
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeUserNotifications, RelevantID: createdUserNotifications[0].ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeUserNotifications, RelevantID: createdUserNotifications[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeUserNotifications, RelevantID: createdUserNotifications[0].ID},
+		{EventType: string(audit.EventUpdated), ResourceType: resourceTypeUserNotifications, RelevantID: createdUserNotifications[0].ID},
 	})
 
 	// create more

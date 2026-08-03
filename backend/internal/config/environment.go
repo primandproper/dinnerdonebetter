@@ -124,6 +124,29 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 			LeaseTTL:   10 * time.Minute,
 			RunOnStart: true,
 		},
+		// Retention on the audit log. One sweep removes a bounded batch from each of a
+		// bounded number of scopes, so this is a slow grind by design rather than one
+		// DELETE that holds locks for minutes — and against a two-year window there is
+		// nothing to do at all for the first two years.
+		//
+		// Confined to the small hours for the same reason the search re-index is: the
+		// sweep and daytime traffic want the same tables. No RunOnStart, unlike the
+		// artifact reaper — there is no backlog to drain, because nothing is old enough
+		// to prune until long after this ships.
+		AuditLogSweeper: ScheduledJobConfig{
+			Enabled:  true,
+			Schedule: "17 7 * * *",
+			Timeout:  10 * time.Minute,
+			LeaseTTL: 20 * time.Minute,
+		},
+		// Two years. Long enough to cover a dispute, an incident review, or an annual
+		// compliance question with room on either side, and short enough that the table
+		// does not grow without a horizon.
+		//
+		// It is deliberately shorter than the platform's seven-year default, which is
+		// pitched at deployments carrying regulated records. Shortening it is a decision
+		// worth making on purpose, which is why it is written here rather than inherited.
+		AuditRetention: 2 * 365 * 24 * time.Hour,
 		// Domain: mealplanning
 		MealPlanning: defaultMealPlanningScheduledJobsConfig(),
 	}

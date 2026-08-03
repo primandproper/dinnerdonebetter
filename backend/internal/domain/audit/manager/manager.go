@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
@@ -76,16 +77,25 @@ func (m *auditManager) GetAuditLogEntriesForAccountAndResourceTypes(ctx context.
 	return m.repo.GetAuditLogEntriesForAccountAndResourceTypes(ctx, accountID, resourceTypes, filter)
 }
 
-func (m *auditManager) CreateAuditLogEntry(ctx context.Context, querier database.SQLQueryExecutor, input *audit.AuditLogEntryDatabaseCreationInput) (*audit.AuditLogEntry, error) {
+func (m *auditManager) Record(ctx context.Context, querier database.SQLQueryExecutor, entries ...*audit.Entry) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := m.logger.WithSpan(span).WithValue(identitykeys.UserIDKey, input.BelongsToUser)
-
-	created, err := m.repo.CreateAuditLogEntry(ctx, querier, input)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "creating audit log entry")
+	logger := m.logger.WithSpan(span)
+	if len(entries) > 0 {
+		logger = logger.WithValue(identitykeys.UserIDKey, entries[0].Actor.ID)
 	}
 
-	return created, nil
+	if err := m.repo.Record(ctx, querier, entries...); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "recording audit log entries")
+	}
+
+	return nil
+}
+
+func (m *auditManager) VerifyChain(ctx context.Context, accountID string, from, to time.Time) (*audit.VerificationResult, error) {
+	ctx, span := m.tracer.StartSpan(ctx)
+	defer span.End()
+
+	return m.repo.VerifyChain(ctx, accountID, from, to)
 }

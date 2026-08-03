@@ -64,7 +64,7 @@ func TestQuerier_Integration_AccountInstrumentOwnerships(t *testing.T) {
 	createdAccountInstrumentOwnerships = append(createdAccountInstrumentOwnerships, createAccountInstrumentOwnershipForTest(t, ctx, exampleAccountInstrumentOwnership, dbc))
 
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: createdAccountInstrumentOwnerships[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: createdAccountInstrumentOwnerships[0].ID},
 	})
 
 	// update
@@ -86,8 +86,8 @@ func TestQuerier_Integration_AccountInstrumentOwnerships(t *testing.T) {
 	assert.Equal(t, len(createdAccountInstrumentOwnerships), len(accountInstrumentOwnerships.Data))
 
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: createdAccountInstrumentOwnerships[0].ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: createdAccountInstrumentOwnerships[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: createdAccountInstrumentOwnerships[0].ID},
+		{EventType: string(audit.EventUpdated), ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: createdAccountInstrumentOwnerships[0].ID},
 	})
 
 	// delete
@@ -95,7 +95,7 @@ func TestQuerier_Integration_AccountInstrumentOwnerships(t *testing.T) {
 		assert.NoError(t, dbc.ArchiveAccountInstrumentOwnership(ctx, accountInstrumentOwnership.ID, account.ID))
 
 		pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-			{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: accountInstrumentOwnership.ID},
+			{EventType: string(audit.EventArchived), ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: accountInstrumentOwnership.ID},
 		})
 
 		var exists bool

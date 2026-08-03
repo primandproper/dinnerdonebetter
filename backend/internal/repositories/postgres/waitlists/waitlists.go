@@ -13,7 +13,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -219,23 +218,23 @@ func (r *Repository) CreateWaitlist(ctx context.Context, input *types.WaitlistDa
 	if err := r.withEvent(ctx, logger, types.WaitlistCreatedServiceEventType, "", map[string]any{
 		waitlistkeys.WaitlistIDKey: input.ID,
 	}, func(tx database.SQLQueryExecutor) error {
-		return r.generatedQuerier.CreateWaitlist(ctx, tx, &generated.CreateWaitlistParams{
+		if err := r.generatedQuerier.CreateWaitlist(ctx, tx, &generated.CreateWaitlistParams{
 			ID:          input.ID,
 			Name:        input.Name,
 			Description: input.Description,
 			ValidUntil:  input.ValidUntil,
+		}); err != nil {
+			return err
+		}
+
+		return r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeWaitlists,
+			ResourceID:   input.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.SystemActor(),
 		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing waitlist creation query")
-	}
-
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeWaitlists,
-		RelevantID:   input.ID,
-		EventType:    audit.AuditLogEventTypeCreated,
-	}); err != nil {
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
 	}
 
 	x := &types.Waitlist{
@@ -264,25 +263,23 @@ func (r *Repository) UpdateWaitlist(ctx context.Context, updated *types.Waitlist
 	if err := r.withEvent(ctx, logger, types.WaitlistUpdatedServiceEventType, "", map[string]any{
 		waitlistkeys.WaitlistIDKey: updated.ID,
 	}, func(tx database.SQLQueryExecutor) error {
-		_, updateErr := r.generatedQuerier.UpdateWaitlist(ctx, tx, &generated.UpdateWaitlistParams{
+		if _, updateErr := r.generatedQuerier.UpdateWaitlist(ctx, tx, &generated.UpdateWaitlistParams{
 			Name:        updated.Name,
 			Description: updated.Description,
 			ValidUntil:  updated.ValidUntil,
 			ID:          updated.ID,
-		})
+		}); updateErr != nil {
+			return updateErr
+		}
 
-		return updateErr
+		return r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeWaitlists,
+			ResourceID:   updated.ID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.SystemActor(),
+		})
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating waitlist")
-	}
-
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:           identifiers.New(),
-		ResourceType: resourceTypeWaitlists,
-		RelevantID:   updated.ID,
-		EventType:    audit.AuditLogEventTypeUpdated,
-	}); err != nil {
-		return observability.PrepareError(err, span, "creating audit log entry")
 	}
 
 	return nil
@@ -311,11 +308,11 @@ func (r *Repository) ArchiveWaitlist(ctx context.Context, waitlistID string) err
 			return sql.ErrNoRows
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
 			ResourceType: resourceTypeWaitlists,
-			RelevantID:   waitlistID,
-			EventType:    audit.AuditLogEventTypeArchived,
+			ResourceID:   waitlistID,
+			EventType:    audit.EventArchived,
+			Actor:        audit.SystemActor(),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -545,25 +542,25 @@ func (r *Repository) CreateWaitlistSignup(ctx context.Context, input *types.Wait
 		waitlistkeys.WaitlistSignupIDKey: input.ID,
 		waitlistkeys.WaitlistIDKey:       input.BelongsToWaitlist,
 	}, func(tx database.SQLQueryExecutor) error {
-		return r.generatedQuerier.CreateWaitlistSignup(ctx, tx, &generated.CreateWaitlistSignupParams{
+		if err := r.generatedQuerier.CreateWaitlistSignup(ctx, tx, &generated.CreateWaitlistSignupParams{
 			ID:                input.ID,
 			Notes:             input.Notes,
 			BelongsToWaitlist: database.NullStringFromString(input.BelongsToWaitlist),
 			BelongsToUser:     database.NullStringFromString(input.BelongsToUser),
 			BelongsToAccount:  database.NullStringFromString(input.BelongsToAccount),
+		}); err != nil {
+			return err
+		}
+
+		return r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        input.BelongsToAccount,
+			ResourceType: resourceTypeWaitlistSignups,
+			ResourceID:   input.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.UserActor(input.BelongsToUser),
 		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing waitlist signup creation query")
-	}
-
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &input.BelongsToAccount,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeWaitlistSignups,
-		RelevantID:       input.ID,
-		EventType:        audit.AuditLogEventTypeCreated,
-	}); err != nil {
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
 	}
 
 	x := &types.WaitlistSignup{
@@ -601,12 +598,12 @@ func (r *Repository) UpdateWaitlistSignup(ctx context.Context, updated *types.Wa
 			return observability.PrepareAndLogError(err, logger, span, "updating waitlist signup")
 		}
 
-		if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			BelongsToAccount: &updated.BelongsToAccount,
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeWaitlistSignups,
-			RelevantID:       updated.ID,
-			EventType:        audit.AuditLogEventTypeUpdated,
+		if err := r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        updated.BelongsToAccount,
+			ResourceType: resourceTypeWaitlistSignups,
+			ResourceID:   updated.ID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.SystemActor(),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -639,11 +636,11 @@ func (r *Repository) ArchiveWaitlistSignup(ctx context.Context, waitlistSignupID
 		}
 
 		// ArchiveWaitlistSignup does not have account ID in signature; create audit entry without it
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
 			ResourceType: resourceTypeWaitlistSignups,
-			RelevantID:   waitlistSignupID,
-			EventType:    audit.AuditLogEventTypeArchived,
+			ResourceID:   waitlistSignupID,
+			EventType:    audit.EventArchived,
+			Actor:        audit.SystemActor(),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}

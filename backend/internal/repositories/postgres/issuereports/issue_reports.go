@@ -13,7 +13,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -230,12 +229,12 @@ func (r *repository) CreateIssueReport(ctx context.Context, input *types.IssueRe
 			CreatedAt:        r.CurrentTime(),
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			BelongsToAccount: &x.BelongsToAccount,
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeIssueReports,
-			RelevantID:       x.ID,
-			EventType:        audit.AuditLogEventTypeCreated,
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        x.BelongsToAccount,
+			ResourceType: resourceTypeIssueReports,
+			ResourceID:   x.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.SystemActor(),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -287,12 +286,12 @@ func (r *repository) UpdateIssueReport(ctx context.Context, issueReport *types.I
 			return sql.ErrNoRows
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			BelongsToAccount: &issueReport.BelongsToAccount,
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeIssueReports,
-			RelevantID:       issueReport.ID,
-			EventType:        audit.AuditLogEventTypeUpdated,
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        issueReport.BelongsToAccount,
+			ResourceType: resourceTypeIssueReports,
+			ResourceID:   issueReport.ID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.SystemActor(),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -483,12 +482,12 @@ func (r *repository) ArchiveIssueReport(ctx context.Context, issueReportID strin
 			return sql.ErrNoRows
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			BelongsToAccount: &issueReport.BelongsToAccount,
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeIssueReports,
-			RelevantID:       issueReportID,
-			EventType:        audit.AuditLogEventTypeArchived,
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        issueReport.BelongsToAccount,
+			ResourceType: resourceTypeIssueReports,
+			ResourceID:   issueReportID,
+			EventType:    audit.EventArchived,
+			Actor:        audit.SystemActor(),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}

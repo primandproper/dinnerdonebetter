@@ -10,7 +10,6 @@ import (
 
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -99,12 +98,11 @@ func (r *repository) CreatePasswordResetToken(ctx context.Context, input *auth.P
 			return observability.PrepareAndLogError(err, logger, span, "performing password reset token creation query")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypePasswordResetTokens,
-			RelevantID:    input.ID,
-			EventType:     audit.AuditLogEventTypeCreated,
-			BelongsToUser: input.BelongsToUser,
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypePasswordResetTokens,
+			ResourceID:   input.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.UserActor(input.BelongsToUser),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -150,12 +148,11 @@ func (r *repository) RedeemPasswordResetToken(ctx context.Context, passwordReset
 			return observability.PrepareAndLogError(err, logger, span, "redeeming password reset token")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypePasswordResetTokens,
-			RelevantID:    passwordResetTokenID,
-			EventType:     audit.AuditLogEventTypeUpdated,
-			BelongsToUser: token.BelongsToUser,
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypePasswordResetTokens,
+			ResourceID:   passwordResetTokenID,
+			EventType:    audit.EventUpdated,
+			Actor:        audit.UserActor(token.BelongsToUser),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}

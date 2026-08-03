@@ -75,7 +75,7 @@ func TestQuerier_Integration_ServiceSettingConfigurations(t *testing.T) {
 
 	// Assert audit log entry for create
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeServiceSettingConfigurations, RelevantID: createdServiceSettingConfigurations[0].ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeServiceSettingConfigurations, RelevantID: createdServiceSettingConfigurations[0].ID},
 	})
 
 	// update
@@ -84,7 +84,7 @@ func TestQuerier_Integration_ServiceSettingConfigurations(t *testing.T) {
 
 	// Assert audit log entry for update
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeServiceSettingConfigurations, RelevantID: createdServiceSettingConfigurations[0].ID},
+		{EventType: string(audit.EventUpdated), ResourceType: resourceTypeServiceSettingConfigurations, RelevantID: createdServiceSettingConfigurations[0].ID},
 	})
 
 	// delete

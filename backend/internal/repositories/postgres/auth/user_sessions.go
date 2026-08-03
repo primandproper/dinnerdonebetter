@@ -13,7 +13,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -68,12 +67,11 @@ func (r *repository) CreateUserSession(ctx context.Context, input *auth.UserSess
 			return observability.PrepareAndLogError(err, logger, span, "creating user session")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUserSessions,
-			RelevantID:    input.ID,
-			EventType:     audit.AuditLogEventTypeCreated,
-			BelongsToUser: input.BelongsToUser,
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			ResourceType: resourceTypeUserSessions,
+			ResourceID:   input.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.UserActor(input.BelongsToUser),
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}

@@ -2,10 +2,12 @@ package scheduler
 
 import (
 	"context"
+	"time"
 
 	mobilenotificationscheduler "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/mobile_notification_scheduler"
 	searchdataindexscheduler "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/search_data_index_scheduler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
@@ -24,6 +26,7 @@ import (
 	mealplangrocerylistinitializer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_grocery_list_initializer"
 	mealplantaskcreator "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_creator"
 
+	platformaudit "github.com/primandproper/platform-go/v9/audit"
 	"github.com/primandproper/platform-go/v9/database"
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"
 	"github.com/primandproper/platform-go/v9/database/postgres"
@@ -81,6 +84,34 @@ func BuildInjector(
 	mealplanningrepo.RegisterMealPlanningRepository(i)
 	grocerylistpreparation.RegisterGroceryListCreator(i)
 	recipeanalysis.RegisterRecipeAnalyzer(i)
+
+	// The audit sweeper is constructed here rather than behind its own Register
+	// because it needs nothing but the database client and the retention window,
+	// and because the table prefix it prunes has to be the same constant the
+	// Recorder writes with — a sweeper pointed at the wrong prefix silently prunes
+	// nothing and reports success.
+	do.Provide[*platformaudit.Sweeper](i, func(i do.Injector) (*platformaudit.Sweeper, error) {
+		jobsCfg := do.MustInvoke[*config.ScheduledJobsConfig](i)
+
+		return platformaudit.NewSweeper(
+			do.MustInvoke[context.Context](i),
+			&platformaudit.SweeperConfig{
+				Dialect:     do.MustInvoke[database.Client](i).Dialect(),
+				TablePrefix: audit.TablePrefix,
+				Retention:   jobsCfg.AuditRetention,
+				// The Sweeper's own ticker is never started — Run is not called,
+				// because the jobs.Scheduler is what decides when this fires and
+				// which replica gets to. The interval is set anyway because the
+				// config validates it, and it is set to the job's own schedule so
+				// the two cannot read as disagreeing.
+				SweepInterval: 24 * time.Hour,
+			},
+			do.MustInvoke[database.Client](i),
+			platformaudit.WithSweeperLogger(do.MustInvoke[logging.Logger](i)),
+			platformaudit.WithSweeperTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			platformaudit.WithSweeperMetricsProvider(do.MustInvoke[metrics.Provider](i)),
+		)
+	})
 
 	// the periodic jobs themselves
 	mealplanfinalizer.RegisterMealPlanFinalizer(i)

@@ -20,6 +20,7 @@ import (
 	"github.com/primandproper/platform-go/v9/database/postgres"
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
@@ -115,7 +116,10 @@ func runImport(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, 
 		}
 	}()
 
-	auditRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, client)
+	auditRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, metricsnoop.NewMetricsProvider(), client)
+	if err != nil {
+		return err
+	}
 	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil)
 	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, client, nil)
 

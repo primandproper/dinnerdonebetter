@@ -12,7 +12,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -44,18 +43,24 @@ func (r *repository) CreatePaymentTransaction(ctx context.Context, input *paymen
 		Status:                generated.PaymentTransactionStatus(input.Status),
 	}
 
-	if err := r.generatedQuerier.CreatePaymentTransaction(ctx, r.writeDB, arg); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "creating payment transaction")
-	}
+	// One transaction: the audit entry commits with the transaction it describes,
+	// and Record's lock on the account's chain head is held long enough to mean
+	// something. Against the connection pool it is not, and two concurrent writers
+	// end up claiming the same chain position.
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		if err := r.generatedQuerier.CreatePaymentTransaction(ctx, tx, arg); err != nil {
+			return err
+		}
 
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		BelongsToAccount: &input.BelongsToAccount,
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypePaymentTransactions,
-		RelevantID:       input.ID,
-		EventType:        audit.AuditLogEventTypeCreated,
+		return r.auditLogEntryRepo.Record(ctx, tx, &audit.Entry{
+			Scope:        input.BelongsToAccount,
+			ResourceType: resourceTypePaymentTransactions,
+			ResourceID:   input.ID,
+			EventType:    audit.EventCreated,
+			Actor:        audit.SystemActor(),
+		})
 	}); err != nil {
-		return nil, observability.PrepareError(err, span, "creating audit log entry")
+		return nil, observability.PrepareAndLogError(err, logger, span, "creating payment transaction")
 	}
 
 	return &payments.PaymentTransaction{

@@ -111,12 +111,6 @@
 		}
 	},
 	"jobs": {
-		"scheduler": {
-			"lockKeyPrefix": "dinner_done_better.scheduler.",
-			"timezone": "UTC",
-			"defaultLeaseTTL": 120000000000,
-			"defaultTimeout": 60000000000
-		},
 		"lock": {
 			"redis": null,
 			"postgres": {
@@ -128,6 +122,38 @@
 				"name": "",
 				"circuitBreakerErrorPercentage": 0,
 				"circuitBreakerMinimumOccurrenceThreshold": 0
+			}
+		},
+		"scheduler": {
+			"lockKeyPrefix": "dinner_done_better.scheduler.",
+			"timezone": "UTC",
+			"defaultLeaseTTL": 120000000000,
+			"defaultTimeout": 60000000000
+		},
+		"mealPlanning": {
+			"mealPlanFinalizer": {
+				"schedule": "",
+				"interval": 300000000000,
+				"timeout": 600000000000,
+				"leaseTTL": 900000000000,
+				"enabled": true,
+				"runOnStart": false
+			},
+			"mealPlanGroceryListInitializer": {
+				"schedule": "",
+				"interval": 60000000000,
+				"timeout": 120000000000,
+				"leaseTTL": 300000000000,
+				"enabled": true,
+				"runOnStart": false
+			},
+			"mealPlanTaskCreator": {
+				"schedule": "",
+				"interval": 60000000000,
+				"timeout": 120000000000,
+				"leaseTTL": 300000000000,
+				"enabled": true,
+				"runOnStart": false
 			}
 		},
 		"searchDataIndexScheduler": {
@@ -162,32 +188,15 @@
 			"enabled": true,
 			"runOnStart": true
 		},
-		"mealPlanning": {
-			"mealPlanFinalizer": {
-				"schedule": "",
-				"interval": 300000000000,
-				"timeout": 600000000000,
-				"leaseTTL": 900000000000,
-				"enabled": true,
-				"runOnStart": false
-			},
-			"mealPlanGroceryListInitializer": {
-				"schedule": "",
-				"interval": 60000000000,
-				"timeout": 120000000000,
-				"leaseTTL": 300000000000,
-				"enabled": true,
-				"runOnStart": false
-			},
-			"mealPlanTaskCreator": {
-				"schedule": "",
-				"interval": 60000000000,
-				"timeout": 120000000000,
-				"leaseTTL": 300000000000,
-				"enabled": true,
-				"runOnStart": false
-			}
-		}
+		"auditLogSweeper": {
+			"schedule": "17 7 * * *",
+			"interval": 0,
+			"timeout": 600000000000,
+			"leaseTTL": 1200000000000,
+			"enabled": true,
+			"runOnStart": false
+		},
+		"auditRetention": 63072000000000000
 	},
 	"database": {
 		"encryption": {

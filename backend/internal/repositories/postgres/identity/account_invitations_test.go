@@ -90,9 +90,9 @@ func TestQuerier_Integration_AccountInvitations(t *testing.T) {
 	toBeAccepted := createAccountInvitationForTest(t, ctx, toBeAcceptedInput, dbc)
 
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccountInvitations, RelevantID: toBeCancelled.ID},
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccountInvitations, RelevantID: toBeRejected.ID},
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccountInvitations, RelevantID: toBeAccepted.ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeAccountInvitations, RelevantID: toBeCancelled.ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeAccountInvitations, RelevantID: toBeRejected.ID},
+		{EventType: string(audit.EventCreated), ResourceType: resourceTypeAccountInvitations, RelevantID: toBeAccepted.ID},
 	})
 
 	outboundInvites, err := dbc.GetPendingAccountInvitationsFromUser(ctx, fromUser.ID, nil)
