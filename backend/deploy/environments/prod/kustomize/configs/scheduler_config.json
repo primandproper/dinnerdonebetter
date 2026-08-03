@@ -3,8 +3,7 @@
 		"dataChangesTopicName": "data_changes",
 		"outboundEmailsTopicName": "outbound_emails",
 		"searchIndexRequestsTopicName": "search_index_requests",
-		"mobileNotificationsTopicName": "mobile_notifications",
-		"userDataAggregationTopicName": "user_data_aggregation_requests"
+		"mobileNotificationsTopicName": "mobile_notifications"
 	},
 	"events": {
 		"consumer": {
@@ -141,24 +140,6 @@
 			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
 	},
-	"dataPrivacy": {
-		"encryption": {
-			"provider": "salsa20"
-		},
-		"artifactEncryptionKey": "",
-		"uploads": {
-			"storageConfig": {
-				"bucketName": "userdata.dinnerdonebetter.com",
-				"provider": "gcp",
-				"circuitBreakerConfig": {
-					"name": "",
-					"circuitBreakerErrorPercentage": 0,
-					"circuitBreakerMinimumOccurrenceThreshold": 0
-				}
-			},
-			"debug": false
-		}
-	},
 	"jobs": {
 		"scheduler": {
 			"lockKeyPrefix": "dinner_done_better.scheduler.",
@@ -203,7 +184,7 @@
 			"enabled": true,
 			"runOnStart": false
 		},
-		"disclosureArtifactReaper": {
+		"dataPrivacySweep": {
 			"schedule": "",
 			"interval": 3600000000000,
 			"timeout": 300000000000,
@@ -347,6 +328,64 @@
 			"maxIdleConns": 100,
 			"maxIdleConnsPerHost": 100,
 			"enableTracing": false
+		}
+	},
+	"dataPrivacy": {
+		"encryption": {
+			"provider": "salsa20"
+		},
+		"artifactEncryptionKey": "",
+		"uploads": {
+			"storageConfig": {
+				"bucketName": "userdata.dinnerdonebetter.com",
+				"provider": "gcp",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				}
+			},
+			"debug": false
+		},
+		"requests": {
+			"dialect": "",
+			"tablePrefix": "",
+			"auditErasure": {
+				"tablePrefix": "",
+				"retentionBasis": "",
+				"disabled": false
+			},
+			"worker": {
+				"artifactPathPrefix": "",
+				"backoff": {
+					"provider": "",
+					"maxAttempts": 0,
+					"initialDelay": 0,
+					"maxDelay": 0,
+					"multiplier": 0,
+					"useJitter": false
+				},
+				"pollInterval": 0,
+				"leaseDuration": 0,
+				"fulfillmentTimeout": 0,
+				"collectorTimeout": 0,
+				"artifactTTL": 0,
+				"maxDocumentBytes": 0,
+				"batchSize": 0,
+				"concurrency": 0,
+				"collectorConcurrency": 0
+			},
+			"service": {
+				"exportResponseWindow": 0,
+				"erasureResponseWindow": 0,
+				"confirmationWindow": 0,
+				"signedURLTTL": 0
+			},
+			"sweeper": {
+				"requestRetention": 0,
+				"batchSize": 0,
+				"disableReap": false
+			}
 		}
 	}
 }

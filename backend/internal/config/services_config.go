@@ -22,10 +22,10 @@ type (
 
 		Payments      paymentscfg.Config      `envPrefix:"PAYMENTS_"       json:"payments"`
 		Users         identitycfg.Config      `envPrefix:"USERS_"          json:"users"`
-		DataPrivacy   dataprivacycfg.Config   `envPrefix:"DATA_PRIVACY_"   json:"dataPrivacy"`
 		UploadedMedia uploadedmediacfg.Config `envPrefix:"UPLOADED_MEDIA_" json:"uploadedMedia"`
 		MealPlanning  mealplanningcfg.Config  `envPrefix:"MEAL_PLANNING_"  json:"mealPlanning"`
 		Auth          authentication.Config   `envPrefix:"AUTH_"           json:"auth"`
+		DataPrivacy   dataprivacycfg.Config   `envPrefix:"DATA_PRIVACY_"   json:"dataPrivacy"`
 		OAuth2Clients oauthcfg.Config         `envPrefix:"OAUTH2_CLIENTS_" json:"oauth2Clients"`
 	}
 )

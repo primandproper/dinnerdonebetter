@@ -10,7 +10,6 @@ import (
 	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
 	authmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
 	commentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager"
-	dataprivacymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/manager"
 	identitymgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	issuereportsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/manager"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
@@ -25,7 +24,6 @@ import (
 	auditrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 	commentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments"
-	dataprivacyrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/dataprivacy"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
@@ -102,9 +100,11 @@ func BuildInjector(
 	qrcodes.RegisterBuilder(i)
 	uploadscfg.RegisterStorageConfig(i)
 	objectstorage.RegisterUploadManager(i)
-	// Disclosure artifacts get an upload manager of their own, pointed at the user data bucket
-	// rather than the media bucket the ambient one above serves.
-	dataprivacycfg.RegisterReportArtifactStore(i)
+	// Export artifacts get an upload manager of their own, pointed at the user data bucket
+	// rather than the media bucket the ambient one above serves, plus the request store the
+	// Service reads and writes.
+	dataprivacycfg.RegisterArtifactStorage(i)
+	dataprivacycfg.RegisterRequestService(i)
 	featureflagscfg.RegisterFeatureFlagManager(i)
 	multisource.RegisterMultiSourceEventReporter(i)
 
@@ -124,7 +124,6 @@ func BuildInjector(
 	webhooksrepo.RegisterWebhooksRepository(i)
 	oauthrepo.RegisterOAuthRepository(i)
 	paymentsrepo.RegisterPaymentsRepository(i)
-	dataprivacyrepo.RegisterDataPrivacyRepository(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
 
 	// managers
@@ -140,7 +139,6 @@ func BuildInjector(
 	waitlistsmanager.RegisterWaitlistDataManager(i)
 	issuereportsmanager.RegisterIssueReportsDataManager(i)
 	uploadedmediamanager.RegisterUploadedMediaManager(i)
-	dataprivacymanager.RegisterDataPrivacyManager(i)
 	paymentsadapters.RegisterPaymentProcessorRegistry(i)
 
 	// services

@@ -1,12 +1,9 @@
 package grpc
 
 import (
-	dataprivacymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/manager"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/reportartifacts"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
-	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
+	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
@@ -14,15 +11,17 @@ import (
 )
 
 // RegisterDataPrivacyService registers the data privacy gRPC service with the injector.
+//
+// It no longer needs a publisher or a queue name. Submitting a request writes a row
+// the fulfillment worker claims, so the durability a message on a topic was
+// providing now comes from the table the request lives in — and a request can no
+// longer be accepted, acknowledged, and then lost because the broker dropped it.
 func RegisterDataPrivacyService(i do.Injector) {
-	do.Provide[dataprivacysvc.DataPrivacyServiceServer](i, func(i do.Injector) (dataprivacysvc.DataPrivacyServiceServer, error) {
+	do.Provide(i, func(i do.Injector) (dataprivacysvc.DataPrivacyServiceServer, error) {
 		return NewDataPrivacyService(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.TracerProvider](i),
-			do.MustInvoke[dataprivacymanager.DataPrivacyManager](i),
-			do.MustInvoke[reportartifacts.Store](i),
-			do.MustInvoke[*msgconfig.Config](i),
-			do.MustInvoke[*queuescfg.Config](i),
+			do.MustInvoke[platformdataprivacy.Service](i),
 		), nil
 	})
 }

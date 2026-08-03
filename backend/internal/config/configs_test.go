@@ -350,7 +350,6 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 				DataChangesTopicName:         "data-changes",
 				OutboundEmailsTopicName:      "outbound-emails",
 				SearchIndexRequestsTopicName: "search-index-requests",
-				UserDataAggregationTopicName: "user-data-aggregation",
 				MobileNotificationsTopicName: "mobile-notifications",
 			},
 			Database: dbcfg.Config{
@@ -400,7 +399,6 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 				DataChangesTopicName:         "data-changes",
 				OutboundEmailsTopicName:      "outbound-emails",
 				SearchIndexRequestsTopicName: "search-index-requests",
-				UserDataAggregationTopicName: "user-data-aggregation",
 			},
 			Database: dbcfg.Config{
 				Config: databasecfg.Config{

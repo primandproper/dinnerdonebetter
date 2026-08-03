@@ -21,10 +21,10 @@ func ProvideMethodPermissions() DataPrivacyMethodPermissions {
 		dataprivacysvc.DataPrivacyService_DestroyAllUserData_FullMethodName: {
 			authorization.DestroyUserDataPermission,
 		},
-		dataprivacysvc.DataPrivacyService_GetUserDataDisclosure_FullMethodName: {
+		dataprivacysvc.DataPrivacyService_GetDataPrivacyRequest_FullMethodName: {
 			authorization.ReadUserDataReportsPermission,
 		},
-		dataprivacysvc.DataPrivacyService_ListUserDataDisclosures_FullMethodName: {
+		dataprivacysvc.DataPrivacyService_ListDataPrivacyRequests_FullMethodName: {
 			authorization.ReadUserDataReportsPermission,
 		},
 	}

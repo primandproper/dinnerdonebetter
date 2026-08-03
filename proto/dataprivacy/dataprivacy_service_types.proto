@@ -12,40 +12,59 @@ message AggregateUserDataReportRequest {}
 
 message AggregateUserDataReportResponse {
   common.ResponseDetails response_details = 1;
-  string report_id = 2;
+
+  // request is the submitted export request. Its id is what FetchUserDataReport and
+  // GetDataPrivacyRequest take; there is no separate report ID any more, because a request now
+  // owns its artifact rather than naming one.
+  DataPrivacyRequest request = 2;
 }
 
 message DestroyAllUserDataRequest {}
 
 message DestroyAllUserDataResponse {
   common.ResponseDetails response_details = 1;
-  bool successful = 2;
+
+  // request is the submitted erasure request, which begins pending rather than complete.
+  //
+  // Erasure is a durable job now rather than a synchronous DELETE. Every domain's eraser shares
+  // one transaction with the bookkeeping that records the erasure happened, so a subject is
+  // never left deleted from eight domains and present in three — and a request that survives
+  // the process that accepted it is the one guarantee this needs.
+  DataPrivacyRequest request = 2;
 }
 
 message FetchUserDataReportRequest {
-  string user_data_aggregation_report_id = 1;
+  string data_privacy_request_id = 1;
 }
 
 message FetchUserDataReportResponse {
   common.ResponseDetails response_details = 1;
-  UserDataCollection user_data_collection = 2;
+
+  // artifact is the export document as canonical JSON: an object of per-domain sections, plus a
+  // manifest naming any section that could not be collected and why.
+  //
+  // Bytes rather than a typed message. The typed one named every domain in the application, so
+  // a schema change in any of them was a proto change, a regeneration in three languages, and a
+  // client release. What a subject is owed is their data, not a shape this repository has to
+  // keep eleven domains in sync with.
+  bytes artifact = 2;
 }
 
-message GetUserDataDisclosureRequest {
-  string user_data_disclosure_id = 1;
+message GetDataPrivacyRequestRequest {
+  string data_privacy_request_id = 1;
 }
 
-message GetUserDataDisclosureResponse {
+message GetDataPrivacyRequestResponse {
   common.ResponseDetails response_details = 1;
-  UserDataDisclosure user_data_disclosure = 2;
+  DataPrivacyRequest request = 2;
 }
 
-message ListUserDataDisclosuresRequest {
+message ListDataPrivacyRequestsRequest {
   filtering.QueryFilter filter = 1;
 }
 
-message ListUserDataDisclosuresResponse {
+message ListDataPrivacyRequestsResponse {
   common.ResponseDetails response_details = 1;
-  repeated UserDataDisclosure data = 2;
+  repeated DataPrivacyRequest data = 2;
   filtering.Pagination pagination = 3;
 }

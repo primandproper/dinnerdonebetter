@@ -32,7 +32,6 @@ const (
 	outboundEmailsTopicName      = "outbound_emails"
 	searchIndexRequestsTopicName = "search_index_requests"
 	mobileNotificationsTopicName = "mobile_notifications"
-	userDataAggregationTopicName = "user_data_aggregation_requests"
 )
 
 var (

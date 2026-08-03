@@ -42,14 +42,6 @@ type (
 		Analytics     analyticscfg.Config  `envPrefix:"ANALYTICS_"     json:"analytics"`
 		Search        textsearchcfg.Config `envPrefix:"SEARCH_"        json:"search"`
 
-		// DataPrivacy is here for the disclosure artifact bucket. The reaper only deletes, so
-		// the cipher half is dead weight for this process — it is carried anyway so that all
-		// three processes are configured from one struct and cannot drift onto different
-		// buckets, which is the failure that makes a reaper delete nothing and report success.
-		// The extra exposure is nominal: this process already holds database credentials for
-		// the data the artifacts are made of.
-		DataPrivacy dataprivacycfg.Config `envPrefix:"DATA_PRIVACY_" json:"dataPrivacy"`
-
 		Jobs ScheduledJobsConfig `envPrefix:"JOBS_" json:"jobs"`
 
 		// Audit carries the retention window for the audit log. It lives here for the
@@ -78,6 +70,14 @@ type (
 		// Its own tick also reaps delivered dispatches and their attempts past the
 		// retention window, so retention needs no separate scheduled job.
 		Webhooks webhookscfg.Config `envPrefix:"WEBHOOKS_" json:"webhooks"`
+
+		// DataPrivacy is here for the disclosure artifact bucket. The reaper only deletes, so
+		// the cipher half is dead weight for this process — it is carried anyway so that all
+		// three processes are configured from one struct and cannot drift onto different
+		// buckets, which is the failure that makes a reaper delete nothing and report success.
+		// The extra exposure is nominal: this process already holds database credentials for
+		// the data the artifacts are made of.
+		DataPrivacy dataprivacycfg.Config `envPrefix:"DATA_PRIVACY_" json:"dataPrivacy"`
 	}
 
 	// ScheduledJobsConfig carries the scheduler's own knobs, the lock backend that serializes
@@ -96,10 +96,11 @@ type (
 		MobileNotificationScheduler ScheduledJobConfig `envPrefix:"MOBILE_NOTIFICATION_SCHEDULER_" json:"mobileNotificationScheduler"`
 		QueueTest                   ScheduledJobConfig `envPrefix:"QUEUE_TEST_"                    json:"queueTest"`
 
-		// DisclosureArtifactReaper destroys the object behind an expired user data disclosure.
-		// Disabling it does not pause expiry so much as abandon it: the artifacts keep
-		// accumulating and nothing else will ever delete them.
-		DisclosureArtifactReaper ScheduledJobConfig `envPrefix:"DISCLOSURE_ARTIFACT_REAPER_" json:"disclosureArtifactReaper"`
+		// DataPrivacySweep expires export artifacts, lapses unconfirmed erasures, and
+		// samples the overdue gauge. Disabling it does not pause expiry so much as
+		// abandon it: every artifact ever written — each one everything the system knows
+		// about one person — stays in the bucket and nothing else will ever delete it.
+		DataPrivacySweep ScheduledJobConfig `envPrefix:"DATA_PRIVACY_SWEEP_" json:"dataPrivacySweep"`
 
 		// AuditRetentionSweeper prunes audit entries past the retention window in
 		// SchedulerConfig.Audit. Disabling it does not pause retention so much as
@@ -229,7 +230,7 @@ func (cfg *ScheduledJobsConfig) ValidateWithContext(ctx context.Context) error {
 		"SearchDataIndexScheduler":    cfg.SearchDataIndexScheduler.ValidateWithContext,
 		"MobileNotificationScheduler": cfg.MobileNotificationScheduler.ValidateWithContext,
 		"QueueTest":                   cfg.QueueTest.ValidateWithContext,
-		"DisclosureArtifactReaper":    cfg.DisclosureArtifactReaper.ValidateWithContext,
+		"DataPrivacySweep":            cfg.DataPrivacySweep.ValidateWithContext,
 		"AuditRetentionSweeper":       cfg.AuditRetentionSweeper.ValidateWithContext,
 		"MealPlanning":                cfg.MealPlanning.ValidateWithContext,
 	}

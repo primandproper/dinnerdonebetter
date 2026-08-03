@@ -56,28 +56,28 @@ internal enum Dataprivacy_DataPrivacyService {
                 method: "FetchUserDataReport"
             )
         }
-        /// Namespace for "GetUserDataDisclosure" metadata.
-        internal enum GetUserDataDisclosure {
-            /// Request type for "GetUserDataDisclosure".
-            internal typealias Input = Dataprivacy_GetUserDataDisclosureRequest
-            /// Response type for "GetUserDataDisclosure".
-            internal typealias Output = Dataprivacy_GetUserDataDisclosureResponse
-            /// Descriptor for "GetUserDataDisclosure".
+        /// Namespace for "GetDataPrivacyRequest" metadata.
+        internal enum GetDataPrivacyRequest {
+            /// Request type for "GetDataPrivacyRequest".
+            internal typealias Input = Dataprivacy_GetDataPrivacyRequestRequest
+            /// Response type for "GetDataPrivacyRequest".
+            internal typealias Output = Dataprivacy_GetDataPrivacyRequestResponse
+            /// Descriptor for "GetDataPrivacyRequest".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "dataprivacy.DataPrivacyService"),
-                method: "GetUserDataDisclosure"
+                method: "GetDataPrivacyRequest"
             )
         }
-        /// Namespace for "ListUserDataDisclosures" metadata.
-        internal enum ListUserDataDisclosures {
-            /// Request type for "ListUserDataDisclosures".
-            internal typealias Input = Dataprivacy_ListUserDataDisclosuresRequest
-            /// Response type for "ListUserDataDisclosures".
-            internal typealias Output = Dataprivacy_ListUserDataDisclosuresResponse
-            /// Descriptor for "ListUserDataDisclosures".
+        /// Namespace for "ListDataPrivacyRequests" metadata.
+        internal enum ListDataPrivacyRequests {
+            /// Request type for "ListDataPrivacyRequests".
+            internal typealias Input = Dataprivacy_ListDataPrivacyRequestsRequest
+            /// Response type for "ListDataPrivacyRequests".
+            internal typealias Output = Dataprivacy_ListDataPrivacyRequestsResponse
+            /// Descriptor for "ListDataPrivacyRequests".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "dataprivacy.DataPrivacyService"),
-                method: "ListUserDataDisclosures"
+                method: "ListDataPrivacyRequests"
             )
         }
         /// Descriptors for all methods in the "dataprivacy.DataPrivacyService" service.
@@ -85,8 +85,8 @@ internal enum Dataprivacy_DataPrivacyService {
             AggregateUserDataReport.descriptor,
             DestroyAllUserData.descriptor,
             FetchUserDataReport.descriptor,
-            GetUserDataDisclosure.descriptor,
-            ListUserDataDisclosures.descriptor
+            GetDataPrivacyRequest.descriptor,
+            ListDataPrivacyRequests.descriptor
         ]
     }
 }
@@ -163,42 +163,42 @@ extension Dataprivacy_DataPrivacyService {
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_FetchUserDataReportResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "GetUserDataDisclosure" method.
+        /// Call the "GetDataPrivacyRequest" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Dataprivacy_GetUserDataDisclosureRequest` message.
-        ///   - serializer: A serializer for `Dataprivacy_GetUserDataDisclosureRequest` messages.
-        ///   - deserializer: A deserializer for `Dataprivacy_GetUserDataDisclosureResponse` messages.
+        ///   - request: A request containing a single `Dataprivacy_GetDataPrivacyRequestRequest` message.
+        ///   - serializer: A serializer for `Dataprivacy_GetDataPrivacyRequestRequest` messages.
+        ///   - deserializer: A deserializer for `Dataprivacy_GetDataPrivacyRequestResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func getUserDataDisclosure<Result>(
-            request: GRPCCore.ClientRequest<Dataprivacy_GetUserDataDisclosureRequest>,
-            serializer: some GRPCCore.MessageSerializer<Dataprivacy_GetUserDataDisclosureRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Dataprivacy_GetUserDataDisclosureResponse>,
+        func getDataPrivacyRequest<Result>(
+            request: GRPCCore.ClientRequest<Dataprivacy_GetDataPrivacyRequestRequest>,
+            serializer: some GRPCCore.MessageSerializer<Dataprivacy_GetDataPrivacyRequestRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Dataprivacy_GetDataPrivacyRequestResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_GetUserDataDisclosureResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_GetDataPrivacyRequestResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "ListUserDataDisclosures" method.
+        /// Call the "ListDataPrivacyRequests" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Dataprivacy_ListUserDataDisclosuresRequest` message.
-        ///   - serializer: A serializer for `Dataprivacy_ListUserDataDisclosuresRequest` messages.
-        ///   - deserializer: A deserializer for `Dataprivacy_ListUserDataDisclosuresResponse` messages.
+        ///   - request: A request containing a single `Dataprivacy_ListDataPrivacyRequestsRequest` message.
+        ///   - serializer: A serializer for `Dataprivacy_ListDataPrivacyRequestsRequest` messages.
+        ///   - deserializer: A deserializer for `Dataprivacy_ListDataPrivacyRequestsResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func listUserDataDisclosures<Result>(
-            request: GRPCCore.ClientRequest<Dataprivacy_ListUserDataDisclosuresRequest>,
-            serializer: some GRPCCore.MessageSerializer<Dataprivacy_ListUserDataDisclosuresRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Dataprivacy_ListUserDataDisclosuresResponse>,
+        func listDataPrivacyRequests<Result>(
+            request: GRPCCore.ClientRequest<Dataprivacy_ListDataPrivacyRequestsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Dataprivacy_ListDataPrivacyRequestsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Dataprivacy_ListDataPrivacyRequestsResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_ListUserDataDisclosuresResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_ListDataPrivacyRequestsResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
     }
 
@@ -308,29 +308,29 @@ extension Dataprivacy_DataPrivacyService {
             )
         }
 
-        /// Call the "GetUserDataDisclosure" method.
+        /// Call the "GetDataPrivacyRequest" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Dataprivacy_GetUserDataDisclosureRequest` message.
-        ///   - serializer: A serializer for `Dataprivacy_GetUserDataDisclosureRequest` messages.
-        ///   - deserializer: A deserializer for `Dataprivacy_GetUserDataDisclosureResponse` messages.
+        ///   - request: A request containing a single `Dataprivacy_GetDataPrivacyRequestRequest` message.
+        ///   - serializer: A serializer for `Dataprivacy_GetDataPrivacyRequestRequest` messages.
+        ///   - deserializer: A deserializer for `Dataprivacy_GetDataPrivacyRequestResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func getUserDataDisclosure<Result>(
-            request: GRPCCore.ClientRequest<Dataprivacy_GetUserDataDisclosureRequest>,
-            serializer: some GRPCCore.MessageSerializer<Dataprivacy_GetUserDataDisclosureRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Dataprivacy_GetUserDataDisclosureResponse>,
+        internal func getDataPrivacyRequest<Result>(
+            request: GRPCCore.ClientRequest<Dataprivacy_GetDataPrivacyRequestRequest>,
+            serializer: some GRPCCore.MessageSerializer<Dataprivacy_GetDataPrivacyRequestRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Dataprivacy_GetDataPrivacyRequestResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_GetUserDataDisclosureResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_GetDataPrivacyRequestResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Dataprivacy_DataPrivacyService.Method.GetUserDataDisclosure.descriptor,
+                descriptor: Dataprivacy_DataPrivacyService.Method.GetDataPrivacyRequest.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -338,29 +338,29 @@ extension Dataprivacy_DataPrivacyService {
             )
         }
 
-        /// Call the "ListUserDataDisclosures" method.
+        /// Call the "ListDataPrivacyRequests" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Dataprivacy_ListUserDataDisclosuresRequest` message.
-        ///   - serializer: A serializer for `Dataprivacy_ListUserDataDisclosuresRequest` messages.
-        ///   - deserializer: A deserializer for `Dataprivacy_ListUserDataDisclosuresResponse` messages.
+        ///   - request: A request containing a single `Dataprivacy_ListDataPrivacyRequestsRequest` message.
+        ///   - serializer: A serializer for `Dataprivacy_ListDataPrivacyRequestsRequest` messages.
+        ///   - deserializer: A deserializer for `Dataprivacy_ListDataPrivacyRequestsResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func listUserDataDisclosures<Result>(
-            request: GRPCCore.ClientRequest<Dataprivacy_ListUserDataDisclosuresRequest>,
-            serializer: some GRPCCore.MessageSerializer<Dataprivacy_ListUserDataDisclosuresRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Dataprivacy_ListUserDataDisclosuresResponse>,
+        internal func listDataPrivacyRequests<Result>(
+            request: GRPCCore.ClientRequest<Dataprivacy_ListDataPrivacyRequestsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Dataprivacy_ListDataPrivacyRequestsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Dataprivacy_ListDataPrivacyRequestsResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_ListUserDataDisclosuresResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_ListDataPrivacyRequestsResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Dataprivacy_DataPrivacyService.Method.ListUserDataDisclosures.descriptor,
+                descriptor: Dataprivacy_DataPrivacyService.Method.ListDataPrivacyRequests.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -448,51 +448,51 @@ extension Dataprivacy_DataPrivacyService.ClientProtocol {
         )
     }
 
-    /// Call the "GetUserDataDisclosure" method.
+    /// Call the "GetDataPrivacyRequest" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Dataprivacy_GetUserDataDisclosureRequest` message.
+    ///   - request: A request containing a single `Dataprivacy_GetDataPrivacyRequestRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getUserDataDisclosure<Result>(
-        request: GRPCCore.ClientRequest<Dataprivacy_GetUserDataDisclosureRequest>,
+    internal func getDataPrivacyRequest<Result>(
+        request: GRPCCore.ClientRequest<Dataprivacy_GetDataPrivacyRequestRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_GetUserDataDisclosureResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_GetDataPrivacyRequestResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.getUserDataDisclosure(
+        try await self.getDataPrivacyRequest(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Dataprivacy_GetUserDataDisclosureRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Dataprivacy_GetUserDataDisclosureResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Dataprivacy_GetDataPrivacyRequestRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Dataprivacy_GetDataPrivacyRequestResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "ListUserDataDisclosures" method.
+    /// Call the "ListDataPrivacyRequests" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Dataprivacy_ListUserDataDisclosuresRequest` message.
+    ///   - request: A request containing a single `Dataprivacy_ListDataPrivacyRequestsRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func listUserDataDisclosures<Result>(
-        request: GRPCCore.ClientRequest<Dataprivacy_ListUserDataDisclosuresRequest>,
+    internal func listDataPrivacyRequests<Result>(
+        request: GRPCCore.ClientRequest<Dataprivacy_ListDataPrivacyRequestsRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_ListUserDataDisclosuresResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_ListDataPrivacyRequestsResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.listUserDataDisclosures(
+        try await self.listDataPrivacyRequests(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Dataprivacy_ListUserDataDisclosuresRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Dataprivacy_ListUserDataDisclosuresResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Dataprivacy_ListDataPrivacyRequestsRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Dataprivacy_ListDataPrivacyRequestsResponse>(),
             options: options,
             onResponse: handleResponse
         )
@@ -589,7 +589,7 @@ extension Dataprivacy_DataPrivacyService.ClientProtocol {
         )
     }
 
-    /// Call the "GetUserDataDisclosure" method.
+    /// Call the "GetDataPrivacyRequest" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -599,26 +599,26 @@ extension Dataprivacy_DataPrivacyService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getUserDataDisclosure<Result>(
-        _ message: Dataprivacy_GetUserDataDisclosureRequest,
+    internal func getDataPrivacyRequest<Result>(
+        _ message: Dataprivacy_GetDataPrivacyRequestRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_GetUserDataDisclosureResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_GetDataPrivacyRequestResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Dataprivacy_GetUserDataDisclosureRequest>(
+        let request = GRPCCore.ClientRequest<Dataprivacy_GetDataPrivacyRequestRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.getUserDataDisclosure(
+        return try await self.getDataPrivacyRequest(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "ListUserDataDisclosures" method.
+    /// Call the "ListDataPrivacyRequests" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -628,19 +628,19 @@ extension Dataprivacy_DataPrivacyService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func listUserDataDisclosures<Result>(
-        _ message: Dataprivacy_ListUserDataDisclosuresRequest,
+    internal func listDataPrivacyRequests<Result>(
+        _ message: Dataprivacy_ListDataPrivacyRequestsRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_ListUserDataDisclosuresResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Dataprivacy_ListDataPrivacyRequestsResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Dataprivacy_ListUserDataDisclosuresRequest>(
+        let request = GRPCCore.ClientRequest<Dataprivacy_ListDataPrivacyRequestsRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.listUserDataDisclosures(
+        return try await self.listDataPrivacyRequests(
             request: request,
             options: options,
             onResponse: handleResponse

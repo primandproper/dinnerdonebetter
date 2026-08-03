@@ -136,7 +136,6 @@ func TestEnvironmentConfigSet_Render(T *testing.T) {
 				DataChangesTopicName:         "data-changes",
 				OutboundEmailsTopicName:      "outbound-emails",
 				SearchIndexRequestsTopicName: "search-index-requests",
-				UserDataAggregationTopicName: "user-data-aggregation",
 			},
 			Email:        emailcfg.Config{},
 			Analytics:    analyticscfg.Config{},

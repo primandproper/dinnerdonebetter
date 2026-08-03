@@ -20,93 +20,125 @@ fileprivate struct _GeneratedWithProtocGenSwiftVersion: SwiftProtobuf.ProtobufAP
   typealias Version = _2
 }
 
-public struct Dataprivacy_UserDataCollection: @unchecked Sendable {
+/// DataPrivacyRequest is one GDPR/CCPA export or erasure and everything known about how it went.
+///
+/// It replaces UserDataDisclosure, and the twelve-field UserDataCollection message that used to
+/// sit beside it. That message named every domain in the application, so adding a domain meant
+/// editing it, regenerating three client languages, and shipping all of it together. An export's
+/// contents are now opaque JSON delivered by FetchUserDataReport, and this message describes the
+/// request rather than its payload — which is the part a client actually renders.
+public struct Dataprivacy_DataPrivacyRequest: @unchecked Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var reportID: String {
-    get {return _storage._reportID}
-    set {_uniqueStorage()._reportID = newValue}
+  public var id: String {
+    get {return _storage._id}
+    set {_uniqueStorage()._id = newValue}
   }
 
-  public var identityDataCollection: Identity_DataCollection {
-    get {return _storage._identityDataCollection ?? Identity_DataCollection()}
-    set {_uniqueStorage()._identityDataCollection = newValue}
-  }
-  /// Returns true if `identityDataCollection` has been explicitly set.
-  public var hasIdentityDataCollection: Bool {return _storage._identityDataCollection != nil}
-  /// Clears the value of `identityDataCollection`. Subsequent reads from it will return its default value.
-  public mutating func clearIdentityDataCollection() {_uniqueStorage()._identityDataCollection = nil}
-
-  public var settingsDataCollection: Settings_DataCollection {
-    get {return _storage._settingsDataCollection ?? Settings_DataCollection()}
-    set {_uniqueStorage()._settingsDataCollection = newValue}
-  }
-  /// Returns true if `settingsDataCollection` has been explicitly set.
-  public var hasSettingsDataCollection: Bool {return _storage._settingsDataCollection != nil}
-  /// Clears the value of `settingsDataCollection`. Subsequent reads from it will return its default value.
-  public mutating func clearSettingsDataCollection() {_uniqueStorage()._settingsDataCollection = nil}
-
-  public var webhooksDataCollection: Webhooks_DataCollection {
-    get {return _storage._webhooksDataCollection ?? Webhooks_DataCollection()}
-    set {_uniqueStorage()._webhooksDataCollection = newValue}
-  }
-  /// Returns true if `webhooksDataCollection` has been explicitly set.
-  public var hasWebhooksDataCollection: Bool {return _storage._webhooksDataCollection != nil}
-  /// Clears the value of `webhooksDataCollection`. Subsequent reads from it will return its default value.
-  public mutating func clearWebhooksDataCollection() {_uniqueStorage()._webhooksDataCollection = nil}
-
-  public var mealPlanningDataCollection: Mealplanning_DataCollection {
-    get {return _storage._mealPlanningDataCollection ?? Mealplanning_DataCollection()}
-    set {_uniqueStorage()._mealPlanningDataCollection = newValue}
-  }
-  /// Returns true if `mealPlanningDataCollection` has been explicitly set.
-  public var hasMealPlanningDataCollection: Bool {return _storage._mealPlanningDataCollection != nil}
-  /// Clears the value of `mealPlanningDataCollection`. Subsequent reads from it will return its default value.
-  public mutating func clearMealPlanningDataCollection() {_uniqueStorage()._mealPlanningDataCollection = nil}
-
-  public var notificationsDataCollection: Notifications_DataCollection {
-    get {return _storage._notificationsDataCollection ?? Notifications_DataCollection()}
-    set {_uniqueStorage()._notificationsDataCollection = newValue}
-  }
-  /// Returns true if `notificationsDataCollection` has been explicitly set.
-  public var hasNotificationsDataCollection: Bool {return _storage._notificationsDataCollection != nil}
-  /// Clears the value of `notificationsDataCollection`. Subsequent reads from it will return its default value.
-  public mutating func clearNotificationsDataCollection() {_uniqueStorage()._notificationsDataCollection = nil}
-
-  public var auditLogEntries: [Audit_AuditLogEntry] {
-    get {return _storage._auditLogEntries}
-    set {_uniqueStorage()._auditLogEntries = newValue}
+  /// subject_id is the user the request is about.
+  public var subjectID: String {
+    get {return _storage._subjectID}
+    set {_uniqueStorage()._subjectID = newValue}
   }
 
-  public var issueReports: [IssueReports_IssueReport] {
-    get {return _storage._issueReports}
-    set {_uniqueStorage()._issueReports = newValue}
+  /// request_type is "export" or "erasure".
+  public var requestType: String {
+    get {return _storage._requestType}
+    set {_uniqueStorage()._requestType = newValue}
   }
 
-  public var uploadedMedia: [UploadedMedia_UploadedMedia] {
-    get {return _storage._uploadedMedia}
-    set {_uniqueStorage()._uploadedMedia = newValue}
+  /// status is one of: awaiting_confirmation, pending, processing, completed, failed, expired,
+  /// cancelled. Only completed exports have a retrievable artifact, and only until expires_at.
+  public var status: String {
+    get {return _storage._status}
+    set {_uniqueStorage()._status = newValue}
   }
 
-  public var waitlistSignups: [Waitlists_WaitlistSignup] {
-    get {return _storage._waitlistSignups}
-    set {_uniqueStorage()._waitlistSignups = newValue}
+  /// requested_at is when the statutory clock started. It is never rewritten, not by a
+  /// confirmation and not by a retry.
+  public var requestedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _storage._requestedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_uniqueStorage()._requestedAt = newValue}
+  }
+  /// Returns true if `requestedAt` has been explicitly set.
+  public var hasRequestedAt: Bool {return _storage._requestedAt != nil}
+  /// Clears the value of `requestedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearRequestedAt() {_uniqueStorage()._requestedAt = nil}
+
+  /// due_at is when the response is legally owed, stamped at submission from the configured
+  /// response window for the request type.
+  public var dueAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _storage._dueAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_uniqueStorage()._dueAt = newValue}
+  }
+  /// Returns true if `dueAt` has been explicitly set.
+  public var hasDueAt: Bool {return _storage._dueAt != nil}
+  /// Clears the value of `dueAt`. Subsequent reads from it will return its default value.
+  public mutating func clearDueAt() {_uniqueStorage()._dueAt = nil}
+
+  /// expires_at is when a completed export's artifact is deleted. Absent for an erasure.
+  public var expiresAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _storage._expiresAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_uniqueStorage()._expiresAt = newValue}
+  }
+  /// Returns true if `expiresAt` has been explicitly set.
+  public var hasExpiresAt: Bool {return _storage._expiresAt != nil}
+  /// Clears the value of `expiresAt`. Subsequent reads from it will return its default value.
+  public mutating func clearExpiresAt() {_uniqueStorage()._expiresAt = nil}
+
+  public var completedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _storage._completedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_uniqueStorage()._completedAt = newValue}
+  }
+  /// Returns true if `completedAt` has been explicitly set.
+  public var hasCompletedAt: Bool {return _storage._completedAt != nil}
+  /// Clears the value of `completedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearCompletedAt() {_uniqueStorage()._completedAt = nil}
+
+  /// failures names the sections that could not be collected, against the reason. A completed
+  /// export with entries here is a partial export: the artifact was still delivered, and its
+  /// manifest names these same sections as missing. A client showing "completed" over three
+  /// missing sections is misleading somebody who has thirty days to complain about it.
+  public var failures: Dictionary<String,String> {
+    get {return _storage._failures}
+    set {_uniqueStorage()._failures = newValue}
   }
 
-  public var paymentsDataCollection: Payments_DataCollection {
-    get {return _storage._paymentsDataCollection ?? Payments_DataCollection()}
-    set {_uniqueStorage()._paymentsDataCollection = newValue}
+  /// retained records, per eraser, what an erasure kept and the basis for keeping it.
+  public var retained: Dictionary<String,String> {
+    get {return _storage._retained}
+    set {_uniqueStorage()._retained = newValue}
   }
-  /// Returns true if `paymentsDataCollection` has been explicitly set.
-  public var hasPaymentsDataCollection: Bool {return _storage._paymentsDataCollection != nil}
-  /// Clears the value of `paymentsDataCollection`. Subsequent reads from it will return its default value.
-  public mutating func clearPaymentsDataCollection() {_uniqueStorage()._paymentsDataCollection = nil}
 
-  public var comments: [Comments_Comment] {
-    get {return _storage._comments}
-    set {_uniqueStorage()._comments = newValue}
+  /// deleted and anonymized are the erasure totals across every domain.
+  public var deleted: Int64 {
+    get {return _storage._deleted}
+    set {_uniqueStorage()._deleted = newValue}
+  }
+
+  public var anonymized: Int64 {
+    get {return _storage._anonymized}
+    set {_uniqueStorage()._anonymized = newValue}
+  }
+
+  /// artifact_bytes is the stored size of an export artifact, after compression and encryption.
+  public var artifactBytes: Int64 {
+    get {return _storage._artifactBytes}
+    set {_uniqueStorage()._artifactBytes = newValue}
+  }
+
+  /// attempts is how many times a worker has claimed this request.
+  public var attempts: Int32 {
+    get {return _storage._attempts}
+    set {_uniqueStorage()._attempts = newValue}
+  }
+
+  /// last_error is why a failed request failed.
+  public var lastError: String {
+    get {return _storage._lastError}
+    set {_uniqueStorage()._lastError = newValue}
   }
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
@@ -116,96 +148,30 @@ public struct Dataprivacy_UserDataCollection: @unchecked Sendable {
   fileprivate var _storage = _StorageClass.defaultInstance
 }
 
-public struct Dataprivacy_UserDataDisclosure: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var id: String = String()
-
-  public var belongsToUser: String = String()
-
-  public var status: String = String()
-
-  public var reportID: String = String()
-
-  public var createdAt: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _createdAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_createdAt = newValue}
-  }
-  /// Returns true if `createdAt` has been explicitly set.
-  public var hasCreatedAt: Bool {return self._createdAt != nil}
-  /// Clears the value of `createdAt`. Subsequent reads from it will return its default value.
-  public mutating func clearCreatedAt() {self._createdAt = nil}
-
-  public var expiresAt: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _expiresAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_expiresAt = newValue}
-  }
-  /// Returns true if `expiresAt` has been explicitly set.
-  public var hasExpiresAt: Bool {return self._expiresAt != nil}
-  /// Clears the value of `expiresAt`. Subsequent reads from it will return its default value.
-  public mutating func clearExpiresAt() {self._expiresAt = nil}
-
-  public var lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _lastUpdatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_lastUpdatedAt = newValue}
-  }
-  /// Returns true if `lastUpdatedAt` has been explicitly set.
-  public var hasLastUpdatedAt: Bool {return self._lastUpdatedAt != nil}
-  /// Clears the value of `lastUpdatedAt`. Subsequent reads from it will return its default value.
-  public mutating func clearLastUpdatedAt() {self._lastUpdatedAt = nil}
-
-  public var completedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _completedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_completedAt = newValue}
-  }
-  /// Returns true if `completedAt` has been explicitly set.
-  public var hasCompletedAt: Bool {return self._completedAt != nil}
-  /// Clears the value of `completedAt`. Subsequent reads from it will return its default value.
-  public mutating func clearCompletedAt() {self._completedAt = nil}
-
-  public var archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _archivedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_archivedAt = newValue}
-  }
-  /// Returns true if `archivedAt` has been explicitly set.
-  public var hasArchivedAt: Bool {return self._archivedAt != nil}
-  /// Clears the value of `archivedAt`. Subsequent reads from it will return its default value.
-  public mutating func clearArchivedAt() {self._archivedAt = nil}
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
-
-  fileprivate var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-  fileprivate var _expiresAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-  fileprivate var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-  fileprivate var _completedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-  fileprivate var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-}
-
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
 fileprivate let _protobuf_package = "dataprivacy"
 
-extension Dataprivacy_UserDataCollection: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".UserDataCollection"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}report_id\0\u{3}identity_data_collection\0\u{3}settings_data_collection\0\u{3}webhooks_data_collection\0\u{3}meal_planning_data_collection\0\u{3}notifications_data_collection\0\u{3}audit_log_entries\0\u{3}issue_reports\0\u{3}uploaded_media\0\u{3}waitlist_signups\0\u{3}payments_data_collection\0\u{1}comments\0")
+extension Dataprivacy_DataPrivacyRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".DataPrivacyRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{3}subject_id\0\u{3}request_type\0\u{1}status\0\u{3}requested_at\0\u{3}due_at\0\u{3}expires_at\0\u{3}completed_at\0\u{1}failures\0\u{1}retained\0\u{1}deleted\0\u{1}anonymized\0\u{3}artifact_bytes\0\u{1}attempts\0\u{3}last_error\0")
 
   fileprivate class _StorageClass {
-    var _reportID: String = String()
-    var _identityDataCollection: Identity_DataCollection? = nil
-    var _settingsDataCollection: Settings_DataCollection? = nil
-    var _webhooksDataCollection: Webhooks_DataCollection? = nil
-    var _mealPlanningDataCollection: Mealplanning_DataCollection? = nil
-    var _notificationsDataCollection: Notifications_DataCollection? = nil
-    var _auditLogEntries: [Audit_AuditLogEntry] = []
-    var _issueReports: [IssueReports_IssueReport] = []
-    var _uploadedMedia: [UploadedMedia_UploadedMedia] = []
-    var _waitlistSignups: [Waitlists_WaitlistSignup] = []
-    var _paymentsDataCollection: Payments_DataCollection? = nil
-    var _comments: [Comments_Comment] = []
+    var _id: String = String()
+    var _subjectID: String = String()
+    var _requestType: String = String()
+    var _status: String = String()
+    var _requestedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+    var _dueAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+    var _expiresAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+    var _completedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+    var _failures: Dictionary<String,String> = [:]
+    var _retained: Dictionary<String,String> = [:]
+    var _deleted: Int64 = 0
+    var _anonymized: Int64 = 0
+    var _artifactBytes: Int64 = 0
+    var _attempts: Int32 = 0
+    var _lastError: String = String()
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -216,18 +182,21 @@ extension Dataprivacy_UserDataCollection: SwiftProtobuf.Message, SwiftProtobuf._
     private init() {}
 
     init(copying source: _StorageClass) {
-      _reportID = source._reportID
-      _identityDataCollection = source._identityDataCollection
-      _settingsDataCollection = source._settingsDataCollection
-      _webhooksDataCollection = source._webhooksDataCollection
-      _mealPlanningDataCollection = source._mealPlanningDataCollection
-      _notificationsDataCollection = source._notificationsDataCollection
-      _auditLogEntries = source._auditLogEntries
-      _issueReports = source._issueReports
-      _uploadedMedia = source._uploadedMedia
-      _waitlistSignups = source._waitlistSignups
-      _paymentsDataCollection = source._paymentsDataCollection
-      _comments = source._comments
+      _id = source._id
+      _subjectID = source._subjectID
+      _requestType = source._requestType
+      _status = source._status
+      _requestedAt = source._requestedAt
+      _dueAt = source._dueAt
+      _expiresAt = source._expiresAt
+      _completedAt = source._completedAt
+      _failures = source._failures
+      _retained = source._retained
+      _deleted = source._deleted
+      _anonymized = source._anonymized
+      _artifactBytes = source._artifactBytes
+      _attempts = source._attempts
+      _lastError = source._lastError
     }
   }
 
@@ -246,18 +215,21 @@ extension Dataprivacy_UserDataCollection: SwiftProtobuf.Message, SwiftProtobuf._
         // allocates stack space for every case branch when no optimizations are
         // enabled. https://github.com/apple/swift-protobuf/issues/1034
         switch fieldNumber {
-        case 1: try { try decoder.decodeSingularStringField(value: &_storage._reportID) }()
-        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._identityDataCollection) }()
-        case 3: try { try decoder.decodeSingularMessageField(value: &_storage._settingsDataCollection) }()
-        case 4: try { try decoder.decodeSingularMessageField(value: &_storage._webhooksDataCollection) }()
-        case 5: try { try decoder.decodeSingularMessageField(value: &_storage._mealPlanningDataCollection) }()
-        case 6: try { try decoder.decodeSingularMessageField(value: &_storage._notificationsDataCollection) }()
-        case 7: try { try decoder.decodeRepeatedMessageField(value: &_storage._auditLogEntries) }()
-        case 8: try { try decoder.decodeRepeatedMessageField(value: &_storage._issueReports) }()
-        case 9: try { try decoder.decodeRepeatedMessageField(value: &_storage._uploadedMedia) }()
-        case 10: try { try decoder.decodeRepeatedMessageField(value: &_storage._waitlistSignups) }()
-        case 11: try { try decoder.decodeSingularMessageField(value: &_storage._paymentsDataCollection) }()
-        case 12: try { try decoder.decodeRepeatedMessageField(value: &_storage._comments) }()
+        case 1: try { try decoder.decodeSingularStringField(value: &_storage._id) }()
+        case 2: try { try decoder.decodeSingularStringField(value: &_storage._subjectID) }()
+        case 3: try { try decoder.decodeSingularStringField(value: &_storage._requestType) }()
+        case 4: try { try decoder.decodeSingularStringField(value: &_storage._status) }()
+        case 5: try { try decoder.decodeSingularMessageField(value: &_storage._requestedAt) }()
+        case 6: try { try decoder.decodeSingularMessageField(value: &_storage._dueAt) }()
+        case 7: try { try decoder.decodeSingularMessageField(value: &_storage._expiresAt) }()
+        case 8: try { try decoder.decodeSingularMessageField(value: &_storage._completedAt) }()
+        case 9: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufString>.self, value: &_storage._failures) }()
+        case 10: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufString>.self, value: &_storage._retained) }()
+        case 11: try { try decoder.decodeSingularInt64Field(value: &_storage._deleted) }()
+        case 12: try { try decoder.decodeSingularInt64Field(value: &_storage._anonymized) }()
+        case 13: try { try decoder.decodeSingularInt64Field(value: &_storage._artifactBytes) }()
+        case 14: try { try decoder.decodeSingularInt32Field(value: &_storage._attempts) }()
+        case 15: try { try decoder.decodeSingularStringField(value: &_storage._lastError) }()
         default: break
         }
       }
@@ -270,141 +242,79 @@ extension Dataprivacy_UserDataCollection: SwiftProtobuf.Message, SwiftProtobuf._
       // allocates stack space for every if/case branch local when no optimizations
       // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
       // https://github.com/apple/swift-protobuf/issues/1182
-      if !_storage._reportID.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._reportID, fieldNumber: 1)
+      if !_storage._id.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._id, fieldNumber: 1)
       }
-      try { if let v = _storage._identityDataCollection {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-      } }()
-      try { if let v = _storage._settingsDataCollection {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
-      } }()
-      try { if let v = _storage._webhooksDataCollection {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
-      } }()
-      try { if let v = _storage._mealPlanningDataCollection {
+      if !_storage._subjectID.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._subjectID, fieldNumber: 2)
+      }
+      if !_storage._requestType.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._requestType, fieldNumber: 3)
+      }
+      if !_storage._status.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._status, fieldNumber: 4)
+      }
+      try { if let v = _storage._requestedAt {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
       } }()
-      try { if let v = _storage._notificationsDataCollection {
+      try { if let v = _storage._dueAt {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
       } }()
-      if !_storage._auditLogEntries.isEmpty {
-        try visitor.visitRepeatedMessageField(value: _storage._auditLogEntries, fieldNumber: 7)
-      }
-      if !_storage._issueReports.isEmpty {
-        try visitor.visitRepeatedMessageField(value: _storage._issueReports, fieldNumber: 8)
-      }
-      if !_storage._uploadedMedia.isEmpty {
-        try visitor.visitRepeatedMessageField(value: _storage._uploadedMedia, fieldNumber: 9)
-      }
-      if !_storage._waitlistSignups.isEmpty {
-        try visitor.visitRepeatedMessageField(value: _storage._waitlistSignups, fieldNumber: 10)
-      }
-      try { if let v = _storage._paymentsDataCollection {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 11)
+      try { if let v = _storage._expiresAt {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 7)
       } }()
-      if !_storage._comments.isEmpty {
-        try visitor.visitRepeatedMessageField(value: _storage._comments, fieldNumber: 12)
+      try { if let v = _storage._completedAt {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 8)
+      } }()
+      if !_storage._failures.isEmpty {
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufString>.self, value: _storage._failures, fieldNumber: 9)
+      }
+      if !_storage._retained.isEmpty {
+        try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufString>.self, value: _storage._retained, fieldNumber: 10)
+      }
+      if _storage._deleted != 0 {
+        try visitor.visitSingularInt64Field(value: _storage._deleted, fieldNumber: 11)
+      }
+      if _storage._anonymized != 0 {
+        try visitor.visitSingularInt64Field(value: _storage._anonymized, fieldNumber: 12)
+      }
+      if _storage._artifactBytes != 0 {
+        try visitor.visitSingularInt64Field(value: _storage._artifactBytes, fieldNumber: 13)
+      }
+      if _storage._attempts != 0 {
+        try visitor.visitSingularInt32Field(value: _storage._attempts, fieldNumber: 14)
+      }
+      if !_storage._lastError.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._lastError, fieldNumber: 15)
       }
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Dataprivacy_UserDataCollection, rhs: Dataprivacy_UserDataCollection) -> Bool {
+  public static func ==(lhs: Dataprivacy_DataPrivacyRequest, rhs: Dataprivacy_DataPrivacyRequest) -> Bool {
     if lhs._storage !== rhs._storage {
       let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
         let _storage = _args.0
         let rhs_storage = _args.1
-        if _storage._reportID != rhs_storage._reportID {return false}
-        if _storage._identityDataCollection != rhs_storage._identityDataCollection {return false}
-        if _storage._settingsDataCollection != rhs_storage._settingsDataCollection {return false}
-        if _storage._webhooksDataCollection != rhs_storage._webhooksDataCollection {return false}
-        if _storage._mealPlanningDataCollection != rhs_storage._mealPlanningDataCollection {return false}
-        if _storage._notificationsDataCollection != rhs_storage._notificationsDataCollection {return false}
-        if _storage._auditLogEntries != rhs_storage._auditLogEntries {return false}
-        if _storage._issueReports != rhs_storage._issueReports {return false}
-        if _storage._uploadedMedia != rhs_storage._uploadedMedia {return false}
-        if _storage._waitlistSignups != rhs_storage._waitlistSignups {return false}
-        if _storage._paymentsDataCollection != rhs_storage._paymentsDataCollection {return false}
-        if _storage._comments != rhs_storage._comments {return false}
+        if _storage._id != rhs_storage._id {return false}
+        if _storage._subjectID != rhs_storage._subjectID {return false}
+        if _storage._requestType != rhs_storage._requestType {return false}
+        if _storage._status != rhs_storage._status {return false}
+        if _storage._requestedAt != rhs_storage._requestedAt {return false}
+        if _storage._dueAt != rhs_storage._dueAt {return false}
+        if _storage._expiresAt != rhs_storage._expiresAt {return false}
+        if _storage._completedAt != rhs_storage._completedAt {return false}
+        if _storage._failures != rhs_storage._failures {return false}
+        if _storage._retained != rhs_storage._retained {return false}
+        if _storage._deleted != rhs_storage._deleted {return false}
+        if _storage._anonymized != rhs_storage._anonymized {return false}
+        if _storage._artifactBytes != rhs_storage._artifactBytes {return false}
+        if _storage._attempts != rhs_storage._attempts {return false}
+        if _storage._lastError != rhs_storage._lastError {return false}
         return true
       }
       if !storagesAreEqual {return false}
     }
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension Dataprivacy_UserDataDisclosure: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".UserDataDisclosure"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{3}belongs_to_user\0\u{1}status\0\u{3}report_id\0\u{3}created_at\0\u{3}expires_at\0\u{3}last_updated_at\0\u{3}completed_at\0\u{3}archived_at\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.id) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self.belongsToUser) }()
-      case 3: try { try decoder.decodeSingularStringField(value: &self.status) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self.reportID) }()
-      case 5: try { try decoder.decodeSingularMessageField(value: &self._createdAt) }()
-      case 6: try { try decoder.decodeSingularMessageField(value: &self._expiresAt) }()
-      case 7: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
-      case 8: try { try decoder.decodeSingularMessageField(value: &self._completedAt) }()
-      case 9: try { try decoder.decodeSingularMessageField(value: &self._archivedAt) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    if !self.id.isEmpty {
-      try visitor.visitSingularStringField(value: self.id, fieldNumber: 1)
-    }
-    if !self.belongsToUser.isEmpty {
-      try visitor.visitSingularStringField(value: self.belongsToUser, fieldNumber: 2)
-    }
-    if !self.status.isEmpty {
-      try visitor.visitSingularStringField(value: self.status, fieldNumber: 3)
-    }
-    if !self.reportID.isEmpty {
-      try visitor.visitSingularStringField(value: self.reportID, fieldNumber: 4)
-    }
-    try { if let v = self._createdAt {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
-    } }()
-    try { if let v = self._expiresAt {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
-    } }()
-    try { if let v = self._lastUpdatedAt {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 7)
-    } }()
-    try { if let v = self._completedAt {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 8)
-    } }()
-    try { if let v = self._archivedAt {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 9)
-    } }()
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Dataprivacy_UserDataDisclosure, rhs: Dataprivacy_UserDataDisclosure) -> Bool {
-    if lhs.id != rhs.id {return false}
-    if lhs.belongsToUser != rhs.belongsToUser {return false}
-    if lhs.status != rhs.status {return false}
-    if lhs.reportID != rhs.reportID {return false}
-    if lhs._createdAt != rhs._createdAt {return false}
-    if lhs._expiresAt != rhs._expiresAt {return false}
-    if lhs._lastUpdatedAt != rhs._lastUpdatedAt {return false}
-    if lhs._completedAt != rhs._completedAt {return false}
-    if lhs._archivedAt != rhs._archivedAt {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

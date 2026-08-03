@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
+	"github.com/primandproper/platform-go/v9/database"
 	"github.com/primandproper/platform-go/v9/filtering"
 )
 
@@ -62,6 +63,9 @@ var _ identity.Repository = &RepositoryMock{}
 //			},
 //			DeleteUserFunc: func(ctx context.Context, userID string) error {
 //				panic("mock out the DeleteUser method")
+//			},
+//			EraseUserFunc: func(ctx context.Context, q database.SQLQueryExecutor, userID string) (int64, error) {
+//				panic("mock out the EraseUser method")
 //			},
 //			GetAccountFunc: func(ctx context.Context, accountID string) (*identity.Account, error) {
 //				panic("mock out the GetAccount method")
@@ -240,6 +244,9 @@ type RepositoryMock struct {
 
 	// DeleteUserFunc mocks the DeleteUser method.
 	DeleteUserFunc func(ctx context.Context, userID string) error
+
+	// EraseUserFunc mocks the EraseUser method.
+	EraseUserFunc func(ctx context.Context, q database.SQLQueryExecutor, userID string) (int64, error)
 
 	// GetAccountFunc mocks the GetAccount method.
 	GetAccountFunc func(ctx context.Context, accountID string) (*identity.Account, error)
@@ -479,6 +486,15 @@ type RepositoryMock struct {
 		DeleteUser []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
+		}
+		// EraseUser holds details about calls to the EraseUser method.
+		EraseUser []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Q is the q argument value.
+			Q database.SQLQueryExecutor
 			// UserID is the userID argument value.
 			UserID string
 		}
@@ -862,6 +878,7 @@ type RepositoryMock struct {
 	lockCreateUser                              sync.RWMutex
 	lockCreateWebAuthnCredential                sync.RWMutex
 	lockDeleteUser                              sync.RWMutex
+	lockEraseUser                               sync.RWMutex
 	lockGetAccount                              sync.RWMutex
 	lockGetAccountInvitationByAccountAndID      sync.RWMutex
 	lockGetAccountInvitationByEmailAndToken     sync.RWMutex
@@ -1405,6 +1422,46 @@ func (mock *RepositoryMock) DeleteUserCalls() []struct {
 	mock.lockDeleteUser.RLock()
 	calls = mock.calls.DeleteUser
 	mock.lockDeleteUser.RUnlock()
+	return calls
+}
+
+// EraseUser calls EraseUserFunc.
+func (mock *RepositoryMock) EraseUser(ctx context.Context, q database.SQLQueryExecutor, userID string) (int64, error) {
+	if mock.EraseUserFunc == nil {
+		panic("RepositoryMock.EraseUserFunc: method is nil but Repository.EraseUser was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		Q      database.SQLQueryExecutor
+		UserID string
+	}{
+		Ctx:    ctx,
+		Q:      q,
+		UserID: userID,
+	}
+	mock.lockEraseUser.Lock()
+	mock.calls.EraseUser = append(mock.calls.EraseUser, callInfo)
+	mock.lockEraseUser.Unlock()
+	return mock.EraseUserFunc(ctx, q, userID)
+}
+
+// EraseUserCalls gets all the calls that were made to EraseUser.
+// Check the length with:
+//
+//	len(mockedRepository.EraseUserCalls())
+func (mock *RepositoryMock) EraseUserCalls() []struct {
+	Ctx    context.Context
+	Q      database.SQLQueryExecutor
+	UserID string
+} {
+	var calls []struct {
+		Ctx    context.Context
+		Q      database.SQLQueryExecutor
+		UserID string
+	}
+	mock.lockEraseUser.RLock()
+	calls = mock.calls.EraseUser
+	mock.lockEraseUser.RUnlock()
 	return calls
 }
 

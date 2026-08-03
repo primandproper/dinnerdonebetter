@@ -12,7 +12,7 @@ func TestAsyncDataChangeMessageHandler_SearchIndexRequestsEventHandler(t *testin
 	t.Run("with invalid JSON", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 		rawMsg := []byte("invalid json")

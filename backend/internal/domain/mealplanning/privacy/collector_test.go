@@ -2,6 +2,7 @@ package privacy
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
@@ -9,6 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
 	"github.com/primandproper/platform-go/v9/filtering"
 	"github.com/primandproper/platform-go/v9/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
@@ -53,7 +55,7 @@ func buildSingleItemPage[T any](item *T, idExtractor func(*T) string) *filtering
 	)
 }
 
-func TestCollector_CollectUserData(T *testing.T) {
+func TestCollector_Collect(T *testing.T) {
 	T.Parallel()
 
 	T.Run("standard", func(t *testing.T) {
@@ -99,25 +101,49 @@ func TestCollector_CollectUserData(T *testing.T) {
 			},
 		}
 
-		collector := NewCollector(repo, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
+		collection := collect(t, repo, noAccounts, userID)
 
-		collection := &dataprivacy.UserDataCollection{}
-		err := collector.CollectUserData(t.Context(), collection, userID)
-
-		require.NoError(t, err)
-		assert.Len(t, collection.MealPlanning.Recipes, filtering.MaxQueryFilterLimit+3, "both recipe pages must be collected")
-		assert.Len(t, collection.MealPlanning.Meals, 1)
-		assert.Empty(t, collection.MealPlanning.UserIngredientPreferences)
-		assert.Len(t, collection.MealPlanning.RecipeRatings, 1)
+		assert.Len(t, collection.Recipes, filtering.MaxQueryFilterLimit+3, "both recipe pages must be collected")
+		assert.Len(t, collection.Meals, 1)
+		assert.Empty(t, collection.UserIngredientPreferences)
+		assert.Len(t, collection.RecipeRatings, 1)
 
 		assert.Len(t, repo.GetRecipesCreatedByUserCalls(), 2)
 		assert.Len(t, repo.GetMealsCreatedByUserCalls(), 1)
 		assert.Len(t, repo.GetUserIngredientPreferencesCalls(), 1)
 		assert.Len(t, repo.GetRecipeRatingsForUserCalls(), 1)
 	})
+
+	T.Run("nothing held is reported as no section rather than an empty one", func(t *testing.T) {
+		t.Parallel()
+
+		repo := &mocks.RepositoryMock{
+			GetRecipesCreatedByUserFunc: func(context.Context, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error) {
+				return buildEmptyPage[mealplanning.Recipe](), nil
+			},
+			GetMealsCreatedByUserFunc: func(context.Context, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Meal], error) {
+				return buildEmptyPage[mealplanning.Meal](), nil
+			},
+			GetUserIngredientPreferencesFunc: func(context.Context, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.UserIngredientPreference], error) {
+				return buildEmptyPage[mealplanning.UserIngredientPreference](), nil
+			},
+			GetRecipeRatingsForUserFunc: func(context.Context, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeRating], error) {
+				return buildEmptyPage[mealplanning.RecipeRating](), nil
+			},
+		}
+
+		collector := NewCollector(repo, noAccounts, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
+
+		fragment, err := collector.Collect(t.Context(), subjectFor(identifiers.New()))
+
+		require.NoError(t, err)
+		// nil, not an encoded empty object: the section is then omitted from the artifact,
+		// so an export's sections are the domains that actually held something.
+		assert.Nil(t, fragment)
+	})
 }
 
-func TestCollector_CollectAccountData(T *testing.T) {
+func TestCollector_Collect_accountScoped(T *testing.T) {
 	T.Parallel()
 
 	T.Run("standard", func(t *testing.T) {
@@ -129,6 +155,18 @@ func TestCollector_CollectAccountData(T *testing.T) {
 		exampleOwnership := fakes.BuildFakeAccountInstrumentOwnership()
 
 		repo := &mocks.RepositoryMock{
+			GetRecipesCreatedByUserFunc: func(context.Context, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error) {
+				return buildEmptyPage[mealplanning.Recipe](), nil
+			},
+			GetMealsCreatedByUserFunc: func(context.Context, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Meal], error) {
+				return buildEmptyPage[mealplanning.Meal](), nil
+			},
+			GetUserIngredientPreferencesFunc: func(context.Context, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.UserIngredientPreference], error) {
+				return buildEmptyPage[mealplanning.UserIngredientPreference](), nil
+			},
+			GetRecipeRatingsForUserFunc: func(context.Context, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeRating], error) {
+				return buildEmptyPage[mealplanning.RecipeRating](), nil
+			},
 			GetMealPlansForAccountFunc: func(_ context.Context, actualAccountID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlan], error) {
 				assert.Equal(t, accountID, actualAccountID)
 
@@ -141,16 +179,51 @@ func TestCollector_CollectAccountData(T *testing.T) {
 			},
 		}
 
-		collector := NewCollector(repo, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
+		collection := collect(t, repo, resolvesTo(accountID), identifiers.New())
 
-		collection := &dataprivacy.UserDataCollection{}
-		err := collector.CollectAccountData(t.Context(), collection, accountID)
-
-		require.NoError(t, err)
-		assert.Len(t, collection.MealPlanning.MealPlans, 1)
-		assert.Len(t, collection.MealPlanning.AccountInstrumentOwnerships, 1)
+		assert.Len(t, collection.MealPlans, 1)
+		assert.Len(t, collection.AccountInstrumentOwnerships, 1)
 
 		assert.Len(t, repo.GetMealPlansForAccountCalls(), 1)
 		assert.Len(t, repo.GetAccountInstrumentOwnershipsCalls(), 1)
 	})
+}
+
+// noAccounts is the resolver for a subject who is in no accounts, which is what the
+// user-scoped assertions want: the account-scoped queries are then never reached and
+// cannot contribute to the counts being checked.
+func noAccounts(context.Context, string) ([]string, error) { return nil, nil }
+
+// resolvesTo builds a resolver that reports the subject as a member of accountIDs.
+func resolvesTo(accountIDs ...string) dataprivacy.AccountIDResolver {
+	return func(context.Context, string) ([]string, error) { return accountIDs, nil }
+}
+
+func subjectFor(userID string) platformdataprivacy.Subject {
+	return platformdataprivacy.Subject{ID: userID, Type: platformdataprivacy.SubjectUser}
+}
+
+// collect runs the collector and decodes the fragment it produced.
+//
+// Decoding rather than reaching into the collector is the point of the interface: what a
+// domain contributes to an export is opaque encoded JSON, so a test that asserted on an
+// intermediate struct would be checking something the artifact never sees.
+func collect(
+	t *testing.T,
+	repo mealplanning.Repository,
+	resolveAccounts dataprivacy.AccountIDResolver,
+	userID string,
+) *mealplanning.UserDataCollection {
+	t.Helper()
+
+	collector := NewCollector(repo, resolveAccounts, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
+
+	fragment, err := collector.Collect(t.Context(), subjectFor(userID))
+	require.NoError(t, err)
+	require.NotNil(t, fragment)
+
+	var collection mealplanning.UserDataCollection
+	require.NoError(t, json.Unmarshal(fragment, &collection))
+
+	return &collection
 }

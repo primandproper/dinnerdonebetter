@@ -201,9 +201,11 @@ went with everything else. These tables have no such key and could not — remov
 row from the middle of a chain is indistinguishable from an attacker removing it,
 which is the property the chain exists to provide.
 
-So `dataprivacy.DeleteUser` does the one deletion the structure permits: **whole
-scopes**, entries and chain rows together. A scope that disappears entirely leaves
-no gap in any surviving chain, because there is nothing left to verify against.
+So the audit eraser does the one deletion the structure permits: **whole scopes**,
+entries and chain rows together. A scope that disappears entirely leaves no gap in
+any surviving chain, because there is nothing left to verify against. It is
+platform-go's `dataprivacy/auditerasure`, registered under the `audit` key with the
+scope resolver in `internal/domain/audit/privacy`.
 
 `ScopeFor` is what makes that cover most of a departing user's trail:
 
@@ -213,11 +215,13 @@ no gap in any surviving chain, because there is nothing left to verify against.
 | Outside any account (signup, login, password reset) | their user ID | ✅ deleted whole |
 | In accounts they merely belong to | somebody else's account | ❌ retained, and reported |
 
-The scopes are resolved **before** the delete, because the cascade takes the
-accounts that name them and a deleted user owns nothing. The erasure runs after,
-not before: one that ran first and then failed would have destroyed the audit trail
-of an account that still exists, while one that fails afterwards leaves rows a
-re-run removes.
+The scopes are resolved **before** the user row is deleted, because the cascade
+takes the accounts that name them and a deleted user owns nothing. That ordering is
+guaranteed rather than arranged: every eraser shares one transaction and they run in
+sorted key order, and `audit` sorts before `identity`. The shared transaction is
+also what makes the ordering safe in the other direction — a failure at any point
+rolls the whole erasure back, so there is no state in which the audit trail of a
+surviving account has been destroyed.
 
 What is retained is counted into the `ErasureOutcome` and logged rather than
 silently kept — "we kept some audit entries, on this basis" is something a subject

@@ -1,129 +1,100 @@
+/*
+Package dataprivacy holds what this application contributes to platform-go's
+GDPR/CCPA machinery: the registration keys, the table prefix, and the one lookup
+a collector needs that its own domain cannot answer.
+
+The state machine, the request table, the artifact packaging, the expiry sweep,
+and the fan-out over domains all live in platform-go's dataprivacy package. What
+used to live here was a UserDataCollection struct aggregating eleven domain
+types, and it is worth recording why it is gone rather than merely refactored.
+
+Every domain wrote into that one shared value, so adding a domain meant editing a
+central type that transitively imported every domain package — the cost paid on
+every schema change, by the file most likely to conflict. It also meant one
+domain returning an error aborted the whole aggregate: a subject's entire export
+failed because one unrelated table was slow.
+
+platform-go inverts it. A Collector returns an opaque, already-encoded JSON
+fragment and the library composes fragments by key, so a domain announces itself
+in one line and a failure is recorded against its own key while the rest of the
+export is still delivered. Each domain's collector now lives beside that domain,
+in internal/domain/<domain>/privacy, and the only file that knows about all of
+them is the registry wiring in internal/build/dataprivacy.
+*/
 package dataprivacy
 
 import (
 	"context"
-	"time"
-
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
-
-	"github.com/primandproper/platform-go/v9/filtering"
 )
 
-// UserDataDisclosureStatus represents the status of a user data disclosure request.
-type UserDataDisclosureStatus string
+// TablePrefix namespaces the platform's request table, rendering
+// ddb_dataprivacy_requests.
+//
+// A prefix rather than the platform's empty default, for the same reason
+// audit.TablePrefix carries one: the DDL says CREATE TABLE IF NOT EXISTS, so a
+// name that collides with something this repository already created is a silent
+// no-op followed by code running against the wrong columns. It is referenced by
+// the migration that creates the table and by the Store that reads and writes
+// it, and a prefix that differs between the two is the misconfiguration that
+// stays invisible until somebody asks for their data and gets an empty answer.
+const TablePrefix = "ddb"
 
+// Registration keys. These become section names in the export artifact and
+// attribute values in telemetry, so they are declared once rather than spelled
+// at each registration site — a typo in one would silently rename a section of
+// every artifact from then on, and the only symptom is a section missing from a
+// file nobody reads until a regulator does.
+//
+// Adding a domain means adding a constant here and a line in
+// internal/build/dataprivacy. It does not mean editing a type.
 const (
-	// UserDataDisclosureStatusPending indicates the disclosure request is pending.
-	UserDataDisclosureStatusPending UserDataDisclosureStatus = "pending"
-	// UserDataDisclosureStatusProcessing indicates the disclosure request is being processed.
-	UserDataDisclosureStatusProcessing UserDataDisclosureStatus = "processing"
-	// UserDataDisclosureStatusCompleted indicates the disclosure request is complete.
-	UserDataDisclosureStatusCompleted UserDataDisclosureStatus = "completed"
-	// UserDataDisclosureStatusFailed indicates the disclosure request failed.
-	UserDataDisclosureStatusFailed UserDataDisclosureStatus = "failed"
-	// UserDataDisclosureStatusExpired indicates the disclosure request has expired.
-	UserDataDisclosureStatusExpired UserDataDisclosureStatus = "expired"
+	// CollectorKeyIdentity covers the user record, their accounts, their
+	// memberships, and the invitations they sent or received.
+	CollectorKeyIdentity = "identity"
+	// CollectorKeyMealPlanning covers recipes, meals, meal plans, ingredient
+	// preferences, and ratings.
+	CollectorKeyMealPlanning = "meal_planning"
+	// CollectorKeyWebhooks covers the webhooks belonging to the subject's
+	// accounts.
+	CollectorKeyWebhooks = "webhooks"
+	// CollectorKeySettings covers user- and account-scoped setting
+	// configurations.
+	CollectorKeySettings = "settings"
+	// CollectorKeyNotifications covers in-app user notifications.
+	CollectorKeyNotifications = "notifications"
+	// CollectorKeyPayments covers subscriptions, purchases, and payment
+	// transactions.
+	CollectorKeyPayments = "payments"
+	// CollectorKeyAuditLog covers the audit entries recorded about the subject.
+	CollectorKeyAuditLog = "audit_log"
+	// CollectorKeyIssueReports covers issue reports filed from the subject's
+	// accounts.
+	CollectorKeyIssueReports = "issue_reports"
+	// CollectorKeyUploadedMedia covers media the subject uploaded.
+	CollectorKeyUploadedMedia = "uploaded_media"
+	// CollectorKeyWaitlists covers the subject's waitlist signups.
+	CollectorKeyWaitlists = "waitlists"
+	// CollectorKeyComments covers comments the subject authored.
+	CollectorKeyComments = "comments"
 
-	// ExpiredUserDataDisclosureBatchSize is how many expired disclosures a single
-	// GetExpiredUserDataDisclosures call returns. It is baked into the query rather than passed
-	// as an argument, so a caller that wants more must ask again — which is what the reaper
-	// does, and what lets a short batch mean "that was the last of them".
-	ExpiredUserDataDisclosureBatchSize = 100
+	// EraserKeyIdentity is the eraser that deletes the user row, and with it
+	// everything hanging off it by ON DELETE CASCADE. See
+	// internal/domain/identity/privacy for what that covers and why it is the
+	// only application eraser registered.
+	//
+	// The other registered eraser is platform-go's own, under auditerasure.
+	// DefaultKey. That key sorts before this one, which is load-bearing: erasers
+	// run serially in sorted order inside one transaction, so the audit scopes
+	// are resolved and deleted while the accounts that name them still exist.
+	EraserKeyIdentity = "identity"
 )
 
-type (
-	// DataDeletionResponse is returned when a user requests their data be deleted.
-	DataDeletionResponse struct {
-		Successful bool `json:"Successful"`
-	}
-
-	// UserDataAggregationRequest represents a message queue event meant to aggregate data for a user.
-	UserDataAggregationRequest struct {
-		_ struct{} `json:"-"`
-
-		RequestID string `json:"id"`
-		ReportID  string `json:"reportID"`
-		UserID    string `json:"userID"`
-		TestID    string `json:"testID,omitempty"`
-	}
-
-	// UserDataCollectionResponse represents the response to a UserDataAggregationRequest.
-	UserDataCollectionResponse struct {
-		_ struct{} `json:"-"`
-
-		ReportID string `json:"reportID"`
-	}
-
-	// UserDataCollection contains all user-associated data for GDPR/CCPA disclosure.
-	// This type intentionally aggregates all domain types as a cross-cutting concern.
-	// When adding or removing a domain from this template, update the fields here accordingly.
-	UserDataCollection struct {
-		Identity        identity.UserDataCollection      `json:"identity"`
-		MealPlanning    mealplanning.UserDataCollection  `json:"meal_planning"`
-		Webhooks        webhooks.UserDataCollection      `json:"webhooks"`
-		Settings        settings.UserDataCollection      `json:"settings"`
-		Notifications   notifications.UserDataCollection `json:"notifications"`
-		Payments        payments.UserDataCollection      `json:"payments"`
-		AuditLogEntries []audit.AuditLogEntry            `json:"audit_log_entries,omitempty"`
-		IssueReports    []issuereports.IssueReport       `json:"issue_reports,omitempty"`
-		UploadedMedia   []uploadedmedia.UploadedMedia    `json:"uploaded_media,omitempty"`
-		WaitlistSignups []waitlists.WaitlistSignup       `json:"waitlist_signups,omitempty"`
-		Comments        []comments.Comment               `json:"comments,omitempty"`
-	}
-
-	// UserDataDisclosure represents a user data disclosure request for GDPR/CCPA compliance.
-	UserDataDisclosure struct {
-		ExpiresAt     time.Time                `json:"expiresAt"`
-		CreatedAt     time.Time                `json:"createdAt"`
-		LastUpdatedAt *time.Time               `json:"lastUpdatedAt,omitempty"`
-		CompletedAt   *time.Time               `json:"completedAt,omitempty"`
-		ArchivedAt    *time.Time               `json:"archivedAt,omitempty"`
-		ID            string                   `json:"id"`
-		BelongsToUser string                   `json:"belongsToUser"`
-		Status        UserDataDisclosureStatus `json:"status"`
-		ReportID      string                   `json:"reportId,omitempty"`
-	}
-
-	// UserDataDisclosureCreationInput represents the input for creating a user data disclosure.
-	UserDataDisclosureCreationInput struct {
-		ExpiresAt     time.Time `json:"expiresAt"`
-		ID            string    `json:"-"`
-		BelongsToUser string    `json:"-"`
-	}
-
-	// UserDataCollector collects domain-specific user data for GDPR/CCPA disclosure.
-	// Each domain implements this interface to contribute its data to the aggregate collection.
-	// When adding or removing a domain from this template, implement this interface and register the collector.
-	UserDataCollector interface {
-		CollectUserData(ctx context.Context, collection *UserDataCollection, userID string) error
-		CollectAccountData(ctx context.Context, collection *UserDataCollection, accountID string) error
-	}
-
-	// DataPrivacyDataManager contains data privacy management functions.
-	DataPrivacyDataManager interface {
-		FetchUserDataCollection(ctx context.Context, userID string) (*UserDataCollection, error)
-		DeleteUser(ctx context.Context, userID string) error
-	}
-
-	// UserDataDisclosureDataManager contains user data disclosure management functions.
-	UserDataDisclosureDataManager interface {
-		CreateUserDataDisclosure(ctx context.Context, input *UserDataDisclosureCreationInput) (*UserDataDisclosure, error)
-		GetUserDataDisclosure(ctx context.Context, disclosureID string) (*UserDataDisclosure, error)
-		GetUserDataDisclosuresForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[UserDataDisclosure], error)
-		GetExpiredUserDataDisclosures(ctx context.Context) ([]*UserDataDisclosure, error)
-		MarkUserDataDisclosureCompleted(ctx context.Context, disclosureID, reportID string) error
-		MarkUserDataDisclosureFailed(ctx context.Context, disclosureID string) error
-		MarkUserDataDisclosureExpired(ctx context.Context, disclosureID string) error
-		ArchiveUserDataDisclosure(ctx context.Context, disclosureID string) error
-	}
-)
+// AccountIDResolver answers "which accounts does this user appear in", which is
+// the one question an account-scoped collector has to ask and cannot answer from
+// its own domain.
+//
+// It is a function type rather than an identity.Repository parameter so that a
+// domain collecting account-scoped data — webhooks, settings, payments — does
+// not acquire a dependency on the identity domain to get it. The build layer
+// supplies the implementation, and each collector takes exactly what it needs.
+type AccountIDResolver func(ctx context.Context, userID string) ([]string, error)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
+	"github.com/primandproper/platform-go/v9/database"
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -179,6 +180,15 @@ type (
 		UpdateUserPassword(ctx context.Context, userID, newHash string) error
 		ArchiveUser(ctx context.Context, userID string) error
 		DeleteUser(ctx context.Context, userID string) error
+		// EraseUser is DeleteUser inside a transaction the caller owns, returning the
+		// number of user rows destroyed.
+		//
+		// It takes an executor rather than using the repository's own handle because a
+		// right-to-be-forgotten erasure shares one transaction with every other domain's
+		// eraser and with the bookkeeping that records the erasure happened. A subject
+		// left deleted from the audit log and present in the user table has no coherent
+		// status, so the deletion has to be able to roll back with everything else.
+		EraseUser(ctx context.Context, q database.SQLQueryExecutor, userID string) (int64, error)
 		GetUserWithUnverifiedTwoFactorSecret(ctx context.Context, userID string) (*User, error)
 		MarkUserTwoFactorSecretAsVerified(ctx context.Context, userID string) error
 		MarkUserTwoFactorSecretAsUnverified(ctx context.Context, userID, newSecret string) error

@@ -54,14 +54,11 @@ func (a *AsyncDataChangeMessageHandler) Start(ctx context.Context) error {
 			cfg:     &a.poolsConfig.SearchIndexRequests,
 			handler: a.SearchIndexRequestsEventHandler(a.queuesConfig.SearchIndexRequestsTopicName),
 		},
-		// There is no webhook execution pool. Deliveries are dispatch rows the delivery
-		// worker claims, not messages on a topic — which is what lets one endpoint's copy of
-		// one event be the unit of retry, rather than the whole fan-out.
-		{
-			topic:   a.queuesConfig.UserDataAggregationTopicName,
-			cfg:     &a.poolsConfig.UserDataAggregation,
-			handler: a.UserDataAggregationEventHandler(a.queuesConfig.UserDataAggregationTopicName),
-		},
+		// There is no webhook execution pool and no user data aggregation pool. A webhook
+		// delivery is a dispatch row the delivery worker claims, and an export is a request
+		// row the data privacy worker claims — neither is a message on a topic. That is what
+		// lets one endpoint's copy of one event, or one subject's export, be the unit of
+		// retry rather than the whole fan-out.
 		{
 			topic:   a.queuesConfig.MobileNotificationsTopicName,
 			cfg:     &a.poolsConfig.MobileNotifications,

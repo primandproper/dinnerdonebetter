@@ -69,14 +69,14 @@ func NewJob(
 
 // topicNames returns the topic names from config for random selection.
 //
-// Webhook execution is not among them any more: deliveries are dispatch rows a worker claims
-// rather than messages on a topic, so there is no queue here to probe.
+// Webhook execution and user data aggregation are not among them any more: a delivery and an
+// export are both rows a worker claims rather than messages on a topic, so there is no queue
+// here to probe.
 func (j *Job) topicNames() []string {
 	return []string{
 		j.queues.DataChangesTopicName,
 		j.queues.OutboundEmailsTopicName,
 		j.queues.SearchIndexRequestsTopicName,
-		j.queues.UserDataAggregationTopicName,
 		j.queues.MobileNotificationsTopicName,
 	}
 }

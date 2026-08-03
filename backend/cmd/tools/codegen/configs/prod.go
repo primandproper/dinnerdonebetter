@@ -149,7 +149,6 @@ func buildProdConfig() *config.APIServiceConfig {
 			OutboundEmailsTopicName:      outboundEmailsTopicName,
 			SearchIndexRequestsTopicName: searchIndexRequestsTopicName,
 			MobileNotificationsTopicName: mobileNotificationsTopicName,
-			UserDataAggregationTopicName: userDataAggregationTopicName,
 		},
 		Meta: config.MetaSettings{
 			Debug:   false,

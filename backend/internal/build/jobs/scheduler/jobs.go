@@ -5,11 +5,11 @@ import (
 
 	mobilenotificationscheduler "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/mobile_notification_scheduler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	disclosureartifactreaper "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/workers/disclosure_artifact_reaper"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
 	"github.com/primandproper/platform-go/v9/audit"
+	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
 	"github.com/primandproper/platform-go/v9/distributedlock"
 	"github.com/primandproper/platform-go/v9/jobs"
 	"github.com/primandproper/platform-go/v9/observability/logging"
@@ -27,7 +27,7 @@ const (
 	jobSearchDataIndexScheduler    = "search_data_index_scheduler"
 	jobMobileNotificationScheduler = "mobile_notification_scheduler"
 	jobQueueTest                   = "queue_test"
-	jobDisclosureArtifactReaper    = "disclosure_artifact_reaper"
+	jobDataPrivacySweep            = "data_privacy_sweep"
 	jobAuditRetentionSweeper       = "audit_retention_sweeper"
 )
 
@@ -80,9 +80,23 @@ func RegisterScheduler(i do.Injector) {
 				run:  do.MustInvoke[*queuetest.Job](i).Do,
 			},
 			{
-				name: jobDisclosureArtifactReaper,
-				cfg:  &jobsCfg.DisclosureArtifactReaper,
-				run:  do.MustInvoke[*disclosureartifactreaper.Worker](i).Work,
+				name: jobDataPrivacySweep,
+				cfg:  &jobsCfg.DataPrivacySweep,
+				// One pass does three things: deletes the artifacts of completed exports
+				// past their expiry, cancels erasures whose confirmation window lapsed,
+				// and samples the overdue gauge. The sweep result reports counts the
+				// Sweeper has already recorded as metrics, so there is nothing here to
+				// return them to.
+				//
+				// Without this job every export artifact ever written stays in the bucket
+				// forever, and nothing about the request rows suggests otherwise. It is
+				// the failure this whole adoption is most anxious about, which is why it
+				// is a named registration rather than a flag.
+				run: func(ctx context.Context) error {
+					_, sweepErr := do.MustInvoke[*platformdataprivacy.Sweeper](i).Sweep(ctx)
+
+					return sweepErr
+				},
 			},
 			{
 				name: jobAuditRetentionSweeper,

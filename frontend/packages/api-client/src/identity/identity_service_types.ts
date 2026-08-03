@@ -331,12 +331,6 @@ export interface UserCreationResponse {
   lastName: string;
 }
 
-export interface UserDataAggregationRequest {
-  requestId: string;
-  reportId: string;
-  userId: string;
-}
-
 export interface UserDetailsUpdateRequest {
   firstName: string;
   lastName: string;
@@ -5623,110 +5617,6 @@ export const UserCreationResponse: MessageFns<UserCreationResponse> = {
     message.twoFactorSecret = object.twoFactorSecret ?? '';
     message.firstName = object.firstName ?? '';
     message.lastName = object.lastName ?? '';
-    return message;
-  },
-};
-
-function createBaseUserDataAggregationRequest(): UserDataAggregationRequest {
-  return { requestId: '', reportId: '', userId: '' };
-}
-
-export const UserDataAggregationRequest: MessageFns<UserDataAggregationRequest> = {
-  encode(message: UserDataAggregationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.requestId !== '') {
-      writer.uint32(10).string(message.requestId);
-    }
-    if (message.reportId !== '') {
-      writer.uint32(18).string(message.reportId);
-    }
-    if (message.userId !== '') {
-      writer.uint32(26).string(message.userId);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): UserDataAggregationRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUserDataAggregationRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.requestId = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.reportId = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.userId = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): UserDataAggregationRequest {
-    return {
-      requestId: isSet(object.requestId)
-        ? globalThis.String(object.requestId)
-        : isSet(object.request_id)
-          ? globalThis.String(object.request_id)
-          : '',
-      reportId: isSet(object.reportId)
-        ? globalThis.String(object.reportId)
-        : isSet(object.report_id)
-          ? globalThis.String(object.report_id)
-          : '',
-      userId: isSet(object.userId)
-        ? globalThis.String(object.userId)
-        : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
-    };
-  },
-
-  toJSON(message: UserDataAggregationRequest): unknown {
-    const obj: any = {};
-    if (message.requestId !== '') {
-      obj.requestId = message.requestId;
-    }
-    if (message.reportId !== '') {
-      obj.reportId = message.reportId;
-    }
-    if (message.userId !== '') {
-      obj.userId = message.userId;
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<UserDataAggregationRequest>, I>>(base?: I): UserDataAggregationRequest {
-    return UserDataAggregationRequest.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<UserDataAggregationRequest>, I>>(object: I): UserDataAggregationRequest {
-    const message = createBaseUserDataAggregationRequest();
-    message.requestId = object.requestId ?? '';
-    message.reportId = object.reportId ?? '';
-    message.userId = object.userId ?? '';
     return message;
   },
 };

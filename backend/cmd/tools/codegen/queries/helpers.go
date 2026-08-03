@@ -17,6 +17,7 @@ const (
 	iconPathColumn         = "icon_path"
 	slugColumn             = "slug"
 	createdAtColumn        = "created_at"
+	expiresAtColumn        = "expires_at"
 	lastUpdatedAtColumn    = "last_updated_at"
 	archivedAtColumn       = "archived_at"
 	lastIndexedAtColumn    = "last_indexed_at"

@@ -24,10 +24,10 @@ import {
   DestroyAllUserDataResponse,
   FetchUserDataReportRequest,
   FetchUserDataReportResponse,
-  GetUserDataDisclosureRequest,
-  GetUserDataDisclosureResponse,
-  ListUserDataDisclosuresRequest,
-  ListUserDataDisclosuresResponse,
+  GetDataPrivacyRequestRequest,
+  GetDataPrivacyRequestResponse,
+  ListDataPrivacyRequestsRequest,
+  ListDataPrivacyRequestsResponse,
 } from './dataprivacy_service_types';
 
 export const protobufPackage = 'dataprivacy';
@@ -68,28 +68,28 @@ export const DataPrivacyServiceService = {
       Buffer.from(FetchUserDataReportResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): FetchUserDataReportResponse => FetchUserDataReportResponse.decode(value),
   },
-  getUserDataDisclosure: {
-    path: '/dataprivacy.DataPrivacyService/GetUserDataDisclosure' as const,
+  getDataPrivacyRequest: {
+    path: '/dataprivacy.DataPrivacyService/GetDataPrivacyRequest' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetUserDataDisclosureRequest): Buffer =>
-      Buffer.from(GetUserDataDisclosureRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetUserDataDisclosureRequest => GetUserDataDisclosureRequest.decode(value),
-    responseSerialize: (value: GetUserDataDisclosureResponse): Buffer =>
-      Buffer.from(GetUserDataDisclosureResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetUserDataDisclosureResponse => GetUserDataDisclosureResponse.decode(value),
+    requestSerialize: (value: GetDataPrivacyRequestRequest): Buffer =>
+      Buffer.from(GetDataPrivacyRequestRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetDataPrivacyRequestRequest => GetDataPrivacyRequestRequest.decode(value),
+    responseSerialize: (value: GetDataPrivacyRequestResponse): Buffer =>
+      Buffer.from(GetDataPrivacyRequestResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetDataPrivacyRequestResponse => GetDataPrivacyRequestResponse.decode(value),
   },
-  listUserDataDisclosures: {
-    path: '/dataprivacy.DataPrivacyService/ListUserDataDisclosures' as const,
+  listDataPrivacyRequests: {
+    path: '/dataprivacy.DataPrivacyService/ListDataPrivacyRequests' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ListUserDataDisclosuresRequest): Buffer =>
-      Buffer.from(ListUserDataDisclosuresRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListUserDataDisclosuresRequest => ListUserDataDisclosuresRequest.decode(value),
-    responseSerialize: (value: ListUserDataDisclosuresResponse): Buffer =>
-      Buffer.from(ListUserDataDisclosuresResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListUserDataDisclosuresResponse =>
-      ListUserDataDisclosuresResponse.decode(value),
+    requestSerialize: (value: ListDataPrivacyRequestsRequest): Buffer =>
+      Buffer.from(ListDataPrivacyRequestsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListDataPrivacyRequestsRequest => ListDataPrivacyRequestsRequest.decode(value),
+    responseSerialize: (value: ListDataPrivacyRequestsResponse): Buffer =>
+      Buffer.from(ListDataPrivacyRequestsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListDataPrivacyRequestsResponse =>
+      ListDataPrivacyRequestsResponse.decode(value),
   },
 } as const;
 
@@ -97,8 +97,8 @@ export interface DataPrivacyServiceServer extends UntypedServiceImplementation {
   aggregateUserDataReport: handleUnaryCall<AggregateUserDataReportRequest, AggregateUserDataReportResponse>;
   destroyAllUserData: handleUnaryCall<DestroyAllUserDataRequest, DestroyAllUserDataResponse>;
   fetchUserDataReport: handleUnaryCall<FetchUserDataReportRequest, FetchUserDataReportResponse>;
-  getUserDataDisclosure: handleUnaryCall<GetUserDataDisclosureRequest, GetUserDataDisclosureResponse>;
-  listUserDataDisclosures: handleUnaryCall<ListUserDataDisclosuresRequest, ListUserDataDisclosuresResponse>;
+  getDataPrivacyRequest: handleUnaryCall<GetDataPrivacyRequestRequest, GetDataPrivacyRequestResponse>;
+  listDataPrivacyRequests: handleUnaryCall<ListDataPrivacyRequestsRequest, ListDataPrivacyRequestsResponse>;
 }
 
 export interface DataPrivacyServiceClient extends Client {
@@ -147,35 +147,35 @@ export interface DataPrivacyServiceClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: FetchUserDataReportResponse) => void,
   ): ClientUnaryCall;
-  getUserDataDisclosure(
-    request: GetUserDataDisclosureRequest,
-    callback: (error: ServiceError | null, response: GetUserDataDisclosureResponse) => void,
+  getDataPrivacyRequest(
+    request: GetDataPrivacyRequestRequest,
+    callback: (error: ServiceError | null, response: GetDataPrivacyRequestResponse) => void,
   ): ClientUnaryCall;
-  getUserDataDisclosure(
-    request: GetUserDataDisclosureRequest,
+  getDataPrivacyRequest(
+    request: GetDataPrivacyRequestRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetUserDataDisclosureResponse) => void,
+    callback: (error: ServiceError | null, response: GetDataPrivacyRequestResponse) => void,
   ): ClientUnaryCall;
-  getUserDataDisclosure(
-    request: GetUserDataDisclosureRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetUserDataDisclosureResponse) => void,
-  ): ClientUnaryCall;
-  listUserDataDisclosures(
-    request: ListUserDataDisclosuresRequest,
-    callback: (error: ServiceError | null, response: ListUserDataDisclosuresResponse) => void,
-  ): ClientUnaryCall;
-  listUserDataDisclosures(
-    request: ListUserDataDisclosuresRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListUserDataDisclosuresResponse) => void,
-  ): ClientUnaryCall;
-  listUserDataDisclosures(
-    request: ListUserDataDisclosuresRequest,
+  getDataPrivacyRequest(
+    request: GetDataPrivacyRequestRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListUserDataDisclosuresResponse) => void,
+    callback: (error: ServiceError | null, response: GetDataPrivacyRequestResponse) => void,
+  ): ClientUnaryCall;
+  listDataPrivacyRequests(
+    request: ListDataPrivacyRequestsRequest,
+    callback: (error: ServiceError | null, response: ListDataPrivacyRequestsResponse) => void,
+  ): ClientUnaryCall;
+  listDataPrivacyRequests(
+    request: ListDataPrivacyRequestsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListDataPrivacyRequestsResponse) => void,
+  ): ClientUnaryCall;
+  listDataPrivacyRequests(
+    request: ListDataPrivacyRequestsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListDataPrivacyRequestsResponse) => void,
   ): ClientUnaryCall;
 }
 

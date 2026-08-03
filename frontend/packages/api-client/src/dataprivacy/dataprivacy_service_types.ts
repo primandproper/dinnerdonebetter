@@ -8,7 +8,7 @@
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { ResponseDetails } from '../common';
 import { Pagination, QueryFilter } from '../filtering';
-import { UserDataCollection, UserDataDisclosure } from './dataprivacy_messages';
+import { DataPrivacyRequest } from './dataprivacy_messages';
 
 export const protobufPackage = 'dataprivacy';
 
@@ -16,41 +16,63 @@ export interface AggregateUserDataReportRequest {}
 
 export interface AggregateUserDataReportResponse {
   responseDetails: ResponseDetails | undefined;
-  reportId: string;
+  /**
+   * request is the submitted export request. Its id is what FetchUserDataReport and
+   * GetDataPrivacyRequest take; there is no separate report ID any more, because a request now
+   * owns its artifact rather than naming one.
+   */
+  request: DataPrivacyRequest | undefined;
 }
 
 export interface DestroyAllUserDataRequest {}
 
 export interface DestroyAllUserDataResponse {
   responseDetails: ResponseDetails | undefined;
-  successful: boolean;
+  /**
+   * request is the submitted erasure request, which begins pending rather than complete.
+   *
+   * Erasure is a durable job now rather than a synchronous DELETE. Every domain's eraser shares
+   * one transaction with the bookkeeping that records the erasure happened, so a subject is
+   * never left deleted from eight domains and present in three — and a request that survives
+   * the process that accepted it is the one guarantee this needs.
+   */
+  request: DataPrivacyRequest | undefined;
 }
 
 export interface FetchUserDataReportRequest {
-  userDataAggregationReportId: string;
+  dataPrivacyRequestId: string;
 }
 
 export interface FetchUserDataReportResponse {
   responseDetails: ResponseDetails | undefined;
-  userDataCollection: UserDataCollection | undefined;
+  /**
+   * artifact is the export document as canonical JSON: an object of per-domain sections, plus a
+   * manifest naming any section that could not be collected and why.
+   *
+   * Bytes rather than a typed message. The typed one named every domain in the application, so
+   * a schema change in any of them was a proto change, a regeneration in three languages, and a
+   * client release. What a subject is owed is their data, not a shape this repository has to
+   * keep eleven domains in sync with.
+   */
+  artifact: Uint8Array;
 }
 
-export interface GetUserDataDisclosureRequest {
-  userDataDisclosureId: string;
+export interface GetDataPrivacyRequestRequest {
+  dataPrivacyRequestId: string;
 }
 
-export interface GetUserDataDisclosureResponse {
+export interface GetDataPrivacyRequestResponse {
   responseDetails: ResponseDetails | undefined;
-  userDataDisclosure: UserDataDisclosure | undefined;
+  request: DataPrivacyRequest | undefined;
 }
 
-export interface ListUserDataDisclosuresRequest {
+export interface ListDataPrivacyRequestsRequest {
   filter: QueryFilter | undefined;
 }
 
-export interface ListUserDataDisclosuresResponse {
+export interface ListDataPrivacyRequestsResponse {
   responseDetails: ResponseDetails | undefined;
-  data: UserDataDisclosure[];
+  data: DataPrivacyRequest[];
   pagination: Pagination | undefined;
 }
 
@@ -98,7 +120,7 @@ export const AggregateUserDataReportRequest: MessageFns<AggregateUserDataReportR
 };
 
 function createBaseAggregateUserDataReportResponse(): AggregateUserDataReportResponse {
-  return { responseDetails: undefined, reportId: '' };
+  return { responseDetails: undefined, request: undefined };
 }
 
 export const AggregateUserDataReportResponse: MessageFns<AggregateUserDataReportResponse> = {
@@ -106,8 +128,8 @@ export const AggregateUserDataReportResponse: MessageFns<AggregateUserDataReport
     if (message.responseDetails !== undefined) {
       ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
     }
-    if (message.reportId !== '') {
-      writer.uint32(18).string(message.reportId);
+    if (message.request !== undefined) {
+      DataPrivacyRequest.encode(message.request, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -132,7 +154,7 @@ export const AggregateUserDataReportResponse: MessageFns<AggregateUserDataReport
             break;
           }
 
-          message.reportId = reader.string();
+          message.request = DataPrivacyRequest.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -151,11 +173,7 @@ export const AggregateUserDataReportResponse: MessageFns<AggregateUserDataReport
         : isSet(object.response_details)
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
-      reportId: isSet(object.reportId)
-        ? globalThis.String(object.reportId)
-        : isSet(object.report_id)
-          ? globalThis.String(object.report_id)
-          : '',
+      request: isSet(object.request) ? DataPrivacyRequest.fromJSON(object.request) : undefined,
     };
   },
 
@@ -164,8 +182,8 @@ export const AggregateUserDataReportResponse: MessageFns<AggregateUserDataReport
     if (message.responseDetails !== undefined) {
       obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
     }
-    if (message.reportId !== '') {
-      obj.reportId = message.reportId;
+    if (message.request !== undefined) {
+      obj.request = DataPrivacyRequest.toJSON(message.request);
     }
     return obj;
   },
@@ -181,7 +199,10 @@ export const AggregateUserDataReportResponse: MessageFns<AggregateUserDataReport
       object.responseDetails !== undefined && object.responseDetails !== null
         ? ResponseDetails.fromPartial(object.responseDetails)
         : undefined;
-    message.reportId = object.reportId ?? '';
+    message.request =
+      object.request !== undefined && object.request !== null
+        ? DataPrivacyRequest.fromPartial(object.request)
+        : undefined;
     return message;
   },
 };
@@ -230,7 +251,7 @@ export const DestroyAllUserDataRequest: MessageFns<DestroyAllUserDataRequest> = 
 };
 
 function createBaseDestroyAllUserDataResponse(): DestroyAllUserDataResponse {
-  return { responseDetails: undefined, successful: false };
+  return { responseDetails: undefined, request: undefined };
 }
 
 export const DestroyAllUserDataResponse: MessageFns<DestroyAllUserDataResponse> = {
@@ -238,8 +259,8 @@ export const DestroyAllUserDataResponse: MessageFns<DestroyAllUserDataResponse> 
     if (message.responseDetails !== undefined) {
       ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
     }
-    if (message.successful !== false) {
-      writer.uint32(16).bool(message.successful);
+    if (message.request !== undefined) {
+      DataPrivacyRequest.encode(message.request, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -260,11 +281,11 @@ export const DestroyAllUserDataResponse: MessageFns<DestroyAllUserDataResponse> 
           continue;
         }
         case 2: {
-          if (tag !== 16) {
+          if (tag !== 18) {
             break;
           }
 
-          message.successful = reader.bool();
+          message.request = DataPrivacyRequest.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -283,7 +304,7 @@ export const DestroyAllUserDataResponse: MessageFns<DestroyAllUserDataResponse> 
         : isSet(object.response_details)
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
-      successful: isSet(object.successful) ? globalThis.Boolean(object.successful) : false,
+      request: isSet(object.request) ? DataPrivacyRequest.fromJSON(object.request) : undefined,
     };
   },
 
@@ -292,8 +313,8 @@ export const DestroyAllUserDataResponse: MessageFns<DestroyAllUserDataResponse> 
     if (message.responseDetails !== undefined) {
       obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
     }
-    if (message.successful !== false) {
-      obj.successful = message.successful;
+    if (message.request !== undefined) {
+      obj.request = DataPrivacyRequest.toJSON(message.request);
     }
     return obj;
   },
@@ -307,19 +328,22 @@ export const DestroyAllUserDataResponse: MessageFns<DestroyAllUserDataResponse> 
       object.responseDetails !== undefined && object.responseDetails !== null
         ? ResponseDetails.fromPartial(object.responseDetails)
         : undefined;
-    message.successful = object.successful ?? false;
+    message.request =
+      object.request !== undefined && object.request !== null
+        ? DataPrivacyRequest.fromPartial(object.request)
+        : undefined;
     return message;
   },
 };
 
 function createBaseFetchUserDataReportRequest(): FetchUserDataReportRequest {
-  return { userDataAggregationReportId: '' };
+  return { dataPrivacyRequestId: '' };
 }
 
 export const FetchUserDataReportRequest: MessageFns<FetchUserDataReportRequest> = {
   encode(message: FetchUserDataReportRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.userDataAggregationReportId !== '') {
-      writer.uint32(10).string(message.userDataAggregationReportId);
+    if (message.dataPrivacyRequestId !== '') {
+      writer.uint32(10).string(message.dataPrivacyRequestId);
     }
     return writer;
   },
@@ -336,7 +360,7 @@ export const FetchUserDataReportRequest: MessageFns<FetchUserDataReportRequest> 
             break;
           }
 
-          message.userDataAggregationReportId = reader.string();
+          message.dataPrivacyRequestId = reader.string();
           continue;
         }
       }
@@ -350,18 +374,18 @@ export const FetchUserDataReportRequest: MessageFns<FetchUserDataReportRequest> 
 
   fromJSON(object: any): FetchUserDataReportRequest {
     return {
-      userDataAggregationReportId: isSet(object.userDataAggregationReportId)
-        ? globalThis.String(object.userDataAggregationReportId)
-        : isSet(object.user_data_aggregation_report_id)
-          ? globalThis.String(object.user_data_aggregation_report_id)
+      dataPrivacyRequestId: isSet(object.dataPrivacyRequestId)
+        ? globalThis.String(object.dataPrivacyRequestId)
+        : isSet(object.data_privacy_request_id)
+          ? globalThis.String(object.data_privacy_request_id)
           : '',
     };
   },
 
   toJSON(message: FetchUserDataReportRequest): unknown {
     const obj: any = {};
-    if (message.userDataAggregationReportId !== '') {
-      obj.userDataAggregationReportId = message.userDataAggregationReportId;
+    if (message.dataPrivacyRequestId !== '') {
+      obj.dataPrivacyRequestId = message.dataPrivacyRequestId;
     }
     return obj;
   },
@@ -371,13 +395,13 @@ export const FetchUserDataReportRequest: MessageFns<FetchUserDataReportRequest> 
   },
   fromPartial<I extends Exact<DeepPartial<FetchUserDataReportRequest>, I>>(object: I): FetchUserDataReportRequest {
     const message = createBaseFetchUserDataReportRequest();
-    message.userDataAggregationReportId = object.userDataAggregationReportId ?? '';
+    message.dataPrivacyRequestId = object.dataPrivacyRequestId ?? '';
     return message;
   },
 };
 
 function createBaseFetchUserDataReportResponse(): FetchUserDataReportResponse {
-  return { responseDetails: undefined, userDataCollection: undefined };
+  return { responseDetails: undefined, artifact: new Uint8Array(0) };
 }
 
 export const FetchUserDataReportResponse: MessageFns<FetchUserDataReportResponse> = {
@@ -385,8 +409,8 @@ export const FetchUserDataReportResponse: MessageFns<FetchUserDataReportResponse
     if (message.responseDetails !== undefined) {
       ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
     }
-    if (message.userDataCollection !== undefined) {
-      UserDataCollection.encode(message.userDataCollection, writer.uint32(18).fork()).join();
+    if (message.artifact.length !== 0) {
+      writer.uint32(18).bytes(message.artifact);
     }
     return writer;
   },
@@ -411,7 +435,7 @@ export const FetchUserDataReportResponse: MessageFns<FetchUserDataReportResponse
             break;
           }
 
-          message.userDataCollection = UserDataCollection.decode(reader, reader.uint32());
+          message.artifact = reader.bytes();
           continue;
         }
       }
@@ -430,11 +454,7 @@ export const FetchUserDataReportResponse: MessageFns<FetchUserDataReportResponse
         : isSet(object.response_details)
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
-      userDataCollection: isSet(object.userDataCollection)
-        ? UserDataCollection.fromJSON(object.userDataCollection)
-        : isSet(object.user_data_collection)
-          ? UserDataCollection.fromJSON(object.user_data_collection)
-          : undefined,
+      artifact: isSet(object.artifact) ? bytesFromBase64(object.artifact) : new Uint8Array(0),
     };
   },
 
@@ -443,8 +463,8 @@ export const FetchUserDataReportResponse: MessageFns<FetchUserDataReportResponse
     if (message.responseDetails !== undefined) {
       obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
     }
-    if (message.userDataCollection !== undefined) {
-      obj.userDataCollection = UserDataCollection.toJSON(message.userDataCollection);
+    if (message.artifact.length !== 0) {
+      obj.artifact = base64FromBytes(message.artifact);
     }
     return obj;
   },
@@ -458,30 +478,27 @@ export const FetchUserDataReportResponse: MessageFns<FetchUserDataReportResponse
       object.responseDetails !== undefined && object.responseDetails !== null
         ? ResponseDetails.fromPartial(object.responseDetails)
         : undefined;
-    message.userDataCollection =
-      object.userDataCollection !== undefined && object.userDataCollection !== null
-        ? UserDataCollection.fromPartial(object.userDataCollection)
-        : undefined;
+    message.artifact = object.artifact ?? new Uint8Array(0);
     return message;
   },
 };
 
-function createBaseGetUserDataDisclosureRequest(): GetUserDataDisclosureRequest {
-  return { userDataDisclosureId: '' };
+function createBaseGetDataPrivacyRequestRequest(): GetDataPrivacyRequestRequest {
+  return { dataPrivacyRequestId: '' };
 }
 
-export const GetUserDataDisclosureRequest: MessageFns<GetUserDataDisclosureRequest> = {
-  encode(message: GetUserDataDisclosureRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.userDataDisclosureId !== '') {
-      writer.uint32(10).string(message.userDataDisclosureId);
+export const GetDataPrivacyRequestRequest: MessageFns<GetDataPrivacyRequestRequest> = {
+  encode(message: GetDataPrivacyRequestRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.dataPrivacyRequestId !== '') {
+      writer.uint32(10).string(message.dataPrivacyRequestId);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GetUserDataDisclosureRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number): GetDataPrivacyRequestRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetUserDataDisclosureRequest();
+    const message = createBaseGetDataPrivacyRequestRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -490,7 +507,7 @@ export const GetUserDataDisclosureRequest: MessageFns<GetUserDataDisclosureReque
             break;
           }
 
-          message.userDataDisclosureId = reader.string();
+          message.dataPrivacyRequestId = reader.string();
           continue;
         }
       }
@@ -502,53 +519,53 @@ export const GetUserDataDisclosureRequest: MessageFns<GetUserDataDisclosureReque
     return message;
   },
 
-  fromJSON(object: any): GetUserDataDisclosureRequest {
+  fromJSON(object: any): GetDataPrivacyRequestRequest {
     return {
-      userDataDisclosureId: isSet(object.userDataDisclosureId)
-        ? globalThis.String(object.userDataDisclosureId)
-        : isSet(object.user_data_disclosure_id)
-          ? globalThis.String(object.user_data_disclosure_id)
+      dataPrivacyRequestId: isSet(object.dataPrivacyRequestId)
+        ? globalThis.String(object.dataPrivacyRequestId)
+        : isSet(object.data_privacy_request_id)
+          ? globalThis.String(object.data_privacy_request_id)
           : '',
     };
   },
 
-  toJSON(message: GetUserDataDisclosureRequest): unknown {
+  toJSON(message: GetDataPrivacyRequestRequest): unknown {
     const obj: any = {};
-    if (message.userDataDisclosureId !== '') {
-      obj.userDataDisclosureId = message.userDataDisclosureId;
+    if (message.dataPrivacyRequestId !== '') {
+      obj.dataPrivacyRequestId = message.dataPrivacyRequestId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetUserDataDisclosureRequest>, I>>(base?: I): GetUserDataDisclosureRequest {
-    return GetUserDataDisclosureRequest.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<GetDataPrivacyRequestRequest>, I>>(base?: I): GetDataPrivacyRequestRequest {
+    return GetDataPrivacyRequestRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetUserDataDisclosureRequest>, I>>(object: I): GetUserDataDisclosureRequest {
-    const message = createBaseGetUserDataDisclosureRequest();
-    message.userDataDisclosureId = object.userDataDisclosureId ?? '';
+  fromPartial<I extends Exact<DeepPartial<GetDataPrivacyRequestRequest>, I>>(object: I): GetDataPrivacyRequestRequest {
+    const message = createBaseGetDataPrivacyRequestRequest();
+    message.dataPrivacyRequestId = object.dataPrivacyRequestId ?? '';
     return message;
   },
 };
 
-function createBaseGetUserDataDisclosureResponse(): GetUserDataDisclosureResponse {
-  return { responseDetails: undefined, userDataDisclosure: undefined };
+function createBaseGetDataPrivacyRequestResponse(): GetDataPrivacyRequestResponse {
+  return { responseDetails: undefined, request: undefined };
 }
 
-export const GetUserDataDisclosureResponse: MessageFns<GetUserDataDisclosureResponse> = {
-  encode(message: GetUserDataDisclosureResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const GetDataPrivacyRequestResponse: MessageFns<GetDataPrivacyRequestResponse> = {
+  encode(message: GetDataPrivacyRequestResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.responseDetails !== undefined) {
       ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
     }
-    if (message.userDataDisclosure !== undefined) {
-      UserDataDisclosure.encode(message.userDataDisclosure, writer.uint32(18).fork()).join();
+    if (message.request !== undefined) {
+      DataPrivacyRequest.encode(message.request, writer.uint32(18).fork()).join();
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GetUserDataDisclosureResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number): GetDataPrivacyRequestResponse {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetUserDataDisclosureResponse();
+    const message = createBaseGetDataPrivacyRequestResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -565,7 +582,7 @@ export const GetUserDataDisclosureResponse: MessageFns<GetUserDataDisclosureResp
             break;
           }
 
-          message.userDataDisclosure = UserDataDisclosure.decode(reader, reader.uint32());
+          message.request = DataPrivacyRequest.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -577,67 +594,63 @@ export const GetUserDataDisclosureResponse: MessageFns<GetUserDataDisclosureResp
     return message;
   },
 
-  fromJSON(object: any): GetUserDataDisclosureResponse {
+  fromJSON(object: any): GetDataPrivacyRequestResponse {
     return {
       responseDetails: isSet(object.responseDetails)
         ? ResponseDetails.fromJSON(object.responseDetails)
         : isSet(object.response_details)
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
-      userDataDisclosure: isSet(object.userDataDisclosure)
-        ? UserDataDisclosure.fromJSON(object.userDataDisclosure)
-        : isSet(object.user_data_disclosure)
-          ? UserDataDisclosure.fromJSON(object.user_data_disclosure)
-          : undefined,
+      request: isSet(object.request) ? DataPrivacyRequest.fromJSON(object.request) : undefined,
     };
   },
 
-  toJSON(message: GetUserDataDisclosureResponse): unknown {
+  toJSON(message: GetDataPrivacyRequestResponse): unknown {
     const obj: any = {};
     if (message.responseDetails !== undefined) {
       obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
     }
-    if (message.userDataDisclosure !== undefined) {
-      obj.userDataDisclosure = UserDataDisclosure.toJSON(message.userDataDisclosure);
+    if (message.request !== undefined) {
+      obj.request = DataPrivacyRequest.toJSON(message.request);
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetUserDataDisclosureResponse>, I>>(base?: I): GetUserDataDisclosureResponse {
-    return GetUserDataDisclosureResponse.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<GetDataPrivacyRequestResponse>, I>>(base?: I): GetDataPrivacyRequestResponse {
+    return GetDataPrivacyRequestResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetUserDataDisclosureResponse>, I>>(
+  fromPartial<I extends Exact<DeepPartial<GetDataPrivacyRequestResponse>, I>>(
     object: I,
-  ): GetUserDataDisclosureResponse {
-    const message = createBaseGetUserDataDisclosureResponse();
+  ): GetDataPrivacyRequestResponse {
+    const message = createBaseGetDataPrivacyRequestResponse();
     message.responseDetails =
       object.responseDetails !== undefined && object.responseDetails !== null
         ? ResponseDetails.fromPartial(object.responseDetails)
         : undefined;
-    message.userDataDisclosure =
-      object.userDataDisclosure !== undefined && object.userDataDisclosure !== null
-        ? UserDataDisclosure.fromPartial(object.userDataDisclosure)
+    message.request =
+      object.request !== undefined && object.request !== null
+        ? DataPrivacyRequest.fromPartial(object.request)
         : undefined;
     return message;
   },
 };
 
-function createBaseListUserDataDisclosuresRequest(): ListUserDataDisclosuresRequest {
+function createBaseListDataPrivacyRequestsRequest(): ListDataPrivacyRequestsRequest {
   return { filter: undefined };
 }
 
-export const ListUserDataDisclosuresRequest: MessageFns<ListUserDataDisclosuresRequest> = {
-  encode(message: ListUserDataDisclosuresRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const ListDataPrivacyRequestsRequest: MessageFns<ListDataPrivacyRequestsRequest> = {
+  encode(message: ListDataPrivacyRequestsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.filter !== undefined) {
       QueryFilter.encode(message.filter, writer.uint32(10).fork()).join();
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ListUserDataDisclosuresRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number): ListDataPrivacyRequestsRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseListUserDataDisclosuresRequest();
+    const message = createBaseListDataPrivacyRequestsRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -658,11 +671,11 @@ export const ListUserDataDisclosuresRequest: MessageFns<ListUserDataDisclosuresR
     return message;
   },
 
-  fromJSON(object: any): ListUserDataDisclosuresRequest {
+  fromJSON(object: any): ListDataPrivacyRequestsRequest {
     return { filter: isSet(object.filter) ? QueryFilter.fromJSON(object.filter) : undefined };
   },
 
-  toJSON(message: ListUserDataDisclosuresRequest): unknown {
+  toJSON(message: ListDataPrivacyRequestsRequest): unknown {
     const obj: any = {};
     if (message.filter !== undefined) {
       obj.filter = QueryFilter.toJSON(message.filter);
@@ -670,30 +683,30 @@ export const ListUserDataDisclosuresRequest: MessageFns<ListUserDataDisclosuresR
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListUserDataDisclosuresRequest>, I>>(base?: I): ListUserDataDisclosuresRequest {
-    return ListUserDataDisclosuresRequest.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<ListDataPrivacyRequestsRequest>, I>>(base?: I): ListDataPrivacyRequestsRequest {
+    return ListDataPrivacyRequestsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListUserDataDisclosuresRequest>, I>>(
+  fromPartial<I extends Exact<DeepPartial<ListDataPrivacyRequestsRequest>, I>>(
     object: I,
-  ): ListUserDataDisclosuresRequest {
-    const message = createBaseListUserDataDisclosuresRequest();
+  ): ListDataPrivacyRequestsRequest {
+    const message = createBaseListDataPrivacyRequestsRequest();
     message.filter =
       object.filter !== undefined && object.filter !== null ? QueryFilter.fromPartial(object.filter) : undefined;
     return message;
   },
 };
 
-function createBaseListUserDataDisclosuresResponse(): ListUserDataDisclosuresResponse {
+function createBaseListDataPrivacyRequestsResponse(): ListDataPrivacyRequestsResponse {
   return { responseDetails: undefined, data: [], pagination: undefined };
 }
 
-export const ListUserDataDisclosuresResponse: MessageFns<ListUserDataDisclosuresResponse> = {
-  encode(message: ListUserDataDisclosuresResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const ListDataPrivacyRequestsResponse: MessageFns<ListDataPrivacyRequestsResponse> = {
+  encode(message: ListDataPrivacyRequestsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.responseDetails !== undefined) {
       ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
     }
     for (const v of message.data) {
-      UserDataDisclosure.encode(v!, writer.uint32(18).fork()).join();
+      DataPrivacyRequest.encode(v!, writer.uint32(18).fork()).join();
     }
     if (message.pagination !== undefined) {
       Pagination.encode(message.pagination, writer.uint32(26).fork()).join();
@@ -701,10 +714,10 @@ export const ListUserDataDisclosuresResponse: MessageFns<ListUserDataDisclosures
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ListUserDataDisclosuresResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number): ListDataPrivacyRequestsResponse {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseListUserDataDisclosuresResponse();
+    const message = createBaseListDataPrivacyRequestsResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -721,7 +734,7 @@ export const ListUserDataDisclosuresResponse: MessageFns<ListUserDataDisclosures
             break;
           }
 
-          message.data.push(UserDataDisclosure.decode(reader, reader.uint32()));
+          message.data.push(DataPrivacyRequest.decode(reader, reader.uint32()));
           continue;
         }
         case 3: {
@@ -741,25 +754,25 @@ export const ListUserDataDisclosuresResponse: MessageFns<ListUserDataDisclosures
     return message;
   },
 
-  fromJSON(object: any): ListUserDataDisclosuresResponse {
+  fromJSON(object: any): ListDataPrivacyRequestsResponse {
     return {
       responseDetails: isSet(object.responseDetails)
         ? ResponseDetails.fromJSON(object.responseDetails)
         : isSet(object.response_details)
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
-      data: globalThis.Array.isArray(object?.data) ? object.data.map((e: any) => UserDataDisclosure.fromJSON(e)) : [],
+      data: globalThis.Array.isArray(object?.data) ? object.data.map((e: any) => DataPrivacyRequest.fromJSON(e)) : [],
       pagination: isSet(object.pagination) ? Pagination.fromJSON(object.pagination) : undefined,
     };
   },
 
-  toJSON(message: ListUserDataDisclosuresResponse): unknown {
+  toJSON(message: ListDataPrivacyRequestsResponse): unknown {
     const obj: any = {};
     if (message.responseDetails !== undefined) {
       obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
     }
     if (message.data?.length) {
-      obj.data = message.data.map((e) => UserDataDisclosure.toJSON(e));
+      obj.data = message.data.map((e) => DataPrivacyRequest.toJSON(e));
     }
     if (message.pagination !== undefined) {
       obj.pagination = Pagination.toJSON(message.pagination);
@@ -767,18 +780,18 @@ export const ListUserDataDisclosuresResponse: MessageFns<ListUserDataDisclosures
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListUserDataDisclosuresResponse>, I>>(base?: I): ListUserDataDisclosuresResponse {
-    return ListUserDataDisclosuresResponse.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<ListDataPrivacyRequestsResponse>, I>>(base?: I): ListDataPrivacyRequestsResponse {
+    return ListDataPrivacyRequestsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListUserDataDisclosuresResponse>, I>>(
+  fromPartial<I extends Exact<DeepPartial<ListDataPrivacyRequestsResponse>, I>>(
     object: I,
-  ): ListUserDataDisclosuresResponse {
-    const message = createBaseListUserDataDisclosuresResponse();
+  ): ListDataPrivacyRequestsResponse {
+    const message = createBaseListDataPrivacyRequestsResponse();
     message.responseDetails =
       object.responseDetails !== undefined && object.responseDetails !== null
         ? ResponseDetails.fromPartial(object.responseDetails)
         : undefined;
-    message.data = object.data?.map((e) => UserDataDisclosure.fromPartial(e)) || [];
+    message.data = object.data?.map((e) => DataPrivacyRequest.fromPartial(e)) || [];
     message.pagination =
       object.pagination !== undefined && object.pagination !== null
         ? Pagination.fromPartial(object.pagination)
@@ -786,6 +799,31 @@ export const ListUserDataDisclosuresResponse: MessageFns<ListUserDataDisclosures
     return message;
   },
 };
+
+function bytesFromBase64(b64: string): Uint8Array {
+  if ((globalThis as any).Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, 'base64'));
+  } else {
+    const bin = globalThis.atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; ++i) {
+      arr[i] = bin.charCodeAt(i);
+    }
+    return arr;
+  }
+}
+
+function base64FromBytes(arr: Uint8Array): string {
+  if ((globalThis as any).Buffer) {
+    return globalThis.Buffer.from(arr).toString('base64');
+  } else {
+    const bin: string[] = [];
+    arr.forEach((byte) => {
+      bin.push(globalThis.String.fromCharCode(byte));
+    });
+    return globalThis.btoa(bin.join(''));
+  }
+}
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
