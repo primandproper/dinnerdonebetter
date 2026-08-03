@@ -314,10 +314,12 @@ func (q *repository) GetMealPlanTasksForMealPlan(ctx context.Context, mealPlanID
 // CreateMealPlanTasksForMealPlan creates a meal plan's tasks and marks the plan as having had them
 // created, in a single transaction.
 //
-// The mark is what keeps GetFinalizedMealPlanIDsForTheNextWeek from selecting the plan again, so it
-// has to commit with the tasks it describes. Written separately, a failure between the two left the
-// tasks committed against a plan still advertising itself as needing them, and the next run created
-// the whole set a second time — meal plan tasks carry no unique constraint that would have caught it.
+// The mark has to commit with the tasks it describes. Written separately, a failure between the two
+// left the tasks committed against a plan still advertising itself as needing them, and the next run
+// created the whole set a second time — meal plan tasks carry no unique constraint that would have
+// caught it. It is now also the finalization saga's idempotency guard for this step: a replay after
+// a crash sees the flag and does nothing, which is a stronger promise than an idempotency key that
+// commits in a different transaction from the work.
 func (q *repository) CreateMealPlanTasksForMealPlan(ctx context.Context, mealPlanID string, inputs []*types.MealPlanTaskDatabaseCreationInput) ([]*types.MealPlanTask, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
@@ -365,6 +367,51 @@ func (q *repository) CreateMealPlanTasksForMealPlan(ctx context.Context, mealPla
 	logger.Info("meal plan tasks created")
 
 	return outputs, nil
+}
+
+// UndoMealPlanTaskCreation deletes the named tasks and clears the plan's tasks-created flag, in a
+// single transaction.
+//
+// It is the compensation for CreateMealPlanTasksForMealPlan and it is the same transaction in
+// reverse: the flag says the tasks exist, so clearing it separately would leave a window in which
+// the plan advertises tasks that have already been deleted.
+//
+// An empty ID list still clears the flag. Compensation runs for the step that failed as well as the
+// steps that succeeded, so this is called for a Do whose transaction rolled back and left nothing
+// behind — the flag is already FALSE in that case and the update is a no-op, which is what an Undo
+// with nothing to undo is supposed to be.
+func (q *repository) UndoMealPlanTaskCreation(ctx context.Context, mealPlanID string, taskIDs []string) error {
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	if mealPlanID == "" {
+		return platformerrors.ErrInvalidIDProvided
+	}
+
+	logger := q.logger.Clone().
+		WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID).
+		WithValue("task_count", len(taskIDs))
+	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
+
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		if len(taskIDs) > 0 {
+			if deleteErr := q.generatedQuerier.DeleteMealPlanTasks(ctx, tx, taskIDs); deleteErr != nil {
+				return observability.PrepareAndLogError(deleteErr, logger, span, "deleting meal plan tasks")
+			}
+		}
+
+		if unmarkErr := q.generatedQuerier.UnmarkMealPlanPrepTasksCreated(ctx, tx, mealPlanID); unmarkErr != nil {
+			return observability.PrepareAndLogError(unmarkErr, logger, span, "unmarking meal plan as having tasks created")
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	logger.Info("meal plan task creation undone")
+
+	return nil
 }
 
 // ChangeMealPlanTaskStatus changes a meal plan task's status.

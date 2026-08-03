@@ -5,6 +5,7 @@ import (
 
 	mobilenotificationscheduler "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/mobile_notification_scheduler"
 	searchdataindexscheduler "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/search_data_index_scheduler"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -20,9 +21,7 @@ import (
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	disclosureartifactreaper "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/workers/disclosure_artifact_reaper"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
-	mealplanfinalizer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalizer"
-	mealplangrocerylistinitializer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_grocery_list_initializer"
-	mealplantaskcreator "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_creator"
+	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
 	"github.com/primandproper/platform-go/v9/database"
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"
@@ -83,9 +82,7 @@ func BuildInjector(
 	recipeanalysis.RegisterRecipeAnalyzer(i)
 
 	// the periodic jobs themselves
-	mealplanfinalizer.RegisterMealPlanFinalizer(i)
-	mealplangrocerylistinitializer.RegisterMealPlanGroceryListInitializer(i)
-	mealplantaskcreator.RegisterMealPlanTaskCreator(i)
+	mealplanfinalization.RegisterStarter(i)
 	queuetest.RegisterQueueTest(i)
 	disclosureartifactreaper.RegisterDisclosureArtifactReaper(i)
 
@@ -134,6 +131,11 @@ func BuildInjector(
 			distributedlockcfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 	})
+
+	// The saga machinery, and the one worker that advances every definition in the process.
+	// Registered after the lock, which it takes a per-instance scope of.
+	sagas.RegisterSagas(i)
+	sagas.RegisterSagaWorker(i)
 
 	RegisterScheduler(i)
 	RegisterOutboxRelay(i)

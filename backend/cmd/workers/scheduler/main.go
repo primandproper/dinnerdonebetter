@@ -21,6 +21,7 @@ import (
 
 	"github.com/primandproper/platform-go/v9/jobs"
 	"github.com/primandproper/platform-go/v9/outbox"
+	"github.com/primandproper/platform-go/v9/saga"
 
 	"github.com/samber/do/v2"
 	_ "go.uber.org/automaxprocs"
@@ -54,6 +55,7 @@ func run(ctx context.Context, cfg *config.SchedulerConfig) error {
 
 	scheduler := do.MustInvoke[*jobs.Scheduler](i)
 	relay := do.MustInvoke[*outbox.Relay](i)
+	sagaWorker := do.MustInvoke[*saga.Worker](i)
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(
@@ -64,24 +66,27 @@ func run(ctx context.Context, cfg *config.SchedulerConfig) error {
 		syscall.SIGTERM,
 	)
 
-	// Neither Run takes a context, on purpose: tied to a server context they would stop
-	// mid-job and mid-publish the instant that context was canceled, which is the worst
-	// moment to stop. Close is the stop signal, and it lets in-flight work finish.
+	// None of the three Runs takes a context, on purpose: tied to a server context they would
+	// stop mid-job, mid-publish, and mid-saga the instant that context was canceled, which is
+	// the worst moment to stop. Close is the stop signal, and it lets in-flight work finish.
 	go scheduler.Run()
 	go relay.Run()
+	go sagaWorker.Run()
 
 	<-signalChan
 
 	closeCtx, cancel := context.WithTimeout(ctx, drainTimeout)
 	defer cancel()
 
-	// Both are closed even if the first fails, so a scheduler that will not drain cannot
-	// leave the relay holding claims it is never going to publish.
+	// All three are closed even if the first fails, so a scheduler that will not drain cannot
+	// leave the relay holding claims it is never going to publish, or the saga worker holding
+	// leases on instances it is never going to advance.
 	//
-	// The audit sweeper is not here: it runs as a scheduled job rather than as a loop of
-	// its own, so the scheduler's own drain is what waits for a sweep in flight.
+	// The audit sweeper is not among them: it runs as a scheduled job rather than as a loop
+	// of its own, so the scheduler's own drain is what waits for a sweep in flight.
 	return errors.Join(
 		wrapClose("scheduler", scheduler.Close(closeCtx)),
+		wrapClose("saga worker", sagaWorker.Close(closeCtx)),
 		wrapClose("outbox relay", relay.Close(closeCtx)),
 	)
 }

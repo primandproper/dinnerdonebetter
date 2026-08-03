@@ -39,7 +39,7 @@ This is a **monorepo**. Main areas:
 # One-time setup (root)
 make setup
 
-# Backend: vendor, wire, configs, codegen
+# Backend: configs, codegen
 cd backend && make setup
 
 # Frontend: install dependencies (from repo root)

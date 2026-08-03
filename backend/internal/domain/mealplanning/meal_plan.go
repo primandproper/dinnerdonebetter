@@ -118,9 +118,18 @@ type (
 		UpdateMealPlan(ctx context.Context, updated *MealPlan) error
 		ArchiveMealPlan(ctx context.Context, mealPlanID, accountID string) error
 		AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, accountID string) (bool, error)
-		GetFinalizedMealPlanIDsForTheNextWeek(ctx context.Context) ([]*FinalizedMealPlanDatabaseResult, error)
-		GetUnfinalizedMealPlansWithExpiredVotingPeriods(ctx context.Context) ([]*MealPlan, error)
-		GetFinalizedMealPlansWithUninitializedGroceryLists(ctx context.Context) ([]*MealPlan, error)
+		GetFinalizedMealPlanOptionsForMealPlan(ctx context.Context, mealPlanID string) ([]*FinalizedMealPlanDatabaseResult, error)
+		// GetMealPlansAwaitingFinalizationSaga returns up to limit meal plans that the
+		// finalization pipeline still owes something to and that no saga has claimed.
+		GetMealPlansAwaitingFinalizationSaga(ctx context.Context, limit uint16) ([]*MealPlanFinalizationCandidate, error)
+		// AttachMealPlanFinalizationSaga claims a meal plan for a new finalization saga,
+		// starting the saga and recording the claim in one transaction, and returns the new
+		// instance's ID.
+		//
+		// It reports ErrFinalizationSagaAlreadyAttached — and rolls the instance back — when
+		// another starter got there first, which is the ordinary outcome of two replicas
+		// reading the same page of candidates rather than an error worth alerting on.
+		AttachMealPlanFinalizationSaga(ctx context.Context, mealPlanID string, start MealPlanFinalizationSagaStarter) (string, error)
 	}
 )
 

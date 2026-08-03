@@ -30,28 +30,29 @@ SELECT EXISTS (
 -- name: FinalizeMealPlan :exec
 UPDATE meal_plans SET status = sqlc.arg(status) WHERE archived_at IS NULL AND id = sqlc.arg(id);
 
--- name: GetExpiredAndUnresolvedMealPlans :many
+-- name: GetMealPlansAwaitingFinalizationSaga :many
 SELECT
 	meal_plans.id,
-	meal_plans.notes,
-	meal_plans.status,
-	meal_plans.voting_deadline,
-	meal_plans.grocery_list_initialized,
-	meal_plans.tasks_created,
-	meal_plans.election_method,
-	meal_plans.created_at,
-	meal_plans.last_updated_at,
-	meal_plans.archived_at,
-	meal_plans.belongs_to_account,
-	meal_plans.created_by_user
+	meal_plans.belongs_to_account
 FROM meal_plans
 WHERE meal_plans.archived_at IS NULL
-	AND meal_plans.status = 'awaiting_votes'
-	AND voting_deadline < NOW()
-GROUP BY meal_plans.id
-ORDER BY meal_plans.id;
+	AND meal_plans.finalization_saga_id IS NULL
+	AND (
+		(meal_plans.status = 'awaiting_votes' AND meal_plans.voting_deadline < NOW())
+		OR (meal_plans.status = 'finalized' AND (meal_plans.tasks_created IS FALSE OR meal_plans.grocery_list_initialized IS FALSE))
+	)
+ORDER BY meal_plans.voting_deadline
+LIMIT sqlc.arg(query_limit);
 
--- name: GetFinalizedMealPlansForPlanning :many
+-- name: AttachMealPlanFinalizationSaga :execrows
+UPDATE meal_plans SET
+	finalization_saga_id = sqlc.arg(finalization_saga_id),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND finalization_saga_id IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: GetFinalizedMealPlanOptionsForMealPlan :many
 SELECT
 	meal_plans.id as meal_plan_id,
 	meal_plan_options.id as meal_plan_option_id,
@@ -68,7 +69,7 @@ WHERE
 	meal_plans.archived_at IS NULL
 	AND meal_plans.status = 'finalized'
 	AND meal_plan_options.chosen IS TRUE
-	AND meal_plans.tasks_created IS FALSE
+	AND meal_plans.id = sqlc.arg(meal_plan_id)
 GROUP BY
 	meal_plans.id,
 	meal_plan_options.id,
@@ -82,14 +83,19 @@ ORDER BY
 	meal_plan_events.id,
 	meal_components.recipe_id;
 
--- name: GetFinalizedMealPlansWithoutGroceryListInit :many
-SELECT
-	meal_plans.id,
-	meal_plans.belongs_to_account
-FROM meal_plans
-WHERE meal_plans.archived_at IS NULL
-	AND meal_plans.status = 'finalized'
-	AND meal_plans.grocery_list_initialized IS FALSE;
+-- name: UnmarkMealPlanGroceryListInitialized :exec
+UPDATE meal_plans SET
+	grocery_list_initialized = FALSE,
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: UnmarkMealPlanPrepTasksCreated :exec
+UPDATE meal_plans SET
+	tasks_created = FALSE,
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
 
 -- name: GetMealPlan :one
 SELECT

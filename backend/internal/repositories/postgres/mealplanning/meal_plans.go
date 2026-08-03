@@ -27,6 +27,11 @@ var (
 	_ types.MealPlanDataManager = (*repository)(nil)
 
 	ErrAlreadyFinalized = platformerrors.New("meal plan already finalized")
+
+	// ErrFinalizationSagaAlreadyAttached indicates a meal plan that already has a finalization
+	// saga. It is the losing side of a race between two starters reading the same page of
+	// candidates, not a failure: the plan is being finalized, just not by this caller.
+	ErrFinalizationSagaAlreadyAttached = platformerrors.New("meal plan already has a finalization saga")
 )
 
 // MealPlanExists fetches whether a meal plan exists from the database.
@@ -610,46 +615,93 @@ func (q *repository) AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, 
 	return finalized, nil
 }
 
-// GetUnfinalizedMealPlansWithExpiredVotingPeriods gets unfinalized meal plans with expired voting deadlines.
-func (q *repository) GetUnfinalizedMealPlansWithExpiredVotingPeriods(ctx context.Context) ([]*types.MealPlan, error) {
+// GetMealPlansAwaitingFinalizationSaga gets meal plans the finalization pipeline still owes
+// something to and that no saga has claimed.
+func (q *repository) GetMealPlansAwaitingFinalizationSaga(ctx context.Context, limit uint16) ([]*types.MealPlanFinalizationCandidate, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	results, err := q.generatedQuerier.GetExpiredAndUnresolvedMealPlans(ctx, q.readDB)
-	if err != nil {
-		return nil, observability.PrepareError(err, span, "executing unfinalized meal plans with expired voting periods retrieval query")
+	if limit == 0 {
+		return []*types.MealPlanFinalizationCandidate{}, nil
 	}
 
-	mealPlans := []*types.MealPlan{}
+	results, err := q.generatedQuerier.GetMealPlansAwaitingFinalizationSaga(ctx, q.readDB, int32(limit))
+	if err != nil {
+		return nil, observability.PrepareError(err, span, "executing meal plans awaiting finalization saga retrieval query")
+	}
+
+	candidates := make([]*types.MealPlanFinalizationCandidate, 0, len(results))
 	for _, result := range results {
-		mealPlans = append(mealPlans, &types.MealPlan{
-			CreatedAt:              result.CreatedAt,
-			VotingDeadline:         result.VotingDeadline,
-			ArchivedAt:             database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:          database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ID:                     result.ID,
-			Status:                 string(result.Status),
-			Notes:                  result.Notes,
-			ElectionMethod:         string(result.ElectionMethod),
-			BelongsToAccount:       result.BelongsToAccount,
-			CreatedByUser:          result.CreatedByUser,
-			Events:                 nil,
-			GroceryListInitialized: result.GroceryListInitialized,
-			TasksCreated:           result.TasksCreated,
+		candidates = append(candidates, &types.MealPlanFinalizationCandidate{
+			MealPlanID: result.ID,
+			AccountID:  result.BelongsToAccount,
 		})
 	}
 
-	return mealPlans, nil
+	return candidates, nil
 }
 
-// GetFinalizedMealPlanIDsForTheNextWeek gets finalized meal plans for a given duration.
-func (q *repository) GetFinalizedMealPlanIDsForTheNextWeek(ctx context.Context) ([]*types.FinalizedMealPlanDatabaseResult, error) {
+// AttachMealPlanFinalizationSaga claims a meal plan for a new finalization saga.
+func (q *repository) AttachMealPlanFinalizationSaga(ctx context.Context, mealPlanID string, start types.MealPlanFinalizationSagaStarter) (string, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	results, err := q.generatedQuerier.GetFinalizedMealPlansForPlanning(ctx, q.readDB)
+	if mealPlanID == "" {
+		return "", platformerrors.ErrInvalidIDProvided
+	}
+	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
+
+	if start == nil {
+		return "", platformerrors.ErrNilInputParameter
+	}
+
+	var sagaID string
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		// The instance row first, so its ID exists to be claimed with. Both writes are in this
+		// transaction, so losing the claim below takes the instance with it.
+		id, startErr := start(ctx, tx)
+		if startErr != nil {
+			return observability.PrepareError(startErr, span, "starting meal plan finalization saga")
+		}
+
+		rowsAffected, attachErr := q.generatedQuerier.AttachMealPlanFinalizationSaga(ctx, tx, &generated.AttachMealPlanFinalizationSagaParams{
+			FinalizationSagaID: database.NullStringFromString(id),
+			ID:                 mealPlanID,
+		})
+		if attachErr != nil {
+			return observability.PrepareError(attachErr, span, "attaching finalization saga to meal plan")
+		}
+
+		if rowsAffected == 0 {
+			// Another replica claimed this plan between our read and this write, or the plan
+			// was archived in the gap. Either way there is nothing to do and nothing wrong.
+			return ErrFinalizationSagaAlreadyAttached
+		}
+
+		sagaID = id
+
+		return nil
+	}); err != nil {
+		return "", err
+	}
+
+	return sagaID, nil
+}
+
+// GetFinalizedMealPlanOptionsForMealPlan gets the chosen options of a finalized meal plan, with
+// the recipes each one draws on, which is what the prep tasks are derived from.
+func (q *repository) GetFinalizedMealPlanOptionsForMealPlan(ctx context.Context, mealPlanID string) ([]*types.FinalizedMealPlanDatabaseResult, error) {
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	if mealPlanID == "" {
+		return nil, platformerrors.ErrInvalidIDProvided
+	}
+	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
+
+	results, err := q.generatedQuerier.GetFinalizedMealPlanOptionsForMealPlan(ctx, q.readDB, mealPlanID)
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "executing finalized meal plan IDs for the week retrieval query")
+		return nil, observability.PrepareError(err, span, "executing finalized meal plan options retrieval query")
 	}
 
 	output := []*types.FinalizedMealPlanDatabaseResult{}
@@ -683,33 +735,6 @@ func (q *repository) GetFinalizedMealPlanIDsForTheNextWeek(ctx context.Context) 
 	}
 
 	return output, nil
-}
-
-func (q *repository) GetFinalizedMealPlansWithUninitializedGroceryLists(ctx context.Context) ([]*types.MealPlan, error) {
-	ctx, span := q.tracer.StartSpan(ctx)
-	defer span.End()
-
-	results, err := q.generatedQuerier.GetFinalizedMealPlansWithoutGroceryListInit(ctx, q.readDB)
-	if err != nil {
-		return nil, observability.PrepareError(err, span, "executing finalized meal plans without grocery list initialization query")
-	}
-
-	mealPlanDetails := map[string]string{}
-	for _, result := range results {
-		mealPlanDetails[result.ID] = result.BelongsToAccount
-	}
-
-	mealPlans := []*types.MealPlan{}
-	for mealPlanID, accountID := range mealPlanDetails {
-		mealPlan, getMealPlanErr := q.GetMealPlan(ctx, mealPlanID, accountID)
-		if getMealPlanErr != nil {
-			return nil, observability.PrepareError(getMealPlanErr, span, "getting meal plan")
-		}
-
-		mealPlans = append(mealPlans, mealPlan)
-	}
-
-	return mealPlans, nil
 }
 
 // FetchMissingVotesForMealPlan determines the missing votes for a given meal plan.

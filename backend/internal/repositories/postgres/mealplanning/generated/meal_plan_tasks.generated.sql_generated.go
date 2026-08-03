@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 const changeMealPlanTaskStatus = `-- name: ChangeMealPlanTaskStatus :exec
@@ -115,6 +117,15 @@ func (q *Queries) CreateMealPlanTask(ctx context.Context, db DBTX, arg *CreateMe
 		arg.BelongsToRecipePrepTask,
 		arg.AssignedToUser,
 	)
+	return err
+}
+
+const deleteMealPlanTasks = `-- name: DeleteMealPlanTasks :exec
+DELETE FROM meal_plan_tasks WHERE id = ANY($1::text[])
+`
+
+func (q *Queries) DeleteMealPlanTasks(ctx context.Context, db DBTX, ids []string) error {
+	_, err := db.ExecContext(ctx, deleteMealPlanTasks, pq.Array(ids))
 	return err
 }
 

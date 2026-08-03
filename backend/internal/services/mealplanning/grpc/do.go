@@ -5,9 +5,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers"
 	uploadedmediamanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/manager"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	mealplanfinalizer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalizer"
-	mealplangrocerylistinitializer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_grocery_list_initializer"
-	mealplantaskcreator "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_creator"
+	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
@@ -27,9 +25,7 @@ func RegisterMealPlanningService(i do.Injector) {
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[managers.MealPlanningManager](i),
-			do.MustInvoke[*mealplanfinalizer.Worker](i),
-			do.MustInvoke[*mealplangrocerylistinitializer.Worker](i),
-			do.MustInvoke[*mealplantaskcreator.Worker](i),
+			do.MustInvoke[*mealplanfinalization.Starter](i),
 			do.MustInvoke[commentsmanager.CommentsDataManager](i),
 			do.MustInvoke[uploadedmediamanager.UploadedMediaManager](i),
 			do.MustInvoke[uploads.UploadManager](i),

@@ -10,6 +10,7 @@ import (
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"
 	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
 	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/saga"
 	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
 
 	"github.com/samber/do/v2"
@@ -40,6 +41,9 @@ func RegisterConfigs(i do.Injector) {
 	})
 	do.Provide[*dataprivacycfg.Config](i, func(i do.Injector) (*dataprivacycfg.Config, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).DataPrivacy, nil
+	})
+	do.Provide[*saga.WorkerConfig](i, func(i do.Injector) (*saga.WorkerConfig, error) {
+		return &do.MustInvoke[*config.SchedulerConfig](i).Sagas, nil
 	})
 	do.Provide[*config.ScheduledJobsConfig](i, func(i do.Injector) (*config.ScheduledJobsConfig, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Jobs, nil

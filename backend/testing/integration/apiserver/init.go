@@ -124,6 +124,16 @@ func init() {
 	}
 	createdClientID, createdClientSecret = createdClient.ClientID, createdClient.ClientSecret
 
+	// The scheduler's half of the system. The API only starts sagas; without something
+	// advancing them, everything downstream of meal plan finalization would never happen and
+	// the tests that assert on it would be asserting on a pipeline that was never run.
+	//
+	// Never stopped: this process exits when the suite does, and a worker mid-pass at that
+	// point has nothing to drain to.
+	if _, err = localdev.StartSagaWorker(ctx, pillars.Logger, pillars.TracerProvider, databaseClient); err != nil {
+		log.Fatal(err)
+	}
+
 	go func() {
 		if runErr := server.Run(ctx); runErr != nil {
 			log.Fatal(runErr)

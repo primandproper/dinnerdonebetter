@@ -618,7 +618,12 @@ sql:
             nullable: true
 
 rules:
+  # Every exception is named rather than pattern-matched, so adding one is a decision somebody
+  # made on purpose. DeleteMealPlanTasks and DeleteMealPlanGroceryListItems are the meal plan
+  # finalization saga's compensations: both tables hold rows derived wholesale from the plan
+  # and regenerated wholesale when the step runs again, and meal_plan_tasks has no archived_at
+  # to soft-delete into.
   - name: no-delete
     message: "don't use delete statements"
     rule: |-
-      query.sql.contains("DELETE") && !query.name.contains("OAuth2ClientToken") && query.name != "DeleteUser" && query.name != "PruneQueueTestMessages"
+      query.sql.contains("DELETE") && !query.name.contains("OAuth2ClientToken") && query.name != "DeleteUser" && query.name != "PruneQueueTestMessages" && query.name != "DeleteMealPlanTasks" && query.name != "DeleteMealPlanGroceryListItems"

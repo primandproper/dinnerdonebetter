@@ -52,12 +52,39 @@ The meal planning system consists of several key components:
 
 ### 3. Finalization
 
-1. When the voting deadline passes, the system automatically finalizes the meal plan
-2. The Schulze voting method determines the winning option for each event
-3. Background workers process the finalized meal plan:
-   - Create grocery lists from all winning recipes
-   - Generate prep tasks based on recipe requirements
-   - Assign cooking responsibilities
+Finalization is a durable saga — one named, linear sequence of steps with per-step state,
+retries, and compensations, run on platform-go's `saga` package. It replaced three independently
+scheduled jobs coordinated by two boolean columns.
+
+1. A scheduled job (`meal_plan_finalization_starter`, every minute) finds meal plans the pipeline
+   still owes something to and writes one saga instance for each, claiming the plan by recording
+   the instance's ID in `meal_plans.finalization_saga_id`. Both writes are one transaction, so a
+   plan can never be claimed by a saga that does not exist, nor claimed twice.
+2. The saga worker advances each instance, running as many steps as one pass allows:
+   - **`finalize_meal_plan`** — the Schulze method determines each event's winner and the plan is
+     marked finalized.
+   - **`create_meal_plan_tasks`** — prep tasks are generated from the winning recipes.
+   - **`initialize_grocery_list`** — the grocery list is built from all winning recipes.
+
+Finalizing on a user's request starts the same saga rather than doing the work in the request.
+
+**Idempotency.** Each of the two later steps re-reads `meal_plans.tasks_created` /
+`meal_plans.grocery_list_initialized` and does nothing if it is already set. Those flags are
+written in the same transaction as the work they describe, which is a stronger guarantee than an
+idempotency key committed separately could offer. They are no longer the coordinator — the saga
+is — and a plan left half-processed by the jobs this replaced is picked up by the starter's query
+and finished by a saga that skips whatever it already has.
+
+**Compensation.** A step that exhausts its retry budget unwinds the saga in reverse, starting at
+the step that failed. The two later steps delete the tasks and grocery items *that instance
+recorded creating* and clear their flag; anything a user added themselves, and anything an
+earlier build created, is untouched. Finalization itself is never undone: a finalized plan is a
+decision the account's members can already see. An instance whose compensation also fails lands
+in `stuck` and needs an operator — alert on `saga_instances_stuck`.
+
+Lifecycle events (`saga.started`, `saga.step_completed`, `saga.compensating`, `saga.stuck`, …)
+go through the outbox on the `saga.lifecycle` topic, in the transaction that records the
+transition they describe.
 
 ### 4. Execution
 
@@ -84,6 +111,23 @@ The system uses background workers to handle computationally intensive tasks lik
 - Search index updates
 
 This keeps the API responsive while ensuring complex operations complete reliably.
+
+### Why a Saga for Finalization?
+
+The three stages of finalization were three independently scheduled jobs, each rediscovering its
+own work with a "finalized but not yet X" query over two boolean columns. That cost three things:
+
+- **Latency was the sum of the intervals.** A plan whose deadline passed waited for the
+  finalizer's tick, then the task creator's, then the grocery list initializer's. A saga pass runs
+  as many steps as its budget allows, so the whole chain runs at once.
+- **There was no compensation.** A stage that failed for good left the plan half-processed
+  forever, with nothing to unwind it and nothing to alert on.
+- **The state was not inspectable.** There was no record of which stage a plan was in, when it
+  got there, how many attempts it had had, or why it was stuck. `saga_instances` is that record.
+
+The pipeline is linear, which is the constraint the `saga` package declares up front: no
+branching, no versioning of in-flight definitions, no parallel fan-out. If finalization ever needs
+any of those, the answer is Temporal rather than a bigger saga package.
 
 ## Data Models
 
@@ -195,12 +239,15 @@ The system analyzes [recipes](recipes.md) to:
 
 ## Current Limitations
 
-1. **Cron-based Processing**: All workers run on schedules, even when there's no work
-2. **No Real-time Updates**: Users must refresh to see finalization results
-3. **Limited Election Methods**: Only Schulze is implemented (Instant Runoff is defined but not used)
-4. **Manual Task Assignment**: Prep tasks aren't automatically assigned to users
-5. **No UI**: This is a backend API service only - access via gRPC/HTTP endpoints (e.g., Postman)
-6. **Recipe Management**: Only service admins can create recipes; users can clone existing recipes
+1. **Polling to start**: The saga runs its whole chain in one pass, but a plan still waits up to
+   the starter's interval to enter the pipeline; the starter polls even when there is no work
+2. **No parallel steps**: The saga package is linear by design. Building the grocery list and the
+   prep tasks concurrently is outside what it does, and the answer for that would be Temporal
+3. **No Real-time Updates**: Users must refresh to see finalization results
+4. **Limited Election Methods**: Only Schulze is implemented (Instant Runoff is defined but not used)
+5. **Manual Task Assignment**: Prep tasks aren't automatically assigned to users
+6. **No UI**: This is a backend API service only - access via gRPC/HTTP endpoints (e.g., Postman)
+7. **Recipe Management**: Only service admins can create recipes; users can clone existing recipes
 
 ## Future Improvements
 

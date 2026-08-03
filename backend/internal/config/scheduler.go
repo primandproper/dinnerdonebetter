@@ -17,6 +17,7 @@ import (
 	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/outbox"
+	"github.com/primandproper/platform-go/v9/saga"
 	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -62,6 +63,12 @@ type (
 		// and because it needs exactly what this process already has: the database and a
 		// publisher provider.
 		Outbox outbox.RelayConfig `envPrefix:"OUTBOX_" json:"outbox"`
+
+		// Sagas advances every durable saga instance this build knows how to run. It is the
+		// other half of the scheduled jobs that start them: a job writes an instance, this
+		// loop steps it through, and it polls in seconds rather than minutes because the
+		// poll interval is the floor on how long a step's delay costs.
+		Sagas saga.WorkerConfig `envPrefix:"SAGAS_" json:"sagas"`
 	}
 
 	// ScheduledJobsConfig carries the scheduler's own knobs, the lock backend that serializes
@@ -243,6 +250,7 @@ func (cfg *SchedulerConfig) ValidateWithContext(ctx context.Context) error {
 		"Jobs":          cfg.Jobs.ValidateWithContext,
 		"Outbox":        cfg.Outbox.ValidateWithContext,
 		"Audit":         cfg.Audit.ValidateWithContext,
+		"Sagas":         cfg.Sagas.ValidateWithContext,
 	}
 
 	for name, validator := range validators {

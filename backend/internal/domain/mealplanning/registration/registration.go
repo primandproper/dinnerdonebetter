@@ -13,9 +13,7 @@ import (
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
-	mealplanfinalizer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalizer"
-	mealplangrocerylistinitializer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_grocery_list_initializer"
-	mealplantaskcreator "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_creator"
+	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
@@ -48,9 +46,10 @@ func RegisterForGRPCAPI(i do.Injector) {
 	registerDataPrivacyCollector(i)
 	mealplanningmgr.RegisterManagers(i)
 	mealplanningsvc.RegisterMealPlanningService(i)
-	mealplanfinalizer.RegisterMealPlanFinalizer(i)
-	mealplangrocerylistinitializer.RegisterMealPlanGroceryListInitializer(i)
-	mealplantaskcreator.RegisterMealPlanTaskCreator(i)
+	// The API only ever starts a finalization saga — the admin RPC that used to run the three
+	// pipeline jobs on demand now runs this. Advancing belongs to the scheduler's saga worker,
+	// which is what keeps a durable process from being tied to the lifetime of a request.
+	mealplanfinalization.RegisterStarter(i)
 	recipeanalysis.RegisterRecipeAnalyzer(i)
 	grocerylistpreparation.RegisterGroceryListCreator(i)
 }

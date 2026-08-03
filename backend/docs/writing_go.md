@@ -259,10 +259,7 @@ The codebase follows a clean architecture approach. The platform framework (`git
 │   │   └── sqlc_struct_checker/      # Database struct validation
 │   └── workers/         # Background job processors
 │       ├── db_cleaner/  # Database cleanup jobs
-│       ├── meal_plan_finalizer/      # Meal plan processing
-│       ├── meal_plan_grocery_list_initializer/ # Grocery list generation
-│       ├── meal_plan_task_creator/   # Task creation from meal plans
-│       └── search_data_index_scheduler/ # Search indexing jobs
+│       └── scheduler/   # Every periodic job, plus the outbox relay and the saga worker
 ├── deploy/              # Deployment configurations
 │   ├── dockerfiles/     # Container build definitions
 │   ├── environments/    # Environment-specific configs
@@ -282,12 +279,14 @@ The codebase follows a clean architecture approach. The platform framework (`git
 │   └── services/        # Application services and handlers (gRPC + HTTP)
 ├── pkg/                 # Public API packages
 │   └── client/          # Public API client library for external consumers
-├── testing/             # Integration and load tests
-│   ├── integration/
-│   │   └── apiserver/   # API server integration tests
-│   └── load/            # k6 load tests
-└── vendor/              # Go module dependencies (vendored)
+└── testing/             # Integration and load tests
+    ├── integration/
+    │   └── apiserver/   # API server integration tests
+    └── load/            # k6 load tests
 ```
+
+Dependencies are not vendored — `go.mod` and `go.sum` are the committed source of truth,
+and Go resolves packages from the module cache.
 
 ### Platform as External Framework
 

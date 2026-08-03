@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -8,6 +9,7 @@ import (
 	"log"
 	"maps"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -143,25 +145,91 @@ func writeDotEnvExample(dir string, structs map[string]*structEntry) {
 	}
 }
 
-// parseGoFiles parses all Go files in the given directory and returns a map of struct entries
-// keyed by "relativeDir.TypeName" to avoid collisions between packages with the same name,
-// plus a map of interface type unions (e.g. `A | B | C`) flattened to their member names
-// under the same key scheme.
+// platformModulePrefix bounds which dependency modules get parsed alongside this one.
+// Most generated constants come from platform config structs embedded in ours, and
+// parsing the rest of the module graph would cost time without contributing a key.
+const platformModulePrefix = "github.com/primandproper/platform-go"
+
+// parseGoFiles parses all Go files in this module, plus those of every platform dependency
+// module, and returns a map of struct entries keyed by "packageDir.TypeName" to avoid
+// collisions between packages with the same name, plus a map of interface type unions
+// (e.g. `A | B | C`) flattened to their member names under the same key scheme.
+//
+// Keys for this module's packages are module-relative directories ("internal/config"),
+// and keys for dependency packages are full import paths — the two can never collide
+// because a module-relative directory never starts with a domain name.
 func parseGoFiles(dir, modulePath string) (structs map[string]*structEntry, unions map[string][]string) {
 	structs = make(map[string]*structEntry)
 	unions = make(map[string][]string)
 
+	// This module parses with an empty root import path so its packages key on their
+	// module-relative directory, which is the form the configurations union lookup and
+	// same-package type references use.
+	parseModule(dir, "", modulePath, structs, unions)
+
+	for moduleDir, importPath := range platformModuleDirs() {
+		parseModule(moduleDir, importPath, modulePath, structs, unions)
+	}
+
+	return structs, unions
+}
+
+// platformModuleDirs maps the source directory of every platform dependency module to its
+// import path. The directories live in the module cache, which is why this tool no longer
+// needs a vendor directory to see the platform's config structs.
+func platformModuleDirs() map[string]string {
+	output, err := exec.CommandContext(context.Background(), "go", "list", "-m", "-f", "{{.Path}}\t{{.Dir}}", "all").Output()
+	if err != nil {
+		log.Fatalf("listing dependency modules: %v", err)
+	}
+
+	dirs := map[string]string{}
+	for line := range strings.SplitSeq(strings.TrimSpace(string(output)), "\n") {
+		importPath, moduleDir, found := strings.Cut(line, "\t")
+		if !found || moduleDir == "" || !strings.HasPrefix(importPath, platformModulePrefix) {
+			continue
+		}
+
+		dirs[moduleDir] = importPath
+	}
+
+	if len(dirs) == 0 {
+		log.Fatalf("no %s module found in the module graph", platformModulePrefix)
+	}
+
+	return dirs
+}
+
+// parseModule walks one module rooted at dir, whose module path is rootImportPath, and adds
+// every struct and type union it declares to structs and unions. modulePath is this module's
+// own path, used to decide whether an import resolves to a module-relative key or an
+// import-path key.
+func parseModule(dir, rootImportPath, modulePath string, structs map[string]*structEntry, unions map[string][]string) {
 	if err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if info.IsDir() || !strings.HasSuffix(info.Name(), ".go") {
+		if info.IsDir() {
+			// vendor/ is gitignored and no longer produced by any make target, but a
+			// leftover one would otherwise get parsed as if it were first-party code.
+			if info.Name() == "vendor" || info.Name() == "testdata" {
+				return filepath.SkipDir
+			}
+
 			return nil
 		}
 
-		if strings.Contains(path, "/vendor/") && !strings.Contains(path, "/vendor/github.com/primandproper/platform-go/v9/") {
-			return filepath.SkipDir
+		if !strings.HasSuffix(info.Name(), ".go") {
+			return nil
+		}
+
+		// Dependency sources come from the module cache, which — unlike a vendor directory —
+		// keeps test files. An external test file (`package foo_test`) lives in the same
+		// directory as the package it tests, so a test-only type would otherwise share a key
+		// with, and clobber, the real type of that name.
+		if rootImportPath != "" && strings.HasSuffix(info.Name(), "_test.go") {
+			return nil
 		}
 
 		node, err := parser.ParseFile(token.NewFileSet(), path, nil, parser.AllErrors)
@@ -170,12 +238,12 @@ func parseGoFiles(dir, modulePath string) (structs map[string]*structEntry, unio
 			return nil
 		}
 
-		relDir := filepath.ToSlash(mustRel(dir, filepath.Dir(path)))
+		pkgDir := packageKeyPrefix(rootImportPath, mustRel(dir, filepath.Dir(path)))
 		rawImports := reflast.BuildImportMap(node)
 		fileImports := reflast.FilterModuleImports(rawImports, modulePath)
 		for localName, importPath := range rawImports {
 			if !strings.HasPrefix(importPath, modulePath+"/") {
-				fileImports[localName] = "vendor/" + importPath
+				fileImports[localName] = importPath
 			}
 		}
 
@@ -191,12 +259,12 @@ func parseGoFiles(dir, modulePath string) (structs map[string]*structEntry, unio
 					continue
 				}
 
-				key := fmt.Sprintf("%s.%s", relDir, typeSpec.Name.Name)
+				key := fmt.Sprintf("%s.%s", pkgDir, typeSpec.Name.Name)
 				switch t := typeSpec.Type.(type) {
 				case *ast.StructType:
 					structs[key] = &structEntry{
 						typeSpec: typeSpec,
-						relDir:   relDir,
+						relDir:   pkgDir,
 						imports:  fileImports,
 					}
 				case *ast.InterfaceType:
@@ -210,8 +278,23 @@ func parseGoFiles(dir, modulePath string) (structs map[string]*structEntry, unio
 	}); err != nil {
 		fmt.Printf("Error walking directory: %v\n", err)
 	}
+}
 
-	return structs, unions
+// packageKeyPrefix builds the struct-map key prefix for a package. This module's own
+// packages key on their module-relative directory, which is what the configurations union
+// lookup and same-package type references expect; dependency packages key on their full
+// import path, so that a qualified reference resolves through the importing file's imports.
+func packageKeyPrefix(rootImportPath, relDir string) string {
+	relDir = filepath.ToSlash(relDir)
+	if rootImportPath == "" {
+		return relDir
+	}
+
+	if relDir == "." {
+		return rootImportPath
+	}
+
+	return rootImportPath + "/" + relDir
 }
 
 // flattenInterfaceUnion returns the member type names of an interface that is a pure type
