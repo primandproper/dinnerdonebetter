@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	notificationkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/keys"
@@ -27,9 +28,9 @@ func (s *serviceImpl) RegisterDeviceToken(ctx context.Context, request *notifica
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "unable to determine authentication")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	if request == nil || request.Input == nil {
@@ -67,9 +68,9 @@ func (s *serviceImpl) GetUserDeviceToken(ctx context.Context, request *notificat
 
 	logger := s.logger.WithSpan(span).WithValue(notificationkeys.UserDeviceTokenIDKey, request.UserDeviceTokenId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "unable to determine authentication")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	token, err := s.notificationsManager.GetUserDeviceToken(ctx, sessionContextData.GetUserID(), request.UserDeviceTokenId)
@@ -96,9 +97,9 @@ func (s *serviceImpl) GetUserDeviceTokens(ctx context.Context, request *notifica
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "unable to determine authentication")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
@@ -133,9 +134,9 @@ func (s *serviceImpl) ArchiveUserDeviceToken(ctx context.Context, request *notif
 
 	logger := s.logger.WithSpan(span).WithValue(notificationkeys.UserDeviceTokenIDKey, request.UserDeviceTokenId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "unable to determine authentication")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	if err = s.notificationsManager.ArchiveUserDeviceToken(ctx, sessionContextData.GetUserID(), request.UserDeviceTokenId); err != nil {

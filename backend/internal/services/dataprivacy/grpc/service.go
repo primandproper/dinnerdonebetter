@@ -41,13 +41,12 @@ var _ dataprivacysvc.DataPrivacyServiceServer = (*serviceImpl)(nil)
 type (
 	serviceImpl struct {
 		dataprivacysvc.UnimplementedDataPrivacyServiceServer
-		tracer                    tracing.Tracer
-		logger                    logging.Logger
-		sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error)
-		dataPrivacyManager        dataprivacymanager.DataPrivacyManager
-		reportArtifacts           reportartifacts.Store
-		msgConfig                 *msgconfig.Config
-		queuesConfig              *queuescfg.Config
+		tracer             tracing.Tracer
+		logger             logging.Logger
+		dataPrivacyManager dataprivacymanager.DataPrivacyManager
+		reportArtifacts    reportartifacts.Store
+		msgConfig          *msgconfig.Config
+		queuesConfig       *queuescfg.Config
 	}
 )
 
@@ -55,20 +54,18 @@ type (
 func NewDataPrivacyService(
 	logger logging.Logger,
 	tracerProvider tracing.TracerProvider,
-	sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error),
 	dataPrivacyManager dataprivacymanager.DataPrivacyManager,
 	reportArtifacts reportartifacts.Store,
 	msgConfig *msgconfig.Config,
 	queuesConfig *queuescfg.Config,
 ) dataprivacysvc.DataPrivacyServiceServer {
 	return &serviceImpl{
-		logger:                    logging.NewNamedLogger(logger, o11yName),
-		tracer:                    tracing.NewNamedTracer(tracerProvider, o11yName),
-		sessionContextDataFetcher: sessionContextDataFetcher,
-		dataPrivacyManager:        dataPrivacyManager,
-		reportArtifacts:           reportArtifacts,
-		msgConfig:                 msgConfig,
-		queuesConfig:              queuesConfig,
+		logger:             logging.NewNamedLogger(logger, o11yName),
+		tracer:             tracing.NewNamedTracer(tracerProvider, o11yName),
+		dataPrivacyManager: dataPrivacyManager,
+		reportArtifacts:    reportArtifacts,
+		msgConfig:          msgConfig,
+		queuesConfig:       queuesConfig,
 	}
 }
 
@@ -80,12 +77,12 @@ func (s *serviceImpl) AggregateUserDataReport(ctx context.Context, _ *dataprivac
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	userID := sessionContextData.Requester.UserID
+	userID := sessionContextData.GetUserID()
 	logger := s.logger.WithValue(identitykeys.UserIDKey, userID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 
@@ -160,12 +157,12 @@ func (s *serviceImpl) DestroyAllUserData(ctx context.Context, _ *dataprivacysvc.
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	userID := sessionContextData.Requester.UserID
+	userID := sessionContextData.GetUserID()
 	logger := s.logger.WithValue(identitykeys.UserIDKey, userID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 
@@ -190,7 +187,7 @@ func (s *serviceImpl) FetchUserDataReport(ctx context.Context, request *datapriv
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
@@ -216,7 +213,7 @@ func (s *serviceImpl) FetchUserDataReport(ctx context.Context, request *datapriv
 	}
 
 	// Verify the report belongs to the requester before disclosing it.
-	if collection.Identity.User.ID != sessionContextData.Requester.UserID {
+	if collection.Identity.User.ID != sessionContextData.GetUserID() {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("report does not belong to requester"), logger, span, codes.PermissionDenied, "report does not belong to requester")
 	}
 

@@ -1,9 +1,6 @@
 package grpc
 
 import (
-	"context"
-
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/manager"
 	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 
@@ -20,10 +17,9 @@ var _ webhookssvc.WebhooksServiceServer = (*serviceImpl)(nil)
 type (
 	serviceImpl struct {
 		webhookssvc.UnimplementedWebhooksServiceServer
-		tracer                    tracing.Tracer
-		logger                    logging.Logger
-		sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error)
-		webhookManager            manager.WebhookDataManager
+		tracer         tracing.Tracer
+		logger         logging.Logger
+		webhookManager manager.WebhookDataManager
 	}
 )
 
@@ -33,9 +29,8 @@ func NewService(
 	webhookManager manager.WebhookDataManager,
 ) webhookssvc.WebhooksServiceServer {
 	return &serviceImpl{
-		logger:                    logging.NewNamedLogger(logger, o11yName),
-		tracer:                    tracing.NewNamedTracer(tracerProvider, o11yName),
-		sessionContextDataFetcher: sessions.FetchContextDataFromContext,
-		webhookManager:            webhookManager,
+		logger:         logging.NewNamedLogger(logger, o11yName),
+		tracer:         tracing.NewNamedTracer(tracerProvider, o11yName),
+		webhookManager: webhookManager,
 	}
 }

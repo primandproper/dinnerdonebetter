@@ -28,8 +28,7 @@ func (authSessionIdentityGRPCMapper) Map(err error) (code codes.Code, ok bool) {
 	case errors.Is(err, authentication.ErrInvalidTOTPToken),
 		errors.Is(err, authentication.ErrPasswordDoesNotMatch):
 		return codes.InvalidArgument, true
-	case errors.Is(err, sessions.ErrAuthenticationNotFound),
-		errors.Is(err, sessions.ErrNoSessionContextDataAvailable):
+	case errors.Is(err, sessions.ErrAuthenticationNotFound):
 		return codes.Unauthenticated, true
 	case errors.Is(err, identitymanager.ErrInvalidIDProvided),
 		errors.Is(err, identitymanager.ErrNilInputProvided),

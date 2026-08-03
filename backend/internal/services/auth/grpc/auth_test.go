@@ -45,7 +45,7 @@ func buildContextWithSessionData(t *testing.T) context.Context {
 	t.Helper()
 	sessionData := buildFakeSessionContextData()
 	sessionData.AccountPermissions[sessionData.ActiveAccountID] = authorization.NewAccountRolePermissionChecker(nil)
-	return context.WithValue(t.Context(), sessions.SessionContextDataKey, sessionData)
+	return sessions.AttachToContext(t.Context(), sessionData)
 }
 
 func TestServiceImpl_GetAuthStatus(t *testing.T) {
@@ -1341,7 +1341,7 @@ func buildContextWithSessionDataAndSessionID(t *testing.T) (context.Context, *se
 		},
 	}
 	sessionData.AccountPermissions[sessionData.ActiveAccountID] = authorization.NewAccountRolePermissionChecker(nil)
-	ctx := context.WithValue(t.Context(), sessions.SessionContextDataKey, sessionData)
+	ctx := sessions.AttachToContext(t.Context(), sessionData)
 	return ctx, sessionData
 }
 

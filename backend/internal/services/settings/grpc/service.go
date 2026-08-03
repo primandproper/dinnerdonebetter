@@ -1,9 +1,6 @@
 package grpc
 
 import (
-	"context"
-
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	settingsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/manager"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 
@@ -20,10 +17,9 @@ var _ settingssvc.SettingsServiceServer = (*serviceImpl)(nil)
 type (
 	serviceImpl struct {
 		settingssvc.UnimplementedSettingsServiceServer
-		tracer                    tracing.Tracer
-		logger                    logging.Logger
-		sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error)
-		settingsManager           settingsmanager.SettingsDataManager
+		tracer          tracing.Tracer
+		logger          logging.Logger
+		settingsManager settingsmanager.SettingsDataManager
 	}
 )
 
@@ -33,9 +29,8 @@ func NewService(
 	settingsManager settingsmanager.SettingsDataManager,
 ) settingssvc.SettingsServiceServer {
 	return &serviceImpl{
-		logger:                    logging.NewNamedLogger(logger, o11yName),
-		tracer:                    tracing.NewNamedTracer(tracerProvider, o11yName),
-		settingsManager:           settingsManager,
-		sessionContextDataFetcher: sessions.FetchContextDataFromContext,
+		logger:          logging.NewNamedLogger(logger, o11yName),
+		tracer:          tracing.NewNamedTracer(tracerProvider, o11yName),
+		settingsManager: settingsManager,
 	}
 }

@@ -143,7 +143,7 @@ func TestProvideAuthorizationEnforcer(T *testing.T) {
 			return &paymentssvc.CreateSubscriptionResponse{}, nil
 		}
 
-		ctx := context.WithValue(t.Context(), sessions.SessionContextDataKey, &sessions.ContextData{
+		ctx := sessions.AttachToContext(t.Context(), &sessions.ContextData{
 			Requester: sessions.RequesterInfo{
 				UserID: "user_1",
 				ServicePermissions: authorization.NewServiceRolePermissionChecker(

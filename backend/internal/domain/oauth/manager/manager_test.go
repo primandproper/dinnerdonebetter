@@ -34,13 +34,6 @@ func buildOAuthManagerForTest(t *testing.T) *manager {
 		},
 	}
 
-	sessionData := &sessions.ContextData{}
-	sessionData.ActiveAccountID = "account-1"
-	sessionData.Requester.UserID = "user-1"
-	sessionFetcher := func(context.Context) (*sessions.ContextData, error) {
-		return sessionData, nil
-	}
-
 	secretGen := random.NewGenerator(random.WithLogger(loggingnoop.NewLogger()), random.WithTracerProvider(tracingnoop.NewTracerProvider()))
 
 	m, err := NewOAuth2Manager(
@@ -48,7 +41,6 @@ func buildOAuthManagerForTest(t *testing.T) *manager {
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		secretGen,
-		sessionFetcher,
 		mpp,
 		repo,
 		queueCfg,
@@ -76,13 +68,23 @@ func attachMocksToOAuthManager(manager *manager, repo *oauthmock.RepositoryMock,
 	}
 }
 
+// buildSessionContextForTest returns a context carrying session data for an arbitrary requester.
+func buildSessionContextForTest(t *testing.T) context.Context {
+	t.Helper()
+
+	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
+		ActiveAccountID: fakes.BuildFakeID(),
+		Requester:       sessions.RequesterInfo{UserID: fakes.BuildFakeID()},
+	})
+}
+
 func TestOAuth2Manager_CreateOAuth2Client(t *testing.T) {
 	t.Parallel()
 
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		om := buildOAuthManagerForTest(t)
 
 		input := fakes.BuildFakeOAuth2ClientCreationRequestInput()
@@ -132,7 +134,7 @@ func TestOAuth2Manager_ArchiveOAuth2Client(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		om := buildOAuthManagerForTest(t)
 
 		oauth2ClientID := fakes.BuildFakeID()

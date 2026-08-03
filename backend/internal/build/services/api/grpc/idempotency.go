@@ -37,16 +37,16 @@ var idempotentMethods = map[string]bool{
 // be handed the first one's recorded response — a cross-account data leak, not just a wrong
 // answer. An unauthenticated call has no principal and is therefore not idempotency-eligible.
 func principalFromContext(ctx context.Context) (string, error) {
-	sessionCtxData, err := sessions.FetchContextDataFromContext(ctx)
+	sessionCtxData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	if sessionCtxData == nil || sessionCtxData.Requester.UserID == "" {
+	if sessionCtxData == nil || sessionCtxData.GetUserID() == "" {
 		return "", platformerrors.ErrEmptyInputParameter
 	}
 
-	return sessionCtxData.Requester.UserID, nil
+	return sessionCtxData.GetUserID(), nil
 }
 
 // ProvideIdempotencyInterceptor builds the unary interceptor that makes the payment mutations

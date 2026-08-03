@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	authenticationmock "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/mock"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	authmanagermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers/mock"
 	identitymanagermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
@@ -102,64 +100,5 @@ func TestNewAuthService(t *testing.T) {
 		assert.Equal(t, authManager, impl.authManager)
 		assert.Equal(t, authenticationManager, impl.authenticationManager)
 		assert.Equal(t, featureFlagManager, impl.featureFlagManager)
-	})
-}
-
-func TestServiceImpl_fetchSessionContext(t *testing.T) {
-	t.Parallel()
-
-	t.Run("success", func(t *testing.T) {
-		t.Parallel()
-
-		service, _, _, _, _ := buildTestService(t)
-
-		sessionContextData := &sessions.ContextData{
-			Requester: sessions.RequesterInfo{
-				UserID:                   testUserID,
-				AccountStatus:            "active",
-				AccountStatusExplanation: "",
-				ServicePermissions:       authorization.NewServiceRolePermissionChecker([]string{"service_admin"}, nil),
-			},
-			ActiveAccountID: testAccountID,
-			AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
-				testAccountID: authorization.NewAccountRolePermissionChecker(nil),
-			},
-		}
-
-		ctx := context.WithValue(t.Context(), sessions.SessionContextDataKey, sessionContextData)
-
-		result, err := service.fetchSessionContext(ctx)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.Equal(t, sessionContextData, result)
-		assert.Equal(t, testUserID, result.GetUserID())
-		assert.Equal(t, testAccountID, result.GetActiveAccountID())
-	})
-
-	t.Run("missing session context", func(t *testing.T) {
-		t.Parallel()
-
-		service, _, _, _, _ := buildTestService(t)
-		ctx := t.Context()
-
-		result, err := service.fetchSessionContext(ctx)
-
-		assert.Error(t, err)
-		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "session context not found")
-	})
-
-	t.Run("wrong type in context", func(t *testing.T) {
-		t.Parallel()
-
-		service, _, _, _, _ := buildTestService(t)
-		ctx := context.WithValue(t.Context(), sessions.SessionContextDataKey, "wrong-type")
-
-		result, err := service.fetchSessionContext(ctx)
-
-		assert.Error(t, err)
-		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "session context not found")
 	})
 }

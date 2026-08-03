@@ -37,21 +37,11 @@ func buildTestService(t *testing.T, mockRepo *dataprivacymock.RepositoryMock, mo
 		mockArtifacts = &reportartifacts.StoreMock{}
 	}
 
-	exampleUserID := identifiers.New()
-	sessionFetcher := func(context.Context) (*sessions.ContextData, error) {
-		return &sessions.ContextData{
-			Requester: sessions.RequesterInfo{
-				UserID: exampleUserID,
-			},
-		}, nil
-	}
-
 	return &serviceImpl{
-		tracer:                    tracing.NewTracerForTest(t.Name()),
-		logger:                    loggingnoop.NewLogger(),
-		sessionContextDataFetcher: sessionFetcher,
-		dataPrivacyManager:        mockRepo,
-		reportArtifacts:           mockArtifacts,
+		tracer:             tracing.NewTracerForTest(t.Name()),
+		logger:             loggingnoop.NewLogger(),
+		dataPrivacyManager: mockRepo,
+		reportArtifacts:    mockArtifacts,
 		// The noop provider discards published messages, so Publish succeeds without a real message queue.
 		msgConfig: &msgconfig.Config{
 			Publisher: msgconfig.MessageQueueConfig{Provider: msgconfig.ProviderNoop},
@@ -61,13 +51,20 @@ func buildTestService(t *testing.T, mockRepo *dataprivacymock.RepositoryMock, mo
 	}
 }
 
-// sessionFetcherForUser returns a session context data fetcher that reports the given user.
-func sessionFetcherForUser(userID string) func(context.Context) (*sessions.ContextData, error) {
-	return func(context.Context) (*sessions.ContextData, error) {
-		return &sessions.ContextData{
-			Requester: sessions.RequesterInfo{UserID: userID},
-		}, nil
-	}
+// sessionContextForUser returns a context carrying session data that reports the given user.
+func sessionContextForUser(t *testing.T, userID string) context.Context {
+	t.Helper()
+
+	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
+		Requester: sessions.RequesterInfo{UserID: userID},
+	})
+}
+
+// buildSessionContextForTest returns a context carrying session data for an arbitrary user.
+func buildSessionContextForTest(t *testing.T) context.Context {
+	t.Helper()
+
+	return sessionContextForUser(t, identifiers.New())
 }
 
 func TestNewDataPrivacyService(t *testing.T) {
@@ -80,11 +77,8 @@ func TestNewDataPrivacyService(t *testing.T) {
 		tracerProvider := tracingnoop.NewTracerProvider()
 		mockRepo := &dataprivacymock.RepositoryMock{}
 		mockArtifacts := &reportartifacts.StoreMock{}
-		sessionFetcher := func(context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{}, nil
-		}
 
-		service := NewDataPrivacyService(logger, tracerProvider, sessionFetcher, mockRepo, mockArtifacts, &msgconfig.Config{}, &queuescfg.Config{})
+		service := NewDataPrivacyService(logger, tracerProvider, mockRepo, mockArtifacts, &msgconfig.Config{}, &queuescfg.Config{})
 
 		assert.NotNil(t, service)
 		assert.Implements(t, (*dataprivacysvc.DataPrivacyServiceServer)(nil), service)
@@ -103,7 +97,7 @@ func TestServiceImpl_AggregateUserDataReport(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		disclosure := &dataprivacy.UserDataDisclosure{ID: identifiers.New()}
 		mockRepo := &dataprivacymock.RepositoryMock{
@@ -131,7 +125,7 @@ func TestServiceImpl_AggregateUserDataReport(t *testing.T) {
 	t.Run("with error creating disclosure", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		mockRepo := &dataprivacymock.RepositoryMock{
 			CreateUserDataDisclosureFunc: func(_ context.Context, _ *dataprivacy.UserDataDisclosureCreationInput) (*dataprivacy.UserDataDisclosure, error) {
@@ -157,7 +151,7 @@ func TestServiceImpl_DestroyAllUserData(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		mockRepo := &dataprivacymock.RepositoryMock{
 			DeleteUserFunc: func(_ context.Context, userID string) error {
@@ -188,8 +182,6 @@ func TestServiceImpl_FetchUserDataReport(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-
 		userID := identifiers.New()
 
 		collection := &dataprivacy.UserDataCollection{
@@ -206,7 +198,7 @@ func TestServiceImpl_FetchUserDataReport(t *testing.T) {
 			},
 		}
 		service := buildTestService(t, nil, mockArtifacts)
-		service.sessionContextDataFetcher = sessionFetcherForUser(userID)
+		ctx := sessionContextForUser(t, userID)
 
 		request := &dataprivacysvc.FetchUserDataReportRequest{
 			UserDataAggregationReportId: identifiers.New(),
@@ -227,8 +219,6 @@ func TestServiceImpl_GetUserDataDisclosure(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-
 		userID := identifiers.New()
 		disclosureID := identifiers.New()
 		disclosure := &dataprivacy.UserDataDisclosure{ID: disclosureID, BelongsToUser: userID, Status: dataprivacy.UserDataDisclosureStatusCompleted}
@@ -241,7 +231,7 @@ func TestServiceImpl_GetUserDataDisclosure(t *testing.T) {
 			},
 		}
 		service := buildTestService(t, mockRepo, nil)
-		service.sessionContextDataFetcher = sessionFetcherForUser(userID)
+		ctx := sessionContextForUser(t, userID)
 
 		request := &dataprivacysvc.GetUserDataDisclosureRequest{UserDataDisclosureId: disclosureID}
 
@@ -258,8 +248,6 @@ func TestServiceImpl_GetUserDataDisclosure(t *testing.T) {
 	t.Run("with disclosure belonging to another user", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-
 		userID := identifiers.New()
 		disclosureID := identifiers.New()
 		disclosure := &dataprivacy.UserDataDisclosure{ID: disclosureID, BelongsToUser: identifiers.New()}
@@ -272,7 +260,7 @@ func TestServiceImpl_GetUserDataDisclosure(t *testing.T) {
 			},
 		}
 		service := buildTestService(t, mockRepo, nil)
-		service.sessionContextDataFetcher = sessionFetcherForUser(userID)
+		ctx := sessionContextForUser(t, userID)
 
 		request := &dataprivacysvc.GetUserDataDisclosureRequest{UserDataDisclosureId: disclosureID}
 
@@ -291,8 +279,6 @@ func TestServiceImpl_ListUserDataDisclosures(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-
 		userID := identifiers.New()
 
 		result := &filtering.QueryFilteredResult[dataprivacy.UserDataDisclosure]{
@@ -310,7 +296,7 @@ func TestServiceImpl_ListUserDataDisclosures(t *testing.T) {
 			},
 		}
 		service := buildTestService(t, mockRepo, nil)
-		service.sessionContextDataFetcher = sessionFetcherForUser(userID)
+		ctx := sessionContextForUser(t, userID)
 
 		request := &dataprivacysvc.ListUserDataDisclosuresRequest{}
 

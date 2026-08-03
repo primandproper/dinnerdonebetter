@@ -1,7 +1,6 @@
 package audit
 
 import (
-	"context"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
@@ -25,7 +24,7 @@ func Test_buildDataChangeMessageFromContext(T *testing.T) {
 			Requester:       sessions.RequesterInfo{UserID: fakes.BuildFakeID()},
 			ActiveAccountID: fakes.BuildFakeID(),
 		}
-		ctx = context.WithValue(ctx, sessions.SessionContextDataKey, sessionContextData)
+		ctx = sessions.AttachToContext(ctx, sessionContextData)
 
 		expected := &DataChangeMessage{
 			EventType: mealplanning.MealCreatedServiceEventType,

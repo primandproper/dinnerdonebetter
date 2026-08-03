@@ -8,6 +8,7 @@ import (
 	"io"
 	"path/filepath"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	uploadedmediakeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/keys"
@@ -36,11 +37,11 @@ func (s *serviceImpl) Upload(stream uploadedmediasvc.UploadedMediaService_Upload
 	logger := s.logger.WithSpan(span)
 
 	// Verify authentication
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.Requester.UserID)
+	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
 	// Receive first message which should contain metadata
 	firstReq, err := stream.Recv()
@@ -150,7 +151,7 @@ func (s *serviceImpl) Upload(stream uploadedmediasvc.UploadedMediaService_Upload
 
 	// Construct storage path: userID/fileID/objectName
 	storagePath := filepath.Join(
-		sessionContextData.Requester.UserID,
+		sessionContextData.GetUserID(),
 		fileID,
 		metadata.ObjectName,
 	)
@@ -165,7 +166,7 @@ func (s *serviceImpl) Upload(stream uploadedmediasvc.UploadedMediaService_Upload
 		ID:            fileID,
 		StoragePath:   storagePath,
 		MimeType:      mimeType,
-		CreatedByUser: sessionContextData.Requester.UserID,
+		CreatedByUser: sessionContextData.GetUserID(),
 	}
 
 	if err = uploadedMediaInput.ValidateWithContext(ctx); err != nil {
@@ -200,13 +201,13 @@ func (s *serviceImpl) CreateUploadedMedia(ctx context.Context, request *uploaded
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.Requester.UserID)
+	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	input := converters.ConvertGRPCUploadedMediaCreationRequestInputToUploadedMediaDatabaseCreationInput(request.Input, sessionContextData.Requester.UserID)
+	input := converters.ConvertGRPCUploadedMediaCreationRequestInputToUploadedMediaDatabaseCreationInput(request.Input, sessionContextData.GetUserID())
 	if err = input.ValidateWithContext(ctx); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media creation request")
 	}
@@ -219,7 +220,7 @@ func (s *serviceImpl) CreateUploadedMedia(ctx context.Context, request *uploaded
 	x := &uploadedmediasvc.CreateUploadedMediaResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.ActiveAccountID,
+			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
 		Created: converters.ConvertUploadedMediaToGRPCUploadedMedia(created),
 	}
@@ -233,11 +234,11 @@ func (s *serviceImpl) GetUploadedMedia(ctx context.Context, request *uploadedmed
 
 	logger := s.logger.WithSpan(span).WithValue(uploadedmediakeys.UploadedMediaIDKey, request.UploadedMediaId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.Requester.UserID)
+	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
 	uploadedMedia, err := s.uploadedMediaManager.GetUploadedMedia(ctx, request.UploadedMediaId)
 	if err != nil {
@@ -245,14 +246,14 @@ func (s *serviceImpl) GetUploadedMedia(ctx context.Context, request *uploadedmed
 	}
 
 	// Verify the uploaded media belongs to the user
-	if uploadedMedia.CreatedByUser != sessionContextData.Requester.UserID {
+	if uploadedMedia.CreatedByUser != sessionContextData.GetUserID() {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("permission denied"), logger, span, codes.PermissionDenied, "uploaded media does not belong to user")
 	}
 
 	x := &uploadedmediasvc.GetUploadedMediaResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.ActiveAccountID,
+			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
 		Result: converters.ConvertUploadedMediaToGRPCUploadedMedia(uploadedMedia),
 	}
@@ -266,11 +267,11 @@ func (s *serviceImpl) GetUploadedMediaWithIDs(ctx context.Context, request *uplo
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.Requester.UserID)
+	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
 	if len(request.Ids) == 0 {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("no IDs provided"), logger, span, codes.InvalidArgument, "no IDs provided")
@@ -284,13 +285,13 @@ func (s *serviceImpl) GetUploadedMediaWithIDs(ctx context.Context, request *uplo
 	x := &uploadedmediasvc.GetUploadedMediaWithIDsResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.ActiveAccountID,
+			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
 	}
 
 	for _, uploadedMedia := range uploadedMediaList {
 		// Only return media that belongs to the user
-		if uploadedMedia.CreatedByUser == sessionContextData.Requester.UserID {
+		if uploadedMedia.CreatedByUser == sessionContextData.GetUserID() {
 			x.Results = append(x.Results, converters.ConvertUploadedMediaToGRPCUploadedMedia(uploadedMedia))
 		}
 	}
@@ -304,13 +305,13 @@ func (s *serviceImpl) GetUploadedMediaForUser(ctx context.Context, request *uplo
 
 	logger := s.logger.WithSpan(span).WithValue(identitykeys.UserIDKey, request.UserId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	// Verify the user is requesting their own media
-	if request.UserId != sessionContextData.Requester.UserID {
+	if request.UserId != sessionContextData.GetUserID() {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("permission denied"), logger, span, codes.PermissionDenied, "cannot access other user's media")
 	}
 
@@ -324,7 +325,7 @@ func (s *serviceImpl) GetUploadedMediaForUser(ctx context.Context, request *uplo
 	x := &uploadedmediasvc.GetUploadedMediaForUserResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.ActiveAccountID,
+			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
 		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(uploadedMediaList.Pagination, filter),
 	}
@@ -342,11 +343,11 @@ func (s *serviceImpl) UpdateUploadedMedia(ctx context.Context, request *uploaded
 
 	logger := s.logger.WithSpan(span).WithValue(uploadedmediakeys.UploadedMediaIDKey, request.UploadedMediaId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.Requester.UserID)
+	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
 	// Fetch the existing uploaded media
 	uploadedMedia, err := s.uploadedMediaManager.GetUploadedMedia(ctx, request.UploadedMediaId)
@@ -355,7 +356,7 @@ func (s *serviceImpl) UpdateUploadedMedia(ctx context.Context, request *uploaded
 	}
 
 	// Verify the uploaded media belongs to the user
-	if uploadedMedia.CreatedByUser != sessionContextData.Requester.UserID {
+	if uploadedMedia.CreatedByUser != sessionContextData.GetUserID() {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("permission denied"), logger, span, codes.PermissionDenied, "uploaded media does not belong to user")
 	}
 
@@ -374,7 +375,7 @@ func (s *serviceImpl) UpdateUploadedMedia(ctx context.Context, request *uploaded
 	x := &uploadedmediasvc.UpdateUploadedMediaResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.ActiveAccountID,
+			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
 		Updated: converters.ConvertUploadedMediaToGRPCUploadedMedia(uploadedMedia),
 	}
@@ -388,11 +389,11 @@ func (s *serviceImpl) ArchiveUploadedMedia(ctx context.Context, request *uploade
 
 	logger := s.logger.WithSpan(span).WithValue(uploadedmediakeys.UploadedMediaIDKey, request.UploadedMediaId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.Requester.UserID)
+	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
 	// Fetch the existing uploaded media to verify ownership
 	uploadedMedia, err := s.uploadedMediaManager.GetUploadedMedia(ctx, request.UploadedMediaId)
@@ -401,7 +402,7 @@ func (s *serviceImpl) ArchiveUploadedMedia(ctx context.Context, request *uploade
 	}
 
 	// Verify the uploaded media belongs to the user
-	if uploadedMedia.CreatedByUser != sessionContextData.Requester.UserID {
+	if uploadedMedia.CreatedByUser != sessionContextData.GetUserID() {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("permission denied"), logger, span, codes.PermissionDenied, "uploaded media does not belong to user")
 	}
 
@@ -412,7 +413,7 @@ func (s *serviceImpl) ArchiveUploadedMedia(ctx context.Context, request *uploade
 	x := &uploadedmediasvc.ArchiveUploadedMediaResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.ActiveAccountID,
+			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
 	}
 

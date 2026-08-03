@@ -33,6 +33,5 @@ func TestNewService(t *testing.T) {
 		assert.NotNil(t, impl.logger)
 		assert.NotNil(t, impl.tracer)
 		assert.Equal(t, notificationsManager, impl.notificationsManager)
-		assert.NotNil(t, impl.sessionContextDataFetcher)
 	})
 }

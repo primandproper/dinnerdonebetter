@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	issuereportkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/keys"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
@@ -22,13 +23,13 @@ func (s *serviceImpl) CreateIssueReport(ctx context.Context, request *issuerepor
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID).WithValue(identitykeys.UserIDKey, sessionContextData.Requester.UserID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID()).WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	input := converters.ConvertGRPCIssueReportCreationRequestInputToIssueReportDatabaseCreationInput(request.Input, sessionContextData.Requester.UserID, sessionContextData.GetActiveAccountID())
+	input := converters.ConvertGRPCIssueReportCreationRequestInputToIssueReportDatabaseCreationInput(request.Input, sessionContextData.GetUserID(), sessionContextData.GetActiveAccountID())
 	if err = input.ValidateWithContext(ctx); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate issue report creation request")
 	}
@@ -41,7 +42,7 @@ func (s *serviceImpl) CreateIssueReport(ctx context.Context, request *issuerepor
 	x := &issuereportssvc.CreateIssueReportResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.ActiveAccountID,
+			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
 		Created: converters.ConvertIssueReportToGRPCIssueReport(created),
 	}
@@ -55,11 +56,11 @@ func (s *serviceImpl) GetIssueReport(ctx context.Context, request *issuereportss
 
 	logger := s.logger.WithSpan(span).WithValue(issuereportkeys.IssueReportIDKey, request.IssueReportId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
 	issueReport, err := s.issueReportsManager.GetIssueReport(ctx, request.IssueReportId)
 	if err != nil {
@@ -74,7 +75,7 @@ func (s *serviceImpl) GetIssueReport(ctx context.Context, request *issuereportss
 	x := &issuereportssvc.GetIssueReportResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.ActiveAccountID,
+			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
 		Result: converters.ConvertIssueReportToGRPCIssueReport(issueReport),
 	}
@@ -88,11 +89,11 @@ func (s *serviceImpl) GetIssueReports(ctx context.Context, request *issuereports
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
@@ -104,7 +105,7 @@ func (s *serviceImpl) GetIssueReports(ctx context.Context, request *issuereports
 	x := &issuereportssvc.GetIssueReportsResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.ActiveAccountID,
+			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
 		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(issueReports.Pagination, filter),
 	}
@@ -122,15 +123,15 @@ func (s *serviceImpl) GetIssueReportsForAccount(ctx context.Context, request *is
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
-	issueReports, err := s.issueReportsManager.GetIssueReportsForAccount(ctx, sessionContextData.ActiveAccountID, filter)
+	issueReports, err := s.issueReportsManager.GetIssueReportsForAccount(ctx, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch issue reports for account")
 	}
@@ -138,7 +139,7 @@ func (s *serviceImpl) GetIssueReportsForAccount(ctx context.Context, request *is
 	x := &issuereportssvc.GetIssueReportsForAccountResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.ActiveAccountID,
+			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
 		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(issueReports.Pagination, filter),
 	}
@@ -156,11 +157,11 @@ func (s *serviceImpl) GetIssueReportsForTable(ctx context.Context, request *issu
 
 	logger := s.logger.WithSpan(span).WithValue("table_name", request.TableName)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
@@ -172,7 +173,7 @@ func (s *serviceImpl) GetIssueReportsForTable(ctx context.Context, request *issu
 	x := &issuereportssvc.GetIssueReportsForTableResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.ActiveAccountID,
+			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
 		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(issueReports.Pagination, filter),
 	}
@@ -190,11 +191,11 @@ func (s *serviceImpl) GetIssueReportsForRecord(ctx context.Context, request *iss
 
 	logger := s.logger.WithSpan(span).WithValue("table_name", request.TableName).WithValue("record_id", request.RecordId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
@@ -206,7 +207,7 @@ func (s *serviceImpl) GetIssueReportsForRecord(ctx context.Context, request *iss
 	x := &issuereportssvc.GetIssueReportsForRecordResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.ActiveAccountID,
+			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
 		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(issueReports.Pagination, filter),
 	}
@@ -224,11 +225,11 @@ func (s *serviceImpl) UpdateIssueReport(ctx context.Context, request *issuerepor
 
 	logger := s.logger.WithSpan(span).WithValue(issuereportkeys.IssueReportIDKey, request.IssueReportId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
 	// Fetch the existing issue report
 	issueReport, err := s.issueReportsManager.GetIssueReport(ctx, request.IssueReportId)
@@ -256,7 +257,7 @@ func (s *serviceImpl) UpdateIssueReport(ctx context.Context, request *issuerepor
 	x := &issuereportssvc.UpdateIssueReportResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.ActiveAccountID,
+			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
 		Updated: converters.ConvertIssueReportToGRPCIssueReport(issueReport),
 	}
@@ -270,11 +271,11 @@ func (s *serviceImpl) ArchiveIssueReport(ctx context.Context, request *issuerepo
 
 	logger := s.logger.WithSpan(span).WithValue(issuereportkeys.IssueReportIDKey, request.IssueReportId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
 	// Fetch the existing issue report to verify ownership
 	issueReport, err := s.issueReportsManager.GetIssueReport(ctx, request.IssueReportId)
@@ -294,7 +295,7 @@ func (s *serviceImpl) ArchiveIssueReport(ctx context.Context, request *issuerepo
 	x := &issuereportssvc.ArchiveIssueReportResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.ActiveAccountID,
+			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
 	}
 

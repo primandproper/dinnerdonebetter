@@ -1,9 +1,6 @@
 package grpc
 
 import (
-	"context"
-
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	uploadedmediamanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/manager"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
@@ -25,7 +22,6 @@ func RegisterIdentityService(i do.Injector) {
 		return NewService(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.TracerProvider](i),
-			do.MustInvoke[func(context.Context) (*sessions.ContextData, error)](i),
 			do.MustInvoke[manager.IdentityDataManager](i),
 			do.MustInvoke[uploadedmediamanager.UploadedMediaManager](i),
 			do.MustInvoke[uploads.UploadManager](i),

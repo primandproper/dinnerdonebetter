@@ -37,7 +37,7 @@ func TestServiceImpl_ArchiveAccount(t *testing.T) {
 			AccountId: exampleAccountID,
 		}
 
-		result, err := service.ArchiveAccount(t.Context(), request)
+		result, err := service.ArchiveAccount(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -47,7 +47,7 @@ func TestServiceImpl_ArchiveAccount(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &identitysvc.ArchiveAccountRequest{
 			AccountId: identityfakes.BuildFakeID(),
@@ -80,7 +80,7 @@ func TestServiceImpl_ArchiveAccount(t *testing.T) {
 			AccountId: exampleAccountID,
 		}
 
-		result, err := service.ArchiveAccount(t.Context(), request)
+		result, err := service.ArchiveAccount(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -119,7 +119,7 @@ func TestServiceImpl_CreateAccount(t *testing.T) {
 			},
 		}
 
-		result, err := service.CreateAccount(t.Context(), request)
+		result, err := service.CreateAccount(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -132,7 +132,7 @@ func TestServiceImpl_CreateAccount(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &identitysvc.CreateAccountRequest{
 			Input: &identitysvc.AccountCreationRequestInput{
@@ -165,7 +165,7 @@ func TestServiceImpl_CreateAccount(t *testing.T) {
 			},
 		}
 
-		result, err := service.CreateAccount(t.Context(), request)
+		result, err := service.CreateAccount(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -200,7 +200,7 @@ func TestServiceImpl_CreateAccountInvitation(t *testing.T) {
 			},
 		}
 
-		result, err := service.CreateAccountInvitation(t.Context(), request)
+		result, err := service.CreateAccountInvitation(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -213,7 +213,7 @@ func TestServiceImpl_CreateAccountInvitation(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &identitysvc.CreateAccountInvitationRequest{
 			Input: &identitysvc.AccountInvitationCreationRequestInput{
@@ -246,7 +246,7 @@ func TestServiceImpl_CreateAccountInvitation(t *testing.T) {
 			},
 		}
 
-		result, err := service.CreateAccountInvitation(t.Context(), request)
+		result, err := service.CreateAccountInvitation(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -265,7 +265,8 @@ func TestServiceImpl_GetAccount(t *testing.T) {
 
 		exampleAccount := identityfakes.BuildFakeAccount()
 
-		service, identityDataManager := buildTestServiceWithAccountMembership(t, exampleAccount.ID)
+		service, identityDataManager := buildTestService(t)
+		ctx := buildSessionContextForAccount(t, exampleAccount.ID)
 
 		identityDataManager.GetAccountFunc = func(_ context.Context, accountID string) (*identity.Account, error) {
 			assert.Equal(t, exampleAccount.ID, accountID)
@@ -277,7 +278,7 @@ func TestServiceImpl_GetAccount(t *testing.T) {
 			AccountId: exampleAccount.ID,
 		}
 
-		result, err := service.GetAccount(t.Context(), request)
+		result, err := service.GetAccount(ctx, request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -292,7 +293,8 @@ func TestServiceImpl_GetAccount(t *testing.T) {
 
 		exampleAccountID := identityfakes.BuildFakeID()
 
-		service, identityDataManager := buildTestServiceWithAccountMembership(t, exampleAccountID)
+		service, identityDataManager := buildTestService(t)
+		ctx := buildSessionContextForAccount(t, exampleAccountID)
 
 		identityDataManager.GetAccountFunc = func(_ context.Context, accountID string) (*identity.Account, error) {
 			assert.Equal(t, exampleAccountID, accountID)
@@ -304,7 +306,7 @@ func TestServiceImpl_GetAccount(t *testing.T) {
 			AccountId: exampleAccountID,
 		}
 
-		result, err := service.GetAccount(t.Context(), request)
+		result, err := service.GetAccount(ctx, request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -321,7 +323,7 @@ func TestServiceImpl_GetAccounts(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, identityDataManager := buildTestService(t)
 
 		exampleAccounts := &filtering.QueryFilteredResult[identity.Account]{
@@ -356,7 +358,7 @@ func TestServiceImpl_GetAccounts(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		pageSize := uint32(25)
 		request := &identitysvc.GetAccountsRequest{
@@ -391,7 +393,7 @@ func TestServiceImpl_GetAccounts(t *testing.T) {
 			},
 		}
 
-		result, err := service.GetAccounts(t.Context(), request)
+		result, err := service.GetAccounts(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -422,7 +424,7 @@ func TestServiceImpl_SetDefaultAccount(t *testing.T) {
 			AccountId: exampleAccountID,
 		}
 
-		result, err := service.SetDefaultAccount(t.Context(), request)
+		result, err := service.SetDefaultAccount(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -433,7 +435,7 @@ func TestServiceImpl_SetDefaultAccount(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &identitysvc.SetDefaultAccountRequest{
 			AccountId: identityfakes.BuildFakeID(),
@@ -466,7 +468,7 @@ func TestServiceImpl_SetDefaultAccount(t *testing.T) {
 			AccountId: exampleAccountID,
 		}
 
-		result, err := service.SetDefaultAccount(t.Context(), request)
+		result, err := service.SetDefaultAccount(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -498,7 +500,7 @@ func TestServiceImpl_TransferAccountOwnership(t *testing.T) {
 			},
 		}
 
-		result, err := service.TransferAccountOwnership(t.Context(), request)
+		result, err := service.TransferAccountOwnership(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -509,7 +511,7 @@ func TestServiceImpl_TransferAccountOwnership(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &identitysvc.TransferAccountOwnershipRequest{
 			AccountId: identityfakes.BuildFakeID(),
@@ -546,7 +548,7 @@ func TestServiceImpl_TransferAccountOwnership(t *testing.T) {
 			},
 		}
 
-		result, err := service.TransferAccountOwnership(t.Context(), request)
+		result, err := service.TransferAccountOwnership(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -577,7 +579,7 @@ func TestServiceImpl_UpdateAccount(t *testing.T) {
 			},
 		}
 
-		result, err := service.UpdateAccount(t.Context(), request)
+		result, err := service.UpdateAccount(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -587,7 +589,7 @@ func TestServiceImpl_UpdateAccount(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &identitysvc.UpdateAccountRequest{
 			AccountId: identityfakes.BuildFakeID(),
@@ -622,7 +624,7 @@ func TestServiceImpl_UpdateAccount(t *testing.T) {
 			},
 		}
 
-		result, err := service.UpdateAccount(t.Context(), request)
+		result, err := service.UpdateAccount(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -657,7 +659,7 @@ func TestServiceImpl_UpdateAccountMemberPermissions(t *testing.T) {
 			},
 		}
 
-		result, err := service.UpdateAccountMemberPermissions(t.Context(), request)
+		result, err := service.UpdateAccountMemberPermissions(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -667,7 +669,7 @@ func TestServiceImpl_UpdateAccountMemberPermissions(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &identitysvc.UpdateAccountMemberPermissionsRequest{
 			UserId: identityfakes.BuildFakeID(),
@@ -702,7 +704,7 @@ func TestServiceImpl_UpdateAccountMemberPermissions(t *testing.T) {
 			},
 		}
 
-		result, err := service.UpdateAccountMemberPermissions(t.Context(), request)
+		result, err := service.UpdateAccountMemberPermissions(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -736,7 +738,7 @@ func TestServiceImpl_ArchiveUserMembership(t *testing.T) {
 			AccountId: exampleAccountID,
 		}
 
-		result, err := service.ArchiveUserMembership(t.Context(), request)
+		result, err := service.ArchiveUserMembership(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -763,7 +765,7 @@ func TestServiceImpl_ArchiveUserMembership(t *testing.T) {
 			AccountId: exampleAccountID,
 		}
 
-		result, err := service.ArchiveUserMembership(t.Context(), request)
+		result, err := service.ArchiveUserMembership(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)

@@ -32,23 +32,23 @@ func buildCommentsServiceImplForTest(t *testing.T, commentsManager *commentsmana
 		tracer:          tracing.NewTracerForTest(t.Name()),
 		logger:          loggingnoop.NewLogger(),
 		commentsManager: commentsManager,
-		sessionContextDataFetcher: func(context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{
-					UserID: commentsfakes.BuildFakeID(),
-				},
-			}, nil
-		},
 	}
 }
 
-// sessionFetcherForUser returns a session context data fetcher that reports the given user.
-func sessionFetcherForUser(userID string) func(context.Context) (*sessions.ContextData, error) {
-	return func(context.Context) (*sessions.ContextData, error) {
-		return &sessions.ContextData{
-			Requester: sessions.RequesterInfo{UserID: userID},
-		}, nil
-	}
+// sessionContextForUser returns a context carrying session data that reports the given user.
+func sessionContextForUser(t *testing.T, userID string) context.Context {
+	t.Helper()
+
+	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
+		Requester: sessions.RequesterInfo{UserID: userID},
+	})
+}
+
+// buildSessionContextForTest returns a context carrying session data for an arbitrary user.
+func buildSessionContextForTest(t *testing.T) context.Context {
+	t.Helper()
+
+	return sessionContextForUser(t, commentsfakes.BuildFakeID())
 }
 
 func TestServiceImpl_CreateComment(T *testing.T) {
@@ -56,8 +56,6 @@ func TestServiceImpl_CreateComment(T *testing.T) {
 
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
-
-		ctx := t.Context()
 
 		userID := commentsfakes.BuildFakeID()
 		recipeID := commentsfakes.BuildFakeID()
@@ -72,7 +70,7 @@ func TestServiceImpl_CreateComment(T *testing.T) {
 			},
 		}
 		s := buildCommentsServiceImplForTest(t, mcm)
-		s.sessionContextDataFetcher = sessionFetcherForUser(userID)
+		ctx := sessionContextForUser(t, userID)
 
 		res, err := s.CreateComment(ctx, &commentssvc.CreateCommentRequest{
 			Input: &commentssvc.CommentCreationRequestInput{
@@ -91,7 +89,7 @@ func TestServiceImpl_CreateComment(T *testing.T) {
 	T.Run("missing input", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildCommentsServiceImplForTest(t, nil)
 
 		res, err := s.CreateComment(ctx, &commentssvc.CreateCommentRequest{})
@@ -105,7 +103,7 @@ func TestServiceImpl_CreateComment(T *testing.T) {
 	T.Run("missing target_type", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildCommentsServiceImplForTest(t, nil)
 
 		res, err := s.CreateComment(ctx, &commentssvc.CreateCommentRequest{
@@ -128,7 +126,7 @@ func TestServiceImpl_GetCommentsForReference(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		recipeID := commentsfakes.BuildFakeID()
 		expected := commentsfakes.BuildFakeCommentList("recipes", recipeID)
@@ -162,8 +160,6 @@ func TestServiceImpl_UpdateComment(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-
 		commentID := commentsfakes.BuildFakeID()
 		userID := commentsfakes.BuildFakeID()
 		newContent := "updated content"
@@ -186,7 +182,7 @@ func TestServiceImpl_UpdateComment(T *testing.T) {
 			},
 		}
 		s := buildCommentsServiceImplForTest(t, mcm)
-		s.sessionContextDataFetcher = sessionFetcherForUser(userID)
+		ctx := sessionContextForUser(t, userID)
 
 		res, err := s.UpdateComment(ctx, &commentssvc.UpdateCommentRequest{
 			CommentId: commentID,
@@ -202,8 +198,6 @@ func TestServiceImpl_UpdateComment(T *testing.T) {
 
 	T.Run("permission_denied_when_different_user", func(t *testing.T) {
 		t.Parallel()
-
-		ctx := t.Context()
 
 		commentID := commentsfakes.BuildFakeID()
 		ownerID := commentsfakes.BuildFakeID()
@@ -221,7 +215,7 @@ func TestServiceImpl_UpdateComment(T *testing.T) {
 			},
 		}
 		s := buildCommentsServiceImplForTest(t, mcm)
-		s.sessionContextDataFetcher = sessionFetcherForUser(requestingUserID)
+		ctx := sessionContextForUser(t, requestingUserID)
 
 		res, err := s.UpdateComment(ctx, &commentssvc.UpdateCommentRequest{
 			CommentId: commentID,
@@ -244,8 +238,6 @@ func TestServiceImpl_ArchiveComment(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-
 		commentID := commentsfakes.BuildFakeID()
 		userID := commentsfakes.BuildFakeID()
 
@@ -266,7 +258,7 @@ func TestServiceImpl_ArchiveComment(T *testing.T) {
 			},
 		}
 		s := buildCommentsServiceImplForTest(t, mcm)
-		s.sessionContextDataFetcher = sessionFetcherForUser(userID)
+		ctx := sessionContextForUser(t, userID)
 
 		res, err := s.ArchiveComment(ctx, &commentssvc.ArchiveCommentRequest{
 			CommentId: commentID,
@@ -280,8 +272,6 @@ func TestServiceImpl_ArchiveComment(T *testing.T) {
 
 	T.Run("permission_denied_when_different_user", func(t *testing.T) {
 		t.Parallel()
-
-		ctx := t.Context()
 
 		commentID := commentsfakes.BuildFakeID()
 		ownerID := commentsfakes.BuildFakeID()
@@ -299,7 +289,7 @@ func TestServiceImpl_ArchiveComment(T *testing.T) {
 			},
 		}
 		s := buildCommentsServiceImplForTest(t, mcm)
-		s.sessionContextDataFetcher = sessionFetcherForUser(requestingUserID)
+		ctx := sessionContextForUser(t, requestingUserID)
 
 		res, err := s.ArchiveComment(ctx, &commentssvc.ArchiveCommentRequest{
 			CommentId: commentID,

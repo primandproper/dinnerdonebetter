@@ -1,9 +1,6 @@
 package grpc
 
 import (
-	"context"
-
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	uploadedmediamanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/manager"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
@@ -21,11 +18,10 @@ var _ uploadedmediasvc.UploadedMediaServiceServer = (*serviceImpl)(nil)
 type (
 	serviceImpl struct {
 		uploadedmediasvc.UnimplementedUploadedMediaServiceServer
-		tracer                    tracing.Tracer
-		logger                    logging.Logger
-		sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error)
-		uploadedMediaManager      uploadedmediamanager.UploadedMediaManager
-		uploadManager             uploads.UploadManager
+		tracer               tracing.Tracer
+		logger               logging.Logger
+		uploadedMediaManager uploadedmediamanager.UploadedMediaManager
+		uploadManager        uploads.UploadManager
 	}
 )
 
@@ -36,10 +32,9 @@ func NewService(
 	uploadManager uploads.UploadManager,
 ) uploadedmediasvc.UploadedMediaServiceServer {
 	return &serviceImpl{
-		logger:                    logging.NewNamedLogger(logger, o11yName),
-		tracer:                    tracing.NewNamedTracer(tracerProvider, o11yName),
-		sessionContextDataFetcher: sessions.FetchContextDataFromContext,
-		uploadedMediaManager:      uploadedMediaManager,
-		uploadManager:             uploadManager,
+		logger:               logging.NewNamedLogger(logger, o11yName),
+		tracer:               tracing.NewNamedTracer(tracerProvider, o11yName),
+		uploadedMediaManager: uploadedMediaManager,
+		uploadManager:        uploadManager,
 	}
 }

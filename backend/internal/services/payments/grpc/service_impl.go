@@ -128,9 +128,9 @@ func (s *serviceImpl) GetSubscriptionsForAccount(ctx context.Context, request *p
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	sessionContextData, err := sessions.FetchContextDataFromContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
@@ -180,9 +180,9 @@ func (s *serviceImpl) GetPurchasesForAccount(ctx context.Context, request *payme
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	sessionContextData, err := sessions.FetchContextDataFromContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
@@ -205,9 +205,9 @@ func (s *serviceImpl) GetPaymentHistoryForAccount(ctx context.Context, request *
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	sessionContextData, err := sessions.FetchContextDataFromContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)

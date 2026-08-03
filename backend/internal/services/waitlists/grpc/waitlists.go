@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	waitlistkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/keys"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
@@ -25,11 +26,11 @@ func (s *serviceImpl) CreateWaitlist(ctx context.Context, request *waitlistssvc.
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
 	input := converters.ConvertGRPCWaitlistCreationRequestInputToWaitlistDatabaseCreationInput(request.Input)
 	if err = input.ValidateWithContext(ctx); err != nil {
@@ -198,16 +199,16 @@ func (s *serviceImpl) CreateWaitlistSignup(ctx context.Context, request *waitlis
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
 	input := converters.ConvertGRPCWaitlistSignupCreationRequestInputToWaitlistSignupDatabaseCreationInput(request.Input)
 	input.BelongsToUser = sessionContextData.GetUserID()
-	input.BelongsToAccount = sessionContextData.ActiveAccountID
+	input.BelongsToAccount = sessionContextData.GetActiveAccountID()
 
 	if err = input.ValidateWithContext(ctx); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate waitlist signup creation request")
@@ -234,9 +235,9 @@ func (s *serviceImpl) GetWaitlistSignup(ctx context.Context, request *waitlistss
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistSignupIDKey, request.WaitlistSignupId).WithValue(waitlistkeys.WaitlistIDKey, request.WaitlistId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -266,9 +267,9 @@ func (s *serviceImpl) GetWaitlistSignupsForWaitlist(ctx context.Context, request
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistIDKey, request.WaitlistId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -303,9 +304,9 @@ func (s *serviceImpl) UpdateWaitlistSignup(ctx context.Context, request *waitlis
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistSignupIDKey, request.WaitlistSignupId).WithValue(waitlistkeys.WaitlistIDKey, request.WaitlistId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -342,9 +343,9 @@ func (s *serviceImpl) ArchiveWaitlistSignup(ctx context.Context, request *waitli
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistSignupIDKey, request.WaitlistSignupId)
 
-	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 

@@ -41,7 +41,7 @@ func TestServiceImpl_AcceptAccountInvitation(t *testing.T) {
 			},
 		}
 
-		result, err := service.AcceptAccountInvitation(t.Context(), request)
+		result, err := service.AcceptAccountInvitation(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -51,7 +51,7 @@ func TestServiceImpl_AcceptAccountInvitation(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &identitysvc.AcceptAccountInvitationRequest{
 			AccountInvitationId: identityfakes.BuildFakeID(),
@@ -90,7 +90,7 @@ func TestServiceImpl_AcceptAccountInvitation(t *testing.T) {
 			},
 		}
 
-		result, err := service.AcceptAccountInvitation(t.Context(), request)
+		result, err := service.AcceptAccountInvitation(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -125,7 +125,7 @@ func TestServiceImpl_RejectAccountInvitation(t *testing.T) {
 			},
 		}
 
-		result, err := service.RejectAccountInvitation(t.Context(), request)
+		result, err := service.RejectAccountInvitation(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -135,7 +135,7 @@ func TestServiceImpl_RejectAccountInvitation(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &identitysvc.RejectAccountInvitationRequest{
 			AccountInvitationId: identityfakes.BuildFakeID(),
@@ -174,7 +174,7 @@ func TestServiceImpl_RejectAccountInvitation(t *testing.T) {
 			},
 		}
 
-		result, err := service.RejectAccountInvitation(t.Context(), request)
+		result, err := service.RejectAccountInvitation(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -209,7 +209,7 @@ func TestServiceImpl_CancelAccountInvitation(t *testing.T) {
 			},
 		}
 
-		result, err := service.CancelAccountInvitation(t.Context(), request)
+		result, err := service.CancelAccountInvitation(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -219,7 +219,7 @@ func TestServiceImpl_CancelAccountInvitation(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &identitysvc.CancelAccountInvitationRequest{
 			AccountInvitationId: identityfakes.BuildFakeID(),
@@ -259,7 +259,7 @@ func TestServiceImpl_CancelAccountInvitation(t *testing.T) {
 			},
 		}
 
-		result, err := service.CancelAccountInvitation(t.Context(), request)
+		result, err := service.CancelAccountInvitation(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -290,7 +290,7 @@ func TestServiceImpl_GetAccountInvitation(t *testing.T) {
 			AccountInvitationId: exampleInvitation.ID,
 		}
 
-		result, err := service.GetAccountInvitation(t.Context(), request)
+		result, err := service.GetAccountInvitation(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -303,7 +303,7 @@ func TestServiceImpl_GetAccountInvitation(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &identitysvc.GetAccountInvitationRequest{
 			AccountInvitationId: identityfakes.BuildFakeID(),
@@ -336,7 +336,7 @@ func TestServiceImpl_GetAccountInvitation(t *testing.T) {
 			AccountInvitationId: exampleInvitationID,
 		}
 
-		result, err := service.GetAccountInvitation(t.Context(), request)
+		result, err := service.GetAccountInvitation(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -353,7 +353,7 @@ func TestServiceImpl_GetReceivedAccountInvitations(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, identityDataManager := buildTestService(t)
 
 		exampleInvitations := &filtering.QueryFilteredResult[identity.AccountInvitation]{
@@ -388,7 +388,7 @@ func TestServiceImpl_GetReceivedAccountInvitations(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		pageSize := uint32(25)
 		request := &identitysvc.GetReceivedAccountInvitationsRequest{
@@ -410,7 +410,7 @@ func TestServiceImpl_GetReceivedAccountInvitations(t *testing.T) {
 	t.Run("with error from data manager", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, identityDataManager := buildTestService(t)
 
 		identityDataManager.GetReceivedAccountInvitationsFunc = func(_ context.Context, _ string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.AccountInvitation], error) {
@@ -441,7 +441,7 @@ func TestServiceImpl_GetSentAccountInvitations(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, identityDataManager := buildTestService(t)
 
 		exampleInvitations := &filtering.QueryFilteredResult[identity.AccountInvitation]{
@@ -476,7 +476,7 @@ func TestServiceImpl_GetSentAccountInvitations(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		pageSize := uint32(25)
 		request := &identitysvc.GetSentAccountInvitationsRequest{
@@ -511,7 +511,7 @@ func TestServiceImpl_GetSentAccountInvitations(t *testing.T) {
 			},
 		}
 
-		result, err := service.GetSentAccountInvitations(t.Context(), request)
+		result, err := service.GetSentAccountInvitations(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)

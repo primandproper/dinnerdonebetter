@@ -25,13 +25,6 @@ func buildServiceImplForRecipesTest(t *testing.T) *serviceImpl {
 		tracer:          tracing.NewTracerForTest(t.Name()),
 		logger:          loggingnoop.NewLogger(),
 		commentsManager: &noopCommentsManager{},
-		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{
-					UserID: mealplanningfakes.BuildFakeID(),
-				},
-			}, nil
-		},
 	}
 }
 
@@ -41,17 +34,15 @@ func TestServiceImpl_verifyRecipeOwnership(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -75,17 +66,15 @@ func TestServiceImpl_verifyRecipeOwnership(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -112,20 +101,17 @@ func TestServiceImpl_ArchiveRecipe(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		// Override session context to return specific user ID
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{
-					UserID: exampleUserID,
-				},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{
+				UserID: exampleUserID,
+			},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -155,17 +141,15 @@ func TestServiceImpl_ArchiveRecipe(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -192,18 +176,16 @@ func TestServiceImpl_ArchiveRecipePrepTask(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleRecipePrepTaskID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -236,18 +218,16 @@ func TestServiceImpl_ArchiveRecipePrepTask(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleRecipePrepTaskID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -277,18 +257,16 @@ func TestServiceImpl_ArchiveRecipeRating(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleRecipeRatingID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRating := &mealplanning.RecipeRating{ID: exampleRecipeRatingID, CreatedByUser: exampleUserID}
 
@@ -326,7 +304,7 @@ func TestServiceImpl_GetRecipeLists(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		list := &mealplanning.RecipeList{ID: mealplanningfakes.BuildFakeID()}
@@ -354,15 +332,13 @@ func TestServiceImpl_CreateRecipeList(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		userID := mealplanningfakes.BuildFakeID()
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: userID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: userID},
+		})
 
 		input := &mealplanninggrpc.RecipeListCreationRequestInput{Name: t.Name(), Description: "desc"}
 		created := &mealplanning.RecipeList{ID: mealplanningfakes.BuildFakeID()}
@@ -391,16 +367,14 @@ func TestServiceImpl_UpdateRecipeList(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		userID := mealplanningfakes.BuildFakeID()
 		listID := mealplanningfakes.BuildFakeID()
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: userID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: userID},
+		})
 
 		name := t.Name()
 		desc := "desc"
@@ -436,16 +410,14 @@ func TestServiceImpl_ArchiveRecipeList(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		userID := mealplanningfakes.BuildFakeID()
 		listID := mealplanningfakes.BuildFakeID()
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: userID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: userID},
+		})
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
 			ArchiveRecipeListFunc: func(_ context.Context, recipeListID string, actualUserID string) error {
@@ -471,7 +443,7 @@ func TestServiceImpl_GetRecipeListItems(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		listID := mealplanningfakes.BuildFakeID()
@@ -502,7 +474,7 @@ func TestServiceImpl_CreateRecipeListItem(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		listID := mealplanningfakes.BuildFakeID()
@@ -541,7 +513,7 @@ func TestServiceImpl_UpdateRecipeListItem(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		itemID := mealplanningfakes.BuildFakeID()
@@ -582,7 +554,7 @@ func TestServiceImpl_ArchiveRecipeListItem(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		itemID := mealplanningfakes.BuildFakeID()
@@ -615,18 +587,16 @@ func TestServiceImpl_ArchiveRecipeStep(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleRecipeStepID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -659,18 +629,16 @@ func TestServiceImpl_ArchiveRecipeStep(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleRecipeStepID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -700,7 +668,7 @@ func TestServiceImpl_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -708,11 +676,9 @@ func TestServiceImpl_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 		exampleRecipeStepCompletionConditionID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -747,7 +713,7 @@ func TestServiceImpl_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -755,11 +721,9 @@ func TestServiceImpl_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 		exampleRecipeStepCompletionConditionID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -790,7 +754,7 @@ func TestServiceImpl_ArchiveRecipeStepIngredient(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -798,11 +762,9 @@ func TestServiceImpl_ArchiveRecipeStepIngredient(T *testing.T) {
 		exampleRecipeStepIngredientID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -837,7 +799,7 @@ func TestServiceImpl_ArchiveRecipeStepIngredient(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -845,11 +807,9 @@ func TestServiceImpl_ArchiveRecipeStepIngredient(T *testing.T) {
 		exampleRecipeStepIngredientID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -880,7 +840,7 @@ func TestServiceImpl_ArchiveRecipeStepInstrument(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -888,11 +848,9 @@ func TestServiceImpl_ArchiveRecipeStepInstrument(T *testing.T) {
 		exampleRecipeStepInstrumentID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -927,7 +885,7 @@ func TestServiceImpl_ArchiveRecipeStepInstrument(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -935,11 +893,9 @@ func TestServiceImpl_ArchiveRecipeStepInstrument(T *testing.T) {
 		exampleRecipeStepInstrumentID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -970,7 +926,7 @@ func TestServiceImpl_ArchiveRecipeStepProduct(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -978,11 +934,9 @@ func TestServiceImpl_ArchiveRecipeStepProduct(T *testing.T) {
 		exampleRecipeStepProductID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -1017,7 +971,7 @@ func TestServiceImpl_ArchiveRecipeStepProduct(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -1025,11 +979,9 @@ func TestServiceImpl_ArchiveRecipeStepProduct(T *testing.T) {
 		exampleRecipeStepProductID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -1060,7 +1012,7 @@ func TestServiceImpl_ArchiveRecipeStepVessel(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -1068,11 +1020,9 @@ func TestServiceImpl_ArchiveRecipeStepVessel(T *testing.T) {
 		exampleRecipeStepVesselID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -1107,7 +1057,7 @@ func TestServiceImpl_ArchiveRecipeStepVessel(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -1115,11 +1065,9 @@ func TestServiceImpl_ArchiveRecipeStepVessel(T *testing.T) {
 		exampleRecipeStepVesselID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -1150,7 +1098,7 @@ func TestServiceImpl_CloneRecipe(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -1167,14 +1115,11 @@ func TestServiceImpl_CloneRecipe(T *testing.T) {
 		}
 		s.mealPlanningManager = mrm
 
-		// Override session context to return specific user ID
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{
-					UserID: exampleUserID,
-				},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{
+				UserID: exampleUserID,
+			},
+		})
 
 		res, err := s.CloneRecipe(ctx, &mealplanninggrpc.CloneRecipeRequest{RecipeId: exampleRecipeID})
 		assert.NotNil(t, res)
@@ -1191,7 +1136,7 @@ func TestServiceImpl_CreateRecipe(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleUserID := mealplanningfakes.BuildFakeID()
@@ -1206,14 +1151,11 @@ func TestServiceImpl_CreateRecipe(T *testing.T) {
 		}
 		s.mealPlanningManager = mrm
 
-		// Override session context to return specific user ID
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{
-					UserID: exampleUserID,
-				},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{
+				UserID: exampleUserID,
+			},
+		})
 
 		exampleInput := fake.BuildFakeForTest[mealplanninggrpc.CreateRecipeRequest](t)
 
@@ -1232,18 +1174,16 @@ func TestServiceImpl_CreateRecipePrepTask(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleCreatedRecipePrepTask := mealplanningfakes.BuildFakeRecipePrepTask()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -1276,17 +1216,15 @@ func TestServiceImpl_CreateRecipePrepTask(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -1316,7 +1254,7 @@ func TestServiceImpl_CreateRecipeRating(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -1332,14 +1270,11 @@ func TestServiceImpl_CreateRecipeRating(T *testing.T) {
 		}
 		s.mealPlanningManager = mrm
 
-		// Override session context to return specific user ID
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{
-					UserID: exampleUserID,
-				},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{
+				UserID: exampleUserID,
+			},
+		})
 
 		exampleInput := fake.BuildFakeForTest[mealplanninggrpc.CreateRecipeRatingRequest](t)
 		exampleInput.RecipeId = exampleRecipeID
@@ -1359,18 +1294,16 @@ func TestServiceImpl_CreateRecipeStep(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleCreatedRecipeStep := mealplanningfakes.BuildFakeRecipeStep()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -1403,17 +1336,15 @@ func TestServiceImpl_CreateRecipeStep(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -1443,7 +1374,7 @@ func TestServiceImpl_CreateRecipeStepCompletionCondition(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -1451,11 +1382,9 @@ func TestServiceImpl_CreateRecipeStepCompletionCondition(T *testing.T) {
 		exampleCreatedRecipeStepCompletionCondition := mealplanningfakes.BuildFakeRecipeStepCompletionCondition()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -1490,18 +1419,16 @@ func TestServiceImpl_CreateRecipeStepCompletionCondition(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleRecipeStepID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -1532,7 +1459,7 @@ func TestServiceImpl_CreateRecipeStepIngredient(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -1540,11 +1467,9 @@ func TestServiceImpl_CreateRecipeStepIngredient(T *testing.T) {
 		exampleCreatedRecipeStepIngredient := mealplanningfakes.BuildFakeRecipeStepIngredient()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -1579,18 +1504,16 @@ func TestServiceImpl_CreateRecipeStepIngredient(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleRecipeStepID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -1621,7 +1544,7 @@ func TestServiceImpl_CreateRecipeStepInstrument(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -1629,11 +1552,9 @@ func TestServiceImpl_CreateRecipeStepInstrument(T *testing.T) {
 		exampleCreatedRecipeStepInstrument := mealplanningfakes.BuildFakeRecipeStepInstrument()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -1668,18 +1589,16 @@ func TestServiceImpl_CreateRecipeStepInstrument(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleRecipeStepID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -1710,7 +1629,7 @@ func TestServiceImpl_CreateRecipeStepProduct(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -1718,11 +1637,9 @@ func TestServiceImpl_CreateRecipeStepProduct(T *testing.T) {
 		exampleCreatedRecipeStepProduct := mealplanningfakes.BuildFakeRecipeStepProduct()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -1757,18 +1674,16 @@ func TestServiceImpl_CreateRecipeStepProduct(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleRecipeStepID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -1799,7 +1714,7 @@ func TestServiceImpl_CreateRecipeStepVessel(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -1807,11 +1722,9 @@ func TestServiceImpl_CreateRecipeStepVessel(T *testing.T) {
 		exampleCreatedRecipeStepVessel := mealplanningfakes.BuildFakeRecipeStepVessel()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
 
@@ -1846,18 +1759,16 @@ func TestServiceImpl_CreateRecipeStepVessel(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleRecipeStepID := mealplanningfakes.BuildFakeID()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -1888,7 +1799,7 @@ func TestServiceImpl_GetMermaidDiagramForRecipe(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -1920,7 +1831,7 @@ func TestServiceImpl_GetRecipe(T *testing.T) {
 
 		exampleResult := mealplanningfakes.BuildFakeRecipe()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -1946,7 +1857,7 @@ func TestServiceImpl_EstimateRecipePrepTasks(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
@@ -1982,7 +1893,7 @@ func TestServiceImpl_GetRecipePrepTask(T *testing.T) {
 
 		exampleResult := mealplanningfakes.BuildFakeRecipePrepTask()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2015,7 +1926,7 @@ func TestServiceImpl_GetRecipePrepTasks(T *testing.T) {
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeRecipePrepTasksList()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2044,7 +1955,7 @@ func TestServiceImpl_GetRecipeRating(T *testing.T) {
 
 		exampleResult := mealplanningfakes.BuildFakeRecipeRating()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2077,7 +1988,7 @@ func TestServiceImpl_GetRecipeRatingsForRecipe(T *testing.T) {
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeRecipeRatingsList()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2106,7 +2017,7 @@ func TestServiceImpl_GetRecipeStep(T *testing.T) {
 
 		exampleResult := mealplanningfakes.BuildFakeRecipeStep()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2139,7 +2050,7 @@ func TestServiceImpl_GetRecipeStepCompletionCondition(T *testing.T) {
 		exampleResult := mealplanningfakes.BuildFakeRecipeStepCompletionCondition()
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2175,7 +2086,7 @@ func TestServiceImpl_GetRecipeStepCompletionConditions(T *testing.T) {
 		exampleRecipeStepID := mealplanningfakes.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeRecipeStepCompletionConditionsList()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2209,7 +2120,7 @@ func TestServiceImpl_GetRecipeStepIngredient(T *testing.T) {
 		exampleResult := mealplanningfakes.BuildFakeRecipeStepIngredient()
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2245,7 +2156,7 @@ func TestServiceImpl_GetRecipeStepIngredients(T *testing.T) {
 		exampleRecipeStepID := mealplanningfakes.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeRecipeStepIngredientsList()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2279,7 +2190,7 @@ func TestServiceImpl_GetRecipeStepInstrument(T *testing.T) {
 		exampleResult := mealplanningfakes.BuildFakeRecipeStepInstrument()
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2315,7 +2226,7 @@ func TestServiceImpl_GetRecipeStepInstruments(T *testing.T) {
 		exampleRecipeStepID := mealplanningfakes.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeRecipeStepInstrumentsList()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2349,7 +2260,7 @@ func TestServiceImpl_GetRecipeStepProduct(T *testing.T) {
 		exampleResult := mealplanningfakes.BuildFakeRecipeStepProduct()
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2385,7 +2296,7 @@ func TestServiceImpl_GetRecipeStepProducts(T *testing.T) {
 		exampleRecipeStepID := mealplanningfakes.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeRecipeStepProductsList()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2419,7 +2330,7 @@ func TestServiceImpl_GetRecipeStepVessel(T *testing.T) {
 		exampleResult := mealplanningfakes.BuildFakeRecipeStepVessel()
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2455,7 +2366,7 @@ func TestServiceImpl_GetRecipeStepVessels(T *testing.T) {
 		exampleRecipeStepID := mealplanningfakes.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeRecipeStepVesselsList()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2489,7 +2400,7 @@ func TestServiceImpl_GetRecipeSteps(T *testing.T) {
 		exampleRecipeID := mealplanningfakes.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeRecipeStepsList()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2518,7 +2429,7 @@ func TestServiceImpl_GetRecipes(T *testing.T) {
 
 		exampleResult := mealplanningfakes.BuildFakeRecipesList()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2548,7 +2459,7 @@ func TestServiceImpl_SearchForRecipes(T *testing.T) {
 		exampleResult := mealplanningfakes.BuildFakeRecipesList()
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForRecipesRequest](t)
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2579,7 +2490,7 @@ func TestServiceImpl_SearchForMealEligibleRecipes(T *testing.T) {
 		exampleResult := mealplanningfakes.BuildFakeRecipesList()
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForMealEligibleRecipesRequest](t)
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
@@ -2610,14 +2521,12 @@ func TestServiceImpl_SearchForRecipesWithInstrumentOwnership(T *testing.T) {
 		exampleResult := mealplanningfakes.BuildFakeRecipesList()
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForRecipesWithInstrumentOwnershipRequest](t)
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				ActiveAccountID: exampleAccountID,
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			ActiveAccountID: exampleAccountID,
+		})
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
 			SearchRecipesWithInstrumentOwnershipFunc: func(_ context.Context, accountID string, query string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error) {
@@ -2644,18 +2553,16 @@ func TestServiceImpl_UpdateRecipe(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeRequest](t)
 		exampleResponse := mealplanningfakes.BuildFakeRecipe()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
 		s := buildServiceImplForRecipesTest(t)
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleResponse.CreatedByUser = exampleUserID
 
@@ -2684,17 +2591,15 @@ func TestServiceImpl_UpdateRecipe(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeRequest](t)
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -2721,18 +2626,16 @@ func TestServiceImpl_UpdateRecipePrepTask(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipePrepTaskRequest](t)
 		exampleResponse := mealplanningfakes.BuildFakeRecipePrepTask()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
 		s := buildServiceImplForRecipesTest(t)
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: exampleUserID}
 
@@ -2769,17 +2672,15 @@ func TestServiceImpl_UpdateRecipePrepTask(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipePrepTaskRequest](t)
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -2806,16 +2707,14 @@ func TestServiceImpl_UpdateRecipeRating(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeRatingRequest](t)
 		exampleResponse := mealplanningfakes.BuildFakeRecipeRating()
 
 		s := buildServiceImplForRecipesTest(t)
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleResponse.CreatedByUser},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleResponse.CreatedByUser},
+		})
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
 			UpdateRecipeRatingFunc: func(_ context.Context, recipeID string, recipeRatingID string, _ *mealplanning.RecipeRatingUpdateRequestInput) error {
@@ -2848,18 +2747,16 @@ func TestServiceImpl_UpdateRecipeStep(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeStepRequest](t)
 		exampleResponse := mealplanningfakes.BuildFakeRecipeStep()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
 		s := buildServiceImplForRecipesTest(t)
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: exampleUserID}
 
@@ -2896,17 +2793,15 @@ func TestServiceImpl_UpdateRecipeStep(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeStepRequest](t)
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -2933,18 +2828,16 @@ func TestServiceImpl_UpdateRecipeStepCompletionCondition(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeStepCompletionConditionRequest](t)
 		exampleResponse := mealplanningfakes.BuildFakeRecipeStepCompletionCondition()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
 		s := buildServiceImplForRecipesTest(t)
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: exampleUserID}
 
@@ -2983,17 +2876,15 @@ func TestServiceImpl_UpdateRecipeStepCompletionCondition(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeStepCompletionConditionRequest](t)
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -3020,18 +2911,16 @@ func TestServiceImpl_UpdateRecipeStepIngredient(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeStepIngredientRequest](t)
 		exampleResponse := mealplanningfakes.BuildFakeRecipeStepIngredient()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
 		s := buildServiceImplForRecipesTest(t)
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: exampleUserID}
 
@@ -3070,17 +2959,15 @@ func TestServiceImpl_UpdateRecipeStepIngredient(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeStepIngredientRequest](t)
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -3107,18 +2994,16 @@ func TestServiceImpl_UpdateRecipeStepInstrument(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeStepInstrumentRequest](t)
 		exampleResponse := mealplanningfakes.BuildFakeRecipeStepInstrument()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
 		s := buildServiceImplForRecipesTest(t)
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: exampleUserID}
 
@@ -3157,17 +3042,15 @@ func TestServiceImpl_UpdateRecipeStepInstrument(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeStepInstrumentRequest](t)
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -3194,18 +3077,16 @@ func TestServiceImpl_UpdateRecipeStepProduct(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeStepProductRequest](t)
 		exampleResponse := mealplanningfakes.BuildFakeRecipeStepProduct()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
 		s := buildServiceImplForRecipesTest(t)
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: exampleUserID}
 
@@ -3244,17 +3125,15 @@ func TestServiceImpl_UpdateRecipeStepProduct(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeStepProductRequest](t)
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: mealplanningfakes.BuildFakeID()}
 
@@ -3281,18 +3160,16 @@ func TestServiceImpl_UpdateRecipeStepVessel(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeStepVesselRequest](t)
 		exampleResponse := mealplanningfakes.BuildFakeRecipeStepVessel()
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
 		s := buildServiceImplForRecipesTest(t)
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: exampleUserID}
 
@@ -3331,17 +3208,15 @@ func TestServiceImpl_UpdateRecipeStepVessel(T *testing.T) {
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
 
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateRecipeStepVesselRequest](t)
 		exampleUserID := mealplanningfakes.BuildFakeID()
 
-		s.sessionContextDataFetcher = func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{UserID: exampleUserID},
-			}, nil
-		}
+		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: exampleUserID},
+		})
 
 		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: mealplanningfakes.BuildFakeID()}
 

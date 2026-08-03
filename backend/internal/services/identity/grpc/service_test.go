@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
@@ -43,66 +42,61 @@ func buildTestServiceWithUploadMocks(t *testing.T) (*serviceImpl, *managermock.I
 		identityDataManager:  identityDataManager,
 		uploadedMediaManager: uploadedMediaRepo,
 		uploadManager:        uploadManager,
-		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				Requester: sessions.RequesterInfo{
-					UserID:             identityfakes.BuildFakeID(),
-					AccountStatus:      identity.GoodStandingUserAccountStatus.String(),
-					ServicePermissions: authorization.NewServiceRolePermissionChecker([]string{authorization.ServiceUserRole.String()}, nil),
-				},
-				ActiveAccountID: identityfakes.BuildFakeID(),
-				AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
-					identityfakes.BuildFakeID(): authorization.NewAccountRolePermissionChecker(nil),
-				},
-			}, nil
-		},
 	}
 
 	return service, identityDataManager, uploadedMediaRepo
 }
 
-// buildTestServiceWithAccountMembership returns a service whose authenticated session is a member of
-// (and has the given account as its active account) accountID, satisfying handler ownership checks.
-func buildTestServiceWithAccountMembership(t *testing.T, accountID string) (*serviceImpl, *managermock.IdentityDataManagerMock) {
+// buildSessionContextForTest returns a context whose session is an ordinary, good-standing user.
+func buildSessionContextForTest(t *testing.T) context.Context {
 	t.Helper()
 
-	service, identityDataManager := buildTestService(t)
-	service.sessionContextDataFetcher = func(context.Context) (*sessions.ContextData, error) {
-		return &sessions.ContextData{
-			Requester: sessions.RequesterInfo{
-				UserID:             identityfakes.BuildFakeID(),
-				AccountStatus:      identity.GoodStandingUserAccountStatus.String(),
-				ServicePermissions: authorization.NewServiceRolePermissionChecker([]string{authorization.ServiceUserRole.String()}, nil),
-			},
-			ActiveAccountID: accountID,
-			AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
-				accountID: authorization.NewAccountRolePermissionChecker(nil),
-			},
-		}, nil
-	}
-
-	return service, identityDataManager
+	return buildSessionContextForAccount(t, identityfakes.BuildFakeID())
 }
 
-func buildTestServiceWithSessionError(t *testing.T) *serviceImpl {
+// buildSessionContextForAccount returns a context whose session is a member of (and has as its
+// active account) accountID, satisfying handler ownership checks.
+func buildSessionContextForAccount(t *testing.T, accountID string) context.Context {
 	t.Helper()
 
-	logger := loggingnoop.NewLogger()
-	tracer := tracing.NewTracerForTest(t.Name())
-	identityDataManager := &managermock.IdentityDataManagerMock{}
-
-	service := &serviceImpl{
-		tracer:               tracer,
-		logger:               logger,
-		identityDataManager:  identityDataManager,
-		uploadedMediaManager: &uploadedmediamock.RepositoryMock{},
-		uploadManager:        &mockuploads.UploadManagerMock{},
-		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
-			return nil, errors.New("session error")
+	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
+		Requester: sessions.RequesterInfo{
+			UserID:             identityfakes.BuildFakeID(),
+			AccountStatus:      identity.GoodStandingUserAccountStatus.String(),
+			ServicePermissions: authorization.NewServiceRolePermissionChecker([]string{authorization.ServiceUserRole.String()}, nil),
 		},
-	}
+		ActiveAccountID: accountID,
+		AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
+			accountID: authorization.NewAccountRolePermissionChecker(nil),
+		},
+	})
+}
 
-	return service
+// buildAdminSessionContextForTest returns a context whose session holds service-admin authority.
+func buildAdminSessionContextForTest(t *testing.T) context.Context {
+	t.Helper()
+
+	accountID := identityfakes.BuildFakeID()
+
+	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
+		Requester: sessions.RequesterInfo{
+			UserID:             identityfakes.BuildFakeID(),
+			AccountStatus:      identity.GoodStandingUserAccountStatus.String(),
+			ServicePermissions: authorization.NewServiceRolePermissionChecker([]string{authorization.ServiceAdminRole.String()}, authorization.ServiceAdminPermissions),
+		},
+		ActiveAccountID: accountID,
+		AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
+			accountID: authorization.NewAccountRolePermissionChecker(authorization.AccountMemberPermissions),
+		},
+	})
+}
+
+// buildInsufficientPermissionsSessionContextForTest returns a context whose session holds no
+// service-admin authority, for the handlers that must reject it.
+func buildInsufficientPermissionsSessionContextForTest(t *testing.T) context.Context {
+	t.Helper()
+
+	return buildSessionContextForAccount(t, identityfakes.BuildFakeID())
 }
 
 func TestNewService(t *testing.T) {
@@ -113,14 +107,11 @@ func TestNewService(t *testing.T) {
 
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
-		sessionContextDataFetcher := func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{}, nil
-		}
 		identityDataManager := &managermock.IdentityDataManagerMock{}
 
 		uploadedMediaManager := &uploadedmediamock.RepositoryMock{}
 		uploadManager := &mockuploads.UploadManagerMock{}
-		service := NewService(logger, tracerProvider, sessionContextDataFetcher, identityDataManager, uploadedMediaManager, uploadManager)
+		service := NewService(logger, tracerProvider, identityDataManager, uploadedMediaManager, uploadManager)
 
 		assert.NotNil(t, service)
 		assert.Implements(t, (*identitysvc.IdentityServiceServer)(nil), service)
@@ -130,7 +121,6 @@ func TestNewService(t *testing.T) {
 		assert.True(t, ok)
 		assert.NotNil(t, impl.logger)
 		assert.NotNil(t, impl.tracer)
-		assert.NotNil(t, impl.sessionContextDataFetcher)
 		assert.Equal(t, identityDataManager, impl.identityDataManager)
 		assert.Equal(t, uploadedMediaManager, impl.uploadedMediaManager)
 		assert.Equal(t, uploadManager, impl.uploadManager)
@@ -144,7 +134,7 @@ func TestServiceImpl_buildResponseDetails(t *testing.T) {
 		t.Parallel()
 
 		service, _ := buildTestService(t)
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		result := service.buildResponseDetails(ctx, nil)
 
@@ -157,7 +147,7 @@ func TestServiceImpl_buildResponseDetails(t *testing.T) {
 		t.Parallel()
 
 		service, _ := buildTestService(t)
-		ctx, span := service.tracer.StartSpan(t.Context())
+		ctx, span := service.tracer.StartSpan(buildSessionContextForTest(t))
 		defer span.End()
 
 		result := service.buildResponseDetails(ctx, span)
@@ -171,7 +161,7 @@ func TestServiceImpl_buildResponseDetails(t *testing.T) {
 	t.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 		ctx := t.Context()
 
 		result := service.buildResponseDetails(ctx, nil)
@@ -185,7 +175,7 @@ func TestServiceImpl_buildResponseDetails(t *testing.T) {
 		t.Parallel()
 
 		service, _ := buildTestService(t)
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		result := service.buildResponseDetails(ctx, nil)
 

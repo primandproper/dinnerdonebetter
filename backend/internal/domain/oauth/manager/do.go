@@ -3,7 +3,6 @@ package manager
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
@@ -23,7 +22,6 @@ func RegisterOAuth2Manager(i do.Injector) {
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.TracerProvider](i),
 			do.MustInvoke[random.Generator](i),
-			do.MustInvoke[func(context.Context) (*sessions.ContextData, error)](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),
 			do.MustInvoke[oauth.Repository](i),
 			do.MustInvoke[*queuescfg.Config](i),

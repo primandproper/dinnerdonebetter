@@ -57,9 +57,9 @@ func (s *serviceImpl) GetAuditLogEntriesForAccount(ctx context.Context, request 
 	logger := s.logger.WithSpan(span)
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
-	sessionContextData, err := sessions.FetchContextDataFromContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	// verify the requester is a member of the requested account (service admins may read any account).
@@ -99,9 +99,9 @@ func (s *serviceImpl) GetAuditLogEntriesForUser(ctx context.Context, request *au
 	logger := s.logger.WithSpan(span)
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
 
-	sessionContextData, err := sessions.FetchContextDataFromContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	// a requester may only read their own user audit log; service admins may read any user's.
@@ -140,9 +140,9 @@ func (s *serviceImpl) GetAuditLogEntryByID(ctx context.Context, request *auditsv
 
 	logger := s.logger.WithValue(auditkeys.AuditLogEntryIDKey, request.AuditLogEntryId)
 
-	sessionContextData, err := sessions.FetchContextDataFromContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	auditLogEntry, err := s.auditManager.GetAuditLogEntry(ctx, request.AuditLogEntryId)

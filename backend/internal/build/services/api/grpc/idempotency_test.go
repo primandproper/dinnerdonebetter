@@ -43,7 +43,7 @@ func enabledIdempotencyConfig() *config.APIServiceConfig {
 }
 
 func withPrincipal(ctx context.Context, userID string) context.Context {
-	return context.WithValue(ctx, sessions.SessionContextDataKey, &sessions.ContextData{
+	return sessions.AttachToContext(ctx, &sessions.ContextData{
 		Requester: sessions.RequesterInfo{UserID: userID},
 	})
 }

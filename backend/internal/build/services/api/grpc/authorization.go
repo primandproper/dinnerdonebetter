@@ -117,7 +117,7 @@ func ProvideAuthorizationEnforcer(
 // Service-wide and per-account authority are handed over as separate sets and unioned, which is
 // how the existing check already treats them: a permission held in either place is held.
 func grantsFromSession(ctx context.Context) (platformauthz.Grants, bool) {
-	sessionCtxData, err := sessions.FetchContextDataFromContext(ctx)
+	sessionCtxData, err := sessions.RequireFromContext(ctx)
 	if err != nil || sessionCtxData == nil {
 		return platformauthz.Grants{}, false
 	}

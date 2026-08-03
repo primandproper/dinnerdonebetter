@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
@@ -33,9 +34,9 @@ func (s *serviceImpl) EvaluateBooleanFeatureFlag(ctx context.Context, req *auths
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	featureFlag := strings.TrimSpace(req.GetFeatureFlag())
@@ -62,9 +63,9 @@ func (s *serviceImpl) EvaluateInt64FeatureFlag(ctx context.Context, req *authsvc
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	featureFlag := strings.TrimSpace(req.GetFeatureFlag())
@@ -91,9 +92,9 @@ func (s *serviceImpl) EvaluateStringFeatureFlag(ctx context.Context, req *authsv
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	featureFlag := strings.TrimSpace(req.GetFeatureFlag())
@@ -120,9 +121,9 @@ func (s *serviceImpl) GetAuthStatus(ctx context.Context, _ *authsvc.GetAuthStatu
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	requiresPasswordChange, pcErr := s.identityDataManager.UserRequiresPasswordChange(ctx, sessionContextData.GetUserID())
@@ -150,9 +151,9 @@ func (s *serviceImpl) ExchangeToken(ctx context.Context, request *authsvc.Exchan
 
 	logger := s.logger.WithSpan(span)
 
-	_, err := s.fetchSessionContext(ctx)
+	_, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	newToken, err := s.authenticationManager.ExchangeTokenForUser(ctx, request.RefreshToken, request.DesiredAccountId)
@@ -219,9 +220,9 @@ func (s *serviceImpl) CheckPermissions(ctx context.Context, request *authsvc.Use
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -247,9 +248,9 @@ func (s *serviceImpl) GetActiveAccount(ctx context.Context, request *authsvc.Get
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -277,9 +278,9 @@ func (s *serviceImpl) GetSelf(ctx context.Context, request *authsvc.GetSelfReque
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -327,9 +328,9 @@ func (s *serviceImpl) RefreshTOTPSecret(ctx context.Context, request *authsvc.Re
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -355,9 +356,9 @@ func (s *serviceImpl) RequestEmailVerificationEmail(ctx context.Context, request
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -402,7 +403,7 @@ func (s *serviceImpl) RequestUsernameReminder(ctx context.Context, request *auth
 
 	// A user who forgot their username can't authenticate, so this endpoint is unauthenticated
 	// (mirroring the password-reset flow); only decorate the logger if a session happens to exist.
-	if sessionContextData, scErr := s.fetchSessionContext(ctx); scErr == nil {
+	if sessionContextData, scErr := sessions.RequireFromContext(ctx); scErr == nil {
 		logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 	}
 
@@ -467,9 +468,9 @@ func (s *serviceImpl) UpdatePassword(ctx context.Context, request *authsvc.Updat
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -493,9 +494,9 @@ func (s *serviceImpl) BeginPasskeyRegistration(ctx context.Context, _ *authsvc.B
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	creation, session, err := s.passkeyService.BeginRegistrationOptions(ctx, sessionContextData.GetUserID())
@@ -520,9 +521,9 @@ func (s *serviceImpl) FinishPasskeyRegistration(ctx context.Context, request *au
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	if len(request.AttestationResponse) == 0 {
@@ -606,9 +607,9 @@ func (s *serviceImpl) ListPasskeys(ctx context.Context, _ *authsvc.ListPasskeysR
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -670,9 +671,9 @@ func (s *serviceImpl) ArchivePasskey(ctx context.Context, request *authsvc.Archi
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -698,9 +699,9 @@ func (s *serviceImpl) ListActiveSessions(ctx context.Context, request *authsvc.L
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
@@ -740,9 +741,9 @@ func (s *serviceImpl) RevokeSession(ctx context.Context, request *authsvc.Revoke
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	sessionID := strings.TrimSpace(request.GetSessionId())
@@ -767,9 +768,9 @@ func (s *serviceImpl) RevokeAllOtherSessions(ctx context.Context, _ *authsvc.Rev
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	if err = s.authManager.RevokeAllSessionsForUserExcept(ctx, sessionContextData.GetUserID(), sessionContextData.GetSessionID()); err != nil {
@@ -789,9 +790,9 @@ func (s *serviceImpl) RevokeCurrentSession(ctx context.Context, _ *authsvc.Revok
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	sessionID := sessionContextData.GetSessionID()
@@ -816,9 +817,9 @@ func (s *serviceImpl) AdminListSessionsForUser(ctx context.Context, request *aut
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	if !sessionContextData.GetServicePermissions().CanManageUserSessions() {
@@ -866,9 +867,9 @@ func (s *serviceImpl) AdminRevokeUserSession(ctx context.Context, request *auths
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	if !sessionContextData.GetServicePermissions().CanManageUserSessions() {
@@ -902,9 +903,9 @@ func (s *serviceImpl) AdminRevokeAllUserSessions(ctx context.Context, request *a
 
 	logger := s.logger.WithSpan(span)
 
-	sessionContextData, err := s.fetchSessionContext(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to get session context data")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	if !sessionContextData.GetServicePermissions().CanManageUserSessions() {

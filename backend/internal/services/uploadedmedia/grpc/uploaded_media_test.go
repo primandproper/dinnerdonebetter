@@ -15,6 +15,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
 	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 	"github.com/primandproper/platform-go/v9/uploads"
@@ -26,6 +27,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var (
+	testAccountID = identifiers.New()
+	testUserID    = identifiers.New()
+)
+
 func buildTestService(t *testing.T) (*serviceImpl, *uploadedmediamock.RepositoryMock, *mockuploads.UploadManagerMock) {
 	t.Helper()
 
@@ -35,40 +41,13 @@ func buildTestService(t *testing.T) (*serviceImpl, *uploadedmediamock.Repository
 	uploadManager := &mockuploads.UploadManagerMock{}
 
 	service := &serviceImpl{
-		tracer: tracer,
-		logger: logger,
-		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				ActiveAccountID: "test-account-id",
-				Requester: sessions.RequesterInfo{
-					UserID: "test-user-id",
-				},
-			}, nil
-		},
+		tracer:               tracer,
+		logger:               logger,
 		uploadedMediaManager: uploadedMediaRepo,
 		uploadManager:        uploadManager,
 	}
 
 	return service, uploadedMediaRepo, uploadManager
-}
-
-func buildTestServiceWithSessionError(t *testing.T) *serviceImpl {
-	t.Helper()
-
-	logger := loggingnoop.NewLogger()
-	tracer := tracing.NewTracerForTest(t.Name())
-
-	service := &serviceImpl{
-		tracer: tracer,
-		logger: logger,
-		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
-			return nil, errors.New("session error")
-		},
-		uploadedMediaManager: &uploadedmediamock.RepositoryMock{},
-		uploadManager:        &mockuploads.UploadManagerMock{},
-	}
-
-	return service
 }
 
 // mockUploadStream is a fake upload stream. Recv yields queued messages in order and then
@@ -127,13 +106,22 @@ func (m *mockUploadStream) SetHeader(md metadata.MD) error {
 func (m *mockUploadStream) SetTrailer(md metadata.MD) {
 }
 
+func buildSessionContextForTest(t *testing.T) context.Context {
+	t.Helper()
+
+	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
+		ActiveAccountID: testAccountID,
+		Requester:       sessions.RequesterInfo{UserID: testUserID},
+	})
+}
+
 func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
@@ -163,7 +151,7 @@ func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service, _, _ := buildTestService(t)
 
 		request := &uploadedmediasvc.CreateUploadedMediaRequest{
 			Input: &uploadedmediasvc.UploadedMediaCreationRequestInput{},
@@ -179,7 +167,7 @@ func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		fakeInput := uploadedmediafakes.BuildFakeUploadedMediaCreationRequestInput()
@@ -208,11 +196,11 @@ func TestServiceImpl_GetUploadedMedia(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia.CreatedByUser = "test-user-id"
+		fakeUploadedMedia.CreatedByUser = testUserID
 
 		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
 			assert.Equal(t, fakeUploadedMedia.ID, uploadedMediaID)
@@ -238,7 +226,7 @@ func TestServiceImpl_GetUploadedMedia(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service, _, _ := buildTestService(t)
 
 		request := &uploadedmediasvc.GetUploadedMediaRequest{
 			UploadedMediaId: "some-id",
@@ -254,7 +242,7 @@ func TestServiceImpl_GetUploadedMedia(t *testing.T) {
 	t.Run("permission denied - different user", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
@@ -282,7 +270,7 @@ func TestServiceImpl_GetUploadedMedia(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
@@ -311,13 +299,13 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		fakeUploadedMedia1 := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia1.CreatedByUser = "test-user-id"
+		fakeUploadedMedia1.CreatedByUser = testUserID
 		fakeUploadedMedia2 := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia2.CreatedByUser = "test-user-id"
+		fakeUploadedMedia2.CreatedByUser = testUserID
 
 		fakeUploadedMediaList := []*uploadedmedia.UploadedMedia{
 			fakeUploadedMedia1,
@@ -348,11 +336,11 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 	t.Run("filters out other users' media", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		fakeUploadedMedia1 := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia1.CreatedByUser = "test-user-id"
+		fakeUploadedMedia1.CreatedByUser = testUserID
 		fakeUploadedMedia2 := uploadedmediafakes.BuildFakeUploadedMedia()
 		fakeUploadedMedia2.CreatedByUser = "other-user-id"
 
@@ -387,7 +375,7 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service, _, _ := buildTestService(t)
 
 		request := &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
 			Ids: []string{"id1", "id2"},
@@ -403,7 +391,7 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 	t.Run("no IDs provided", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, _, _ := buildTestService(t)
 
 		request := &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
@@ -420,7 +408,7 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		ids := []string{"id1", "id2"}
@@ -451,7 +439,7 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		fakeUploadedMediaList := &filtering.QueryFilteredResult[uploadedmedia.UploadedMedia]{
@@ -466,13 +454,13 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 		}
 
 		mockRepo.GetUploadedMediaForUserFunc = func(_ context.Context, userID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[uploadedmedia.UploadedMedia], error) {
-			assert.Equal(t, "test-user-id", userID)
+			assert.Equal(t, testUserID, userID)
 
 			return fakeUploadedMediaList, nil
 		}
 
 		request := &uploadedmediasvc.GetUploadedMediaForUserRequest{
-			UserId: "test-user-id",
+			UserId: testUserID,
 			Filter: &grpcfiltering.QueryFilter{},
 		}
 
@@ -489,10 +477,10 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service, _, _ := buildTestService(t)
 
 		request := &uploadedmediasvc.GetUploadedMediaForUserRequest{
-			UserId: "test-user-id",
+			UserId: testUserID,
 			Filter: &grpcfiltering.QueryFilter{},
 		}
 
@@ -506,7 +494,7 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 	t.Run("permission denied - different user", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, _, _ := buildTestService(t)
 
 		request := &uploadedmediasvc.GetUploadedMediaForUserRequest{
@@ -524,17 +512,17 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		mockRepo.GetUploadedMediaForUserFunc = func(_ context.Context, userID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[uploadedmedia.UploadedMedia], error) {
-			assert.Equal(t, "test-user-id", userID)
+			assert.Equal(t, testUserID, userID)
 
 			return nil, errors.New("repository error")
 		}
 
 		request := &uploadedmediasvc.GetUploadedMediaForUserRequest{
-			UserId: "test-user-id",
+			UserId: testUserID,
 			Filter: &grpcfiltering.QueryFilter{},
 		}
 
@@ -554,11 +542,11 @@ func TestServiceImpl_UpdateUploadedMedia(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia.CreatedByUser = "test-user-id"
+		fakeUploadedMedia.CreatedByUser = testUserID
 
 		newStoragePath := "updated/path.jpg"
 
@@ -592,7 +580,7 @@ func TestServiceImpl_UpdateUploadedMedia(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service, _, _ := buildTestService(t)
 
 		request := &uploadedmediasvc.UpdateUploadedMediaRequest{
 			UploadedMediaId: "some-id",
@@ -609,7 +597,7 @@ func TestServiceImpl_UpdateUploadedMedia(t *testing.T) {
 	t.Run("permission denied - different user", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
@@ -638,7 +626,7 @@ func TestServiceImpl_UpdateUploadedMedia(t *testing.T) {
 	t.Run("repository error on get", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
@@ -664,11 +652,11 @@ func TestServiceImpl_UpdateUploadedMedia(t *testing.T) {
 	t.Run("repository error on update", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia.CreatedByUser = "test-user-id"
+		fakeUploadedMedia.CreatedByUser = testUserID
 
 		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
 			assert.Equal(t, fakeUploadedMedia.ID, uploadedMediaID)
@@ -701,11 +689,11 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia.CreatedByUser = "test-user-id"
+		fakeUploadedMedia.CreatedByUser = testUserID
 
 		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
 			assert.Equal(t, fakeUploadedMedia.ID, uploadedMediaID)
@@ -735,7 +723,7 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service, _, _ := buildTestService(t)
 
 		request := &uploadedmediasvc.ArchiveUploadedMediaRequest{
 			UploadedMediaId: "some-id",
@@ -751,7 +739,7 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 	t.Run("permission denied - different user", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
@@ -779,7 +767,7 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 	t.Run("repository error on get", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
@@ -804,11 +792,11 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 	t.Run("repository error on archive", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, mockRepo, _ := buildTestService(t)
 
 		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia.CreatedByUser = "test-user-id"
+		fakeUploadedMedia.CreatedByUser = testUserID
 
 		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
 			assert.Equal(t, fakeUploadedMedia.ID, uploadedMediaID)
@@ -849,7 +837,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		// Create mock stream
 		mockStream := &mockUploadStream{
-			ctx: t.Context(),
+			ctx: buildSessionContextForTest(t),
 		}
 
 		// Setup metadata message
@@ -903,7 +891,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 	t.Run("session context error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _, _ := buildTestService(t)
 
 		mockStream := &mockUploadStream{
 			ctx: t.Context(),
@@ -921,7 +909,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 		service, _, _ := buildTestService(t)
 
 		mockStream := &mockUploadStream{
-			ctx: t.Context(),
+			ctx: buildSessionContextForTest(t),
 		}
 
 		// First message is a chunk instead of metadata
@@ -945,7 +933,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 		service, _, _ := buildTestService(t)
 
 		mockStream := &mockUploadStream{
-			ctx: t.Context(),
+			ctx: buildSessionContextForTest(t),
 		}
 
 		uploadMetadata := &uploadedmediasvc.UploadMetadata{
@@ -974,7 +962,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 		service, _, _ := buildTestService(t)
 
 		mockStream := &mockUploadStream{
-			ctx: t.Context(),
+			ctx: buildSessionContextForTest(t),
 		}
 
 		uploadMetadata := &uploadedmediasvc.UploadMetadata{
@@ -1003,7 +991,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 		service, _, _ := buildTestService(t)
 
 		mockStream := &mockUploadStream{
-			ctx: t.Context(),
+			ctx: buildSessionContextForTest(t),
 		}
 
 		uploadMetadata := &uploadedmediasvc.UploadMetadata{
@@ -1032,7 +1020,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 		service, _, _ := buildTestService(t)
 
 		mockStream := &mockUploadStream{
-			ctx: t.Context(),
+			ctx: buildSessionContextForTest(t),
 		}
 
 		uploadMetadata := &uploadedmediasvc.UploadMetadata{
@@ -1070,7 +1058,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 		service, _, _ := buildTestService(t)
 
 		mockStream := &mockUploadStream{
-			ctx: t.Context(),
+			ctx: buildSessionContextForTest(t),
 		}
 
 		uploadMetadata := &uploadedmediasvc.UploadMetadata{
@@ -1099,7 +1087,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 		service, _, mockUploadMgr := buildTestService(t)
 
 		mockStream := &mockUploadStream{
-			ctx: t.Context(),
+			ctx: buildSessionContextForTest(t),
 		}
 
 		uploadMetadata := &uploadedmediasvc.UploadMetadata{
@@ -1140,7 +1128,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 		service, mockRepo, mockUploadMgr := buildTestService(t)
 
 		mockStream := &mockUploadStream{
-			ctx: t.Context(),
+			ctx: buildSessionContextForTest(t),
 		}
 
 		uploadMetadata := &uploadedmediasvc.UploadMetadata{

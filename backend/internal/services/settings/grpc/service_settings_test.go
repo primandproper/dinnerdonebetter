@@ -13,12 +13,18 @@ import (
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 
 	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+var (
+	testAccountID = identifiers.New()
+	testUserID    = identifiers.New()
 )
 
 func buildTestService(t *testing.T) (*serviceImpl, *settingsmock.RepositoryMock) {
@@ -29,39 +35,21 @@ func buildTestService(t *testing.T) (*serviceImpl, *settingsmock.RepositoryMock)
 	settingsRepo := &settingsmock.RepositoryMock{}
 
 	service := &serviceImpl{
-		tracer: tracer,
-		logger: logger,
-		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				ActiveAccountID: "test-account-id",
-				Requester: sessions.RequesterInfo{
-					UserID: "test-user-id",
-				},
-			}, nil
-		},
+		tracer:          tracer,
+		logger:          logger,
 		settingsManager: settingsRepo,
 	}
 
 	return service, settingsRepo
 }
 
-func buildTestServiceWithSessionError(t *testing.T) (*serviceImpl, *settingsmock.RepositoryMock) {
+func buildSessionContextForTest(t *testing.T) context.Context {
 	t.Helper()
 
-	logger := loggingnoop.NewLogger()
-	tracer := tracing.NewTracerForTest(t.Name())
-	settingsRepo := &settingsmock.RepositoryMock{}
-
-	service := &serviceImpl{
-		tracer: tracer,
-		logger: logger,
-		sessionContextDataFetcher: func(ctx context.Context) (*sessions.ContextData, error) {
-			return nil, errors.New("session error")
-		},
-		settingsManager: settingsRepo,
-	}
-
-	return service, settingsRepo
+	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
+		ActiveAccountID: testAccountID,
+		Requester:       sessions.RequesterInfo{UserID: testUserID},
+	})
 }
 
 func TestServiceImpl_CreateServiceSetting(t *testing.T) {
@@ -70,7 +58,7 @@ func TestServiceImpl_CreateServiceSetting(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSetting := settingsfakes.BuildFakeServiceSetting()
 		exampleInput := settingsfakes.BuildFakeServiceSettingCreationRequestInput()
 
@@ -107,7 +95,7 @@ func TestServiceImpl_CreateServiceSetting(t *testing.T) {
 	t.Run("with invalid input", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, _ := buildTestService(t)
 
 		request := &settingssvc.CreateServiceSettingRequest{
@@ -127,7 +115,7 @@ func TestServiceImpl_CreateServiceSetting(t *testing.T) {
 	t.Run("with repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleInput := settingsfakes.BuildFakeServiceSettingCreationRequestInput()
 
 		service, settingsRepo := buildTestService(t)
@@ -165,7 +153,7 @@ func TestServiceImpl_GetServiceSetting(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSetting := settingsfakes.BuildFakeServiceSetting()
 
 		service, settingsRepo := buildTestService(t)
@@ -194,7 +182,7 @@ func TestServiceImpl_GetServiceSetting(t *testing.T) {
 	t.Run("with repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSetting := settingsfakes.BuildFakeServiceSetting()
 
 		service, settingsRepo := buildTestService(t)
@@ -225,7 +213,7 @@ func TestServiceImpl_GetServiceSettings(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSettingsList := settingsfakes.BuildFakeServiceSettingsList()
 
 		service, settingsRepo := buildTestService(t)
@@ -256,7 +244,7 @@ func TestServiceImpl_GetServiceSettings(t *testing.T) {
 	t.Run("with repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		service, settingsRepo := buildTestService(t)
 
@@ -287,7 +275,7 @@ func TestServiceImpl_SearchForServiceSettings(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSettings := &filtering.QueryFilteredResult[settings.ServiceSetting]{
 			Data: []*settings.ServiceSetting{settingsfakes.BuildFakeServiceSetting()},
 		}
@@ -318,7 +306,7 @@ func TestServiceImpl_SearchForServiceSettings(t *testing.T) {
 	t.Run("with repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		query := "test query"
 
 		service, settingsRepo := buildTestService(t)
@@ -349,7 +337,7 @@ func TestServiceImpl_ArchiveServiceSetting(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSetting := settingsfakes.BuildFakeServiceSetting()
 
 		service, settingsRepo := buildTestService(t)
@@ -376,7 +364,7 @@ func TestServiceImpl_ArchiveServiceSetting(t *testing.T) {
 	t.Run("with repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSetting := settingsfakes.BuildFakeServiceSetting()
 
 		service, settingsRepo := buildTestService(t)

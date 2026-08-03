@@ -14,6 +14,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/issuereports/grpc/converters"
 
 	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v9/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
@@ -24,6 +25,11 @@ import (
 
 // buildTestService builds a service backed by the given repository mock. A nil repo gets an
 // unconfigured mock, which panics if any of its methods are called.
+var (
+	testAccountID = identifiers.New()
+	testUserID    = identifiers.New()
+)
+
 func buildTestService(t *testing.T, issueReportRepo *issuereportmock.RepositoryMock) *serviceImpl {
 	t.Helper()
 
@@ -32,31 +38,19 @@ func buildTestService(t *testing.T, issueReportRepo *issuereportmock.RepositoryM
 	}
 
 	return &serviceImpl{
-		tracer: tracing.NewTracerForTest(t.Name()),
-		logger: loggingnoop.NewLogger(),
-		sessionContextDataFetcher: func(context.Context) (*sessions.ContextData, error) {
-			return &sessions.ContextData{
-				ActiveAccountID: "test-account-id",
-				Requester: sessions.RequesterInfo{
-					UserID: "test-user-id",
-				},
-			}, nil
-		},
+		tracer:              tracing.NewTracerForTest(t.Name()),
+		logger:              loggingnoop.NewLogger(),
 		issueReportsManager: issueReportRepo,
 	}
 }
 
-func buildTestServiceWithSessionError(t *testing.T) *serviceImpl {
+func buildSessionContextForTest(t *testing.T) context.Context {
 	t.Helper()
 
-	return &serviceImpl{
-		tracer: tracing.NewTracerForTest(t.Name()),
-		logger: loggingnoop.NewLogger(),
-		sessionContextDataFetcher: func(context.Context) (*sessions.ContextData, error) {
-			return nil, errors.New("session error")
-		},
-		issueReportsManager: &issuereportmock.RepositoryMock{},
-	}
+	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
+		ActiveAccountID: testAccountID,
+		Requester:       sessions.RequesterInfo{UserID: testUserID},
+	})
 }
 
 func TestServiceImpl_CreateIssueReport(t *testing.T) {
@@ -65,7 +59,7 @@ func TestServiceImpl_CreateIssueReport(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeIssueReport := issuereportfakes.BuildFakeIssueReport()
 		fakeInput := issuereportfakes.BuildFakeIssueReportCreationRequestInput()
@@ -100,7 +94,7 @@ func TestServiceImpl_CreateIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		request := &issuereportssvc.CreateIssueReportRequest{
 			Input: &issuereportssvc.IssueReportCreationRequestInput{},
@@ -116,7 +110,7 @@ func TestServiceImpl_CreateIssueReport(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeInput := issuereportfakes.BuildFakeIssueReportCreationRequestInput()
 
@@ -147,10 +141,10 @@ func TestServiceImpl_GetIssueReport(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeIssueReport := issuereportfakes.BuildFakeIssueReport()
-		fakeIssueReport.BelongsToAccount = "test-account-id"
+		fakeIssueReport.BelongsToAccount = testAccountID
 
 		mockRepo := &issuereportmock.RepositoryMock{
 			GetIssueReportFunc: func(_ context.Context, issueReportID string) (*issuereports.IssueReport, error) {
@@ -179,7 +173,7 @@ func TestServiceImpl_GetIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		request := &issuereportssvc.GetIssueReportRequest{
 			IssueReportId: "some-id",
@@ -195,7 +189,7 @@ func TestServiceImpl_GetIssueReport(t *testing.T) {
 	t.Run("permission denied - different account", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeIssueReport := issuereportfakes.BuildFakeIssueReport()
 		fakeIssueReport.BelongsToAccount = "different-account-id"
@@ -229,7 +223,7 @@ func TestServiceImpl_GetIssueReports(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeIssueReports := &filtering.QueryFilteredResult[issuereports.IssueReport]{
 			Data: []*issuereports.IssueReport{
@@ -268,7 +262,7 @@ func TestServiceImpl_GetIssueReports(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		request := &issuereportssvc.GetIssueReportsRequest{
 			Filter: &grpcfiltering.QueryFilter{},
@@ -288,7 +282,7 @@ func TestServiceImpl_GetIssueReportsForAccount(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeIssueReports := &filtering.QueryFilteredResult[issuereports.IssueReport]{
 			Data: []*issuereports.IssueReport{
@@ -303,7 +297,7 @@ func TestServiceImpl_GetIssueReportsForAccount(t *testing.T) {
 
 		mockRepo := &issuereportmock.RepositoryMock{
 			GetIssueReportsForAccountFunc: func(_ context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[issuereports.IssueReport], error) {
-				assert.Equal(t, "test-account-id", accountID)
+				assert.Equal(t, testAccountID, accountID)
 				assert.NotNil(t, filter)
 
 				return fakeIssueReports, nil
@@ -312,7 +306,7 @@ func TestServiceImpl_GetIssueReportsForAccount(t *testing.T) {
 		service := buildTestService(t, mockRepo)
 
 		request := &issuereportssvc.GetIssueReportsForAccountRequest{
-			AccountId: "test-account-id",
+			AccountId: testAccountID,
 			Filter:    &grpcfiltering.QueryFilter{},
 		}
 
@@ -329,10 +323,10 @@ func TestServiceImpl_GetIssueReportsForAccount(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		request := &issuereportssvc.GetIssueReportsForAccountRequest{
-			AccountId: "test-account-id",
+			AccountId: testAccountID,
 			Filter:    &grpcfiltering.QueryFilter{},
 		}
 
@@ -350,7 +344,7 @@ func TestServiceImpl_GetIssueReportsForTable(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeIssueReports := &filtering.QueryFilteredResult[issuereports.IssueReport]{
 			Data: []*issuereports.IssueReport{
@@ -390,7 +384,7 @@ func TestServiceImpl_GetIssueReportsForTable(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		request := &issuereportssvc.GetIssueReportsForTableRequest{
 			TableName: "recipes",
@@ -411,7 +405,7 @@ func TestServiceImpl_GetIssueReportsForRecord(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeIssueReports := &filtering.QueryFilteredResult[issuereports.IssueReport]{
 			Data: []*issuereports.IssueReport{
@@ -453,7 +447,7 @@ func TestServiceImpl_GetIssueReportsForRecord(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		request := &issuereportssvc.GetIssueReportsForRecordRequest{
 			TableName: "recipes",
@@ -475,10 +469,10 @@ func TestServiceImpl_UpdateIssueReport(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeIssueReport := issuereportfakes.BuildFakeIssueReport()
-		fakeIssueReport.BelongsToAccount = "test-account-id"
+		fakeIssueReport.BelongsToAccount = testAccountID
 
 		mockRepo := &issuereportmock.RepositoryMock{
 			GetIssueReportFunc: func(_ context.Context, issueReportID string) (*issuereports.IssueReport, error) {
@@ -516,7 +510,7 @@ func TestServiceImpl_UpdateIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		request := &issuereportssvc.UpdateIssueReportRequest{
 			IssueReportId: "some-id",
@@ -533,7 +527,7 @@ func TestServiceImpl_UpdateIssueReport(t *testing.T) {
 	t.Run("permission denied - different account", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeIssueReport := issuereportfakes.BuildFakeIssueReport()
 		fakeIssueReport.BelongsToAccount = "different-account-id"
@@ -569,10 +563,10 @@ func TestServiceImpl_ArchiveIssueReport(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeIssueReport := issuereportfakes.BuildFakeIssueReport()
-		fakeIssueReport.BelongsToAccount = "test-account-id"
+		fakeIssueReport.BelongsToAccount = testAccountID
 
 		mockRepo := &issuereportmock.RepositoryMock{
 			GetIssueReportFunc: func(_ context.Context, issueReportID string) (*issuereports.IssueReport, error) {
@@ -605,7 +599,7 @@ func TestServiceImpl_ArchiveIssueReport(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		service := buildTestServiceWithSessionError(t)
+		service := buildTestService(t, nil)
 
 		request := &issuereportssvc.ArchiveIssueReportRequest{
 			IssueReportId: "some-id",
@@ -621,7 +615,7 @@ func TestServiceImpl_ArchiveIssueReport(t *testing.T) {
 	t.Run("permission denied - different account", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		fakeIssueReport := issuereportfakes.BuildFakeIssueReport()
 		fakeIssueReport.BelongsToAccount = "different-account-id"

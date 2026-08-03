@@ -22,7 +22,7 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSettingConfiguration := settingsfakes.BuildFakeServiceSettingConfiguration()
 		exampleInput := settingsfakes.BuildFakeServiceSettingConfigurationCreationRequestInput()
 
@@ -37,7 +37,7 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 		}
 
 		settingsRepo.CreateServiceSettingConfigurationFunc = func(_ context.Context, input *settings.ServiceSettingConfigurationDatabaseCreationInput) (*settings.ServiceSettingConfiguration, error) {
-			assert.True(t, input != nil && input.BelongsToUser == "test-user-id" && input.BelongsToAccount == "test-account-id")
+			assert.True(t, input != nil && input.BelongsToUser == testUserID && input.BelongsToAccount == testAccountID)
 
 			return exampleServiceSettingConfiguration, nil
 		}
@@ -59,7 +59,7 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 		ctx := t.Context()
 		exampleInput := settingsfakes.BuildFakeServiceSettingConfigurationCreationRequestInput()
 
-		service, _ := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &settingssvc.CreateServiceSettingConfigurationRequest{
 			Input: &settingssvc.ServiceSettingConfigurationCreationRequestInput{
@@ -79,7 +79,7 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 	t.Run("with invalid input", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, _ := buildTestService(t)
 
 		request := &settingssvc.CreateServiceSettingConfigurationRequest{
@@ -99,7 +99,7 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 	t.Run("with repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleInput := settingsfakes.BuildFakeServiceSettingConfigurationCreationRequestInput()
 
 		service, settingsRepo := buildTestService(t)
@@ -134,7 +134,7 @@ func TestServiceImpl_GetServiceSettingConfigurationByName(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSettingConfiguration := settingsfakes.BuildFakeServiceSettingConfiguration()
 
 		service, settingsRepo := buildTestService(t)
@@ -144,7 +144,7 @@ func TestServiceImpl_GetServiceSettingConfigurationByName(t *testing.T) {
 		}
 
 		settingsRepo.GetServiceSettingConfigurationForAccountByNameFunc = func(_ context.Context, accountID string, serviceSettingConfigurationName string) (*settings.ServiceSettingConfiguration, error) {
-			assert.Equal(t, "test-account-id", accountID)
+			assert.Equal(t, testAccountID, accountID)
 			assert.Equal(t, exampleServiceSettingConfiguration.ServiceSetting.Name, serviceSettingConfigurationName)
 
 			return exampleServiceSettingConfiguration, nil
@@ -167,7 +167,7 @@ func TestServiceImpl_GetServiceSettingConfigurationByName(t *testing.T) {
 		ctx := t.Context()
 		exampleServiceSettingConfiguration := settingsfakes.BuildFakeServiceSettingConfiguration()
 
-		service, _ := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &settingssvc.GetServiceSettingConfigurationByNameRequest{
 			ServiceSettingConfigurationName: exampleServiceSettingConfiguration.ServiceSetting.Name,
@@ -183,7 +183,7 @@ func TestServiceImpl_GetServiceSettingConfigurationByName(t *testing.T) {
 	t.Run("with repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSettingConfiguration := settingsfakes.BuildFakeServiceSettingConfiguration()
 
 		service, settingsRepo := buildTestService(t)
@@ -193,7 +193,7 @@ func TestServiceImpl_GetServiceSettingConfigurationByName(t *testing.T) {
 		}
 
 		settingsRepo.GetServiceSettingConfigurationForAccountByNameFunc = func(_ context.Context, accountID string, serviceSettingConfigurationName string) (*settings.ServiceSettingConfiguration, error) {
-			assert.Equal(t, "test-account-id", accountID)
+			assert.Equal(t, testAccountID, accountID)
 			assert.Equal(t, exampleServiceSettingConfiguration.ServiceSetting.Name, serviceSettingConfigurationName)
 
 			return nil, errors.New("repository error")
@@ -214,7 +214,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSettingConfigurationsList := settingsfakes.BuildFakeServiceSettingConfigurationsList()
 
 		service, settingsRepo := buildTestService(t)
@@ -227,7 +227,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 		}
 
 		settingsRepo.GetServiceSettingConfigurationsForAccountFunc = func(_ context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
-			assert.Equal(t, "test-account-id", accountID)
+			assert.Equal(t, testAccountID, accountID)
 			assert.True(t, filter != nil)
 
 			return exampleServiceSettingConfigurationsList, nil
@@ -248,7 +248,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 
 		ctx := t.Context()
 
-		service, _ := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		pageSize := uint32(50)
 		request := &settingssvc.GetServiceSettingConfigurationsForAccountRequest{
@@ -267,7 +267,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 	t.Run("with repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		service, settingsRepo := buildTestService(t)
 
@@ -279,7 +279,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 		}
 
 		settingsRepo.GetServiceSettingConfigurationsForAccountFunc = func(_ context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
-			assert.Equal(t, "test-account-id", accountID)
+			assert.Equal(t, testAccountID, accountID)
 			assert.True(t, filter != nil)
 
 			return nil, errors.New("repository error")
@@ -301,7 +301,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSettingConfigurationsList := settingsfakes.BuildFakeServiceSettingConfigurationsList()
 
 		service, settingsRepo := buildTestService(t)
@@ -314,7 +314,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 		}
 
 		settingsRepo.GetServiceSettingConfigurationsForUserFunc = func(_ context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
-			assert.Equal(t, "test-user-id", userID)
+			assert.Equal(t, testUserID, userID)
 			assert.True(t, filter != nil)
 
 			return exampleServiceSettingConfigurationsList, nil
@@ -335,7 +335,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 
 		ctx := t.Context()
 
-		service, _ := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		pageSize := uint32(50)
 		request := &settingssvc.GetServiceSettingConfigurationsForUserRequest{
@@ -354,7 +354,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 	t.Run("with repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 
 		service, settingsRepo := buildTestService(t)
 
@@ -366,7 +366,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 		}
 
 		settingsRepo.GetServiceSettingConfigurationsForUserFunc = func(_ context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
-			assert.Equal(t, "test-user-id", userID)
+			assert.Equal(t, testUserID, userID)
 			assert.True(t, filter != nil)
 
 			return nil, errors.New("repository error")
@@ -388,7 +388,7 @@ func TestServiceImpl_UpdateServiceSettingConfiguration(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSettingConfiguration := settingsfakes.BuildFakeServiceSettingConfiguration()
 		exampleInput := settingsfakes.BuildFakeServiceSettingConfigurationUpdateRequestInput()
 
@@ -428,7 +428,7 @@ func TestServiceImpl_UpdateServiceSettingConfiguration(t *testing.T) {
 	t.Run("with get repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSettingConfiguration := settingsfakes.BuildFakeServiceSettingConfiguration()
 		exampleInput := settingsfakes.BuildFakeServiceSettingConfigurationUpdateRequestInput()
 
@@ -461,7 +461,7 @@ func TestServiceImpl_UpdateServiceSettingConfiguration(t *testing.T) {
 	t.Run("with update repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSettingConfiguration := settingsfakes.BuildFakeServiceSettingConfiguration()
 		exampleInput := settingsfakes.BuildFakeServiceSettingConfigurationUpdateRequestInput()
 
@@ -504,7 +504,7 @@ func TestServiceImpl_ArchiveServiceSettingConfiguration(t *testing.T) {
 	t.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSettingConfiguration := settingsfakes.BuildFakeServiceSettingConfiguration()
 
 		service, settingsRepo := buildTestService(t)
@@ -531,7 +531,7 @@ func TestServiceImpl_ArchiveServiceSettingConfiguration(t *testing.T) {
 	t.Run("with repository error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		exampleServiceSettingConfiguration := settingsfakes.BuildFakeServiceSettingConfiguration()
 
 		service, settingsRepo := buildTestService(t)

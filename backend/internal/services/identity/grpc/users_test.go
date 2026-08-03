@@ -65,7 +65,7 @@ func TestServiceImpl_CreateUser(T *testing.T) {
 			},
 		}
 
-		result, err := service.CreateUser(t.Context(), request)
+		result, err := service.CreateUser(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -100,7 +100,7 @@ func TestServiceImpl_CreateUser(T *testing.T) {
 			},
 		}
 
-		result, err := service.CreateUser(t.Context(), request)
+		result, err := service.CreateUser(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -131,7 +131,7 @@ func TestServiceImpl_ArchiveUser(T *testing.T) {
 			UserId: exampleUserID,
 		}
 
-		result, err := service.ArchiveUser(t.Context(), request)
+		result, err := service.ArchiveUser(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -155,7 +155,7 @@ func TestServiceImpl_ArchiveUser(T *testing.T) {
 			UserId: exampleUserID,
 		}
 
-		result, err := service.ArchiveUser(t.Context(), request)
+		result, err := service.ArchiveUser(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -186,7 +186,7 @@ func TestServiceImpl_GetUser(T *testing.T) {
 			UserId: exampleUser.ID,
 		}
 
-		result, err := service.GetUser(t.Context(), request)
+		result, err := service.GetUser(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -214,7 +214,7 @@ func TestServiceImpl_GetUser(T *testing.T) {
 			UserId: exampleUserID,
 		}
 
-		result, err := service.GetUser(t.Context(), request)
+		result, err := service.GetUser(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -251,7 +251,7 @@ func TestServiceImpl_GetUsers(T *testing.T) {
 			},
 		}
 
-		result, err := service.GetUsers(t.Context(), request)
+		result, err := service.GetUsers(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -265,7 +265,7 @@ func TestServiceImpl_GetUsers(T *testing.T) {
 	T.Run("with error from data manager", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, identityDataManager := buildTestService(t)
 
 		identityDataManager.GetUsersFunc = func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.User], error) {
@@ -296,7 +296,7 @@ func TestServiceImpl_SearchForUsers(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx := buildSessionContextForTest(t)
 		service, identityDataManager := buildTestService(t)
 
 		exampleUsers := &filtering.QueryFilteredResult[identity.User]{
@@ -362,7 +362,7 @@ func TestServiceImpl_SearchForUsers(T *testing.T) {
 			},
 		}
 
-		result, err := service.SearchForUsers(t.Context(), request)
+		result, err := service.SearchForUsers(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -396,7 +396,7 @@ func TestServiceImpl_SearchForUsers(T *testing.T) {
 			},
 		}
 
-		result, err := service.SearchForUsers(t.Context(), request)
+		result, err := service.SearchForUsers(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -427,7 +427,7 @@ func TestServiceImpl_UpdateUserDetails(T *testing.T) {
 			},
 		}
 
-		result, err := service.UpdateUserDetails(t.Context(), request)
+		result, err := service.UpdateUserDetails(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -437,7 +437,7 @@ func TestServiceImpl_UpdateUserDetails(T *testing.T) {
 	T.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &identitysvc.UpdateUserDetailsRequest{
 			Input: &identitysvc.UserDetailsUpdateRequestInput{
@@ -470,7 +470,7 @@ func TestServiceImpl_UpdateUserDetails(T *testing.T) {
 			},
 		}
 
-		result, err := service.UpdateUserDetails(t.Context(), request)
+		result, err := service.UpdateUserDetails(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -501,7 +501,7 @@ func TestServiceImpl_UpdateUserEmailAddress(T *testing.T) {
 			NewEmailAddress: newEmail,
 		}
 
-		result, err := service.UpdateUserEmailAddress(t.Context(), request)
+		result, err := service.UpdateUserEmailAddress(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -511,7 +511,7 @@ func TestServiceImpl_UpdateUserEmailAddress(T *testing.T) {
 	T.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &identitysvc.UpdateUserEmailAddressRequest{
 			NewEmailAddress: "new@example.com",
@@ -542,7 +542,7 @@ func TestServiceImpl_UpdateUserEmailAddress(T *testing.T) {
 			NewEmailAddress: "new@example.com",
 		}
 
-		result, err := service.UpdateUserEmailAddress(t.Context(), request)
+		result, err := service.UpdateUserEmailAddress(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -573,7 +573,7 @@ func TestServiceImpl_UpdateUserUsername(T *testing.T) {
 			NewUsername: newUsername,
 		}
 
-		result, err := service.UpdateUserUsername(t.Context(), request)
+		result, err := service.UpdateUserUsername(buildSessionContextForTest(t), request)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -583,7 +583,7 @@ func TestServiceImpl_UpdateUserUsername(T *testing.T) {
 	T.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		request := &identitysvc.UpdateUserUsernameRequest{
 			NewUsername: "newusername",
@@ -614,7 +614,7 @@ func TestServiceImpl_UpdateUserUsername(T *testing.T) {
 			NewUsername: "newusername",
 		}
 
-		result, err := service.UpdateUserUsername(t.Context(), request)
+		result, err := service.UpdateUserUsername(buildSessionContextForTest(t), request)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -724,7 +724,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 			},
 		}
 
-		mockStream := &mockAvatarUploadStream{ctx: t.Context()}
+		mockStream := &mockAvatarUploadStream{ctx: buildSessionContextForTest(t)}
 		mockStream.recvQueue = []*uploadedmediasvc.UploadRequest{metadataReq, chunkReq}
 
 		uploadManager := service.uploadManager.(*mockuploads.UploadManagerMock)
@@ -747,7 +747,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 	T.Run("with session error", func(t *testing.T) {
 		t.Parallel()
 
-		service := buildTestServiceWithSessionError(t)
+		service, _ := buildTestService(t)
 
 		mockStream := &mockAvatarUploadStream{ctx: t.Context()}
 
@@ -779,7 +779,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 			},
 		}
 
-		mockStream := &mockAvatarUploadStream{ctx: t.Context()}
+		mockStream := &mockAvatarUploadStream{ctx: buildSessionContextForTest(t)}
 		mockStream.recvQueue = []*uploadedmediasvc.UploadRequest{metadataReq, chunkReq}
 
 		uploadManager := service.uploadManager.(*mockuploads.UploadManagerMock)

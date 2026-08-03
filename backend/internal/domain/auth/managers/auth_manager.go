@@ -74,7 +74,6 @@ type AuthManager struct {
 	dataChangesPublisher          messagequeue.Publisher
 	secretGenerator               random.Generator
 	qrCodeBuilder                 qrcodes.Builder
-	sessionContextDataFetcher     func(context.Context) (*sessions.ContextData, error)
 	minimumPasswordLength         uint8
 }
 
@@ -112,7 +111,6 @@ func ProvideAuthManager(
 		secretGenerator:               secretGenerator,
 		qrCodeBuilder:                 qrCodeBuilder,
 		dataChangesPublisher:          dataChangesPublisher,
-		sessionContextDataFetcher:     sessions.FetchContextDataFromContext,
 		minimumPasswordLength:         0,
 	}, nil
 }
@@ -121,9 +119,9 @@ func (l *AuthManager) Self(ctx context.Context) (*identity.User, error) {
 	ctx, span := l.tracer.StartSpan(ctx)
 	defer span.End()
 
-	sessionContextData, err := l.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "failed to get session context data")
+		return nil, observability.PrepareError(err, span, "fetching session context data")
 	}
 	tracing.AttachSessionContextDataToSpan(span, &sessionContextDataForTracing{sessionContextData})
 	logger := sessionContextData.AttachToLogger(l.logger)
@@ -152,9 +150,9 @@ func (l *AuthManager) CheckUserPermissions(ctx context.Context, input *auth.User
 		return nil, observability.PrepareError(perrors.ErrNilInputProvided, span, "nil input provided")
 	}
 
-	sessionContextData, err := l.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "failed to get session context data")
+		return nil, observability.PrepareError(err, span, "fetching session context data")
 	}
 
 	body := &auth.UserPermissionsResponse{
@@ -164,12 +162,12 @@ func (l *AuthManager) CheckUserPermissions(ctx context.Context, input *auth.User
 	// A service-admin session may have no membership in the active account, so the account
 	// permission checker can be absent from the map; comma-ok the lookup and guard the nil
 	// interface value before calling a method on it.
-	accountChecker, hasAccountChecker := sessionContextData.AccountPermissions[sessionContextData.ActiveAccountID]
+	accountChecker, hasAccountChecker := sessionContextData.AccountPermissions[sessionContextData.GetActiveAccountID()]
 
 	for _, perm := range input.Permissions {
 		p := authorization.Permission(perm)
 		hasAccountPerm := hasAccountChecker && accountChecker != nil && accountChecker.HasPermission(p)
-		hasServicePerm := sessionContextData.Requester.ServicePermissions.HasPermission(p)
+		hasServicePerm := sessionContextData.GetServicePermissions().HasPermission(p)
 		body.Permissions[perm] = hasAccountPerm || hasServicePerm
 	}
 
@@ -230,9 +228,9 @@ func (l *AuthManager) NewTOTPSecret(ctx context.Context, input *auth.TOTPSecretR
 
 	logger := l.logger.WithSpan(span)
 
-	sessionContextData, err := l.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "failed to get session context data")
+		return nil, observability.PrepareError(err, span, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -244,7 +242,7 @@ func (l *AuthManager) NewTOTPSecret(ctx context.Context, input *auth.TOTPSecretR
 	logger = sessionContextData.AttachToLogger(logger)
 
 	// fetch user
-	user, err := l.userDataManager.GetUser(ctx, sessionContextData.Requester.UserID)
+	user, err := l.userDataManager.GetUser(ctx, sessionContextData.GetUserID())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, observability.PrepareError(err, span, "user does not exist")
@@ -271,7 +269,7 @@ func (l *AuthManager) NewTOTPSecret(ctx context.Context, input *auth.TOTPSecretR
 	}
 
 	// document who this is for.
-	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.Requester.UserID)
+	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.GetUserID())
 	tracing.AttachToSpan(span, identitykeys.UsernameKey, user.Username)
 	logger = logger.WithValue(identitykeys.UserIDKey, user.ID)
 
@@ -315,9 +313,9 @@ func (l *AuthManager) UpdatePassword(ctx context.Context, input *auth.PasswordUp
 
 	logger := l.logger.WithSpan(span)
 
-	sessionContextData, err := l.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return observability.PrepareError(err, span, "failed to get session context data")
+		return observability.PrepareError(err, span, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -326,12 +324,12 @@ func (l *AuthManager) UpdatePassword(ctx context.Context, input *auth.PasswordUp
 	}
 
 	// determine relevant user ID.
-	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.Requester.UserID)
+	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.GetUserID())
 	logger = sessionContextData.AttachToLogger(logger)
 
 	user, err := l.validateCredentialsForUpdateRequest(
 		ctx,
-		sessionContextData.Requester.UserID,
+		sessionContextData.GetUserID(),
 		input.CurrentPassword,
 		input.TOTPToken,
 	)
@@ -372,9 +370,9 @@ func (l *AuthManager) UpdateUserEmailAddress(ctx context.Context, input *auth.Us
 
 	logger := l.logger.WithSpan(span)
 
-	sessionContextData, err := l.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return observability.PrepareError(err, span, "failed to get session context data")
+		return observability.PrepareError(err, span, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -384,12 +382,12 @@ func (l *AuthManager) UpdateUserEmailAddress(ctx context.Context, input *auth.Us
 	tracing.AttachToSpan(span, identitykeys.UserEmailAddressKey, input.NewEmailAddress)
 
 	// determine relevant user ID.
-	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.Requester.UserID)
+	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.GetUserID())
 	logger = sessionContextData.AttachToLogger(logger)
 
 	user, err := l.validateCredentialsForUpdateRequest(
 		ctx,
-		sessionContextData.Requester.UserID,
+		sessionContextData.GetUserID(),
 		input.CurrentPassword,
 		input.TOTPToken,
 	)
@@ -418,9 +416,9 @@ func (l *AuthManager) UpdateUserUsername(ctx context.Context, input *auth.Userna
 
 	logger := l.logger.WithSpan(span)
 
-	sessionContextData, err := l.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return observability.PrepareError(err, span, "failed to get session context data")
+		return observability.PrepareError(err, span, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -430,12 +428,12 @@ func (l *AuthManager) UpdateUserUsername(ctx context.Context, input *auth.Userna
 	tracing.AttachToSpan(span, identitykeys.UsernameKey, input.NewUsername)
 
 	// determine relevant user ID.
-	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.Requester.UserID)
+	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.GetUserID())
 	logger = sessionContextData.AttachToLogger(logger)
 
 	user, err := l.validateCredentialsForUpdateRequest(
 		ctx,
-		sessionContextData.Requester.UserID,
+		sessionContextData.GetUserID(),
 		input.CurrentPassword,
 		input.TOTPToken,
 	)
@@ -466,7 +464,9 @@ func (l *AuthManager) RequestUsernameReminder(ctx context.Context, input *auth.U
 
 	// The session is optional: a user who forgot their username can't be authenticated, so this
 	// mirrors the password-reset flow and only decorates the logger when a session happens to exist.
-	if sessionContextData, scdErr := l.sessionContextDataFetcher(ctx); scdErr == nil {
+	// This flow is reachable without authentication, so a missing session is expected rather than
+	// an error; attribute the log line only when one is present.
+	if sessionContextData := sessions.FromContext(ctx); sessionContextData != nil {
 		logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 	}
 
@@ -545,7 +545,9 @@ func (l *AuthManager) PasswordResetTokenRedemption(ctx context.Context, input *a
 	defer span.End()
 
 	logger := l.logger.WithSpan(span)
-	if sessionContextData, err := l.sessionContextDataFetcher(ctx); err == nil {
+	// This flow is reachable without authentication, so a missing session is expected rather than
+	// an error; attribute the log line only when one is present.
+	if sessionContextData := sessions.FromContext(ctx); sessionContextData != nil {
 		logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 	}
 
@@ -614,13 +616,13 @@ func (l *AuthManager) RequestEmailVerificationEmail(ctx context.Context) error {
 
 	logger := l.logger.WithSpan(span)
 
-	sessionContextData, err := l.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return observability.PrepareError(err, span, "failed to get session context data")
+		return observability.PrepareError(err, span, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	verificationToken, err := l.userDataManager.GetEmailAddressVerificationTokenForUser(ctx, sessionContextData.Requester.UserID)
+	verificationToken, err := l.userDataManager.GetEmailAddressVerificationTokenForUser(ctx, sessionContextData.GetUserID())
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return observability.PrepareError(err, span, "email verification token not found")
 	} else if err != nil {
@@ -629,7 +631,7 @@ func (l *AuthManager) RequestEmailVerificationEmail(ctx context.Context) error {
 
 	l.dataChangesPublisher.PublishAsync(ctx, &audit.DataChangeMessage{
 		EventType: auth.UserEmailAddressVerificationEmailRequestedEventType,
-		UserID:    sessionContextData.Requester.UserID,
+		UserID:    sessionContextData.GetUserID(),
 		Context: map[string]any{
 			identitykeys.UserEmailVerificationTokenKey: verificationToken,
 		},
@@ -644,9 +646,9 @@ func (l *AuthManager) VerifyUserEmailAddress(ctx context.Context, input *auth.Em
 
 	logger := l.logger.WithSpan(span)
 
-	sessionContextData, err := l.sessionContextDataFetcher(ctx)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return observability.PrepareError(err, span, "failed to get session context data")
+		return observability.PrepareError(err, span, "fetching session context data")
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
