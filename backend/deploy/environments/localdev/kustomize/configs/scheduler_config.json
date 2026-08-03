@@ -5,6 +5,10 @@
 		"searchIndexRequestsTopicName": "search_index_requests",
 		"mobileNotificationsTopicName": "mobile_notifications"
 	},
+	"capitalism": {
+		"stripe": null,
+		"provider": "noop"
+	},
 	"events": {
 		"consumer": {
 			"kafka": {
@@ -168,6 +172,14 @@
 			"enabled": true,
 			"runOnStart": false
 		},
+		"meteringFlusher": {
+			"schedule": "",
+			"interval": 300000000000,
+			"timeout": 120000000000,
+			"leaseTTL": 600000000000,
+			"enabled": true,
+			"runOnStart": false
+		},
 		"mealPlanning": {
 			"mealPlanFinalizationStarter": {
 				"schedule": "",
@@ -263,6 +275,36 @@
 		"stepTimeout": 120000000000,
 		"batchSize": 10,
 		"concurrency": 4
+	},
+	"metering": {
+		"tablePrefix": "",
+		"enforcer": {
+			"cachePrefix": "metering:",
+			"staleness": 10000000000,
+			"failOpen": false
+		},
+		"flusher": {
+			"backoff": {
+				"provider": "",
+				"maxAttempts": 10,
+				"initialDelay": 1000000000,
+				"maxDelay": 300000000000,
+				"multiplier": 2,
+				"useJitter": true
+			},
+			"leaseDuration": 300000000000,
+			"flushTimeout": 30000000000,
+			"eventRetention": 7776000000000000,
+			"batchSize": 100,
+			"concurrency": 4,
+			"maxAttempts": 10,
+			"reapBatchSize": 1000,
+			"disableReap": false
+		},
+		"recorder": {
+			"batchSize": 100,
+			"rejectUnknownMeters": false
+		}
 	},
 	"webhooks": {
 		"tablePrefix": "",

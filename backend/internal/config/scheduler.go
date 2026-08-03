@@ -12,9 +12,11 @@ import (
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	"github.com/primandproper/platform-go/v9/audit"
+	capitalismcfg "github.com/primandproper/platform-go/v9/capitalism/config"
 	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
 	"github.com/primandproper/platform-go/v9/jobs"
 	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
+	meteringcfg "github.com/primandproper/platform-go/v9/metering/config"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/outbox"
 	"github.com/primandproper/platform-go/v9/saga"
@@ -36,7 +38,14 @@ type (
 	SchedulerConfig struct {
 		_ struct{} `json:"-"`
 
-		Queues        queuescfg.Config     `envPrefix:"QUEUES_"        json:"queues"`
+		Queues queuescfg.Config `envPrefix:"QUEUES_" json:"queues"`
+
+		// Capitalism is where the flusher's usage reporter comes from. It lives in this
+		// process rather than the API server's because usage reporting happens on a
+		// scheduler tick, and a request path has no business holding the credentials for
+		// it. A provider of "noop" is a supported deployment and the current one: usage
+		// accumulates durably and nothing reaches a billing provider.
+		Capitalism    capitalismcfg.Config `envPrefix:"CAPITALISM_"    json:"capitalism"`
 		Events        msgconfig.Config     `envPrefix:"EVENTS_"        json:"events"`
 		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability"`
 		Analytics     analyticscfg.Config  `envPrefix:"ANALYTICS_"     json:"analytics"`
@@ -62,6 +71,12 @@ type (
 		// loop steps it through, and it polls in seconds rather than minutes because the
 		// poll interval is the floor on how long a step's delay costs.
 		Sagas saga.WorkerConfig `envPrefix:"SAGAS_" json:"sagas"`
+
+		// Metering is the same struct the API server carries, because the flusher has to
+		// read the tables the API server's recorder wrote. Only the flusher half is used
+		// here; the recorder and enforcer knobs are carried anyway so the table prefix
+		// cannot drift between the process that counts and the process that bills.
+		Metering meteringcfg.Config `envPrefix:"METERING_" json:"metering"`
 
 		// Webhooks configures the outbound webhook delivery worker, which lives here for
 		// the same reasons the outbox relay does: it is a polling loop that must not be
@@ -115,6 +130,11 @@ type (
 		// transaction — but every replica sweeping every hour is the same work done
 		// several times for one result, and it is work that deletes.
 		AuditRetentionSweeper ScheduledJobConfig `envPrefix:"AUDIT_RETENTION_SWEEPER_" json:"auditRetentionSweeper"`
+		// MeteringFlusher posts accumulated usage to the billing provider and reaps the
+		// usage event ledger past its retention. Disabling it stops neither the counting
+		// nor the totals it feeds — the recorder is in the API server — but the event
+		// ledger then grows without bound.
+		MeteringFlusher ScheduledJobConfig `envPrefix:"METERING_FLUSHER_" json:"meteringFlusher"`
 
 		// Domain: mealplanning — swapping the domain replaces this field and the type it
 		// names, and touches nothing else in this struct.
@@ -235,6 +255,7 @@ func (cfg *ScheduledJobsConfig) ValidateWithContext(ctx context.Context) error {
 		"QueueTest":                   cfg.QueueTest.ValidateWithContext,
 		"DataPrivacySweep":            cfg.DataPrivacySweep.ValidateWithContext,
 		"AuditRetentionSweeper":       cfg.AuditRetentionSweeper.ValidateWithContext,
+		"MeteringFlusher":             cfg.MeteringFlusher.ValidateWithContext,
 		"MealPlanning":                cfg.MealPlanning.ValidateWithContext,
 	}
 
@@ -265,6 +286,8 @@ func (cfg *SchedulerConfig) ValidateWithContext(ctx context.Context) error {
 		"Audit":         cfg.Audit.ValidateWithContext,
 		"Webhooks":      cfg.Webhooks.ValidateWithContext,
 		"Sagas":         cfg.Sagas.ValidateWithContext,
+		"Metering":      cfg.Metering.ValidateWithContext,
+		"Capitalism":    cfg.Capitalism.ValidateWithContext,
 	}
 
 	for name, validator := range validators {

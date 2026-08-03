@@ -92,4 +92,5 @@ Two-stage config: JSON file (path from `CONFIGURATION_FILEPATH` env var) + envir
 - `docs/migrations.md` — Database migration workflow
 - `docs/configuration.md` — Config loading, env vars, deployment
 - `docs/payments.md` — Payments domain architecture
+- `docs/metering.md` — Usage metering: what is counted, why nothing is limited or billed yet
 - `docs/mcp-usage-guide.md` — MCP server setup and auth flow

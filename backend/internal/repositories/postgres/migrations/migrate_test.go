@@ -8,6 +8,7 @@ import (
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v9/metering"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 
 	"github.com/stretchr/testify/assert"
@@ -59,6 +60,39 @@ func TestQuerier_Migrate(T *testing.T) {
 		// can tell that sweep apart from an attacker. The chain covers deletion instead.
 		_, err = db.ExecContext(ctx, `DELETE FROM `+entries+` WHERE id = $1`, entryID)
 		require.NoError(t, err, "retention has to be able to delete")
+	})
+
+	// The metering event ledger dedupes on (meter, idempotency_key) rather than on the key
+	// alone, and the difference is money. Callers are told to key usage by the identifier of
+	// the thing that caused it, and one such thing routinely feeds more than one meter — an
+	// upload that bills both a byte count and a request count. Keyed on the key alone, the
+	// second meter's insert is silently deduped against the first and that meter is
+	// under-billed forever. This asserts the fix landed in the DDL we actually apply.
+	T.Run("metering events dedupe per meter", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		db, _ := pgtesting.BuildDatabaseContainerForTest(t)
+		migrator, err := NewMigrator(loggingnoop.NewLogger())
+		require.NoError(t, err)
+		require.NoError(t, migrator.Migrate(ctx, db))
+
+		events := metering.DefaultTablePrefix + "metering_events"
+		key, subject := identifiers.New(), identifiers.New()
+
+		insert := func(meter string) error {
+			_, execErr := db.ExecContext(ctx,
+				`INSERT INTO `+events+`
+				 (idempotency_key, subject, meter, quantity, occurred_at, recorded_at, period_start)
+				 VALUES ($1, $2, $3, 1, NOW(), NOW(), NOW())`,
+				key, subject, meter)
+
+			return execErr
+		}
+
+		require.NoError(t, insert("uploaded_media_bytes"))
+		require.NoError(t, insert("api_requests"), "one key feeding two meters must record twice")
+		require.Error(t, insert("api_requests"), "the same key on the same meter must record once")
 	})
 }
 

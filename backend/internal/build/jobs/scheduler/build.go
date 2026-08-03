@@ -170,6 +170,8 @@ func BuildInjector(
 	sagas.RegisterSagas(i)
 	sagas.RegisterSagaWorker(i)
 
+	RegisterMeteringFlusher(i)
+
 	RegisterScheduler(i)
 	RegisterOutboxRelay(i)
 	RegisterAuditSweeper(i)

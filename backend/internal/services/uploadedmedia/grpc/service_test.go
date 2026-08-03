@@ -6,6 +6,7 @@ import (
 	uploadedmediamock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/mock"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
+	meteringmock "github.com/primandproper/platform-go/v9/metering/mock"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 	mockuploads "github.com/primandproper/platform-go/v9/uploads/mock"
@@ -23,7 +24,7 @@ func TestNewService(t *testing.T) {
 		tracerProvider := tracingnoop.NewTracerProvider()
 		uploadedMediaManager := &uploadedmediamock.RepositoryMock{}
 
-		service := NewService(logger, tracerProvider, uploadedMediaManager, &mockuploads.UploadManagerMock{})
+		service := NewService(logger, tracerProvider, uploadedMediaManager, &mockuploads.UploadManagerMock{}, &meteringmock.RecorderMock{})
 
 		assert.NotNil(t, service)
 		assert.Implements(t, (*uploadedmediasvc.UploadedMediaServiceServer)(nil), service)

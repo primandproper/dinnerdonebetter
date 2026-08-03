@@ -23,6 +23,7 @@ import (
 	idempotencycfg "github.com/primandproper/platform-go/v9/idempotency/config"
 	"github.com/primandproper/platform-go/v9/jobs"
 	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
+	meteringcfg "github.com/primandproper/platform-go/v9/metering/config"
 	notificationscfg "github.com/primandproper/platform-go/v9/notifications/mobile/config"
 	"github.com/primandproper/platform-go/v9/observability"
 	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
@@ -96,6 +97,12 @@ type (
 		// deliberate second purchase unless it supplies a key, so this is opt-in per call:
 		// a request without the idempotency-key metadata passes through untouched.
 		Idempotency IdempotencyConfig `envPrefix:"IDEMPOTENCY_" json:"idempotency"`
+
+		// Metering counts what an account consumes. The API server holds only the ingest
+		// half of it — the flusher that posts usage to a billing provider runs in the
+		// scheduler — but both read this same struct, so the tables one writes are by
+		// construction the tables the other flushes.
+		Metering meteringcfg.Config `envPrefix:"METERING_" json:"metering"`
 
 		// Webhooks configures the outbound webhook tables this service writes into. Only the
 		// write side lives here: dispatch rows are written inside the transactions that
@@ -238,6 +245,7 @@ func (cfg *APIServiceConfig) ValidateWithContext(ctx context.Context) error {
 		"TextSearch":    cfg.TextSearch.ValidateWithContext,
 		"Idempotency":   cfg.Idempotency.ValidateWithContext,
 		"Webhooks":      cfg.Webhooks.ValidateWithContext,
+		"Metering":      cfg.Metering.ValidateWithContext,
 		// no "Events" here, that's a collection of publisher/subscriber configs that can each optionally be setup
 	}
 

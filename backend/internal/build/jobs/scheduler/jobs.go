@@ -12,6 +12,7 @@ import (
 	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
 	"github.com/primandproper/platform-go/v9/distributedlock"
 	"github.com/primandproper/platform-go/v9/jobs"
+	"github.com/primandproper/platform-go/v9/metering"
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/observability/metrics"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
@@ -29,6 +30,7 @@ const (
 	jobQueueTest                   = "queue_test"
 	jobDataPrivacySweep            = "data_privacy_sweep"
 	jobAuditRetentionSweeper       = "audit_retention_sweeper"
+	jobMeteringFlusher             = "metering_flusher"
 )
 
 // RegisterScheduler registers the jobs.Scheduler, with every enabled job already registered on
@@ -108,6 +110,19 @@ func RegisterScheduler(i do.Injector) {
 					do.MustInvoke[*audit.Sweeper](i).Sweep(ctx)
 
 					return nil
+				},
+			},
+			{
+				name: jobMeteringFlusher,
+				cfg:  &jobsCfg.MeteringFlusher,
+				// Flush reports what it posted, settled, and reaped; the scheduler has
+				// nowhere to put a result, and the flusher already records all three as
+				// metrics — including the backlog gauge, which is the one instrument in
+				// that package worth alerting on.
+				run: func(ctx context.Context) error {
+					_, workErr := do.MustInvoke[*metering.Flusher](i).Flush(ctx)
+
+					return workErr
 				},
 			},
 		}

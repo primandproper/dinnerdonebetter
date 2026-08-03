@@ -51,6 +51,7 @@ func buildIntegrationTestsConfig() *config.APIServiceConfig {
 
 	return &config.APIServiceConfig{
 		Webhooks: buildWebhooksConfig(),
+		Metering: config.DefaultMeteringConfig(),
 		Routing: routingcfg.Config{
 			Provider: routingcfg.ProviderChi,
 			Chi: &chi.Config{

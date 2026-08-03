@@ -21,6 +21,7 @@ import (
 	featureflagscfg "github.com/primandproper/platform-go/v9/featureflags/config"
 	httpclientcfg "github.com/primandproper/platform-go/v9/httpclient"
 	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
+	meteringcfg "github.com/primandproper/platform-go/v9/metering/config"
 	"github.com/primandproper/platform-go/v9/observability"
 	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
 	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
@@ -57,6 +58,10 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*webhookscfg.Config](i, func(i do.Injector) (*webhookscfg.Config, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)
 		return &cfg.Webhooks, nil
+	})
+	do.Provide[*meteringcfg.Config](i, func(i do.Injector) (*meteringcfg.Config, error) {
+		cfg := do.MustInvoke[*config.APIServiceConfig](i)
+		return &cfg.Metering, nil
 	})
 	do.Provide[*featureflagscfg.Config](i, func(i do.Injector) (*featureflagscfg.Config, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)

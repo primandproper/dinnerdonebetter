@@ -7,8 +7,10 @@ import (
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
+	capitalismcfg "github.com/primandproper/platform-go/v9/capitalism/config"
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"
 	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
+	meteringcfg "github.com/primandproper/platform-go/v9/metering/config"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/saga"
 	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
@@ -45,6 +47,12 @@ func RegisterConfigs(i do.Injector) {
 	})
 	do.Provide[*saga.WorkerConfig](i, func(i do.Injector) (*saga.WorkerConfig, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Sagas, nil
+	})
+	do.Provide[*meteringcfg.Config](i, func(i do.Injector) (*meteringcfg.Config, error) {
+		return &do.MustInvoke[*config.SchedulerConfig](i).Metering, nil
+	})
+	do.Provide[*capitalismcfg.Config](i, func(i do.Injector) (*capitalismcfg.Config, error) {
+		return &do.MustInvoke[*config.SchedulerConfig](i).Capitalism, nil
 	})
 	do.Provide[*config.ScheduledJobsConfig](i, func(i do.Injector) (*config.ScheduledJobsConfig, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Jobs, nil

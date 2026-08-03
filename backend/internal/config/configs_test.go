@@ -17,6 +17,7 @@ import (
 	emailcfg "github.com/primandproper/platform-go/v9/email/config"
 	"github.com/primandproper/platform-go/v9/encoding"
 	featureflagscfg "github.com/primandproper/platform-go/v9/featureflags/config"
+	meteringcfg "github.com/primandproper/platform-go/v9/metering/config"
 	"github.com/primandproper/platform-go/v9/observability"
 	loggingcfg "github.com/primandproper/platform-go/v9/observability/logging/config"
 	"github.com/primandproper/platform-go/v9/routing/backends/chi"
@@ -313,6 +314,18 @@ func TestAPIServiceConfig_Commit(T *testing.T) {
 	})
 }
 
+// validMeteringConfigForTest renders a metering config that passes validation.
+//
+// Every knob has a package default, so EnsureDefaults is the whole of it. It is spelled out
+// rather than left zero because metering validates its own nested configs, and a zero-valued
+// struct fails on eleven required fields at once.
+func validMeteringConfigForTest() meteringcfg.Config {
+	cfg := meteringcfg.Config{}
+	cfg.EnsureDefaults()
+
+	return cfg
+}
+
 // validWebhooksConfigForTest renders a webhooks config that passes validation.
 //
 // EnsureDefaults fills every knob but the circuit breaker's name, which has no default worth
@@ -372,6 +385,7 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 			TextSearch:   textsearchcfg.Config{Provider: textsearchcfg.ProviderNoop},
 			Email:        emailcfg.Config{Provider: emailcfg.ProviderNoop},
 			Webhooks:     validWebhooksConfigForTest(),
+			Metering:     validMeteringConfigForTest(),
 		}
 
 		err := cfg.ValidateWithContext(ctx)
