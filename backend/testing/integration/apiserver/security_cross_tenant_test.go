@@ -5,6 +5,7 @@ import (
 
 	mpconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mpfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	auditsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
@@ -307,13 +308,18 @@ func TestCrossTenant_WebhookTriggerConfig_Denied(T *testing.T) {
 
 		// A creates a webhook and adds a trigger config to it.
 		webhookA := createWebhookForTest(t, clientA)
-		catalogEvent := createWebhookTriggerEventCatalogForTest(t, ctx, clientA, "cross_tenant_archived", "for cross-tenant test")
+
+		// A second event type, distinct from the one the fake already carries.
+		eventType := webhooks.WebhookArchivedServiceEventType
+		if webhookA.TriggerConfigs[0].EventType == eventType {
+			eventType = webhooks.WebhookCreatedServiceEventType
+		}
 
 		addedConfig, err := clientA.AddWebhookTriggerConfig(ctx, &webhookssvc.AddWebhookTriggerConfigRequest{
 			WebhookId: webhookA.ID,
 			Input: &webhookssvc.WebhookTriggerConfigCreationRequestInput{
 				BelongsToWebhook: webhookA.ID,
-				TriggerEventId:   catalogEvent.Id,
+				EventType:        eventType,
 			},
 		})
 		require.NoError(t, err)

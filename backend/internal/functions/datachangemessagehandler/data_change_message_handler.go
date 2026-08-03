@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"sync"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
@@ -16,7 +15,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
@@ -25,7 +23,6 @@ import (
 	"github.com/primandproper/platform-go/v9/analytics"
 	"github.com/primandproper/platform-go/v9/email"
 	"github.com/primandproper/platform-go/v9/encoding"
-	"github.com/primandproper/platform-go/v9/httpclient"
 	"github.com/primandproper/platform-go/v9/jobs"
 	"github.com/primandproper/platform-go/v9/messagequeue"
 	platformnotifications "github.com/primandproper/platform-go/v9/notifications/mobile"
@@ -40,12 +37,11 @@ import (
 const (
 	o11yName = "async_data_change_message_handler"
 
-	topicDataChanges              = "data_changes"
-	topicOutboundEmails           = "outbound_emails"
-	topicSearchIndexRequests      = "search_index_requests"
-	topicWebhookExecutionRequests = "webhook_execution_requests"
-	topicUserDataAggregation      = "user_data_aggregation"
-	topicMobileNotifications      = "mobile_notifications"
+	topicDataChanges         = "data_changes"
+	topicOutboundEmails      = "outbound_emails"
+	topicSearchIndexRequests = "search_index_requests"
+	topicUserDataAggregation = "user_data_aggregation"
+	topicMobileNotifications = "mobile_notifications"
 
 	statusSuccess = "success"
 	statusFailure = "failure"
@@ -77,14 +73,11 @@ type AsyncDataChangeMessageHandler struct {
 	internalOpsRepo                           internalops.InternalOpsDataManager
 	logger                                    logging.Logger
 	decoder                                   encoding.ServerEncoderDecoder
-	webhookExecutionTimestampHistogram        metrics.Float64Histogram
 	userDataAggregationExecutionTimeHistogram metrics.Float64Histogram
 	outboundEmailsPublisher                   messagequeue.Publisher
-	webhookRepo                               webhooks.Repository
 	outboundEmailsExecutionTimeHistogram      metrics.Float64Histogram
 	analyticsEventReporter                    analytics.EventReporter
 	dataChangesExecutionTimeHistogram         metrics.Float64Histogram
-	webhookExecutionRequestPublisher          messagequeue.Publisher
 	mobileNotificationsPublisher              messagequeue.Publisher
 	emailer                                   email.Emailer
 	identityRepo                              identity.Repository
@@ -107,23 +100,14 @@ type AsyncDataChangeMessageHandler struct {
 	metricsProvider                           metrics.Provider
 	mealPlanningDataIndexer                   *mealplanningindexing.MealPlanningDataIndexer
 	userDataIndexer                           *identityindexing.UserDataIndexer
-	webhookHTTPClient                         *http.Client
 	deadLetter                                jobs.DeadLetterFunc
 	queuesConfig                              queuescfg.Config
 	baseURL                                   string
 	searchIndexHandlers                       []SearchIndexEventHandler
 	outboundNotificationHandlers              []OutboundNotificationHandler
 	pools                                     []*jobs.Pool
-	nonWebhookEventTypes                      []string
 	poolsConfig                               config.WorkerPoolsConfig
 	poolsWG                                   sync.WaitGroup
-	nonWebhookEventTypesHat                   sync.RWMutex
-}
-
-func (a *AsyncDataChangeMessageHandler) SetNonWebhookEventTypes(nonWebhookEventTypes []string) {
-	a.nonWebhookEventTypesHat.Lock()
-	defer a.nonWebhookEventTypesHat.Unlock()
-	a.nonWebhookEventTypes = nonWebhookEventTypes
 }
 
 func (a *AsyncDataChangeMessageHandler) recordMessagesProcessed(ctx context.Context, topic, status string) {
@@ -140,7 +124,6 @@ func NewAsyncDataChangeMessageHandler(
 	cfg *config.AsyncMessageHandlerConfig,
 	identityRepo identity.Repository,
 	dataPrivacyRepo dataprivacy.Repository,
-	webhookRepo webhooks.Repository,
 	internalOpsRepo internalops.InternalOpsDataManager,
 	consumerProvider messagequeue.ConsumerProvider,
 	publisherProvider messagequeue.PublisherProvider,
@@ -174,11 +157,6 @@ func NewAsyncDataChangeMessageHandler(
 	userDataAggregationExecutionTimeHistogram, err := metricsProvider.NewFloat64Histogram("user_data_aggregation_execution_time")
 	if err != nil {
 		return nil, fmt.Errorf("setting up userDataAggregation execution time histogram: %w", err)
-	}
-
-	webhookExecutionTimestampHistogram, err := metricsProvider.NewFloat64Histogram("webhook_requests_execution_time")
-	if err != nil {
-		return nil, fmt.Errorf("setting up webhookExecutionRequests execution time histogram: %w", err)
 	}
 
 	mobileNotificationsExecutionTimeHistogram, err := metricsProvider.NewFloat64Histogram("mobile_notifications_execution_time")
@@ -231,11 +209,6 @@ func NewAsyncDataChangeMessageHandler(
 		return nil, fmt.Errorf("configuring search indexing publisher: %w", err)
 	}
 
-	webhookExecutionRequestPublisher, err := publisherProvider.NewPublisher(ctx, cfg.Queues.WebhookExecutionRequestsTopicName)
-	if err != nil {
-		return nil, fmt.Errorf("configuring webhook execution requests publisher: %w", err)
-	}
-
 	mobileNotificationsPublisher, err := publisherProvider.NewPublisher(ctx, cfg.Queues.MobileNotificationsTopicName)
 	if err != nil {
 		return nil, fmt.Errorf("configuring mobile notifications publisher: %w", err)
@@ -251,7 +224,6 @@ func NewAsyncDataChangeMessageHandler(
 
 	// One client for every delivery: a client built per delivery gets its own connection pool,
 	// so every webhook pays for a TLS handshake that no subsequent delivery can reuse.
-	webhookHTTPClient := httpclient.NewHTTPClient(httpclient.WithTracing(true))
 
 	handler := &AsyncDataChangeMessageHandler{
 		tracer:                               tracing.NewNamedTracer(tracerProvider, o11yName),
@@ -259,19 +231,15 @@ func NewAsyncDataChangeMessageHandler(
 		tracerProvider:                       tracerProvider,
 		metricsProvider:                      metricsProvider,
 		poolsConfig:                          cfg.Pools,
-		webhookHTTPClient:                    webhookHTTPClient,
 		deadLetter:                           deadLetter,
-		nonWebhookEventTypes:                 []string{},
 		identityRepo:                         identityRepo,
 		dataPrivacyRepo:                      dataPrivacyRepo,
-		webhookRepo:                          webhookRepo,
 		internalOpsRepo:                      internalOpsRepo,
 		consumerProvider:                     consumerProvider,
 		analyticsEventReporter:               analyticsEventReporter,
 		outboundEmailsPublisher:              outboundEmailsPublisher,
 		searchDataIndexPublisher:             searchDataIndexPublisher,
 		queuesConfig:                         cfg.Queues,
-		webhookExecutionRequestPublisher:     webhookExecutionRequestPublisher,
 		mobileNotificationsPublisher:         mobileNotificationsPublisher,
 		emailer:                              emailer,
 		reportArtifacts:                      reportArtifacts,
@@ -279,7 +247,6 @@ func NewAsyncDataChangeMessageHandler(
 		outboundEmailsExecutionTimeHistogram: outboundEmailsExecutionTimeHistogram,
 		searchIndexRequestsExecutionTimeHistogram: searchIndexRequestsExecutionTimeHistogram,
 		userDataAggregationExecutionTimeHistogram: userDataAggregationExecutionTimeHistogram,
-		webhookExecutionTimestampHistogram:        webhookExecutionTimestampHistogram,
 		mobileNotificationsExecutionTimeHistogram: mobileNotificationsExecutionTimeHistogram,
 		messagesProcessedCounter:                  messagesProcessedCounter,
 		messageDecodeErrorsCounter:                messageDecodeErrorsCounter,

@@ -33,6 +33,7 @@ make test     # tests the backend frontend and iOS folders
 - `docs/recipes.md` — Recipe object model, bridge tables, option groups, scaling
 - `docs/meals.md` — Meals, components, scaling
 - `docs/meal_planning.md` — Meal plans, voting (Schulze), grocery lists, background workers
+- `docs/webhooks.md` — Outbound webhooks: event catalog, signing, retry, secrets
 - `docs/deployment.md` — Release-based deployment, GitHub Actions, Terraform Cloud
 - `docs/spin-up-from-scratch.md` — Greenfield provisioning guide
 - `docs/required-secrets-and-variables.md` — All Terraform and GitHub Actions secrets

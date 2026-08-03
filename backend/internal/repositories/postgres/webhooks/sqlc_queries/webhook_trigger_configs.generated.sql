@@ -12,6 +12,11 @@ INSERT INTO webhook_trigger_configs (
 -- name: ArchiveWebhookTriggerConfig :execrows
 UPDATE webhook_trigger_configs SET
 	archived_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id)
-	AND belongs_to_webhook = sqlc.arg(belongs_to_webhook);
+WHERE webhook_trigger_configs.archived_at IS NULL
+	AND webhook_trigger_configs.id = sqlc.arg(id)
+	AND webhook_trigger_configs.belongs_to_webhook IN (
+		SELECT webhooks.id FROM webhooks
+		WHERE webhooks.id = sqlc.arg(belongs_to_webhook)
+			AND webhooks.belongs_to_account = sqlc.arg(belongs_to_account)
+			AND webhooks.archived_at IS NULL
+	);

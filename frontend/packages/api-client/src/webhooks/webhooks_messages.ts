@@ -10,9 +10,14 @@ import { Timestamp } from '../google/protobuf/timestamp';
 
 export const protobufPackage = 'webhooks';
 
+/**
+ * WebhookContentType is the Content-Type a delivery carries.
+ *
+ * XML is gone. A delivery carries one payload shared by every subscriber of that event, so a
+ * per-endpoint XML rendering would mean dispatching the same event twice; nothing consumed it.
+ */
 export enum WebhookContentType {
   WEBHOOK_CONTENT_TYPE_JSON = 0,
-  WEBHOOK_CONTENT_TYPE_XML = 1,
   UNRECOGNIZED = -1,
 }
 
@@ -21,9 +26,6 @@ export function webhookContentTypeFromJSON(object: any): WebhookContentType {
     case 0:
     case 'WEBHOOK_CONTENT_TYPE_JSON':
       return WebhookContentType.WEBHOOK_CONTENT_TYPE_JSON;
-    case 1:
-    case 'WEBHOOK_CONTENT_TYPE_XML':
-      return WebhookContentType.WEBHOOK_CONTENT_TYPE_XML;
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -35,40 +37,36 @@ export function webhookContentTypeToJSON(object: WebhookContentType): string {
   switch (object) {
     case WebhookContentType.WEBHOOK_CONTENT_TYPE_JSON:
       return 'WEBHOOK_CONTENT_TYPE_JSON';
-    case WebhookContentType.WEBHOOK_CONTENT_TYPE_XML:
-      return 'WEBHOOK_CONTENT_TYPE_XML';
     case WebhookContentType.UNRECOGNIZED:
     default:
       return 'UNRECOGNIZED';
   }
 }
 
+/**
+ * WebhookMethod is the HTTP method a delivery is made with.
+ *
+ * POST only. The other methods described requests nobody was making — a GET carries no body, so
+ * there is nothing to sign and nothing for a subscriber to receive.
+ *
+ * POST keeps value 3 rather than moving to 0. Renumbering it would silently reinterpret every
+ * stored and in-flight message: a persisted 3 would start reading as DELETE's old slot, and a
+ * client sending POST would send a value this enum no longer defines.
+ */
 export enum WebhookMethod {
-  WEBHOOK_METHOD_GET = 0,
-  WEBHOOK_METHOD_PUT = 1,
-  WEBHOOK_METHOD_PATCH = 2,
+  WEBHOOK_METHOD_UNSPECIFIED = 0,
   WEBHOOK_METHOD_POST = 3,
-  WEBHOOK_METHOD_DELETE = 4,
   UNRECOGNIZED = -1,
 }
 
 export function webhookMethodFromJSON(object: any): WebhookMethod {
   switch (object) {
     case 0:
-    case 'WEBHOOK_METHOD_GET':
-      return WebhookMethod.WEBHOOK_METHOD_GET;
-    case 1:
-    case 'WEBHOOK_METHOD_PUT':
-      return WebhookMethod.WEBHOOK_METHOD_PUT;
-    case 2:
-    case 'WEBHOOK_METHOD_PATCH':
-      return WebhookMethod.WEBHOOK_METHOD_PATCH;
+    case 'WEBHOOK_METHOD_UNSPECIFIED':
+      return WebhookMethod.WEBHOOK_METHOD_UNSPECIFIED;
     case 3:
     case 'WEBHOOK_METHOD_POST':
       return WebhookMethod.WEBHOOK_METHOD_POST;
-    case 4:
-    case 'WEBHOOK_METHOD_DELETE':
-      return WebhookMethod.WEBHOOK_METHOD_DELETE;
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -78,16 +76,10 @@ export function webhookMethodFromJSON(object: any): WebhookMethod {
 
 export function webhookMethodToJSON(object: WebhookMethod): string {
   switch (object) {
-    case WebhookMethod.WEBHOOK_METHOD_GET:
-      return 'WEBHOOK_METHOD_GET';
-    case WebhookMethod.WEBHOOK_METHOD_PUT:
-      return 'WEBHOOK_METHOD_PUT';
-    case WebhookMethod.WEBHOOK_METHOD_PATCH:
-      return 'WEBHOOK_METHOD_PATCH';
+    case WebhookMethod.WEBHOOK_METHOD_UNSPECIFIED:
+      return 'WEBHOOK_METHOD_UNSPECIFIED';
     case WebhookMethod.WEBHOOK_METHOD_POST:
       return 'WEBHOOK_METHOD_POST';
-    case WebhookMethod.WEBHOOK_METHOD_DELETE:
-      return 'WEBHOOK_METHOD_DELETE';
     case WebhookMethod.UNRECOGNIZED:
     default:
       return 'UNRECOGNIZED';
@@ -107,6 +99,10 @@ export interface DataCollection_WebhooksEntry {
   value: WebhookList | undefined;
 }
 
+/**
+ * Webhook is one subscriber. Its signing secret is deliberately absent: it is returned once, by
+ * the call that mints it, and no read path can produce it.
+ */
 export interface Webhook {
   createdAt: Date | undefined;
   archivedAt: Date | undefined;
@@ -121,23 +117,34 @@ export interface Webhook {
   createdByUser: string;
 }
 
-/** WebhookTriggerConfig is the join-table record (webhook subscription to a trigger event). */
+/** WebhookTriggerConfig is one webhook's subscription to one event type. */
 export interface WebhookTriggerConfig {
   createdAt: Date | undefined;
   archivedAt: Date | undefined;
   id: string;
   belongsToWebhook: string;
-  triggerEventId: string;
+  /**
+   * event_type is a catalog event type — one of the strings the application publishes.
+   *
+   * Field 5 previously held trigger_event_id, a reference into a table of randomly-identified
+   * catalog rows. Nothing ever matched it: fan-out compared those IDs against event type
+   * strings, so no webhook could ever fire. The event type is now its own identity, and the
+   * old field number is retired rather than reused so a stale client cannot read one as the
+   * other.
+   */
+  eventType: string;
 }
 
-/** WebhookTriggerEvent is the catalog entity for available trigger event types. */
-export interface WebhookTriggerEvent {
-  id: string;
-  name: string;
+/**
+ * WebhookEventType is one subscribable event, for rendering a subscription UI.
+ *
+ * The set of them is generated from the event constants the domains declare rather than stored,
+ * so the events this application publishes and the events a webhook may subscribe to are the
+ * same list by construction.
+ */
+export interface WebhookEventType {
+  type: string;
   description: string;
-  createdAt: Date | undefined;
-  lastUpdatedAt: Date | undefined;
-  archivedAt: Date | undefined;
 }
 
 function createBaseWebhookList(): WebhookList {
@@ -623,7 +630,7 @@ export const Webhook: MessageFns<Webhook> = {
 };
 
 function createBaseWebhookTriggerConfig(): WebhookTriggerConfig {
-  return { createdAt: undefined, archivedAt: undefined, id: '', belongsToWebhook: '', triggerEventId: '' };
+  return { createdAt: undefined, archivedAt: undefined, id: '', belongsToWebhook: '', eventType: '' };
 }
 
 export const WebhookTriggerConfig: MessageFns<WebhookTriggerConfig> = {
@@ -640,8 +647,8 @@ export const WebhookTriggerConfig: MessageFns<WebhookTriggerConfig> = {
     if (message.belongsToWebhook !== '') {
       writer.uint32(34).string(message.belongsToWebhook);
     }
-    if (message.triggerEventId !== '') {
-      writer.uint32(42).string(message.triggerEventId);
+    if (message.eventType !== '') {
+      writer.uint32(50).string(message.eventType);
     }
     return writer;
   },
@@ -685,12 +692,12 @@ export const WebhookTriggerConfig: MessageFns<WebhookTriggerConfig> = {
           message.belongsToWebhook = reader.string();
           continue;
         }
-        case 5: {
-          if (tag !== 42) {
+        case 6: {
+          if (tag !== 50) {
             break;
           }
 
-          message.triggerEventId = reader.string();
+          message.eventType = reader.string();
           continue;
         }
       }
@@ -720,10 +727,10 @@ export const WebhookTriggerConfig: MessageFns<WebhookTriggerConfig> = {
         : isSet(object.belongs_to_webhook)
           ? globalThis.String(object.belongs_to_webhook)
           : '',
-      triggerEventId: isSet(object.triggerEventId)
-        ? globalThis.String(object.triggerEventId)
-        : isSet(object.trigger_event_id)
-          ? globalThis.String(object.trigger_event_id)
+      eventType: isSet(object.eventType)
+        ? globalThis.String(object.eventType)
+        : isSet(object.event_type)
+          ? globalThis.String(object.event_type)
           : '',
     };
   },
@@ -742,8 +749,8 @@ export const WebhookTriggerConfig: MessageFns<WebhookTriggerConfig> = {
     if (message.belongsToWebhook !== '') {
       obj.belongsToWebhook = message.belongsToWebhook;
     }
-    if (message.triggerEventId !== '') {
-      obj.triggerEventId = message.triggerEventId;
+    if (message.eventType !== '') {
+      obj.eventType = message.eventType;
     }
     return obj;
   },
@@ -757,42 +764,30 @@ export const WebhookTriggerConfig: MessageFns<WebhookTriggerConfig> = {
     message.archivedAt = object.archivedAt ?? undefined;
     message.id = object.id ?? '';
     message.belongsToWebhook = object.belongsToWebhook ?? '';
-    message.triggerEventId = object.triggerEventId ?? '';
+    message.eventType = object.eventType ?? '';
     return message;
   },
 };
 
-function createBaseWebhookTriggerEvent(): WebhookTriggerEvent {
-  return { id: '', name: '', description: '', createdAt: undefined, lastUpdatedAt: undefined, archivedAt: undefined };
+function createBaseWebhookEventType(): WebhookEventType {
+  return { type: '', description: '' };
 }
 
-export const WebhookTriggerEvent: MessageFns<WebhookTriggerEvent> = {
-  encode(message: WebhookTriggerEvent, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== '') {
-      writer.uint32(10).string(message.id);
-    }
-    if (message.name !== '') {
-      writer.uint32(18).string(message.name);
+export const WebhookEventType: MessageFns<WebhookEventType> = {
+  encode(message: WebhookEventType, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.type !== '') {
+      writer.uint32(10).string(message.type);
     }
     if (message.description !== '') {
-      writer.uint32(26).string(message.description);
-    }
-    if (message.createdAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(34).fork()).join();
-    }
-    if (message.lastUpdatedAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.lastUpdatedAt), writer.uint32(42).fork()).join();
-    }
-    if (message.archivedAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.archivedAt), writer.uint32(50).fork()).join();
+      writer.uint32(18).string(message.description);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): WebhookTriggerEvent {
+  decode(input: BinaryReader | Uint8Array, length?: number): WebhookEventType {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseWebhookTriggerEvent();
+    const message = createBaseWebhookEventType();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -801,7 +796,7 @@ export const WebhookTriggerEvent: MessageFns<WebhookTriggerEvent> = {
             break;
           }
 
-          message.id = reader.string();
+          message.type = reader.string();
           continue;
         }
         case 2: {
@@ -809,39 +804,7 @@ export const WebhookTriggerEvent: MessageFns<WebhookTriggerEvent> = {
             break;
           }
 
-          message.name = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
           message.description = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
-
-          message.createdAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
-            break;
-          }
-
-          message.lastUpdatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 6: {
-          if (tag !== 50) {
-            break;
-          }
-
-          message.archivedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -853,63 +816,31 @@ export const WebhookTriggerEvent: MessageFns<WebhookTriggerEvent> = {
     return message;
   },
 
-  fromJSON(object: any): WebhookTriggerEvent {
+  fromJSON(object: any): WebhookEventType {
     return {
-      id: isSet(object.id) ? globalThis.String(object.id) : '',
-      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      type: isSet(object.type) ? globalThis.String(object.type) : '',
       description: isSet(object.description) ? globalThis.String(object.description) : '',
-      createdAt: isSet(object.createdAt)
-        ? fromJsonTimestamp(object.createdAt)
-        : isSet(object.created_at)
-          ? fromJsonTimestamp(object.created_at)
-          : undefined,
-      lastUpdatedAt: isSet(object.lastUpdatedAt)
-        ? fromJsonTimestamp(object.lastUpdatedAt)
-        : isSet(object.last_updated_at)
-          ? fromJsonTimestamp(object.last_updated_at)
-          : undefined,
-      archivedAt: isSet(object.archivedAt)
-        ? fromJsonTimestamp(object.archivedAt)
-        : isSet(object.archived_at)
-          ? fromJsonTimestamp(object.archived_at)
-          : undefined,
     };
   },
 
-  toJSON(message: WebhookTriggerEvent): unknown {
+  toJSON(message: WebhookEventType): unknown {
     const obj: any = {};
-    if (message.id !== '') {
-      obj.id = message.id;
-    }
-    if (message.name !== '') {
-      obj.name = message.name;
+    if (message.type !== '') {
+      obj.type = message.type;
     }
     if (message.description !== '') {
       obj.description = message.description;
     }
-    if (message.createdAt !== undefined) {
-      obj.createdAt = message.createdAt.toISOString();
-    }
-    if (message.lastUpdatedAt !== undefined) {
-      obj.lastUpdatedAt = message.lastUpdatedAt.toISOString();
-    }
-    if (message.archivedAt !== undefined) {
-      obj.archivedAt = message.archivedAt.toISOString();
-    }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<WebhookTriggerEvent>, I>>(base?: I): WebhookTriggerEvent {
-    return WebhookTriggerEvent.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<WebhookEventType>, I>>(base?: I): WebhookEventType {
+    return WebhookEventType.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<WebhookTriggerEvent>, I>>(object: I): WebhookTriggerEvent {
-    const message = createBaseWebhookTriggerEvent();
-    message.id = object.id ?? '';
-    message.name = object.name ?? '';
+  fromPartial<I extends Exact<DeepPartial<WebhookEventType>, I>>(object: I): WebhookEventType {
+    const message = createBaseWebhookEventType();
+    message.type = object.type ?? '';
     message.description = object.description ?? '';
-    message.createdAt = object.createdAt ?? undefined;
-    message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
-    message.archivedAt = object.archivedAt ?? undefined;
     return message;
   },
 };

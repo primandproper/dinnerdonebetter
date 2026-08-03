@@ -23,7 +23,7 @@ Accounts represent organizations or groups that users can belong to. Most data i
 - A unique identifier (`ID`)
 - A name and contact information
 - A billing status
-- A webhook encryption key
+- A webhook encryption key (unused; webhooks sign per endpoint — see `docs/webhooks.md`)
 - A list of members
 
 **Domain Definition**: [`internal/domain/identity/account.go`](internal/domain/identity/account.go)

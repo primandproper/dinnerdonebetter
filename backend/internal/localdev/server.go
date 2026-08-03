@@ -21,6 +21,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -31,6 +32,7 @@ import (
 	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
@@ -46,6 +48,7 @@ import (
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 	"github.com/primandproper/platform-go/v9/random"
 	"github.com/primandproper/platform-go/v9/testutils/containers/redistest"
+	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
@@ -250,7 +253,19 @@ func WithSettingsRepository(fn func(ctx context.Context, repo settings.Repositor
 func WithWebhooksRepository(fn func(ctx context.Context, repo webhooks.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) error) DatabaseInitFunc {
 	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
 		auditLogRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, dbClient)
-		webhooksRepo := webhooksrepo.ProvideWebhooksRepository(logger, tracerProvider, auditLogRepo, dbClient, nil)
+		// A dispatcher is needed because creating a webhook registers a delivery endpoint,
+		// and a nil one refuses rather than silently storing a webhook that never fires.
+		store, err := webhookscfg.NewStore(ctx, &webhookscfg.Config{}, dbClient)
+		if err != nil {
+			return err
+		}
+
+		dispatcher, err := webhookdispatch.NewDispatcher(store, catalog.Catalog(), logger, tracerProvider, nil)
+		if err != nil {
+			return err
+		}
+
+		webhooksRepo := webhooksrepo.ProvideWebhooksRepository(logger, tracerProvider, auditLogRepo, dbClient, nil, dispatcher)
 		return fn(ctx, webhooksRepo, logger, tracerProvider)
 	}
 }

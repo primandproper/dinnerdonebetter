@@ -5,8 +5,17 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
+
 	"github.com/stretchr/testify/assert"
 )
+
+// aKnownEventType returns an event type from the real catalog.
+//
+// Read from the catalog rather than through the fakes package, which imports this one.
+func aKnownEventType() string {
+	return catalog.Catalog().EventTypes()[0]
+}
 
 func TestWebhookCreationInput_Validate(T *testing.T) {
 	T.Parallel()
@@ -14,10 +23,10 @@ func TestWebhookCreationInput_Validate(T *testing.T) {
 	buildValidWebhookCreationInput := func() *WebhookCreationRequestInput {
 		return &WebhookCreationRequestInput{
 			Name:        "whatever",
-			ContentType: "application/xml",
+			ContentType: "application/json",
 			URL:         "https://blah.verygoodsoftwarenotvirus.ru",
-			Method:      http.MethodPatch,
-			Events:      []*WebhookTriggerEventCreationRequestInput{{ID: "more_things"}},
+			Method:      DeliveryMethod,
+			Events:      []string{aKnownEventType()},
 		}
 	}
 
@@ -46,7 +55,7 @@ func TestWebhookCreationInput_Validate(T *testing.T) {
 	T.Run("bad method", func(t *testing.T) {
 		t.Parallel()
 		exampleInput := buildValidWebhookCreationInput()
-		exampleInput.Method = "balogna"
+		exampleInput.Method = http.MethodPatch
 
 		assert.Error(t, exampleInput.ValidateWithContext(t.Context()))
 	})
@@ -54,7 +63,27 @@ func TestWebhookCreationInput_Validate(T *testing.T) {
 	T.Run("bad content type", func(t *testing.T) {
 		t.Parallel()
 		exampleInput := buildValidWebhookCreationInput()
-		exampleInput.ContentType = "application/balogna"
+		exampleInput.ContentType = "application/xml"
+
+		assert.Error(t, exampleInput.ValidateWithContext(t.Context()))
+	})
+
+	T.Run("event type outside the catalog", func(t *testing.T) {
+		t.Parallel()
+		exampleInput := buildValidWebhookCreationInput()
+		// A typo'd event type accepted here becomes an endpoint that never fires, and
+		// diagnosing that means noticing an absence.
+		exampleInput.Events = []string{"reciped_created"}
+
+		assert.Error(t, exampleInput.ValidateWithContext(t.Context()))
+	})
+
+	T.Run("event type published but not deliverable", func(t *testing.T) {
+		t.Parallel()
+		exampleInput := buildValidWebhookCreationInput()
+		// user_logged_in is emitted, and deliberately not subscribable: an endpoint URL is
+		// attacker-supplied, and this would be a live feed of an account's sign-in activity.
+		exampleInput.Events = []string{"user_logged_in"}
 
 		assert.Error(t, exampleInput.ValidateWithContext(t.Context()))
 	})
@@ -62,7 +91,7 @@ func TestWebhookCreationInput_Validate(T *testing.T) {
 	T.Run("empty events", func(t *testing.T) {
 		t.Parallel()
 		exampleInput := buildValidWebhookCreationInput()
-		exampleInput.Events = []*WebhookTriggerEventCreationRequestInput{}
+		exampleInput.Events = []string{}
 
 		assert.Error(t, exampleInput.ValidateWithContext(t.Context()))
 	})
@@ -80,8 +109,8 @@ func TestWebhookCreationRequestInput_ValidateWithContext(T *testing.T) {
 			Name:        name,
 			ContentType: "application/json",
 			URL:         "https://pkg.go.dev",
-			Method:      http.MethodPatch,
-			Events:      []*WebhookTriggerEventCreationRequestInput{{ID: name}},
+			Method:      DeliveryMethod,
+			Events:      []string{aKnownEventType()},
 		}
 
 		assert.NoError(t, x.ValidateWithContext(ctx))
@@ -101,7 +130,7 @@ func TestWebhookDatabaseCreationInput_ValidateWithContext(T *testing.T) {
 			Name:             name,
 			ContentType:      "application/json",
 			URL:              "https://pkg.go.dev",
-			Method:           http.MethodPatch,
+			Method:           DeliveryMethod,
 			TriggerConfigs:   []*WebhookTriggerConfigDatabaseCreationInput{{}},
 			BelongsToAccount: name,
 			CreatedByUser:    name,

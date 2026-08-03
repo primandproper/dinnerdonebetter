@@ -11,7 +11,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
@@ -37,7 +36,6 @@ func RegisterAsyncDataChangeMessageHandler(i do.Injector) {
 			do.MustInvoke[*config.AsyncMessageHandlerConfig](i),
 			do.MustInvoke[identity.Repository](i),
 			do.MustInvoke[dataprivacy.Repository](i),
-			do.MustInvoke[webhooks.Repository](i),
 			do.MustInvoke[internalops.InternalOpsDataManager](i),
 			do.MustInvoke[messagequeue.ConsumerProvider](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),

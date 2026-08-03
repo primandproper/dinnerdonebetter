@@ -28,6 +28,9 @@ var (
 	testUserID    = identifiers.New()
 )
 
+// exampleSecret stands in for a hex-encoded signing secret.
+const exampleSecret = "6465616462656566"
+
 func buildTestService(t *testing.T) (*serviceImpl, *webhookmgrmock.WebhookDataManagerMock) {
 	t.Helper()
 
@@ -80,11 +83,11 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 		fakeWebhook := webhookfakes.BuildFakeWebhook()
 		fakeInput := webhookfakes.BuildFakeWebhookCreationRequestInput()
 
-		mockRepo.CreateWebhookFunc = func(_ context.Context, userID string, accountID string, _ *webhooks.WebhookCreationRequestInput) (*webhooks.Webhook, error) {
+		mockRepo.CreateWebhookFunc = func(_ context.Context, userID string, accountID string, _ *webhooks.WebhookCreationRequestInput) (*webhooks.WebhookCreationResponse, error) {
 			assert.Equal(t, testUserID, userID)
 			assert.Equal(t, testAccountID, accountID)
 
-			return fakeWebhook, nil
+			return &webhooks.WebhookCreationResponse{Webhook: fakeWebhook, Secret: exampleSecret}, nil
 		}
 
 		request := &webhookssvc.CreateWebhookRequest{
@@ -98,6 +101,8 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 		assert.NotNil(t, response.Created)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Equal(t, fakeWebhook.ID, response.Created.Id)
+		// The response is the one place the signing secret is ever produced.
+		assert.Equal(t, exampleSecret, response.Secret)
 		assert.Equal(t, fakeWebhook.Name, response.Created.Name)
 		assert.Equal(t, fakeWebhook.URL, response.Created.Url)
 
@@ -117,7 +122,7 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 				Url:         "https://example.com/webhook",
 				Method:      webhookssvc.WebhookMethod_WEBHOOK_METHOD_POST,
 				ContentType: webhookssvc.WebhookContentType_WEBHOOK_CONTENT_TYPE_JSON,
-				Events:      []*webhookssvc.WebhookTriggerEventCreationRequestInput{{Id: &testEventID}},
+				EventTypes:  []string{testEventID},
 			},
 		}
 
@@ -142,7 +147,7 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 				Method:      webhookssvc.WebhookMethod_WEBHOOK_METHOD_POST,
 				ContentType: webhookssvc.WebhookContentType_WEBHOOK_CONTENT_TYPE_JSON,
 				Url:         "https://example.com/webhook",
-				Events:      []*webhookssvc.WebhookTriggerEventCreationRequestInput{{Id: &testEventID}},
+				EventTypes:  []string{testEventID},
 			},
 		}
 
@@ -161,7 +166,7 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 
 		fakeInput := webhookfakes.BuildFakeWebhookCreationRequestInput()
 
-		mockRepo.CreateWebhookFunc = func(_ context.Context, userID string, accountID string, _ *webhooks.WebhookCreationRequestInput) (*webhooks.Webhook, error) {
+		mockRepo.CreateWebhookFunc = func(_ context.Context, userID string, accountID string, _ *webhooks.WebhookCreationRequestInput) (*webhooks.WebhookCreationResponse, error) {
 			assert.Equal(t, testUserID, userID)
 			assert.Equal(t, testAccountID, accountID)
 
@@ -193,7 +198,7 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 
 		fakeConfig := webhookfakes.BuildFakeWebhookTriggerConfig()
 		webhookID := identifiers.New()
-		triggerEventID := fakeConfig.TriggerEventID
+		triggerEventID := fakeConfig.EventType
 
 		mockRepo.AddWebhookTriggerConfigFunc = func(_ context.Context, accountID string, _ *webhooks.WebhookTriggerConfigCreationRequestInput) (*webhooks.WebhookTriggerConfig, error) {
 			assert.Equal(t, testAccountID, accountID)
@@ -205,7 +210,7 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 			WebhookId: webhookID,
 			Input: &webhookssvc.WebhookTriggerConfigCreationRequestInput{
 				BelongsToWebhook: webhookID,
-				TriggerEventId:   triggerEventID,
+				EventType:        triggerEventID,
 			},
 		}
 
@@ -216,7 +221,7 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 		assert.NotNil(t, response.Created)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Equal(t, fakeConfig.ID, response.Created.Id)
-		assert.Equal(t, fakeConfig.TriggerEventID, response.Created.TriggerEventId)
+		assert.Equal(t, fakeConfig.EventType, response.Created.EventType)
 
 		assert.Len(t, mockRepo.AddWebhookTriggerConfigCalls(), 1)
 	})
@@ -233,7 +238,7 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 			WebhookId: webhookID,
 			Input: &webhookssvc.WebhookTriggerConfigCreationRequestInput{
 				BelongsToWebhook: webhookID,
-				TriggerEventId:   triggerEventID,
+				EventType:        triggerEventID,
 			},
 		}
 
@@ -261,7 +266,7 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 			WebhookId: webhookID,
 			Input: &webhookssvc.WebhookTriggerConfigCreationRequestInput{
 				BelongsToWebhook: webhookID,
-				TriggerEventId:   "test_event",
+				EventType:        webhookfakes.BuildFakeWebhookEventType(),
 			},
 		}
 
@@ -532,7 +537,7 @@ func TestServiceImpl_ArchiveWebhookTriggerConfig(t *testing.T) {
 
 			return fakeWebhook, nil
 		}
-		mockRepo.ArchiveWebhookTriggerConfigFunc = func(_ context.Context, actualWebhookID string, actualConfigID string) error {
+		mockRepo.ArchiveWebhookTriggerConfigFunc = func(_ context.Context, actualWebhookID, actualAccountID, actualConfigID string) error {
 			assert.Equal(t, webhookID, actualWebhookID)
 			assert.Equal(t, configID, actualConfigID)
 
@@ -571,7 +576,7 @@ func TestServiceImpl_ArchiveWebhookTriggerConfig(t *testing.T) {
 
 			return fakeWebhook, nil
 		}
-		mockRepo.ArchiveWebhookTriggerConfigFunc = func(_ context.Context, actualWebhookID string, actualConfigID string) error {
+		mockRepo.ArchiveWebhookTriggerConfigFunc = func(_ context.Context, actualWebhookID, actualAccountID, actualConfigID string) error {
 			assert.Equal(t, webhookID, actualWebhookID)
 			assert.Equal(t, configID, actualConfigID)
 
@@ -591,64 +596,6 @@ func TestServiceImpl_ArchiveWebhookTriggerConfig(t *testing.T) {
 
 		assert.Len(t, mockRepo.GetWebhookCalls(), 1)
 		assert.Len(t, mockRepo.ArchiveWebhookTriggerConfigCalls(), 1)
-	})
-}
-
-func TestServiceImpl_ArchiveWebhookTriggerEvent(t *testing.T) {
-	t.Parallel()
-
-	t.Run("success", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
-
-		eventID := identifiers.New()
-
-		mockRepo.ArchiveWebhookTriggerEventFunc = func(_ context.Context, id string) error {
-			assert.Equal(t, eventID, id)
-
-			return nil
-		}
-
-		request := &webhookssvc.ArchiveWebhookTriggerEventRequest{
-			Id: eventID,
-		}
-
-		response, err := service.ArchiveWebhookTriggerEvent(ctx, request)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.ResponseDetails)
-
-		assert.Len(t, mockRepo.ArchiveWebhookTriggerEventCalls(), 1)
-	})
-
-	t.Run("repository error", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		service, mockRepo := buildTestService(t)
-
-		eventID := identifiers.New()
-
-		mockRepo.ArchiveWebhookTriggerEventFunc = func(_ context.Context, id string) error {
-			assert.Equal(t, eventID, id)
-
-			return errors.New("repository error")
-		}
-
-		request := &webhookssvc.ArchiveWebhookTriggerEventRequest{
-			Id: eventID,
-		}
-
-		response, err := service.ArchiveWebhookTriggerEvent(ctx, request)
-
-		assert.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.ArchiveWebhookTriggerEventCalls(), 1)
 	})
 }
 

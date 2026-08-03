@@ -51,7 +51,12 @@ func (m *webhookManager) WebhookExists(ctx context.Context, webhookID, accountID
 	return m.repo.WebhookExists(ctx, webhookID, accountID)
 }
 
-func (m *webhookManager) CreateWebhook(ctx context.Context, userID, accountID string, input *webhooks.WebhookCreationRequestInput) (*webhooks.Webhook, error) {
+// CreateWebhook registers a webhook and returns it together with its signing secret.
+//
+// The secret is returned here and nowhere else. There is no read path that can produce it, which
+// is what makes "stored to sign with" and "handed to the account once" the only two things that
+// ever happen to it.
+func (m *webhookManager) CreateWebhook(ctx context.Context, userID, accountID string, input *webhooks.WebhookCreationRequestInput) (*webhooks.WebhookCreationResponse, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -74,24 +79,15 @@ func (m *webhookManager) CreateWebhook(ctx context.Context, userID, accountID st
 		BelongsToAccount: accountID,
 		TriggerConfigs:   nil,
 	}
-	for _, ev := range input.Events {
-		triggerEventID := ev.ID
-		if triggerEventID == "" {
-			catalogInput := &webhooks.WebhookTriggerEventDatabaseCreationInput{
-				ID:          identifiers.New(),
-				Name:        ev.Name,
-				Description: ev.Description,
-			}
-			created, err := m.repo.CreateWebhookTriggerEvent(ctx, catalogInput)
-			if err != nil {
-				return nil, observability.PrepareAndLogError(err, m.logger, span, "creating catalog trigger event")
-			}
-			triggerEventID = created.ID
-		}
+
+	// Validation has already rejected any event type outside the catalog, so there is nothing
+	// to resolve here — an event type is its own identity now, rather than a foreign key into a
+	// table of randomly-identified rows that the fan-out could never match.
+	for _, eventType := range input.Events {
 		dbInput.TriggerConfigs = append(dbInput.TriggerConfigs, &webhooks.WebhookTriggerConfigDatabaseCreationInput{
 			ID:               identifiers.New(),
 			BelongsToWebhook: webhookID,
-			TriggerEventID:   triggerEventID,
+			EventType:        eventType,
 		})
 	}
 
@@ -100,7 +96,7 @@ func (m *webhookManager) CreateWebhook(ctx context.Context, userID, accountID st
 		return nil, err
 	}
 
-	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, created.ID)
+	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, created.Webhook.ID)
 
 	return created, nil
 }
@@ -149,7 +145,7 @@ func (m *webhookManager) AddWebhookTriggerConfig(ctx context.Context, accountID 
 	dbInput := &webhooks.WebhookTriggerConfigDatabaseCreationInput{
 		ID:               identifiers.New(),
 		BelongsToWebhook: input.BelongsToWebhook,
-		TriggerEventID:   input.TriggerEventID,
+		EventType:        input.EventType,
 	}
 	created, err := m.repo.AddWebhookTriggerConfig(ctx, accountID, dbInput)
 	if err != nil {
@@ -161,67 +157,41 @@ func (m *webhookManager) AddWebhookTriggerConfig(ctx context.Context, accountID 
 	return created, nil
 }
 
-func (m *webhookManager) ArchiveWebhookTriggerConfig(ctx context.Context, webhookID, configID string) error {
+func (m *webhookManager) ArchiveWebhookTriggerConfig(ctx context.Context, webhookID, accountID, configID string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, webhookID)
 	tracing.AttachToSpan(span, webhookkeys.WebhookTriggerConfigIDKey, configID)
 
-	if err := m.repo.ArchiveWebhookTriggerConfig(ctx, webhookID, configID); err != nil {
+	if err := m.repo.ArchiveWebhookTriggerConfig(ctx, webhookID, accountID, configID); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *webhookManager) CreateWebhookTriggerEvent(ctx context.Context, input *webhooks.WebhookTriggerEventCreationRequestInput) (*webhooks.WebhookTriggerEvent, error) {
+// RotateWebhookSecret mints a new signing secret and returns it, once.
+//
+// Deliveries are signed under both the new key and the outgoing one until this is called again,
+// so a subscriber can accept either while it switches over. That window is the whole reason the
+// secret is per-endpoint rather than per-account: a single account-wide key cannot be rolled
+// without breaking every subscriber for that account at the same instant, which in practice
+// means it never gets rolled at all.
+func (m *webhookManager) RotateWebhookSecret(ctx context.Context, webhookID, accountID string) (string, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if input == nil {
-		return nil, observability.PrepareError(errors.New("nil trigger event creation input"), span, "nil trigger event creation input")
-	}
-	if err := input.ValidateWithContext(ctx); err != nil {
-		return nil, observability.PrepareError(err, span, "validating trigger event creation input")
-	}
+	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, webhookID)
 
-	dbInput := &webhooks.WebhookTriggerEventDatabaseCreationInput{
-		ID:          identifiers.New(),
-		Name:        input.Name,
-		Description: input.Description,
-	}
-	return m.repo.CreateWebhookTriggerEvent(ctx, dbInput)
-}
-
-func (m *webhookManager) GetWebhookTriggerEvent(ctx context.Context, id string) (*webhooks.WebhookTriggerEvent, error) {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	return m.repo.GetWebhookTriggerEvent(ctx, id)
-}
-
-func (m *webhookManager) GetWebhookTriggerEvents(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[webhooks.WebhookTriggerEvent], error) {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	return m.repo.GetWebhookTriggerEvents(ctx, filter)
-}
-
-func (m *webhookManager) UpdateWebhookTriggerEvent(ctx context.Context, id string, input *webhooks.WebhookTriggerEventUpdateRequestInput) error {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if input == nil {
-		return platformerrors.ErrNilInputParameter
+	secret, err := m.repo.RotateWebhookSecret(ctx, webhookID, accountID)
+	if err != nil {
+		return "", observability.PrepareAndLogError(err, m.logger.WithSpan(span), span, "rotating webhook signing secret")
 	}
 
-	return m.repo.UpdateWebhookTriggerEvent(ctx, id, input)
+	return secret, nil
 }
 
-func (m *webhookManager) ArchiveWebhookTriggerEvent(ctx context.Context, id string) error {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	return m.repo.ArchiveWebhookTriggerEvent(ctx, id)
+func (m *webhookManager) GetWebhookEventTypes(context.Context) []*webhooks.WebhookEventType {
+	return webhooks.EventTypeCatalog()
 }

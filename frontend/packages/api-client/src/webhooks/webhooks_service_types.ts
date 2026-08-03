@@ -8,17 +8,16 @@
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { ResponseDetails } from '../common';
 import { Pagination, QueryFilter } from '../filtering';
-import { Any } from '../google/protobuf/any';
 import {
   Webhook,
   WebhookContentType,
   webhookContentTypeFromJSON,
   webhookContentTypeToJSON,
+  WebhookEventType,
   WebhookMethod,
   webhookMethodFromJSON,
   webhookMethodToJSON,
   WebhookTriggerConfig,
-  WebhookTriggerEvent,
 } from './webhooks_messages';
 
 export const protobufPackage = 'webhooks';
@@ -28,20 +27,20 @@ export interface WebhookCreationRequestInput {
   contentType: WebhookContentType;
   url: string;
   method: WebhookMethod;
-  events: WebhookTriggerEventCreationRequestInput[];
-}
-
-export interface WebhookExecutionRequest {
-  requestId: string;
-  payload: Any | undefined;
-  webhookId: string;
-  accountId: string;
-  triggerEvent: string;
+  /**
+   * event_types are the catalog event types this webhook subscribes to.
+   *
+   * Field 5 previously carried WebhookTriggerEventCreationRequestInput, which let a caller
+   * define new catalog rows inline. That is gone: the catalog is generated from the events the
+   * application actually publishes, so an event type a caller invents is one nothing will ever
+   * emit. Subscribing to an unknown type is now rejected rather than silently stored.
+   */
+  eventTypes: string[];
 }
 
 export interface WebhookTriggerConfigCreationRequestInput {
   belongsToWebhook: string;
-  triggerEventId: string;
+  eventType: string;
 }
 
 export interface CreateWebhookRequest {
@@ -51,6 +50,18 @@ export interface CreateWebhookRequest {
 export interface CreateWebhookResponse {
   responseDetails: ResponseDetails | undefined;
   created: Webhook | undefined;
+  /**
+   * secret is the hex-encoded HMAC signing key, returned exactly once.
+   *
+   * It is on the creation response and on no read message, so there is no request an attacker
+   * with read access can make that yields it. A caller who loses it calls RotateWebhookSecret.
+   *
+   * Deliveries carry X-Platform-Signature: v1,t=<unix>,s=<hex>, over "v1.<t>.<body>". The
+   * timestamp is inside the signed material, which is what makes a captured delivery expire —
+   * verify it before spending an HMAC. platform-go's webhooks.Verify is the reference
+   * implementation.
+   */
+  secret: string;
 }
 
 export interface AddWebhookTriggerConfigRequest {
@@ -100,68 +111,31 @@ export interface GetWebhooksResponse {
 }
 
 /**
- * Catalog trigger event CRUD
- * When id is set, the existing catalog event is used; otherwise name (and optionally description) create a new catalog event.
+ * RotateWebhookSecret mints a new signing secret for a webhook.
+ *
+ * Deliveries are signed under both the new key and the outgoing one until this is called again,
+ * so a subscriber accepts either signature while it switches over. Rotating twice retires the
+ * original key.
  */
-export interface WebhookTriggerEventCreationRequestInput {
-  name: string;
-  description: string;
-  /** reference existing catalog event by id */
-  id?: string | undefined;
+export interface RotateWebhookSecretRequest {
+  webhookId: string;
 }
 
-export interface CreateWebhookTriggerEventRequest {
-  input: WebhookTriggerEventCreationRequestInput | undefined;
-}
-
-export interface CreateWebhookTriggerEventResponse {
+export interface RotateWebhookSecretResponse {
   responseDetails: ResponseDetails | undefined;
-  created: WebhookTriggerEvent | undefined;
+  /** secret is the new hex-encoded HMAC signing key, returned exactly once. */
+  secret: string;
 }
 
-export interface GetWebhookTriggerEventRequest {
-  id: string;
-}
+export interface GetWebhookEventTypesRequest {}
 
-export interface GetWebhookTriggerEventResponse {
+export interface GetWebhookEventTypesResponse {
   responseDetails: ResponseDetails | undefined;
-  result: WebhookTriggerEvent | undefined;
-}
-
-export interface GetWebhookTriggerEventsRequest {
-  filter: QueryFilter | undefined;
-}
-
-export interface GetWebhookTriggerEventsResponse {
-  responseDetails: ResponseDetails | undefined;
-  pagination: Pagination | undefined;
-  results: WebhookTriggerEvent[];
-}
-
-export interface WebhookTriggerEventUpdateRequestInput {
-  name: string;
-  description: string;
-}
-
-export interface UpdateWebhookTriggerEventRequest {
-  id: string;
-  input: WebhookTriggerEventUpdateRequestInput | undefined;
-}
-
-export interface UpdateWebhookTriggerEventResponse {
-  responseDetails: ResponseDetails | undefined;
-}
-
-export interface ArchiveWebhookTriggerEventRequest {
-  id: string;
-}
-
-export interface ArchiveWebhookTriggerEventResponse {
-  responseDetails: ResponseDetails | undefined;
+  results: WebhookEventType[];
 }
 
 function createBaseWebhookCreationRequestInput(): WebhookCreationRequestInput {
-  return { name: '', contentType: 0, url: '', method: 0, events: [] };
+  return { name: '', contentType: 0, url: '', method: 0, eventTypes: [] };
 }
 
 export const WebhookCreationRequestInput: MessageFns<WebhookCreationRequestInput> = {
@@ -178,8 +152,8 @@ export const WebhookCreationRequestInput: MessageFns<WebhookCreationRequestInput
     if (message.method !== 0) {
       writer.uint32(32).int32(message.method);
     }
-    for (const v of message.events) {
-      WebhookTriggerEventCreationRequestInput.encode(v!, writer.uint32(42).fork()).join();
+    for (const v of message.eventTypes) {
+      writer.uint32(50).string(v!);
     }
     return writer;
   },
@@ -223,12 +197,12 @@ export const WebhookCreationRequestInput: MessageFns<WebhookCreationRequestInput
           message.method = reader.int32() as any;
           continue;
         }
-        case 5: {
-          if (tag !== 42) {
+        case 6: {
+          if (tag !== 50) {
             break;
           }
 
-          message.events.push(WebhookTriggerEventCreationRequestInput.decode(reader, reader.uint32()));
+          message.eventTypes.push(reader.string());
           continue;
         }
       }
@@ -250,9 +224,11 @@ export const WebhookCreationRequestInput: MessageFns<WebhookCreationRequestInput
           : 0,
       url: isSet(object.url) ? globalThis.String(object.url) : '',
       method: isSet(object.method) ? webhookMethodFromJSON(object.method) : 0,
-      events: globalThis.Array.isArray(object?.events)
-        ? object.events.map((e: any) => WebhookTriggerEventCreationRequestInput.fromJSON(e))
-        : [],
+      eventTypes: globalThis.Array.isArray(object?.eventTypes)
+        ? object.eventTypes.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.event_types)
+          ? object.event_types.map((e: any) => globalThis.String(e))
+          : [],
     };
   },
 
@@ -270,8 +246,8 @@ export const WebhookCreationRequestInput: MessageFns<WebhookCreationRequestInput
     if (message.method !== 0) {
       obj.method = webhookMethodToJSON(message.method);
     }
-    if (message.events?.length) {
-      obj.events = message.events.map((e) => WebhookTriggerEventCreationRequestInput.toJSON(e));
+    if (message.eventTypes?.length) {
+      obj.eventTypes = message.eventTypes;
     }
     return obj;
   },
@@ -285,154 +261,13 @@ export const WebhookCreationRequestInput: MessageFns<WebhookCreationRequestInput
     message.contentType = object.contentType ?? 0;
     message.url = object.url ?? '';
     message.method = object.method ?? 0;
-    message.events = object.events?.map((e) => WebhookTriggerEventCreationRequestInput.fromPartial(e)) || [];
-    return message;
-  },
-};
-
-function createBaseWebhookExecutionRequest(): WebhookExecutionRequest {
-  return { requestId: '', payload: undefined, webhookId: '', accountId: '', triggerEvent: '' };
-}
-
-export const WebhookExecutionRequest: MessageFns<WebhookExecutionRequest> = {
-  encode(message: WebhookExecutionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.requestId !== '') {
-      writer.uint32(10).string(message.requestId);
-    }
-    if (message.payload !== undefined) {
-      Any.encode(message.payload, writer.uint32(18).fork()).join();
-    }
-    if (message.webhookId !== '') {
-      writer.uint32(26).string(message.webhookId);
-    }
-    if (message.accountId !== '') {
-      writer.uint32(34).string(message.accountId);
-    }
-    if (message.triggerEvent !== '') {
-      writer.uint32(42).string(message.triggerEvent);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): WebhookExecutionRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseWebhookExecutionRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.requestId = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.payload = Any.decode(reader, reader.uint32());
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.webhookId = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
-
-          message.accountId = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
-            break;
-          }
-
-          message.triggerEvent = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): WebhookExecutionRequest {
-    return {
-      requestId: isSet(object.requestId)
-        ? globalThis.String(object.requestId)
-        : isSet(object.request_id)
-          ? globalThis.String(object.request_id)
-          : '',
-      payload: isSet(object.payload) ? Any.fromJSON(object.payload) : undefined,
-      webhookId: isSet(object.webhookId)
-        ? globalThis.String(object.webhookId)
-        : isSet(object.webhook_id)
-          ? globalThis.String(object.webhook_id)
-          : '',
-      accountId: isSet(object.accountId)
-        ? globalThis.String(object.accountId)
-        : isSet(object.account_id)
-          ? globalThis.String(object.account_id)
-          : '',
-      triggerEvent: isSet(object.triggerEvent)
-        ? globalThis.String(object.triggerEvent)
-        : isSet(object.trigger_event)
-          ? globalThis.String(object.trigger_event)
-          : '',
-    };
-  },
-
-  toJSON(message: WebhookExecutionRequest): unknown {
-    const obj: any = {};
-    if (message.requestId !== '') {
-      obj.requestId = message.requestId;
-    }
-    if (message.payload !== undefined) {
-      obj.payload = Any.toJSON(message.payload);
-    }
-    if (message.webhookId !== '') {
-      obj.webhookId = message.webhookId;
-    }
-    if (message.accountId !== '') {
-      obj.accountId = message.accountId;
-    }
-    if (message.triggerEvent !== '') {
-      obj.triggerEvent = message.triggerEvent;
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<WebhookExecutionRequest>, I>>(base?: I): WebhookExecutionRequest {
-    return WebhookExecutionRequest.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<WebhookExecutionRequest>, I>>(object: I): WebhookExecutionRequest {
-    const message = createBaseWebhookExecutionRequest();
-    message.requestId = object.requestId ?? '';
-    message.payload =
-      object.payload !== undefined && object.payload !== null ? Any.fromPartial(object.payload) : undefined;
-    message.webhookId = object.webhookId ?? '';
-    message.accountId = object.accountId ?? '';
-    message.triggerEvent = object.triggerEvent ?? '';
+    message.eventTypes = object.eventTypes?.map((e) => e) || [];
     return message;
   },
 };
 
 function createBaseWebhookTriggerConfigCreationRequestInput(): WebhookTriggerConfigCreationRequestInput {
-  return { belongsToWebhook: '', triggerEventId: '' };
+  return { belongsToWebhook: '', eventType: '' };
 }
 
 export const WebhookTriggerConfigCreationRequestInput: MessageFns<WebhookTriggerConfigCreationRequestInput> = {
@@ -440,8 +275,8 @@ export const WebhookTriggerConfigCreationRequestInput: MessageFns<WebhookTrigger
     if (message.belongsToWebhook !== '') {
       writer.uint32(10).string(message.belongsToWebhook);
     }
-    if (message.triggerEventId !== '') {
-      writer.uint32(18).string(message.triggerEventId);
+    if (message.eventType !== '') {
+      writer.uint32(26).string(message.eventType);
     }
     return writer;
   },
@@ -461,12 +296,12 @@ export const WebhookTriggerConfigCreationRequestInput: MessageFns<WebhookTrigger
           message.belongsToWebhook = reader.string();
           continue;
         }
-        case 2: {
-          if (tag !== 18) {
+        case 3: {
+          if (tag !== 26) {
             break;
           }
 
-          message.triggerEventId = reader.string();
+          message.eventType = reader.string();
           continue;
         }
       }
@@ -485,10 +320,10 @@ export const WebhookTriggerConfigCreationRequestInput: MessageFns<WebhookTrigger
         : isSet(object.belongs_to_webhook)
           ? globalThis.String(object.belongs_to_webhook)
           : '',
-      triggerEventId: isSet(object.triggerEventId)
-        ? globalThis.String(object.triggerEventId)
-        : isSet(object.trigger_event_id)
-          ? globalThis.String(object.trigger_event_id)
+      eventType: isSet(object.eventType)
+        ? globalThis.String(object.eventType)
+        : isSet(object.event_type)
+          ? globalThis.String(object.event_type)
           : '',
     };
   },
@@ -498,8 +333,8 @@ export const WebhookTriggerConfigCreationRequestInput: MessageFns<WebhookTrigger
     if (message.belongsToWebhook !== '') {
       obj.belongsToWebhook = message.belongsToWebhook;
     }
-    if (message.triggerEventId !== '') {
-      obj.triggerEventId = message.triggerEventId;
+    if (message.eventType !== '') {
+      obj.eventType = message.eventType;
     }
     return obj;
   },
@@ -514,7 +349,7 @@ export const WebhookTriggerConfigCreationRequestInput: MessageFns<WebhookTrigger
   ): WebhookTriggerConfigCreationRequestInput {
     const message = createBaseWebhookTriggerConfigCreationRequestInput();
     message.belongsToWebhook = object.belongsToWebhook ?? '';
-    message.triggerEventId = object.triggerEventId ?? '';
+    message.eventType = object.eventType ?? '';
     return message;
   },
 };
@@ -581,7 +416,7 @@ export const CreateWebhookRequest: MessageFns<CreateWebhookRequest> = {
 };
 
 function createBaseCreateWebhookResponse(): CreateWebhookResponse {
-  return { responseDetails: undefined, created: undefined };
+  return { responseDetails: undefined, created: undefined, secret: '' };
 }
 
 export const CreateWebhookResponse: MessageFns<CreateWebhookResponse> = {
@@ -591,6 +426,9 @@ export const CreateWebhookResponse: MessageFns<CreateWebhookResponse> = {
     }
     if (message.created !== undefined) {
       Webhook.encode(message.created, writer.uint32(18).fork()).join();
+    }
+    if (message.secret !== '') {
+      writer.uint32(26).string(message.secret);
     }
     return writer;
   },
@@ -618,6 +456,14 @@ export const CreateWebhookResponse: MessageFns<CreateWebhookResponse> = {
           message.created = Webhook.decode(reader, reader.uint32());
           continue;
         }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.secret = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -635,6 +481,7 @@ export const CreateWebhookResponse: MessageFns<CreateWebhookResponse> = {
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
       created: isSet(object.created) ? Webhook.fromJSON(object.created) : undefined,
+      secret: isSet(object.secret) ? globalThis.String(object.secret) : '',
     };
   },
 
@@ -645,6 +492,9 @@ export const CreateWebhookResponse: MessageFns<CreateWebhookResponse> = {
     }
     if (message.created !== undefined) {
       obj.created = Webhook.toJSON(message.created);
+    }
+    if (message.secret !== '') {
+      obj.secret = message.secret;
     }
     return obj;
   },
@@ -660,6 +510,7 @@ export const CreateWebhookResponse: MessageFns<CreateWebhookResponse> = {
         : undefined;
     message.created =
       object.created !== undefined && object.created !== null ? Webhook.fromPartial(object.created) : undefined;
+    message.secret = object.secret ?? '';
     return message;
   },
 };
@@ -1436,28 +1287,22 @@ export const GetWebhooksResponse: MessageFns<GetWebhooksResponse> = {
   },
 };
 
-function createBaseWebhookTriggerEventCreationRequestInput(): WebhookTriggerEventCreationRequestInput {
-  return { name: '', description: '', id: undefined };
+function createBaseRotateWebhookSecretRequest(): RotateWebhookSecretRequest {
+  return { webhookId: '' };
 }
 
-export const WebhookTriggerEventCreationRequestInput: MessageFns<WebhookTriggerEventCreationRequestInput> = {
-  encode(message: WebhookTriggerEventCreationRequestInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.name !== '') {
-      writer.uint32(10).string(message.name);
-    }
-    if (message.description !== '') {
-      writer.uint32(18).string(message.description);
-    }
-    if (message.id !== undefined) {
-      writer.uint32(26).string(message.id);
+export const RotateWebhookSecretRequest: MessageFns<RotateWebhookSecretRequest> = {
+  encode(message: RotateWebhookSecretRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.webhookId !== '') {
+      writer.uint32(10).string(message.webhookId);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): WebhookTriggerEventCreationRequestInput {
+  decode(input: BinaryReader | Uint8Array, length?: number): RotateWebhookSecretRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseWebhookTriggerEventCreationRequestInput();
+    const message = createBaseRotateWebhookSecretRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1466,23 +1311,7 @@ export const WebhookTriggerEventCreationRequestInput: MessageFns<WebhookTriggerE
             break;
           }
 
-          message.name = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.description = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.id = reader.string();
+          message.webhookId = reader.string();
           continue;
         }
       }
@@ -1494,128 +1323,53 @@ export const WebhookTriggerEventCreationRequestInput: MessageFns<WebhookTriggerE
     return message;
   },
 
-  fromJSON(object: any): WebhookTriggerEventCreationRequestInput {
+  fromJSON(object: any): RotateWebhookSecretRequest {
     return {
-      name: isSet(object.name) ? globalThis.String(object.name) : '',
-      description: isSet(object.description) ? globalThis.String(object.description) : '',
-      id: isSet(object.id) ? globalThis.String(object.id) : undefined,
+      webhookId: isSet(object.webhookId)
+        ? globalThis.String(object.webhookId)
+        : isSet(object.webhook_id)
+          ? globalThis.String(object.webhook_id)
+          : '',
     };
   },
 
-  toJSON(message: WebhookTriggerEventCreationRequestInput): unknown {
+  toJSON(message: RotateWebhookSecretRequest): unknown {
     const obj: any = {};
-    if (message.name !== '') {
-      obj.name = message.name;
-    }
-    if (message.description !== '') {
-      obj.description = message.description;
-    }
-    if (message.id !== undefined) {
-      obj.id = message.id;
+    if (message.webhookId !== '') {
+      obj.webhookId = message.webhookId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<WebhookTriggerEventCreationRequestInput>, I>>(
-    base?: I,
-  ): WebhookTriggerEventCreationRequestInput {
-    return WebhookTriggerEventCreationRequestInput.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<RotateWebhookSecretRequest>, I>>(base?: I): RotateWebhookSecretRequest {
+    return RotateWebhookSecretRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<WebhookTriggerEventCreationRequestInput>, I>>(
-    object: I,
-  ): WebhookTriggerEventCreationRequestInput {
-    const message = createBaseWebhookTriggerEventCreationRequestInput();
-    message.name = object.name ?? '';
-    message.description = object.description ?? '';
-    message.id = object.id ?? undefined;
+  fromPartial<I extends Exact<DeepPartial<RotateWebhookSecretRequest>, I>>(object: I): RotateWebhookSecretRequest {
+    const message = createBaseRotateWebhookSecretRequest();
+    message.webhookId = object.webhookId ?? '';
     return message;
   },
 };
 
-function createBaseCreateWebhookTriggerEventRequest(): CreateWebhookTriggerEventRequest {
-  return { input: undefined };
+function createBaseRotateWebhookSecretResponse(): RotateWebhookSecretResponse {
+  return { responseDetails: undefined, secret: '' };
 }
 
-export const CreateWebhookTriggerEventRequest: MessageFns<CreateWebhookTriggerEventRequest> = {
-  encode(message: CreateWebhookTriggerEventRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.input !== undefined) {
-      WebhookTriggerEventCreationRequestInput.encode(message.input, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): CreateWebhookTriggerEventRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCreateWebhookTriggerEventRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.input = WebhookTriggerEventCreationRequestInput.decode(reader, reader.uint32());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): CreateWebhookTriggerEventRequest {
-    return { input: isSet(object.input) ? WebhookTriggerEventCreationRequestInput.fromJSON(object.input) : undefined };
-  },
-
-  toJSON(message: CreateWebhookTriggerEventRequest): unknown {
-    const obj: any = {};
-    if (message.input !== undefined) {
-      obj.input = WebhookTriggerEventCreationRequestInput.toJSON(message.input);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<CreateWebhookTriggerEventRequest>, I>>(
-    base?: I,
-  ): CreateWebhookTriggerEventRequest {
-    return CreateWebhookTriggerEventRequest.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<CreateWebhookTriggerEventRequest>, I>>(
-    object: I,
-  ): CreateWebhookTriggerEventRequest {
-    const message = createBaseCreateWebhookTriggerEventRequest();
-    message.input =
-      object.input !== undefined && object.input !== null
-        ? WebhookTriggerEventCreationRequestInput.fromPartial(object.input)
-        : undefined;
-    return message;
-  },
-};
-
-function createBaseCreateWebhookTriggerEventResponse(): CreateWebhookTriggerEventResponse {
-  return { responseDetails: undefined, created: undefined };
-}
-
-export const CreateWebhookTriggerEventResponse: MessageFns<CreateWebhookTriggerEventResponse> = {
-  encode(message: CreateWebhookTriggerEventResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const RotateWebhookSecretResponse: MessageFns<RotateWebhookSecretResponse> = {
+  encode(message: RotateWebhookSecretResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.responseDetails !== undefined) {
       ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
     }
-    if (message.created !== undefined) {
-      WebhookTriggerEvent.encode(message.created, writer.uint32(18).fork()).join();
+    if (message.secret !== '') {
+      writer.uint32(18).string(message.secret);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CreateWebhookTriggerEventResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number): RotateWebhookSecretResponse {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCreateWebhookTriggerEventResponse();
+    const message = createBaseRotateWebhookSecretResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1632,7 +1386,7 @@ export const CreateWebhookTriggerEventResponse: MessageFns<CreateWebhookTriggerE
             break;
           }
 
-          message.created = WebhookTriggerEvent.decode(reader, reader.uint32());
+          message.secret = reader.string();
           continue;
         }
       }
@@ -1644,76 +1398,58 @@ export const CreateWebhookTriggerEventResponse: MessageFns<CreateWebhookTriggerE
     return message;
   },
 
-  fromJSON(object: any): CreateWebhookTriggerEventResponse {
+  fromJSON(object: any): RotateWebhookSecretResponse {
     return {
       responseDetails: isSet(object.responseDetails)
         ? ResponseDetails.fromJSON(object.responseDetails)
         : isSet(object.response_details)
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
-      created: isSet(object.created) ? WebhookTriggerEvent.fromJSON(object.created) : undefined,
+      secret: isSet(object.secret) ? globalThis.String(object.secret) : '',
     };
   },
 
-  toJSON(message: CreateWebhookTriggerEventResponse): unknown {
+  toJSON(message: RotateWebhookSecretResponse): unknown {
     const obj: any = {};
     if (message.responseDetails !== undefined) {
       obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
     }
-    if (message.created !== undefined) {
-      obj.created = WebhookTriggerEvent.toJSON(message.created);
+    if (message.secret !== '') {
+      obj.secret = message.secret;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CreateWebhookTriggerEventResponse>, I>>(
-    base?: I,
-  ): CreateWebhookTriggerEventResponse {
-    return CreateWebhookTriggerEventResponse.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<RotateWebhookSecretResponse>, I>>(base?: I): RotateWebhookSecretResponse {
+    return RotateWebhookSecretResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateWebhookTriggerEventResponse>, I>>(
-    object: I,
-  ): CreateWebhookTriggerEventResponse {
-    const message = createBaseCreateWebhookTriggerEventResponse();
+  fromPartial<I extends Exact<DeepPartial<RotateWebhookSecretResponse>, I>>(object: I): RotateWebhookSecretResponse {
+    const message = createBaseRotateWebhookSecretResponse();
     message.responseDetails =
       object.responseDetails !== undefined && object.responseDetails !== null
         ? ResponseDetails.fromPartial(object.responseDetails)
         : undefined;
-    message.created =
-      object.created !== undefined && object.created !== null
-        ? WebhookTriggerEvent.fromPartial(object.created)
-        : undefined;
+    message.secret = object.secret ?? '';
     return message;
   },
 };
 
-function createBaseGetWebhookTriggerEventRequest(): GetWebhookTriggerEventRequest {
-  return { id: '' };
+function createBaseGetWebhookEventTypesRequest(): GetWebhookEventTypesRequest {
+  return {};
 }
 
-export const GetWebhookTriggerEventRequest: MessageFns<GetWebhookTriggerEventRequest> = {
-  encode(message: GetWebhookTriggerEventRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== '') {
-      writer.uint32(10).string(message.id);
-    }
+export const GetWebhookEventTypesRequest: MessageFns<GetWebhookEventTypesRequest> = {
+  encode(_: GetWebhookEventTypesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GetWebhookTriggerEventRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number): GetWebhookEventTypesRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetWebhookTriggerEventRequest();
+    const message = createBaseGetWebhookEventTypesRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.id = reader.string();
-          continue;
-        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1723,201 +1459,43 @@ export const GetWebhookTriggerEventRequest: MessageFns<GetWebhookTriggerEventReq
     return message;
   },
 
-  fromJSON(object: any): GetWebhookTriggerEventRequest {
-    return { id: isSet(object.id) ? globalThis.String(object.id) : '' };
+  fromJSON(_: any): GetWebhookEventTypesRequest {
+    return {};
   },
 
-  toJSON(message: GetWebhookTriggerEventRequest): unknown {
+  toJSON(_: GetWebhookEventTypesRequest): unknown {
     const obj: any = {};
-    if (message.id !== '') {
-      obj.id = message.id;
-    }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetWebhookTriggerEventRequest>, I>>(base?: I): GetWebhookTriggerEventRequest {
-    return GetWebhookTriggerEventRequest.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<GetWebhookEventTypesRequest>, I>>(base?: I): GetWebhookEventTypesRequest {
+    return GetWebhookEventTypesRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetWebhookTriggerEventRequest>, I>>(
-    object: I,
-  ): GetWebhookTriggerEventRequest {
-    const message = createBaseGetWebhookTriggerEventRequest();
-    message.id = object.id ?? '';
+  fromPartial<I extends Exact<DeepPartial<GetWebhookEventTypesRequest>, I>>(_: I): GetWebhookEventTypesRequest {
+    const message = createBaseGetWebhookEventTypesRequest();
     return message;
   },
 };
 
-function createBaseGetWebhookTriggerEventResponse(): GetWebhookTriggerEventResponse {
-  return { responseDetails: undefined, result: undefined };
+function createBaseGetWebhookEventTypesResponse(): GetWebhookEventTypesResponse {
+  return { responseDetails: undefined, results: [] };
 }
 
-export const GetWebhookTriggerEventResponse: MessageFns<GetWebhookTriggerEventResponse> = {
-  encode(message: GetWebhookTriggerEventResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const GetWebhookEventTypesResponse: MessageFns<GetWebhookEventTypesResponse> = {
+  encode(message: GetWebhookEventTypesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.responseDetails !== undefined) {
       ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
-    }
-    if (message.result !== undefined) {
-      WebhookTriggerEvent.encode(message.result, writer.uint32(18).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): GetWebhookTriggerEventResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetWebhookTriggerEventResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.responseDetails = ResponseDetails.decode(reader, reader.uint32());
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.result = WebhookTriggerEvent.decode(reader, reader.uint32());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): GetWebhookTriggerEventResponse {
-    return {
-      responseDetails: isSet(object.responseDetails)
-        ? ResponseDetails.fromJSON(object.responseDetails)
-        : isSet(object.response_details)
-          ? ResponseDetails.fromJSON(object.response_details)
-          : undefined,
-      result: isSet(object.result) ? WebhookTriggerEvent.fromJSON(object.result) : undefined,
-    };
-  },
-
-  toJSON(message: GetWebhookTriggerEventResponse): unknown {
-    const obj: any = {};
-    if (message.responseDetails !== undefined) {
-      obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
-    }
-    if (message.result !== undefined) {
-      obj.result = WebhookTriggerEvent.toJSON(message.result);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<GetWebhookTriggerEventResponse>, I>>(base?: I): GetWebhookTriggerEventResponse {
-    return GetWebhookTriggerEventResponse.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<GetWebhookTriggerEventResponse>, I>>(
-    object: I,
-  ): GetWebhookTriggerEventResponse {
-    const message = createBaseGetWebhookTriggerEventResponse();
-    message.responseDetails =
-      object.responseDetails !== undefined && object.responseDetails !== null
-        ? ResponseDetails.fromPartial(object.responseDetails)
-        : undefined;
-    message.result =
-      object.result !== undefined && object.result !== null
-        ? WebhookTriggerEvent.fromPartial(object.result)
-        : undefined;
-    return message;
-  },
-};
-
-function createBaseGetWebhookTriggerEventsRequest(): GetWebhookTriggerEventsRequest {
-  return { filter: undefined };
-}
-
-export const GetWebhookTriggerEventsRequest: MessageFns<GetWebhookTriggerEventsRequest> = {
-  encode(message: GetWebhookTriggerEventsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.filter !== undefined) {
-      QueryFilter.encode(message.filter, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): GetWebhookTriggerEventsRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetWebhookTriggerEventsRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.filter = QueryFilter.decode(reader, reader.uint32());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): GetWebhookTriggerEventsRequest {
-    return { filter: isSet(object.filter) ? QueryFilter.fromJSON(object.filter) : undefined };
-  },
-
-  toJSON(message: GetWebhookTriggerEventsRequest): unknown {
-    const obj: any = {};
-    if (message.filter !== undefined) {
-      obj.filter = QueryFilter.toJSON(message.filter);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<GetWebhookTriggerEventsRequest>, I>>(base?: I): GetWebhookTriggerEventsRequest {
-    return GetWebhookTriggerEventsRequest.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<GetWebhookTriggerEventsRequest>, I>>(
-    object: I,
-  ): GetWebhookTriggerEventsRequest {
-    const message = createBaseGetWebhookTriggerEventsRequest();
-    message.filter =
-      object.filter !== undefined && object.filter !== null ? QueryFilter.fromPartial(object.filter) : undefined;
-    return message;
-  },
-};
-
-function createBaseGetWebhookTriggerEventsResponse(): GetWebhookTriggerEventsResponse {
-  return { responseDetails: undefined, pagination: undefined, results: [] };
-}
-
-export const GetWebhookTriggerEventsResponse: MessageFns<GetWebhookTriggerEventsResponse> = {
-  encode(message: GetWebhookTriggerEventsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.responseDetails !== undefined) {
-      ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
-    }
-    if (message.pagination !== undefined) {
-      Pagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
     for (const v of message.results) {
-      WebhookTriggerEvent.encode(v!, writer.uint32(26).fork()).join();
+      WebhookEventType.encode(v!, writer.uint32(18).fork()).join();
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GetWebhookTriggerEventsResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number): GetWebhookEventTypesResponse {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetWebhookTriggerEventsResponse();
+    const message = createBaseGetWebhookEventTypesResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1934,15 +1512,7 @@ export const GetWebhookTriggerEventsResponse: MessageFns<GetWebhookTriggerEvents
             break;
           }
 
-          message.pagination = Pagination.decode(reader, reader.uint32());
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.results.push(WebhookTriggerEvent.decode(reader, reader.uint32()));
+          message.results.push(WebhookEventType.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -1954,417 +1524,40 @@ export const GetWebhookTriggerEventsResponse: MessageFns<GetWebhookTriggerEvents
     return message;
   },
 
-  fromJSON(object: any): GetWebhookTriggerEventsResponse {
+  fromJSON(object: any): GetWebhookEventTypesResponse {
     return {
       responseDetails: isSet(object.responseDetails)
         ? ResponseDetails.fromJSON(object.responseDetails)
         : isSet(object.response_details)
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
-      pagination: isSet(object.pagination) ? Pagination.fromJSON(object.pagination) : undefined,
       results: globalThis.Array.isArray(object?.results)
-        ? object.results.map((e: any) => WebhookTriggerEvent.fromJSON(e))
+        ? object.results.map((e: any) => WebhookEventType.fromJSON(e))
         : [],
     };
   },
 
-  toJSON(message: GetWebhookTriggerEventsResponse): unknown {
+  toJSON(message: GetWebhookEventTypesResponse): unknown {
     const obj: any = {};
     if (message.responseDetails !== undefined) {
       obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
-    }
-    if (message.pagination !== undefined) {
-      obj.pagination = Pagination.toJSON(message.pagination);
     }
     if (message.results?.length) {
-      obj.results = message.results.map((e) => WebhookTriggerEvent.toJSON(e));
+      obj.results = message.results.map((e) => WebhookEventType.toJSON(e));
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetWebhookTriggerEventsResponse>, I>>(base?: I): GetWebhookTriggerEventsResponse {
-    return GetWebhookTriggerEventsResponse.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<GetWebhookEventTypesResponse>, I>>(base?: I): GetWebhookEventTypesResponse {
+    return GetWebhookEventTypesResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetWebhookTriggerEventsResponse>, I>>(
-    object: I,
-  ): GetWebhookTriggerEventsResponse {
-    const message = createBaseGetWebhookTriggerEventsResponse();
+  fromPartial<I extends Exact<DeepPartial<GetWebhookEventTypesResponse>, I>>(object: I): GetWebhookEventTypesResponse {
+    const message = createBaseGetWebhookEventTypesResponse();
     message.responseDetails =
       object.responseDetails !== undefined && object.responseDetails !== null
         ? ResponseDetails.fromPartial(object.responseDetails)
         : undefined;
-    message.pagination =
-      object.pagination !== undefined && object.pagination !== null
-        ? Pagination.fromPartial(object.pagination)
-        : undefined;
-    message.results = object.results?.map((e) => WebhookTriggerEvent.fromPartial(e)) || [];
-    return message;
-  },
-};
-
-function createBaseWebhookTriggerEventUpdateRequestInput(): WebhookTriggerEventUpdateRequestInput {
-  return { name: '', description: '' };
-}
-
-export const WebhookTriggerEventUpdateRequestInput: MessageFns<WebhookTriggerEventUpdateRequestInput> = {
-  encode(message: WebhookTriggerEventUpdateRequestInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.name !== '') {
-      writer.uint32(10).string(message.name);
-    }
-    if (message.description !== '') {
-      writer.uint32(18).string(message.description);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): WebhookTriggerEventUpdateRequestInput {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseWebhookTriggerEventUpdateRequestInput();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.name = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.description = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): WebhookTriggerEventUpdateRequestInput {
-    return {
-      name: isSet(object.name) ? globalThis.String(object.name) : '',
-      description: isSet(object.description) ? globalThis.String(object.description) : '',
-    };
-  },
-
-  toJSON(message: WebhookTriggerEventUpdateRequestInput): unknown {
-    const obj: any = {};
-    if (message.name !== '') {
-      obj.name = message.name;
-    }
-    if (message.description !== '') {
-      obj.description = message.description;
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<WebhookTriggerEventUpdateRequestInput>, I>>(
-    base?: I,
-  ): WebhookTriggerEventUpdateRequestInput {
-    return WebhookTriggerEventUpdateRequestInput.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<WebhookTriggerEventUpdateRequestInput>, I>>(
-    object: I,
-  ): WebhookTriggerEventUpdateRequestInput {
-    const message = createBaseWebhookTriggerEventUpdateRequestInput();
-    message.name = object.name ?? '';
-    message.description = object.description ?? '';
-    return message;
-  },
-};
-
-function createBaseUpdateWebhookTriggerEventRequest(): UpdateWebhookTriggerEventRequest {
-  return { id: '', input: undefined };
-}
-
-export const UpdateWebhookTriggerEventRequest: MessageFns<UpdateWebhookTriggerEventRequest> = {
-  encode(message: UpdateWebhookTriggerEventRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== '') {
-      writer.uint32(10).string(message.id);
-    }
-    if (message.input !== undefined) {
-      WebhookTriggerEventUpdateRequestInput.encode(message.input, writer.uint32(18).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): UpdateWebhookTriggerEventRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUpdateWebhookTriggerEventRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.id = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.input = WebhookTriggerEventUpdateRequestInput.decode(reader, reader.uint32());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): UpdateWebhookTriggerEventRequest {
-    return {
-      id: isSet(object.id) ? globalThis.String(object.id) : '',
-      input: isSet(object.input) ? WebhookTriggerEventUpdateRequestInput.fromJSON(object.input) : undefined,
-    };
-  },
-
-  toJSON(message: UpdateWebhookTriggerEventRequest): unknown {
-    const obj: any = {};
-    if (message.id !== '') {
-      obj.id = message.id;
-    }
-    if (message.input !== undefined) {
-      obj.input = WebhookTriggerEventUpdateRequestInput.toJSON(message.input);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<UpdateWebhookTriggerEventRequest>, I>>(
-    base?: I,
-  ): UpdateWebhookTriggerEventRequest {
-    return UpdateWebhookTriggerEventRequest.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<UpdateWebhookTriggerEventRequest>, I>>(
-    object: I,
-  ): UpdateWebhookTriggerEventRequest {
-    const message = createBaseUpdateWebhookTriggerEventRequest();
-    message.id = object.id ?? '';
-    message.input =
-      object.input !== undefined && object.input !== null
-        ? WebhookTriggerEventUpdateRequestInput.fromPartial(object.input)
-        : undefined;
-    return message;
-  },
-};
-
-function createBaseUpdateWebhookTriggerEventResponse(): UpdateWebhookTriggerEventResponse {
-  return { responseDetails: undefined };
-}
-
-export const UpdateWebhookTriggerEventResponse: MessageFns<UpdateWebhookTriggerEventResponse> = {
-  encode(message: UpdateWebhookTriggerEventResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.responseDetails !== undefined) {
-      ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): UpdateWebhookTriggerEventResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUpdateWebhookTriggerEventResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.responseDetails = ResponseDetails.decode(reader, reader.uint32());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): UpdateWebhookTriggerEventResponse {
-    return {
-      responseDetails: isSet(object.responseDetails)
-        ? ResponseDetails.fromJSON(object.responseDetails)
-        : isSet(object.response_details)
-          ? ResponseDetails.fromJSON(object.response_details)
-          : undefined,
-    };
-  },
-
-  toJSON(message: UpdateWebhookTriggerEventResponse): unknown {
-    const obj: any = {};
-    if (message.responseDetails !== undefined) {
-      obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<UpdateWebhookTriggerEventResponse>, I>>(
-    base?: I,
-  ): UpdateWebhookTriggerEventResponse {
-    return UpdateWebhookTriggerEventResponse.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<UpdateWebhookTriggerEventResponse>, I>>(
-    object: I,
-  ): UpdateWebhookTriggerEventResponse {
-    const message = createBaseUpdateWebhookTriggerEventResponse();
-    message.responseDetails =
-      object.responseDetails !== undefined && object.responseDetails !== null
-        ? ResponseDetails.fromPartial(object.responseDetails)
-        : undefined;
-    return message;
-  },
-};
-
-function createBaseArchiveWebhookTriggerEventRequest(): ArchiveWebhookTriggerEventRequest {
-  return { id: '' };
-}
-
-export const ArchiveWebhookTriggerEventRequest: MessageFns<ArchiveWebhookTriggerEventRequest> = {
-  encode(message: ArchiveWebhookTriggerEventRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== '') {
-      writer.uint32(10).string(message.id);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): ArchiveWebhookTriggerEventRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseArchiveWebhookTriggerEventRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.id = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): ArchiveWebhookTriggerEventRequest {
-    return { id: isSet(object.id) ? globalThis.String(object.id) : '' };
-  },
-
-  toJSON(message: ArchiveWebhookTriggerEventRequest): unknown {
-    const obj: any = {};
-    if (message.id !== '') {
-      obj.id = message.id;
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<ArchiveWebhookTriggerEventRequest>, I>>(
-    base?: I,
-  ): ArchiveWebhookTriggerEventRequest {
-    return ArchiveWebhookTriggerEventRequest.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<ArchiveWebhookTriggerEventRequest>, I>>(
-    object: I,
-  ): ArchiveWebhookTriggerEventRequest {
-    const message = createBaseArchiveWebhookTriggerEventRequest();
-    message.id = object.id ?? '';
-    return message;
-  },
-};
-
-function createBaseArchiveWebhookTriggerEventResponse(): ArchiveWebhookTriggerEventResponse {
-  return { responseDetails: undefined };
-}
-
-export const ArchiveWebhookTriggerEventResponse: MessageFns<ArchiveWebhookTriggerEventResponse> = {
-  encode(message: ArchiveWebhookTriggerEventResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.responseDetails !== undefined) {
-      ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): ArchiveWebhookTriggerEventResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseArchiveWebhookTriggerEventResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.responseDetails = ResponseDetails.decode(reader, reader.uint32());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): ArchiveWebhookTriggerEventResponse {
-    return {
-      responseDetails: isSet(object.responseDetails)
-        ? ResponseDetails.fromJSON(object.responseDetails)
-        : isSet(object.response_details)
-          ? ResponseDetails.fromJSON(object.response_details)
-          : undefined,
-    };
-  },
-
-  toJSON(message: ArchiveWebhookTriggerEventResponse): unknown {
-    const obj: any = {};
-    if (message.responseDetails !== undefined) {
-      obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<ArchiveWebhookTriggerEventResponse>, I>>(
-    base?: I,
-  ): ArchiveWebhookTriggerEventResponse {
-    return ArchiveWebhookTriggerEventResponse.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<ArchiveWebhookTriggerEventResponse>, I>>(
-    object: I,
-  ): ArchiveWebhookTriggerEventResponse {
-    const message = createBaseArchiveWebhookTriggerEventResponse();
-    message.responseDetails =
-      object.responseDetails !== undefined && object.responseDetails !== null
-        ? ResponseDetails.fromPartial(object.responseDetails)
-        : undefined;
+    message.results = object.results?.map((e) => WebhookEventType.fromPartial(e)) || [];
     return message;
   },
 };

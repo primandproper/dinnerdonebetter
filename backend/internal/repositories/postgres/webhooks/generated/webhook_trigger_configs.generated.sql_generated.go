@@ -12,18 +12,24 @@ import (
 const archiveWebhookTriggerConfig = `-- name: ArchiveWebhookTriggerConfig :execrows
 UPDATE webhook_trigger_configs SET
 	archived_at = NOW()
-WHERE archived_at IS NULL
-	AND id = $1
-	AND belongs_to_webhook = $2
+WHERE webhook_trigger_configs.archived_at IS NULL
+	AND webhook_trigger_configs.id = $1
+	AND webhook_trigger_configs.belongs_to_webhook IN (
+		SELECT webhooks.id FROM webhooks
+		WHERE webhooks.id = $2
+			AND webhooks.belongs_to_account = $3
+			AND webhooks.archived_at IS NULL
+	)
 `
 
 type ArchiveWebhookTriggerConfigParams struct {
 	ID               string
 	BelongsToWebhook string
+	BelongsToAccount string
 }
 
 func (q *Queries) ArchiveWebhookTriggerConfig(ctx context.Context, db DBTX, arg *ArchiveWebhookTriggerConfigParams) (int64, error) {
-	result, err := db.ExecContext(ctx, archiveWebhookTriggerConfig, arg.ID, arg.BelongsToWebhook)
+	result, err := db.ExecContext(ctx, archiveWebhookTriggerConfig, arg.ID, arg.BelongsToWebhook, arg.BelongsToAccount)
 	if err != nil {
 		return 0, err
 	}

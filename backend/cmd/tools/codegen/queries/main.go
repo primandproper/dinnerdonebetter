@@ -83,7 +83,6 @@ func main() {
 		"settings/sqlc_queries/service_settings":                                 buildServiceSettingQueries(databaseToUse),
 		"settings/sqlc_queries/service_setting_configurations":                   buildServiceSettingConfigurationQueries(databaseToUse),
 		"webhooks/sqlc_queries/webhooks":                                         buildWebhooksQueries(databaseToUse),
-		"webhooks/sqlc_queries/webhook_trigger_events":                           buildWebhookTriggerEventsQueries(databaseToUse),
 		"webhooks/sqlc_queries/webhook_trigger_configs":                          buildWebhookTriggerConfigsQueries(databaseToUse),
 		"notifications/sqlc_queries/user_notifications":                          buildUserNotificationQueries(databaseToUse),
 		"waitlists/sqlc_queries/waitlists":                                       buildWaitlistsQueries(databaseToUse),

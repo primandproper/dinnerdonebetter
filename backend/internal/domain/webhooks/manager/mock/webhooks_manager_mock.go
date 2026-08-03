@@ -29,32 +29,23 @@ var _ manager.WebhookDataManager = &WebhookDataManagerMock{}
 //			ArchiveWebhookFunc: func(ctx context.Context, webhookID string, accountID string) error {
 //				panic("mock out the ArchiveWebhook method")
 //			},
-//			ArchiveWebhookTriggerConfigFunc: func(ctx context.Context, webhookID string, configID string) error {
+//			ArchiveWebhookTriggerConfigFunc: func(ctx context.Context, webhookID string, accountID string, configID string) error {
 //				panic("mock out the ArchiveWebhookTriggerConfig method")
 //			},
-//			ArchiveWebhookTriggerEventFunc: func(ctx context.Context, id string) error {
-//				panic("mock out the ArchiveWebhookTriggerEvent method")
-//			},
-//			CreateWebhookFunc: func(ctx context.Context, userID string, accountID string, input *webhooks.WebhookCreationRequestInput) (*webhooks.Webhook, error) {
+//			CreateWebhookFunc: func(ctx context.Context, userID string, accountID string, input *webhooks.WebhookCreationRequestInput) (*webhooks.WebhookCreationResponse, error) {
 //				panic("mock out the CreateWebhook method")
-//			},
-//			CreateWebhookTriggerEventFunc: func(ctx context.Context, input *webhooks.WebhookTriggerEventCreationRequestInput) (*webhooks.WebhookTriggerEvent, error) {
-//				panic("mock out the CreateWebhookTriggerEvent method")
 //			},
 //			GetWebhookFunc: func(ctx context.Context, webhookID string, accountID string) (*webhooks.Webhook, error) {
 //				panic("mock out the GetWebhook method")
 //			},
-//			GetWebhookTriggerEventFunc: func(ctx context.Context, id string) (*webhooks.WebhookTriggerEvent, error) {
-//				panic("mock out the GetWebhookTriggerEvent method")
-//			},
-//			GetWebhookTriggerEventsFunc: func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[webhooks.WebhookTriggerEvent], error) {
-//				panic("mock out the GetWebhookTriggerEvents method")
+//			GetWebhookEventTypesFunc: func(ctx context.Context) []*webhooks.WebhookEventType {
+//				panic("mock out the GetWebhookEventTypes method")
 //			},
 //			GetWebhooksFunc: func(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[webhooks.Webhook], error) {
 //				panic("mock out the GetWebhooks method")
 //			},
-//			UpdateWebhookTriggerEventFunc: func(ctx context.Context, id string, input *webhooks.WebhookTriggerEventUpdateRequestInput) error {
-//				panic("mock out the UpdateWebhookTriggerEvent method")
+//			RotateWebhookSecretFunc: func(ctx context.Context, webhookID string, accountID string) (string, error) {
+//				panic("mock out the RotateWebhookSecret method")
 //			},
 //			WebhookExistsFunc: func(ctx context.Context, webhookID string, accountID string) (bool, error) {
 //				panic("mock out the WebhookExists method")
@@ -73,31 +64,22 @@ type WebhookDataManagerMock struct {
 	ArchiveWebhookFunc func(ctx context.Context, webhookID string, accountID string) error
 
 	// ArchiveWebhookTriggerConfigFunc mocks the ArchiveWebhookTriggerConfig method.
-	ArchiveWebhookTriggerConfigFunc func(ctx context.Context, webhookID string, configID string) error
-
-	// ArchiveWebhookTriggerEventFunc mocks the ArchiveWebhookTriggerEvent method.
-	ArchiveWebhookTriggerEventFunc func(ctx context.Context, id string) error
+	ArchiveWebhookTriggerConfigFunc func(ctx context.Context, webhookID string, accountID string, configID string) error
 
 	// CreateWebhookFunc mocks the CreateWebhook method.
-	CreateWebhookFunc func(ctx context.Context, userID string, accountID string, input *webhooks.WebhookCreationRequestInput) (*webhooks.Webhook, error)
-
-	// CreateWebhookTriggerEventFunc mocks the CreateWebhookTriggerEvent method.
-	CreateWebhookTriggerEventFunc func(ctx context.Context, input *webhooks.WebhookTriggerEventCreationRequestInput) (*webhooks.WebhookTriggerEvent, error)
+	CreateWebhookFunc func(ctx context.Context, userID string, accountID string, input *webhooks.WebhookCreationRequestInput) (*webhooks.WebhookCreationResponse, error)
 
 	// GetWebhookFunc mocks the GetWebhook method.
 	GetWebhookFunc func(ctx context.Context, webhookID string, accountID string) (*webhooks.Webhook, error)
 
-	// GetWebhookTriggerEventFunc mocks the GetWebhookTriggerEvent method.
-	GetWebhookTriggerEventFunc func(ctx context.Context, id string) (*webhooks.WebhookTriggerEvent, error)
-
-	// GetWebhookTriggerEventsFunc mocks the GetWebhookTriggerEvents method.
-	GetWebhookTriggerEventsFunc func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[webhooks.WebhookTriggerEvent], error)
+	// GetWebhookEventTypesFunc mocks the GetWebhookEventTypes method.
+	GetWebhookEventTypesFunc func(ctx context.Context) []*webhooks.WebhookEventType
 
 	// GetWebhooksFunc mocks the GetWebhooks method.
 	GetWebhooksFunc func(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[webhooks.Webhook], error)
 
-	// UpdateWebhookTriggerEventFunc mocks the UpdateWebhookTriggerEvent method.
-	UpdateWebhookTriggerEventFunc func(ctx context.Context, id string, input *webhooks.WebhookTriggerEventUpdateRequestInput) error
+	// RotateWebhookSecretFunc mocks the RotateWebhookSecret method.
+	RotateWebhookSecretFunc func(ctx context.Context, webhookID string, accountID string) (string, error)
 
 	// WebhookExistsFunc mocks the WebhookExists method.
 	WebhookExistsFunc func(ctx context.Context, webhookID string, accountID string) (bool, error)
@@ -128,15 +110,10 @@ type WebhookDataManagerMock struct {
 			Ctx context.Context
 			// WebhookID is the webhookID argument value.
 			WebhookID string
+			// AccountID is the accountID argument value.
+			AccountID string
 			// ConfigID is the configID argument value.
 			ConfigID string
-		}
-		// ArchiveWebhookTriggerEvent holds details about calls to the ArchiveWebhookTriggerEvent method.
-		ArchiveWebhookTriggerEvent []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// ID is the id argument value.
-			ID string
 		}
 		// CreateWebhook holds details about calls to the CreateWebhook method.
 		CreateWebhook []struct {
@@ -149,13 +126,6 @@ type WebhookDataManagerMock struct {
 			// Input is the input argument value.
 			Input *webhooks.WebhookCreationRequestInput
 		}
-		// CreateWebhookTriggerEvent holds details about calls to the CreateWebhookTriggerEvent method.
-		CreateWebhookTriggerEvent []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Input is the input argument value.
-			Input *webhooks.WebhookTriggerEventCreationRequestInput
-		}
 		// GetWebhook holds details about calls to the GetWebhook method.
 		GetWebhook []struct {
 			// Ctx is the ctx argument value.
@@ -165,19 +135,10 @@ type WebhookDataManagerMock struct {
 			// AccountID is the accountID argument value.
 			AccountID string
 		}
-		// GetWebhookTriggerEvent holds details about calls to the GetWebhookTriggerEvent method.
-		GetWebhookTriggerEvent []struct {
+		// GetWebhookEventTypes holds details about calls to the GetWebhookEventTypes method.
+		GetWebhookEventTypes []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ID is the id argument value.
-			ID string
-		}
-		// GetWebhookTriggerEvents holds details about calls to the GetWebhookTriggerEvents method.
-		GetWebhookTriggerEvents []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Filter is the filter argument value.
-			Filter *filtering.QueryFilter
 		}
 		// GetWebhooks holds details about calls to the GetWebhooks method.
 		GetWebhooks []struct {
@@ -188,14 +149,14 @@ type WebhookDataManagerMock struct {
 			// Filter is the filter argument value.
 			Filter *filtering.QueryFilter
 		}
-		// UpdateWebhookTriggerEvent holds details about calls to the UpdateWebhookTriggerEvent method.
-		UpdateWebhookTriggerEvent []struct {
+		// RotateWebhookSecret holds details about calls to the RotateWebhookSecret method.
+		RotateWebhookSecret []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ID is the id argument value.
-			ID string
-			// Input is the input argument value.
-			Input *webhooks.WebhookTriggerEventUpdateRequestInput
+			// WebhookID is the webhookID argument value.
+			WebhookID string
+			// AccountID is the accountID argument value.
+			AccountID string
 		}
 		// WebhookExists holds details about calls to the WebhookExists method.
 		WebhookExists []struct {
@@ -210,14 +171,11 @@ type WebhookDataManagerMock struct {
 	lockAddWebhookTriggerConfig     sync.RWMutex
 	lockArchiveWebhook              sync.RWMutex
 	lockArchiveWebhookTriggerConfig sync.RWMutex
-	lockArchiveWebhookTriggerEvent  sync.RWMutex
 	lockCreateWebhook               sync.RWMutex
-	lockCreateWebhookTriggerEvent   sync.RWMutex
 	lockGetWebhook                  sync.RWMutex
-	lockGetWebhookTriggerEvent      sync.RWMutex
-	lockGetWebhookTriggerEvents     sync.RWMutex
+	lockGetWebhookEventTypes        sync.RWMutex
 	lockGetWebhooks                 sync.RWMutex
-	lockUpdateWebhookTriggerEvent   sync.RWMutex
+	lockRotateWebhookSecret         sync.RWMutex
 	lockWebhookExists               sync.RWMutex
 }
 
@@ -302,23 +260,25 @@ func (mock *WebhookDataManagerMock) ArchiveWebhookCalls() []struct {
 }
 
 // ArchiveWebhookTriggerConfig calls ArchiveWebhookTriggerConfigFunc.
-func (mock *WebhookDataManagerMock) ArchiveWebhookTriggerConfig(ctx context.Context, webhookID string, configID string) error {
+func (mock *WebhookDataManagerMock) ArchiveWebhookTriggerConfig(ctx context.Context, webhookID string, accountID string, configID string) error {
 	if mock.ArchiveWebhookTriggerConfigFunc == nil {
 		panic("WebhookDataManagerMock.ArchiveWebhookTriggerConfigFunc: method is nil but WebhookDataManager.ArchiveWebhookTriggerConfig was just called")
 	}
 	callInfo := struct {
 		Ctx       context.Context
 		WebhookID string
+		AccountID string
 		ConfigID  string
 	}{
 		Ctx:       ctx,
 		WebhookID: webhookID,
+		AccountID: accountID,
 		ConfigID:  configID,
 	}
 	mock.lockArchiveWebhookTriggerConfig.Lock()
 	mock.calls.ArchiveWebhookTriggerConfig = append(mock.calls.ArchiveWebhookTriggerConfig, callInfo)
 	mock.lockArchiveWebhookTriggerConfig.Unlock()
-	return mock.ArchiveWebhookTriggerConfigFunc(ctx, webhookID, configID)
+	return mock.ArchiveWebhookTriggerConfigFunc(ctx, webhookID, accountID, configID)
 }
 
 // ArchiveWebhookTriggerConfigCalls gets all the calls that were made to ArchiveWebhookTriggerConfig.
@@ -328,11 +288,13 @@ func (mock *WebhookDataManagerMock) ArchiveWebhookTriggerConfig(ctx context.Cont
 func (mock *WebhookDataManagerMock) ArchiveWebhookTriggerConfigCalls() []struct {
 	Ctx       context.Context
 	WebhookID string
+	AccountID string
 	ConfigID  string
 } {
 	var calls []struct {
 		Ctx       context.Context
 		WebhookID string
+		AccountID string
 		ConfigID  string
 	}
 	mock.lockArchiveWebhookTriggerConfig.RLock()
@@ -341,44 +303,8 @@ func (mock *WebhookDataManagerMock) ArchiveWebhookTriggerConfigCalls() []struct 
 	return calls
 }
 
-// ArchiveWebhookTriggerEvent calls ArchiveWebhookTriggerEventFunc.
-func (mock *WebhookDataManagerMock) ArchiveWebhookTriggerEvent(ctx context.Context, id string) error {
-	if mock.ArchiveWebhookTriggerEventFunc == nil {
-		panic("WebhookDataManagerMock.ArchiveWebhookTriggerEventFunc: method is nil but WebhookDataManager.ArchiveWebhookTriggerEvent was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-		ID  string
-	}{
-		Ctx: ctx,
-		ID:  id,
-	}
-	mock.lockArchiveWebhookTriggerEvent.Lock()
-	mock.calls.ArchiveWebhookTriggerEvent = append(mock.calls.ArchiveWebhookTriggerEvent, callInfo)
-	mock.lockArchiveWebhookTriggerEvent.Unlock()
-	return mock.ArchiveWebhookTriggerEventFunc(ctx, id)
-}
-
-// ArchiveWebhookTriggerEventCalls gets all the calls that were made to ArchiveWebhookTriggerEvent.
-// Check the length with:
-//
-//	len(mockedWebhookDataManager.ArchiveWebhookTriggerEventCalls())
-func (mock *WebhookDataManagerMock) ArchiveWebhookTriggerEventCalls() []struct {
-	Ctx context.Context
-	ID  string
-} {
-	var calls []struct {
-		Ctx context.Context
-		ID  string
-	}
-	mock.lockArchiveWebhookTriggerEvent.RLock()
-	calls = mock.calls.ArchiveWebhookTriggerEvent
-	mock.lockArchiveWebhookTriggerEvent.RUnlock()
-	return calls
-}
-
 // CreateWebhook calls CreateWebhookFunc.
-func (mock *WebhookDataManagerMock) CreateWebhook(ctx context.Context, userID string, accountID string, input *webhooks.WebhookCreationRequestInput) (*webhooks.Webhook, error) {
+func (mock *WebhookDataManagerMock) CreateWebhook(ctx context.Context, userID string, accountID string, input *webhooks.WebhookCreationRequestInput) (*webhooks.WebhookCreationResponse, error) {
 	if mock.CreateWebhookFunc == nil {
 		panic("WebhookDataManagerMock.CreateWebhookFunc: method is nil but WebhookDataManager.CreateWebhook was just called")
 	}
@@ -418,42 +344,6 @@ func (mock *WebhookDataManagerMock) CreateWebhookCalls() []struct {
 	mock.lockCreateWebhook.RLock()
 	calls = mock.calls.CreateWebhook
 	mock.lockCreateWebhook.RUnlock()
-	return calls
-}
-
-// CreateWebhookTriggerEvent calls CreateWebhookTriggerEventFunc.
-func (mock *WebhookDataManagerMock) CreateWebhookTriggerEvent(ctx context.Context, input *webhooks.WebhookTriggerEventCreationRequestInput) (*webhooks.WebhookTriggerEvent, error) {
-	if mock.CreateWebhookTriggerEventFunc == nil {
-		panic("WebhookDataManagerMock.CreateWebhookTriggerEventFunc: method is nil but WebhookDataManager.CreateWebhookTriggerEvent was just called")
-	}
-	callInfo := struct {
-		Ctx   context.Context
-		Input *webhooks.WebhookTriggerEventCreationRequestInput
-	}{
-		Ctx:   ctx,
-		Input: input,
-	}
-	mock.lockCreateWebhookTriggerEvent.Lock()
-	mock.calls.CreateWebhookTriggerEvent = append(mock.calls.CreateWebhookTriggerEvent, callInfo)
-	mock.lockCreateWebhookTriggerEvent.Unlock()
-	return mock.CreateWebhookTriggerEventFunc(ctx, input)
-}
-
-// CreateWebhookTriggerEventCalls gets all the calls that were made to CreateWebhookTriggerEvent.
-// Check the length with:
-//
-//	len(mockedWebhookDataManager.CreateWebhookTriggerEventCalls())
-func (mock *WebhookDataManagerMock) CreateWebhookTriggerEventCalls() []struct {
-	Ctx   context.Context
-	Input *webhooks.WebhookTriggerEventCreationRequestInput
-} {
-	var calls []struct {
-		Ctx   context.Context
-		Input *webhooks.WebhookTriggerEventCreationRequestInput
-	}
-	mock.lockCreateWebhookTriggerEvent.RLock()
-	calls = mock.calls.CreateWebhookTriggerEvent
-	mock.lockCreateWebhookTriggerEvent.RUnlock()
 	return calls
 }
 
@@ -497,75 +387,35 @@ func (mock *WebhookDataManagerMock) GetWebhookCalls() []struct {
 	return calls
 }
 
-// GetWebhookTriggerEvent calls GetWebhookTriggerEventFunc.
-func (mock *WebhookDataManagerMock) GetWebhookTriggerEvent(ctx context.Context, id string) (*webhooks.WebhookTriggerEvent, error) {
-	if mock.GetWebhookTriggerEventFunc == nil {
-		panic("WebhookDataManagerMock.GetWebhookTriggerEventFunc: method is nil but WebhookDataManager.GetWebhookTriggerEvent was just called")
+// GetWebhookEventTypes calls GetWebhookEventTypesFunc.
+func (mock *WebhookDataManagerMock) GetWebhookEventTypes(ctx context.Context) []*webhooks.WebhookEventType {
+	if mock.GetWebhookEventTypesFunc == nil {
+		panic("WebhookDataManagerMock.GetWebhookEventTypesFunc: method is nil but WebhookDataManager.GetWebhookEventTypes was just called")
 	}
 	callInfo := struct {
 		Ctx context.Context
-		ID  string
 	}{
 		Ctx: ctx,
-		ID:  id,
 	}
-	mock.lockGetWebhookTriggerEvent.Lock()
-	mock.calls.GetWebhookTriggerEvent = append(mock.calls.GetWebhookTriggerEvent, callInfo)
-	mock.lockGetWebhookTriggerEvent.Unlock()
-	return mock.GetWebhookTriggerEventFunc(ctx, id)
+	mock.lockGetWebhookEventTypes.Lock()
+	mock.calls.GetWebhookEventTypes = append(mock.calls.GetWebhookEventTypes, callInfo)
+	mock.lockGetWebhookEventTypes.Unlock()
+	return mock.GetWebhookEventTypesFunc(ctx)
 }
 
-// GetWebhookTriggerEventCalls gets all the calls that were made to GetWebhookTriggerEvent.
+// GetWebhookEventTypesCalls gets all the calls that were made to GetWebhookEventTypes.
 // Check the length with:
 //
-//	len(mockedWebhookDataManager.GetWebhookTriggerEventCalls())
-func (mock *WebhookDataManagerMock) GetWebhookTriggerEventCalls() []struct {
+//	len(mockedWebhookDataManager.GetWebhookEventTypesCalls())
+func (mock *WebhookDataManagerMock) GetWebhookEventTypesCalls() []struct {
 	Ctx context.Context
-	ID  string
 } {
 	var calls []struct {
 		Ctx context.Context
-		ID  string
 	}
-	mock.lockGetWebhookTriggerEvent.RLock()
-	calls = mock.calls.GetWebhookTriggerEvent
-	mock.lockGetWebhookTriggerEvent.RUnlock()
-	return calls
-}
-
-// GetWebhookTriggerEvents calls GetWebhookTriggerEventsFunc.
-func (mock *WebhookDataManagerMock) GetWebhookTriggerEvents(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[webhooks.WebhookTriggerEvent], error) {
-	if mock.GetWebhookTriggerEventsFunc == nil {
-		panic("WebhookDataManagerMock.GetWebhookTriggerEventsFunc: method is nil but WebhookDataManager.GetWebhookTriggerEvents was just called")
-	}
-	callInfo := struct {
-		Ctx    context.Context
-		Filter *filtering.QueryFilter
-	}{
-		Ctx:    ctx,
-		Filter: filter,
-	}
-	mock.lockGetWebhookTriggerEvents.Lock()
-	mock.calls.GetWebhookTriggerEvents = append(mock.calls.GetWebhookTriggerEvents, callInfo)
-	mock.lockGetWebhookTriggerEvents.Unlock()
-	return mock.GetWebhookTriggerEventsFunc(ctx, filter)
-}
-
-// GetWebhookTriggerEventsCalls gets all the calls that were made to GetWebhookTriggerEvents.
-// Check the length with:
-//
-//	len(mockedWebhookDataManager.GetWebhookTriggerEventsCalls())
-func (mock *WebhookDataManagerMock) GetWebhookTriggerEventsCalls() []struct {
-	Ctx    context.Context
-	Filter *filtering.QueryFilter
-} {
-	var calls []struct {
-		Ctx    context.Context
-		Filter *filtering.QueryFilter
-	}
-	mock.lockGetWebhookTriggerEvents.RLock()
-	calls = mock.calls.GetWebhookTriggerEvents
-	mock.lockGetWebhookTriggerEvents.RUnlock()
+	mock.lockGetWebhookEventTypes.RLock()
+	calls = mock.calls.GetWebhookEventTypes
+	mock.lockGetWebhookEventTypes.RUnlock()
 	return calls
 }
 
@@ -609,43 +459,43 @@ func (mock *WebhookDataManagerMock) GetWebhooksCalls() []struct {
 	return calls
 }
 
-// UpdateWebhookTriggerEvent calls UpdateWebhookTriggerEventFunc.
-func (mock *WebhookDataManagerMock) UpdateWebhookTriggerEvent(ctx context.Context, id string, input *webhooks.WebhookTriggerEventUpdateRequestInput) error {
-	if mock.UpdateWebhookTriggerEventFunc == nil {
-		panic("WebhookDataManagerMock.UpdateWebhookTriggerEventFunc: method is nil but WebhookDataManager.UpdateWebhookTriggerEvent was just called")
+// RotateWebhookSecret calls RotateWebhookSecretFunc.
+func (mock *WebhookDataManagerMock) RotateWebhookSecret(ctx context.Context, webhookID string, accountID string) (string, error) {
+	if mock.RotateWebhookSecretFunc == nil {
+		panic("WebhookDataManagerMock.RotateWebhookSecretFunc: method is nil but WebhookDataManager.RotateWebhookSecret was just called")
 	}
 	callInfo := struct {
-		Ctx   context.Context
-		ID    string
-		Input *webhooks.WebhookTriggerEventUpdateRequestInput
+		Ctx       context.Context
+		WebhookID string
+		AccountID string
 	}{
-		Ctx:   ctx,
-		ID:    id,
-		Input: input,
+		Ctx:       ctx,
+		WebhookID: webhookID,
+		AccountID: accountID,
 	}
-	mock.lockUpdateWebhookTriggerEvent.Lock()
-	mock.calls.UpdateWebhookTriggerEvent = append(mock.calls.UpdateWebhookTriggerEvent, callInfo)
-	mock.lockUpdateWebhookTriggerEvent.Unlock()
-	return mock.UpdateWebhookTriggerEventFunc(ctx, id, input)
+	mock.lockRotateWebhookSecret.Lock()
+	mock.calls.RotateWebhookSecret = append(mock.calls.RotateWebhookSecret, callInfo)
+	mock.lockRotateWebhookSecret.Unlock()
+	return mock.RotateWebhookSecretFunc(ctx, webhookID, accountID)
 }
 
-// UpdateWebhookTriggerEventCalls gets all the calls that were made to UpdateWebhookTriggerEvent.
+// RotateWebhookSecretCalls gets all the calls that were made to RotateWebhookSecret.
 // Check the length with:
 //
-//	len(mockedWebhookDataManager.UpdateWebhookTriggerEventCalls())
-func (mock *WebhookDataManagerMock) UpdateWebhookTriggerEventCalls() []struct {
-	Ctx   context.Context
-	ID    string
-	Input *webhooks.WebhookTriggerEventUpdateRequestInput
+//	len(mockedWebhookDataManager.RotateWebhookSecretCalls())
+func (mock *WebhookDataManagerMock) RotateWebhookSecretCalls() []struct {
+	Ctx       context.Context
+	WebhookID string
+	AccountID string
 } {
 	var calls []struct {
-		Ctx   context.Context
-		ID    string
-		Input *webhooks.WebhookTriggerEventUpdateRequestInput
+		Ctx       context.Context
+		WebhookID string
+		AccountID string
 	}
-	mock.lockUpdateWebhookTriggerEvent.RLock()
-	calls = mock.calls.UpdateWebhookTriggerEvent
-	mock.lockUpdateWebhookTriggerEvent.RUnlock()
+	mock.lockRotateWebhookSecret.RLock()
+	calls = mock.calls.RotateWebhookSecret
+	mock.lockRotateWebhookSecret.RUnlock()
 	return calls
 }
 

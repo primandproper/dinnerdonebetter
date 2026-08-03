@@ -24,22 +24,16 @@ import {
   ArchiveWebhookResponse,
   ArchiveWebhookTriggerConfigRequest,
   ArchiveWebhookTriggerConfigResponse,
-  ArchiveWebhookTriggerEventRequest,
-  ArchiveWebhookTriggerEventResponse,
   CreateWebhookRequest,
   CreateWebhookResponse,
-  CreateWebhookTriggerEventRequest,
-  CreateWebhookTriggerEventResponse,
+  GetWebhookEventTypesRequest,
+  GetWebhookEventTypesResponse,
   GetWebhookRequest,
   GetWebhookResponse,
   GetWebhooksRequest,
   GetWebhooksResponse,
-  GetWebhookTriggerEventRequest,
-  GetWebhookTriggerEventResponse,
-  GetWebhookTriggerEventsRequest,
-  GetWebhookTriggerEventsResponse,
-  UpdateWebhookTriggerEventRequest,
-  UpdateWebhookTriggerEventResponse,
+  RotateWebhookSecretRequest,
+  RotateWebhookSecretResponse,
 } from './webhooks_service_types';
 
 export const protobufPackage = 'webhooks';
@@ -110,68 +104,37 @@ export const WebhooksServiceService = {
     responseSerialize: (value: GetWebhooksResponse): Buffer => Buffer.from(GetWebhooksResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetWebhooksResponse => GetWebhooksResponse.decode(value),
   },
-  createWebhookTriggerEvent: {
-    path: '/webhooks.WebhooksService/CreateWebhookTriggerEvent' as const,
+  rotateWebhookSecret: {
+    path: '/webhooks.WebhooksService/RotateWebhookSecret' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: CreateWebhookTriggerEventRequest): Buffer =>
-      Buffer.from(CreateWebhookTriggerEventRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CreateWebhookTriggerEventRequest =>
-      CreateWebhookTriggerEventRequest.decode(value),
-    responseSerialize: (value: CreateWebhookTriggerEventResponse): Buffer =>
-      Buffer.from(CreateWebhookTriggerEventResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateWebhookTriggerEventResponse =>
-      CreateWebhookTriggerEventResponse.decode(value),
+    requestSerialize: (value: RotateWebhookSecretRequest): Buffer =>
+      Buffer.from(RotateWebhookSecretRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RotateWebhookSecretRequest => RotateWebhookSecretRequest.decode(value),
+    responseSerialize: (value: RotateWebhookSecretResponse): Buffer =>
+      Buffer.from(RotateWebhookSecretResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RotateWebhookSecretResponse => RotateWebhookSecretResponse.decode(value),
   },
-  getWebhookTriggerEvent: {
-    path: '/webhooks.WebhooksService/GetWebhookTriggerEvent' as const,
+  /**
+   * GetWebhookEventTypes lists what a webhook may subscribe to.
+   *
+   * The trigger-event CRUD this replaces — Create/Get/Update/ArchiveWebhookTriggerEvent — is
+   * gone. Those wrote rows to a catalog table with randomly generated IDs, which the fan-out
+   * then compared against event type strings; nothing ever matched, so no webhook could fire.
+   * The catalog is now generated from the events the application actually publishes, and is
+   * read-only because inventing an event type nothing emits is not a useful thing to be able
+   * to do.
+   */
+  getWebhookEventTypes: {
+    path: '/webhooks.WebhooksService/GetWebhookEventTypes' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetWebhookTriggerEventRequest): Buffer =>
-      Buffer.from(GetWebhookTriggerEventRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetWebhookTriggerEventRequest => GetWebhookTriggerEventRequest.decode(value),
-    responseSerialize: (value: GetWebhookTriggerEventResponse): Buffer =>
-      Buffer.from(GetWebhookTriggerEventResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetWebhookTriggerEventResponse =>
-      GetWebhookTriggerEventResponse.decode(value),
-  },
-  getWebhookTriggerEvents: {
-    path: '/webhooks.WebhooksService/GetWebhookTriggerEvents' as const,
-    requestStream: false as const,
-    responseStream: false as const,
-    requestSerialize: (value: GetWebhookTriggerEventsRequest): Buffer =>
-      Buffer.from(GetWebhookTriggerEventsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetWebhookTriggerEventsRequest => GetWebhookTriggerEventsRequest.decode(value),
-    responseSerialize: (value: GetWebhookTriggerEventsResponse): Buffer =>
-      Buffer.from(GetWebhookTriggerEventsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetWebhookTriggerEventsResponse =>
-      GetWebhookTriggerEventsResponse.decode(value),
-  },
-  updateWebhookTriggerEvent: {
-    path: '/webhooks.WebhooksService/UpdateWebhookTriggerEvent' as const,
-    requestStream: false as const,
-    responseStream: false as const,
-    requestSerialize: (value: UpdateWebhookTriggerEventRequest): Buffer =>
-      Buffer.from(UpdateWebhookTriggerEventRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): UpdateWebhookTriggerEventRequest =>
-      UpdateWebhookTriggerEventRequest.decode(value),
-    responseSerialize: (value: UpdateWebhookTriggerEventResponse): Buffer =>
-      Buffer.from(UpdateWebhookTriggerEventResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): UpdateWebhookTriggerEventResponse =>
-      UpdateWebhookTriggerEventResponse.decode(value),
-  },
-  archiveWebhookTriggerEvent: {
-    path: '/webhooks.WebhooksService/ArchiveWebhookTriggerEvent' as const,
-    requestStream: false as const,
-    responseStream: false as const,
-    requestSerialize: (value: ArchiveWebhookTriggerEventRequest): Buffer =>
-      Buffer.from(ArchiveWebhookTriggerEventRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ArchiveWebhookTriggerEventRequest =>
-      ArchiveWebhookTriggerEventRequest.decode(value),
-    responseSerialize: (value: ArchiveWebhookTriggerEventResponse): Buffer =>
-      Buffer.from(ArchiveWebhookTriggerEventResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ArchiveWebhookTriggerEventResponse =>
-      ArchiveWebhookTriggerEventResponse.decode(value),
+    requestSerialize: (value: GetWebhookEventTypesRequest): Buffer =>
+      Buffer.from(GetWebhookEventTypesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetWebhookEventTypesRequest => GetWebhookEventTypesRequest.decode(value),
+    responseSerialize: (value: GetWebhookEventTypesResponse): Buffer =>
+      Buffer.from(GetWebhookEventTypesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetWebhookEventTypesResponse => GetWebhookEventTypesResponse.decode(value),
   },
 } as const;
 
@@ -182,11 +145,18 @@ export interface WebhooksServiceServer extends UntypedServiceImplementation {
   addWebhookTriggerConfig: handleUnaryCall<AddWebhookTriggerConfigRequest, AddWebhookTriggerConfigResponse>;
   getWebhook: handleUnaryCall<GetWebhookRequest, GetWebhookResponse>;
   getWebhooks: handleUnaryCall<GetWebhooksRequest, GetWebhooksResponse>;
-  createWebhookTriggerEvent: handleUnaryCall<CreateWebhookTriggerEventRequest, CreateWebhookTriggerEventResponse>;
-  getWebhookTriggerEvent: handleUnaryCall<GetWebhookTriggerEventRequest, GetWebhookTriggerEventResponse>;
-  getWebhookTriggerEvents: handleUnaryCall<GetWebhookTriggerEventsRequest, GetWebhookTriggerEventsResponse>;
-  updateWebhookTriggerEvent: handleUnaryCall<UpdateWebhookTriggerEventRequest, UpdateWebhookTriggerEventResponse>;
-  archiveWebhookTriggerEvent: handleUnaryCall<ArchiveWebhookTriggerEventRequest, ArchiveWebhookTriggerEventResponse>;
+  rotateWebhookSecret: handleUnaryCall<RotateWebhookSecretRequest, RotateWebhookSecretResponse>;
+  /**
+   * GetWebhookEventTypes lists what a webhook may subscribe to.
+   *
+   * The trigger-event CRUD this replaces — Create/Get/Update/ArchiveWebhookTriggerEvent — is
+   * gone. Those wrote rows to a catalog table with randomly generated IDs, which the fan-out
+   * then compared against event type strings; nothing ever matched, so no webhook could fire.
+   * The catalog is now generated from the events the application actually publishes, and is
+   * read-only because inventing an event type nothing emits is not a useful thing to be able
+   * to do.
+   */
+  getWebhookEventTypes: handleUnaryCall<GetWebhookEventTypesRequest, GetWebhookEventTypesResponse>;
 }
 
 export interface WebhooksServiceClient extends Client {
@@ -280,80 +250,45 @@ export interface WebhooksServiceClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetWebhooksResponse) => void,
   ): ClientUnaryCall;
-  createWebhookTriggerEvent(
-    request: CreateWebhookTriggerEventRequest,
-    callback: (error: ServiceError | null, response: CreateWebhookTriggerEventResponse) => void,
+  rotateWebhookSecret(
+    request: RotateWebhookSecretRequest,
+    callback: (error: ServiceError | null, response: RotateWebhookSecretResponse) => void,
   ): ClientUnaryCall;
-  createWebhookTriggerEvent(
-    request: CreateWebhookTriggerEventRequest,
+  rotateWebhookSecret(
+    request: RotateWebhookSecretRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateWebhookTriggerEventResponse) => void,
+    callback: (error: ServiceError | null, response: RotateWebhookSecretResponse) => void,
   ): ClientUnaryCall;
-  createWebhookTriggerEvent(
-    request: CreateWebhookTriggerEventRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateWebhookTriggerEventResponse) => void,
-  ): ClientUnaryCall;
-  getWebhookTriggerEvent(
-    request: GetWebhookTriggerEventRequest,
-    callback: (error: ServiceError | null, response: GetWebhookTriggerEventResponse) => void,
-  ): ClientUnaryCall;
-  getWebhookTriggerEvent(
-    request: GetWebhookTriggerEventRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetWebhookTriggerEventResponse) => void,
-  ): ClientUnaryCall;
-  getWebhookTriggerEvent(
-    request: GetWebhookTriggerEventRequest,
+  rotateWebhookSecret(
+    request: RotateWebhookSecretRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetWebhookTriggerEventResponse) => void,
+    callback: (error: ServiceError | null, response: RotateWebhookSecretResponse) => void,
   ): ClientUnaryCall;
-  getWebhookTriggerEvents(
-    request: GetWebhookTriggerEventsRequest,
-    callback: (error: ServiceError | null, response: GetWebhookTriggerEventsResponse) => void,
+  /**
+   * GetWebhookEventTypes lists what a webhook may subscribe to.
+   *
+   * The trigger-event CRUD this replaces — Create/Get/Update/ArchiveWebhookTriggerEvent — is
+   * gone. Those wrote rows to a catalog table with randomly generated IDs, which the fan-out
+   * then compared against event type strings; nothing ever matched, so no webhook could fire.
+   * The catalog is now generated from the events the application actually publishes, and is
+   * read-only because inventing an event type nothing emits is not a useful thing to be able
+   * to do.
+   */
+  getWebhookEventTypes(
+    request: GetWebhookEventTypesRequest,
+    callback: (error: ServiceError | null, response: GetWebhookEventTypesResponse) => void,
   ): ClientUnaryCall;
-  getWebhookTriggerEvents(
-    request: GetWebhookTriggerEventsRequest,
+  getWebhookEventTypes(
+    request: GetWebhookEventTypesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetWebhookTriggerEventsResponse) => void,
+    callback: (error: ServiceError | null, response: GetWebhookEventTypesResponse) => void,
   ): ClientUnaryCall;
-  getWebhookTriggerEvents(
-    request: GetWebhookTriggerEventsRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetWebhookTriggerEventsResponse) => void,
-  ): ClientUnaryCall;
-  updateWebhookTriggerEvent(
-    request: UpdateWebhookTriggerEventRequest,
-    callback: (error: ServiceError | null, response: UpdateWebhookTriggerEventResponse) => void,
-  ): ClientUnaryCall;
-  updateWebhookTriggerEvent(
-    request: UpdateWebhookTriggerEventRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpdateWebhookTriggerEventResponse) => void,
-  ): ClientUnaryCall;
-  updateWebhookTriggerEvent(
-    request: UpdateWebhookTriggerEventRequest,
+  getWebhookEventTypes(
+    request: GetWebhookEventTypesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpdateWebhookTriggerEventResponse) => void,
-  ): ClientUnaryCall;
-  archiveWebhookTriggerEvent(
-    request: ArchiveWebhookTriggerEventRequest,
-    callback: (error: ServiceError | null, response: ArchiveWebhookTriggerEventResponse) => void,
-  ): ClientUnaryCall;
-  archiveWebhookTriggerEvent(
-    request: ArchiveWebhookTriggerEventRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: ArchiveWebhookTriggerEventResponse) => void,
-  ): ClientUnaryCall;
-  archiveWebhookTriggerEvent(
-    request: ArchiveWebhookTriggerEventRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ArchiveWebhookTriggerEventResponse) => void,
+    callback: (error: ServiceError | null, response: GetWebhookEventTypesResponse) => void,
   ): ClientUnaryCall;
 }
 

@@ -131,7 +131,8 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 	}
 
 	return &config.APIServiceConfig{
-		Routing: localRoutingConfig,
+		Webhooks: buildWebhooksConfig(),
+		Routing:  localRoutingConfig,
 		// Localdev has a Redis, so the record store is shared and the interceptor means
 		// something. Prod does not yet; see the prod config.
 		Idempotency: config.IdempotencyConfig{
@@ -154,12 +155,11 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 			},
 		},
 		Queues: queuescfg.Config{
-			DataChangesTopicName:              dataChangesTopicName,
-			OutboundEmailsTopicName:           outboundEmailsTopicName,
-			SearchIndexRequestsTopicName:      searchIndexRequestsTopicName,
-			MobileNotificationsTopicName:      mobileNotificationsTopicName,
-			UserDataAggregationTopicName:      userDataAggregationTopicName,
-			WebhookExecutionRequestsTopicName: webhookExecutionRequestsTopicName,
+			DataChangesTopicName:         dataChangesTopicName,
+			OutboundEmailsTopicName:      outboundEmailsTopicName,
+			SearchIndexRequestsTopicName: searchIndexRequestsTopicName,
+			MobileNotificationsTopicName: mobileNotificationsTopicName,
+			UserDataAggregationTopicName: userDataAggregationTopicName,
 		},
 		Meta: config.MetaSettings{
 			Debug:   true,

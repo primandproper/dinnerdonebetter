@@ -54,11 +54,9 @@ func (a *AsyncDataChangeMessageHandler) Start(ctx context.Context) error {
 			cfg:     &a.poolsConfig.SearchIndexRequests,
 			handler: a.SearchIndexRequestsEventHandler(a.queuesConfig.SearchIndexRequestsTopicName),
 		},
-		{
-			topic:   a.queuesConfig.WebhookExecutionRequestsTopicName,
-			cfg:     &a.poolsConfig.WebhookExecutionRequests,
-			handler: a.WebhookExecutionRequestsEventHandler(a.queuesConfig.WebhookExecutionRequestsTopicName),
-		},
+		// There is no webhook execution pool. Deliveries are dispatch rows the delivery
+		// worker claims, not messages on a topic — which is what lets one endpoint's copy of
+		// one event be the unit of retry, rather than the whole fan-out.
 		{
 			topic:   a.queuesConfig.UserDataAggregationTopicName,
 			cfg:     &a.poolsConfig.UserDataAggregation,

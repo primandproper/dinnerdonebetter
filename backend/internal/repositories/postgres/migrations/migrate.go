@@ -12,6 +12,8 @@ import (
 	outboxmigrations "github.com/primandproper/platform-go/v9/outbox/migrations"
 	"github.com/primandproper/platform-go/v9/saga"
 	sagamigrations "github.com/primandproper/platform-go/v9/saga/migrations"
+	"github.com/primandproper/platform-go/v9/webhooks"
+	webhooksmigrations "github.com/primandproper/platform-go/v9/webhooks/migrations"
 )
 
 var (
@@ -32,8 +34,9 @@ const lockKey = "dinnerdonebetter"
 // filename and must never be renumbered once applied. Adding another means taking the next
 // free number, whichever side it comes from.
 const (
-	outboxMigrationVersion = 22
-	sagaMigrationVersion   = 24
+	outboxMigrationVersion   = 22
+	sagaMigrationVersion     = 24
+	webhooksMigrationVersion = 25
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -61,6 +64,14 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, errors.Wrap(err, "rendering saga migration")
 	}
 
+	// Likewise the five webhook tables — endpoints, subscriptions, deliveries, dispatches, and
+	// attempts — together with the partial indexes the claim predicate depends on. Copying
+	// those by hand is how a claim quietly starts scanning history instead of backlog.
+	webhooksDDL, err := webhooksmigrations.SQL(dialect.Postgres, webhooks.DefaultTablePrefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "rendering webhooks migration")
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -68,6 +79,7 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithLockKey(lockKey),
 		migrate.WithGeneratedMigration(outboxMigrationVersion, "create_outbox_messages", outboxDDL),
 		migrate.WithGeneratedMigration(sagaMigrationVersion, "create_saga_instances", sagaDDL),
+		migrate.WithGeneratedMigration(webhooksMigrationVersion, "create_webhooks_tables", webhooksDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")

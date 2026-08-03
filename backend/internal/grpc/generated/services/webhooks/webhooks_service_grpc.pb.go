@@ -26,11 +26,8 @@ const (
 	WebhooksService_AddWebhookTriggerConfig_FullMethodName     = "/webhooks.WebhooksService/AddWebhookTriggerConfig"
 	WebhooksService_GetWebhook_FullMethodName                  = "/webhooks.WebhooksService/GetWebhook"
 	WebhooksService_GetWebhooks_FullMethodName                 = "/webhooks.WebhooksService/GetWebhooks"
-	WebhooksService_CreateWebhookTriggerEvent_FullMethodName   = "/webhooks.WebhooksService/CreateWebhookTriggerEvent"
-	WebhooksService_GetWebhookTriggerEvent_FullMethodName      = "/webhooks.WebhooksService/GetWebhookTriggerEvent"
-	WebhooksService_GetWebhookTriggerEvents_FullMethodName     = "/webhooks.WebhooksService/GetWebhookTriggerEvents"
-	WebhooksService_UpdateWebhookTriggerEvent_FullMethodName   = "/webhooks.WebhooksService/UpdateWebhookTriggerEvent"
-	WebhooksService_ArchiveWebhookTriggerEvent_FullMethodName  = "/webhooks.WebhooksService/ArchiveWebhookTriggerEvent"
+	WebhooksService_RotateWebhookSecret_FullMethodName         = "/webhooks.WebhooksService/RotateWebhookSecret"
+	WebhooksService_GetWebhookEventTypes_FullMethodName        = "/webhooks.WebhooksService/GetWebhookEventTypes"
 )
 
 // WebhooksServiceClient is the client API for WebhooksService service.
@@ -43,11 +40,16 @@ type WebhooksServiceClient interface {
 	AddWebhookTriggerConfig(ctx context.Context, in *AddWebhookTriggerConfigRequest, opts ...grpc.CallOption) (*AddWebhookTriggerConfigResponse, error)
 	GetWebhook(ctx context.Context, in *GetWebhookRequest, opts ...grpc.CallOption) (*GetWebhookResponse, error)
 	GetWebhooks(ctx context.Context, in *GetWebhooksRequest, opts ...grpc.CallOption) (*GetWebhooksResponse, error)
-	CreateWebhookTriggerEvent(ctx context.Context, in *CreateWebhookTriggerEventRequest, opts ...grpc.CallOption) (*CreateWebhookTriggerEventResponse, error)
-	GetWebhookTriggerEvent(ctx context.Context, in *GetWebhookTriggerEventRequest, opts ...grpc.CallOption) (*GetWebhookTriggerEventResponse, error)
-	GetWebhookTriggerEvents(ctx context.Context, in *GetWebhookTriggerEventsRequest, opts ...grpc.CallOption) (*GetWebhookTriggerEventsResponse, error)
-	UpdateWebhookTriggerEvent(ctx context.Context, in *UpdateWebhookTriggerEventRequest, opts ...grpc.CallOption) (*UpdateWebhookTriggerEventResponse, error)
-	ArchiveWebhookTriggerEvent(ctx context.Context, in *ArchiveWebhookTriggerEventRequest, opts ...grpc.CallOption) (*ArchiveWebhookTriggerEventResponse, error)
+	RotateWebhookSecret(ctx context.Context, in *RotateWebhookSecretRequest, opts ...grpc.CallOption) (*RotateWebhookSecretResponse, error)
+	// GetWebhookEventTypes lists what a webhook may subscribe to.
+	//
+	// The trigger-event CRUD this replaces — Create/Get/Update/ArchiveWebhookTriggerEvent — is
+	// gone. Those wrote rows to a catalog table with randomly generated IDs, which the fan-out
+	// then compared against event type strings; nothing ever matched, so no webhook could fire.
+	// The catalog is now generated from the events the application actually publishes, and is
+	// read-only because inventing an event type nothing emits is not a useful thing to be able
+	// to do.
+	GetWebhookEventTypes(ctx context.Context, in *GetWebhookEventTypesRequest, opts ...grpc.CallOption) (*GetWebhookEventTypesResponse, error)
 }
 
 type webhooksServiceClient struct {
@@ -118,50 +120,20 @@ func (c *webhooksServiceClient) GetWebhooks(ctx context.Context, in *GetWebhooks
 	return out, nil
 }
 
-func (c *webhooksServiceClient) CreateWebhookTriggerEvent(ctx context.Context, in *CreateWebhookTriggerEventRequest, opts ...grpc.CallOption) (*CreateWebhookTriggerEventResponse, error) {
+func (c *webhooksServiceClient) RotateWebhookSecret(ctx context.Context, in *RotateWebhookSecretRequest, opts ...grpc.CallOption) (*RotateWebhookSecretResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateWebhookTriggerEventResponse)
-	err := c.cc.Invoke(ctx, WebhooksService_CreateWebhookTriggerEvent_FullMethodName, in, out, cOpts...)
+	out := new(RotateWebhookSecretResponse)
+	err := c.cc.Invoke(ctx, WebhooksService_RotateWebhookSecret_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *webhooksServiceClient) GetWebhookTriggerEvent(ctx context.Context, in *GetWebhookTriggerEventRequest, opts ...grpc.CallOption) (*GetWebhookTriggerEventResponse, error) {
+func (c *webhooksServiceClient) GetWebhookEventTypes(ctx context.Context, in *GetWebhookEventTypesRequest, opts ...grpc.CallOption) (*GetWebhookEventTypesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetWebhookTriggerEventResponse)
-	err := c.cc.Invoke(ctx, WebhooksService_GetWebhookTriggerEvent_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *webhooksServiceClient) GetWebhookTriggerEvents(ctx context.Context, in *GetWebhookTriggerEventsRequest, opts ...grpc.CallOption) (*GetWebhookTriggerEventsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetWebhookTriggerEventsResponse)
-	err := c.cc.Invoke(ctx, WebhooksService_GetWebhookTriggerEvents_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *webhooksServiceClient) UpdateWebhookTriggerEvent(ctx context.Context, in *UpdateWebhookTriggerEventRequest, opts ...grpc.CallOption) (*UpdateWebhookTriggerEventResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpdateWebhookTriggerEventResponse)
-	err := c.cc.Invoke(ctx, WebhooksService_UpdateWebhookTriggerEvent_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *webhooksServiceClient) ArchiveWebhookTriggerEvent(ctx context.Context, in *ArchiveWebhookTriggerEventRequest, opts ...grpc.CallOption) (*ArchiveWebhookTriggerEventResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ArchiveWebhookTriggerEventResponse)
-	err := c.cc.Invoke(ctx, WebhooksService_ArchiveWebhookTriggerEvent_FullMethodName, in, out, cOpts...)
+	out := new(GetWebhookEventTypesResponse)
+	err := c.cc.Invoke(ctx, WebhooksService_GetWebhookEventTypes_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -178,11 +150,16 @@ type WebhooksServiceServer interface {
 	AddWebhookTriggerConfig(context.Context, *AddWebhookTriggerConfigRequest) (*AddWebhookTriggerConfigResponse, error)
 	GetWebhook(context.Context, *GetWebhookRequest) (*GetWebhookResponse, error)
 	GetWebhooks(context.Context, *GetWebhooksRequest) (*GetWebhooksResponse, error)
-	CreateWebhookTriggerEvent(context.Context, *CreateWebhookTriggerEventRequest) (*CreateWebhookTriggerEventResponse, error)
-	GetWebhookTriggerEvent(context.Context, *GetWebhookTriggerEventRequest) (*GetWebhookTriggerEventResponse, error)
-	GetWebhookTriggerEvents(context.Context, *GetWebhookTriggerEventsRequest) (*GetWebhookTriggerEventsResponse, error)
-	UpdateWebhookTriggerEvent(context.Context, *UpdateWebhookTriggerEventRequest) (*UpdateWebhookTriggerEventResponse, error)
-	ArchiveWebhookTriggerEvent(context.Context, *ArchiveWebhookTriggerEventRequest) (*ArchiveWebhookTriggerEventResponse, error)
+	RotateWebhookSecret(context.Context, *RotateWebhookSecretRequest) (*RotateWebhookSecretResponse, error)
+	// GetWebhookEventTypes lists what a webhook may subscribe to.
+	//
+	// The trigger-event CRUD this replaces — Create/Get/Update/ArchiveWebhookTriggerEvent — is
+	// gone. Those wrote rows to a catalog table with randomly generated IDs, which the fan-out
+	// then compared against event type strings; nothing ever matched, so no webhook could fire.
+	// The catalog is now generated from the events the application actually publishes, and is
+	// read-only because inventing an event type nothing emits is not a useful thing to be able
+	// to do.
+	GetWebhookEventTypes(context.Context, *GetWebhookEventTypesRequest) (*GetWebhookEventTypesResponse, error)
 	mustEmbedUnimplementedWebhooksServiceServer()
 }
 
@@ -211,20 +188,11 @@ func (UnimplementedWebhooksServiceServer) GetWebhook(context.Context, *GetWebhoo
 func (UnimplementedWebhooksServiceServer) GetWebhooks(context.Context, *GetWebhooksRequest) (*GetWebhooksResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetWebhooks not implemented")
 }
-func (UnimplementedWebhooksServiceServer) CreateWebhookTriggerEvent(context.Context, *CreateWebhookTriggerEventRequest) (*CreateWebhookTriggerEventResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateWebhookTriggerEvent not implemented")
+func (UnimplementedWebhooksServiceServer) RotateWebhookSecret(context.Context, *RotateWebhookSecretRequest) (*RotateWebhookSecretResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RotateWebhookSecret not implemented")
 }
-func (UnimplementedWebhooksServiceServer) GetWebhookTriggerEvent(context.Context, *GetWebhookTriggerEventRequest) (*GetWebhookTriggerEventResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetWebhookTriggerEvent not implemented")
-}
-func (UnimplementedWebhooksServiceServer) GetWebhookTriggerEvents(context.Context, *GetWebhookTriggerEventsRequest) (*GetWebhookTriggerEventsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetWebhookTriggerEvents not implemented")
-}
-func (UnimplementedWebhooksServiceServer) UpdateWebhookTriggerEvent(context.Context, *UpdateWebhookTriggerEventRequest) (*UpdateWebhookTriggerEventResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateWebhookTriggerEvent not implemented")
-}
-func (UnimplementedWebhooksServiceServer) ArchiveWebhookTriggerEvent(context.Context, *ArchiveWebhookTriggerEventRequest) (*ArchiveWebhookTriggerEventResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ArchiveWebhookTriggerEvent not implemented")
+func (UnimplementedWebhooksServiceServer) GetWebhookEventTypes(context.Context, *GetWebhookEventTypesRequest) (*GetWebhookEventTypesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetWebhookEventTypes not implemented")
 }
 func (UnimplementedWebhooksServiceServer) mustEmbedUnimplementedWebhooksServiceServer() {}
 func (UnimplementedWebhooksServiceServer) testEmbeddedByValue()                         {}
@@ -355,92 +323,38 @@ func _WebhooksService_GetWebhooks_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _WebhooksService_CreateWebhookTriggerEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateWebhookTriggerEventRequest)
+func _WebhooksService_RotateWebhookSecret_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RotateWebhookSecretRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(WebhooksServiceServer).CreateWebhookTriggerEvent(ctx, in)
+		return srv.(WebhooksServiceServer).RotateWebhookSecret(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: WebhooksService_CreateWebhookTriggerEvent_FullMethodName,
+		FullMethod: WebhooksService_RotateWebhookSecret_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebhooksServiceServer).CreateWebhookTriggerEvent(ctx, req.(*CreateWebhookTriggerEventRequest))
+		return srv.(WebhooksServiceServer).RotateWebhookSecret(ctx, req.(*RotateWebhookSecretRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _WebhooksService_GetWebhookTriggerEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetWebhookTriggerEventRequest)
+func _WebhooksService_GetWebhookEventTypes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetWebhookEventTypesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(WebhooksServiceServer).GetWebhookTriggerEvent(ctx, in)
+		return srv.(WebhooksServiceServer).GetWebhookEventTypes(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: WebhooksService_GetWebhookTriggerEvent_FullMethodName,
+		FullMethod: WebhooksService_GetWebhookEventTypes_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebhooksServiceServer).GetWebhookTriggerEvent(ctx, req.(*GetWebhookTriggerEventRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _WebhooksService_GetWebhookTriggerEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetWebhookTriggerEventsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(WebhooksServiceServer).GetWebhookTriggerEvents(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: WebhooksService_GetWebhookTriggerEvents_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebhooksServiceServer).GetWebhookTriggerEvents(ctx, req.(*GetWebhookTriggerEventsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _WebhooksService_UpdateWebhookTriggerEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateWebhookTriggerEventRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(WebhooksServiceServer).UpdateWebhookTriggerEvent(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: WebhooksService_UpdateWebhookTriggerEvent_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebhooksServiceServer).UpdateWebhookTriggerEvent(ctx, req.(*UpdateWebhookTriggerEventRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _WebhooksService_ArchiveWebhookTriggerEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ArchiveWebhookTriggerEventRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(WebhooksServiceServer).ArchiveWebhookTriggerEvent(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: WebhooksService_ArchiveWebhookTriggerEvent_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebhooksServiceServer).ArchiveWebhookTriggerEvent(ctx, req.(*ArchiveWebhookTriggerEventRequest))
+		return srv.(WebhooksServiceServer).GetWebhookEventTypes(ctx, req.(*GetWebhookEventTypesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -477,24 +391,12 @@ var WebhooksService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _WebhooksService_GetWebhooks_Handler,
 		},
 		{
-			MethodName: "CreateWebhookTriggerEvent",
-			Handler:    _WebhooksService_CreateWebhookTriggerEvent_Handler,
+			MethodName: "RotateWebhookSecret",
+			Handler:    _WebhooksService_RotateWebhookSecret_Handler,
 		},
 		{
-			MethodName: "GetWebhookTriggerEvent",
-			Handler:    _WebhooksService_GetWebhookTriggerEvent_Handler,
-		},
-		{
-			MethodName: "GetWebhookTriggerEvents",
-			Handler:    _WebhooksService_GetWebhookTriggerEvents_Handler,
-		},
-		{
-			MethodName: "UpdateWebhookTriggerEvent",
-			Handler:    _WebhooksService_UpdateWebhookTriggerEvent_Handler,
-		},
-		{
-			MethodName: "ArchiveWebhookTriggerEvent",
-			Handler:    _WebhooksService_ArchiveWebhookTriggerEvent_Handler,
+			MethodName: "GetWebhookEventTypes",
+			Handler:    _WebhooksService_GetWebhookEventTypes_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

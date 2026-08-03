@@ -4,8 +4,7 @@
 		"outboundEmailsTopicName": "outbound_emails",
 		"searchIndexRequestsTopicName": "search_index_requests",
 		"mobileNotificationsTopicName": "mobile_notifications",
-		"userDataAggregationTopicName": "user_data_aggregation_requests",
-		"webhookExecutionRequestsTopicName": "webhook_execution_requests"
+		"userDataAggregationTopicName": "user_data_aggregation_requests"
 	},
 	"events": {
 		"consumer": {
@@ -83,6 +82,28 @@
 			"name": "feature_flagger",
 			"circuitBreakerErrorPercentage": 0.5,
 			"circuitBreakerMinimumOccurrenceThreshold": 100
+		}
+	},
+	"dataPrivacy": {
+		"encryption": {
+			"provider": "salsa20"
+		},
+		"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
+		"uploads": {
+			"storageConfig": {
+				"filesystem": {
+					"rootDirectory": "/tmp",
+					"directoryMode": "0o0"
+				},
+				"bucketName": "userdata",
+				"provider": "filesystem",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				}
+			},
+			"debug": false
 		}
 	},
 	"jobs": {
@@ -180,28 +201,6 @@
 		"runMigrations": true,
 		"enableDatabaseMetrics": false
 	},
-	"dataPrivacy": {
-		"encryption": {
-			"provider": "salsa20"
-		},
-		"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
-		"uploads": {
-			"storageConfig": {
-				"filesystem": {
-					"rootDirectory": "/tmp",
-					"directoryMode": "0o0"
-				},
-				"bucketName": "userdata",
-				"provider": "filesystem",
-				"circuitBreakerConfig": {
-					"name": "",
-					"circuitBreakerErrorPercentage": 0,
-					"circuitBreakerMinimumOccurrenceThreshold": 0
-				}
-			},
-			"debug": false
-		}
-	},
 	"outbox": {
 		"tablePrefix": "",
 		"claimMode": "skip_locked",
@@ -246,5 +245,39 @@
 		"stepTimeout": 120000000000,
 		"batchSize": 10,
 		"concurrency": 4
+	},
+	"webhooks": {
+		"tablePrefix": "",
+		"circuitBreaker": {
+			"name": "webhook_delivery",
+			"circuitBreakerErrorPercentage": 0.5,
+			"circuitBreakerMinimumOccurrenceThreshold": 100
+		},
+		"worker": {
+			"userAgent": "Dinner Done Better Webhooks/1",
+			"backoff": {
+				"provider": "",
+				"maxAttempts": 10,
+				"initialDelay": 5000000000,
+				"maxDelay": 3600000000000,
+				"multiplier": 2,
+				"useJitter": true
+			},
+			"pollInterval": 1000000000,
+			"leaseDuration": 60000000000,
+			"requestTimeout": 10000000000,
+			"circuitOpenRetryDelay": 30000000000,
+			"retention": 604800000000000,
+			"reapInterval": 300000000000,
+			"batchSize": 100,
+			"concurrency": 16,
+			"reapBatchSize": 1000
+		},
+		"httpClient": {
+			"timeout": 10000000000,
+			"maxIdleConns": 100,
+			"maxIdleConnsPerHost": 100,
+			"enableTracing": false
+		}
 	}
 }

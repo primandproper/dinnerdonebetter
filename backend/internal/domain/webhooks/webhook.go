@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
+
 	"github.com/primandproper/platform-go/v9/encoding"
 	"github.com/primandproper/platform-go/v9/filtering"
 
@@ -21,10 +23,21 @@ const (
 	WebhookTriggerConfigCreatedServiceEventType = "webhook_trigger_config_created"
 	// WebhookTriggerConfigArchivedServiceEventType indicates a webhook trigger config was archived.
 	WebhookTriggerConfigArchivedServiceEventType = "webhook_trigger_config_archived"
+
+	// DeliveryMethod is the only HTTP method a webhook is delivered with.
+	//
+	// The delivery worker POSTs, always. A webhook is a message being handed to a subscriber,
+	// and the other methods this model used to accept described requests nobody was making:
+	// a GET carries no body, so there is nothing to sign or to receive.
+	DeliveryMethod = http.MethodPost
 )
 
 type (
 	// Webhook represents a webhook listener, an endpoint to send an HTTP request to upon an event.
+	//
+	// The signing secret is deliberately absent. It is returned once, from the call that creates
+	// or rotates it, and never read back: a secret an API will hand out on request is one an
+	// attacker with read access can hand out to themselves.
 	Webhook struct {
 		_ struct{} `json:"-"`
 
@@ -41,7 +54,7 @@ type (
 		TriggerConfigs   []*WebhookTriggerConfig `json:"triggerConfigs"`
 	}
 
-	// WebhookTriggerConfig represents a webhook's subscription to a trigger event (join table record).
+	// WebhookTriggerConfig represents a webhook's subscription to one event type.
 	WebhookTriggerConfig struct {
 		_ struct{} `json:"-"`
 
@@ -49,29 +62,38 @@ type (
 		ArchivedAt       *time.Time `json:"archivedAt"`
 		ID               string     `json:"id"`
 		BelongsToWebhook string     `json:"belongsToWebhook"`
-		TriggerEventID   string     `json:"triggerEventId"`
-	}
-
-	// WebhookTriggerEvent is the catalog entity for available trigger event types.
-	WebhookTriggerEvent struct {
-		_             struct{}   `json:"-"`
-		CreatedAt     time.Time  `json:"createdAt"`
-		LastUpdatedAt *time.Time `json:"lastUpdatedAt"`
-		ArchivedAt    *time.Time `json:"archivedAt"`
-		ID            string     `json:"id"`
-		Name          string     `json:"name"`
-		Description   string     `json:"description"`
+		// EventType is a catalog event type — one of the strings the application publishes.
+		// It was a foreign key into a webhook_trigger_events table whose IDs were random,
+		// which is why no webhook ever matched an event: the fan-out compared those IDs
+		// against event type strings. The catalog is now generated Go, and this holds the
+		// event type itself.
+		EventType string `json:"eventType"`
 	}
 
 	// WebhookCreationRequestInput represents what a User could set as input for creating a webhook.
 	WebhookCreationRequestInput struct {
 		_ struct{} `json:"-"`
 
-		Name        string                                     `json:"name"`
-		ContentType string                                     `json:"contentType"`
-		URL         string                                     `json:"url"`
-		Method      string                                     `json:"method"`
-		Events      []*WebhookTriggerEventCreationRequestInput `json:"events"` // catalog event refs (ID) or new event definitions (Name/Description)
+		Name        string `json:"name"`
+		ContentType string `json:"contentType"`
+		URL         string `json:"url"`
+		Method      string `json:"method"`
+		// Events are catalog event types this webhook subscribes to.
+		Events []string `json:"events"`
+	}
+
+	// WebhookCreationResponse pairs a created webhook with its signing secret.
+	//
+	// The secret is separate from Webhook rather than a field on it precisely so that it
+	// cannot be returned by accident: every read path deals in Webhook, and no read path can
+	// populate a field that type does not have.
+	WebhookCreationResponse struct {
+		_ struct{} `json:"-"`
+
+		Webhook *Webhook `json:"webhook"`
+		// Secret is the hex-encoded HMAC signing key, shown exactly once. See
+		// webhooks.Verify for what a subscriber does with it.
+		Secret string `json:"secret"`
 	}
 
 	// WebhookDatabaseCreationInput is used for creating a webhook.
@@ -93,7 +115,7 @@ type (
 		_ struct{} `json:"-"`
 
 		BelongsToWebhook string `json:"belongsToWebhook"`
-		TriggerEventID   string `json:"triggerEventId"`
+		EventType        string `json:"eventType"`
 	}
 
 	// WebhookTriggerConfigDatabaseCreationInput is used for creating a webhook trigger config.
@@ -102,64 +124,61 @@ type (
 
 		ID               string `json:"-"`
 		BelongsToWebhook string `json:"-"`
-		TriggerEventID   string `json:"-"`
+		EventType        string `json:"-"`
 	}
 
-	// WebhookTriggerEventCreationRequestInput represents what a User could set as input for creating a catalog trigger event or referencing one by ID.
-	// If ID is set, the existing catalog event is used; otherwise Name (and optionally Description) create a new catalog event.
-	WebhookTriggerEventCreationRequestInput struct {
+	// WebhookEventType is one subscribable event type, as an API surface renders it.
+	//
+	// It replaces the webhook_trigger_events table, whose rows carried random IDs that the
+	// fan-out then compared against event type strings — which is why nothing ever matched. The
+	// event type is now its own identity, and the set of them is generated from the constants
+	// the domains declare rather than stored.
+	WebhookEventType struct {
 		_ struct{} `json:"-"`
 
-		ID          string `json:"id"` // optional: use existing catalog event
-		Name        string `json:"name"`
+		// Type is the event type itself, and what a trigger config stores.
+		Type string `json:"type"`
+		// Description is prose explaining when the event fires.
 		Description string `json:"description"`
 	}
 
-	// WebhookTriggerEventDatabaseCreationInput is used for creating a catalog webhook trigger event.
-	WebhookTriggerEventDatabaseCreationInput struct {
-		_ struct{} `json:"-"`
-
-		ID          string `json:"-"`
-		Name        string `json:"-"`
-		Description string `json:"-"`
-	}
-
-	// WebhookTriggerEventUpdateRequestInput represents what a User could set as input for updating a catalog trigger event.
-	WebhookTriggerEventUpdateRequestInput struct {
-		_ struct{} `json:"-"`
-
-		Name        string `json:"name"`
-		Description string `json:"description"`
-	}
-
-	// WebhookExecutionRequest represents a webhook listener, an endpoint to send an HTTP request to upon an event.
-	WebhookExecutionRequest struct {
-		_ struct{} `json:"-"`
-
-		RequestID    string `json:"id"`
-		Payload      any    `json:"payload"`
-		WebhookID    string `json:"webhookID"`
-		AccountID    string `json:"accountID"`
-		TriggerEvent string `json:"triggerEvent"` // catalog event ID
-		TestID       string `json:"testID,omitempty"`
-	}
-
-	// WebhookDataManager describes a structure capable of storing and retrieving webhooks and trigger events.
+	// WebhookDataManager describes a structure capable of storing and retrieving webhooks.
 	WebhookDataManager interface {
 		WebhookExists(ctx context.Context, webhookID, accountID string) (bool, error)
 		GetWebhook(ctx context.Context, webhookID, accountID string) (*Webhook, error)
 		GetWebhooks(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[Webhook], error)
-		GetWebhooksForAccountAndEvent(ctx context.Context, accountID, triggerEventID string) ([]*Webhook, error)
-		CreateWebhook(ctx context.Context, input *WebhookDatabaseCreationInput) (*Webhook, error)
+		CreateWebhook(ctx context.Context, input *WebhookDatabaseCreationInput) (*WebhookCreationResponse, error)
 		ArchiveWebhook(ctx context.Context, webhookID, accountID string) error
 		AddWebhookTriggerConfig(ctx context.Context, accountID string, input *WebhookTriggerConfigDatabaseCreationInput) (*WebhookTriggerConfig, error)
-		ArchiveWebhookTriggerConfig(ctx context.Context, webhookID, configID string) error
-		CreateWebhookTriggerEvent(ctx context.Context, input *WebhookTriggerEventDatabaseCreationInput) (*WebhookTriggerEvent, error)
-		GetWebhookTriggerEvent(ctx context.Context, id string) (*WebhookTriggerEvent, error)
-		GetWebhookTriggerEvents(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[WebhookTriggerEvent], error)
-		UpdateWebhookTriggerEvent(ctx context.Context, id string, input *WebhookTriggerEventUpdateRequestInput) error
-		ArchiveWebhookTriggerEvent(ctx context.Context, id string) error
+		ArchiveWebhookTriggerConfig(ctx context.Context, webhookID, accountID, configID string) error
+		RotateWebhookSecret(ctx context.Context, webhookID, accountID string) (string, error)
 	}
+)
+
+// validEventType rejects an event type the application does not publish.
+//
+// The catalog is generated from the domains' own constants, so this is the same set the
+// dispatcher gates on. Checking it at the API boundary is what turns a typo into a 400 with the
+// offending value in it, rather than a webhook that is accepted, stored, and never fires.
+var validEventType = validation.By(func(value any) error {
+	eventType, ok := value.(string)
+	if !ok || !catalog.Known(eventType) {
+		return validation.NewError("validation_unknown_event_type", "must be a known webhook event type")
+	}
+
+	return nil
+})
+
+// validContentType and validMethod pin the two fields the delivery worker no longer varies.
+//
+// Both used to be per-webhook and neither is honored any more: the worker POSTs, and a delivery
+// carries one payload shared by every subscriber, so a per-endpoint XML rendering would mean
+// dispatching the same event twice. Rejecting the other values is better than accepting and
+// ignoring them — a webhook configured for XML that silently receives JSON is a subscriber
+// parsing failure with nothing pointing at the cause.
+var (
+	validContentType = validation.In(encoding.ContentTypeJSON.String())
+	validMethod      = validation.In(DeliveryMethod)
 )
 
 var _ validation.ValidatableWithContext = (*WebhookCreationRequestInput)(nil)
@@ -169,9 +188,9 @@ func (w *WebhookCreationRequestInput) ValidateWithContext(ctx context.Context) e
 	return validation.ValidateStructWithContext(ctx, w,
 		validation.Field(&w.Name, validation.Required),
 		validation.Field(&w.URL, validation.Required, is.URL),
-		validation.Field(&w.Method, validation.Required, validation.In(http.MethodGet, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete)),
-		validation.Field(&w.ContentType, validation.Required, validation.In("application/json", "application/xml")),
-		validation.Field(&w.Events, validation.Required, validation.Length(1, 100)),
+		validation.Field(&w.Method, validation.Required, validMethod),
+		validation.Field(&w.ContentType, validation.Required, validContentType),
+		validation.Field(&w.Events, validation.Required, validation.Length(1, 100), validation.Each(validEventType)),
 	)
 }
 
@@ -181,7 +200,7 @@ var _ validation.ValidatableWithContext = (*WebhookTriggerConfigCreationRequestI
 func (w *WebhookTriggerConfigCreationRequestInput) ValidateWithContext(ctx context.Context) error {
 	return validation.ValidateStructWithContext(ctx, w,
 		validation.Field(&w.BelongsToWebhook, validation.Required),
-		validation.Field(&w.TriggerEventID, validation.Required),
+		validation.Field(&w.EventType, validation.Required, validEventType),
 	)
 }
 
@@ -193,31 +212,51 @@ func (w *WebhookDatabaseCreationInput) ValidateWithContext(ctx context.Context) 
 		validation.Field(&w.ID, validation.Required),
 		validation.Field(&w.Name, validation.Required),
 		validation.Field(&w.URL, validation.Required, is.URL),
-		validation.Field(&w.Method, validation.Required, validation.In(http.MethodGet, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete)),
-		validation.Field(&w.ContentType, validation.Required, validation.In(encoding.ContentTypeJSON.String(), encoding.ContentTypeXML.String())),
+		validation.Field(&w.Method, validation.Required, validMethod),
+		validation.Field(&w.ContentType, validation.Required, validContentType),
 		validation.Field(&w.TriggerConfigs, validation.Required),
 		validation.Field(&w.BelongsToAccount, validation.Required),
 		validation.Field(&w.CreatedByUser, validation.Required),
 	)
 }
 
-var _ validation.ValidatableWithContext = (*WebhookTriggerEventCreationRequestInput)(nil)
+// EventTypeCatalog returns every subscribable event type, sorted by type.
+//
+// It reads the generated catalog rather than a table, which is what makes "the events this
+// application publishes" and "the events a webhook may subscribe to" the same list by
+// construction instead of by an admin remembering to keep two of them aligned.
+func EventTypeCatalog() []*WebhookEventType {
+	known := catalog.Catalog()
 
-// ValidateWithContext validates a WebhookTriggerEventCreationRequestInput.
-// Either ID (reference existing catalog event) or Name (create new) must be set.
-func (w *WebhookTriggerEventCreationRequestInput) ValidateWithContext(ctx context.Context) error {
-	return validation.ValidateStructWithContext(ctx, w,
-		validation.Field(&w.Name, validation.When(w.ID == "", validation.Required)),
-		validation.Field(&w.ID, validation.When(w.Name == "", validation.Required)),
-	)
+	eventTypes := make([]*WebhookEventType, 0, len(known))
+	for _, eventType := range known.EventTypes() {
+		eventTypes = append(eventTypes, &WebhookEventType{
+			Type:        eventType,
+			Description: known[eventType].Description,
+		})
+	}
+
+	return eventTypes
 }
 
-var _ validation.ValidatableWithContext = (*WebhookTriggerEventDatabaseCreationInput)(nil)
+// EventTypes returns the event types a webhook is subscribed to, in trigger config order.
+//
+// It is the shape the dispatcher wants — subscriptions are replaced as a set, never edited in
+// place — and having one place render it keeps the two callers that need it from disagreeing
+// about whether archived configs count. They do not.
+func (w *Webhook) EventTypes() []string {
+	if w == nil {
+		return nil
+	}
 
-// ValidateWithContext validates a WebhookTriggerEventDatabaseCreationInput.
-func (w *WebhookTriggerEventDatabaseCreationInput) ValidateWithContext(ctx context.Context) error {
-	return validation.ValidateStructWithContext(ctx, w,
-		validation.Field(&w.ID, validation.Required),
-		validation.Field(&w.Name, validation.Required),
-	)
+	eventTypes := make([]string, 0, len(w.TriggerConfigs))
+	for _, cfg := range w.TriggerConfigs {
+		if cfg == nil || cfg.ArchivedAt != nil {
+			continue
+		}
+
+		eventTypes = append(eventTypes, cfg.EventType)
+	}
+
+	return eventTypes
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/primandproper/platform-go/v9/outbox"
 	"github.com/primandproper/platform-go/v9/saga"
 	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
+	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -39,8 +40,6 @@ type (
 		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability"`
 		Analytics     analyticscfg.Config  `envPrefix:"ANALYTICS_"     json:"analytics"`
 		Search        textsearchcfg.Config `envPrefix:"SEARCH_"        json:"search"`
-		Jobs          ScheduledJobsConfig  `envPrefix:"JOBS_"          json:"jobs"`
-		Database      dbcfg.Config         `envPrefix:"DATABASE_"      json:"database"`
 
 		// DataPrivacy is here for the disclosure artifact bucket. The reaper only deletes, so
 		// the cipher half is dead weight for this process — it is carried anyway so that all
@@ -49,6 +48,9 @@ type (
 		// The extra exposure is nominal: this process already holds database credentials for
 		// the data the artifacts are made of.
 		DataPrivacy dataprivacycfg.Config `envPrefix:"DATA_PRIVACY_" json:"dataPrivacy"`
+
+		Jobs     ScheduledJobsConfig `envPrefix:"JOBS_"     json:"jobs"`
+		Database dbcfg.Config        `envPrefix:"DATABASE_" json:"database"`
 
 		// Outbox moves events written inside a caller's transaction onto the broker. It
 		// lives here because it is a background loop, which is what this process is for,
@@ -61,6 +63,14 @@ type (
 		// loop steps it through, and it polls in seconds rather than minutes because the
 		// poll interval is the floor on how long a step's delay costs.
 		Sagas saga.WorkerConfig `envPrefix:"SAGAS_" json:"sagas"`
+
+		// Webhooks configures the outbound webhook delivery worker, which lives here for
+		// the same reasons the outbox relay does: it is a polling loop that must not be
+		// tied to a request, and it needs exactly what this process already has.
+		//
+		// Its own tick also reaps delivered dispatches and their attempts past the
+		// retention window, so retention needs no separate scheduled job.
+		Webhooks webhookscfg.Config `envPrefix:"WEBHOOKS_" json:"webhooks"`
 	}
 
 	// ScheduledJobsConfig carries the scheduler's own knobs, the lock backend that serializes
@@ -229,6 +239,7 @@ func (cfg *SchedulerConfig) ValidateWithContext(ctx context.Context) error {
 		"DataPrivacy":   cfg.DataPrivacy.ValidateWithContext,
 		"Jobs":          cfg.Jobs.ValidateWithContext,
 		"Outbox":        cfg.Outbox.ValidateWithContext,
+		"Webhooks":      cfg.Webhooks.ValidateWithContext,
 		"Sagas":         cfg.Sagas.ValidateWithContext,
 	}
 

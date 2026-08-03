@@ -3,12 +3,9 @@ package webhooks
 import (
 	"testing"
 
-	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
-
-	"github.com/primandproper/platform-go/v9/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,19 +50,9 @@ func TestQuerier_Integration_CollectUserData(t *testing.T) {
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
 
-	// Create catalog trigger event for webhook
-	catalogEvent, err := dbc.CreateWebhookTriggerEvent(ctx, &types.WebhookTriggerEventDatabaseCreationInput{
-		ID:          identifiers.New(),
-		Name:        "webhook_created",
-		Description: "test",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, catalogEvent)
-
 	exampleWebhook := fakes.BuildFakeWebhook()
 	exampleWebhook.BelongsToAccount = account.ID
 	exampleWebhook.CreatedByUser = user.ID
-	exampleWebhook.TriggerConfigs[0].TriggerEventID = catalogEvent.ID
 	dbInput := converters.ConvertWebhookToWebhookDatabaseCreationInput(exampleWebhook)
 
 	created, err := dbc.CreateWebhook(ctx, dbInput)
@@ -79,7 +66,7 @@ func TestQuerier_Integration_CollectUserData(t *testing.T) {
 	require.NotNil(t, result.Data)
 	assert.Contains(t, result.Data, account.ID)
 	assert.Len(t, result.Data[account.ID], 1)
-	assert.Equal(t, created.ID, result.Data[account.ID][0].ID)
+	assert.Equal(t, created.Webhook.ID, result.Data[account.ID][0].ID)
 	assert.Equal(t, account.ID, result.Data[account.ID][0].BelongsToAccount)
 }
 
@@ -93,19 +80,10 @@ func TestQuerier_Integration_CollectUserData_MultipleAccounts(t *testing.T) {
 	user2 := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	account2 := pgtesting.CreateAccountForTest(t, nil, user2.ID, dbc.writeDB)
 
-	catalogEvent, err := dbc.CreateWebhookTriggerEvent(ctx, &types.WebhookTriggerEventDatabaseCreationInput{
-		ID:          identifiers.New(),
-		Name:        "webhook_created",
-		Description: "test",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, catalogEvent)
-
 	// Create webhook for account1 only
 	webhook1 := fakes.BuildFakeWebhook()
 	webhook1.BelongsToAccount = account1.ID
 	webhook1.CreatedByUser = user1.ID
-	webhook1.TriggerConfigs[0].TriggerEventID = catalogEvent.ID
 	dbInput1 := converters.ConvertWebhookToWebhookDatabaseCreationInput(webhook1)
 	created1, err := dbc.CreateWebhook(ctx, dbInput1)
 	require.NoError(t, err)

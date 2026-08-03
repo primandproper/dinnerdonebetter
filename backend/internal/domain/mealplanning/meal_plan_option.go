@@ -17,7 +17,7 @@ const (
 	MealPlanOptionUpdatedServiceEventType = "meal_plan_option_updated"
 	// MealPlanOptionArchivedServiceEventType indicates a meal plan option was archived.
 	MealPlanOptionArchivedServiceEventType = "meal_plan_option_archived"
-	// MealPlanOptionFinalizedCreatedServiceEventType indicates a meal plan option was created.
+	// MealPlanOptionFinalizedCreatedServiceEventType indicates a meal plan option was finalized.
 	MealPlanOptionFinalizedCreatedServiceEventType = "meal_plan_option_finalized"
 )
 

@@ -19,7 +19,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, reportArtifacts, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, reportArtifacts, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -55,7 +55,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 	t.Run("marks disclosure completed when request carries a disclosure ID", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, reportArtifacts, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, reportArtifacts, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -101,7 +101,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 	t.Run("marks disclosure failed when aggregation fails", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -145,7 +145,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 	t.Run("with decode error", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, decoder, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, decoder, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -162,7 +162,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 	t.Run("with fetch user data collection error", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -198,7 +198,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 	t.Run("with upload error", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, reportArtifacts, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, reportArtifacts, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -236,7 +236,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 	t.Run("with empty report ID", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, reportArtifacts, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, reportArtifacts, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
