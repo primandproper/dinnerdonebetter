@@ -119,3 +119,52 @@ func TestRenderAuditDDL(T *testing.T) {
 		assert.NotContains(t, body, "BEFORE DELETE ON")
 	})
 }
+
+// TestQuerier_Migrate_OverLegacyAuditTable is the scenario the table prefix exists
+// for: a database that already holds the hand-rolled log's table.
+//
+// The platform's DDL says CREATE TABLE IF NOT EXISTS, so without the prefix this
+// migration would be a silent no-op against that table and every audit write
+// afterwards would target the wrong columns. With it there is nothing to collide
+// with, and the stale table is left alone rather than dropped — a migration that
+// destroys an audit log is the wrong default even when we are confident it holds
+// nothing worth keeping.
+func TestQuerier_Migrate_OverLegacyAuditTable(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		db, _ := pgtesting.BuildDatabaseContainerForTest(t)
+
+		_, err := db.ExecContext(ctx, `
+			CREATE TYPE audit_log_event_type AS ENUM ('other', 'created', 'updated', 'archived');
+			CREATE TABLE audit_log_entries (
+				id TEXT NOT NULL PRIMARY KEY,
+				resource_type TEXT NOT NULL,
+				relevant_id TEXT NOT NULL DEFAULT '',
+				event_type audit_log_event_type NOT NULL DEFAULT 'other',
+				changes JSONB NOT NULL,
+				created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+			)`)
+		require.NoError(t, err)
+
+		migrator, err := NewMigrator(loggingnoop.NewLogger())
+		require.NoError(t, err)
+		require.NoError(t, migrator.Migrate(ctx, db))
+
+		// The prefixed tables exist and are the platform's, not the legacy shape.
+		var seqColumns int
+		require.NoError(t, db.QueryRowContext(ctx,
+			`SELECT COUNT(*) FROM information_schema.columns WHERE table_name = $1 AND column_name = 'seq'`,
+			audit.TablePrefix+"_audit_log_entries").Scan(&seqColumns))
+		assert.Equal(t, 1, seqColumns, "the chained entries table must be the one that got created")
+
+		// And the legacy table is untouched rather than dropped.
+		var legacy int
+		require.NoError(t, db.QueryRowContext(ctx,
+			`SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'audit_log_entries'`).Scan(&legacy))
+		assert.Equal(t, 1, legacy)
+	})
+}
