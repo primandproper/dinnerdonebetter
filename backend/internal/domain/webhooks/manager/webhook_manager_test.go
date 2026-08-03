@@ -10,7 +10,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 	webhookmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/mock"
 
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
@@ -21,6 +20,12 @@ import (
 
 // buildWebhookManagerForTest builds a manager backed by the given repository mock. A nil repo gets
 // an unconfigured mock, which panics if any of its methods are called.
+// exampleEventType is a real catalog entry: validation rejects anything else, so a made-up
+// string would only ever exercise the rejection path.
+var exampleEventType = fakes.BuildFakeWebhookEventType()
+
+const exampleSecret = "6465616462656566"
+
 func buildWebhookManagerForTest(t *testing.T, repo *webhookmock.RepositoryMock) *webhookManager {
 	t.Helper()
 
@@ -53,21 +58,21 @@ func TestWebhookDataManager_CreateWebhook(t *testing.T) {
 			ContentType: "application/json",
 			URL:         "https://example.com/hook",
 			Method:      http.MethodPost,
-			Events:      []*webhooks.WebhookTriggerEventCreationRequestInput{{ID: "event-id-1"}},
+			Events:      []string{exampleEventType},
 		}
 
 		expectedWebhook := fakes.BuildFakeWebhook()
 
 		repo := &webhookmock.RepositoryMock{
-			CreateWebhookFunc: func(_ context.Context, in *webhooks.WebhookDatabaseCreationInput) (*webhooks.Webhook, error) {
+			CreateWebhookFunc: func(_ context.Context, in *webhooks.WebhookDatabaseCreationInput) (*webhooks.WebhookCreationResponse, error) {
 				assert.Equal(t, input.Name, in.Name)
 				assert.Equal(t, input.URL, in.URL)
 				assert.Equal(t, userID, in.CreatedByUser)
 				assert.Equal(t, accountID, in.BelongsToAccount)
 				require.Len(t, in.TriggerConfigs, 1)
-				assert.Equal(t, "event-id-1", in.TriggerConfigs[0].TriggerEventID)
+				assert.Equal(t, exampleEventType, in.TriggerConfigs[0].EventType)
 
-				return expectedWebhook, nil
+				return &webhooks.WebhookCreationResponse{Webhook: expectedWebhook, Secret: exampleSecret}, nil
 			},
 		}
 		manager := buildWebhookManagerForTest(t, repo)
@@ -76,7 +81,9 @@ func TestWebhookDataManager_CreateWebhook(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.NotNil(t, created)
-		assert.Equal(t, expectedWebhook.ID, created.ID)
+		assert.Equal(t, expectedWebhook.ID, created.Webhook.ID)
+		// The secret reaches the caller from here and from nowhere else.
+		assert.Equal(t, exampleSecret, created.Secret)
 		assert.Len(t, repo.CreateWebhookCalls(), 1)
 	})
 
@@ -105,7 +112,7 @@ func TestWebhookDataManager_CreateWebhook(t *testing.T) {
 			Name:   "", // invalid
 			URL:    "https://example.com",
 			Method: http.MethodPost,
-			Events: []*webhooks.WebhookTriggerEventCreationRequestInput{{ID: "e1"}},
+			Events: []string{exampleEventType},
 		}
 
 		created, err := manager.CreateWebhook(ctx, "user-1", "account-1", input)
@@ -123,7 +130,7 @@ func TestWebhookDataManager_CreateWebhook(t *testing.T) {
 		input := fakes.BuildFakeWebhookCreationRequestInput()
 
 		repo := &webhookmock.RepositoryMock{
-			CreateWebhookFunc: func(_ context.Context, _ *webhooks.WebhookDatabaseCreationInput) (*webhooks.Webhook, error) {
+			CreateWebhookFunc: func(_ context.Context, _ *webhooks.WebhookDatabaseCreationInput) (*webhooks.WebhookCreationResponse, error) {
 				return nil, errors.New("db error")
 			},
 		}
@@ -234,7 +241,7 @@ func TestWebhookDataManager_AddWebhookTriggerConfig(t *testing.T) {
 		accountID := "account-1"
 		input := &webhooks.WebhookTriggerConfigCreationRequestInput{
 			BelongsToWebhook: "webhook-1",
-			TriggerEventID:   "event-1",
+			EventType:        exampleEventType,
 		}
 		expectedConfig := fakes.BuildFakeWebhookTriggerConfig()
 
@@ -242,7 +249,7 @@ func TestWebhookDataManager_AddWebhookTriggerConfig(t *testing.T) {
 			AddWebhookTriggerConfigFunc: func(_ context.Context, actualAccountID string, in *webhooks.WebhookTriggerConfigDatabaseCreationInput) (*webhooks.WebhookTriggerConfig, error) {
 				assert.Equal(t, accountID, actualAccountID)
 				assert.Equal(t, input.BelongsToWebhook, in.BelongsToWebhook)
-				assert.Equal(t, input.TriggerEventID, in.TriggerEventID)
+				assert.Equal(t, input.EventType, in.EventType)
 
 				return expectedConfig, nil
 			},
@@ -279,12 +286,17 @@ func TestWebhookDataManager_ArchiveWebhookTriggerConfig(t *testing.T) {
 
 		ctx := t.Context()
 
-		webhookID := "wh-1"
-		configID := "config-1"
+		webhookID := fakes.BuildFakeID()
+		accountID := fakes.BuildFakeID()
+		configID := fakes.BuildFakeID()
 
 		repo := &webhookmock.RepositoryMock{
-			ArchiveWebhookTriggerConfigFunc: func(_ context.Context, actualWebhookID, actualConfigID string) error {
+			ArchiveWebhookTriggerConfigFunc: func(_ context.Context, actualWebhookID, actualAccountID, actualConfigID string) error {
 				assert.Equal(t, webhookID, actualWebhookID)
+				// The account travels down to the query, which scopes the archive by it.
+				// Without that, two IDs would be enough to silence another account's
+				// subscription.
+				assert.Equal(t, accountID, actualAccountID)
 				assert.Equal(t, configID, actualConfigID)
 
 				return nil
@@ -292,97 +304,10 @@ func TestWebhookDataManager_ArchiveWebhookTriggerConfig(t *testing.T) {
 		}
 		manager := buildWebhookManagerForTest(t, repo)
 
-		err := manager.ArchiveWebhookTriggerConfig(ctx, webhookID, configID)
+		err := manager.ArchiveWebhookTriggerConfig(ctx, webhookID, accountID, configID)
 
 		require.NoError(t, err)
 		assert.Len(t, repo.ArchiveWebhookTriggerConfigCalls(), 1)
-	})
-}
-
-func TestWebhookDataManager_CreateWebhookTriggerEvent(t *testing.T) {
-	t.Parallel()
-
-	t.Run("success", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-
-		input := &webhooks.WebhookTriggerEventCreationRequestInput{
-			Name:        "webhook_created",
-			Description: "Fired when a webhook is created",
-		}
-		expected := fakes.BuildFakeWebhookTriggerEvent()
-
-		repo := &webhookmock.RepositoryMock{
-			CreateWebhookTriggerEventFunc: func(_ context.Context, in *webhooks.WebhookTriggerEventDatabaseCreationInput) (*webhooks.WebhookTriggerEvent, error) {
-				assert.Equal(t, input.Name, in.Name)
-				assert.Equal(t, input.Description, in.Description)
-
-				return expected, nil
-			},
-		}
-		manager := buildWebhookManagerForTest(t, repo)
-
-		result, err := manager.CreateWebhookTriggerEvent(ctx, input)
-
-		require.NoError(t, err)
-		assert.Equal(t, expected, result)
-		assert.Len(t, repo.CreateWebhookTriggerEventCalls(), 1)
-	})
-
-	t.Run("nil input", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		repo := &webhookmock.RepositoryMock{}
-		manager := buildWebhookManagerForTest(t, repo)
-
-		result, err := manager.CreateWebhookTriggerEvent(ctx, nil)
-
-		assert.Error(t, err)
-		assert.Nil(t, result)
-		assert.Empty(t, repo.CreateWebhookTriggerEventCalls())
-	})
-}
-
-func TestWebhookDataManager_UpdateWebhookTriggerEvent(t *testing.T) {
-	t.Parallel()
-
-	t.Run("success", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-
-		triggerEventID := fakes.BuildFakeID()
-		input := &webhooks.WebhookTriggerEventUpdateRequestInput{}
-
-		repo := &webhookmock.RepositoryMock{
-			UpdateWebhookTriggerEventFunc: func(_ context.Context, id string, in *webhooks.WebhookTriggerEventUpdateRequestInput) error {
-				assert.Equal(t, triggerEventID, id)
-				assert.Equal(t, input, in)
-
-				return nil
-			},
-		}
-		manager := buildWebhookManagerForTest(t, repo)
-
-		err := manager.UpdateWebhookTriggerEvent(ctx, triggerEventID, input)
-
-		require.NoError(t, err)
-		assert.Len(t, repo.UpdateWebhookTriggerEventCalls(), 1)
-	})
-
-	t.Run("nil input", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		repo := &webhookmock.RepositoryMock{}
-		manager := buildWebhookManagerForTest(t, repo)
-
-		err := manager.UpdateWebhookTriggerEvent(ctx, fakes.BuildFakeID(), nil)
-
-		require.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
-		assert.Empty(t, repo.UpdateWebhookTriggerEventCalls())
 	})
 }
 

@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	// ServiceSettingConfigurationCreatedServiceEventType indicates a service setting was created.
+	// ServiceSettingConfigurationCreatedServiceEventType indicates a service setting configuration was created.
 	ServiceSettingConfigurationCreatedServiceEventType = "service_setting_configuration_created"
-	// ServiceSettingConfigurationUpdatedServiceEventType indicates a service setting was updated.
+	// ServiceSettingConfigurationUpdatedServiceEventType indicates a service setting configuration was updated.
 	ServiceSettingConfigurationUpdatedServiceEventType = "service_setting_configuration_updated"
-	// ServiceSettingConfigurationArchivedServiceEventType indicates a service setting was archived.
+	// ServiceSettingConfigurationArchivedServiceEventType indicates a service setting configuration was archived.
 	ServiceSettingConfigurationArchivedServiceEventType = "service_setting_configuration_archived"
 )
 

@@ -16,7 +16,6 @@ import (
 
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	anypb "google.golang.org/protobuf/types/known/anypb"
 )
 
 const (
@@ -27,12 +26,18 @@ const (
 )
 
 type WebhookCreationRequestInput struct {
-	state         protoimpl.MessageState                     `protogen:"open.v1"`
-	Name          string                                     `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	ContentType   WebhookContentType                         `protobuf:"varint,2,opt,name=content_type,json=contentType,proto3,enum=webhooks.WebhookContentType" json:"content_type,omitempty"`
-	Url           string                                     `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
-	Method        WebhookMethod                              `protobuf:"varint,4,opt,name=method,proto3,enum=webhooks.WebhookMethod" json:"method,omitempty"`
-	Events        []*WebhookTriggerEventCreationRequestInput `protobuf:"bytes,5,rep,name=events,proto3" json:"events,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Name        string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	ContentType WebhookContentType     `protobuf:"varint,2,opt,name=content_type,json=contentType,proto3,enum=webhooks.WebhookContentType" json:"content_type,omitempty"`
+	Url         string                 `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
+	Method      WebhookMethod          `protobuf:"varint,4,opt,name=method,proto3,enum=webhooks.WebhookMethod" json:"method,omitempty"`
+	// event_types are the catalog event types this webhook subscribes to.
+	//
+	// Field 5 previously carried WebhookTriggerEventCreationRequestInput, which let a caller
+	// define new catalog rows inline. That is gone: the catalog is generated from the events the
+	// application actually publishes, so an event type a caller invents is one nothing will ever
+	// emit. Subscribing to an unknown type is now rejected rather than silently stored.
+	EventTypes    []string `protobuf:"bytes,6,rep,name=event_types,json=eventTypes,proto3" json:"event_types,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -92,103 +97,27 @@ func (x *WebhookCreationRequestInput) GetMethod() WebhookMethod {
 	if x != nil {
 		return x.Method
 	}
-	return WebhookMethod_WEBHOOK_METHOD_GET
+	return WebhookMethod_WEBHOOK_METHOD_UNSPECIFIED
 }
 
-func (x *WebhookCreationRequestInput) GetEvents() []*WebhookTriggerEventCreationRequestInput {
+func (x *WebhookCreationRequestInput) GetEventTypes() []string {
 	if x != nil {
-		return x.Events
+		return x.EventTypes
 	}
 	return nil
-}
-
-type WebhookExecutionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	Payload       *anypb.Any             `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
-	WebhookId     string                 `protobuf:"bytes,3,opt,name=webhook_id,json=webhookId,proto3" json:"webhook_id,omitempty"`
-	AccountId     string                 `protobuf:"bytes,4,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	TriggerEvent  string                 `protobuf:"bytes,5,opt,name=trigger_event,json=triggerEvent,proto3" json:"trigger_event,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *WebhookExecutionRequest) Reset() {
-	*x = WebhookExecutionRequest{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *WebhookExecutionRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*WebhookExecutionRequest) ProtoMessage() {}
-
-func (x *WebhookExecutionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use WebhookExecutionRequest.ProtoReflect.Descriptor instead.
-func (*WebhookExecutionRequest) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *WebhookExecutionRequest) GetRequestId() string {
-	if x != nil {
-		return x.RequestId
-	}
-	return ""
-}
-
-func (x *WebhookExecutionRequest) GetPayload() *anypb.Any {
-	if x != nil {
-		return x.Payload
-	}
-	return nil
-}
-
-func (x *WebhookExecutionRequest) GetWebhookId() string {
-	if x != nil {
-		return x.WebhookId
-	}
-	return ""
-}
-
-func (x *WebhookExecutionRequest) GetAccountId() string {
-	if x != nil {
-		return x.AccountId
-	}
-	return ""
-}
-
-func (x *WebhookExecutionRequest) GetTriggerEvent() string {
-	if x != nil {
-		return x.TriggerEvent
-	}
-	return ""
 }
 
 type WebhookTriggerConfigCreationRequestInput struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	BelongsToWebhook string                 `protobuf:"bytes,1,opt,name=belongs_to_webhook,json=belongsToWebhook,proto3" json:"belongs_to_webhook,omitempty"`
-	TriggerEventId   string                 `protobuf:"bytes,2,opt,name=trigger_event_id,json=triggerEventId,proto3" json:"trigger_event_id,omitempty"`
+	EventType        string                 `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
 
 func (x *WebhookTriggerConfigCreationRequestInput) Reset() {
 	*x = WebhookTriggerConfigCreationRequestInput{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[2]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -200,7 +129,7 @@ func (x *WebhookTriggerConfigCreationRequestInput) String() string {
 func (*WebhookTriggerConfigCreationRequestInput) ProtoMessage() {}
 
 func (x *WebhookTriggerConfigCreationRequestInput) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[2]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -213,7 +142,7 @@ func (x *WebhookTriggerConfigCreationRequestInput) ProtoReflect() protoreflect.M
 
 // Deprecated: Use WebhookTriggerConfigCreationRequestInput.ProtoReflect.Descriptor instead.
 func (*WebhookTriggerConfigCreationRequestInput) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{2}
+	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *WebhookTriggerConfigCreationRequestInput) GetBelongsToWebhook() string {
@@ -223,9 +152,9 @@ func (x *WebhookTriggerConfigCreationRequestInput) GetBelongsToWebhook() string 
 	return ""
 }
 
-func (x *WebhookTriggerConfigCreationRequestInput) GetTriggerEventId() string {
+func (x *WebhookTriggerConfigCreationRequestInput) GetEventType() string {
 	if x != nil {
-		return x.TriggerEventId
+		return x.EventType
 	}
 	return ""
 }
@@ -239,7 +168,7 @@ type CreateWebhookRequest struct {
 
 func (x *CreateWebhookRequest) Reset() {
 	*x = CreateWebhookRequest{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[3]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -251,7 +180,7 @@ func (x *CreateWebhookRequest) String() string {
 func (*CreateWebhookRequest) ProtoMessage() {}
 
 func (x *CreateWebhookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[3]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -264,7 +193,7 @@ func (x *CreateWebhookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateWebhookRequest.ProtoReflect.Descriptor instead.
 func (*CreateWebhookRequest) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{3}
+	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CreateWebhookRequest) GetInput() *WebhookCreationRequestInput {
@@ -278,13 +207,23 @@ type CreateWebhookResponse struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	ResponseDetails *types.ResponseDetails `protobuf:"bytes,1,opt,name=response_details,json=responseDetails,proto3" json:"response_details,omitempty"`
 	Created         *Webhook               `protobuf:"bytes,2,opt,name=created,proto3" json:"created,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// secret is the hex-encoded HMAC signing key, returned exactly once.
+	//
+	// It is on the creation response and on no read message, so there is no request an attacker
+	// with read access can make that yields it. A caller who loses it calls RotateWebhookSecret.
+	//
+	// Deliveries carry X-Platform-Signature: v1,t=<unix>,s=<hex>, over "v1.<t>.<body>". The
+	// timestamp is inside the signed material, which is what makes a captured delivery expire —
+	// verify it before spending an HMAC. platform-go's webhooks.Verify is the reference
+	// implementation.
+	Secret        string `protobuf:"bytes,3,opt,name=secret,proto3" json:"secret,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateWebhookResponse) Reset() {
 	*x = CreateWebhookResponse{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[4]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -296,7 +235,7 @@ func (x *CreateWebhookResponse) String() string {
 func (*CreateWebhookResponse) ProtoMessage() {}
 
 func (x *CreateWebhookResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[4]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -309,7 +248,7 @@ func (x *CreateWebhookResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateWebhookResponse.ProtoReflect.Descriptor instead.
 func (*CreateWebhookResponse) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{4}
+	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CreateWebhookResponse) GetResponseDetails() *types.ResponseDetails {
@@ -326,6 +265,13 @@ func (x *CreateWebhookResponse) GetCreated() *Webhook {
 	return nil
 }
 
+func (x *CreateWebhookResponse) GetSecret() string {
+	if x != nil {
+		return x.Secret
+	}
+	return ""
+}
+
 type AddWebhookTriggerConfigRequest struct {
 	state         protoimpl.MessageState                    `protogen:"open.v1"`
 	WebhookId     string                                    `protobuf:"bytes,1,opt,name=webhook_id,json=webhookId,proto3" json:"webhook_id,omitempty"`
@@ -336,7 +282,7 @@ type AddWebhookTriggerConfigRequest struct {
 
 func (x *AddWebhookTriggerConfigRequest) Reset() {
 	*x = AddWebhookTriggerConfigRequest{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[5]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -348,7 +294,7 @@ func (x *AddWebhookTriggerConfigRequest) String() string {
 func (*AddWebhookTriggerConfigRequest) ProtoMessage() {}
 
 func (x *AddWebhookTriggerConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[5]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -361,7 +307,7 @@ func (x *AddWebhookTriggerConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddWebhookTriggerConfigRequest.ProtoReflect.Descriptor instead.
 func (*AddWebhookTriggerConfigRequest) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{5}
+	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AddWebhookTriggerConfigRequest) GetWebhookId() string {
@@ -388,7 +334,7 @@ type AddWebhookTriggerConfigResponse struct {
 
 func (x *AddWebhookTriggerConfigResponse) Reset() {
 	*x = AddWebhookTriggerConfigResponse{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[6]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -400,7 +346,7 @@ func (x *AddWebhookTriggerConfigResponse) String() string {
 func (*AddWebhookTriggerConfigResponse) ProtoMessage() {}
 
 func (x *AddWebhookTriggerConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[6]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -413,7 +359,7 @@ func (x *AddWebhookTriggerConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddWebhookTriggerConfigResponse.ProtoReflect.Descriptor instead.
 func (*AddWebhookTriggerConfigResponse) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{6}
+	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AddWebhookTriggerConfigResponse) GetResponseDetails() *types.ResponseDetails {
@@ -439,7 +385,7 @@ type ArchiveWebhookRequest struct {
 
 func (x *ArchiveWebhookRequest) Reset() {
 	*x = ArchiveWebhookRequest{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[7]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -451,7 +397,7 @@ func (x *ArchiveWebhookRequest) String() string {
 func (*ArchiveWebhookRequest) ProtoMessage() {}
 
 func (x *ArchiveWebhookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[7]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -464,7 +410,7 @@ func (x *ArchiveWebhookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArchiveWebhookRequest.ProtoReflect.Descriptor instead.
 func (*ArchiveWebhookRequest) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{7}
+	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ArchiveWebhookRequest) GetWebhookId() string {
@@ -483,7 +429,7 @@ type ArchiveWebhookResponse struct {
 
 func (x *ArchiveWebhookResponse) Reset() {
 	*x = ArchiveWebhookResponse{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[8]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -495,7 +441,7 @@ func (x *ArchiveWebhookResponse) String() string {
 func (*ArchiveWebhookResponse) ProtoMessage() {}
 
 func (x *ArchiveWebhookResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[8]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -508,7 +454,7 @@ func (x *ArchiveWebhookResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArchiveWebhookResponse.ProtoReflect.Descriptor instead.
 func (*ArchiveWebhookResponse) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{8}
+	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ArchiveWebhookResponse) GetResponseDetails() *types.ResponseDetails {
@@ -528,7 +474,7 @@ type ArchiveWebhookTriggerConfigRequest struct {
 
 func (x *ArchiveWebhookTriggerConfigRequest) Reset() {
 	*x = ArchiveWebhookTriggerConfigRequest{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[9]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -540,7 +486,7 @@ func (x *ArchiveWebhookTriggerConfigRequest) String() string {
 func (*ArchiveWebhookTriggerConfigRequest) ProtoMessage() {}
 
 func (x *ArchiveWebhookTriggerConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[9]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -553,7 +499,7 @@ func (x *ArchiveWebhookTriggerConfigRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use ArchiveWebhookTriggerConfigRequest.ProtoReflect.Descriptor instead.
 func (*ArchiveWebhookTriggerConfigRequest) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{9}
+	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ArchiveWebhookTriggerConfigRequest) GetWebhookId() string {
@@ -579,7 +525,7 @@ type ArchiveWebhookTriggerConfigResponse struct {
 
 func (x *ArchiveWebhookTriggerConfigResponse) Reset() {
 	*x = ArchiveWebhookTriggerConfigResponse{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[10]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -591,7 +537,7 @@ func (x *ArchiveWebhookTriggerConfigResponse) String() string {
 func (*ArchiveWebhookTriggerConfigResponse) ProtoMessage() {}
 
 func (x *ArchiveWebhookTriggerConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[10]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -604,7 +550,7 @@ func (x *ArchiveWebhookTriggerConfigResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ArchiveWebhookTriggerConfigResponse.ProtoReflect.Descriptor instead.
 func (*ArchiveWebhookTriggerConfigResponse) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{10}
+	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ArchiveWebhookTriggerConfigResponse) GetResponseDetails() *types.ResponseDetails {
@@ -623,7 +569,7 @@ type GetWebhookRequest struct {
 
 func (x *GetWebhookRequest) Reset() {
 	*x = GetWebhookRequest{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[11]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -635,7 +581,7 @@ func (x *GetWebhookRequest) String() string {
 func (*GetWebhookRequest) ProtoMessage() {}
 
 func (x *GetWebhookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[11]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -648,7 +594,7 @@ func (x *GetWebhookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWebhookRequest.ProtoReflect.Descriptor instead.
 func (*GetWebhookRequest) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{11}
+	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetWebhookRequest) GetWebhookId() string {
@@ -668,7 +614,7 @@ type GetWebhookResponse struct {
 
 func (x *GetWebhookResponse) Reset() {
 	*x = GetWebhookResponse{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[12]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -680,7 +626,7 @@ func (x *GetWebhookResponse) String() string {
 func (*GetWebhookResponse) ProtoMessage() {}
 
 func (x *GetWebhookResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[12]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -693,7 +639,7 @@ func (x *GetWebhookResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWebhookResponse.ProtoReflect.Descriptor instead.
 func (*GetWebhookResponse) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{12}
+	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetWebhookResponse) GetResponseDetails() *types.ResponseDetails {
@@ -719,7 +665,7 @@ type GetWebhooksRequest struct {
 
 func (x *GetWebhooksRequest) Reset() {
 	*x = GetWebhooksRequest{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[13]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -731,7 +677,7 @@ func (x *GetWebhooksRequest) String() string {
 func (*GetWebhooksRequest) ProtoMessage() {}
 
 func (x *GetWebhooksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[13]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -744,7 +690,7 @@ func (x *GetWebhooksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWebhooksRequest.ProtoReflect.Descriptor instead.
 func (*GetWebhooksRequest) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{13}
+	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetWebhooksRequest) GetFilter() *filtering.QueryFilter {
@@ -765,7 +711,7 @@ type GetWebhooksResponse struct {
 
 func (x *GetWebhooksResponse) Reset() {
 	*x = GetWebhooksResponse{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[14]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -777,7 +723,7 @@ func (x *GetWebhooksResponse) String() string {
 func (*GetWebhooksResponse) ProtoMessage() {}
 
 func (x *GetWebhooksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[14]
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -790,7 +736,7 @@ func (x *GetWebhooksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWebhooksResponse.ProtoReflect.Descriptor instead.
 func (*GetWebhooksResponse) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{14}
+	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetWebhooksResponse) GetResponseDetails() *types.ResponseDetails {
@@ -814,31 +760,78 @@ func (x *GetWebhooksResponse) GetResults() []*Webhook {
 	return nil
 }
 
-// Catalog trigger event CRUD
-// When id is set, the existing catalog event is used; otherwise name (and optionally description) create a new catalog event.
-type WebhookTriggerEventCreationRequestInput struct {
+// RotateWebhookSecret mints a new signing secret for a webhook.
+//
+// Deliveries are signed under both the new key and the outgoing one until this is called again,
+// so a subscriber accepts either signature while it switches over. Rotating twice retires the
+// original key.
+type RotateWebhookSecretRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	Id            *string                `protobuf:"bytes,3,opt,name=id,proto3,oneof" json:"id,omitempty"` // reference existing catalog event by id
+	WebhookId     string                 `protobuf:"bytes,1,opt,name=webhook_id,json=webhookId,proto3" json:"webhook_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *WebhookTriggerEventCreationRequestInput) Reset() {
-	*x = WebhookTriggerEventCreationRequestInput{}
+func (x *RotateWebhookSecretRequest) Reset() {
+	*x = RotateWebhookSecretRequest{}
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RotateWebhookSecretRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RotateWebhookSecretRequest) ProtoMessage() {}
+
+func (x *RotateWebhookSecretRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RotateWebhookSecretRequest.ProtoReflect.Descriptor instead.
+func (*RotateWebhookSecretRequest) Descriptor() ([]byte, []int) {
+	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *RotateWebhookSecretRequest) GetWebhookId() string {
+	if x != nil {
+		return x.WebhookId
+	}
+	return ""
+}
+
+type RotateWebhookSecretResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ResponseDetails *types.ResponseDetails `protobuf:"bytes,1,opt,name=response_details,json=responseDetails,proto3" json:"response_details,omitempty"`
+	// secret is the new hex-encoded HMAC signing key, returned exactly once.
+	Secret        string `protobuf:"bytes,2,opt,name=secret,proto3" json:"secret,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RotateWebhookSecretResponse) Reset() {
+	*x = RotateWebhookSecretResponse{}
 	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *WebhookTriggerEventCreationRequestInput) String() string {
+func (x *RotateWebhookSecretResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*WebhookTriggerEventCreationRequestInput) ProtoMessage() {}
+func (*RotateWebhookSecretResponse) ProtoMessage() {}
 
-func (x *WebhookTriggerEventCreationRequestInput) ProtoReflect() protoreflect.Message {
+func (x *RotateWebhookSecretResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -850,53 +843,45 @@ func (x *WebhookTriggerEventCreationRequestInput) ProtoReflect() protoreflect.Me
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use WebhookTriggerEventCreationRequestInput.ProtoReflect.Descriptor instead.
-func (*WebhookTriggerEventCreationRequestInput) Descriptor() ([]byte, []int) {
+// Deprecated: Use RotateWebhookSecretResponse.ProtoReflect.Descriptor instead.
+func (*RotateWebhookSecretResponse) Descriptor() ([]byte, []int) {
 	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *WebhookTriggerEventCreationRequestInput) GetName() string {
+func (x *RotateWebhookSecretResponse) GetResponseDetails() *types.ResponseDetails {
 	if x != nil {
-		return x.Name
+		return x.ResponseDetails
 	}
-	return ""
+	return nil
 }
 
-func (x *WebhookTriggerEventCreationRequestInput) GetDescription() string {
+func (x *RotateWebhookSecretResponse) GetSecret() string {
 	if x != nil {
-		return x.Description
+		return x.Secret
 	}
 	return ""
 }
 
-func (x *WebhookTriggerEventCreationRequestInput) GetId() string {
-	if x != nil && x.Id != nil {
-		return *x.Id
-	}
-	return ""
-}
-
-type CreateWebhookTriggerEventRequest struct {
-	state         protoimpl.MessageState                   `protogen:"open.v1"`
-	Input         *WebhookTriggerEventCreationRequestInput `protobuf:"bytes,1,opt,name=input,proto3" json:"input,omitempty"`
+type GetWebhookEventTypesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreateWebhookTriggerEventRequest) Reset() {
-	*x = CreateWebhookTriggerEventRequest{}
+func (x *GetWebhookEventTypesRequest) Reset() {
+	*x = GetWebhookEventTypesRequest{}
 	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreateWebhookTriggerEventRequest) String() string {
+func (x *GetWebhookEventTypesRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateWebhookTriggerEventRequest) ProtoMessage() {}
+func (*GetWebhookEventTypesRequest) ProtoMessage() {}
 
-func (x *CreateWebhookTriggerEventRequest) ProtoReflect() protoreflect.Message {
+func (x *GetWebhookEventTypesRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -908,40 +893,33 @@ func (x *CreateWebhookTriggerEventRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateWebhookTriggerEventRequest.ProtoReflect.Descriptor instead.
-func (*CreateWebhookTriggerEventRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetWebhookEventTypesRequest.ProtoReflect.Descriptor instead.
+func (*GetWebhookEventTypesRequest) Descriptor() ([]byte, []int) {
 	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{16}
 }
 
-func (x *CreateWebhookTriggerEventRequest) GetInput() *WebhookTriggerEventCreationRequestInput {
-	if x != nil {
-		return x.Input
-	}
-	return nil
-}
-
-type CreateWebhookTriggerEventResponse struct {
+type GetWebhookEventTypesResponse struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	ResponseDetails *types.ResponseDetails `protobuf:"bytes,1,opt,name=response_details,json=responseDetails,proto3" json:"response_details,omitempty"`
-	Created         *WebhookTriggerEvent   `protobuf:"bytes,2,opt,name=created,proto3" json:"created,omitempty"`
+	Results         []*WebhookEventType    `protobuf:"bytes,2,rep,name=results,proto3" json:"results,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
-func (x *CreateWebhookTriggerEventResponse) Reset() {
-	*x = CreateWebhookTriggerEventResponse{}
+func (x *GetWebhookEventTypesResponse) Reset() {
+	*x = GetWebhookEventTypesResponse{}
 	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreateWebhookTriggerEventResponse) String() string {
+func (x *GetWebhookEventTypesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateWebhookTriggerEventResponse) ProtoMessage() {}
+func (*GetWebhookEventTypesResponse) ProtoMessage() {}
 
-func (x *CreateWebhookTriggerEventResponse) ProtoReflect() protoreflect.Message {
+func (x *GetWebhookEventTypesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -953,457 +931,21 @@ func (x *CreateWebhookTriggerEventResponse) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateWebhookTriggerEventResponse.ProtoReflect.Descriptor instead.
-func (*CreateWebhookTriggerEventResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetWebhookEventTypesResponse.ProtoReflect.Descriptor instead.
+func (*GetWebhookEventTypesResponse) Descriptor() ([]byte, []int) {
 	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *CreateWebhookTriggerEventResponse) GetResponseDetails() *types.ResponseDetails {
+func (x *GetWebhookEventTypesResponse) GetResponseDetails() *types.ResponseDetails {
 	if x != nil {
 		return x.ResponseDetails
 	}
 	return nil
 }
 
-func (x *CreateWebhookTriggerEventResponse) GetCreated() *WebhookTriggerEvent {
-	if x != nil {
-		return x.Created
-	}
-	return nil
-}
-
-type GetWebhookTriggerEventRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetWebhookTriggerEventRequest) Reset() {
-	*x = GetWebhookTriggerEventRequest{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[18]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetWebhookTriggerEventRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetWebhookTriggerEventRequest) ProtoMessage() {}
-
-func (x *GetWebhookTriggerEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[18]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetWebhookTriggerEventRequest.ProtoReflect.Descriptor instead.
-func (*GetWebhookTriggerEventRequest) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *GetWebhookTriggerEventRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-type GetWebhookTriggerEventResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ResponseDetails *types.ResponseDetails `protobuf:"bytes,1,opt,name=response_details,json=responseDetails,proto3" json:"response_details,omitempty"`
-	Result          *WebhookTriggerEvent   `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *GetWebhookTriggerEventResponse) Reset() {
-	*x = GetWebhookTriggerEventResponse{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[19]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetWebhookTriggerEventResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetWebhookTriggerEventResponse) ProtoMessage() {}
-
-func (x *GetWebhookTriggerEventResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[19]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetWebhookTriggerEventResponse.ProtoReflect.Descriptor instead.
-func (*GetWebhookTriggerEventResponse) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{19}
-}
-
-func (x *GetWebhookTriggerEventResponse) GetResponseDetails() *types.ResponseDetails {
-	if x != nil {
-		return x.ResponseDetails
-	}
-	return nil
-}
-
-func (x *GetWebhookTriggerEventResponse) GetResult() *WebhookTriggerEvent {
-	if x != nil {
-		return x.Result
-	}
-	return nil
-}
-
-type GetWebhookTriggerEventsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Filter        *filtering.QueryFilter `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetWebhookTriggerEventsRequest) Reset() {
-	*x = GetWebhookTriggerEventsRequest{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[20]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetWebhookTriggerEventsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetWebhookTriggerEventsRequest) ProtoMessage() {}
-
-func (x *GetWebhookTriggerEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[20]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetWebhookTriggerEventsRequest.ProtoReflect.Descriptor instead.
-func (*GetWebhookTriggerEventsRequest) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{20}
-}
-
-func (x *GetWebhookTriggerEventsRequest) GetFilter() *filtering.QueryFilter {
-	if x != nil {
-		return x.Filter
-	}
-	return nil
-}
-
-type GetWebhookTriggerEventsResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ResponseDetails *types.ResponseDetails `protobuf:"bytes,1,opt,name=response_details,json=responseDetails,proto3" json:"response_details,omitempty"`
-	Pagination      *filtering.Pagination  `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	Results         []*WebhookTriggerEvent `protobuf:"bytes,3,rep,name=results,proto3" json:"results,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *GetWebhookTriggerEventsResponse) Reset() {
-	*x = GetWebhookTriggerEventsResponse{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[21]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetWebhookTriggerEventsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetWebhookTriggerEventsResponse) ProtoMessage() {}
-
-func (x *GetWebhookTriggerEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[21]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetWebhookTriggerEventsResponse.ProtoReflect.Descriptor instead.
-func (*GetWebhookTriggerEventsResponse) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{21}
-}
-
-func (x *GetWebhookTriggerEventsResponse) GetResponseDetails() *types.ResponseDetails {
-	if x != nil {
-		return x.ResponseDetails
-	}
-	return nil
-}
-
-func (x *GetWebhookTriggerEventsResponse) GetPagination() *filtering.Pagination {
-	if x != nil {
-		return x.Pagination
-	}
-	return nil
-}
-
-func (x *GetWebhookTriggerEventsResponse) GetResults() []*WebhookTriggerEvent {
+func (x *GetWebhookEventTypesResponse) GetResults() []*WebhookEventType {
 	if x != nil {
 		return x.Results
-	}
-	return nil
-}
-
-type WebhookTriggerEventUpdateRequestInput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *WebhookTriggerEventUpdateRequestInput) Reset() {
-	*x = WebhookTriggerEventUpdateRequestInput{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[22]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *WebhookTriggerEventUpdateRequestInput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*WebhookTriggerEventUpdateRequestInput) ProtoMessage() {}
-
-func (x *WebhookTriggerEventUpdateRequestInput) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[22]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use WebhookTriggerEventUpdateRequestInput.ProtoReflect.Descriptor instead.
-func (*WebhookTriggerEventUpdateRequestInput) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{22}
-}
-
-func (x *WebhookTriggerEventUpdateRequestInput) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *WebhookTriggerEventUpdateRequestInput) GetDescription() string {
-	if x != nil {
-		return x.Description
-	}
-	return ""
-}
-
-type UpdateWebhookTriggerEventRequest struct {
-	state         protoimpl.MessageState                 `protogen:"open.v1"`
-	Id            string                                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Input         *WebhookTriggerEventUpdateRequestInput `protobuf:"bytes,2,opt,name=input,proto3" json:"input,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateWebhookTriggerEventRequest) Reset() {
-	*x = UpdateWebhookTriggerEventRequest{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[23]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateWebhookTriggerEventRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateWebhookTriggerEventRequest) ProtoMessage() {}
-
-func (x *UpdateWebhookTriggerEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[23]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateWebhookTriggerEventRequest.ProtoReflect.Descriptor instead.
-func (*UpdateWebhookTriggerEventRequest) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{23}
-}
-
-func (x *UpdateWebhookTriggerEventRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *UpdateWebhookTriggerEventRequest) GetInput() *WebhookTriggerEventUpdateRequestInput {
-	if x != nil {
-		return x.Input
-	}
-	return nil
-}
-
-type UpdateWebhookTriggerEventResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ResponseDetails *types.ResponseDetails `protobuf:"bytes,1,opt,name=response_details,json=responseDetails,proto3" json:"response_details,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *UpdateWebhookTriggerEventResponse) Reset() {
-	*x = UpdateWebhookTriggerEventResponse{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[24]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateWebhookTriggerEventResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateWebhookTriggerEventResponse) ProtoMessage() {}
-
-func (x *UpdateWebhookTriggerEventResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[24]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateWebhookTriggerEventResponse.ProtoReflect.Descriptor instead.
-func (*UpdateWebhookTriggerEventResponse) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{24}
-}
-
-func (x *UpdateWebhookTriggerEventResponse) GetResponseDetails() *types.ResponseDetails {
-	if x != nil {
-		return x.ResponseDetails
-	}
-	return nil
-}
-
-type ArchiveWebhookTriggerEventRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ArchiveWebhookTriggerEventRequest) Reset() {
-	*x = ArchiveWebhookTriggerEventRequest{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[25]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ArchiveWebhookTriggerEventRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ArchiveWebhookTriggerEventRequest) ProtoMessage() {}
-
-func (x *ArchiveWebhookTriggerEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[25]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ArchiveWebhookTriggerEventRequest.ProtoReflect.Descriptor instead.
-func (*ArchiveWebhookTriggerEventRequest) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{25}
-}
-
-func (x *ArchiveWebhookTriggerEventRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-type ArchiveWebhookTriggerEventResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ResponseDetails *types.ResponseDetails `protobuf:"bytes,1,opt,name=response_details,json=responseDetails,proto3" json:"response_details,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *ArchiveWebhookTriggerEventResponse) Reset() {
-	*x = ArchiveWebhookTriggerEventResponse{}
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[26]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ArchiveWebhookTriggerEventResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ArchiveWebhookTriggerEventResponse) ProtoMessage() {}
-
-func (x *ArchiveWebhookTriggerEventResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_webhooks_webhooks_service_types_proto_msgTypes[26]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ArchiveWebhookTriggerEventResponse.ProtoReflect.Descriptor instead.
-func (*ArchiveWebhookTriggerEventResponse) Descriptor() ([]byte, []int) {
-	return file_webhooks_webhooks_service_types_proto_rawDescGZIP(), []int{26}
-}
-
-func (x *ArchiveWebhookTriggerEventResponse) GetResponseDetails() *types.ResponseDetails {
-	if x != nil {
-		return x.ResponseDetails
 	}
 	return nil
 }
@@ -1416,62 +958,48 @@ var file_webhooks_webhooks_service_types_proto_rawDesc = string([]byte{
 	0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x08, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b,
 	0x73, 0x1a, 0x0c, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x1a,
 	0x0f, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x1a, 0x19, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75,
-	0x66, 0x2f, 0x61, 0x6e, 0x79, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x1a, 0x20, 0x77, 0x65, 0x62,
-	0x68, 0x6f, 0x6f, 0x6b, 0x73, 0x2f, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x73, 0x5f, 0x6d,
-	0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x80, 0x02,
-	0x0a, 0x1b, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x43, 0x72, 0x65, 0x61, 0x74, 0x69, 0x6f,
-	0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x49, 0x6e, 0x70, 0x75, 0x74, 0x12, 0x12, 0x0a,
-	0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d,
-	0x65, 0x12, 0x3f, 0x0a, 0x0c, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x5f, 0x74, 0x79, 0x70,
-	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1c, 0x2e, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f,
-	0x6b, 0x73, 0x2e, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e,
-	0x74, 0x54, 0x79, 0x70, 0x65, 0x52, 0x0b, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x54, 0x79,
-	0x70, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x72, 0x6c, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x03, 0x75, 0x72, 0x6c, 0x12, 0x2f, 0x0a, 0x06, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x18, 0x04,
-	0x20, 0x01, 0x28, 0x0e, 0x32, 0x17, 0x2e, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x73, 0x2e,
-	0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x4d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x52, 0x06, 0x6d,
-	0x65, 0x74, 0x68, 0x6f, 0x64, 0x12, 0x49, 0x0a, 0x06, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x18,
-	0x05, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x31, 0x2e, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x73,
-	0x2e, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x45,
-	0x76, 0x65, 0x6e, 0x74, 0x43, 0x72, 0x65, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x49, 0x6e, 0x70, 0x75, 0x74, 0x52, 0x06, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73,
-	0x22, 0xcb, 0x01, 0x0a, 0x17, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x45, 0x78, 0x65, 0x63,
-	0x75, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1d, 0x0a, 0x0a,
-	0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x09, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x49, 0x64, 0x12, 0x2e, 0x0a, 0x07, 0x70,
-	0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x67,
-	0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x41,
-	0x6e, 0x79, 0x52, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x12, 0x1d, 0x0a, 0x0a, 0x77,
-	0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x5f, 0x69, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x09, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x49, 0x64, 0x12, 0x1d, 0x0a, 0x0a, 0x61, 0x63,
-	0x63, 0x6f, 0x75, 0x6e, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09,
-	0x61, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x49, 0x64, 0x12, 0x23, 0x0a, 0x0d, 0x74, 0x72, 0x69,
-	0x67, 0x67, 0x65, 0x72, 0x5f, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x0c, 0x74, 0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x22, 0x82,
-	0x01, 0x0a, 0x28, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69, 0x67, 0x67, 0x65,
-	0x72, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x43, 0x72, 0x65, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x49, 0x6e, 0x70, 0x75, 0x74, 0x12, 0x2c, 0x0a, 0x12, 0x62,
-	0x65, 0x6c, 0x6f, 0x6e, 0x67, 0x73, 0x5f, 0x74, 0x6f, 0x5f, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f,
-	0x6b, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x10, 0x62, 0x65, 0x6c, 0x6f, 0x6e, 0x67, 0x73,
-	0x54, 0x6f, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x12, 0x28, 0x0a, 0x10, 0x74, 0x72, 0x69,
-	0x67, 0x67, 0x65, 0x72, 0x5f, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x0e, 0x74, 0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e,
-	0x74, 0x49, 0x64, 0x22, 0x53, 0x0a, 0x14, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62,
-	0x68, 0x6f, 0x6f, 0x6b, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x3b, 0x0a, 0x05, 0x69,
-	0x6e, 0x70, 0x75, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x25, 0x2e, 0x77, 0x65, 0x62,
-	0x68, 0x6f, 0x6f, 0x6b, 0x73, 0x2e, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x43, 0x72, 0x65,
-	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x49, 0x6e, 0x70, 0x75,
-	0x74, 0x52, 0x05, 0x69, 0x6e, 0x70, 0x75, 0x74, 0x22, 0x88, 0x01, 0x0a, 0x15, 0x43, 0x72, 0x65,
-	0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x12, 0x42, 0x0a, 0x10, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x5f, 0x64,
-	0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x63,
-	0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x65,
-	0x74, 0x61, 0x69, 0x6c, 0x73, 0x52, 0x0f, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44,
-	0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x12, 0x2b, 0x0a, 0x07, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65,
-	0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x11, 0x2e, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f,
-	0x6b, 0x73, 0x2e, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x52, 0x07, 0x63, 0x72, 0x65, 0x61,
-	0x74, 0x65, 0x64, 0x22, 0x89, 0x01, 0x0a, 0x1e, 0x41, 0x64, 0x64, 0x57, 0x65, 0x62, 0x68, 0x6f,
+	0x1a, 0x20, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x73, 0x2f, 0x77, 0x65, 0x62, 0x68, 0x6f,
+	0x6f, 0x6b, 0x73, 0x5f, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x73, 0x2e, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x22, 0xe4, 0x01, 0x0a, 0x1b, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x43, 0x72,
+	0x65, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x49, 0x6e, 0x70,
+	0x75, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x3f, 0x0a, 0x0c, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e,
+	0x74, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1c, 0x2e, 0x77,
+	0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x73, 0x2e, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x43,
+	0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x54, 0x79, 0x70, 0x65, 0x52, 0x0b, 0x63, 0x6f, 0x6e, 0x74,
+	0x65, 0x6e, 0x74, 0x54, 0x79, 0x70, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x72, 0x6c, 0x18, 0x03,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x75, 0x72, 0x6c, 0x12, 0x2f, 0x0a, 0x06, 0x6d, 0x65, 0x74,
+	0x68, 0x6f, 0x64, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x17, 0x2e, 0x77, 0x65, 0x62, 0x68,
+	0x6f, 0x6f, 0x6b, 0x73, 0x2e, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x4d, 0x65, 0x74, 0x68,
+	0x6f, 0x64, 0x52, 0x06, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x12, 0x1f, 0x0a, 0x0b, 0x65, 0x76,
+	0x65, 0x6e, 0x74, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x18, 0x06, 0x20, 0x03, 0x28, 0x09, 0x52,
+	0x0a, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x54, 0x79, 0x70, 0x65, 0x73, 0x4a, 0x04, 0x08, 0x05, 0x10,
+	0x06, 0x52, 0x06, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x22, 0x8f, 0x01, 0x0a, 0x28, 0x57, 0x65,
+	0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x43, 0x6f, 0x6e, 0x66,
+	0x69, 0x67, 0x43, 0x72, 0x65, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x49, 0x6e, 0x70, 0x75, 0x74, 0x12, 0x2c, 0x0a, 0x12, 0x62, 0x65, 0x6c, 0x6f, 0x6e, 0x67,
+	0x73, 0x5f, 0x74, 0x6f, 0x5f, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x10, 0x62, 0x65, 0x6c, 0x6f, 0x6e, 0x67, 0x73, 0x54, 0x6f, 0x57, 0x65, 0x62,
+	0x68, 0x6f, 0x6f, 0x6b, 0x12, 0x1d, 0x0a, 0x0a, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x5f, 0x74, 0x79,
+	0x70, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x54,
+	0x79, 0x70, 0x65, 0x4a, 0x04, 0x08, 0x02, 0x10, 0x03, 0x52, 0x10, 0x74, 0x72, 0x69, 0x67, 0x67,
+	0x65, 0x72, 0x5f, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x5f, 0x69, 0x64, 0x22, 0x53, 0x0a, 0x14, 0x43,
+	0x72, 0x65, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x12, 0x3b, 0x0a, 0x05, 0x69, 0x6e, 0x70, 0x75, 0x74, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x25, 0x2e, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x73, 0x2e, 0x57, 0x65,
+	0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x43, 0x72, 0x65, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x49, 0x6e, 0x70, 0x75, 0x74, 0x52, 0x05, 0x69, 0x6e, 0x70, 0x75, 0x74,
+	0x22, 0xa0, 0x01, 0x0a, 0x15, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x68, 0x6f,
+	0x6f, 0x6b, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x42, 0x0a, 0x10, 0x72, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x5f, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x52, 0x0f, 0x72,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x12, 0x2b,
+	0x0a, 0x07, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x11, 0x2e, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x73, 0x2e, 0x57, 0x65, 0x62, 0x68, 0x6f,
+	0x6f, 0x6b, 0x52, 0x07, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x64, 0x12, 0x16, 0x0a, 0x06, 0x73,
+	0x65, 0x63, 0x72, 0x65, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x65, 0x63,
+	0x72, 0x65, 0x74, 0x22, 0x89, 0x01, 0x0a, 0x1e, 0x41, 0x64, 0x64, 0x57, 0x65, 0x62, 0x68, 0x6f,
 	0x6f, 0x6b, 0x54, 0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52,
 	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1d, 0x0a, 0x0a, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f,
 	0x6b, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x77, 0x65, 0x62, 0x68,
@@ -1542,100 +1070,36 @@ var file_webhooks_webhooks_service_types_proto_rawDesc = string([]byte{
 	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x2b, 0x0a, 0x07, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x73,
 	0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x11, 0x2e, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b,
 	0x73, 0x2e, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x52, 0x07, 0x72, 0x65, 0x73, 0x75, 0x6c,
-	0x74, 0x73, 0x22, 0x7b, 0x0a, 0x27, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69,
-	0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x43, 0x72, 0x65, 0x61, 0x74, 0x69, 0x6f,
-	0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x49, 0x6e, 0x70, 0x75, 0x74, 0x12, 0x12, 0x0a,
-	0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d,
-	0x65, 0x12, 0x20, 0x0a, 0x0b, 0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74,
-	0x69, 0x6f, 0x6e, 0x12, 0x13, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x48,
-	0x00, 0x52, 0x02, 0x69, 0x64, 0x88, 0x01, 0x01, 0x42, 0x05, 0x0a, 0x03, 0x5f, 0x69, 0x64, 0x22,
-	0x6b, 0x0a, 0x20, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b,
-	0x54, 0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x12, 0x47, 0x0a, 0x05, 0x69, 0x6e, 0x70, 0x75, 0x74, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x31, 0x2e, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x73, 0x2e, 0x57, 0x65,
-	0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e,
-	0x74, 0x43, 0x72, 0x65, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x49, 0x6e, 0x70, 0x75, 0x74, 0x52, 0x05, 0x69, 0x6e, 0x70, 0x75, 0x74, 0x22, 0xa0, 0x01, 0x0a,
-	0x21, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54, 0x72,
-	0x69, 0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x12, 0x42, 0x0a, 0x10, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x5f, 0x64,
-	0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x63,
-	0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x65,
-	0x74, 0x61, 0x69, 0x6c, 0x73, 0x52, 0x0f, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44,
-	0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x12, 0x37, 0x0a, 0x07, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65,
-	0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f,
-	0x6b, 0x73, 0x2e, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69, 0x67, 0x67, 0x65,
-	0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x52, 0x07, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x64, 0x22,
-	0x2f, 0x0a, 0x1d, 0x47, 0x65, 0x74, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69,
-	0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64,
-	0x22, 0x9b, 0x01, 0x0a, 0x1e, 0x47, 0x65, 0x74, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54,
-	0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x12, 0x42, 0x0a, 0x10, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x5f,
-	0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e,
-	0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44,
-	0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x52, 0x0f, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x12, 0x35, 0x0a, 0x06, 0x72, 0x65, 0x73, 0x75, 0x6c,
-	0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f,
-	0x6b, 0x73, 0x2e, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69, 0x67, 0x67, 0x65,
-	0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x52, 0x06, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x22, 0x50,
-	0x0a, 0x1e, 0x47, 0x65, 0x74, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69, 0x67,
-	0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x12, 0x2e, 0x0a, 0x06, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
-	0x32, 0x16, 0x2e, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x51, 0x75, 0x65,
-	0x72, 0x79, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x52, 0x06, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72,
-	0x22, 0xd5, 0x01, 0x0a, 0x1f, 0x47, 0x65, 0x74, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54,
-	0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x52, 0x65, 0x73, 0x70,
-	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x42, 0x0a, 0x10, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x5f, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17,
-	0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x52, 0x0f, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x12, 0x35, 0x0a, 0x0a, 0x70, 0x61, 0x67, 0x69,
-	0x6e, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x66,
-	0x69, 0x6c, 0x74, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x61, 0x67, 0x69, 0x6e, 0x61, 0x74,
-	0x69, 0x6f, 0x6e, 0x52, 0x0a, 0x70, 0x61, 0x67, 0x69, 0x6e, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12,
-	0x37, 0x0a, 0x07, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b,
-	0x32, 0x1d, 0x2e, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x73, 0x2e, 0x57, 0x65, 0x62, 0x68,
-	0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x52,
-	0x07, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x73, 0x22, 0x5d, 0x0a, 0x25, 0x57, 0x65, 0x62, 0x68,
-	0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x55,
-	0x70, 0x64, 0x61, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x49, 0x6e, 0x70, 0x75,
-	0x74, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x20, 0x0a, 0x0b, 0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70,
-	0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x64, 0x65, 0x73, 0x63,
-	0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x79, 0x0a, 0x20, 0x55, 0x70, 0x64, 0x61, 0x74,
-	0x65, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x45,
-	0x76, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69,
-	0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x45, 0x0a, 0x05, 0x69,
-	0x6e, 0x70, 0x75, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2f, 0x2e, 0x77, 0x65, 0x62,
-	0x68, 0x6f, 0x6f, 0x6b, 0x73, 0x2e, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69,
-	0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x49, 0x6e, 0x70, 0x75, 0x74, 0x52, 0x05, 0x69, 0x6e, 0x70,
-	0x75, 0x74, 0x22, 0x67, 0x0a, 0x21, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x68,
-	0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x42, 0x0a, 0x10, 0x72, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x5f, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x17, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x52, 0x0f, 0x72, 0x65, 0x73, 0x70,
-	0x6f, 0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x22, 0x33, 0x0a, 0x21, 0x41,
-	0x72, 0x63, 0x68, 0x69, 0x76, 0x65, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x54, 0x72, 0x69,
-	0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64,
-	0x22, 0x68, 0x0a, 0x22, 0x41, 0x72, 0x63, 0x68, 0x69, 0x76, 0x65, 0x57, 0x65, 0x62, 0x68, 0x6f,
-	0x6f, 0x6b, 0x54, 0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x52, 0x65,
-	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x42, 0x0a, 0x10, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x5f, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
-	0x32, 0x17, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x52, 0x0f, 0x72, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x42, 0x5d, 0x5a, 0x5b, 0x67, 0x69,
-	0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x72, 0x69, 0x6d, 0x61, 0x6e, 0x64,
-	0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x2f, 0x64, 0x69, 0x6e, 0x6e, 0x65, 0x72, 0x64, 0x6f, 0x6e,
-	0x65, 0x62, 0x65, 0x74, 0x74, 0x65, 0x72, 0x2f, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2f,
-	0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x67, 0x72, 0x70, 0x63, 0x2f, 0x67, 0x65,
-	0x6e, 0x65, 0x72, 0x61, 0x74, 0x65, 0x64, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73,
-	0x2f, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x33,
+	0x74, 0x73, 0x22, 0x3b, 0x0a, 0x1a, 0x52, 0x6f, 0x74, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x68,
+	0x6f, 0x6f, 0x6b, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x12, 0x1d, 0x0a, 0x0a, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x5f, 0x69, 0x64, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x49, 0x64, 0x22,
+	0x79, 0x0a, 0x1b, 0x52, 0x6f, 0x74, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b,
+	0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x42,
+	0x0a, 0x10, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x5f, 0x64, 0x65, 0x74, 0x61, 0x69,
+	0x6c, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f,
+	0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c,
+	0x73, 0x52, 0x0f, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69,
+	0x6c, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x06, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0x22, 0x1d, 0x0a, 0x1b, 0x47, 0x65,
+	0x74, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x54, 0x79, 0x70,
+	0x65, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x98, 0x01, 0x0a, 0x1c, 0x47, 0x65,
+	0x74, 0x57, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x54, 0x79, 0x70,
+	0x65, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x42, 0x0a, 0x10, 0x72, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x5f, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x52, 0x0f, 0x72,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x12, 0x34,
+	0x0a, 0x07, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32,
+	0x1a, 0x2e, 0x77, 0x65, 0x62, 0x68, 0x6f, 0x6f, 0x6b, 0x73, 0x2e, 0x57, 0x65, 0x62, 0x68, 0x6f,
+	0x6f, 0x6b, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x54, 0x79, 0x70, 0x65, 0x52, 0x07, 0x72, 0x65, 0x73,
+	0x75, 0x6c, 0x74, 0x73, 0x42, 0x5d, 0x5a, 0x5b, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63,
+	0x6f, 0x6d, 0x2f, 0x70, 0x72, 0x69, 0x6d, 0x61, 0x6e, 0x64, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72,
+	0x2f, 0x64, 0x69, 0x6e, 0x6e, 0x65, 0x72, 0x64, 0x6f, 0x6e, 0x65, 0x62, 0x65, 0x74, 0x74, 0x65,
+	0x72, 0x2f, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e,
+	0x61, 0x6c, 0x2f, 0x67, 0x72, 0x70, 0x63, 0x2f, 0x67, 0x65, 0x6e, 0x65, 0x72, 0x61, 0x74, 0x65,
+	0x64, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73, 0x2f, 0x77, 0x65, 0x62, 0x68, 0x6f,
+	0x6f, 0x6b, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 })
 
 var (
@@ -1650,81 +1114,60 @@ func file_webhooks_webhooks_service_types_proto_rawDescGZIP() []byte {
 	return file_webhooks_webhooks_service_types_proto_rawDescData
 }
 
-var file_webhooks_webhooks_service_types_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_webhooks_webhooks_service_types_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_webhooks_webhooks_service_types_proto_goTypes = []any{
 	(*WebhookCreationRequestInput)(nil),              // 0: webhooks.WebhookCreationRequestInput
-	(*WebhookExecutionRequest)(nil),                  // 1: webhooks.WebhookExecutionRequest
-	(*WebhookTriggerConfigCreationRequestInput)(nil), // 2: webhooks.WebhookTriggerConfigCreationRequestInput
-	(*CreateWebhookRequest)(nil),                     // 3: webhooks.CreateWebhookRequest
-	(*CreateWebhookResponse)(nil),                    // 4: webhooks.CreateWebhookResponse
-	(*AddWebhookTriggerConfigRequest)(nil),           // 5: webhooks.AddWebhookTriggerConfigRequest
-	(*AddWebhookTriggerConfigResponse)(nil),          // 6: webhooks.AddWebhookTriggerConfigResponse
-	(*ArchiveWebhookRequest)(nil),                    // 7: webhooks.ArchiveWebhookRequest
-	(*ArchiveWebhookResponse)(nil),                   // 8: webhooks.ArchiveWebhookResponse
-	(*ArchiveWebhookTriggerConfigRequest)(nil),       // 9: webhooks.ArchiveWebhookTriggerConfigRequest
-	(*ArchiveWebhookTriggerConfigResponse)(nil),      // 10: webhooks.ArchiveWebhookTriggerConfigResponse
-	(*GetWebhookRequest)(nil),                        // 11: webhooks.GetWebhookRequest
-	(*GetWebhookResponse)(nil),                       // 12: webhooks.GetWebhookResponse
-	(*GetWebhooksRequest)(nil),                       // 13: webhooks.GetWebhooksRequest
-	(*GetWebhooksResponse)(nil),                      // 14: webhooks.GetWebhooksResponse
-	(*WebhookTriggerEventCreationRequestInput)(nil),  // 15: webhooks.WebhookTriggerEventCreationRequestInput
-	(*CreateWebhookTriggerEventRequest)(nil),         // 16: webhooks.CreateWebhookTriggerEventRequest
-	(*CreateWebhookTriggerEventResponse)(nil),        // 17: webhooks.CreateWebhookTriggerEventResponse
-	(*GetWebhookTriggerEventRequest)(nil),            // 18: webhooks.GetWebhookTriggerEventRequest
-	(*GetWebhookTriggerEventResponse)(nil),           // 19: webhooks.GetWebhookTriggerEventResponse
-	(*GetWebhookTriggerEventsRequest)(nil),           // 20: webhooks.GetWebhookTriggerEventsRequest
-	(*GetWebhookTriggerEventsResponse)(nil),          // 21: webhooks.GetWebhookTriggerEventsResponse
-	(*WebhookTriggerEventUpdateRequestInput)(nil),    // 22: webhooks.WebhookTriggerEventUpdateRequestInput
-	(*UpdateWebhookTriggerEventRequest)(nil),         // 23: webhooks.UpdateWebhookTriggerEventRequest
-	(*UpdateWebhookTriggerEventResponse)(nil),        // 24: webhooks.UpdateWebhookTriggerEventResponse
-	(*ArchiveWebhookTriggerEventRequest)(nil),        // 25: webhooks.ArchiveWebhookTriggerEventRequest
-	(*ArchiveWebhookTriggerEventResponse)(nil),       // 26: webhooks.ArchiveWebhookTriggerEventResponse
-	(WebhookContentType)(0),                          // 27: webhooks.WebhookContentType
-	(WebhookMethod)(0),                               // 28: webhooks.WebhookMethod
-	(*anypb.Any)(nil),                                // 29: google.protobuf.Any
-	(*types.ResponseDetails)(nil),                    // 30: common.ResponseDetails
-	(*Webhook)(nil),                                  // 31: webhooks.Webhook
-	(*WebhookTriggerConfig)(nil),                     // 32: webhooks.WebhookTriggerConfig
-	(*filtering.QueryFilter)(nil),                    // 33: filtering.QueryFilter
-	(*filtering.Pagination)(nil),                     // 34: filtering.Pagination
-	(*WebhookTriggerEvent)(nil),                      // 35: webhooks.WebhookTriggerEvent
+	(*WebhookTriggerConfigCreationRequestInput)(nil), // 1: webhooks.WebhookTriggerConfigCreationRequestInput
+	(*CreateWebhookRequest)(nil),                     // 2: webhooks.CreateWebhookRequest
+	(*CreateWebhookResponse)(nil),                    // 3: webhooks.CreateWebhookResponse
+	(*AddWebhookTriggerConfigRequest)(nil),           // 4: webhooks.AddWebhookTriggerConfigRequest
+	(*AddWebhookTriggerConfigResponse)(nil),          // 5: webhooks.AddWebhookTriggerConfigResponse
+	(*ArchiveWebhookRequest)(nil),                    // 6: webhooks.ArchiveWebhookRequest
+	(*ArchiveWebhookResponse)(nil),                   // 7: webhooks.ArchiveWebhookResponse
+	(*ArchiveWebhookTriggerConfigRequest)(nil),       // 8: webhooks.ArchiveWebhookTriggerConfigRequest
+	(*ArchiveWebhookTriggerConfigResponse)(nil),      // 9: webhooks.ArchiveWebhookTriggerConfigResponse
+	(*GetWebhookRequest)(nil),                        // 10: webhooks.GetWebhookRequest
+	(*GetWebhookResponse)(nil),                       // 11: webhooks.GetWebhookResponse
+	(*GetWebhooksRequest)(nil),                       // 12: webhooks.GetWebhooksRequest
+	(*GetWebhooksResponse)(nil),                      // 13: webhooks.GetWebhooksResponse
+	(*RotateWebhookSecretRequest)(nil),               // 14: webhooks.RotateWebhookSecretRequest
+	(*RotateWebhookSecretResponse)(nil),              // 15: webhooks.RotateWebhookSecretResponse
+	(*GetWebhookEventTypesRequest)(nil),              // 16: webhooks.GetWebhookEventTypesRequest
+	(*GetWebhookEventTypesResponse)(nil),             // 17: webhooks.GetWebhookEventTypesResponse
+	(WebhookContentType)(0),                          // 18: webhooks.WebhookContentType
+	(WebhookMethod)(0),                               // 19: webhooks.WebhookMethod
+	(*types.ResponseDetails)(nil),                    // 20: common.ResponseDetails
+	(*Webhook)(nil),                                  // 21: webhooks.Webhook
+	(*WebhookTriggerConfig)(nil),                     // 22: webhooks.WebhookTriggerConfig
+	(*filtering.QueryFilter)(nil),                    // 23: filtering.QueryFilter
+	(*filtering.Pagination)(nil),                     // 24: filtering.Pagination
+	(*WebhookEventType)(nil),                         // 25: webhooks.WebhookEventType
 }
 var file_webhooks_webhooks_service_types_proto_depIdxs = []int32{
-	27, // 0: webhooks.WebhookCreationRequestInput.content_type:type_name -> webhooks.WebhookContentType
-	28, // 1: webhooks.WebhookCreationRequestInput.method:type_name -> webhooks.WebhookMethod
-	15, // 2: webhooks.WebhookCreationRequestInput.events:type_name -> webhooks.WebhookTriggerEventCreationRequestInput
-	29, // 3: webhooks.WebhookExecutionRequest.payload:type_name -> google.protobuf.Any
-	0,  // 4: webhooks.CreateWebhookRequest.input:type_name -> webhooks.WebhookCreationRequestInput
-	30, // 5: webhooks.CreateWebhookResponse.response_details:type_name -> common.ResponseDetails
-	31, // 6: webhooks.CreateWebhookResponse.created:type_name -> webhooks.Webhook
-	2,  // 7: webhooks.AddWebhookTriggerConfigRequest.input:type_name -> webhooks.WebhookTriggerConfigCreationRequestInput
-	30, // 8: webhooks.AddWebhookTriggerConfigResponse.response_details:type_name -> common.ResponseDetails
-	32, // 9: webhooks.AddWebhookTriggerConfigResponse.created:type_name -> webhooks.WebhookTriggerConfig
-	30, // 10: webhooks.ArchiveWebhookResponse.response_details:type_name -> common.ResponseDetails
-	30, // 11: webhooks.ArchiveWebhookTriggerConfigResponse.response_details:type_name -> common.ResponseDetails
-	30, // 12: webhooks.GetWebhookResponse.response_details:type_name -> common.ResponseDetails
-	31, // 13: webhooks.GetWebhookResponse.result:type_name -> webhooks.Webhook
-	33, // 14: webhooks.GetWebhooksRequest.filter:type_name -> filtering.QueryFilter
-	30, // 15: webhooks.GetWebhooksResponse.response_details:type_name -> common.ResponseDetails
-	34, // 16: webhooks.GetWebhooksResponse.pagination:type_name -> filtering.Pagination
-	31, // 17: webhooks.GetWebhooksResponse.results:type_name -> webhooks.Webhook
-	15, // 18: webhooks.CreateWebhookTriggerEventRequest.input:type_name -> webhooks.WebhookTriggerEventCreationRequestInput
-	30, // 19: webhooks.CreateWebhookTriggerEventResponse.response_details:type_name -> common.ResponseDetails
-	35, // 20: webhooks.CreateWebhookTriggerEventResponse.created:type_name -> webhooks.WebhookTriggerEvent
-	30, // 21: webhooks.GetWebhookTriggerEventResponse.response_details:type_name -> common.ResponseDetails
-	35, // 22: webhooks.GetWebhookTriggerEventResponse.result:type_name -> webhooks.WebhookTriggerEvent
-	33, // 23: webhooks.GetWebhookTriggerEventsRequest.filter:type_name -> filtering.QueryFilter
-	30, // 24: webhooks.GetWebhookTriggerEventsResponse.response_details:type_name -> common.ResponseDetails
-	34, // 25: webhooks.GetWebhookTriggerEventsResponse.pagination:type_name -> filtering.Pagination
-	35, // 26: webhooks.GetWebhookTriggerEventsResponse.results:type_name -> webhooks.WebhookTriggerEvent
-	22, // 27: webhooks.UpdateWebhookTriggerEventRequest.input:type_name -> webhooks.WebhookTriggerEventUpdateRequestInput
-	30, // 28: webhooks.UpdateWebhookTriggerEventResponse.response_details:type_name -> common.ResponseDetails
-	30, // 29: webhooks.ArchiveWebhookTriggerEventResponse.response_details:type_name -> common.ResponseDetails
-	30, // [30:30] is the sub-list for method output_type
-	30, // [30:30] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	18, // 0: webhooks.WebhookCreationRequestInput.content_type:type_name -> webhooks.WebhookContentType
+	19, // 1: webhooks.WebhookCreationRequestInput.method:type_name -> webhooks.WebhookMethod
+	0,  // 2: webhooks.CreateWebhookRequest.input:type_name -> webhooks.WebhookCreationRequestInput
+	20, // 3: webhooks.CreateWebhookResponse.response_details:type_name -> common.ResponseDetails
+	21, // 4: webhooks.CreateWebhookResponse.created:type_name -> webhooks.Webhook
+	1,  // 5: webhooks.AddWebhookTriggerConfigRequest.input:type_name -> webhooks.WebhookTriggerConfigCreationRequestInput
+	20, // 6: webhooks.AddWebhookTriggerConfigResponse.response_details:type_name -> common.ResponseDetails
+	22, // 7: webhooks.AddWebhookTriggerConfigResponse.created:type_name -> webhooks.WebhookTriggerConfig
+	20, // 8: webhooks.ArchiveWebhookResponse.response_details:type_name -> common.ResponseDetails
+	20, // 9: webhooks.ArchiveWebhookTriggerConfigResponse.response_details:type_name -> common.ResponseDetails
+	20, // 10: webhooks.GetWebhookResponse.response_details:type_name -> common.ResponseDetails
+	21, // 11: webhooks.GetWebhookResponse.result:type_name -> webhooks.Webhook
+	23, // 12: webhooks.GetWebhooksRequest.filter:type_name -> filtering.QueryFilter
+	20, // 13: webhooks.GetWebhooksResponse.response_details:type_name -> common.ResponseDetails
+	24, // 14: webhooks.GetWebhooksResponse.pagination:type_name -> filtering.Pagination
+	21, // 15: webhooks.GetWebhooksResponse.results:type_name -> webhooks.Webhook
+	20, // 16: webhooks.RotateWebhookSecretResponse.response_details:type_name -> common.ResponseDetails
+	20, // 17: webhooks.GetWebhookEventTypesResponse.response_details:type_name -> common.ResponseDetails
+	25, // 18: webhooks.GetWebhookEventTypesResponse.results:type_name -> webhooks.WebhookEventType
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_webhooks_webhooks_service_types_proto_init() }
@@ -1733,14 +1176,13 @@ func file_webhooks_webhooks_service_types_proto_init() {
 		return
 	}
 	file_webhooks_webhooks_messages_proto_init()
-	file_webhooks_webhooks_service_types_proto_msgTypes[15].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_webhooks_webhooks_service_types_proto_rawDesc), len(file_webhooks_webhooks_service_types_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   27,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

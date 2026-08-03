@@ -11,40 +11,10 @@ import (
 	datachangemessagehandlerbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/functions/data_change_message_handler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/telemetry"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
 
 	"github.com/samber/do/v2"
 	_ "go.uber.org/automaxprocs"
-)
-
-var (
-	nonWebhookEventTypes = []string{
-		identity.UserSignedUpServiceEventType,
-		identity.UserArchivedServiceEventType,
-		identity.TwoFactorSecretVerifiedServiceEventType,
-		identity.TwoFactorDeactivatedServiceEventType,
-		identity.TwoFactorSecretChangedServiceEventType,
-		identity.PasswordResetTokenCreatedEventType,
-		identity.PasswordResetTokenRedeemedEventType,
-		identity.PasswordChangedEventType,
-		identity.EmailAddressChangedEventType,
-		identity.UsernameChangedEventType,
-		identity.UserDetailsChangedEventType,
-		identity.UsernameReminderRequestedEventType,
-		identity.UserLoggedInServiceEventType,
-		identity.UserLoggedOutServiceEventType,
-		identity.UserChangedActiveAccountServiceEventType,
-		identity.UserEmailAddressVerifiedEventType,
-		identity.UserEmailAddressVerificationEmailRequestedEventType,
-		identity.AccountInvitationAcceptedServiceEventType,
-		identity.AccountMemberRemovedServiceEventType,
-		identity.AccountMembershipPermissionsUpdatedServiceEventType,
-		identity.AccountOwnershipTransferredServiceEventType,
-		oauth.OAuth2ClientCreatedServiceEventType,
-		oauth.OAuth2ClientArchivedServiceEventType,
-	}
 )
 
 func main() {
@@ -79,8 +49,6 @@ func run(ctx context.Context, cfg *config.AsyncMessageHandlerConfig) error {
 		syscall.SIGQUIT,
 		syscall.SIGTERM,
 	)
-
-	dataChangeMessageHandler.SetNonWebhookEventTypes(nonWebhookEventTypes)
 
 	if err := dataChangeMessageHandler.Start(ctx); err != nil {
 		return err

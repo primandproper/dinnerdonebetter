@@ -4,7 +4,6 @@ package webhooks;
 
 import "common.proto";
 import "filtering.proto";
-import "google/protobuf/any.proto";
 import "webhooks/webhooks_messages.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks";
@@ -14,20 +13,26 @@ message WebhookCreationRequestInput {
   WebhookContentType content_type = 2;
   string url = 3;
   WebhookMethod method = 4;
-  repeated WebhookTriggerEventCreationRequestInput events = 5;
-}
 
-message WebhookExecutionRequest {
-  string request_id = 1;
-  google.protobuf.Any payload = 2;
-  string webhook_id = 3;
-  string account_id = 4;
-  string trigger_event = 5;
+  reserved 5;
+  reserved "events";
+
+  // event_types are the catalog event types this webhook subscribes to.
+  //
+  // Field 5 previously carried WebhookTriggerEventCreationRequestInput, which let a caller
+  // define new catalog rows inline. That is gone: the catalog is generated from the events the
+  // application actually publishes, so an event type a caller invents is one nothing will ever
+  // emit. Subscribing to an unknown type is now rejected rather than silently stored.
+  repeated string event_types = 6;
 }
 
 message WebhookTriggerConfigCreationRequestInput {
   string belongs_to_webhook = 1;
-  string trigger_event_id = 2;
+
+  reserved 2;
+  reserved "trigger_event_id";
+
+  string event_type = 3;
 }
 
 message CreateWebhookRequest {
@@ -37,6 +42,17 @@ message CreateWebhookRequest {
 message CreateWebhookResponse {
   common.ResponseDetails response_details = 1;
   Webhook created = 2;
+
+  // secret is the hex-encoded HMAC signing key, returned exactly once.
+  //
+  // It is on the creation response and on no read message, so there is no request an attacker
+  // with read access can make that yields it. A caller who loses it calls RotateWebhookSecret.
+  //
+  // Deliveries carry X-Platform-Signature: v1,t=<unix>,s=<hex>, over "v1.<t>.<body>". The
+  // timestamp is inside the signed material, which is what makes a captured delivery expire —
+  // verify it before spending an HMAC. platform-go's webhooks.Verify is the reference
+  // implementation.
+  string secret = 3;
 }
 
 message AddWebhookTriggerConfigRequest {
@@ -85,60 +101,24 @@ message GetWebhooksResponse {
   repeated Webhook results = 3;
 }
 
-// Catalog trigger event CRUD
-// When id is set, the existing catalog event is used; otherwise name (and optionally description) create a new catalog event.
-message WebhookTriggerEventCreationRequestInput {
-  string name = 1;
-  string description = 2;
-  optional string id = 3; // reference existing catalog event by id
+// RotateWebhookSecret mints a new signing secret for a webhook.
+//
+// Deliveries are signed under both the new key and the outgoing one until this is called again,
+// so a subscriber accepts either signature while it switches over. Rotating twice retires the
+// original key.
+message RotateWebhookSecretRequest {
+  string webhook_id = 1;
 }
 
-message CreateWebhookTriggerEventRequest {
-  WebhookTriggerEventCreationRequestInput input = 1;
-}
-
-message CreateWebhookTriggerEventResponse {
+message RotateWebhookSecretResponse {
   common.ResponseDetails response_details = 1;
-  WebhookTriggerEvent created = 2;
+  // secret is the new hex-encoded HMAC signing key, returned exactly once.
+  string secret = 2;
 }
 
-message GetWebhookTriggerEventRequest {
-  string id = 1;
-}
+message GetWebhookEventTypesRequest {}
 
-message GetWebhookTriggerEventResponse {
+message GetWebhookEventTypesResponse {
   common.ResponseDetails response_details = 1;
-  WebhookTriggerEvent result = 2;
-}
-
-message GetWebhookTriggerEventsRequest {
-  filtering.QueryFilter filter = 1;
-}
-
-message GetWebhookTriggerEventsResponse {
-  common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
-  repeated WebhookTriggerEvent results = 3;
-}
-
-message WebhookTriggerEventUpdateRequestInput {
-  string name = 1;
-  string description = 2;
-}
-
-message UpdateWebhookTriggerEventRequest {
-  string id = 1;
-  WebhookTriggerEventUpdateRequestInput input = 2;
-}
-
-message UpdateWebhookTriggerEventResponse {
-  common.ResponseDetails response_details = 1;
-}
-
-message ArchiveWebhookTriggerEventRequest {
-  string id = 1;
-}
-
-message ArchiveWebhookTriggerEventResponse {
-  common.ResponseDetails response_details = 1;
+  repeated WebhookEventType results = 2;
 }

@@ -19,7 +19,7 @@ func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 		_, span := tracing.NewTracerForTest(t.Name()).StartSpan(ctx)
@@ -49,7 +49,7 @@ func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
 	t.Run("empty test_id", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 		_, span := tracing.NewTracerForTest(t.Name()).StartSpan(ctx)
@@ -64,7 +64,7 @@ func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
 	t.Run("empty topic_name skips prune", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 		_, span := tracing.NewTracerForTest(t.Name()).StartSpan(ctx)
@@ -88,7 +88,7 @@ func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
 	t.Run("acknowledge error", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 		_, span := tracing.NewTracerForTest(t.Name()).StartSpan(ctx)
@@ -112,7 +112,7 @@ func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
 	t.Run("prune error is not fatal", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 		_, span := tracing.NewTracerForTest(t.Name()).StartSpan(ctx)

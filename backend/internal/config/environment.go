@@ -278,12 +278,9 @@ func defaultWorkerPoolsConfig() WorkerPoolsConfig {
 	outboundEmails.Retry.MaxAttempts = 4
 	outboundEmails.Retry.MaxDelay = 30 * time.Second
 
-	// Outbound HTTP to admin-configured URLs. Mostly waiting on someone else's server, so the
-	// concurrency is high and the timeout is what stops one slow endpoint from pinning a worker.
-	webhooks := standard()
-	webhooks.Concurrency = 16
-	webhooks.Retry.MaxAttempts = 4
-	webhooks.Retry.MaxDelay = 30 * time.Second
+	// There is no webhook pool here any more. Outbound delivery is not a queue topic: a
+	// dispatch row is claimed by the delivery worker, whose own concurrency, retry schedule,
+	// and per-endpoint circuit breaking live in the webhooks config.
 
 	// GDPR data exports: slow, heavy, and duplicated work means a user gets two archives. A
 	// crash can lose Concurrency+1 messages, so this is the one topic where that bound is 1.
@@ -293,13 +290,12 @@ func defaultWorkerPoolsConfig() WorkerPoolsConfig {
 	userDataAggregation.HandlerTimeout = 10 * time.Minute
 
 	return WorkerPoolsConfig{
-		DeadLetterTopicName:      DefaultDeadLetterTopicName,
-		DataChanges:              dataChanges,
-		OutboundEmails:           outboundEmails,
-		SearchIndexRequests:      standard(),
-		WebhookExecutionRequests: webhooks,
-		UserDataAggregation:      userDataAggregation,
-		MobileNotifications:      standard(),
+		DeadLetterTopicName: DefaultDeadLetterTopicName,
+		DataChanges:         dataChanges,
+		OutboundEmails:      outboundEmails,
+		SearchIndexRequests: standard(),
+		UserDataAggregation: userDataAggregation,
+		MobileNotifications: standard(),
 	}
 }
 
@@ -411,6 +407,9 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 		Outbox:        defaultOutboxRelayConfig(),
 		Audit:         defaultAuditSweeperConfig(),
 		Sagas:         defaultSagaWorkerConfig(),
+		// The same webhook configuration the API service writes with, so the worker
+		// claims from the tables the dispatch rows are written into.
+		Webhooks: s.RootConfig.Webhooks,
 	}
 	schedulerConfig.Observability.Tracing.ServiceName = schedulerConfigObservabilityServiceName
 	schedulerConfig.Observability.Metrics.ServiceName = schedulerConfigObservabilityServiceName

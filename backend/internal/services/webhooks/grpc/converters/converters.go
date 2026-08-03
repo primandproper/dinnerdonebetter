@@ -2,7 +2,6 @@ package converters
 
 import (
 	"log"
-	"net/http"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
@@ -12,64 +11,49 @@ import (
 	"github.com/primandproper/platform-go/v9/identifiers"
 )
 
+// ConvertStringToWebhookContentType converts a content type string to its proto enum.
+//
+// JSON is the only value either side has. An unknown string is reported and mapped to JSON
+// rather than rejected here, because this runs on the read path over rows written before XML was
+// retired — refusing would make an old row unreadable rather than merely mislabeled. Writes are
+// refused, by validation, before they get this far.
 func ConvertStringToWebhookContentType(s string) webhookssvc.WebhookContentType {
-	switch s {
-	case encoding.ContentTypeXML.String():
-		return webhookssvc.WebhookContentType_WEBHOOK_CONTENT_TYPE_XML
-	case encoding.ContentTypeJSON.String():
-		return webhookssvc.WebhookContentType_WEBHOOK_CONTENT_TYPE_JSON
-	default:
-		log.Printf("unknown content type: %q", s)
-		return webhookssvc.WebhookContentType_WEBHOOK_CONTENT_TYPE_JSON
+	if s != encoding.ContentTypeJSON.String() {
+		log.Printf("unsupported webhook content type: %q", s)
 	}
+
+	return webhookssvc.WebhookContentType_WEBHOOK_CONTENT_TYPE_JSON
 }
 
+// ConvertWebhookContentTypeToString converts the proto enum to a content type string.
 func ConvertWebhookContentTypeToString(s webhookssvc.WebhookContentType) string {
-	switch s {
-	case webhookssvc.WebhookContentType_WEBHOOK_CONTENT_TYPE_XML:
-		return encoding.ContentTypeXML.String()
-	case webhookssvc.WebhookContentType_WEBHOOK_CONTENT_TYPE_JSON:
-		return encoding.ContentTypeJSON.String()
-	default:
-		log.Printf("unknown content type: %q", s)
-		return encoding.ContentTypeJSON.String()
+	if s != webhookssvc.WebhookContentType_WEBHOOK_CONTENT_TYPE_JSON {
+		log.Printf("unsupported webhook content type: %q", s)
 	}
+
+	return encoding.ContentTypeJSON.String()
 }
 
+// ConvertStringToWebhookMethod converts an HTTP method string to its proto enum.
+//
+// Same asymmetry as the content type: rows written before the other methods were retired still
+// read, as POST, because that is what they will actually be delivered with. A request asking for
+// one of the others is refused by validation, not silently coerced here.
 func ConvertStringToWebhookMethod(s string) webhookssvc.WebhookMethod {
-	switch s {
-	case http.MethodGet:
-		return webhookssvc.WebhookMethod_WEBHOOK_METHOD_GET
-	case http.MethodPut:
-		return webhookssvc.WebhookMethod_WEBHOOK_METHOD_PUT
-	case http.MethodPatch:
-		return webhookssvc.WebhookMethod_WEBHOOK_METHOD_PATCH
-	case http.MethodDelete:
-		return webhookssvc.WebhookMethod_WEBHOOK_METHOD_DELETE
-	case http.MethodPost:
-		return webhookssvc.WebhookMethod_WEBHOOK_METHOD_POST
-	default:
-		log.Printf("unknown webhook method: %q", s)
-		return webhookssvc.WebhookMethod_WEBHOOK_METHOD_POST
+	if s != webhooks.DeliveryMethod {
+		log.Printf("unsupported webhook method: %q", s)
 	}
+
+	return webhookssvc.WebhookMethod_WEBHOOK_METHOD_POST
 }
 
+// ConvertWebhookMethodToString converts the proto enum to an HTTP method string.
 func ConvertWebhookMethodToString(s webhookssvc.WebhookMethod) string {
-	switch s {
-	case webhookssvc.WebhookMethod_WEBHOOK_METHOD_GET:
-		return http.MethodGet
-	case webhookssvc.WebhookMethod_WEBHOOK_METHOD_PUT:
-		return http.MethodPut
-	case webhookssvc.WebhookMethod_WEBHOOK_METHOD_PATCH:
-		return http.MethodPatch
-	case webhookssvc.WebhookMethod_WEBHOOK_METHOD_DELETE:
-		return http.MethodDelete
-	case webhookssvc.WebhookMethod_WEBHOOK_METHOD_POST:
-		return http.MethodPost
-	default:
-		log.Printf("unknown webhook method: %q", s)
-		return http.MethodPost
+	if s != webhookssvc.WebhookMethod_WEBHOOK_METHOD_POST {
+		log.Printf("unsupported webhook method: %q", s)
 	}
+
+	return webhooks.DeliveryMethod
 }
 
 func ConvertWebhookToGRPCWebhook(webhook *webhooks.Webhook) *webhookssvc.Webhook {
@@ -91,7 +75,7 @@ func ConvertWebhookToGRPCWebhook(webhook *webhooks.Webhook) *webhookssvc.Webhook
 	return converted
 }
 
-// ConvertWebhookTriggerConfigToGRPCWebhookTriggerConfig converts domain join-table WebhookTriggerConfig to proto.
+// ConvertWebhookTriggerConfigToGRPCWebhookTriggerConfig converts a domain WebhookTriggerConfig to proto.
 func ConvertWebhookTriggerConfigToGRPCWebhookTriggerConfig(z *webhooks.WebhookTriggerConfig) *webhookssvc.WebhookTriggerConfig {
 	if z == nil {
 		return nil
@@ -101,22 +85,18 @@ func ConvertWebhookTriggerConfigToGRPCWebhookTriggerConfig(z *webhooks.WebhookTr
 		ArchivedAt:       grpcconverters.ConvertTimePointerToPBTimestamp(z.ArchivedAt),
 		Id:               z.ID,
 		BelongsToWebhook: z.BelongsToWebhook,
-		TriggerEventId:   z.TriggerEventID,
+		EventType:        z.EventType,
 	}
 }
 
-// ConvertWebhookTriggerEventCatalogToGRPCWebhookTriggerEvent converts domain catalog WebhookTriggerEvent to proto.
-func ConvertWebhookTriggerEventCatalogToGRPCWebhookTriggerEvent(z *webhooks.WebhookTriggerEvent) *webhookssvc.WebhookTriggerEvent {
+// ConvertWebhookEventTypeToGRPCWebhookEventType converts a catalog entry to proto.
+func ConvertWebhookEventTypeToGRPCWebhookEventType(z *webhooks.WebhookEventType) *webhookssvc.WebhookEventType {
 	if z == nil {
 		return nil
 	}
-	return &webhookssvc.WebhookTriggerEvent{
-		Id:            z.ID,
-		Name:          z.Name,
-		Description:   z.Description,
-		CreatedAt:     grpcconverters.ConvertTimeToPBTimestamp(z.CreatedAt),
-		LastUpdatedAt: grpcconverters.ConvertTimePointerToPBTimestamp(z.LastUpdatedAt),
-		ArchivedAt:    grpcconverters.ConvertTimePointerToPBTimestamp(z.ArchivedAt),
+	return &webhookssvc.WebhookEventType{
+		Type:        z.Type,
+		Description: z.Description,
 	}
 }
 
@@ -139,7 +119,7 @@ func ConvertGRPCWebhookToWebhook(webhook *webhookssvc.Webhook) *webhooks.Webhook
 	return converted
 }
 
-// ConvertGRPCWebhookTriggerConfigToWebhookTriggerConfig converts proto WebhookTriggerConfig to domain join-table type.
+// ConvertGRPCWebhookTriggerConfigToWebhookTriggerConfig converts a proto WebhookTriggerConfig to domain.
 func ConvertGRPCWebhookTriggerConfigToWebhookTriggerConfig(z *webhookssvc.WebhookTriggerConfig) *webhooks.WebhookTriggerConfig {
 	if z == nil {
 		return nil
@@ -149,7 +129,7 @@ func ConvertGRPCWebhookTriggerConfigToWebhookTriggerConfig(z *webhookssvc.Webhoo
 		ArchivedAt:       grpcconverters.ConvertPBTimestampToTimePointer(z.ArchivedAt),
 		ID:               z.Id,
 		BelongsToWebhook: z.BelongsToWebhook,
-		TriggerEventID:   z.TriggerEventId,
+		EventType:        z.EventType,
 	}
 }
 
@@ -157,66 +137,23 @@ func ConvertGRPCWebhookCreationRequestInputToWebhookCreationRequestInput(input *
 	if input == nil {
 		return nil
 	}
-	events := make([]*webhooks.WebhookTriggerEventCreationRequestInput, 0, len(input.GetEvents()))
-	for _, pev := range input.GetEvents() {
-		if pev == nil {
-			continue
-		}
-		events = append(events, convertGRPCWebhookTriggerEventCreationRequestInputToDomain(pev))
-	}
 	return &webhooks.WebhookCreationRequestInput{
 		Name:        input.Name,
 		ContentType: ConvertWebhookContentTypeToString(input.ContentType),
 		URL:         input.Url,
 		Method:      ConvertWebhookMethodToString(input.Method),
-		Events:      events,
+		Events:      input.GetEventTypes(),
 	}
-}
-
-func convertGRPCWebhookTriggerEventCreationRequestInputToDomain(pev *webhookssvc.WebhookTriggerEventCreationRequestInput) *webhooks.WebhookTriggerEventCreationRequestInput {
-	if pev == nil {
-		return nil
-	}
-	out := &webhooks.WebhookTriggerEventCreationRequestInput{
-		ID:          identifiers.New(),
-		Name:        pev.GetName(),
-		Description: pev.GetDescription(),
-	}
-	if id := pev.GetId(); id != "" {
-		out.ID = id
-	}
-	return out
 }
 
 func ConvertWebhookCreationRequestInputToGRPCWebhookCreationRequestInput(input *webhooks.WebhookCreationRequestInput) *webhookssvc.WebhookCreationRequestInput {
-	events := make([]*webhookssvc.WebhookTriggerEventCreationRequestInput, 0, len(input.Events))
-	for _, ev := range input.Events {
-		if ev == nil {
-			continue
-		}
-		events = append(events, convertDomainWebhookTriggerEventCreationRequestInputToGRPC(ev))
-	}
 	return &webhookssvc.WebhookCreationRequestInput{
 		Name:        input.Name,
 		ContentType: ConvertStringToWebhookContentType(input.ContentType),
 		Url:         input.URL,
 		Method:      ConvertStringToWebhookMethod(input.Method),
-		Events:      events,
+		EventTypes:  input.Events,
 	}
-}
-
-func convertDomainWebhookTriggerEventCreationRequestInputToGRPC(ev *webhooks.WebhookTriggerEventCreationRequestInput) *webhookssvc.WebhookTriggerEventCreationRequestInput {
-	if ev == nil {
-		return nil
-	}
-	out := &webhookssvc.WebhookTriggerEventCreationRequestInput{
-		Name:        ev.Name,
-		Description: ev.Description,
-	}
-	if ev.ID != "" {
-		out.Id = &ev.ID
-	}
-	return out
 }
 
 // ConvertGRPCWebhookTriggerConfigCreationRequestInputToWebhookTriggerConfigDatabaseCreationInput converts proto AddWebhookTriggerConfig input to domain DB input.
@@ -227,30 +164,7 @@ func ConvertGRPCWebhookTriggerConfigCreationRequestInputToWebhookTriggerConfigDa
 	return &webhooks.WebhookTriggerConfigDatabaseCreationInput{
 		ID:               identifiers.New(),
 		BelongsToWebhook: input.BelongsToWebhook,
-		TriggerEventID:   input.TriggerEventId,
-	}
-}
-
-// ConvertGRPCWebhookTriggerEventCreationRequestInputToWebhookTriggerEventCreationRequestInput converts proto catalog CreateWebhookTriggerEvent input to domain request input.
-func ConvertGRPCWebhookTriggerEventCreationRequestInputToWebhookTriggerEventCreationRequestInput(input *webhookssvc.WebhookTriggerEventCreationRequestInput) *webhooks.WebhookTriggerEventCreationRequestInput {
-	if input == nil {
-		return nil
-	}
-	return &webhooks.WebhookTriggerEventCreationRequestInput{
-		ID:          identifiers.New(),
-		Name:        input.Name,
-		Description: input.Description,
-	}
-}
-
-// ConvertGRPCWebhookTriggerEventUpdateRequestInputToWebhookTriggerEventUpdateRequestInput converts proto catalog Update input to domain.
-func ConvertGRPCWebhookTriggerEventUpdateRequestInputToWebhookTriggerEventUpdateRequestInput(input *webhookssvc.WebhookTriggerEventUpdateRequestInput) *webhooks.WebhookTriggerEventUpdateRequestInput {
-	if input == nil {
-		return nil
-	}
-	return &webhooks.WebhookTriggerEventUpdateRequestInput{
-		Name:        input.Name,
-		Description: input.Description,
+		EventType:        input.EventType,
 	}
 }
 

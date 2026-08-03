@@ -5,10 +5,8 @@
 package generated
 
 import (
-	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	"time"
 )
 
 type WebhookContentType string
@@ -134,26 +132,4 @@ func AllWebhookMethodValues() []WebhookMethod {
 		WebhookMethodPOST,
 		WebhookMethodDELETE,
 	}
-}
-
-type WebhookTriggerEvents struct {
-	ID            string
-	Name          string
-	Description   string
-	CreatedAt     time.Time
-	LastUpdatedAt sql.NullTime
-	ArchivedAt    sql.NullTime
-}
-
-type Webhooks struct {
-	ID               string
-	Name             string
-	ContentType      WebhookContentType
-	URL              string
-	Method           WebhookMethod
-	CreatedAt        time.Time
-	LastUpdatedAt    sql.NullTime
-	ArchivedAt       sql.NullTime
-	CreatedByUser    string
-	BelongsToAccount string
 }

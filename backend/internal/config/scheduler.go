@@ -19,6 +19,7 @@ import (
 	"github.com/primandproper/platform-go/v9/outbox"
 	"github.com/primandproper/platform-go/v9/saga"
 	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
+	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -69,6 +70,14 @@ type (
 		// loop steps it through, and it polls in seconds rather than minutes because the
 		// poll interval is the floor on how long a step's delay costs.
 		Sagas saga.WorkerConfig `envPrefix:"SAGAS_" json:"sagas"`
+
+		// Webhooks configures the outbound webhook delivery worker, which lives here for
+		// the same reasons the outbox relay does: it is a polling loop that must not be
+		// tied to a request, and it needs exactly what this process already has.
+		//
+		// Its own tick also reaps delivered dispatches and their attempts past the
+		// retention window, so retention needs no separate scheduled job.
+		Webhooks webhookscfg.Config `envPrefix:"WEBHOOKS_" json:"webhooks"`
 	}
 
 	// ScheduledJobsConfig carries the scheduler's own knobs, the lock backend that serializes
@@ -250,6 +259,7 @@ func (cfg *SchedulerConfig) ValidateWithContext(ctx context.Context) error {
 		"Jobs":          cfg.Jobs.ValidateWithContext,
 		"Outbox":        cfg.Outbox.ValidateWithContext,
 		"Audit":         cfg.Audit.ValidateWithContext,
+		"Webhooks":      cfg.Webhooks.ValidateWithContext,
 		"Sagas":         cfg.Sagas.ValidateWithContext,
 	}
 

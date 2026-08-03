@@ -8,16 +8,12 @@ import (
 
 // ConvertWebhookToWebhookCreationRequestInput builds a WebhookCreationRequestInput from a Webhook.
 func ConvertWebhookToWebhookCreationRequestInput(webhook *types.Webhook) *types.WebhookCreationRequestInput {
-	events := make([]*types.WebhookTriggerEventCreationRequestInput, 0, len(webhook.TriggerConfigs))
-	for _, cfg := range webhook.TriggerConfigs {
-		events = append(events, &types.WebhookTriggerEventCreationRequestInput{ID: cfg.TriggerEventID})
-	}
 	return &types.WebhookCreationRequestInput{
 		Name:        webhook.Name,
 		ContentType: webhook.ContentType,
 		URL:         webhook.URL,
 		Method:      webhook.Method,
-		Events:      events,
+		Events:      webhook.EventTypes(),
 	}
 }
 
@@ -43,7 +39,7 @@ func ConvertWebhookToWebhookDatabaseCreationInput(webhook *types.Webhook) *types
 func ConvertWebhookTriggerConfigToWebhookTriggerConfigCreationRequestInput(cfg *types.WebhookTriggerConfig) *types.WebhookTriggerConfigCreationRequestInput {
 	return &types.WebhookTriggerConfigCreationRequestInput{
 		BelongsToWebhook: cfg.BelongsToWebhook,
-		TriggerEventID:   cfg.TriggerEventID,
+		EventType:        cfg.EventType,
 	}
 }
 
@@ -52,7 +48,7 @@ func ConvertWebhookTriggerConfigCreationRequestInputToWebhookTriggerConfigDataba
 	return &types.WebhookTriggerConfigDatabaseCreationInput{
 		ID:               identifiers.New(),
 		BelongsToWebhook: input.BelongsToWebhook,
-		TriggerEventID:   input.TriggerEventID,
+		EventType:        input.EventType,
 	}
 }
 
@@ -61,12 +57,13 @@ func ConvertWebhookTriggerConfigToWebhookTriggerConfigDatabaseCreationInput(cfg 
 	return &types.WebhookTriggerConfigDatabaseCreationInput{
 		ID:               cfg.ID,
 		BelongsToWebhook: cfg.BelongsToWebhook,
-		TriggerEventID:   cfg.TriggerEventID,
+		EventType:        cfg.EventType,
 	}
 }
 
-// ConvertWebhookCreationRequestInputToWebhookDatabaseCreationInput creates a WebhookDatabaseCreationInput from a WebhookCreationRequestInput (without CreatedByUser; caller must set it).
-// Only events with ID set are added to TriggerConfigs; create-new (Name/Description) must be resolved by the manager.
+// ConvertWebhookCreationRequestInputToWebhookDatabaseCreationInput creates a
+// WebhookDatabaseCreationInput from a WebhookCreationRequestInput. CreatedByUser and
+// BelongsToAccount are the caller's to set.
 func ConvertWebhookCreationRequestInputToWebhookDatabaseCreationInput(input *types.WebhookCreationRequestInput) *types.WebhookDatabaseCreationInput {
 	webhookID := identifiers.New()
 	x := &types.WebhookDatabaseCreationInput{
@@ -77,15 +74,17 @@ func ConvertWebhookCreationRequestInputToWebhookDatabaseCreationInput(input *typ
 		Method:         input.Method,
 		TriggerConfigs: make([]*types.WebhookTriggerConfigDatabaseCreationInput, 0, len(input.Events)),
 	}
-	for _, ev := range input.Events {
-		if ev == nil || ev.ID == "" {
-			continue
-		}
+
+	// Every event type becomes a subscription. There is no longer a "resolve or create the
+	// catalog row" step, and so no way for an event to be silently dropped here for lacking
+	// one: event types are validated against the generated catalog before this runs.
+	for _, eventType := range input.Events {
 		x.TriggerConfigs = append(x.TriggerConfigs, &types.WebhookTriggerConfigDatabaseCreationInput{
 			ID:               identifiers.New(),
 			BelongsToWebhook: webhookID,
-			TriggerEventID:   ev.ID,
+			EventType:        eventType,
 		})
 	}
+
 	return x
 }

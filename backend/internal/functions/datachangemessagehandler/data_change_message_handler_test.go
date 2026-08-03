@@ -12,7 +12,6 @@ import (
 	internalopsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops/mock"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
-	webhooksmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/mock"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
@@ -20,7 +19,6 @@ import (
 	analyticsmock "github.com/primandproper/platform-go/v9/analytics/mock"
 	emailmock "github.com/primandproper/platform-go/v9/email/mock"
 	encodingmock "github.com/primandproper/platform-go/v9/encoding/mock"
-	"github.com/primandproper/platform-go/v9/httpclient"
 	"github.com/primandproper/platform-go/v9/messagequeue"
 	msgqueuemock "github.com/primandproper/platform-go/v9/messagequeue/mock"
 	noopnotifications "github.com/primandproper/platform-go/v9/notifications/mobile/noop"
@@ -52,14 +50,13 @@ func (noopPasswordResetTokenDataManager) RedeemPasswordResetToken(context.Contex
 }
 
 //nolint:gocritic // I know this returns too many things
-func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessageHandler, *identitymock.RepositoryMock, *webhooksmock.RepositoryMock, *msgqueuemock.ConsumerProviderMock, *msgqueuemock.PublisherProviderMock, *analyticsmock.EventReporterMock, *emailmock.EmailerMock, *reportartifacts.StoreMock, *mockmetrics.ProviderMock, *encodingmock.ServerEncoderDecoderMock, *dataprivacymock.RepositoryMock) {
+func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessageHandler, *identitymock.RepositoryMock, *msgqueuemock.ConsumerProviderMock, *msgqueuemock.PublisherProviderMock, *analyticsmock.EventReporterMock, *emailmock.EmailerMock, *reportartifacts.StoreMock, *mockmetrics.ProviderMock, *encodingmock.ServerEncoderDecoderMock, *dataprivacymock.RepositoryMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
 
 	identityRepo := &identitymock.RepositoryMock{}
-	webhookRepo := &webhooksmock.RepositoryMock{}
 	consumerProvider := &msgqueuemock.ConsumerProviderMock{}
 	publisherProvider := &msgqueuemock.PublisherProviderMock{}
 	analyticsEventReporter := &analyticsmock.EventReporterMock{}
@@ -101,7 +98,6 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 
 	handler := &AsyncDataChangeMessageHandler{
 		identityRepo:                         identityRepo,
-		webhookRepo:                          webhookRepo,
 		internalOpsRepo:                      internalOpsRepo,
 		consumerProvider:                     consumerProvider,
 		analyticsEventReporter:               analyticsEventReporter,
@@ -112,10 +108,8 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		mealPlanningDataIndexer:              mealPlanningDataIndexer,
 		logger:                               logger,
 		tracer:                               tracer,
-		nonWebhookEventTypes:                 []string{},
 		dataChangesExecutionTimeHistogram:    noopHistogram,
 		outboundEmailsExecutionTimeHistogram: noopHistogram,
-		webhookExecutionTimestampHistogram:   noopHistogram,
 		userDataAggregationExecutionTimeHistogram: noopHistogram,
 		searchIndexRequestsExecutionTimeHistogram: noopHistogram,
 		mobileNotificationsExecutionTimeHistogram: noopHistogram,
@@ -129,16 +123,14 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		queuesConfig: queuescfg.Config{
 			SearchIndexRequestsTopicName: "search-index-requests",
 		},
-		searchDataIndexPublisher:         mockPublisher,
-		outboundEmailsPublisher:          mockPublisher,
-		webhookExecutionRequestPublisher: mockPublisher,
-		mobileNotificationsPublisher:     mockPublisher,
-		dataPrivacyRepo:                  dataPrivacyRepo,
-		mealPlanRepo:                     mealPlanRepo,
-		passwordResetTokenDataManager:    noopPasswordResetTokenDataManager{},
-		notificationsRepo:                notificationsRepo,
-		pushNotificationSender:           pushNotificationSender,
-		webhookHTTPClient:                httpclient.NewHTTPClient(),
+		searchDataIndexPublisher:      mockPublisher,
+		outboundEmailsPublisher:       mockPublisher,
+		mobileNotificationsPublisher:  mockPublisher,
+		dataPrivacyRepo:               dataPrivacyRepo,
+		mealPlanRepo:                  mealPlanRepo,
+		passwordResetTokenDataManager: noopPasswordResetTokenDataManager{},
+		notificationsRepo:             notificationsRepo,
+		pushNotificationSender:        pushNotificationSender,
 	}
 
 	handler.searchIndexHandlers = []SearchIndexEventHandler{
@@ -150,7 +142,7 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		handler.handleIdentityOutboundNotification,
 	}
 
-	return handler, identityRepo, webhookRepo, consumerProvider, publisherProvider, analyticsEventReporter, emailer, reportArtifacts, metricsProvider, decoder, dataPrivacyRepo
+	return handler, identityRepo, consumerProvider, publisherProvider, analyticsEventReporter, emailer, reportArtifacts, metricsProvider, decoder, dataPrivacyRepo
 }
 
 func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
@@ -164,10 +156,9 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		tracerProvider := tracingnoop.NewTracerProvider()
 		cfg := &config.AsyncMessageHandlerConfig{
 			Queues: queuescfg.Config{
-				OutboundEmailsTopicName:           "outbound-emails",
-				SearchIndexRequestsTopicName:      "search-index-requests",
-				WebhookExecutionRequestsTopicName: "webhook-execution-requests",
-				MobileNotificationsTopicName:      "mobile-notifications",
+				OutboundEmailsTopicName:      "outbound-emails",
+				SearchIndexRequestsTopicName: "search-index-requests",
+				MobileNotificationsTopicName: "mobile-notifications",
 			},
 			Pools: config.WorkerPoolsConfig{
 				DeadLetterTopicName: "dead-letter",
@@ -175,7 +166,6 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		}
 		identityRepo := &identitymock.RepositoryMock{}
 		dataPrivacyRepo := &dataprivacymock.RepositoryMock{}
-		webhookRepo := &webhooksmock.RepositoryMock{}
 		consumerProvider := &msgqueuemock.ConsumerProviderMock{}
 		publisherProvider := &msgqueuemock.PublisherProviderMock{}
 		analyticsEventReporter := &analyticsmock.EventReporterMock{}
@@ -220,7 +210,6 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 			cfg,
 			identityRepo,
 			dataPrivacyRepo,
-			webhookRepo,
 			internalOpsRepo,
 			consumerProvider,
 			publisherProvider,
@@ -240,7 +229,6 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, handler)
 		assert.Equal(t, identityRepo, handler.identityRepo)
-		assert.Equal(t, webhookRepo, handler.webhookRepo)
 		assert.Equal(t, consumerProvider, handler.consumerProvider)
 		assert.Equal(t, analyticsEventReporter, handler.analyticsEventReporter)
 		assert.Equal(t, emailer, handler.emailer)
@@ -250,22 +238,5 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		assert.Equal(t, eatingDataIndexer, handler.mealPlanningDataIndexer)
 
 		// metricsProvider and publisherProvider are moq mocks - no testify assertion needed
-	})
-}
-
-func TestAsyncDataChangeMessageHandler_SetNonWebhookEventTypes(t *testing.T) {
-	t.Parallel()
-
-	t.Run("standard", func(t *testing.T) {
-		t.Parallel()
-
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-
-		eventTypes := []string{"event1", "event2", "event3"}
-		handler.SetNonWebhookEventTypes(eventTypes)
-
-		handler.nonWebhookEventTypesHat.RLock()
-		assert.Equal(t, eventTypes, handler.nonWebhookEventTypes)
-		handler.nonWebhookEventTypesHat.RUnlock()
 	})
 }

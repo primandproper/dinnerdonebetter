@@ -126,6 +126,7 @@ func buildProdConfig() *config.APIServiceConfig {
 	}
 
 	return &config.APIServiceConfig{
+		Webhooks: buildWebhooksConfig(),
 		Routing: routingcfg.Config{
 			Provider: routingcfg.ProviderChi,
 			Chi: &chi.Config{
@@ -144,12 +145,11 @@ func buildProdConfig() *config.APIServiceConfig {
 			Enabled: false,
 		},
 		Queues: queuescfg.Config{
-			DataChangesTopicName:              dataChangesTopicName,
-			OutboundEmailsTopicName:           outboundEmailsTopicName,
-			SearchIndexRequestsTopicName:      searchIndexRequestsTopicName,
-			MobileNotificationsTopicName:      mobileNotificationsTopicName,
-			UserDataAggregationTopicName:      userDataAggregationTopicName,
-			WebhookExecutionRequestsTopicName: webhookExecutionRequestsTopicName,
+			DataChangesTopicName:         dataChangesTopicName,
+			OutboundEmailsTopicName:      outboundEmailsTopicName,
+			SearchIndexRequestsTopicName: searchIndexRequestsTopicName,
+			MobileNotificationsTopicName: mobileNotificationsTopicName,
+			UserDataAggregationTopicName: userDataAggregationTopicName,
 		},
 		Meta: config.MetaSettings{
 			Debug:   false,

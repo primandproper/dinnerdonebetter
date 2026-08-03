@@ -14,6 +14,8 @@ message DataCollection {
   map<string, WebhookList> webhooks = 1;
 }
 
+// Webhook is one subscriber. Its signing secret is deliberately absent: it is returned once, by
+// the call that mints it, and no read path can produce it.
 message Webhook {
   google.protobuf.Timestamp created_at = 1;
   google.protobuf.Timestamp archived_at = 2;
@@ -28,34 +30,59 @@ message Webhook {
   string created_by_user = 11;
 }
 
-// WebhookTriggerConfig is the join-table record (webhook subscription to a trigger event).
+// WebhookTriggerConfig is one webhook's subscription to one event type.
 message WebhookTriggerConfig {
   google.protobuf.Timestamp created_at = 1;
   google.protobuf.Timestamp archived_at = 2;
   string id = 3;
   string belongs_to_webhook = 4;
-  string trigger_event_id = 5;
+
+  reserved 5;
+  reserved "trigger_event_id";
+
+  // event_type is a catalog event type — one of the strings the application publishes.
+  //
+  // Field 5 previously held trigger_event_id, a reference into a table of randomly-identified
+  // catalog rows. Nothing ever matched it: fan-out compared those IDs against event type
+  // strings, so no webhook could ever fire. The event type is now its own identity, and the
+  // old field number is retired rather than reused so a stale client cannot read one as the
+  // other.
+  string event_type = 6;
 }
 
-// WebhookTriggerEvent is the catalog entity for available trigger event types.
-message WebhookTriggerEvent {
-  string id = 1;
-  string name = 2;
-  string description = 3;
-  google.protobuf.Timestamp created_at = 4;
-  google.protobuf.Timestamp last_updated_at = 5;
-  google.protobuf.Timestamp archived_at = 6;
+// WebhookEventType is one subscribable event, for rendering a subscription UI.
+//
+// The set of them is generated from the event constants the domains declare rather than stored,
+// so the events this application publishes and the events a webhook may subscribe to are the
+// same list by construction.
+message WebhookEventType {
+  string type = 1;
+  string description = 2;
 }
 
+// WebhookContentType is the Content-Type a delivery carries.
+//
+// XML is gone. A delivery carries one payload shared by every subscriber of that event, so a
+// per-endpoint XML rendering would mean dispatching the same event twice; nothing consumed it.
 enum WebhookContentType {
   WEBHOOK_CONTENT_TYPE_JSON = 0;
-  WEBHOOK_CONTENT_TYPE_XML = 1;
+
+  reserved 1;
+  reserved "WEBHOOK_CONTENT_TYPE_XML";
 }
 
+// WebhookMethod is the HTTP method a delivery is made with.
+//
+// POST only. The other methods described requests nobody was making — a GET carries no body, so
+// there is nothing to sign and nothing for a subscriber to receive.
+//
+// POST keeps value 3 rather than moving to 0. Renumbering it would silently reinterpret every
+// stored and in-flight message: a persisted 3 would start reading as DELETE's old slot, and a
+// client sending POST would send a value this enum no longer defines.
 enum WebhookMethod {
-  WEBHOOK_METHOD_GET = 0;
-  WEBHOOK_METHOD_PUT = 1;
-  WEBHOOK_METHOD_PATCH = 2;
+  WEBHOOK_METHOD_UNSPECIFIED = 0;
   WEBHOOK_METHOD_POST = 3;
-  WEBHOOK_METHOD_DELETE = 4;
+
+  reserved 1, 2, 4;
+  reserved "WEBHOOK_METHOD_PUT", "WEBHOOK_METHOD_PATCH", "WEBHOOK_METHOD_DELETE";
 }

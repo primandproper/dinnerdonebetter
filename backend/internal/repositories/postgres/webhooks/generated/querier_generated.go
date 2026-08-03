@@ -11,18 +11,11 @@ import (
 type Querier interface {
 	ArchiveWebhook(ctx context.Context, db DBTX, arg *ArchiveWebhookParams) (int64, error)
 	ArchiveWebhookTriggerConfig(ctx context.Context, db DBTX, arg *ArchiveWebhookTriggerConfigParams) (int64, error)
-	ArchiveWebhookTriggerEvent(ctx context.Context, db DBTX, id string) (int64, error)
 	CheckWebhookExistence(ctx context.Context, db DBTX, arg *CheckWebhookExistenceParams) (bool, error)
-	CheckWebhookTriggerEventExistence(ctx context.Context, db DBTX, id string) (bool, error)
 	CreateWebhook(ctx context.Context, db DBTX, arg *CreateWebhookParams) error
 	CreateWebhookTriggerConfig(ctx context.Context, db DBTX, arg *CreateWebhookTriggerConfigParams) error
-	CreateWebhookTriggerEvent(ctx context.Context, db DBTX, arg *CreateWebhookTriggerEventParams) error
 	GetWebhook(ctx context.Context, db DBTX, arg *GetWebhookParams) ([]*GetWebhookRow, error)
-	GetWebhookTriggerEvent(ctx context.Context, db DBTX, id string) (*WebhookTriggerEvents, error)
-	GetWebhookTriggerEvents(ctx context.Context, db DBTX, arg *GetWebhookTriggerEventsParams) ([]*GetWebhookTriggerEventsRow, error)
 	GetWebhooksForAccount(ctx context.Context, db DBTX, arg *GetWebhooksForAccountParams) ([]*GetWebhooksForAccountRow, error)
-	GetWebhooksForAccountAndEvent(ctx context.Context, db DBTX, arg *GetWebhooksForAccountAndEventParams) ([]*Webhooks, error)
-	UpdateWebhookTriggerEvent(ctx context.Context, db DBTX, arg *UpdateWebhookTriggerEventParams) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

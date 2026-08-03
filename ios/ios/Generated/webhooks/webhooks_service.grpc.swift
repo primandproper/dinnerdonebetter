@@ -92,64 +92,28 @@ internal enum Webhooks_WebhooksService {
                 method: "GetWebhooks"
             )
         }
-        /// Namespace for "CreateWebhookTriggerEvent" metadata.
-        internal enum CreateWebhookTriggerEvent {
-            /// Request type for "CreateWebhookTriggerEvent".
-            internal typealias Input = Webhooks_CreateWebhookTriggerEventRequest
-            /// Response type for "CreateWebhookTriggerEvent".
-            internal typealias Output = Webhooks_CreateWebhookTriggerEventResponse
-            /// Descriptor for "CreateWebhookTriggerEvent".
+        /// Namespace for "RotateWebhookSecret" metadata.
+        internal enum RotateWebhookSecret {
+            /// Request type for "RotateWebhookSecret".
+            internal typealias Input = Webhooks_RotateWebhookSecretRequest
+            /// Response type for "RotateWebhookSecret".
+            internal typealias Output = Webhooks_RotateWebhookSecretResponse
+            /// Descriptor for "RotateWebhookSecret".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "webhooks.WebhooksService"),
-                method: "CreateWebhookTriggerEvent"
+                method: "RotateWebhookSecret"
             )
         }
-        /// Namespace for "GetWebhookTriggerEvent" metadata.
-        internal enum GetWebhookTriggerEvent {
-            /// Request type for "GetWebhookTriggerEvent".
-            internal typealias Input = Webhooks_GetWebhookTriggerEventRequest
-            /// Response type for "GetWebhookTriggerEvent".
-            internal typealias Output = Webhooks_GetWebhookTriggerEventResponse
-            /// Descriptor for "GetWebhookTriggerEvent".
+        /// Namespace for "GetWebhookEventTypes" metadata.
+        internal enum GetWebhookEventTypes {
+            /// Request type for "GetWebhookEventTypes".
+            internal typealias Input = Webhooks_GetWebhookEventTypesRequest
+            /// Response type for "GetWebhookEventTypes".
+            internal typealias Output = Webhooks_GetWebhookEventTypesResponse
+            /// Descriptor for "GetWebhookEventTypes".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "webhooks.WebhooksService"),
-                method: "GetWebhookTriggerEvent"
-            )
-        }
-        /// Namespace for "GetWebhookTriggerEvents" metadata.
-        internal enum GetWebhookTriggerEvents {
-            /// Request type for "GetWebhookTriggerEvents".
-            internal typealias Input = Webhooks_GetWebhookTriggerEventsRequest
-            /// Response type for "GetWebhookTriggerEvents".
-            internal typealias Output = Webhooks_GetWebhookTriggerEventsResponse
-            /// Descriptor for "GetWebhookTriggerEvents".
-            internal static let descriptor = GRPCCore.MethodDescriptor(
-                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "webhooks.WebhooksService"),
-                method: "GetWebhookTriggerEvents"
-            )
-        }
-        /// Namespace for "UpdateWebhookTriggerEvent" metadata.
-        internal enum UpdateWebhookTriggerEvent {
-            /// Request type for "UpdateWebhookTriggerEvent".
-            internal typealias Input = Webhooks_UpdateWebhookTriggerEventRequest
-            /// Response type for "UpdateWebhookTriggerEvent".
-            internal typealias Output = Webhooks_UpdateWebhookTriggerEventResponse
-            /// Descriptor for "UpdateWebhookTriggerEvent".
-            internal static let descriptor = GRPCCore.MethodDescriptor(
-                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "webhooks.WebhooksService"),
-                method: "UpdateWebhookTriggerEvent"
-            )
-        }
-        /// Namespace for "ArchiveWebhookTriggerEvent" metadata.
-        internal enum ArchiveWebhookTriggerEvent {
-            /// Request type for "ArchiveWebhookTriggerEvent".
-            internal typealias Input = Webhooks_ArchiveWebhookTriggerEventRequest
-            /// Response type for "ArchiveWebhookTriggerEvent".
-            internal typealias Output = Webhooks_ArchiveWebhookTriggerEventResponse
-            /// Descriptor for "ArchiveWebhookTriggerEvent".
-            internal static let descriptor = GRPCCore.MethodDescriptor(
-                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "webhooks.WebhooksService"),
-                method: "ArchiveWebhookTriggerEvent"
+                method: "GetWebhookEventTypes"
             )
         }
         /// Descriptors for all methods in the "webhooks.WebhooksService" service.
@@ -160,11 +124,8 @@ internal enum Webhooks_WebhooksService {
             AddWebhookTriggerConfig.descriptor,
             GetWebhook.descriptor,
             GetWebhooks.descriptor,
-            CreateWebhookTriggerEvent.descriptor,
-            GetWebhookTriggerEvent.descriptor,
-            GetWebhookTriggerEvents.descriptor,
-            UpdateWebhookTriggerEvent.descriptor,
-            ArchiveWebhookTriggerEvent.descriptor
+            RotateWebhookSecret.descriptor,
+            GetWebhookEventTypes.descriptor
         ]
     }
 }
@@ -298,99 +259,53 @@ extension Webhooks_WebhooksService {
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_GetWebhooksResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "CreateWebhookTriggerEvent" method.
+        /// Call the "RotateWebhookSecret" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Webhooks_CreateWebhookTriggerEventRequest` message.
-        ///   - serializer: A serializer for `Webhooks_CreateWebhookTriggerEventRequest` messages.
-        ///   - deserializer: A deserializer for `Webhooks_CreateWebhookTriggerEventResponse` messages.
+        ///   - request: A request containing a single `Webhooks_RotateWebhookSecretRequest` message.
+        ///   - serializer: A serializer for `Webhooks_RotateWebhookSecretRequest` messages.
+        ///   - deserializer: A deserializer for `Webhooks_RotateWebhookSecretResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func createWebhookTriggerEvent<Result>(
-            request: GRPCCore.ClientRequest<Webhooks_CreateWebhookTriggerEventRequest>,
-            serializer: some GRPCCore.MessageSerializer<Webhooks_CreateWebhookTriggerEventRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Webhooks_CreateWebhookTriggerEventResponse>,
+        func rotateWebhookSecret<Result>(
+            request: GRPCCore.ClientRequest<Webhooks_RotateWebhookSecretRequest>,
+            serializer: some GRPCCore.MessageSerializer<Webhooks_RotateWebhookSecretRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Webhooks_RotateWebhookSecretResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_CreateWebhookTriggerEventResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_RotateWebhookSecretResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "GetWebhookTriggerEvent" method.
+        /// Call the "GetWebhookEventTypes" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > GetWebhookEventTypes lists what a webhook may subscribe to.
+        /// > 
+        /// > The trigger-event CRUD this replaces — Create/Get/Update/ArchiveWebhookTriggerEvent — is
+        /// > gone. Those wrote rows to a catalog table with randomly generated IDs, which the fan-out
+        /// > then compared against event type strings; nothing ever matched, so no webhook could fire.
+        /// > The catalog is now generated from the events the application actually publishes, and is
+        /// > read-only because inventing an event type nothing emits is not a useful thing to be able
+        /// > to do.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Webhooks_GetWebhookTriggerEventRequest` message.
-        ///   - serializer: A serializer for `Webhooks_GetWebhookTriggerEventRequest` messages.
-        ///   - deserializer: A deserializer for `Webhooks_GetWebhookTriggerEventResponse` messages.
+        ///   - request: A request containing a single `Webhooks_GetWebhookEventTypesRequest` message.
+        ///   - serializer: A serializer for `Webhooks_GetWebhookEventTypesRequest` messages.
+        ///   - deserializer: A deserializer for `Webhooks_GetWebhookEventTypesResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func getWebhookTriggerEvent<Result>(
-            request: GRPCCore.ClientRequest<Webhooks_GetWebhookTriggerEventRequest>,
-            serializer: some GRPCCore.MessageSerializer<Webhooks_GetWebhookTriggerEventRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Webhooks_GetWebhookTriggerEventResponse>,
+        func getWebhookEventTypes<Result>(
+            request: GRPCCore.ClientRequest<Webhooks_GetWebhookEventTypesRequest>,
+            serializer: some GRPCCore.MessageSerializer<Webhooks_GetWebhookEventTypesRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Webhooks_GetWebhookEventTypesResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_GetWebhookTriggerEventResponse>) async throws -> Result
-        ) async throws -> Result where Result: Sendable
-
-        /// Call the "GetWebhookTriggerEvents" method.
-        ///
-        /// - Parameters:
-        ///   - request: A request containing a single `Webhooks_GetWebhookTriggerEventsRequest` message.
-        ///   - serializer: A serializer for `Webhooks_GetWebhookTriggerEventsRequest` messages.
-        ///   - deserializer: A deserializer for `Webhooks_GetWebhookTriggerEventsResponse` messages.
-        ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
-        /// - Returns: The result of `handleResponse`.
-        func getWebhookTriggerEvents<Result>(
-            request: GRPCCore.ClientRequest<Webhooks_GetWebhookTriggerEventsRequest>,
-            serializer: some GRPCCore.MessageSerializer<Webhooks_GetWebhookTriggerEventsRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Webhooks_GetWebhookTriggerEventsResponse>,
-            options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_GetWebhookTriggerEventsResponse>) async throws -> Result
-        ) async throws -> Result where Result: Sendable
-
-        /// Call the "UpdateWebhookTriggerEvent" method.
-        ///
-        /// - Parameters:
-        ///   - request: A request containing a single `Webhooks_UpdateWebhookTriggerEventRequest` message.
-        ///   - serializer: A serializer for `Webhooks_UpdateWebhookTriggerEventRequest` messages.
-        ///   - deserializer: A deserializer for `Webhooks_UpdateWebhookTriggerEventResponse` messages.
-        ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
-        /// - Returns: The result of `handleResponse`.
-        func updateWebhookTriggerEvent<Result>(
-            request: GRPCCore.ClientRequest<Webhooks_UpdateWebhookTriggerEventRequest>,
-            serializer: some GRPCCore.MessageSerializer<Webhooks_UpdateWebhookTriggerEventRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Webhooks_UpdateWebhookTriggerEventResponse>,
-            options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_UpdateWebhookTriggerEventResponse>) async throws -> Result
-        ) async throws -> Result where Result: Sendable
-
-        /// Call the "ArchiveWebhookTriggerEvent" method.
-        ///
-        /// - Parameters:
-        ///   - request: A request containing a single `Webhooks_ArchiveWebhookTriggerEventRequest` message.
-        ///   - serializer: A serializer for `Webhooks_ArchiveWebhookTriggerEventRequest` messages.
-        ///   - deserializer: A deserializer for `Webhooks_ArchiveWebhookTriggerEventResponse` messages.
-        ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
-        /// - Returns: The result of `handleResponse`.
-        func archiveWebhookTriggerEvent<Result>(
-            request: GRPCCore.ClientRequest<Webhooks_ArchiveWebhookTriggerEventRequest>,
-            serializer: some GRPCCore.MessageSerializer<Webhooks_ArchiveWebhookTriggerEventRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Webhooks_ArchiveWebhookTriggerEventResponse>,
-            options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_ArchiveWebhookTriggerEventResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_GetWebhookEventTypesResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
     }
 
@@ -590,29 +505,29 @@ extension Webhooks_WebhooksService {
             )
         }
 
-        /// Call the "CreateWebhookTriggerEvent" method.
+        /// Call the "RotateWebhookSecret" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Webhooks_CreateWebhookTriggerEventRequest` message.
-        ///   - serializer: A serializer for `Webhooks_CreateWebhookTriggerEventRequest` messages.
-        ///   - deserializer: A deserializer for `Webhooks_CreateWebhookTriggerEventResponse` messages.
+        ///   - request: A request containing a single `Webhooks_RotateWebhookSecretRequest` message.
+        ///   - serializer: A serializer for `Webhooks_RotateWebhookSecretRequest` messages.
+        ///   - deserializer: A deserializer for `Webhooks_RotateWebhookSecretResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func createWebhookTriggerEvent<Result>(
-            request: GRPCCore.ClientRequest<Webhooks_CreateWebhookTriggerEventRequest>,
-            serializer: some GRPCCore.MessageSerializer<Webhooks_CreateWebhookTriggerEventRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Webhooks_CreateWebhookTriggerEventResponse>,
+        internal func rotateWebhookSecret<Result>(
+            request: GRPCCore.ClientRequest<Webhooks_RotateWebhookSecretRequest>,
+            serializer: some GRPCCore.MessageSerializer<Webhooks_RotateWebhookSecretRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Webhooks_RotateWebhookSecretResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_CreateWebhookTriggerEventResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_RotateWebhookSecretResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Webhooks_WebhooksService.Method.CreateWebhookTriggerEvent.descriptor,
+                descriptor: Webhooks_WebhooksService.Method.RotateWebhookSecret.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -620,119 +535,40 @@ extension Webhooks_WebhooksService {
             )
         }
 
-        /// Call the "GetWebhookTriggerEvent" method.
+        /// Call the "GetWebhookEventTypes" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > GetWebhookEventTypes lists what a webhook may subscribe to.
+        /// > 
+        /// > The trigger-event CRUD this replaces — Create/Get/Update/ArchiveWebhookTriggerEvent — is
+        /// > gone. Those wrote rows to a catalog table with randomly generated IDs, which the fan-out
+        /// > then compared against event type strings; nothing ever matched, so no webhook could fire.
+        /// > The catalog is now generated from the events the application actually publishes, and is
+        /// > read-only because inventing an event type nothing emits is not a useful thing to be able
+        /// > to do.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Webhooks_GetWebhookTriggerEventRequest` message.
-        ///   - serializer: A serializer for `Webhooks_GetWebhookTriggerEventRequest` messages.
-        ///   - deserializer: A deserializer for `Webhooks_GetWebhookTriggerEventResponse` messages.
+        ///   - request: A request containing a single `Webhooks_GetWebhookEventTypesRequest` message.
+        ///   - serializer: A serializer for `Webhooks_GetWebhookEventTypesRequest` messages.
+        ///   - deserializer: A deserializer for `Webhooks_GetWebhookEventTypesResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func getWebhookTriggerEvent<Result>(
-            request: GRPCCore.ClientRequest<Webhooks_GetWebhookTriggerEventRequest>,
-            serializer: some GRPCCore.MessageSerializer<Webhooks_GetWebhookTriggerEventRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Webhooks_GetWebhookTriggerEventResponse>,
+        internal func getWebhookEventTypes<Result>(
+            request: GRPCCore.ClientRequest<Webhooks_GetWebhookEventTypesRequest>,
+            serializer: some GRPCCore.MessageSerializer<Webhooks_GetWebhookEventTypesRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Webhooks_GetWebhookEventTypesResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_GetWebhookTriggerEventResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_GetWebhookEventTypesResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Webhooks_WebhooksService.Method.GetWebhookTriggerEvent.descriptor,
-                serializer: serializer,
-                deserializer: deserializer,
-                options: options,
-                onResponse: handleResponse
-            )
-        }
-
-        /// Call the "GetWebhookTriggerEvents" method.
-        ///
-        /// - Parameters:
-        ///   - request: A request containing a single `Webhooks_GetWebhookTriggerEventsRequest` message.
-        ///   - serializer: A serializer for `Webhooks_GetWebhookTriggerEventsRequest` messages.
-        ///   - deserializer: A deserializer for `Webhooks_GetWebhookTriggerEventsResponse` messages.
-        ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
-        /// - Returns: The result of `handleResponse`.
-        internal func getWebhookTriggerEvents<Result>(
-            request: GRPCCore.ClientRequest<Webhooks_GetWebhookTriggerEventsRequest>,
-            serializer: some GRPCCore.MessageSerializer<Webhooks_GetWebhookTriggerEventsRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Webhooks_GetWebhookTriggerEventsResponse>,
-            options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_GetWebhookTriggerEventsResponse>) async throws -> Result = { response in
-                try response.message
-            }
-        ) async throws -> Result where Result: Sendable {
-            try await self.client.unary(
-                request: request,
-                descriptor: Webhooks_WebhooksService.Method.GetWebhookTriggerEvents.descriptor,
-                serializer: serializer,
-                deserializer: deserializer,
-                options: options,
-                onResponse: handleResponse
-            )
-        }
-
-        /// Call the "UpdateWebhookTriggerEvent" method.
-        ///
-        /// - Parameters:
-        ///   - request: A request containing a single `Webhooks_UpdateWebhookTriggerEventRequest` message.
-        ///   - serializer: A serializer for `Webhooks_UpdateWebhookTriggerEventRequest` messages.
-        ///   - deserializer: A deserializer for `Webhooks_UpdateWebhookTriggerEventResponse` messages.
-        ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
-        /// - Returns: The result of `handleResponse`.
-        internal func updateWebhookTriggerEvent<Result>(
-            request: GRPCCore.ClientRequest<Webhooks_UpdateWebhookTriggerEventRequest>,
-            serializer: some GRPCCore.MessageSerializer<Webhooks_UpdateWebhookTriggerEventRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Webhooks_UpdateWebhookTriggerEventResponse>,
-            options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_UpdateWebhookTriggerEventResponse>) async throws -> Result = { response in
-                try response.message
-            }
-        ) async throws -> Result where Result: Sendable {
-            try await self.client.unary(
-                request: request,
-                descriptor: Webhooks_WebhooksService.Method.UpdateWebhookTriggerEvent.descriptor,
-                serializer: serializer,
-                deserializer: deserializer,
-                options: options,
-                onResponse: handleResponse
-            )
-        }
-
-        /// Call the "ArchiveWebhookTriggerEvent" method.
-        ///
-        /// - Parameters:
-        ///   - request: A request containing a single `Webhooks_ArchiveWebhookTriggerEventRequest` message.
-        ///   - serializer: A serializer for `Webhooks_ArchiveWebhookTriggerEventRequest` messages.
-        ///   - deserializer: A deserializer for `Webhooks_ArchiveWebhookTriggerEventResponse` messages.
-        ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
-        /// - Returns: The result of `handleResponse`.
-        internal func archiveWebhookTriggerEvent<Result>(
-            request: GRPCCore.ClientRequest<Webhooks_ArchiveWebhookTriggerEventRequest>,
-            serializer: some GRPCCore.MessageSerializer<Webhooks_ArchiveWebhookTriggerEventRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Webhooks_ArchiveWebhookTriggerEventResponse>,
-            options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_ArchiveWebhookTriggerEventResponse>) async throws -> Result = { response in
-                try response.message
-            }
-        ) async throws -> Result where Result: Sendable {
-            try await self.client.unary(
-                request: request,
-                descriptor: Webhooks_WebhooksService.Method.ArchiveWebhookTriggerEvent.descriptor,
+                descriptor: Webhooks_WebhooksService.Method.GetWebhookEventTypes.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -895,126 +731,62 @@ extension Webhooks_WebhooksService.ClientProtocol {
         )
     }
 
-    /// Call the "CreateWebhookTriggerEvent" method.
+    /// Call the "RotateWebhookSecret" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Webhooks_CreateWebhookTriggerEventRequest` message.
+    ///   - request: A request containing a single `Webhooks_RotateWebhookSecretRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func createWebhookTriggerEvent<Result>(
-        request: GRPCCore.ClientRequest<Webhooks_CreateWebhookTriggerEventRequest>,
+    internal func rotateWebhookSecret<Result>(
+        request: GRPCCore.ClientRequest<Webhooks_RotateWebhookSecretRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_CreateWebhookTriggerEventResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_RotateWebhookSecretResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.createWebhookTriggerEvent(
+        try await self.rotateWebhookSecret(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Webhooks_CreateWebhookTriggerEventRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Webhooks_CreateWebhookTriggerEventResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Webhooks_RotateWebhookSecretRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Webhooks_RotateWebhookSecretResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "GetWebhookTriggerEvent" method.
+    /// Call the "GetWebhookEventTypes" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > GetWebhookEventTypes lists what a webhook may subscribe to.
+    /// > 
+    /// > The trigger-event CRUD this replaces — Create/Get/Update/ArchiveWebhookTriggerEvent — is
+    /// > gone. Those wrote rows to a catalog table with randomly generated IDs, which the fan-out
+    /// > then compared against event type strings; nothing ever matched, so no webhook could fire.
+    /// > The catalog is now generated from the events the application actually publishes, and is
+    /// > read-only because inventing an event type nothing emits is not a useful thing to be able
+    /// > to do.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Webhooks_GetWebhookTriggerEventRequest` message.
+    ///   - request: A request containing a single `Webhooks_GetWebhookEventTypesRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getWebhookTriggerEvent<Result>(
-        request: GRPCCore.ClientRequest<Webhooks_GetWebhookTriggerEventRequest>,
+    internal func getWebhookEventTypes<Result>(
+        request: GRPCCore.ClientRequest<Webhooks_GetWebhookEventTypesRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_GetWebhookTriggerEventResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_GetWebhookEventTypesResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.getWebhookTriggerEvent(
+        try await self.getWebhookEventTypes(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Webhooks_GetWebhookTriggerEventRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Webhooks_GetWebhookTriggerEventResponse>(),
-            options: options,
-            onResponse: handleResponse
-        )
-    }
-
-    /// Call the "GetWebhookTriggerEvents" method.
-    ///
-    /// - Parameters:
-    ///   - request: A request containing a single `Webhooks_GetWebhookTriggerEventsRequest` message.
-    ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
-    /// - Returns: The result of `handleResponse`.
-    internal func getWebhookTriggerEvents<Result>(
-        request: GRPCCore.ClientRequest<Webhooks_GetWebhookTriggerEventsRequest>,
-        options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_GetWebhookTriggerEventsResponse>) async throws -> Result = { response in
-            try response.message
-        }
-    ) async throws -> Result where Result: Sendable {
-        try await self.getWebhookTriggerEvents(
-            request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Webhooks_GetWebhookTriggerEventsRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Webhooks_GetWebhookTriggerEventsResponse>(),
-            options: options,
-            onResponse: handleResponse
-        )
-    }
-
-    /// Call the "UpdateWebhookTriggerEvent" method.
-    ///
-    /// - Parameters:
-    ///   - request: A request containing a single `Webhooks_UpdateWebhookTriggerEventRequest` message.
-    ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
-    /// - Returns: The result of `handleResponse`.
-    internal func updateWebhookTriggerEvent<Result>(
-        request: GRPCCore.ClientRequest<Webhooks_UpdateWebhookTriggerEventRequest>,
-        options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_UpdateWebhookTriggerEventResponse>) async throws -> Result = { response in
-            try response.message
-        }
-    ) async throws -> Result where Result: Sendable {
-        try await self.updateWebhookTriggerEvent(
-            request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Webhooks_UpdateWebhookTriggerEventRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Webhooks_UpdateWebhookTriggerEventResponse>(),
-            options: options,
-            onResponse: handleResponse
-        )
-    }
-
-    /// Call the "ArchiveWebhookTriggerEvent" method.
-    ///
-    /// - Parameters:
-    ///   - request: A request containing a single `Webhooks_ArchiveWebhookTriggerEventRequest` message.
-    ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
-    /// - Returns: The result of `handleResponse`.
-    internal func archiveWebhookTriggerEvent<Result>(
-        request: GRPCCore.ClientRequest<Webhooks_ArchiveWebhookTriggerEventRequest>,
-        options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_ArchiveWebhookTriggerEventResponse>) async throws -> Result = { response in
-            try response.message
-        }
-    ) async throws -> Result where Result: Sendable {
-        try await self.archiveWebhookTriggerEvent(
-            request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Webhooks_ArchiveWebhookTriggerEventRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Webhooks_ArchiveWebhookTriggerEventResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Webhooks_GetWebhookEventTypesRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Webhooks_GetWebhookEventTypesResponse>(),
             options: options,
             onResponse: handleResponse
         )
@@ -1198,7 +970,7 @@ extension Webhooks_WebhooksService.ClientProtocol {
         )
     }
 
-    /// Call the "CreateWebhookTriggerEvent" method.
+    /// Call the "RotateWebhookSecret" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1208,26 +980,37 @@ extension Webhooks_WebhooksService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func createWebhookTriggerEvent<Result>(
-        _ message: Webhooks_CreateWebhookTriggerEventRequest,
+    internal func rotateWebhookSecret<Result>(
+        _ message: Webhooks_RotateWebhookSecretRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_CreateWebhookTriggerEventResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_RotateWebhookSecretResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Webhooks_CreateWebhookTriggerEventRequest>(
+        let request = GRPCCore.ClientRequest<Webhooks_RotateWebhookSecretRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.createWebhookTriggerEvent(
+        return try await self.rotateWebhookSecret(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "GetWebhookTriggerEvent" method.
+    /// Call the "GetWebhookEventTypes" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > GetWebhookEventTypes lists what a webhook may subscribe to.
+    /// > 
+    /// > The trigger-event CRUD this replaces — Create/Get/Update/ArchiveWebhookTriggerEvent — is
+    /// > gone. Those wrote rows to a catalog table with randomly generated IDs, which the fan-out
+    /// > then compared against event type strings; nothing ever matched, so no webhook could fire.
+    /// > The catalog is now generated from the events the application actually publishes, and is
+    /// > read-only because inventing an event type nothing emits is not a useful thing to be able
+    /// > to do.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1237,106 +1020,19 @@ extension Webhooks_WebhooksService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getWebhookTriggerEvent<Result>(
-        _ message: Webhooks_GetWebhookTriggerEventRequest,
+    internal func getWebhookEventTypes<Result>(
+        _ message: Webhooks_GetWebhookEventTypesRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_GetWebhookTriggerEventResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_GetWebhookEventTypesResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Webhooks_GetWebhookTriggerEventRequest>(
+        let request = GRPCCore.ClientRequest<Webhooks_GetWebhookEventTypesRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.getWebhookTriggerEvent(
-            request: request,
-            options: options,
-            onResponse: handleResponse
-        )
-    }
-
-    /// Call the "GetWebhookTriggerEvents" method.
-    ///
-    /// - Parameters:
-    ///   - message: request message to send.
-    ///   - metadata: Additional metadata to send, defaults to empty.
-    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
-    /// - Returns: The result of `handleResponse`.
-    internal func getWebhookTriggerEvents<Result>(
-        _ message: Webhooks_GetWebhookTriggerEventsRequest,
-        metadata: GRPCCore.Metadata = [:],
-        options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_GetWebhookTriggerEventsResponse>) async throws -> Result = { response in
-            try response.message
-        }
-    ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Webhooks_GetWebhookTriggerEventsRequest>(
-            message: message,
-            metadata: metadata
-        )
-        return try await self.getWebhookTriggerEvents(
-            request: request,
-            options: options,
-            onResponse: handleResponse
-        )
-    }
-
-    /// Call the "UpdateWebhookTriggerEvent" method.
-    ///
-    /// - Parameters:
-    ///   - message: request message to send.
-    ///   - metadata: Additional metadata to send, defaults to empty.
-    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
-    /// - Returns: The result of `handleResponse`.
-    internal func updateWebhookTriggerEvent<Result>(
-        _ message: Webhooks_UpdateWebhookTriggerEventRequest,
-        metadata: GRPCCore.Metadata = [:],
-        options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_UpdateWebhookTriggerEventResponse>) async throws -> Result = { response in
-            try response.message
-        }
-    ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Webhooks_UpdateWebhookTriggerEventRequest>(
-            message: message,
-            metadata: metadata
-        )
-        return try await self.updateWebhookTriggerEvent(
-            request: request,
-            options: options,
-            onResponse: handleResponse
-        )
-    }
-
-    /// Call the "ArchiveWebhookTriggerEvent" method.
-    ///
-    /// - Parameters:
-    ///   - message: request message to send.
-    ///   - metadata: Additional metadata to send, defaults to empty.
-    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
-    /// - Returns: The result of `handleResponse`.
-    internal func archiveWebhookTriggerEvent<Result>(
-        _ message: Webhooks_ArchiveWebhookTriggerEventRequest,
-        metadata: GRPCCore.Metadata = [:],
-        options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Webhooks_ArchiveWebhookTriggerEventResponse>) async throws -> Result = { response in
-            try response.message
-        }
-    ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Webhooks_ArchiveWebhookTriggerEventRequest>(
-            message: message,
-            metadata: metadata
-        )
-        return try await self.archiveWebhookTriggerEvent(
+        return try await self.getWebhookEventTypes(
             request: request,
             options: options,
             onResponse: handleResponse

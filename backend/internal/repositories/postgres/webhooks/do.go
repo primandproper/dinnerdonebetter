@@ -4,6 +4,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	domainwebhooks "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 
 	"github.com/primandproper/platform-go/v9/database"
 	"github.com/primandproper/platform-go/v9/observability/logging"
@@ -21,6 +22,7 @@ func RegisterWebhooksRepository(i do.Injector) {
 			do.MustInvoke[audit.Repository](i),
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[*events.Emitter](i),
+			do.MustInvoke[*webhookdispatch.Dispatcher](i),
 		), nil
 	})
 }

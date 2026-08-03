@@ -5,13 +5,7 @@
 		"outboundEmailsTopicName": "outbound_emails",
 		"searchIndexRequestsTopicName": "search_index_requests",
 		"mobileNotificationsTopicName": "mobile_notifications",
-		"userDataAggregationTopicName": "user_data_aggregation_requests",
-		"webhookExecutionRequestsTopicName": "webhook_execution_requests"
-	},
-	"pushNotifications": {
-		"apns": null,
-		"fcm": null,
-		"provider": "noop"
+		"userDataAggregationTopicName": "user_data_aggregation_requests"
 	},
 	"routing": {
 		"chiConfig": {
@@ -19,6 +13,11 @@
 			"enableCORSForLocalhost": true
 		},
 		"provider": "chi"
+	},
+	"pushNotifications": {
+		"apns": null,
+		"fcm": null,
+		"provider": "noop"
 	},
 	"encoding": {
 		"contentType": "application/json"
@@ -113,17 +112,6 @@
 		"runMode": "development",
 		"debug": true
 	},
-	"analytics": {
-		"proxySources": null,
-		"segment": null,
-		"posthog": null,
-		"provider": "noop",
-		"circuitBreaker": {
-			"name": "feature_flagger",
-			"circuitBreakerErrorPercentage": 0.5,
-			"circuitBreakerMinimumOccurrenceThreshold": 100
-		}
-	},
 	"email": {
 		"sendgrid": null,
 		"mailgun": null,
@@ -136,6 +124,17 @@
 			"name": "",
 			"circuitBreakerErrorPercentage": 0,
 			"circuitBreakerMinimumOccurrenceThreshold": 0
+		}
+	},
+	"analytics": {
+		"proxySources": null,
+		"segment": null,
+		"posthog": null,
+		"provider": "noop",
+		"circuitBreaker": {
+			"name": "feature_flagger",
+			"circuitBreakerErrorPercentage": 0.5,
+			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
 	},
 	"featureFlags": {
@@ -157,14 +156,6 @@
 			"circuitBreakerErrorPercentage": 0.5,
 			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
-	},
-	"http": {
-		"appleAppSiteAssociation": {
-			"teamID": "K8R2Q5UWQS",
-			"bundleID": "com.dinnerdonebetter.ios"
-		},
-		"startupDeadline": 60000000000,
-		"port": 8000
 	},
 	"auth": {
 		"sessionStore": {
@@ -211,6 +202,14 @@
 		"logQueries": true,
 		"runMigrations": true,
 		"enableDatabaseMetrics": false
+	},
+	"http": {
+		"appleAppSiteAssociation": {
+			"teamID": "K8R2Q5UWQS",
+			"bundleID": "com.dinnerdonebetter.ios"
+		},
+		"startupDeadline": 60000000000,
+		"port": 8000
 	},
 	"services": {
 		"payments": {
@@ -358,5 +357,39 @@
 			"failOpen": false
 		},
 		"enabled": true
+	},
+	"webhooks": {
+		"tablePrefix": "",
+		"circuitBreaker": {
+			"name": "webhook_delivery",
+			"circuitBreakerErrorPercentage": 0.5,
+			"circuitBreakerMinimumOccurrenceThreshold": 100
+		},
+		"worker": {
+			"userAgent": "Dinner Done Better Webhooks/1",
+			"backoff": {
+				"provider": "",
+				"maxAttempts": 10,
+				"initialDelay": 5000000000,
+				"maxDelay": 3600000000000,
+				"multiplier": 2,
+				"useJitter": true
+			},
+			"pollInterval": 1000000000,
+			"leaseDuration": 60000000000,
+			"requestTimeout": 10000000000,
+			"circuitOpenRetryDelay": 30000000000,
+			"retention": 604800000000000,
+			"reapInterval": 300000000000,
+			"batchSize": 100,
+			"concurrency": 16,
+			"reapBatchSize": 1000
+		},
+		"httpClient": {
+			"timeout": 10000000000,
+			"maxIdleConns": 100,
+			"maxIdleConnsPerHost": 100,
+			"enableTracing": false
+		}
 	}
 }

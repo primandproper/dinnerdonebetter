@@ -17,11 +17,11 @@ var (
 )
 
 const (
-	// RecipeStepVesselCreatedServiceEventType indicates a recipe step instrument was created.
+	// RecipeStepVesselCreatedServiceEventType indicates a recipe step vessel was created.
 	RecipeStepVesselCreatedServiceEventType = "recipe_step_vessel_created"
-	// RecipeStepVesselUpdatedServiceEventType indicates a recipe step instrument was updated.
+	// RecipeStepVesselUpdatedServiceEventType indicates a recipe step vessel was updated.
 	RecipeStepVesselUpdatedServiceEventType = "recipe_step_vessel_updated"
-	// RecipeStepVesselArchivedServiceEventType indicates a recipe step instrument was archived.
+	// RecipeStepVesselArchivedServiceEventType indicates a recipe step vessel was archived.
 	RecipeStepVesselArchivedServiceEventType = "recipe_step_vessel_archived"
 )
 
