@@ -8,17 +8,26 @@
 		"userDataAggregationTopicName": "user_data_aggregation_requests",
 		"webhookExecutionRequestsTopicName": "webhook_execution_requests"
 	},
-	"storage": {
-		"filesystem": {
-			"rootDirectory": "/tmp",
-			"directoryMode": "0o0"
+	"dataPrivacy": {
+		"encryption": {
+			"provider": "salsa20"
 		},
-		"bucketName": "userdata",
-		"provider": "filesystem",
-		"circuitBreakerConfig": {
-			"name": "",
-			"circuitBreakerErrorPercentage": 0,
-			"circuitBreakerMinimumOccurrenceThreshold": 0
+		"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
+		"uploads": {
+			"storageConfig": {
+				"filesystem": {
+					"rootDirectory": "/tmp",
+					"directoryMode": "0o0"
+				},
+				"bucketName": "userdata",
+				"provider": "filesystem",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				}
+			},
+			"debug": false
 		}
 	},
 	"pushNotifications": {

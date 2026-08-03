@@ -45,6 +45,58 @@ func (q *Queries) CreateUserDataDisclosure(ctx context.Context, db DBTX, arg *Cr
 	return err
 }
 
+const getExpiredUserDataDisclosures = `-- name: GetExpiredUserDataDisclosures :many
+SELECT
+	user_data_disclosures.id,
+	user_data_disclosures.belongs_to_user,
+	user_data_disclosures.status,
+	user_data_disclosures.report_id,
+	user_data_disclosures.expires_at,
+	user_data_disclosures.created_at,
+	user_data_disclosures.last_updated_at,
+	user_data_disclosures.completed_at,
+	user_data_disclosures.archived_at
+FROM user_data_disclosures
+WHERE user_data_disclosures.archived_at IS NULL
+	AND user_data_disclosures.status != 'expired'
+	AND user_data_disclosures.expires_at <= NOW()
+ORDER BY user_data_disclosures.expires_at
+LIMIT 100
+`
+
+func (q *Queries) GetExpiredUserDataDisclosures(ctx context.Context, db DBTX) ([]*UserDataDisclosures, error) {
+	rows, err := db.QueryContext(ctx, getExpiredUserDataDisclosures)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*UserDataDisclosures{}
+	for rows.Next() {
+		var i UserDataDisclosures
+		if err := rows.Scan(
+			&i.ID,
+			&i.BelongsToUser,
+			&i.Status,
+			&i.ReportID,
+			&i.ExpiresAt,
+			&i.CreatedAt,
+			&i.LastUpdatedAt,
+			&i.CompletedAt,
+			&i.ArchivedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserDataDisclosure = `-- name: GetUserDataDisclosure :one
 SELECT
 	user_data_disclosures.id,
@@ -197,6 +249,19 @@ type MarkUserDataDisclosureCompletedParams struct {
 
 func (q *Queries) MarkUserDataDisclosureCompleted(ctx context.Context, db DBTX, arg *MarkUserDataDisclosureCompletedParams) error {
 	_, err := db.ExecContext(ctx, markUserDataDisclosureCompleted, arg.ReportID, arg.ID)
+	return err
+}
+
+const markUserDataDisclosureExpired = `-- name: MarkUserDataDisclosureExpired :exec
+UPDATE user_data_disclosures SET
+	status = 'expired',
+	last_updated_at = NOW()
+WHERE user_data_disclosures.id = $1
+	AND user_data_disclosures.archived_at IS NULL
+`
+
+func (q *Queries) MarkUserDataDisclosureExpired(ctx context.Context, db DBTX, id string) error {
+	_, err := db.ExecContext(ctx, markUserDataDisclosureExpired, id)
 	return err
 }
 

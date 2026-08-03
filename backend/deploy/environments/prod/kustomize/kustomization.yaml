@@ -68,6 +68,11 @@ patches:
       version: v1
       kind: Deployment
       name: dinner-done-better-service-api-deployment
+  - path: patches/deployment-disclosure-artifact-key-api.yaml
+    target:
+      version: v1
+      kind: Deployment
+      name: dinner-done-better-service-api-deployment
 
   ### Pyroscope (Grafana Cloud) - API server only; uncomment to enable for other workloads
   - path: patches/deployment-pyroscope-env.yaml
@@ -135,6 +140,11 @@ patches:
       version: v1
       kind: Deployment
       name: dinner-done-better-async-message-handler-deployment
+  - path: patches/deployment-disclosure-artifact-key-worker.yaml
+    target:
+      version: v1
+      kind: Deployment
+      name: dinner-done-better-async-message-handler-deployment
   - patch: |-
       - op: add
         path: "/spec/template/spec/containers/0/env/-"
@@ -167,8 +177,14 @@ patches:
       kind: CronJob
       name: dinner-done-better-job-db-cleaner
 
-  ### Scheduler Deployment - needs database, pubsub, posthog.
+  ### Scheduler Deployment - needs database, pubsub, posthog, and (for the disclosure artifact
+  ### reaper) workload identity to delete objects from the user data bucket.
   ### The union of what the six interval CronJobs it replaced each needed.
+  - path: patches/deployment-workload-identity.yaml
+    target:
+      version: v1
+      kind: Deployment
+      name: dinner-done-better-scheduler-deployment
   - path: patches/deployment-database-env.yaml
     target:
       version: v1
@@ -185,6 +201,11 @@ patches:
       kind: Deployment
       name: dinner-done-better-scheduler-deployment
   - path: patches/deployment-posthog-env.yaml
+    target:
+      version: v1
+      kind: Deployment
+      name: dinner-done-better-scheduler-deployment
+  - path: patches/deployment-disclosure-artifact-key-worker.yaml
     target:
       version: v1
       kind: Deployment

@@ -34,6 +34,9 @@ var _ dataprivacy.Repository = &RepositoryMock{}
 //			FetchUserDataCollectionFunc: func(ctx context.Context, userID string) (*dataprivacy.UserDataCollection, error) {
 //				panic("mock out the FetchUserDataCollection method")
 //			},
+//			GetExpiredUserDataDisclosuresFunc: func(ctx context.Context) ([]*dataprivacy.UserDataDisclosure, error) {
+//				panic("mock out the GetExpiredUserDataDisclosures method")
+//			},
 //			GetUserDataDisclosureFunc: func(ctx context.Context, disclosureID string) (*dataprivacy.UserDataDisclosure, error) {
 //				panic("mock out the GetUserDataDisclosure method")
 //			},
@@ -42,6 +45,9 @@ var _ dataprivacy.Repository = &RepositoryMock{}
 //			},
 //			MarkUserDataDisclosureCompletedFunc: func(ctx context.Context, disclosureID string, reportID string) error {
 //				panic("mock out the MarkUserDataDisclosureCompleted method")
+//			},
+//			MarkUserDataDisclosureExpiredFunc: func(ctx context.Context, disclosureID string) error {
+//				panic("mock out the MarkUserDataDisclosureExpired method")
 //			},
 //			MarkUserDataDisclosureFailedFunc: func(ctx context.Context, disclosureID string) error {
 //				panic("mock out the MarkUserDataDisclosureFailed method")
@@ -65,6 +71,9 @@ type RepositoryMock struct {
 	// FetchUserDataCollectionFunc mocks the FetchUserDataCollection method.
 	FetchUserDataCollectionFunc func(ctx context.Context, userID string) (*dataprivacy.UserDataCollection, error)
 
+	// GetExpiredUserDataDisclosuresFunc mocks the GetExpiredUserDataDisclosures method.
+	GetExpiredUserDataDisclosuresFunc func(ctx context.Context) ([]*dataprivacy.UserDataDisclosure, error)
+
 	// GetUserDataDisclosureFunc mocks the GetUserDataDisclosure method.
 	GetUserDataDisclosureFunc func(ctx context.Context, disclosureID string) (*dataprivacy.UserDataDisclosure, error)
 
@@ -73,6 +82,9 @@ type RepositoryMock struct {
 
 	// MarkUserDataDisclosureCompletedFunc mocks the MarkUserDataDisclosureCompleted method.
 	MarkUserDataDisclosureCompletedFunc func(ctx context.Context, disclosureID string, reportID string) error
+
+	// MarkUserDataDisclosureExpiredFunc mocks the MarkUserDataDisclosureExpired method.
+	MarkUserDataDisclosureExpiredFunc func(ctx context.Context, disclosureID string) error
 
 	// MarkUserDataDisclosureFailedFunc mocks the MarkUserDataDisclosureFailed method.
 	MarkUserDataDisclosureFailedFunc func(ctx context.Context, disclosureID string) error
@@ -107,6 +119,11 @@ type RepositoryMock struct {
 			// UserID is the userID argument value.
 			UserID string
 		}
+		// GetExpiredUserDataDisclosures holds details about calls to the GetExpiredUserDataDisclosures method.
+		GetExpiredUserDataDisclosures []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
 		// GetUserDataDisclosure holds details about calls to the GetUserDataDisclosure method.
 		GetUserDataDisclosure []struct {
 			// Ctx is the ctx argument value.
@@ -132,6 +149,13 @@ type RepositoryMock struct {
 			// ReportID is the reportID argument value.
 			ReportID string
 		}
+		// MarkUserDataDisclosureExpired holds details about calls to the MarkUserDataDisclosureExpired method.
+		MarkUserDataDisclosureExpired []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// DisclosureID is the disclosureID argument value.
+			DisclosureID string
+		}
 		// MarkUserDataDisclosureFailed holds details about calls to the MarkUserDataDisclosureFailed method.
 		MarkUserDataDisclosureFailed []struct {
 			// Ctx is the ctx argument value.
@@ -144,9 +168,11 @@ type RepositoryMock struct {
 	lockCreateUserDataDisclosure        sync.RWMutex
 	lockDeleteUser                      sync.RWMutex
 	lockFetchUserDataCollection         sync.RWMutex
+	lockGetExpiredUserDataDisclosures   sync.RWMutex
 	lockGetUserDataDisclosure           sync.RWMutex
 	lockGetUserDataDisclosuresForUser   sync.RWMutex
 	lockMarkUserDataDisclosureCompleted sync.RWMutex
+	lockMarkUserDataDisclosureExpired   sync.RWMutex
 	lockMarkUserDataDisclosureFailed    sync.RWMutex
 }
 
@@ -294,6 +320,38 @@ func (mock *RepositoryMock) FetchUserDataCollectionCalls() []struct {
 	return calls
 }
 
+// GetExpiredUserDataDisclosures calls GetExpiredUserDataDisclosuresFunc.
+func (mock *RepositoryMock) GetExpiredUserDataDisclosures(ctx context.Context) ([]*dataprivacy.UserDataDisclosure, error) {
+	if mock.GetExpiredUserDataDisclosuresFunc == nil {
+		panic("RepositoryMock.GetExpiredUserDataDisclosuresFunc: method is nil but Repository.GetExpiredUserDataDisclosures was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockGetExpiredUserDataDisclosures.Lock()
+	mock.calls.GetExpiredUserDataDisclosures = append(mock.calls.GetExpiredUserDataDisclosures, callInfo)
+	mock.lockGetExpiredUserDataDisclosures.Unlock()
+	return mock.GetExpiredUserDataDisclosuresFunc(ctx)
+}
+
+// GetExpiredUserDataDisclosuresCalls gets all the calls that were made to GetExpiredUserDataDisclosures.
+// Check the length with:
+//
+//	len(mockedRepository.GetExpiredUserDataDisclosuresCalls())
+func (mock *RepositoryMock) GetExpiredUserDataDisclosuresCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockGetExpiredUserDataDisclosures.RLock()
+	calls = mock.calls.GetExpiredUserDataDisclosures
+	mock.lockGetExpiredUserDataDisclosures.RUnlock()
+	return calls
+}
+
 // GetUserDataDisclosure calls GetUserDataDisclosureFunc.
 func (mock *RepositoryMock) GetUserDataDisclosure(ctx context.Context, disclosureID string) (*dataprivacy.UserDataDisclosure, error) {
 	if mock.GetUserDataDisclosureFunc == nil {
@@ -407,6 +465,42 @@ func (mock *RepositoryMock) MarkUserDataDisclosureCompletedCalls() []struct {
 	mock.lockMarkUserDataDisclosureCompleted.RLock()
 	calls = mock.calls.MarkUserDataDisclosureCompleted
 	mock.lockMarkUserDataDisclosureCompleted.RUnlock()
+	return calls
+}
+
+// MarkUserDataDisclosureExpired calls MarkUserDataDisclosureExpiredFunc.
+func (mock *RepositoryMock) MarkUserDataDisclosureExpired(ctx context.Context, disclosureID string) error {
+	if mock.MarkUserDataDisclosureExpiredFunc == nil {
+		panic("RepositoryMock.MarkUserDataDisclosureExpiredFunc: method is nil but Repository.MarkUserDataDisclosureExpired was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		DisclosureID string
+	}{
+		Ctx:          ctx,
+		DisclosureID: disclosureID,
+	}
+	mock.lockMarkUserDataDisclosureExpired.Lock()
+	mock.calls.MarkUserDataDisclosureExpired = append(mock.calls.MarkUserDataDisclosureExpired, callInfo)
+	mock.lockMarkUserDataDisclosureExpired.Unlock()
+	return mock.MarkUserDataDisclosureExpiredFunc(ctx, disclosureID)
+}
+
+// MarkUserDataDisclosureExpiredCalls gets all the calls that were made to MarkUserDataDisclosureExpired.
+// Check the length with:
+//
+//	len(mockedRepository.MarkUserDataDisclosureExpiredCalls())
+func (mock *RepositoryMock) MarkUserDataDisclosureExpiredCalls() []struct {
+	Ctx          context.Context
+	DisclosureID string
+} {
+	var calls []struct {
+		Ctx          context.Context
+		DisclosureID string
+	}
+	mock.lockMarkUserDataDisclosureExpired.RLock()
+	calls = mock.calls.MarkUserDataDisclosureExpired
+	mock.lockMarkUserDataDisclosureExpired.RUnlock()
 	return calls
 }
 

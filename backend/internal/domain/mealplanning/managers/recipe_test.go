@@ -9,8 +9,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
+	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v9/filtering"
+	textsearch "github.com/primandproper/platform-go/v9/search/text"
+	mocksearch "github.com/primandproper/platform-go/v9/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -191,6 +194,152 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.SearchForRecipesCalls(), 1)
+	})
+
+	T.Run("useSearchService true asks the index for the filter's page", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleQuery := fakes.BuildFakeID()
+		expected := fakes.BuildFakeRecipe()
+
+		cursor := "cursor-from-a-previous-page"
+		filter := filtering.DefaultQueryFilter()
+		filter.MaxResponseSize = new(uint16(11))
+		filter.Cursor = &cursor
+
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipesWithIDsFunc: func(_ context.Context, ids []string) ([]*types.Recipe, error) {
+				assert.Equal(t, []string{expected.ID}, ids)
+
+				return []*types.Recipe{expected}, nil
+			},
+		}
+		attachRepositoryToManager(rm, db)
+
+		index := &mocksearch.IndexMock[eatingindexing.RecipeSearchSubset]{
+			SearchFunc: func(_ context.Context, req textsearch.SearchRequest) (*textsearch.SearchResults[eatingindexing.RecipeSearchSubset], error) {
+				assert.Equal(t, exampleQuery, req.Query)
+				assert.Equal(t, 11, req.Limit)
+				assert.Equal(t, textsearch.Cursor(cursor), req.Cursor)
+
+				return &textsearch.SearchResults[eatingindexing.RecipeSearchSubset]{
+					Hits:       []*eatingindexing.RecipeSearchSubset{{ID: expected.ID}},
+					NextCursor: textsearch.Cursor("cursor-for-the-next-page"),
+				}, nil
+			},
+		}
+		attachRecipeSearchIndexToManager(rm, index)
+
+		actual, err := rm.SearchRecipes(ctx, exampleQuery, true, filter)
+		assert.NoError(t, err)
+		assert.Equal(t, []*types.Recipe{expected}, actual.Data)
+		assert.Equal(t, "cursor-for-the-next-page", actual.Cursor)
+
+		assert.Len(t, index.SearchCalls(), 1)
+		assert.Empty(t, db.SearchForRecipesCalls())
+	})
+
+	T.Run("useSearchService true falls back to the database without the index's cursor", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleQuery := fakes.BuildFakeID()
+		expected := fakes.BuildFakeRecipesList()
+
+		cursor := "an-opaque-index-token"
+		filter := filtering.DefaultQueryFilter()
+		filter.Cursor = &cursor
+
+		db := &mealplanningmock.RepositoryMock{
+			SearchForRecipesFunc: func(_ context.Context, query string, fallbackFilter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Recipe], error) {
+				assert.Equal(t, exampleQuery, query)
+				// The database reads a cursor as the last row's ID, so an index token
+				// cannot come along: it would match an arbitrary slice of the table.
+				assert.Nil(t, fallbackFilter.Cursor)
+
+				return expected, nil
+			},
+		}
+		attachRepositoryToManager(rm, db)
+
+		index := &mocksearch.IndexMock[eatingindexing.RecipeSearchSubset]{
+			SearchFunc: func(_ context.Context, _ textsearch.SearchRequest) (*textsearch.SearchResults[eatingindexing.RecipeSearchSubset], error) {
+				return nil, errors.New("elasticsearch is down")
+			},
+		}
+		attachRecipeSearchIndexToManager(rm, index)
+
+		actual, err := rm.SearchRecipes(ctx, exampleQuery, true, filter)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
+
+		assert.Len(t, db.SearchForRecipesCalls(), 1)
+	})
+
+	T.Run("useSearchService true surfaces a rejected cursor instead of falling back", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleQuery := fakes.BuildFakeID()
+
+		cursor := "a-cursor-from-a-different-backend"
+		filter := filtering.DefaultQueryFilter()
+		filter.Cursor = &cursor
+
+		db := &mealplanningmock.RepositoryMock{}
+		attachRepositoryToManager(rm, db)
+
+		index := &mocksearch.IndexMock[eatingindexing.RecipeSearchSubset]{
+			SearchFunc: func(_ context.Context, _ textsearch.SearchRequest) (*textsearch.SearchResults[eatingindexing.RecipeSearchSubset], error) {
+				return nil, textsearch.ErrInvalidCursor
+			},
+		}
+		attachRecipeSearchIndexToManager(rm, index)
+
+		actual, err := rm.SearchRecipes(ctx, exampleQuery, true, filter)
+		assert.Nil(t, actual)
+		assert.ErrorIs(t, err, textsearch.ErrInvalidCursor)
+
+		// Restarting the database from the first page would answer a question the
+		// caller did not ask, so the refusal reaches them instead.
+		assert.Empty(t, db.SearchForRecipesCalls())
+	})
+
+	T.Run("useSearchService true ends pagination on an empty page rather than restarting", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleQuery := fakes.BuildFakeID()
+
+		cursor := "cursor-for-the-last-page"
+		filter := filtering.DefaultQueryFilter()
+		filter.Cursor = &cursor
+
+		db := &mealplanningmock.RepositoryMock{}
+		attachRepositoryToManager(rm, db)
+
+		index := &mocksearch.IndexMock[eatingindexing.RecipeSearchSubset]{
+			SearchFunc: func(_ context.Context, _ textsearch.SearchRequest) (*textsearch.SearchResults[eatingindexing.RecipeSearchSubset], error) {
+				return &textsearch.SearchResults[eatingindexing.RecipeSearchSubset]{}, nil
+			},
+		}
+		attachRecipeSearchIndexToManager(rm, index)
+
+		actual, err := rm.SearchRecipes(ctx, exampleQuery, true, filter)
+		assert.NoError(t, err)
+		assert.Empty(t, actual.Data)
+		assert.Empty(t, actual.Cursor)
+
+		assert.Empty(t, db.SearchForRecipesCalls())
 	})
 }
 

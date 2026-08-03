@@ -271,8 +271,11 @@
 	},
 	"services": {
 		"payments": {
-			"stripe": null,
-			"revenueCat": null
+			"revenueCat": null,
+			"capitalism": {
+				"stripe": null,
+				"provider": "noop"
+			}
 		},
 		"users": {
 			"publicMediaURLPrefix": "https://media.dinnerdonebetter.com/avatars",
@@ -291,6 +294,10 @@
 			}
 		},
 		"dataPrivacy": {
+			"encryption": {
+				"provider": "salsa20"
+			},
+			"artifactEncryptionKey": "",
 			"uploads": {
 				"storageConfig": {
 					"bucketName": "userdata.dinnerdonebetter.com",

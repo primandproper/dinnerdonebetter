@@ -185,8 +185,11 @@
 	},
 	"services": {
 		"payments": {
-			"stripe": null,
-			"revenueCat": null
+			"revenueCat": null,
+			"capitalism": {
+				"stripe": null,
+				"provider": "noop"
+			}
 		},
 		"users": {
 			"publicMediaURLPrefix": "",
@@ -204,6 +207,10 @@
 			}
 		},
 		"dataPrivacy": {
+			"encryption": {
+				"provider": "salsa20"
+			},
+			"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
 			"uploads": {
 				"storageConfig": {
 					"filesystem": {

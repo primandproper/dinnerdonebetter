@@ -33,6 +33,12 @@ const (
 	UserDataDisclosureStatusFailed UserDataDisclosureStatus = "failed"
 	// UserDataDisclosureStatusExpired indicates the disclosure request has expired.
 	UserDataDisclosureStatusExpired UserDataDisclosureStatus = "expired"
+
+	// ExpiredUserDataDisclosureBatchSize is how many expired disclosures a single
+	// GetExpiredUserDataDisclosures call returns. It is baked into the query rather than passed
+	// as an argument, so a caller that wants more must ask again — which is what the reaper
+	// does, and what lets a short batch mean "that was the last of them".
+	ExpiredUserDataDisclosureBatchSize = 100
 )
 
 type (
@@ -114,8 +120,10 @@ type (
 		CreateUserDataDisclosure(ctx context.Context, input *UserDataDisclosureCreationInput) (*UserDataDisclosure, error)
 		GetUserDataDisclosure(ctx context.Context, disclosureID string) (*UserDataDisclosure, error)
 		GetUserDataDisclosuresForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[UserDataDisclosure], error)
+		GetExpiredUserDataDisclosures(ctx context.Context) ([]*UserDataDisclosure, error)
 		MarkUserDataDisclosureCompleted(ctx context.Context, disclosureID, reportID string) error
 		MarkUserDataDisclosureFailed(ctx context.Context, disclosureID string) error
+		MarkUserDataDisclosureExpired(ctx context.Context, disclosureID string) error
 		ArchiveUserDataDisclosure(ctx context.Context, disclosureID string) error
 	}
 )

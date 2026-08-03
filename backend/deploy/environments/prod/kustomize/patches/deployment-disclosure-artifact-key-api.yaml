@@ -1,0 +1,12 @@
+# At-rest encryption key for user data disclosure artifacts, as the API server names it.
+#
+# The API server reaches this config through Services, so its env var carries the SERVICE_ prefix
+# the workers' does not. Same secret, same value — see deployment-disclosure-artifact-key-worker.yaml.
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_ARTIFACT_ENCRYPTION_KEY
+    valueFrom:
+      secretKeyRef:
+        name: api-service-config
+        key: DISCLOSURE_ARTIFACT_ENCRYPTION_KEY

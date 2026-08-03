@@ -12,10 +12,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
+	dataprivacyrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
+	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
+	disclosureartifactreaper "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/workers/disclosure_artifact_reaper"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
 	mealplanfinalizer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalizer"
 	mealplangrocerylistinitializer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_grocery_list_initializer"
@@ -71,6 +74,8 @@ func BuildInjector(
 	auditlogentries.RegisterAuditLogRepository(i)
 	identityrepo.RegisterIdentityRepository(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
+	dataprivacyrepo.RegisterUserDataDisclosureRepository(i)
+	dataprivacycfg.RegisterReportArtifactStore(i)
 	// Domain: mealplanning
 	events.RegisterOutboxEmitter(i)
 	mealplanningrepo.RegisterMealPlanningRepository(i)
@@ -82,6 +87,7 @@ func BuildInjector(
 	mealplangrocerylistinitializer.RegisterMealPlanGroceryListInitializer(i)
 	mealplantaskcreator.RegisterMealPlanTaskCreator(i)
 	queuetest.RegisterQueueTest(i)
+	disclosureartifactreaper.RegisterDisclosureArtifactReaper(i)
 
 	do.Provide[*queuetest.JobParams](i, func(i do.Injector) (*queuetest.JobParams, error) {
 		return &queuetest.JobParams{Queues: *do.MustInvoke[*queuescfg.Config](i)}, nil

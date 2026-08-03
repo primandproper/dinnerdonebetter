@@ -7,6 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/searchpagination"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
@@ -38,7 +39,7 @@ func (m *mealPlanningManager) SearchValidPreparations(ctx context.Context, query
 		results, err = m.db.SearchForValidPreparations(ctx, query, filter)
 	} else {
 		var indexHits *textsearch.SearchResults[eatingindexing.ValidPreparationSearchSubset]
-		indexHits, err = m.validPreparationsSearchIndex.Search(ctx, textsearch.SearchRequest{Query: query})
+		indexHits, err = searchpagination.Search(ctx, m.validPreparationsSearchIndex, query, filter)
 		if err != nil {
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching valid preparations")
 		}
@@ -55,9 +56,7 @@ func (m *mealPlanningManager) SearchValidPreparations(ctx context.Context, query
 			return nil, observability.PrepareAndLogError(searchErr, logger, span, "fetching valid preparations from database")
 		}
 
-		results = filtering.NewQueryFilteredResult(searchResults, uint64(len(searchResults)), uint64(len(searchResults)), func(v *types.ValidPreparation) string {
-			return v.ID
-		}, filter)
+		results = searchpagination.NewResult(searchResults, indexHits.NextCursor, filter)
 	}
 
 	if err != nil {
