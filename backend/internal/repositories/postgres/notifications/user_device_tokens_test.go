@@ -61,13 +61,13 @@ func TestQuerier_Integration_UserDeviceTokens(t *testing.T) {
 
 	// list
 	tokens, err := dbc.GetUserDeviceTokens(ctx, user.ID, nil, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, tokens.Data)
 	assert.GreaterOrEqual(t, len(tokens.Data), 1)
 
 	// archive
 	err = dbc.ArchiveUserDeviceToken(ctx, user.ID, created.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
 		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeUserDeviceTokens, RelevantID: created.ID},
@@ -87,7 +87,7 @@ func TestQuerier_UserDeviceTokenExists(t *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.UserDeviceTokenExists(ctx, fakes.BuildFakeID(), "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -97,7 +97,7 @@ func TestQuerier_UserDeviceTokenExists(t *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.UserDeviceTokenExists(ctx, "", fakes.BuildFakeID())
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -111,7 +111,7 @@ func TestQuerier_GetUserDeviceToken(t *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUserDeviceToken(ctx, "", fakes.BuildFakeID())
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -121,7 +121,7 @@ func TestQuerier_GetUserDeviceToken(t *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUserDeviceToken(ctx, fakes.BuildFakeID(), "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -135,7 +135,7 @@ func TestQuerier_CreateUserDeviceToken(t *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateUserDeviceToken(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

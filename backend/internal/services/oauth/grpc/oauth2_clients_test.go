@@ -16,6 +16,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -64,7 +65,7 @@ func TestServiceImpl_CreateOAuth2Client(t *testing.T) {
 
 		response, err := service.CreateOAuth2Client(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Created)
 		assert.NotNil(t, response.ResponseDetails)
@@ -96,7 +97,7 @@ func TestServiceImpl_CreateOAuth2Client(t *testing.T) {
 
 		response, err := service.CreateOAuth2Client(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -130,7 +131,7 @@ func TestServiceImpl_GetOAuth2Client(t *testing.T) {
 
 		response, err := service.GetOAuth2Client(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotNil(t, response.Result)
@@ -161,7 +162,7 @@ func TestServiceImpl_GetOAuth2Client(t *testing.T) {
 
 		response, err := service.GetOAuth2Client(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -201,7 +202,7 @@ func TestServiceImpl_GetOAuth2Clients(t *testing.T) {
 
 		response, err := service.GetOAuth2Clients(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Len(t, response.Results, len(fakeClients.Data))
@@ -235,7 +236,7 @@ func TestServiceImpl_GetOAuth2Clients(t *testing.T) {
 
 		response, err := service.GetOAuth2Clients(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -268,7 +269,7 @@ func TestServiceImpl_ArchiveOAuth2Client(t *testing.T) {
 
 		response, err := service.ArchiveOAuth2Client(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 
@@ -297,7 +298,7 @@ func TestServiceImpl_ArchiveOAuth2Client(t *testing.T) {
 
 		response, err := service.ArchiveOAuth2Client(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 

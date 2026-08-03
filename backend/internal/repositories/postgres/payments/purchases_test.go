@@ -24,7 +24,7 @@ func TestCreatePurchase(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreatePurchase(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assert.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
 	})
@@ -39,7 +39,7 @@ func TestGetPurchase(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetPurchase(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})
@@ -54,7 +54,7 @@ func TestGetPurchasesForAccount(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetPurchasesForAccount(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})

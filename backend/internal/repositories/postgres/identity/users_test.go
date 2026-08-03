@@ -38,14 +38,14 @@ func createUserForTest(t *testing.T, ctx context.Context, exampleUser *identity.
 
 	exampleUser.CreatedAt = created.CreatedAt
 	exampleUser.TwoFactorSecretVerifiedAt = created.TwoFactorSecretVerifiedAt
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, exampleUser, created)
 
 	user, err := dbc.GetUser(ctx, created.ID)
 	exampleUser.CreatedAt = user.CreatedAt
 	exampleUser.Birthday = user.Birthday
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, user, exampleUser)
 
 	return created
@@ -72,34 +72,34 @@ func TestQuerier_Integration_Users(t *testing.T) {
 
 	// fetch as list
 	users, err := dbc.GetUsers(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, users.Data)
 
 	firstUser := createdUsers[0]
 
 	u, err := dbc.GetUserByUsername(ctx, firstUser.Username)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, firstUser.ID, u.ID)
 	firstUser = u
 
 	u, err = dbc.GetUserByEmail(ctx, firstUser.EmailAddress)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, firstUser, u)
 
 	foundForUsername, err := dbc.SearchForUsersByUsername(ctx, firstUser.Username, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, foundForUsername)
 
 	// update first user's username
 	newUsername := fmt.Sprintf("%s_new", firstUser.Username)
-	assert.NoError(t, dbc.UpdateUserUsername(ctx, firstUser.ID, newUsername))
+	require.NoError(t, dbc.UpdateUserUsername(ctx, firstUser.ID, newUsername))
 	firstUser, err = dbc.GetUser(ctx, firstUser.ID)
 	require.NoError(t, err)
 	assert.Equal(t, firstUser.Username, newUsername)
 
 	// update first user's details
 	newFirstName, newLastName, birthday := "new_first", "new_last", time.Now()
-	assert.NoError(t, dbc.UpdateUserDetails(ctx, firstUser.ID, &identity.UserDetailsDatabaseUpdateInput{
+	require.NoError(t, dbc.UpdateUserDetails(ctx, firstUser.ID, &identity.UserDetailsDatabaseUpdateInput{
 		FirstName: newFirstName,
 		LastName:  newLastName,
 		Birthday:  birthday,
@@ -123,21 +123,21 @@ func TestQuerier_Integration_Users(t *testing.T) {
 
 	// update first user's email address
 	newEmailAddress := fakes.BuildFakeID()
-	assert.NoError(t, dbc.UpdateUserEmailAddress(ctx, firstUser.ID, newEmailAddress))
+	require.NoError(t, dbc.UpdateUserEmailAddress(ctx, firstUser.ID, newEmailAddress))
 	firstUser, err = dbc.GetUser(ctx, firstUser.ID)
 	require.NoError(t, err)
 	assert.Equal(t, firstUser.EmailAddress, newEmailAddress)
 
 	// update first user's password
 	newPassword := fakes.BuildFakeID()
-	assert.NoError(t, dbc.UpdateUserPassword(ctx, firstUser.ID, newPassword))
+	require.NoError(t, dbc.UpdateUserPassword(ctx, firstUser.ID, newPassword))
 	firstUser, err = dbc.GetUser(ctx, firstUser.ID)
 	require.NoError(t, err)
 	assert.Equal(t, firstUser.HashedPassword, newPassword)
 
 	// update first user's two factor secret
 	new2FASecret := fakes.BuildFakeID()
-	assert.NoError(t, dbc.UpdateUserTwoFactorSecret(ctx, firstUser.ID, new2FASecret))
+	require.NoError(t, dbc.UpdateUserTwoFactorSecret(ctx, firstUser.ID, new2FASecret))
 	firstUser, err = dbc.GetUser(ctx, firstUser.ID)
 	require.NoError(t, err)
 	assert.Equal(t, firstUser.TwoFactorSecret, new2FASecret)
@@ -146,7 +146,7 @@ func TestQuerier_Integration_Users(t *testing.T) {
 	assert.NoError(t, dbc.MarkUserTwoFactorSecretAsUnverified(ctx, firstUser.ID, fakes.BuildFakeID()))
 
 	u, err = dbc.GetUserWithUnverifiedTwoFactorSecret(ctx, firstUser.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	firstUser.LastUpdatedAt = u.LastUpdatedAt                         // we've been changing a bunch of stuff
 	firstUser.PasswordLastChangedAt = u.PasswordLastChangedAt         // from the UpdateUserPassword call above
 	firstUser.TwoFactorSecretVerifiedAt = u.TwoFactorSecretVerifiedAt // from the two calls above
@@ -162,25 +162,25 @@ func TestQuerier_Integration_Users(t *testing.T) {
 	assert.NoError(t, dbc.MarkUserAsIndexed(ctx, firstUser.ID))
 
 	token, err := dbc.GetEmailAddressVerificationTokenForUser(ctx, firstUser.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, token)
 
 	u, err = dbc.GetUserByEmailAddressVerificationToken(ctx, token)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, firstUser, u)
 
-	assert.NoError(t, dbc.MarkUserEmailAddressAsVerified(ctx, firstUser.ID, token))
+	require.NoError(t, dbc.MarkUserEmailAddressAsVerified(ctx, firstUser.ID, token))
 
 	// Promote to service_admin role and verify 2FA.
 	_, err = dbc.writeDB.ExecContext(ctx, "UPDATE user_role_assignments SET archived_at = NOW() WHERE user_id = $1 AND account_id IS NULL AND archived_at IS NULL", firstUser.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = dbc.writeDB.ExecContext(ctx, "INSERT INTO user_role_assignments (id, user_id, role_id) VALUES ($1, $2, $3)", identifiers.New(), firstUser.ID, authorization.ServiceAdminRoleID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = dbc.writeDB.ExecContext(ctx, "UPDATE users SET two_factor_secret_verified_at = NOW() WHERE id = $1", firstUser.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	u, err = dbc.GetAdminUserByUsername(ctx, firstUser.Username)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	firstUser.AccountStatus = u.AccountStatus
 	firstUser.AccountStatusExplanation = u.AccountStatusExplanation
 	firstUser.EmailAddressVerifiedAt = u.EmailAddressVerifiedAt
@@ -190,23 +190,23 @@ func TestQuerier_Integration_Users(t *testing.T) {
 
 	// archive
 	for _, user := range createdUsers {
-		assert.NoError(t, dbc.ArchiveUser(ctx, user.ID))
+		require.NoError(t, dbc.ArchiveUser(ctx, user.ID))
 
 		var y *identity.User
 		y, err = dbc.GetUser(ctx, user.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
-		assert.ErrorIs(t, err, sql.ErrNoRows)
+		require.Error(t, err)
+		require.ErrorIs(t, err, sql.ErrNoRows)
 	}
 
 	// delete
 	for _, user := range createdUsers {
-		assert.NoError(t, dbc.DeleteUser(ctx, user.ID))
+		require.NoError(t, dbc.DeleteUser(ctx, user.ID))
 
 		var y *filtering.QueryFilteredResult[identity.Account]
 		y, err = dbc.GetAccounts(ctx, user.ID, nil)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -221,7 +221,7 @@ func TestQuerier_GetUser(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUser(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -236,7 +236,7 @@ func TestQuerier_GetUserWithUnverifiedTwoFactorSecret(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUserWithUnverifiedTwoFactorSecret(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -251,7 +251,7 @@ func TestQuerier_GetUserByEmail(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUserByEmail(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Empty(t, actual)
 	})
 }
@@ -266,7 +266,7 @@ func TestQuerier_GetUserByUsername(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUserByUsername(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -281,7 +281,7 @@ func TestQuerier_GetAdminUserByUsername(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetAdminUserByUsername(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -296,7 +296,7 @@ func TestQuerier_SearchForUsersByUsername(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.SearchForUsersByUsername(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -324,7 +324,7 @@ func TestQuerier_CreateUser(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateUser(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -497,7 +497,7 @@ func TestQuerier_GetUserByEmailAddressVerificationToken(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUserByEmailAddressVerificationToken(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

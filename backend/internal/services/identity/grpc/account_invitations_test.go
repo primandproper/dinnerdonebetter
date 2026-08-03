@@ -13,6 +13,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -43,7 +44,7 @@ func TestServiceImpl_AcceptAccountInvitation(t *testing.T) {
 
 		result, err := service.AcceptAccountInvitation(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})
@@ -62,7 +63,7 @@ func TestServiceImpl_AcceptAccountInvitation(t *testing.T) {
 
 		result, err := service.AcceptAccountInvitation(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -92,7 +93,7 @@ func TestServiceImpl_AcceptAccountInvitation(t *testing.T) {
 
 		result, err := service.AcceptAccountInvitation(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -127,7 +128,7 @@ func TestServiceImpl_RejectAccountInvitation(t *testing.T) {
 
 		result, err := service.RejectAccountInvitation(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})
@@ -146,7 +147,7 @@ func TestServiceImpl_RejectAccountInvitation(t *testing.T) {
 
 		result, err := service.RejectAccountInvitation(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -176,7 +177,7 @@ func TestServiceImpl_RejectAccountInvitation(t *testing.T) {
 
 		result, err := service.RejectAccountInvitation(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -211,7 +212,7 @@ func TestServiceImpl_CancelAccountInvitation(t *testing.T) {
 
 		result, err := service.CancelAccountInvitation(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})
@@ -230,7 +231,7 @@ func TestServiceImpl_CancelAccountInvitation(t *testing.T) {
 
 		result, err := service.CancelAccountInvitation(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -261,7 +262,7 @@ func TestServiceImpl_CancelAccountInvitation(t *testing.T) {
 
 		result, err := service.CancelAccountInvitation(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -292,7 +293,7 @@ func TestServiceImpl_GetAccountInvitation(t *testing.T) {
 
 		result, err := service.GetAccountInvitation(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 		assert.NotNil(t, result.Result)
@@ -311,7 +312,7 @@ func TestServiceImpl_GetAccountInvitation(t *testing.T) {
 
 		result, err := service.GetAccountInvitation(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -338,7 +339,7 @@ func TestServiceImpl_GetAccountInvitation(t *testing.T) {
 
 		result, err := service.GetAccountInvitation(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -376,7 +377,7 @@ func TestServiceImpl_GetReceivedAccountInvitations(t *testing.T) {
 
 		result, err := service.GetReceivedAccountInvitations(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 		assert.Len(t, result.Results, len(exampleInvitations.Data))
@@ -399,7 +400,7 @@ func TestServiceImpl_GetReceivedAccountInvitations(t *testing.T) {
 
 		result, err := service.GetReceivedAccountInvitations(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -426,7 +427,7 @@ func TestServiceImpl_GetReceivedAccountInvitations(t *testing.T) {
 
 		result, err := service.GetReceivedAccountInvitations(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -464,7 +465,7 @@ func TestServiceImpl_GetSentAccountInvitations(t *testing.T) {
 
 		result, err := service.GetSentAccountInvitations(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 		assert.Len(t, result.Results, len(exampleInvitations.Data))
@@ -487,7 +488,7 @@ func TestServiceImpl_GetSentAccountInvitations(t *testing.T) {
 
 		result, err := service.GetSentAccountInvitations(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -513,7 +514,7 @@ func TestServiceImpl_GetSentAccountInvitations(t *testing.T) {
 
 		result, err := service.GetSentAccountInvitations(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)

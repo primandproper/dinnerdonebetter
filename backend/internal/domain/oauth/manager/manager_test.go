@@ -119,7 +119,7 @@ func TestOAuth2Manager_CreateOAuth2Client(t *testing.T) {
 		attachMocksToOAuthManager(om, repo, secretGenerator)
 
 		actual, err := om.CreateOAuth2Client(ctx, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 		// the caller gets the plaintext secret exactly once, at creation time.
 		assert.Equal(t, plaintextSecret, actual.ClientSecret)
@@ -149,7 +149,7 @@ func TestOAuth2Manager_ArchiveOAuth2Client(t *testing.T) {
 		attachMocksToOAuthManager(om, repo, nil)
 
 		err := om.ArchiveOAuth2Client(ctx, oauth2ClientID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, repo.ArchiveOAuth2ClientCalls(), 1)
 	})

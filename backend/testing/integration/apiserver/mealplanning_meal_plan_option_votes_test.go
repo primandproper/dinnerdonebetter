@@ -81,7 +81,7 @@ func TestMealPlanOptionVotes_CompleteLifecycle(T *testing.T) {
 				MealPlanOptionVoteId: createdMealPlanOptionVote.ID,
 				Input:                converters.ConvertMealPlanOptionVoteUpdateRequestInputToGRPCMealPlanOptionVoteUpdateRequestInput(updateInput),
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			actualRes, err := userClient.GetMealPlanOptionVote(ctx, &mealplanninggrpc.GetMealPlanOptionVoteRequest{
 				MealPlanId:           createdMealPlan.ID,
@@ -103,7 +103,7 @@ func TestMealPlanOptionVotes_CompleteLifecycle(T *testing.T) {
 				MealPlanOptionId:     createdMealPlanOption.ID,
 				MealPlanOptionVoteId: createdMealPlanOptionVote.ID,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 
 		_, err := userClient.ArchiveMealPlanOption(ctx, &mealplanninggrpc.ArchiveMealPlanOptionRequest{
@@ -188,7 +188,7 @@ func TestMealPlanOptionVotes_Listing(T *testing.T) {
 				MealPlanOptionId:     createdMealPlanOption.ID,
 				MealPlanOptionVoteId: createdMealPlanOptionVote.ID,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 
 		_, err := userClient.ArchiveMealPlanOption(ctx, &mealplanninggrpc.ArchiveMealPlanOptionRequest{
@@ -196,7 +196,7 @@ func TestMealPlanOptionVotes_Listing(T *testing.T) {
 			MealPlanEventId:  createdMealPlanEvent.ID,
 			MealPlanOptionId: createdMealPlanOption.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = userClient.ArchiveMealPlanEvent(ctx, &mealplanninggrpc.ArchiveMealPlanEventRequest{
 			MealPlanId:      createdMealPlan.ID,

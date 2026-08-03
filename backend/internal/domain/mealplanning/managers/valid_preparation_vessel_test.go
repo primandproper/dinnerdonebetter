@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidEnumerationManager_ListValidPreparationVessels(T *testing.T) {
@@ -32,7 +33,7 @@ func TestValidEnumerationManager_ListValidPreparationVessels(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidPreparationVessels(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidPreparationVesselsCalls(), 1)
@@ -59,7 +60,7 @@ func TestValidEnumerationManager_CreateValidPreparationVessel(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidPreparationVessel(ctx, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateValidPreparationVesselCalls(), 1)
@@ -87,7 +88,7 @@ func TestValidEnumerationManager_ReadValidPreparationVessel(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidPreparationVessel(ctx, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidPreparationVesselCalls(), 1)
@@ -120,7 +121,7 @@ func TestValidEnumerationManager_UpdateValidPreparationVessel(T *testing.T) {
 
 		result, err := mpm.UpdateValidPreparationVessel(ctx, exampleValidPreparationVessel.ID, exampleInput)
 		assert.NotNil(t, result)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.GetValidPreparationVesselCalls(), 2) // the manager re-reads the record after updating it
 		assert.Len(t, db.UpdateValidPreparationVesselCalls(), 1)
@@ -147,7 +148,7 @@ func TestValidEnumerationManager_ArchiveValidPreparationVessel(T *testing.T) {
 		}
 		attachRepositoryToManager(vem, db)
 
-		assert.NoError(t, vem.ArchiveValidPreparationVessel(ctx, expected.ID))
+		require.NoError(t, vem.ArchiveValidPreparationVessel(ctx, expected.ID))
 
 		assert.Len(t, db.ArchiveValidPreparationVesselCalls(), 1)
 	})
@@ -175,7 +176,7 @@ func TestValidEnumerationManager_SearchValidPreparationVesselsByPreparation(T *t
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidPreparationVesselsByPreparation(ctx, exampleQuery, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidPreparationVesselsForPreparationCalls(), 1)
@@ -204,7 +205,7 @@ func TestValidEnumerationManager_SearchValidPreparationVesselsByVessel(T *testin
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidPreparationVesselsByVessel(ctx, exampleQuery, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidPreparationVesselsForVesselCalls(), 1)

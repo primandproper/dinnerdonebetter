@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecipeManager_ListRecipeStepCompletionConditions(T *testing.T) {
@@ -37,7 +38,7 @@ func TestRecipeManager_ListRecipeStepCompletionConditions(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ListRecipeStepCompletionConditions(ctx, exampleRecipeID, exampleRecipeStepID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRecipeStepCompletionConditionsCalls(), 1)
@@ -66,7 +67,7 @@ func TestRecipeManager_CreateRecipeStepCompletionCondition(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.CreateRecipeStepCompletionCondition(ctx, exampleRecipeID, exampleRecipeStepID, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateRecipeStepCompletionConditionCalls(), 1)
@@ -98,7 +99,7 @@ func TestRecipeManager_ReadRecipeStepCompletionCondition(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ReadRecipeStepCompletionCondition(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRecipeStepCompletionConditionCalls(), 1)
@@ -133,7 +134,7 @@ func TestRecipeManager_UpdateRecipeStepCompletionCondition(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		assert.NoError(t, rm.UpdateRecipeStepCompletionCondition(ctx, exampleRecipeID, exampleRecipeStepID, exampleRecipeStepCompletionCondition.ID, exampleInput))
+		require.NoError(t, rm.UpdateRecipeStepCompletionCondition(ctx, exampleRecipeID, exampleRecipeStepID, exampleRecipeStepCompletionCondition.ID, exampleInput))
 
 		assert.Len(t, db.GetRecipeStepCompletionConditionCalls(), 1)
 		assert.Len(t, db.UpdateRecipeStepCompletionConditionCalls(), 1)
@@ -163,7 +164,7 @@ func TestRecipeManager_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		assert.NoError(t, rm.ArchiveRecipeStepCompletionCondition(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID))
+		require.NoError(t, rm.ArchiveRecipeStepCompletionCondition(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID))
 
 		assert.Len(t, db.ArchiveRecipeStepCompletionConditionCalls(), 1)
 	})

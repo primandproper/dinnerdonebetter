@@ -6,6 +6,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlan_Update(T *testing.T) {
@@ -17,7 +18,7 @@ func TestMealPlan_Update(T *testing.T) {
 		x := &MealPlan{}
 		input := &MealPlanUpdateRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 
 		x.Update(input)
 	})
@@ -102,7 +103,7 @@ func TestMealPlanCreationRequestInput_Validate(T *testing.T) {
 		}
 
 		err := x.ValidateWithContext(t.Context())
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, errVotingDeadlineAfterStart, err)
 	})
 
@@ -127,7 +128,7 @@ func TestMealPlanCreationRequestInput_Validate(T *testing.T) {
 		}
 
 		err := x.ValidateWithContext(t.Context())
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, errVotingDeadlineAfterStart, err)
 	})
 
@@ -152,7 +153,7 @@ func TestMealPlanCreationRequestInput_Validate(T *testing.T) {
 		}
 
 		err := x.ValidateWithContext(t.Context())
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, errInvalidVotingDeadline, err)
 	})
 

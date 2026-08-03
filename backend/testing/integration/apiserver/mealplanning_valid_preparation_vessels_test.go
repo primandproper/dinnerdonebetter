@@ -89,7 +89,7 @@ func TestValidPreparationVessels_Archiving(T *testing.T) {
 		_, _, created := createValidPreparationVesselForTest(t)
 
 		_, err := adminClient.ArchiveValidPreparationVessel(ctx, &mealplanningsvc.ArchiveValidPreparationVesselRequest{ValidPreparationVesselId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetValidPreparationVessel(ctx, &mealplanningsvc.GetValidPreparationVesselRequest{ValidPreparationVesselId: created.ID})
 		assert.Nil(t, x)
@@ -145,7 +145,7 @@ func TestValidPreparationVessels_Updating(T *testing.T) {
 			ValidPreparationVesselId: created.ID,
 			Input:                    mealplanningconverters.ConvertValidPreparationVesselUpdateRequestInputToGRPCValidPreparationVesselUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, response)
 		require.NotNil(t, response.Result)
 	})
@@ -183,7 +183,7 @@ func TestValidPreparationVessels_Updating(T *testing.T) {
 				Notes: new("doesn't matter"),
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }

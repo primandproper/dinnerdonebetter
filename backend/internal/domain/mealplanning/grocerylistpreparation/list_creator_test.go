@@ -283,7 +283,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		}
 
 		actual, err := listGenerator.GenerateGroceryListInputs(ctx, expectedMealPlan)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		actualMap := map[string]*mealplanning.MealPlanGroceryListItemDatabaseCreationInput{}
 		for i := range actual {
@@ -471,7 +471,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		}
 
 		actual, err := listGenerator.GenerateGroceryListInputs(ctx, expectedMealPlan)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		actualMap := map[string]*mealplanning.MealPlanGroceryListItemDatabaseCreationInput{}
 		for i := range actual {
@@ -542,7 +542,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 
 		ctx := t.Context()
 		actual, err := listGenerator.GenerateGroceryListInputs(ctx, expectedMealPlan)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.Len(t, actual, 1)
 		// effectiveScale = 2.0 * 0.5 = 1.0, so 100 * 1.0 = 100
 		assert.Equal(t, float32(100), actual[0].MinQuantityNeeded)
@@ -631,7 +631,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		ctx := t.Context()
 
 		actual, err := listGenerator.GenerateGroceryListInputs(ctx, expectedMealPlan)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Should have 2 items: spaghetti (default optionIndex=0) and onion (non-option)
 		// angelHair (optionIndex=1) is NOT included because no selection was made, so we default to optionIndex=0
@@ -795,7 +795,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		ctx := t.Context()
 
 		actual, err := listGenerator.GenerateGroceryListInputs(ctx, expectedMealPlan)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Should have 2 items: spaghetti (default optionIndex=0) and onion (aggregated)
 		// angelHair (optionIndex=1) is NOT included because no selection was made
@@ -917,7 +917,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		ctx := t.Context()
 
 		actual, err := listGenerator.GenerateGroceryListInputs(ctx, expectedMealPlan)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Should have 2 items: angelHair (selected optionIndex=1) and onion (non-option)
 		// spaghetti (optionIndex=0) is NOT included because user selected optionIndex=1
@@ -1057,7 +1057,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		ctx := t.Context()
 
 		actual, err := listGenerator.GenerateGroceryListInputs(ctx, expectedMealPlan)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Should have 3 items: chicken (from main recipe), oliveOil and lemon (from associated recipe)
 		assert.Len(t, actual, 3)
@@ -1182,7 +1182,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		ctx := t.Context()
 
 		actual, err := listGenerator.GenerateGroceryListInputs(ctx, expectedMealPlan)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Should have 2 items: chicken and oliveOil
 		assert.Len(t, actual, 2)
@@ -1298,7 +1298,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		ctx := t.Context()
 
 		actual, err := listGenerator.GenerateGroceryListInputs(ctx, expectedMealPlan)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Should have 2 items: chicken and salt (aggregated from main + associated)
 		assert.Len(t, actual, 2)
@@ -1396,7 +1396,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		ctx := t.Context()
 
 		actual, err := listGenerator.GenerateGroceryListInputs(ctx, expectedMealPlan)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		actualMap := make(map[string]*mealplanning.MealPlanGroceryListItemDatabaseCreationInput)
 		for i := range actual {

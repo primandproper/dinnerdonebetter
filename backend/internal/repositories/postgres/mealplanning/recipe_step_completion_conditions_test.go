@@ -46,7 +46,7 @@ func createRecipeStepCompletionConditionForTest(t *testing.T, ctx context.Contex
 	}
 
 	created, err := dbc.CreateRecipeStepCompletionCondition(ctx, recipeID, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	cond.CreatedAt = created.CreatedAt
@@ -95,23 +95,23 @@ func TestQuerier_Integration_RecipeStepCompletionConditions(t *testing.T) {
 
 	// fetch as list
 	recipeStepCompletionConditions, err := dbc.GetRecipeStepCompletionConditions(ctx, exampleRecipe.ID, createdRecipeStepCompletionConditions[0].BelongsToRecipeStep, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, recipeStepCompletionConditions.Data)
 	assert.Len(t, recipeStepCompletionConditions.Data, len(createdRecipeStepCompletionConditions))
 
 	// delete
 	for _, recipeStepCompletionCondition := range createdRecipeStepCompletionConditions {
-		assert.NoError(t, dbc.ArchiveRecipeStepCompletionCondition(ctx, createdRecipe.ID, exampleRecipeStep.ID, recipeStepCompletionCondition.ID))
+		require.NoError(t, dbc.ArchiveRecipeStepCompletionCondition(ctx, createdRecipe.ID, exampleRecipeStep.ID, recipeStepCompletionCondition.ID))
 
 		var exists bool
 		exists, err = dbc.RecipeStepCompletionConditionExists(ctx, exampleRecipe.ID, recipeStepCompletionCondition.BelongsToRecipeStep, recipeStepCompletionCondition.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.RecipeStepCompletionCondition
 		y, err = dbc.GetRecipeStepCompletionCondition(ctx, exampleRecipe.ID, recipeStepCompletionCondition.BelongsToRecipeStep, recipeStepCompletionCondition.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -130,7 +130,7 @@ func TestQuerier_RecipeStepCompletionConditionExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.RecipeStepCompletionConditionExists(ctx, "", exampleRecipeStepID, exampleRecipeStepCompletionCondition.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -145,7 +145,7 @@ func TestQuerier_RecipeStepCompletionConditionExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.RecipeStepCompletionConditionExists(ctx, exampleRecipeID, "", exampleRecipeStepCompletionCondition.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -160,7 +160,7 @@ func TestQuerier_RecipeStepCompletionConditionExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.RecipeStepCompletionConditionExists(ctx, exampleRecipeID, exampleRecipeStepID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -178,7 +178,7 @@ func TestQuerier_GetRecipeStepCompletionCondition(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipeStepCompletionCondition(ctx, "", exampleRecipeStepID, exampleRecipeStepCompletionCondition.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -192,7 +192,7 @@ func TestQuerier_GetRecipeStepCompletionCondition(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipeStepCompletionCondition(ctx, exampleRecipeID, "", exampleRecipeStepCompletionCondition.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -206,7 +206,7 @@ func TestQuerier_GetRecipeStepCompletionCondition(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipeStepCompletionCondition(ctx, exampleRecipeID, exampleRecipeStepID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -224,7 +224,7 @@ func TestQuerier_GetRecipeStepCompletionConditions(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipeStepCompletionConditions(ctx, "", exampleRecipeStepID, filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -239,7 +239,7 @@ func TestQuerier_CreateRecipeStepCompletionCondition(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateRecipeStepCompletionCondition(ctx, fakes.BuildFakeID(), nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -254,7 +254,7 @@ func TestSQLQuerier_createRecipeStepCompletionCondition(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.createRecipeStepCompletionCondition(ctx, c.writeDB, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

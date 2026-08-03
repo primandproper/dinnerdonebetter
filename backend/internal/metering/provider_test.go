@@ -7,6 +7,7 @@ import (
 	platformmetering "github.com/primandproper/platform-go/v9/metering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewProviderMapper(T *testing.T) {
@@ -23,7 +24,7 @@ func TestNewProviderMapper(T *testing.T) {
 		// total on that one and retries forever on anything else. A mapper that reported
 		// "not billable" as a generic failure would make every account the permanent head
 		// of the flush queue.
-		assert.ErrorIs(t, err, platformmetering.ErrNoProviderRef)
+		require.ErrorIs(t, err, platformmetering.ErrNoProviderRef)
 		assert.Equal(t, platformmetering.ProviderRef{}, ref)
 	})
 }

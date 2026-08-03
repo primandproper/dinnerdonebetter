@@ -119,10 +119,10 @@ func TestRecipeStepIngredients_CompleteLifecycle(T *testing.T) {
 			RecipeStepId:           createdRecipeStepID,
 			RecipeStepIngredientId: createdRecipeStepIngredientID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipeStep(ctx, &mealplanninggrpc.ArchiveRecipeStepRequest{RecipeId: createdRecipe.ID, RecipeStepId: createdRecipeStepID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
 		assert.NoError(t, err)
@@ -226,14 +226,14 @@ func TestRecipeStepIngredients_Listing(T *testing.T) {
 				RecipeStepId:           createdRecipeStepID,
 				RecipeStepIngredientId: createdRecipeStepIngredient.ID,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 
 		_, err = adminClient.ArchiveRecipeStep(ctx, &mealplanninggrpc.ArchiveRecipeStepRequest{
 			RecipeId:     createdRecipe.ID,
 			RecipeStepId: createdRecipeStepID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
 		assert.NoError(t, err)

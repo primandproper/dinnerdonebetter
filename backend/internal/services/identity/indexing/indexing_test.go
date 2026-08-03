@@ -14,6 +14,7 @@ import (
 	mocksearch "github.com/primandproper/platform-go/v9/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHandleIndexRequest(T *testing.T) {
@@ -57,7 +58,7 @@ func TestHandleIndexRequest(T *testing.T) {
 			Delete:    false,
 		}
 
-		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+		require.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
 
 		assert.Len(t, identityRepo.GetUserCalls(), 1)
 		assert.Len(t, identityRepo.MarkUserAsIndexedCalls(), 1)
@@ -96,7 +97,7 @@ func TestHandleIndexRequest(T *testing.T) {
 			Delete:    true,
 		}
 
-		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+		require.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
 
 		assert.Len(t, identityRepo.GetUserCalls(), 1)
 		assert.Empty(t, identityRepo.MarkUserAsIndexedCalls())

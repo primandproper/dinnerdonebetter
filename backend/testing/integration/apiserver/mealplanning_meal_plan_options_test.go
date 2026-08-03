@@ -188,7 +188,7 @@ func TestMealPlanOptions_DuplicatePrevention(T *testing.T) {
 			MealPlanEventId: createdMealPlanEvent.ID,
 			Input:           converters.ConvertMealPlanOptionCreationRequestInputToGRPCMealPlanOptionCreationRequestInput(exampleMealPlanOptionInput),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.AlreadyExists, status.Code(err))
 	})
 

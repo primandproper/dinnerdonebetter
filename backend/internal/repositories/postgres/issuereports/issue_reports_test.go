@@ -35,7 +35,7 @@ func createIssueReportForTest(t *testing.T, ctx context.Context, exampleIssueRep
 	}
 
 	created, err := dbc.CreateIssueReport(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	exampleIssueReport.CreatedAt = created.CreatedAt
@@ -44,7 +44,7 @@ func createIssueReportForTest(t *testing.T, ctx context.Context, exampleIssueRep
 	issueReport, err := dbc.GetIssueReport(ctx, created.ID)
 	exampleIssueReport.CreatedAt = issueReport.CreatedAt
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, issueReport, exampleIssueReport)
 
 	return created
@@ -80,30 +80,30 @@ func TestQuerier_Integration_IssueReports(t *testing.T) {
 
 	// fetch as list
 	issueReports, err := dbc.GetIssueReports(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, issueReports.Data)
 	assert.Len(t, issueReports.Data, len(createdIssueReports))
 
 	// fetch as list for account
 	issueReportsByAccount, err := dbc.GetIssueReportsForAccount(ctx, account.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, issueReportsByAccount.Data)
 	assert.Len(t, issueReportsByAccount.Data, len(createdIssueReports))
 
 	// fetch as list for table
 	issueReportsByTable, err := dbc.GetIssueReportsForTable(ctx, createdIssueReports[0].RelevantTable, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, issueReportsByTable.Data)
 
 	// fetch as list for record
 	issueReportsByRecord, err := dbc.GetIssueReportsForRecord(ctx, createdIssueReports[0].RelevantTable, createdIssueReports[0].RelevantRecordID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, issueReportsByRecord.Data)
 	assert.Equal(t, createdIssueReports[0].ID, issueReportsByRecord.Data[0].ID)
 
 	// update
 	createdIssueReports[0].Details = "Updated details"
-	assert.NoError(t, dbc.UpdateIssueReport(ctx, createdIssueReports[0]))
+	require.NoError(t, dbc.UpdateIssueReport(ctx, createdIssueReports[0]))
 
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, RelevantID: createdIssueReports[0].ID},
@@ -112,12 +112,12 @@ func TestQuerier_Integration_IssueReports(t *testing.T) {
 
 	// fetch again to verify update
 	updated, err := dbc.GetIssueReport(ctx, createdIssueReports[0].ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "Updated details", updated.Details)
 
 	// delete
 	for _, issueReport := range createdIssueReports {
-		assert.NoError(t, dbc.ArchiveIssueReport(ctx, issueReport.ID))
+		require.NoError(t, dbc.ArchiveIssueReport(ctx, issueReport.ID))
 
 		pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
 			{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeIssueReports, RelevantID: issueReport.ID},
@@ -126,7 +126,7 @@ func TestQuerier_Integration_IssueReports(t *testing.T) {
 		var y *types.IssueReport
 		y, err = dbc.GetIssueReport(ctx, issueReport.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -141,7 +141,7 @@ func TestQuerier_GetIssueReport(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetIssueReport(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -166,7 +166,7 @@ func TestQuerier_GetIssueReports(T *testing.T) {
 
 		// Should work with nil filter (uses default)
 		actual, err := dbc.GetIssueReports(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.NotEmpty(t, actual.Data)
 
@@ -186,7 +186,7 @@ func TestQuerier_GetIssueReportsForAccount(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetIssueReportsForAccount(ctx, "", filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -202,7 +202,7 @@ func TestQuerier_GetIssueReportsForTable(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetIssueReportsForTable(ctx, "", filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -218,7 +218,7 @@ func TestQuerier_GetIssueReportsForRecord(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetIssueReportsForRecord(ctx, "", fakes.BuildFakeID(), filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -230,7 +230,7 @@ func TestQuerier_GetIssueReportsForRecord(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetIssueReportsForRecord(ctx, "recipes", "", filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -245,7 +245,7 @@ func TestQuerier_CreateIssueReport(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateIssueReport(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func buildServiceImplForTest(t *testing.T) *serviceImpl {
@@ -48,7 +49,7 @@ func TestServiceImpl_ArchiveValidIngredient(T *testing.T) {
 
 		res, err := s.ArchiveValidIngredient(ctx, &mealplanninggrpc.ArchiveValidIngredientRequest{ValidIngredientId: exampleValidIngredientID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ArchiveValidIngredientCalls(), 1)
 	})
@@ -76,7 +77,7 @@ func TestServiceImpl_ArchiveValidIngredientGroup(T *testing.T) {
 
 		res, err := s.ArchiveValidIngredientGroup(ctx, &mealplanninggrpc.ArchiveValidIngredientGroupRequest{ValidIngredientGroupId: exampleValidIngredientGroupID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ArchiveValidIngredientGroupCalls(), 1)
 	})
@@ -104,7 +105,7 @@ func TestServiceImpl_ArchiveValidIngredientMeasurementUnit(T *testing.T) {
 
 		res, err := s.ArchiveValidIngredientMeasurementUnit(ctx, &mealplanninggrpc.ArchiveValidIngredientMeasurementUnitRequest{ValidIngredientMeasurementUnitId: exampleValidIngredientMeasurementUnitID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ArchiveValidIngredientMeasurementUnitCalls(), 1)
 	})
@@ -132,7 +133,7 @@ func TestServiceImpl_ArchiveValidIngredientPreparation(T *testing.T) {
 
 		res, err := s.ArchiveValidIngredientPreparation(ctx, &mealplanninggrpc.ArchiveValidIngredientPreparationRequest{ValidIngredientPreparationId: exampleValidIngredientPreparationID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ArchiveValidIngredientPreparationCalls(), 1)
 	})
@@ -160,7 +161,7 @@ func TestServiceImpl_ArchiveValidPrepTaskConfig(T *testing.T) {
 
 		res, err := s.ArchiveValidPrepTaskConfig(ctx, &mealplanninggrpc.ArchiveValidPrepTaskConfigRequest{ValidPrepTaskConfigId: exampleValidPrepTaskConfigID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ArchiveValidPrepTaskConfigCalls(), 1)
 	})
@@ -188,7 +189,7 @@ func TestServiceImpl_ArchiveValidIngredientState(T *testing.T) {
 
 		res, err := s.ArchiveValidIngredientState(ctx, &mealplanninggrpc.ArchiveValidIngredientStateRequest{ValidIngredientStateId: exampleValidIngredientStateID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ArchiveValidIngredientStateCalls(), 1)
 	})
@@ -216,7 +217,7 @@ func TestServiceImpl_ArchiveValidIngredientStateIngredient(T *testing.T) {
 
 		res, err := s.ArchiveValidIngredientStateIngredient(ctx, &mealplanninggrpc.ArchiveValidIngredientStateIngredientRequest{ValidIngredientStateIngredientId: exampleValidIngredientStateIngredientID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ArchiveValidIngredientStateIngredientCalls(), 1)
 	})
@@ -244,7 +245,7 @@ func TestServiceImpl_ArchiveValidInstrument(T *testing.T) {
 
 		res, err := s.ArchiveValidInstrument(ctx, &mealplanninggrpc.ArchiveValidInstrumentRequest{ValidInstrumentId: exampleValidInstrumentID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ArchiveValidInstrumentCalls(), 1)
 	})
@@ -272,7 +273,7 @@ func TestServiceImpl_ArchiveValidMeasurementUnit(T *testing.T) {
 
 		res, err := s.ArchiveValidMeasurementUnit(ctx, &mealplanninggrpc.ArchiveValidMeasurementUnitRequest{ValidMeasurementUnitId: exampleValidMeasurementUnitID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ArchiveValidMeasurementUnitCalls(), 1)
 	})
@@ -300,7 +301,7 @@ func TestServiceImpl_ArchiveValidMeasurementUnitConversion(T *testing.T) {
 
 		res, err := s.ArchiveValidMeasurementUnitConversion(ctx, &mealplanninggrpc.ArchiveValidMeasurementUnitConversionRequest{ValidMeasurementUnitConversionId: exampleValidMeasurementUnitConversionID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ArchiveValidMeasurementUnitConversionCalls(), 1)
 	})
@@ -328,7 +329,7 @@ func TestServiceImpl_ArchiveValidPreparation(T *testing.T) {
 
 		res, err := s.ArchiveValidPreparation(ctx, &mealplanninggrpc.ArchiveValidPreparationRequest{ValidPreparationId: exampleValidPreparationID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ArchiveValidPreparationCalls(), 1)
 	})
@@ -356,7 +357,7 @@ func TestServiceImpl_ArchiveValidPreparationInstrument(T *testing.T) {
 
 		res, err := s.ArchiveValidPreparationInstrument(ctx, &mealplanninggrpc.ArchiveValidPreparationInstrumentRequest{ValidPreparationInstrumentId: exampleValidPreparationInstrumentID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ArchiveValidPreparationInstrumentCalls(), 1)
 	})
@@ -384,7 +385,7 @@ func TestServiceImpl_ArchiveValidPreparationVessel(T *testing.T) {
 
 		res, err := s.ArchiveValidPreparationVessel(ctx, &mealplanninggrpc.ArchiveValidPreparationVesselRequest{ValidPreparationVesselId: exampleValidPreparationVesselID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ArchiveValidPreparationVesselCalls(), 1)
 	})
@@ -412,7 +413,7 @@ func TestServiceImpl_ArchiveValidVessel(T *testing.T) {
 
 		res, err := s.ArchiveValidVessel(ctx, &mealplanninggrpc.ArchiveValidVesselRequest{ValidVesselId: exampleValidVesselID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ArchiveValidVesselCalls(), 1)
 	})
@@ -466,7 +467,7 @@ func TestServiceImpl_CreateValidIngredientGroup(T *testing.T) {
 
 		actual, err := s.CreateValidIngredientGroup(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.CreateValidIngredientGroupCalls(), 1)
 	})
@@ -494,7 +495,7 @@ func TestServiceImpl_CreateValidIngredientMeasurementUnit(T *testing.T) {
 
 		actual, err := s.CreateValidIngredientMeasurementUnit(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.CreateValidIngredientMeasurementUnitCalls(), 1)
 	})
@@ -522,7 +523,7 @@ func TestServiceImpl_CreateValidIngredientPreparation(T *testing.T) {
 
 		actual, err := s.CreateValidIngredientPreparation(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.CreateValidIngredientPreparationCalls(), 1)
 	})
@@ -550,7 +551,7 @@ func TestServiceImpl_CreateValidPrepTaskConfig(T *testing.T) {
 
 		actual, err := s.CreateValidPrepTaskConfig(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.CreateValidPrepTaskConfigCalls(), 1)
 	})
@@ -578,7 +579,7 @@ func TestServiceImpl_CreateValidIngredientState(T *testing.T) {
 
 		actual, err := s.CreateValidIngredientState(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.CreateValidIngredientStateCalls(), 1)
 	})
@@ -605,7 +606,7 @@ func TestServiceImpl_CreateValidIngredientStateIngredient(T *testing.T) {
 
 		actual, err := s.CreateValidIngredientStateIngredient(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.CreateValidIngredientStateIngredientCalls(), 1)
 	})
@@ -633,7 +634,7 @@ func TestServiceImpl_CreateValidInstrument(T *testing.T) {
 
 		actual, err := s.CreateValidInstrument(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.CreateValidInstrumentCalls(), 1)
 	})
@@ -661,7 +662,7 @@ func TestServiceImpl_CreateValidMeasurementUnit(T *testing.T) {
 
 		actual, err := s.CreateValidMeasurementUnit(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.CreateValidMeasurementUnitCalls(), 1)
 	})
@@ -689,7 +690,7 @@ func TestServiceImpl_CreateValidMeasurementUnitConversion(T *testing.T) {
 
 		actual, err := s.CreateValidMeasurementUnitConversion(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.CreateValidMeasurementUnitConversionCalls(), 1)
 	})
@@ -717,7 +718,7 @@ func TestServiceImpl_CreateValidPreparation(T *testing.T) {
 
 		actual, err := s.CreateValidPreparation(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.CreateValidPreparationCalls(), 1)
 	})
@@ -745,7 +746,7 @@ func TestServiceImpl_CreateValidPreparationInstrument(T *testing.T) {
 
 		actual, err := s.CreateValidPreparationInstrument(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.CreateValidPreparationInstrumentCalls(), 1)
 	})
@@ -773,7 +774,7 @@ func TestServiceImpl_CreateValidPreparationVessel(T *testing.T) {
 
 		actual, err := s.CreateValidPreparationVessel(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.CreateValidPreparationVesselCalls(), 1)
 	})
@@ -801,7 +802,7 @@ func TestServiceImpl_CreateValidVessel(T *testing.T) {
 
 		actual, err := s.CreateValidVessel(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.CreateValidVesselCalls(), 1)
 	})
@@ -827,7 +828,7 @@ func TestServiceImpl_GetRandomValidIngredient(T *testing.T) {
 
 		result, err := s.GetRandomValidIngredient(ctx, &mealplanninggrpc.GetRandomValidIngredientRequest{})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.RandomValidIngredientCalls(), 1)
 	})
@@ -853,7 +854,7 @@ func TestServiceImpl_GetRandomValidInstrument(T *testing.T) {
 
 		result, err := s.GetRandomValidInstrument(ctx, &mealplanninggrpc.GetRandomValidInstrumentRequest{})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.RandomValidInstrumentCalls(), 1)
 	})
@@ -879,7 +880,7 @@ func TestServiceImpl_GetRandomValidPreparation(T *testing.T) {
 
 		result, err := s.GetRandomValidPreparation(ctx, &mealplanninggrpc.GetRandomValidPreparationRequest{})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.RandomValidPreparationCalls(), 1)
 	})
@@ -905,7 +906,7 @@ func TestServiceImpl_GetRandomValidVessel(T *testing.T) {
 
 		result, err := s.GetRandomValidVessel(ctx, &mealplanninggrpc.GetRandomValidVesselRequest{})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.RandomValidVesselCalls(), 1)
 	})
@@ -933,7 +934,7 @@ func TestServiceImpl_GetValidIngredient(T *testing.T) {
 
 		result, err := s.GetValidIngredient(ctx, &mealplanninggrpc.GetValidIngredientRequest{ValidIngredientId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ReadValidIngredientCalls(), 1)
 	})
@@ -961,7 +962,7 @@ func TestServiceImpl_GetValidIngredientGroup(T *testing.T) {
 
 		result, err := s.GetValidIngredientGroup(ctx, &mealplanninggrpc.GetValidIngredientGroupRequest{ValidIngredientGroupId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ReadValidIngredientGroupCalls(), 1)
 	})
@@ -986,7 +987,7 @@ func TestServiceImpl_GetValidIngredientGroups(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.GetValidIngredientGroups(ctx, &mealplanninggrpc.GetValidIngredientGroupsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1016,7 +1017,7 @@ func TestServiceImpl_GetValidIngredientMeasurementUnit(T *testing.T) {
 
 		result, err := s.GetValidIngredientMeasurementUnit(ctx, &mealplanninggrpc.GetValidIngredientMeasurementUnitRequest{ValidIngredientMeasurementUnitId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ReadValidIngredientMeasurementUnitCalls(), 1)
 	})
@@ -1041,7 +1042,7 @@ func TestServiceImpl_GetValidIngredientMeasurementUnits(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.GetValidIngredientMeasurementUnits(ctx, &mealplanninggrpc.GetValidIngredientMeasurementUnitsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1073,7 +1074,7 @@ func TestServiceImpl_GetValidIngredientMeasurementUnitsByIngredient(T *testing.T
 		result, err := s.GetValidIngredientMeasurementUnitsByIngredient(ctx, &mealplanninggrpc.GetValidIngredientMeasurementUnitsByIngredientRequest{
 			ValidIngredientId: exampleID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1105,7 +1106,7 @@ func TestServiceImpl_GetValidIngredientMeasurementUnitsByMeasurementUnit(T *test
 		result, err := s.GetValidIngredientMeasurementUnitsByMeasurementUnit(ctx, &mealplanninggrpc.GetValidIngredientMeasurementUnitsByMeasurementUnitRequest{
 			ValidMeasurementUnitId: exampleID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1135,7 +1136,7 @@ func TestServiceImpl_GetValidIngredientPreparation(T *testing.T) {
 
 		result, err := s.GetValidIngredientPreparation(ctx, &mealplanninggrpc.GetValidIngredientPreparationRequest{ValidIngredientPreparationId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ReadValidIngredientPreparationCalls(), 1)
 	})
@@ -1160,7 +1161,7 @@ func TestServiceImpl_GetValidIngredientPreparations(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.GetValidIngredientPreparations(ctx, &mealplanninggrpc.GetValidIngredientPreparationsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1192,7 +1193,7 @@ func TestServiceImpl_GetValidIngredientPreparationsByIngredient(T *testing.T) {
 		result, err := s.GetValidIngredientPreparationsByIngredient(ctx, &mealplanninggrpc.GetValidIngredientPreparationsByIngredientRequest{
 			ValidIngredientId: exampleID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1224,7 +1225,7 @@ func TestServiceImpl_GetValidIngredientPreparationsByPreparation(T *testing.T) {
 		result, err := s.GetValidIngredientPreparationsByPreparation(ctx, &mealplanninggrpc.GetValidIngredientPreparationsByPreparationRequest{
 			ValidPreparationId: exampleID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1254,7 +1255,7 @@ func TestServiceImpl_GetValidPrepTaskConfig(T *testing.T) {
 
 		result, err := s.GetValidPrepTaskConfig(ctx, &mealplanninggrpc.GetValidPrepTaskConfigRequest{ValidPrepTaskConfigId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ReadValidPrepTaskConfigCalls(), 1)
 	})
@@ -1279,7 +1280,7 @@ func TestServiceImpl_GetValidPrepTaskConfigs(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.GetValidPrepTaskConfigs(ctx, &mealplanninggrpc.GetValidPrepTaskConfigsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1311,7 +1312,7 @@ func TestServiceImpl_GetValidPrepTaskConfigsByIngredient(T *testing.T) {
 		result, err := s.GetValidPrepTaskConfigsByIngredient(ctx, &mealplanninggrpc.GetValidPrepTaskConfigsByIngredientRequest{
 			ValidIngredientId: exampleID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1343,7 +1344,7 @@ func TestServiceImpl_GetValidPrepTaskConfigsByPreparation(T *testing.T) {
 		result, err := s.GetValidPrepTaskConfigsByPreparation(ctx, &mealplanninggrpc.GetValidPrepTaskConfigsByPreparationRequest{
 			ValidPreparationId: exampleID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1378,7 +1379,7 @@ func TestServiceImpl_GetValidPrepTaskConfigsByIngredientAndPreparation(T *testin
 			ValidIngredientId:  exampleIngredientID,
 			ValidPreparationId: examplePreparationID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1408,7 +1409,7 @@ func TestServiceImpl_GetValidIngredientState(T *testing.T) {
 
 		result, err := s.GetValidIngredientState(ctx, &mealplanninggrpc.GetValidIngredientStateRequest{ValidIngredientStateId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ReadValidIngredientStateCalls(), 1)
 	})
@@ -1436,7 +1437,7 @@ func TestServiceImpl_GetValidIngredientStateIngredient(T *testing.T) {
 
 		result, err := s.GetValidIngredientStateIngredient(ctx, &mealplanninggrpc.GetValidIngredientStateIngredientRequest{ValidIngredientStateIngredientId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ReadValidIngredientStateIngredientCalls(), 1)
 	})
@@ -1461,7 +1462,7 @@ func TestServiceImpl_GetValidIngredientStateIngredients(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.GetValidIngredientStateIngredients(ctx, &mealplanninggrpc.GetValidIngredientStateIngredientsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1493,7 +1494,7 @@ func TestServiceImpl_GetValidIngredientStateIngredientsByIngredient(T *testing.T
 		result, err := s.GetValidIngredientStateIngredientsByIngredient(ctx, &mealplanninggrpc.GetValidIngredientStateIngredientsByIngredientRequest{
 			ValidIngredientId: exampleID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1525,7 +1526,7 @@ func TestServiceImpl_GetValidIngredientStateIngredientsByIngredientState(T *test
 		result, err := s.GetValidIngredientStateIngredientsByIngredientState(ctx, &mealplanninggrpc.GetValidIngredientStateIngredientsByIngredientStateRequest{
 			ValidIngredientStateId: exampleID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1552,7 +1553,7 @@ func TestServiceImpl_GetValidIngredientStates(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.GetValidIngredientStates(ctx, &mealplanninggrpc.GetValidIngredientStatesRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1579,7 +1580,7 @@ func TestServiceImpl_GetValidIngredients(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.GetValidIngredients(ctx, &mealplanninggrpc.GetValidIngredientsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1609,7 +1610,7 @@ func TestServiceImpl_GetValidInstrument(T *testing.T) {
 
 		result, err := s.GetValidInstrument(ctx, &mealplanninggrpc.GetValidInstrumentRequest{ValidInstrumentId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ReadValidInstrumentCalls(), 1)
 	})
@@ -1634,7 +1635,7 @@ func TestServiceImpl_GetValidInstruments(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.GetValidInstruments(ctx, &mealplanninggrpc.GetValidInstrumentsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1664,7 +1665,7 @@ func TestServiceImpl_GetValidMeasurementUnit(T *testing.T) {
 
 		result, err := s.GetValidMeasurementUnit(ctx, &mealplanninggrpc.GetValidMeasurementUnitRequest{ValidMeasurementUnitId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ReadValidMeasurementUnitCalls(), 1)
 	})
@@ -1692,7 +1693,7 @@ func TestServiceImpl_GetValidMeasurementUnitConversion(T *testing.T) {
 
 		result, err := s.GetValidMeasurementUnitConversion(ctx, &mealplanninggrpc.GetValidMeasurementUnitConversionRequest{ValidMeasurementUnitConversionId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ReadValidMeasurementUnitConversionCalls(), 1)
 	})
@@ -1722,7 +1723,7 @@ func TestServiceImpl_GetValidMeasurementUnitConversionsFromUnit(T *testing.T) {
 		result, err := s.GetValidMeasurementUnitConversionsForUnit(ctx, &mealplanninggrpc.GetValidMeasurementUnitConversionsForUnitRequest{
 			ValidMeasurementUnitId: exampleID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1749,7 +1750,7 @@ func TestServiceImpl_GetValidMeasurementUnits(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.GetValidMeasurementUnits(ctx, &mealplanninggrpc.GetValidMeasurementUnitsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1779,7 +1780,7 @@ func TestServiceImpl_GetValidPreparation(T *testing.T) {
 
 		result, err := s.GetValidPreparation(ctx, &mealplanninggrpc.GetValidPreparationRequest{ValidPreparationId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ReadValidPreparationCalls(), 1)
 	})
@@ -1807,7 +1808,7 @@ func TestServiceImpl_GetValidPreparationInstrument(T *testing.T) {
 
 		result, err := s.GetValidPreparationInstrument(ctx, &mealplanninggrpc.GetValidPreparationInstrumentRequest{ValidPreparationInstrumentId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ReadValidPreparationInstrumentCalls(), 1)
 	})
@@ -1832,7 +1833,7 @@ func TestServiceImpl_GetValidPreparationInstruments(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.GetValidPreparationInstruments(ctx, &mealplanninggrpc.GetValidPreparationInstrumentsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1864,7 +1865,7 @@ func TestServiceImpl_GetValidPreparationInstrumentsByInstrument(T *testing.T) {
 		result, err := s.GetValidPreparationInstrumentsByInstrument(ctx, &mealplanninggrpc.GetValidPreparationInstrumentsByInstrumentRequest{
 			ValidInstrumentId: exampleID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1896,7 +1897,7 @@ func TestServiceImpl_GetValidPreparationInstrumentsByPreparation(T *testing.T) {
 		result, err := s.GetValidPreparationInstrumentsByPreparation(ctx, &mealplanninggrpc.GetValidPreparationInstrumentsByPreparationRequest{
 			ValidPreparationId: exampleID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1926,7 +1927,7 @@ func TestServiceImpl_GetValidPreparationVessel(T *testing.T) {
 
 		result, err := s.GetValidPreparationVessel(ctx, &mealplanninggrpc.GetValidPreparationVesselRequest{ValidPreparationVesselId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ReadValidPreparationVesselCalls(), 1)
 	})
@@ -1951,7 +1952,7 @@ func TestServiceImpl_GetValidPreparationVessels(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.GetValidPreparationVessels(ctx, &mealplanninggrpc.GetValidPreparationVesselsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1983,7 +1984,7 @@ func TestServiceImpl_GetValidPreparationVesselsByPreparation(T *testing.T) {
 		result, err := s.GetValidPreparationVesselsByPreparation(ctx, &mealplanninggrpc.GetValidPreparationVesselsByPreparationRequest{
 			ValidPreparationId: exampleID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2015,7 +2016,7 @@ func TestServiceImpl_GetValidPreparationVesselsByVessel(T *testing.T) {
 		result, err := s.GetValidPreparationVesselsByVessel(ctx, &mealplanninggrpc.GetValidPreparationVesselsByVesselRequest{
 			ValidVesselId: exampleID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2042,7 +2043,7 @@ func TestServiceImpl_GetValidPreparations(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.GetValidPreparations(ctx, &mealplanninggrpc.GetValidPreparationsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2072,7 +2073,7 @@ func TestServiceImpl_GetValidVessel(T *testing.T) {
 
 		result, err := s.GetValidVessel(ctx, &mealplanninggrpc.GetValidVesselRequest{ValidVesselId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mvem.ReadValidVesselCalls(), 1)
 	})
@@ -2097,7 +2098,7 @@ func TestServiceImpl_GetValidVessels(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.GetValidVessels(ctx, &mealplanninggrpc.GetValidVesselsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2128,7 +2129,7 @@ func TestServiceImpl_SearchForValidIngredientGroups(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.SearchForValidIngredientGroups(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2159,7 +2160,7 @@ func TestServiceImpl_SearchForValidIngredientStates(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.SearchForValidIngredientStates(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2190,7 +2191,7 @@ func TestServiceImpl_SearchForValidIngredients(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.SearchForValidIngredients(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2221,7 +2222,7 @@ func TestServiceImpl_SearchForValidInstruments(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.SearchForValidInstruments(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2252,7 +2253,7 @@ func TestServiceImpl_SearchForValidMeasurementUnits(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.SearchForValidMeasurementUnits(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2283,7 +2284,7 @@ func TestServiceImpl_SearchForValidPreparations(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.SearchForValidPreparations(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2314,7 +2315,7 @@ func TestServiceImpl_SearchForValidVessels(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.SearchForValidVessels(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2345,7 +2346,7 @@ func TestServiceImpl_SearchValidIngredientsByPreparation(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.SearchValidIngredientsByPreparation(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2375,7 +2376,7 @@ func TestServiceImpl_SearchValidMeasurementUnitsByIngredient(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		result, err := s.SearchValidMeasurementUnitsByIngredient(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2405,7 +2406,7 @@ func TestServiceImpl_UpdateValidIngredient(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		res, err := s.UpdateValidIngredient(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Result.Id)
 
 		assert.Len(t, mvem.UpdateValidIngredientCalls(), 1)
@@ -2434,7 +2435,7 @@ func TestServiceImpl_UpdateValidIngredientGroup(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		res, err := s.UpdateValidIngredientGroup(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Result.Id)
 
 		assert.Len(t, mvem.UpdateValidIngredientGroupCalls(), 1)
@@ -2463,7 +2464,7 @@ func TestServiceImpl_UpdateValidIngredientMeasurementUnit(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		res, err := s.UpdateValidIngredientMeasurementUnit(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Result.Id)
 
 		assert.Len(t, mvem.UpdateValidIngredientMeasurementUnitCalls(), 1)
@@ -2492,7 +2493,7 @@ func TestServiceImpl_UpdateValidIngredientPreparation(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		res, err := s.UpdateValidIngredientPreparation(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Result.Id)
 
 		assert.Len(t, mvem.UpdateValidIngredientPreparationCalls(), 1)
@@ -2521,7 +2522,7 @@ func TestServiceImpl_UpdateValidPrepTaskConfig(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		res, err := s.UpdateValidPrepTaskConfig(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Result.Id)
 
 		assert.Len(t, mvem.UpdateValidPrepTaskConfigCalls(), 1)
@@ -2550,7 +2551,7 @@ func TestServiceImpl_UpdateValidIngredientState(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		res, err := s.UpdateValidIngredientState(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Result.Id)
 
 		assert.Len(t, mvem.UpdateValidIngredientStateCalls(), 1)
@@ -2579,7 +2580,7 @@ func TestServiceImpl_UpdateValidIngredientStateIngredient(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		res, err := s.UpdateValidIngredientStateIngredient(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Result.Id)
 
 		assert.Len(t, mvem.UpdateValidIngredientStateIngredientCalls(), 1)
@@ -2608,7 +2609,7 @@ func TestServiceImpl_UpdateValidInstrument(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		res, err := s.UpdateValidInstrument(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Result.Id)
 
 		assert.Len(t, mvem.UpdateValidInstrumentCalls(), 1)
@@ -2637,7 +2638,7 @@ func TestServiceImpl_UpdateValidMeasurementUnit(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		res, err := s.UpdateValidMeasurementUnit(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Result.Id)
 
 		assert.Len(t, mvem.UpdateValidMeasurementUnitCalls(), 1)
@@ -2666,7 +2667,7 @@ func TestServiceImpl_UpdateValidMeasurementUnitConversion(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		res, err := s.UpdateValidMeasurementUnitConversion(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Result.Id)
 
 		assert.Len(t, mvem.UpdateValidMeasurementUnitConversionCalls(), 1)
@@ -2695,7 +2696,7 @@ func TestServiceImpl_UpdateValidPreparation(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		res, err := s.UpdateValidPreparation(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Result.Id)
 
 		assert.Len(t, mvem.UpdateValidPreparationCalls(), 1)
@@ -2724,7 +2725,7 @@ func TestServiceImpl_UpdateValidPreparationInstrument(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		res, err := s.UpdateValidPreparationInstrument(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Result.Id)
 
 		assert.Len(t, mvem.UpdateValidPreparationInstrumentCalls(), 1)
@@ -2753,7 +2754,7 @@ func TestServiceImpl_UpdateValidPreparationVessel(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		res, err := s.UpdateValidPreparationVessel(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Result.Id)
 
 		assert.Len(t, mvem.UpdateValidPreparationVesselCalls(), 1)
@@ -2782,7 +2783,7 @@ func TestServiceImpl_UpdateValidVessel(T *testing.T) {
 		s.mealPlanningManager = mvem
 
 		res, err := s.UpdateValidVessel(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Result.Id)
 
 		assert.Len(t, mvem.UpdateValidVesselCalls(), 1)

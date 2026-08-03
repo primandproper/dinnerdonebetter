@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlanningManager_ListMealPlanOptions(T *testing.T) {
@@ -37,7 +38,7 @@ func TestMealPlanningManager_ListMealPlanOptions(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ListMealPlanOptions(ctx, exampleMealPlanID, exampleMealPlanEventID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealPlanOptionsCalls(), 1)
@@ -64,7 +65,7 @@ func TestMealPlanningManager_CreateMealPlanOption(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMealPlanOption(ctx, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateMealPlanOptionCalls(), 1)
@@ -98,7 +99,7 @@ func TestMealPlanningManager_CreateMealPlanOption(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMealPlanOption(ctx, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateMealPlanOptionCalls(), 1)
@@ -130,7 +131,7 @@ func TestMealPlanningManager_CreateMealPlanOptionWithEventID(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMealPlanOptionWithEventID(ctx, eventID, fakeInput)
-		assert.ErrorIs(t, err, types.ErrDuplicateMealPlanOption)
+		require.ErrorIs(t, err, types.ErrDuplicateMealPlanOption)
 		assert.Nil(t, actual)
 
 		assert.Len(t, db.MealExistsAsOptionInEventCalls(), 1)
@@ -162,7 +163,7 @@ func TestMealPlanningManager_ReadMealPlanOption(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ReadMealPlanOption(ctx, exampleMealPlanID, exampleMealPlanEventID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealPlanOptionCalls(), 1)
@@ -192,7 +193,7 @@ func TestMealPlanningManager_MealPlanOptionBelongsToAccount(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		belongs, err := mpm.MealPlanOptionBelongsToAccount(ctx, exampleMealPlanOptionID, exampleAccountID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, belongs)
 
 		assert.Len(t, db.MealPlanOptionBelongsToAccountCalls(), 1)
@@ -218,7 +219,7 @@ func TestMealPlanningManager_MealPlanOptionBelongsToAccount(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		belongs, err := mpm.MealPlanOptionBelongsToAccount(ctx, exampleMealPlanOptionID, exampleAccountID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, belongs)
 
 		assert.Len(t, db.MealPlanOptionBelongsToAccountCalls(), 1)
@@ -253,7 +254,7 @@ func TestMealPlanningManager_UpdateMealPlanOption(T *testing.T) {
 		}
 		attachRepositoryToManager(mpm, db)
 
-		assert.NoError(t, mpm.UpdateMealPlanOption(ctx, exampleMealPlanID, exampleMealPlanEventID, exampleMealPlanOption.ID, exampleInput))
+		require.NoError(t, mpm.UpdateMealPlanOption(ctx, exampleMealPlanID, exampleMealPlanEventID, exampleMealPlanOption.ID, exampleInput))
 
 		assert.Len(t, db.GetMealPlanOptionCalls(), 1)
 		assert.Len(t, db.UpdateMealPlanOptionCalls(), 1)
@@ -285,7 +286,7 @@ func TestMealPlanningManager_ArchiveMealPlanOption(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		err := mpm.ArchiveMealPlanOption(ctx, mealPlanID, mealPlanEventID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.ArchiveMealPlanOptionCalls(), 1)
 	})

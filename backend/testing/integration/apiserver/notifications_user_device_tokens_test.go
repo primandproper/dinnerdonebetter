@@ -49,7 +49,7 @@ func TestUserDeviceTokens_RegisterAndRead(T *testing.T) {
 				Platform:    exampleToken.Platform,
 			},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, response)
 		require.NotNil(t, response.Created)
 		assert.NotEmpty(t, response.Created.Id)
@@ -60,7 +60,7 @@ func TestUserDeviceTokens_RegisterAndRead(T *testing.T) {
 		retrieved, err := testClient.GetUserDeviceToken(ctx, &notificationssvc.GetUserDeviceTokenRequest{
 			UserDeviceTokenId: response.Created.Id,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, retrieved)
 		converted := grpcconverters.ConvertGRPCUserDeviceTokenToUserDeviceToken(retrieved.Result)
 		assert.Equal(t, response.Created.Id, converted.ID)
@@ -141,12 +141,12 @@ func TestUserDeviceTokens_Archive(T *testing.T) {
 		_, err := testClient.ArchiveUserDeviceToken(ctx, &notificationssvc.ArchiveUserDeviceTokenRequest{
 			UserDeviceTokenId: created.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = testClient.GetUserDeviceToken(ctx, &notificationssvc.GetUserDeviceTokenRequest{
 			UserDeviceTokenId: created.ID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
 			{EventType: "archived", ResourceType: "user_device_tokens", RelevantID: created.ID},

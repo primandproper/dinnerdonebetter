@@ -122,7 +122,7 @@ func TestRecipeStepVessels_CompleteLifecycle(T *testing.T) {
 			RecipeStepVesselId: createdRecipeStepVessel.ID,
 			Input:              converters.ConvertRecipeStepVesselUpdateRequestInputToGRPCRecipeStepVesselUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		retrievedRecipeStepVesselRes, err = adminClient.GetRecipeStepVessel(ctx, &mealplanninggrpc.GetRecipeStepVesselRequest{
 			RecipeId:           createdRecipe.ID,
@@ -139,13 +139,13 @@ func TestRecipeStepVessels_CompleteLifecycle(T *testing.T) {
 			RecipeStepId:       createdRecipeStepID,
 			RecipeStepVesselId: createdRecipeStepVessel.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipeStep(ctx, &mealplanninggrpc.ArchiveRecipeStepRequest{
 			RecipeId:     createdRecipe.ID,
 			RecipeStepId: createdRecipeStepID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
 		assert.NoError(t, err)
@@ -384,11 +384,11 @@ func TestRecipeStepVessels_Listing(T *testing.T) {
 				RecipeStepId:       createdRecipeStepID,
 				RecipeStepVesselId: createdRecipeStepVessel.ID,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 
 		_, err = adminClient.ArchiveRecipeStep(ctx, &mealplanninggrpc.ArchiveRecipeStepRequest{RecipeId: createdRecipe.ID, RecipeStepId: createdRecipeStepID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
 		assert.NoError(t, err)

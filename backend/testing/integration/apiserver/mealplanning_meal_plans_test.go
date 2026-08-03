@@ -427,7 +427,7 @@ func TestMealPlans_UpdateMealPlan(T *testing.T) {
 				Notes: new(updatedNotes),
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 
@@ -443,7 +443,7 @@ func TestMealPlans_UpdateMealPlan(T *testing.T) {
 				Notes: new(updatedNotes),
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 }
@@ -637,7 +637,7 @@ func TestMealPlans_FinalizeMealPlan(T *testing.T) {
 		res, err := c.FinalizeMealPlan(ctx, &mealplanninggrpc.FinalizeMealPlanRequest{
 			MealPlanId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 
@@ -649,7 +649,7 @@ func TestMealPlans_FinalizeMealPlan(T *testing.T) {
 		res, err := userClient.FinalizeMealPlan(ctx, &mealplanninggrpc.FinalizeMealPlanRequest{
 			MealPlanId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 }

@@ -141,7 +141,7 @@ func TestRecipePrepTasks_CompleteLifecycle(T *testing.T) {
 			RecipeId:         createdRecipe.ID,
 			RecipePrepTaskId: actual.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
 		assert.NoError(t, err)
@@ -221,7 +221,7 @@ func TestRecipePrepTasks_Listing(T *testing.T) {
 				RecipeId:         createdRecipe.ID,
 				RecipePrepTaskId: createdRecipePrepTask.ID,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})

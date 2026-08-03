@@ -52,7 +52,7 @@ func TestCreateProduct(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateProduct(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assert.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
 	})
@@ -67,7 +67,7 @@ func TestGetProduct(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetProduct(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})
@@ -82,7 +82,7 @@ func TestGetProductByExternalID(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetProductByExternalID(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})
@@ -97,7 +97,7 @@ func TestUpdateProduct(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		err := c.UpdateProduct(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
 	})
 }
@@ -111,7 +111,7 @@ func TestArchiveProduct(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		err := c.ArchiveProduct(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})
 }
@@ -125,7 +125,7 @@ func TestProductExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		exists, err := c.ProductExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, exists)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})

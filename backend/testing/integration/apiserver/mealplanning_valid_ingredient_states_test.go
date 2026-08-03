@@ -73,7 +73,7 @@ func TestValidIngredientStates_Creating(T *testing.T) {
 		created, err := c.CreateValidIngredientState(ctx, &mealplanningsvc.CreateValidIngredientStateRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -89,7 +89,7 @@ func TestValidIngredientStates_Creating(T *testing.T) {
 		created, err := adminClient.CreateValidIngredientState(ctx, &mealplanningsvc.CreateValidIngredientStateRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -105,7 +105,7 @@ func TestValidIngredientStates_Creating(T *testing.T) {
 		created, err := testClient.CreateValidIngredientState(ctx, &mealplanningsvc.CreateValidIngredientStateRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -122,7 +122,7 @@ func TestValidIngredientStates_Reading(T *testing.T) {
 		created := createValidIngredientStateForTest(t)
 
 		retrieved, err := testClient.GetValidIngredientState(ctx, &mealplanningsvc.GetValidIngredientStateRequest{ValidIngredientStateId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		converted := grpcconverters.ConvertGRPCValidIngredientStateToValidIngredientState(retrieved.Result)
 
@@ -166,7 +166,7 @@ func TestValidIngredientStates_Updating(T *testing.T) {
 			ValidIngredientStateId: created.ID,
 			Input:                  grpcconverters.ConvertValidIngredientStateUpdateRequestInputToGRPCValidIngredientStateUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		updated := grpcconverters.ConvertGRPCValidIngredientStateToValidIngredientState(response.Result)
 		// Ensure UpdatedAt was set
@@ -216,7 +216,7 @@ func TestValidIngredientStates_Updating(T *testing.T) {
 				Name: new("doesn't matter"),
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -231,7 +231,7 @@ func TestValidIngredientStates_Archiving(T *testing.T) {
 		created := createValidIngredientStateForTest(t)
 
 		_, err := adminClient.ArchiveValidIngredientState(ctx, &mealplanningsvc.ArchiveValidIngredientStateRequest{ValidIngredientStateId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetValidIngredientState(ctx, &mealplanningsvc.GetValidIngredientStateRequest{ValidIngredientStateId: created.ID})
 		assert.Nil(t, x)

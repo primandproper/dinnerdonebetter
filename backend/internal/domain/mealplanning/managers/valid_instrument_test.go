@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidEnumerationManager_SearchValidInstruments(T *testing.T) {
@@ -35,7 +36,7 @@ func TestValidEnumerationManager_SearchValidInstruments(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidInstruments(ctx, exampleQuery, false, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.SearchForValidInstrumentsCalls(), 1)
@@ -61,7 +62,7 @@ func TestValidEnumerationManager_ListValidInstruments(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidInstruments(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidInstrumentsCalls(), 1)
@@ -88,7 +89,7 @@ func TestValidEnumerationManager_CreateValidInstrument(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidInstrument(ctx, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateValidInstrumentCalls(), 1)
@@ -116,7 +117,7 @@ func TestValidEnumerationManager_ReadValidInstrument(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidInstrument(ctx, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidInstrumentCalls(), 1)
@@ -142,7 +143,7 @@ func TestValidEnumerationManager_RandomValidInstrument(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.RandomValidInstrument(ctx)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRandomValidInstrumentCalls(), 1)
@@ -175,7 +176,7 @@ func TestValidEnumerationManager_UpdateValidInstrument(T *testing.T) {
 
 		result, err := mpm.UpdateValidInstrument(ctx, exampleValidInstrument.ID, exampleInput)
 		assert.NotNil(t, result)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.GetValidInstrumentCalls(), 2) // the manager re-reads the record after updating it
 		assert.Len(t, db.UpdateValidInstrumentCalls(), 1)
@@ -202,7 +203,7 @@ func TestValidEnumerationManager_ArchiveValidInstrument(T *testing.T) {
 		}
 		attachRepositoryToManager(vem, db)
 
-		assert.NoError(t, vem.ArchiveValidInstrument(ctx, expected.ID))
+		require.NoError(t, vem.ArchiveValidInstrument(ctx, expected.ID))
 
 		assert.Len(t, db.ArchiveValidInstrumentCalls(), 1)
 	})

@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
@@ -41,7 +42,7 @@ func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
 
 		err := handler.handleQueueTestMessage(ctx, logger, span, "test-123", "data-changes")
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, repo.AcknowledgeQueueTestMessageCalls(), 1)
 		assert.Len(t, repo.PruneQueueTestMessagesCalls(), 1)
 	})
@@ -57,7 +58,7 @@ func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
 
 		err := handler.handleQueueTestMessage(ctx, logger, span, "", "data-changes")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "test_id")
 	})
 
@@ -81,7 +82,7 @@ func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
 
 		err := handler.handleQueueTestMessage(ctx, logger, span, "test-123", "")
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, repo.AcknowledgeQueueTestMessageCalls(), 1)
 	})
 
@@ -105,7 +106,7 @@ func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
 
 		err := handler.handleQueueTestMessage(ctx, logger, span, "test-123", "data-changes")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Len(t, repo.AcknowledgeQueueTestMessageCalls(), 1)
 	})
 
@@ -134,7 +135,7 @@ func TestAsyncDataChangeMessageHandler_handleQueueTestMessage(t *testing.T) {
 
 		err := handler.handleQueueTestMessage(ctx, logger, span, "test-123", "data-changes")
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, repo.AcknowledgeQueueTestMessageCalls(), 1)
 		assert.Len(t, repo.PruneQueueTestMessagesCalls(), 1)
 	})

@@ -14,6 +14,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createValidPreparationForTest(t *testing.T, ctx context.Context, exampleValidPreparation *types.ValidPreparation, dbc *repository) *types.ValidPreparation {
@@ -27,13 +28,13 @@ func createValidPreparationForTest(t *testing.T, ctx context.Context, exampleVal
 
 	created, err := dbc.CreateValidPreparation(ctx, dbInput)
 	exampleValidPreparation.CreatedAt = created.CreatedAt
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, exampleValidPreparation, created)
 
 	validPreparation, err := dbc.GetValidPreparation(ctx, created.ID)
 	exampleValidPreparation.CreatedAt = validPreparation.CreatedAt
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validPreparation, exampleValidPreparation)
 
 	return validPreparation
@@ -52,7 +53,7 @@ func TestQuerier_Integration_ValidPreparations(t *testing.T) {
 	// update
 	updatedValidPreparation := fakes.BuildFakeValidPreparation()
 	updatedValidPreparation.ID = createdValidPreparations[0].ID
-	assert.NoError(t, dbc.UpdateValidPreparation(ctx, updatedValidPreparation))
+	require.NoError(t, dbc.UpdateValidPreparation(ctx, updatedValidPreparation))
 
 	// create more
 	for i := range exampleQuantity {
@@ -63,7 +64,7 @@ func TestQuerier_Integration_ValidPreparations(t *testing.T) {
 
 	// fetch as list
 	validPreparations, err := dbc.GetValidPreparations(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, validPreparations.Data)
 	assert.Len(t, validPreparations.Data, len(createdValidPreparations))
 
@@ -74,37 +75,37 @@ func TestQuerier_Integration_ValidPreparations(t *testing.T) {
 	}
 
 	byIDs, err := dbc.GetValidPreparationsWithIDs(ctx, validPreparationIDs)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validPreparations.Data, byIDs)
 
 	// fetch via name search
 	byName, err := dbc.SearchForValidPreparations(ctx, updatedValidPreparation.Name, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validPreparations, byName)
 
 	whatever, err := dbc.GetValidPreparationIDsThatNeedSearchIndexing(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, whatever)
 
-	assert.NoError(t, dbc.MarkValidPreparationAsIndexed(ctx, updatedValidPreparation.ID))
+	require.NoError(t, dbc.MarkValidPreparationAsIndexed(ctx, updatedValidPreparation.ID))
 
 	randomPreparation, err := dbc.GetRandomValidPreparation(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, randomPreparation)
 
 	// delete
 	for _, validPreparation := range createdValidPreparations {
-		assert.NoError(t, dbc.ArchiveValidPreparation(ctx, validPreparation.ID))
+		require.NoError(t, dbc.ArchiveValidPreparation(ctx, validPreparation.ID))
 
 		var exists bool
 		exists, err = dbc.ValidPreparationExists(ctx, validPreparation.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ValidPreparation
 		y, err = dbc.GetValidPreparation(ctx, validPreparation.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -120,7 +121,7 @@ func TestQuerier_ValidPreparationExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidPreparationExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -135,7 +136,7 @@ func TestQuerier_GetValidPreparation(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidPreparation(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -150,7 +151,7 @@ func TestQuerier_SearchForValidPreparations(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.SearchForValidPreparations(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -165,7 +166,7 @@ func TestQuerier_GetValidPreparationsWithIDs(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidPreparationsWithIDs(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -180,7 +181,7 @@ func TestQuerier_CreateValidPreparation(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateValidPreparation(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

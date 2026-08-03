@@ -107,7 +107,7 @@ func TestIssueReports_Reading(T *testing.T) {
 		createdIssueReport := createIssueReportForTest(t, testClient)
 
 		retrieved, err := testClient.GetIssueReport(ctx, &issuereportssvc.GetIssueReportRequest{IssueReportId: createdIssueReport.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, retrieved)
 	})
 
@@ -118,7 +118,7 @@ func TestIssueReports_Reading(T *testing.T) {
 		_, testClient := createUserAndClientForTest(t)
 
 		retrieved, err := testClient.GetIssueReport(ctx, &issuereportssvc.GetIssueReportRequest{IssueReportId: nonexistentID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, retrieved)
 	})
 
@@ -147,7 +147,7 @@ func TestIssueReports_Listing(T *testing.T) {
 		}
 
 		results, err := testClient.GetIssueReports(ctx, &issuereportssvc.GetIssueReportsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
 		assert.GreaterOrEqual(t, len(results.Results), len(createdIssueReports))
 	})
@@ -182,7 +182,7 @@ func TestIssueReports_ListingForAccount(T *testing.T) {
 		results, err := testClient.GetIssueReportsForAccount(ctx, &issuereportssvc.GetIssueReportsForAccountRequest{
 			AccountId: activeAccount.Result.Id,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
 		assert.GreaterOrEqual(t, len(results.Results), len(createdIssueReports))
 	})
@@ -221,7 +221,7 @@ func TestIssueReports_ListingForTable(T *testing.T) {
 		results, err := testClient.GetIssueReportsForTable(ctx, &issuereportssvc.GetIssueReportsForTableRequest{
 			TableName: tableName,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
 		assert.GreaterOrEqual(t, len(results.Results), exampleQuantity)
 	})
@@ -263,7 +263,7 @@ func TestIssueReports_ListingForRecord(T *testing.T) {
 			TableName: tableName,
 			RecordId:  recordID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
 		assert.GreaterOrEqual(t, len(results.Results), exampleQuantity)
 	})
@@ -295,7 +295,7 @@ func TestIssueReports_Updating(T *testing.T) {
 				Details: &newDetails,
 			},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, updated)
 		assert.Equal(t, newDetails, updated.Updated.Details)
 
@@ -342,7 +342,7 @@ func TestIssueReports_Archiving(T *testing.T) {
 		createdIssueReport := createIssueReportForTest(t, testClient)
 
 		_, err := testClient.ArchiveIssueReport(ctx, &issuereportssvc.ArchiveIssueReportRequest{IssueReportId: createdIssueReport.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "issue_reports", RelevantID: createdIssueReport.ID},

@@ -31,7 +31,7 @@ func createValidPreparationInstrumentForTest(t *testing.T, ctx context.Context, 
 	dbInput := converters.ConvertValidPreparationInstrumentToValidPreparationInstrumentDatabaseCreationInput(exampleValidPreparationInstrument)
 
 	created, err := dbc.CreateValidPreparationInstrument(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 	exampleValidPreparationInstrument.CreatedAt = created.CreatedAt
 	assert.Equal(t, exampleValidPreparationInstrument, created)
@@ -41,7 +41,7 @@ func createValidPreparationInstrumentForTest(t *testing.T, ctx context.Context, 
 	exampleValidPreparationInstrument.Preparation = validPreparationInstrument.Preparation
 	exampleValidPreparationInstrument.Instrument = validPreparationInstrument.Instrument
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validPreparationInstrument, exampleValidPreparationInstrument)
 
 	return created
@@ -66,7 +66,7 @@ func TestQuerier_Integration_ValidPreparationInstruments(t *testing.T) {
 	updatedValidPreparationInstrument.ID = createdValidPreparationInstruments[0].ID
 	updatedValidPreparationInstrument.Preparation = createdValidPreparationInstruments[0].Preparation
 	updatedValidPreparationInstrument.Instrument = createdValidPreparationInstruments[0].Instrument
-	assert.NoError(t, dbc.UpdateValidPreparationInstrument(ctx, updatedValidPreparationInstrument))
+	require.NoError(t, dbc.UpdateValidPreparationInstrument(ctx, updatedValidPreparationInstrument))
 
 	// create more (each with unique prep+instrument pair to satisfy uniqueness constraint)
 	for range exampleQuantity {
@@ -80,31 +80,31 @@ func TestQuerier_Integration_ValidPreparationInstruments(t *testing.T) {
 
 	// fetch as list
 	validPreparationInstruments, err := dbc.GetValidPreparationInstruments(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, validPreparationInstruments.Data)
 	assert.Len(t, validPreparationInstruments.Data, len(createdValidPreparationInstruments))
 
 	forPreparation, err := dbc.GetValidPreparationInstrumentsForPreparation(ctx, createdValidPreparationInstruments[0].Preparation.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, forPreparation.Data)
 
 	forInstrument, err := dbc.GetValidPreparationInstrumentsForInstrument(ctx, createdValidPreparationInstruments[0].Instrument.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, forInstrument.Data)
 
 	// delete
 	for _, validPreparationInstrument := range createdValidPreparationInstruments {
-		assert.NoError(t, dbc.ArchiveValidPreparationInstrument(ctx, validPreparationInstrument.ID))
+		require.NoError(t, dbc.ArchiveValidPreparationInstrument(ctx, validPreparationInstrument.ID))
 
 		var exists bool
 		exists, err = dbc.ValidPreparationInstrumentExists(ctx, validPreparationInstrument.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ValidPreparationInstrument
 		y, err = dbc.GetValidPreparationInstrument(ctx, validPreparationInstrument.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -120,7 +120,7 @@ func TestQuerier_ValidPreparationInstrumentExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidPreparationInstrumentExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -135,7 +135,7 @@ func TestQuerier_GetValidPreparationInstrument(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidPreparationInstrument(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -150,7 +150,7 @@ func TestQuerier_CreateValidPreparationInstrument(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateValidPreparationInstrument(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -191,7 +191,7 @@ func TestQuerier_GetValidPreparationInstrumentsByIDs(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidPreparationInstrumentsByIDs(ctx, []string{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Empty(t, actual)
 	})
@@ -209,7 +209,7 @@ func TestQuerier_Integration_GetValidPreparationInstrumentsByIDs(t *testing.T) {
 	// Test fetching by IDs
 	ids := []string{created1.ID, created2.ID, created3.ID}
 	results, err := dbc.GetValidPreparationInstrumentsByIDs(ctx, ids)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, results, 3)
 	assert.NotNil(t, results[created1.ID])
 	assert.NotNil(t, results[created2.ID])
@@ -218,13 +218,13 @@ func TestQuerier_Integration_GetValidPreparationInstrumentsByIDs(t *testing.T) {
 	// Test with partial IDs (some exist, some don't)
 	partialIDs := []string{created1.ID, "nonexistent-id"}
 	partialResults, err := dbc.GetValidPreparationInstrumentsByIDs(ctx, partialIDs)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, partialResults, 1)
 	assert.NotNil(t, partialResults[created1.ID])
 
 	// Test with empty list
 	emptyResults, err := dbc.GetValidPreparationInstrumentsByIDs(ctx, []string{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Empty(t, emptyResults)
 
 	// Cleanup

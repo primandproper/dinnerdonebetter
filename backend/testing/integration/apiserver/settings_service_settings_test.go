@@ -56,7 +56,7 @@ func TestServiceSettings_Creating(T *testing.T) {
 		created, err := c.CreateServiceSetting(ctx, &settingssvc.CreateServiceSettingRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -72,7 +72,7 @@ func TestServiceSettings_Creating(T *testing.T) {
 		created, err := adminClient.CreateServiceSetting(ctx, &settingssvc.CreateServiceSettingRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -88,7 +88,7 @@ func TestServiceSettings_Creating(T *testing.T) {
 		created, err := testClient.CreateServiceSetting(ctx, &settingssvc.CreateServiceSettingRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -105,7 +105,7 @@ func TestServiceSettings_Reading(T *testing.T) {
 		created := createServiceSettingForTest(t)
 
 		retrieved, err := testClient.GetServiceSetting(ctx, &settingssvc.GetServiceSettingRequest{ServiceSettingId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		converted := settingsconverters.ConvertGRPCServiceSettingToServiceSetting(retrieved.Result)
 
@@ -143,7 +143,7 @@ func TestServiceSettings_Archiving(T *testing.T) {
 		created := createServiceSettingForTest(t)
 
 		_, err := adminClient.ArchiveServiceSetting(ctx, &settingssvc.ArchiveServiceSettingRequest{ServiceSettingId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetServiceSetting(ctx, &settingssvc.GetServiceSettingRequest{ServiceSettingId: created.ID})
 		assert.Nil(t, x)

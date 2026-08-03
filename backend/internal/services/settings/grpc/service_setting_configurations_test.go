@@ -13,6 +13,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 )
 
@@ -44,7 +45,7 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 
 		actual, err := service.CreateServiceSettingConfiguration(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.NotNil(t, actual.ResponseDetails)
 		assert.NotNil(t, actual.Created)
@@ -71,7 +72,7 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 
 		actual, err := service.CreateServiceSettingConfiguration(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Unauthenticated)
 	})
@@ -91,7 +92,7 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 
 		actual, err := service.CreateServiceSettingConfiguration(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.InvalidArgument)
 	})
@@ -120,7 +121,7 @@ func TestServiceImpl_CreateServiceSettingConfiguration(t *testing.T) {
 
 		actual, err := service.CreateServiceSettingConfiguration(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
@@ -152,7 +153,7 @@ func TestServiceImpl_GetServiceSettingConfigurationByName(t *testing.T) {
 
 		actual, err := service.GetServiceSettingConfigurationByName(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.NotNil(t, actual.ResponseDetails)
 		assert.NotNil(t, actual.Result)
@@ -175,7 +176,7 @@ func TestServiceImpl_GetServiceSettingConfigurationByName(t *testing.T) {
 
 		actual, err := service.GetServiceSettingConfigurationByName(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Unauthenticated)
 	})
@@ -200,7 +201,7 @@ func TestServiceImpl_GetServiceSettingConfigurationByName(t *testing.T) {
 		}
 
 		actual, err := service.GetServiceSettingConfigurationByName(ctx, request)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
@@ -235,7 +236,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 
 		actual, err := service.GetServiceSettingConfigurationsForAccount(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.NotNil(t, actual.ResponseDetails)
 		assert.Len(t, actual.Results, len(exampleServiceSettingConfigurationsList.Data))
@@ -259,7 +260,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 
 		actual, err := service.GetServiceSettingConfigurationsForAccount(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Unauthenticated)
 	})
@@ -287,7 +288,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 
 		actual, err := service.GetServiceSettingConfigurationsForAccount(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
@@ -322,7 +323,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 
 		actual, err := service.GetServiceSettingConfigurationsForUser(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.NotNil(t, actual.ResponseDetails)
 		assert.Len(t, actual.Results, len(exampleServiceSettingConfigurationsList.Data))
@@ -346,7 +347,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 
 		actual, err := service.GetServiceSettingConfigurationsForUser(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Unauthenticated)
 	})
@@ -374,7 +375,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 
 		actual, err := service.GetServiceSettingConfigurationsForUser(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
@@ -416,7 +417,7 @@ func TestServiceImpl_UpdateServiceSettingConfiguration(t *testing.T) {
 
 		actual, err := service.UpdateServiceSettingConfiguration(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.NotNil(t, actual.ResponseDetails)
 		assert.NotNil(t, actual.Updated)
@@ -451,7 +452,7 @@ func TestServiceImpl_UpdateServiceSettingConfiguration(t *testing.T) {
 
 		actual, err := service.UpdateServiceSettingConfiguration(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
@@ -489,7 +490,7 @@ func TestServiceImpl_UpdateServiceSettingConfiguration(t *testing.T) {
 
 		actual, err := service.UpdateServiceSettingConfiguration(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
@@ -521,7 +522,7 @@ func TestServiceImpl_ArchiveServiceSettingConfiguration(t *testing.T) {
 
 		actual, err := service.ArchiveServiceSettingConfiguration(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.NotNil(t, actual.ResponseDetails)
 
@@ -548,7 +549,7 @@ func TestServiceImpl_ArchiveServiceSettingConfiguration(t *testing.T) {
 
 		actual, err := service.ArchiveServiceSettingConfiguration(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 

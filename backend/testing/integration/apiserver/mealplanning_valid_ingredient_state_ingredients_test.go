@@ -140,7 +140,7 @@ func TestIntegration_UpdateValidIngredientStateIngredient(T *testing.T) {
 			ValidIngredientStateIngredientId: created.ID,
 			Input:                            mealplanningconverters.ConvertValidIngredientStateIngredientUpdateRequestInputToGRPCValidIngredientStateIngredientUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		updated := mealplanningconverters.ConvertGRPCValidIngredientStateIngredientToValidIngredientStateIngredient(response.Result)
 		require.NotNil(t, updated.LastUpdatedAt)
@@ -178,7 +178,7 @@ func TestIntegration_UpdateValidIngredientStateIngredient(T *testing.T) {
 			ValidIngredientStateIngredientId: created.ID,
 			Input:                            mealplanningconverters.ConvertValidIngredientStateIngredientUpdateRequestInputToGRPCValidIngredientStateIngredientUpdateRequestInput(updateInput),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -193,7 +193,7 @@ func TestIntegration_ArchiveValidIngredientStateIngredient(T *testing.T) {
 		_, _, created := createValidIngredientStateIngredientForTest(t)
 
 		_, err := adminClient.ArchiveValidIngredientStateIngredient(ctx, &mealplanningsvc.ArchiveValidIngredientStateIngredientRequest{ValidIngredientStateIngredientId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetValidIngredientStateIngredient(ctx, &mealplanningsvc.GetValidIngredientStateIngredientRequest{ValidIngredientStateIngredientId: created.ID})
 		assert.Nil(t, x)

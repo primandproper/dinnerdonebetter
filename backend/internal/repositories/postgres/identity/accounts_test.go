@@ -32,7 +32,7 @@ func createAccountForTest(t *testing.T, ctx context.Context, exampleAccount *ide
 	dbInput := converters.ConvertAccountToAccountDatabaseCreationInput(exampleAccount)
 
 	created, err := dbc.CreateAccount(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 	exampleAccount.CreatedAt = created.CreatedAt
 	exampleAccount.WebhookEncryptionKey = created.WebhookEncryptionKey
@@ -79,7 +79,7 @@ func TestQuerier_Integration_Accounts(t *testing.T) {
 	updatedAccount := fakes.BuildFakeAccount()
 	updatedAccount.ID = createdAccounts[0].ID
 	updatedAccount.BelongsToUser = createdAccounts[0].BelongsToUser
-	assert.NoError(t, dbc.UpdateAccount(ctx, updatedAccount))
+	require.NoError(t, dbc.UpdateAccount(ctx, updatedAccount))
 
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, createdAccounts[0].ID, []*audit.AuditLogEntry{
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccounts, RelevantID: createdAccounts[0].ID},
@@ -97,13 +97,13 @@ func TestQuerier_Integration_Accounts(t *testing.T) {
 
 	// fetch as list
 	accounts, err := dbc.GetAccounts(ctx, exampleUser.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, accounts.Data)
 	assert.GreaterOrEqual(t, len(accounts.Data), len(createdAccounts))
 
 	// delete
 	for _, account := range createdAccounts {
-		assert.NoError(t, dbc.ArchiveAccount(ctx, account.ID, exampleUser.ID))
+		require.NoError(t, dbc.ArchiveAccount(ctx, account.ID, exampleUser.ID))
 
 		pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
 			{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeAccounts, RelevantID: account.ID},
@@ -112,8 +112,8 @@ func TestQuerier_Integration_Accounts(t *testing.T) {
 		var y *identity.Account
 		y, err = dbc.GetAccount(ctx, account.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
-		assert.ErrorIs(t, err, sql.ErrNoRows)
+		require.Error(t, err)
+		require.ErrorIs(t, err, sql.ErrNoRows)
 	}
 
 	assert.NoError(t, dbc.ArchiveUser(ctx, exampleUser.ID))
@@ -134,7 +134,7 @@ func TestQuerier_GetAccount(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetAccount(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -151,7 +151,7 @@ func TestQuerier_GetAccounts(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetAccounts(ctx, "", filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -166,7 +166,7 @@ func TestQuerier_CreateAccount(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateAccount(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

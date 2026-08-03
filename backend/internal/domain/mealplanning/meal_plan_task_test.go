@@ -48,7 +48,7 @@ func TestMealPlanTask_Update(T *testing.T) {
 		x := &MealPlanTask{}
 		input := &MealPlanTaskStatusChangeRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 
 		x.Update(input)
 	})

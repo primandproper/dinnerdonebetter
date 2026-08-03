@@ -66,7 +66,7 @@ func TestServiceSettingConfigurations_Creating(T *testing.T) {
 		created, err := c.CreateServiceSettingConfiguration(ctx, &settingssvc.CreateServiceSettingConfigurationRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -82,7 +82,7 @@ func TestServiceSettingConfigurations_Creating(T *testing.T) {
 		created, err := adminClient.CreateServiceSettingConfiguration(ctx, &settingssvc.CreateServiceSettingConfigurationRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -98,7 +98,7 @@ func TestServiceSettingConfigurations_Creating(T *testing.T) {
 		created, err := testClient.CreateServiceSettingConfiguration(ctx, &settingssvc.CreateServiceSettingConfigurationRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -155,7 +155,7 @@ func TestServiceSettingConfigurations_Archiving(T *testing.T) {
 		created := createServiceSettingConfigurationForTest(t, testClient)
 
 		_, err := adminClient.ArchiveServiceSettingConfiguration(ctx, &settingssvc.ArchiveServiceSettingConfigurationRequest{ServiceSettingConfigurationId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetServiceSettingConfigurationByName(ctx, &settingssvc.GetServiceSettingConfigurationByNameRequest{ServiceSettingConfigurationName: created.ServiceSetting.Name})
 		assert.Nil(t, x)

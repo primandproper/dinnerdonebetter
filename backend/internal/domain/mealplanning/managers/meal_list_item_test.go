@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlanningManager_UpdateMealListItem(T *testing.T) {
@@ -37,7 +38,7 @@ func TestMealPlanningManager_UpdateMealListItem(T *testing.T) {
 		}
 		attachRepositoryToManager(mpm, db)
 
-		assert.NoError(t, mpm.UpdateMealListItem(ctx, itemID, listID, mealID, input))
+		require.NoError(t, mpm.UpdateMealListItem(ctx, itemID, listID, mealID, input))
 
 		assert.Len(t, db.UpdateMealListItemCalls(), 1)
 	})
@@ -75,7 +76,7 @@ func TestMealPlanningManager_AddMealToMealList(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.AddMealToMealList(ctx, listID, mealID, expected.Notes)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.MealExistsInMealListCalls(), 1)
@@ -103,7 +104,7 @@ func TestMealPlanningManager_AddMealToMealList(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.AddMealToMealList(ctx, listID, mealID, notes)
-		assert.ErrorIs(t, err, types.ErrDuplicateMealInList)
+		require.ErrorIs(t, err, types.ErrDuplicateMealInList)
 		assert.Nil(t, actual)
 
 		assert.Len(t, db.MealExistsInMealListCalls(), 1)
@@ -132,7 +133,7 @@ func TestMealPlanningManager_RemoveMealFromMealList(T *testing.T) {
 		}
 		attachRepositoryToManager(mpm, db)
 
-		assert.NoError(t, mpm.RemoveMealFromMealList(ctx, listID, itemID))
+		require.NoError(t, mpm.RemoveMealFromMealList(ctx, listID, itemID))
 
 		assert.Len(t, db.ArchiveMealListItemCalls(), 1)
 	})
@@ -168,7 +169,7 @@ func TestMealPlanningManager_ListMealListItems(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ListMealListItems(ctx, listID, userID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealListItemsCalls(), 1)

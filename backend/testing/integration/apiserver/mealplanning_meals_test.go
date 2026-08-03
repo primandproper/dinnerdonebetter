@@ -105,7 +105,7 @@ func TestMeals_CompleteLifecycle(T *testing.T) {
 		created, err := c.CreateMeal(ctx, &mealplanninggrpc.CreateMealRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -157,7 +157,7 @@ func TestMeals_Listing(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 		meals, err := c.GetMeals(ctx, &mealplanninggrpc.GetMealsRequest{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, meals)
 	})
 }
@@ -212,7 +212,7 @@ func TestMeals_Searching(T *testing.T) {
 			Query:            "test",
 			UseSearchService: false,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, results)
 	})
 }
@@ -229,7 +229,7 @@ func TestMeals_Reading(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 		meal, err := c.GetMeal(ctx, &mealplanninggrpc.GetMealRequest{MealId: createdMeal.ID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, meal)
 
 		// Clean up
@@ -244,7 +244,7 @@ func TestMeals_Reading(T *testing.T) {
 		_, userClient := createUserAndClientForTest(t)
 
 		meal, err := userClient.GetMeal(ctx, &mealplanninggrpc.GetMealRequest{MealId: nonexistentID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, meal)
 	})
 }
@@ -305,7 +305,7 @@ func TestMeals_DuplicatePrevention(T *testing.T) {
 		require.NotNil(t, createdMeal)
 
 		_, err := userClient.CreateMeal(ctx, &mealplanninggrpc.CreateMealRequest{Input: converters.ConvertMealCreationRequestInputToGRPCMealCreationRequestInput(input)})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.AlreadyExists, status.Code(err))
 
 		_, err = userClient.ArchiveMeal(ctx, &mealplanninggrpc.ArchiveMealRequest{MealId: createdMeal.ID})
@@ -330,7 +330,7 @@ func TestMeals_DuplicatePrevention(T *testing.T) {
 		require.NotEqual(t, m1.ID, m2.ID)
 
 		_, err := userClient.ArchiveMeal(ctx, &mealplanninggrpc.ArchiveMealRequest{MealId: m1.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		_, err = userClient.ArchiveMeal(ctx, &mealplanninggrpc.ArchiveMealRequest{MealId: m2.ID})
 		assert.NoError(t, err)
 	})
@@ -354,7 +354,7 @@ func TestMeals_DuplicatePrevention(T *testing.T) {
 		require.NotEqual(t, m1.ID, m2.ID)
 
 		_, err := userClient.ArchiveMeal(ctx, &mealplanninggrpc.ArchiveMealRequest{MealId: m1.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		_, err = userClient.ArchiveMeal(ctx, &mealplanninggrpc.ArchiveMealRequest{MealId: m2.ID})
 		assert.NoError(t, err)
 	})
@@ -377,7 +377,7 @@ func TestMeals_DuplicatePrevention(T *testing.T) {
 		require.NotEqual(t, m1.ID, m2.ID)
 
 		_, err := user1Client.ArchiveMeal(ctx, &mealplanninggrpc.ArchiveMealRequest{MealId: m1.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		_, err = user2Client.ArchiveMeal(ctx, &mealplanninggrpc.ArchiveMealRequest{MealId: m2.ID})
 		assert.NoError(t, err)
 	})

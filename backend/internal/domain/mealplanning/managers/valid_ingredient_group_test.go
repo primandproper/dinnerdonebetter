@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidEnumerationManager_SearchValidIngredientGroups(T *testing.T) {
@@ -35,7 +36,7 @@ func TestValidEnumerationManager_SearchValidIngredientGroups(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidIngredientGroups(ctx, exampleQuery, false, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.SearchForValidIngredientGroupsCalls(), 1)
@@ -61,7 +62,7 @@ func TestValidEnumerationManager_ListValidIngredientGroups(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidIngredientGroups(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidIngredientGroupsCalls(), 1)
@@ -88,7 +89,7 @@ func TestValidEnumerationManager_CreateValidIngredientGroup(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidIngredientGroup(ctx, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateValidIngredientGroupCalls(), 1)
@@ -116,7 +117,7 @@ func TestValidEnumerationManager_ReadValidIngredientGroup(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidIngredientGroup(ctx, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidIngredientGroupCalls(), 1)
@@ -149,7 +150,7 @@ func TestValidEnumerationManager_UpdateValidIngredientGroup(T *testing.T) {
 
 		result, err := mpm.UpdateValidIngredientGroup(ctx, exampleValidIngredientGroup.ID, exampleInput)
 		assert.NotNil(t, result)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.GetValidIngredientGroupCalls(), 2) // the manager re-reads the record after updating it
 		assert.Len(t, db.UpdateValidIngredientGroupCalls(), 1)
@@ -176,7 +177,7 @@ func TestValidEnumerationManager_ArchiveValidIngredientGroup(T *testing.T) {
 		}
 		attachRepositoryToManager(vem, db)
 
-		assert.NoError(t, vem.ArchiveValidIngredientGroup(ctx, expected.ID))
+		require.NoError(t, vem.ArchiveValidIngredientGroup(ctx, expected.ID))
 
 		assert.Len(t, db.ArchiveValidIngredientGroupCalls(), 1)
 	})

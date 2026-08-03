@@ -170,7 +170,7 @@ func TestIntegration_UpdateValidIngredientMeasurementUnit(T *testing.T) {
 			ValidIngredientMeasurementUnitId: created.ID,
 			Input:                            mealplanningconverters.ConvertValidIngredientMeasurementUnitUpdateRequestInputToGRPCValidIngredientMeasurementUnitUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		updated := mealplanningconverters.ConvertGRPCValidIngredientMeasurementUnitToValidIngredientMeasurementUnit(response.Result)
 		require.NotNil(t, updated.LastUpdatedAt)
@@ -208,7 +208,7 @@ func TestIntegration_UpdateValidIngredientMeasurementUnit(T *testing.T) {
 			ValidIngredientMeasurementUnitId: created.ID,
 			Input:                            mealplanningconverters.ConvertValidIngredientMeasurementUnitUpdateRequestInputToGRPCValidIngredientMeasurementUnitUpdateRequestInput(updateInput),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -223,7 +223,7 @@ func TestIntegration_ArchiveValidIngredientMeasurementUnit(T *testing.T) {
 		_, _, created := createValidIngredientMeasurementUnitForTest(t)
 
 		_, err := adminClient.ArchiveValidIngredientMeasurementUnit(ctx, &mealplanningsvc.ArchiveValidIngredientMeasurementUnitRequest{ValidIngredientMeasurementUnitId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetValidIngredientMeasurementUnit(ctx, &mealplanningsvc.GetValidIngredientMeasurementUnitRequest{ValidIngredientMeasurementUnitId: created.ID})
 		assert.Nil(t, x)

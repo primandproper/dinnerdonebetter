@@ -31,7 +31,7 @@ func createValidIngredientMeasurementUnitForTest(t *testing.T, ctx context.Conte
 	dbInput := converters.ConvertValidIngredientMeasurementUnitToValidIngredientMeasurementUnitDatabaseCreationInput(exampleValidIngredientMeasurementUnit)
 
 	created, err := dbc.CreateValidIngredientMeasurementUnit(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 	exampleValidIngredientMeasurementUnit.CreatedAt = created.CreatedAt
 	assert.Equal(t, exampleValidIngredientMeasurementUnit, created)
@@ -43,7 +43,7 @@ func createValidIngredientMeasurementUnitForTest(t *testing.T, ctx context.Conte
 	exampleValidIngredientMeasurementUnit.MeasurementUnit = validIngredientMeasurementUnit.MeasurementUnit
 	exampleValidIngredientMeasurementUnit.Ingredient = validIngredientMeasurementUnit.Ingredient
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validIngredientMeasurementUnit, exampleValidIngredientMeasurementUnit)
 
 	return created
@@ -68,7 +68,7 @@ func TestQuerier_Integration_ValidIngredientMeasurementUnits(t *testing.T) {
 	updatedValidIngredientMeasurementUnit.ID = createdValidIngredientMeasurementUnits[0].ID
 	updatedValidIngredientMeasurementUnit.MeasurementUnit = createdValidIngredientMeasurementUnits[0].MeasurementUnit
 	updatedValidIngredientMeasurementUnit.Ingredient = createdValidIngredientMeasurementUnits[0].Ingredient
-	assert.NoError(t, dbc.UpdateValidIngredientMeasurementUnit(ctx, updatedValidIngredientMeasurementUnit))
+	require.NoError(t, dbc.UpdateValidIngredientMeasurementUnit(ctx, updatedValidIngredientMeasurementUnit))
 
 	// create more (each must have unique ingredient+unit per active row)
 	for range exampleQuantity {
@@ -81,31 +81,31 @@ func TestQuerier_Integration_ValidIngredientMeasurementUnits(t *testing.T) {
 
 	// fetch as list
 	validIngredientMeasurementUnits, err := dbc.GetValidIngredientMeasurementUnits(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, validIngredientMeasurementUnits.Data)
 	assert.Len(t, validIngredientMeasurementUnits.Data, len(createdValidIngredientMeasurementUnits))
 
 	forIngredient, err := dbc.GetValidIngredientMeasurementUnitsForIngredient(ctx, createdValidIngredientMeasurementUnits[0].Ingredient.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, forIngredient.Data)
 
 	forMeasurementUnit, err := dbc.GetValidIngredientMeasurementUnitsForMeasurementUnit(ctx, createdValidIngredientMeasurementUnits[0].MeasurementUnit.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, forMeasurementUnit.Data)
 
 	// delete
 	for _, validIngredientMeasurementUnit := range createdValidIngredientMeasurementUnits {
-		assert.NoError(t, dbc.ArchiveValidIngredientMeasurementUnit(ctx, validIngredientMeasurementUnit.ID))
+		require.NoError(t, dbc.ArchiveValidIngredientMeasurementUnit(ctx, validIngredientMeasurementUnit.ID))
 
 		var exists bool
 		exists, err = dbc.ValidIngredientMeasurementUnitExists(ctx, validIngredientMeasurementUnit.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ValidIngredientMeasurementUnit
 		y, err = dbc.GetValidIngredientMeasurementUnit(ctx, validIngredientMeasurementUnit.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -121,7 +121,7 @@ func TestQuerier_ValidIngredientMeasurementUnitExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidIngredientMeasurementUnitExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -136,7 +136,7 @@ func TestQuerier_GetValidIngredientMeasurementUnit(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidIngredientMeasurementUnit(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -151,7 +151,7 @@ func TestQuerier_CreateValidIngredientMeasurementUnit(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateValidIngredientMeasurementUnit(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -192,7 +192,7 @@ func TestQuerier_GetValidIngredientMeasurementUnitsByIDs(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidIngredientMeasurementUnitsByIDs(ctx, []string{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Empty(t, actual)
 	})
@@ -210,7 +210,7 @@ func TestQuerier_Integration_GetValidIngredientMeasurementUnitsByIDs(t *testing.
 	// Test fetching by IDs
 	ids := []string{created1.ID, created2.ID, created3.ID}
 	results, err := dbc.GetValidIngredientMeasurementUnitsByIDs(ctx, ids)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, results, 3)
 	assert.NotNil(t, results[created1.ID])
 	assert.NotNil(t, results[created2.ID])
@@ -219,13 +219,13 @@ func TestQuerier_Integration_GetValidIngredientMeasurementUnitsByIDs(t *testing.
 	// Test with partial IDs (some exist, some don't)
 	partialIDs := []string{created1.ID, "nonexistent-id"}
 	partialResults, err := dbc.GetValidIngredientMeasurementUnitsByIDs(ctx, partialIDs)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, partialResults, 1)
 	assert.NotNil(t, partialResults[created1.ID])
 
 	// Test with empty list
 	emptyResults, err := dbc.GetValidIngredientMeasurementUnitsByIDs(ctx, []string{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Empty(t, emptyResults)
 
 	// Cleanup

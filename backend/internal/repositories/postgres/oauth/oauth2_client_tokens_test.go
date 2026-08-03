@@ -27,7 +27,7 @@ func createOAuth2ClientTokenForTest(t *testing.T, ctx context.Context, exampleOA
 	dbInput := converters.ConvertOAuth2ClientTokenToOAuth2ClientTokenDatabaseCreationInput(exampleOAuth2ClientToken)
 
 	created, err := dbc.CreateOAuth2ClientToken(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	exampleOAuth2ClientToken.CodeCreatedAt = created.CodeCreatedAt
@@ -36,7 +36,7 @@ func createOAuth2ClientTokenForTest(t *testing.T, ctx context.Context, exampleOA
 	assert.Equal(t, exampleOAuth2ClientToken, created)
 
 	oauth2ClientToken, err := dbc.GetOAuth2ClientTokenByAccess(ctx, created.Access)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	exampleOAuth2ClientToken.CodeCreatedAt = oauth2ClientToken.CodeCreatedAt
 	exampleOAuth2ClientToken.AccessCreatedAt = oauth2ClientToken.AccessCreatedAt
 	exampleOAuth2ClientToken.RefreshCreatedAt = oauth2ClientToken.RefreshCreatedAt
@@ -60,29 +60,29 @@ func TestQuerier_Integration_OAuth2ClientTokens(t *testing.T) {
 
 	// get
 	byCode, err := dbc.GetOAuth2ClientTokenByCode(ctx, exampleOAuth2ClientToken.Code)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, byCode)
 
 	// delete
-	assert.NoError(t, dbc.DeleteOAuth2ClientTokenByCode(ctx, createdOAuth2ClientToken.Code))
+	require.NoError(t, dbc.DeleteOAuth2ClientTokenByCode(ctx, createdOAuth2ClientToken.Code))
 
 	// create
 	createdOAuth2ClientToken = createOAuth2ClientTokenForTest(t, ctx, exampleOAuth2ClientToken, dbc)
 
 	// get
 	byAccess, err := dbc.GetOAuth2ClientTokenByAccess(ctx, exampleOAuth2ClientToken.Access)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, byAccess)
 
 	// delete
-	assert.NoError(t, dbc.DeleteOAuth2ClientTokenByAccess(ctx, createdOAuth2ClientToken.Access))
+	require.NoError(t, dbc.DeleteOAuth2ClientTokenByAccess(ctx, createdOAuth2ClientToken.Access))
 
 	// create
 	createdOAuth2ClientToken = createOAuth2ClientTokenForTest(t, ctx, exampleOAuth2ClientToken, dbc)
 
 	// get
 	byRefresh, err := dbc.GetOAuth2ClientTokenByRefresh(ctx, exampleOAuth2ClientToken.Refresh)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, byRefresh)
 
 	// delete

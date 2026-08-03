@@ -18,6 +18,7 @@ import (
 	mockuploads "github.com/primandproper/platform-go/v9/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -67,7 +68,7 @@ func TestServiceImpl_CreateUser(T *testing.T) {
 
 		result, err := service.CreateUser(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 		assert.NotNil(t, result.Created)
@@ -102,7 +103,7 @@ func TestServiceImpl_CreateUser(T *testing.T) {
 
 		result, err := service.CreateUser(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -133,7 +134,7 @@ func TestServiceImpl_ArchiveUser(T *testing.T) {
 
 		result, err := service.ArchiveUser(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})
@@ -157,7 +158,7 @@ func TestServiceImpl_ArchiveUser(T *testing.T) {
 
 		result, err := service.ArchiveUser(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -188,7 +189,7 @@ func TestServiceImpl_GetUser(T *testing.T) {
 
 		result, err := service.GetUser(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 		assert.NotNil(t, result.Result)
@@ -216,7 +217,7 @@ func TestServiceImpl_GetUser(T *testing.T) {
 
 		result, err := service.GetUser(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -253,7 +254,7 @@ func TestServiceImpl_GetUsers(T *testing.T) {
 
 		result, err := service.GetUsers(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 		assert.Len(t, result.Results, len(exampleUsers.Data))
@@ -281,7 +282,7 @@ func TestServiceImpl_GetUsers(T *testing.T) {
 
 		result, err := service.GetUsers(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -325,7 +326,7 @@ func TestServiceImpl_SearchForUsers(T *testing.T) {
 
 		result, err := service.SearchForUsers(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 		assert.Len(t, result.Results, len(exampleUsers.Data))
@@ -364,7 +365,7 @@ func TestServiceImpl_SearchForUsers(T *testing.T) {
 
 		result, err := service.SearchForUsers(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 		assert.Len(t, result.Results, len(exampleUsers.Data))
@@ -398,7 +399,7 @@ func TestServiceImpl_SearchForUsers(T *testing.T) {
 
 		result, err := service.SearchForUsers(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -429,7 +430,7 @@ func TestServiceImpl_UpdateUserDetails(T *testing.T) {
 
 		result, err := service.UpdateUserDetails(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})
@@ -447,7 +448,7 @@ func TestServiceImpl_UpdateUserDetails(T *testing.T) {
 
 		result, err := service.UpdateUserDetails(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -472,7 +473,7 @@ func TestServiceImpl_UpdateUserDetails(T *testing.T) {
 
 		result, err := service.UpdateUserDetails(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -503,7 +504,7 @@ func TestServiceImpl_UpdateUserEmailAddress(T *testing.T) {
 
 		result, err := service.UpdateUserEmailAddress(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})
@@ -519,7 +520,7 @@ func TestServiceImpl_UpdateUserEmailAddress(T *testing.T) {
 
 		result, err := service.UpdateUserEmailAddress(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -544,7 +545,7 @@ func TestServiceImpl_UpdateUserEmailAddress(T *testing.T) {
 
 		result, err := service.UpdateUserEmailAddress(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -575,7 +576,7 @@ func TestServiceImpl_UpdateUserUsername(T *testing.T) {
 
 		result, err := service.UpdateUserUsername(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})
@@ -591,7 +592,7 @@ func TestServiceImpl_UpdateUserUsername(T *testing.T) {
 
 		result, err := service.UpdateUserUsername(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -616,7 +617,7 @@ func TestServiceImpl_UpdateUserUsername(T *testing.T) {
 
 		result, err := service.UpdateUserUsername(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -739,7 +740,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 		stream := &grpc.GenericServerStream[uploadedmediasvc.UploadRequest, identitysvc.UploadUserAvatarResponse]{ServerStream: mockStream}
 		err := service.UploadUserAvatar(stream)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, identityDataManager.SetUserAvatarCalls(), 1)
 		assert.Len(t, uploadedMediaRepo.CreateUploadedMediaCalls(), 1)
 	})
@@ -754,7 +755,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 		stream := &grpc.GenericServerStream[uploadedmediasvc.UploadRequest, identitysvc.UploadUserAvatarResponse]{ServerStream: mockStream}
 		err := service.UploadUserAvatar(stream)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		grpcErr, ok := status.FromError(err)
 		assert.True(t, ok)
 		assert.Equal(t, codes.Unauthenticated, grpcErr.Code())
@@ -794,7 +795,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 		stream := &grpc.GenericServerStream[uploadedmediasvc.UploadRequest, identitysvc.UploadUserAvatarResponse]{ServerStream: mockStream}
 		err := service.UploadUserAvatar(stream)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		grpcErr, ok := status.FromError(err)
 		assert.True(t, ok)
 		assert.Equal(t, codes.Internal, grpcErr.Code())

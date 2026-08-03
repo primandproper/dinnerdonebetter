@@ -43,7 +43,7 @@ func TestRecipeLists_CompleteLifecycle(T *testing.T) {
 				Description: &newDesc,
 			},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = userClient.ArchiveRecipeList(ctx, &mealplanninggrpc.ArchiveRecipeListRequest{RecipeListId: listID})
 		assert.NoError(t, err)
@@ -110,7 +110,7 @@ func TestRecipeListItems_CompleteLifecycle(T *testing.T) {
 				Notes:               newNotes,
 			},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Archive item
 		_, err = userClient.ArchiveRecipeListItem(ctx, &mealplanninggrpc.ArchiveRecipeListItemRequest{

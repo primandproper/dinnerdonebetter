@@ -36,7 +36,7 @@ func TestAccounts_Creating(T *testing.T) {
 		exampleAccountInput := identitygrpcconverters.ConvertAccountCreationRequestInputToGRPCAccountCreationRequestInput(exampleAccount)
 
 		createdAccount, err := testClient.CreateAccount(ctx, &identitysvc.CreateAccountRequest{Input: exampleAccountInput})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, createdAccount)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, createdAccount.Created.Id, 10, []*ExpectedAuditEntry{
@@ -54,7 +54,7 @@ func TestAccounts_Creating(T *testing.T) {
 		exampleAccountInput := identitygrpcconverters.ConvertAccountCreationRequestInputToGRPCAccountCreationRequestInput(exampleAccount)
 
 		createdAccount, err := testClient.CreateAccount(ctx, &identitysvc.CreateAccountRequest{Input: exampleAccountInput})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, createdAccount)
 	})
 
@@ -70,7 +70,7 @@ func TestAccounts_Creating(T *testing.T) {
 		exampleAccountInput.Name = ""
 
 		createdAccount, err := testClient.CreateAccount(ctx, &identitysvc.CreateAccountRequest{Input: exampleAccountInput})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, createdAccount)
 	})
 }
@@ -97,7 +97,7 @@ func TestAccounts_Listing(T *testing.T) {
 		}
 
 		accounts, err := testClient.GetAccounts(ctx, &identitysvc.GetAccountsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, accounts)
 		assert.Equal(t, len(accounts.Results), len(createdAccounts)+defaultNumberOfAccountsAssociatedWithUsers)
 	})
@@ -132,7 +132,7 @@ func TestAccounts_Reading(T *testing.T) {
 		require.NotNil(t, createdAccount)
 
 		retrievedAccount, err := testClient.GetAccount(ctx, &identitysvc.GetAccountRequest{AccountId: createdAccount.Created.Id})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, createdAccount)
 
 		converted := identitygrpcconverters.ConvertGRPCAccountToAccount(retrievedAccount.Result)
@@ -165,7 +165,7 @@ func TestAccounts_Reading(T *testing.T) {
 		_, testClient := createUserAndClientForTest(t)
 
 		retrievedAccount, err := testClient.GetAccount(ctx, &identitysvc.GetAccountRequest{AccountId: nonexistentID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, retrievedAccount)
 	})
 }
@@ -197,10 +197,10 @@ func TestAccounts_Updating(T *testing.T) {
 			AccountId: converted.ID,
 			Input:     identitygrpcconverters.ConvertAccountUpdateRequestInputToGRPCAccountUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		updatedClient, err := testClient.GetAccount(ctx, &identitysvc.GetAccountRequest{AccountId: converted.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, updatedClient)
 		assert.Equal(t, converted.Name, updatedClient.Result.Name)
 
@@ -252,11 +252,11 @@ func TestAccounts_Updating(T *testing.T) {
 			AccountId: nonexistentID,
 			Input:     identitygrpcconverters.ConvertAccountUpdateRequestInputToGRPCAccountUpdateRequestInput(updateInput),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 
 		updatedClient, err := testClient.GetAccount(ctx, &identitysvc.GetAccountRequest{AccountId: converted.ID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, updatedClient)
 	})
 }
@@ -278,7 +278,7 @@ func TestAccounts_Archiving(T *testing.T) {
 		require.NotNil(t, createdAccount)
 
 		_, err = testClient.ArchiveAccount(ctx, &identitysvc.ArchiveAccountRequest{AccountId: createdAccount.Created.Id})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, createdAccount.Created.Id, 10, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "accounts", RelevantID: createdAccount.Created.Id},
@@ -567,7 +567,7 @@ func TestAccounts_Inviting(T *testing.T) {
 				Note:  t.Name(),
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		// verify that we don't have any sent invitations because they've all been accepted
 		sentInvitations, err = testClient.GetSentAccountInvitations(ctx, nil)
@@ -577,7 +577,7 @@ func TestAccounts_Inviting(T *testing.T) {
 
 		// validate we can see the webhook created before our user existed
 		webhook, err := inviteeClient.GetWebhook(ctx, &webhookssvc.GetWebhookRequest{WebhookId: createdWebhook.ID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, webhook)
 	})
 
@@ -685,7 +685,7 @@ func TestAccounts_GetAccountInvitation(T *testing.T) {
 		result, err := testClient.GetAccountInvitation(ctx, &identitysvc.GetAccountInvitationRequest{
 			AccountInvitationId: invitation.Created.Id,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, invitation.Created.Id, result.Result.Id)
 	})
@@ -699,7 +699,7 @@ func TestAccounts_GetAccountInvitation(T *testing.T) {
 		result, err := testClient.GetAccountInvitation(ctx, &identitysvc.GetAccountInvitationRequest{
 			AccountInvitationId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 	})
 
@@ -712,7 +712,7 @@ func TestAccounts_GetAccountInvitation(T *testing.T) {
 		result, err := testClient.GetAccountInvitation(ctx, &identitysvc.GetAccountInvitationRequest{
 			AccountInvitationId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 	})
 }
@@ -739,7 +739,7 @@ func TestAccounts_GetAccountsForUser(T *testing.T) {
 		accounts, err := adminClient.GetAccountsForUser(ctx, &identitysvc.GetAccountsForUserRequest{
 			UserId: user.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, accounts)
 		// 1 default account + 3 created accounts
 		assert.Len(t, accounts.Results, 4)
@@ -752,7 +752,7 @@ func TestAccounts_GetAccountsForUser(T *testing.T) {
 		accounts, err := adminClient.GetAccountsForUser(ctx, &identitysvc.GetAccountsForUserRequest{
 			UserId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, accounts)
 	})
 
@@ -766,7 +766,7 @@ func TestAccounts_GetAccountsForUser(T *testing.T) {
 		accounts, err := c.GetAccountsForUser(ctx, &identitysvc.GetAccountsForUserRequest{
 			UserId: user.ID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, accounts)
 	})
 
@@ -779,7 +779,7 @@ func TestAccounts_GetAccountsForUser(T *testing.T) {
 		accounts, err := testClient.GetAccountsForUser(ctx, &identitysvc.GetAccountsForUserRequest{
 			UserId: user.ID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, accounts)
 	})
 }

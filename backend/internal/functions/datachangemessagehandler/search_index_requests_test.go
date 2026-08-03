@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAsyncDataChangeMessageHandler_SearchIndexRequestsEventHandler(t *testing.T) {
@@ -18,7 +19,7 @@ func TestAsyncDataChangeMessageHandler_SearchIndexRequestsEventHandler(t *testin
 		rawMsg := []byte("invalid json")
 
 		err := handler.SearchIndexRequestsEventHandler("search_index_requests")(ctx, rawMsg)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "decoding JSON body")
 	})
 }

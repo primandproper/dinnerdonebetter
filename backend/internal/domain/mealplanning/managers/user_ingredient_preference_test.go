@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlanningManager_ListUserIngredientPreferences(T *testing.T) {
@@ -35,7 +36,7 @@ func TestMealPlanningManager_ListUserIngredientPreferences(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ListUserIngredientPreferences(ctx, exampleOwnerID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetUserIngredientPreferencesCalls(), 1)
@@ -63,7 +64,7 @@ func TestMealPlanningManager_CreateUserIngredientPreference(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateUserIngredientPreference(ctx, userID, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateUserIngredientPreferenceCalls(), 1)
@@ -96,7 +97,7 @@ func TestMealPlanningManager_UpdateUserIngredientPreference(T *testing.T) {
 		}
 		attachRepositoryToManager(mpm, db)
 
-		assert.NoError(t, mpm.UpdateUserIngredientPreference(ctx, exampleUserIngredientPreference.ID, ownerID, exampleInput))
+		require.NoError(t, mpm.UpdateUserIngredientPreference(ctx, exampleUserIngredientPreference.ID, ownerID, exampleInput))
 
 		assert.Len(t, db.GetUserIngredientPreferenceCalls(), 1)
 		assert.Len(t, db.UpdateUserIngredientPreferenceCalls(), 1)
@@ -126,7 +127,7 @@ func TestMealPlanningManager_ArchiveUserIngredientPreference(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		err := mpm.ArchiveUserIngredientPreference(ctx, ownershipID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.ArchiveUserIngredientPreferenceCalls(), 1)
 	})

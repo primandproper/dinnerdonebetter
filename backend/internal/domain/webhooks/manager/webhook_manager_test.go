@@ -96,7 +96,7 @@ func TestWebhookDataManager_CreateWebhook(t *testing.T) {
 
 		created, err := manager.CreateWebhook(ctx, "user-1", "account-1", nil)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 		assert.Empty(t, repo.CreateWebhookCalls())
 	})
@@ -117,7 +117,7 @@ func TestWebhookDataManager_CreateWebhook(t *testing.T) {
 
 		created, err := manager.CreateWebhook(ctx, "user-1", "account-1", input)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 		assert.Empty(t, repo.CreateWebhookCalls())
 	})
@@ -138,7 +138,7 @@ func TestWebhookDataManager_CreateWebhook(t *testing.T) {
 
 		created, err := manager.CreateWebhook(ctx, "user-1", "account-1", input)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 		assert.Len(t, repo.CreateWebhookCalls(), 1)
 	})
@@ -272,7 +272,7 @@ func TestWebhookDataManager_AddWebhookTriggerConfig(t *testing.T) {
 
 		result, err := manager.AddWebhookTriggerConfig(ctx, "account-1", nil)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 		assert.Empty(t, repo.AddWebhookTriggerConfigCalls())
 	})

@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidEnumerationManager_ListValidIngredientStateIngredients(T *testing.T) {
@@ -32,7 +33,7 @@ func TestValidEnumerationManager_ListValidIngredientStateIngredients(T *testing.
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidIngredientStateIngredients(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidIngredientStateIngredientsCalls(), 1)
@@ -59,7 +60,7 @@ func TestValidEnumerationManager_CreateValidIngredientStateIngredient(T *testing
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidIngredientStateIngredient(ctx, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateValidIngredientStateIngredientCalls(), 1)
@@ -87,7 +88,7 @@ func TestValidEnumerationManager_ReadValidIngredientStateIngredient(T *testing.T
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidIngredientStateIngredient(ctx, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidIngredientStateIngredientCalls(), 1)
@@ -120,7 +121,7 @@ func TestValidEnumerationManager_UpdateValidIngredientStateIngredient(T *testing
 
 		result, err := mpm.UpdateValidIngredientStateIngredient(ctx, exampleValidIngredientStateIngredient.ID, exampleInput)
 		assert.NotNil(t, result)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.GetValidIngredientStateIngredientCalls(), 2) // the manager re-reads the record after updating it
 		assert.Len(t, db.UpdateValidIngredientStateIngredientCalls(), 1)
@@ -147,7 +148,7 @@ func TestValidEnumerationManager_ArchiveValidIngredientStateIngredient(T *testin
 		}
 		attachRepositoryToManager(vem, db)
 
-		assert.NoError(t, vem.ArchiveValidIngredientStateIngredient(ctx, expected.ID))
+		require.NoError(t, vem.ArchiveValidIngredientStateIngredient(ctx, expected.ID))
 
 		assert.Len(t, db.ArchiveValidIngredientStateIngredientCalls(), 1)
 	})
@@ -175,7 +176,7 @@ func TestValidEnumerationManager_SearchValidIngredientStateIngredientsByIngredie
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidIngredientStateIngredientsByIngredient(ctx, exampleQuery, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidIngredientStateIngredientsForIngredientCalls(), 1)
@@ -204,7 +205,7 @@ func TestValidEnumerationManager_SearchValidIngredientStateIngredientsByIngredie
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidIngredientStateIngredientsByIngredientState(ctx, exampleQuery, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidIngredientStateIngredientsForIngredientStateCalls(), 1)

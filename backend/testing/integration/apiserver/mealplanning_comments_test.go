@@ -72,7 +72,7 @@ func TestComments_RecipeCompleteLifecycle(T *testing.T) {
 			CommentId: createdComment.Id,
 			Input:     &commentsgrpc.CommentUpdateRequestInput{Content: updatedContent},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// List again and verify update
 		listRes2, err := testClient.CommentsService().GetCommentsForReference(ctx, &commentsgrpc.GetCommentsForReferenceRequest{
@@ -91,7 +91,7 @@ func TestComments_RecipeCompleteLifecycle(T *testing.T) {
 		_, err = testClient.CommentsService().ArchiveComment(ctx, &commentsgrpc.ArchiveCommentRequest{
 			CommentId: createdComment.Id,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// List again - archived comment may or may not appear depending on implementation
 		listRes3, err := testClient.CommentsService().GetCommentsForReference(ctx, &commentsgrpc.GetCommentsForReferenceRequest{
@@ -124,7 +124,7 @@ func TestComments_RecipeCompleteLifecycle(T *testing.T) {
 			RecipeId: createdRecipe.ID,
 			Input:    &commentsgrpc.CommentCreationRequestInput{Content: "test"},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 
 		_, _ = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
@@ -143,7 +143,7 @@ func TestComments_RecipeCompleteLifecycle(T *testing.T) {
 			TargetType:   mealplanning.CommentTargetTypeRecipes,
 			ReferencedId: createdRecipe.ID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, listRes)
 
 		_, _ = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
@@ -162,7 +162,7 @@ func TestComments_RecipeCompleteLifecycle(T *testing.T) {
 			CommentId: createdComment.Id,
 			Input:     &commentsgrpc.CommentUpdateRequestInput{Content: "updated"},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		_, _ = testClient.CommentsService().ArchiveComment(ctx, &commentsgrpc.ArchiveCommentRequest{CommentId: createdComment.Id})
 		_, _ = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
@@ -180,7 +180,7 @@ func TestComments_RecipeCompleteLifecycle(T *testing.T) {
 		_, err := c.CommentsService().ArchiveComment(ctx, &commentsgrpc.ArchiveCommentRequest{
 			CommentId: createdComment.Id,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		_, _ = testClient.CommentsService().ArchiveComment(ctx, &commentsgrpc.ArchiveCommentRequest{CommentId: createdComment.Id})
 		_, _ = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})

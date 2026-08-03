@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecipeManager_ListRecipeStepVessels(T *testing.T) {
@@ -37,7 +38,7 @@ func TestRecipeManager_ListRecipeStepVessels(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ListRecipeStepVessels(ctx, exampleRecipeID, exampleRecipeStepID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRecipeStepVesselsCalls(), 1)
@@ -74,7 +75,7 @@ func TestRecipeManager_CreateRecipeStepVessel(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.CreateRecipeStepVessel(ctx, exampleRecipeID, exampleRecipeStepID, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidPreparationVesselCalls(), 1)
@@ -107,7 +108,7 @@ func TestRecipeManager_ReadRecipeStepVessel(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ReadRecipeStepVessel(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRecipeStepVesselCalls(), 1)
@@ -142,7 +143,7 @@ func TestRecipeManager_UpdateRecipeStepVessel(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		assert.NoError(t, rm.UpdateRecipeStepVessel(ctx, exampleRecipeID, exampleRecipeStepID, exampleRecipeStepVessel.ID, exampleInput))
+		require.NoError(t, rm.UpdateRecipeStepVessel(ctx, exampleRecipeID, exampleRecipeStepID, exampleRecipeStepVessel.ID, exampleInput))
 
 		assert.Len(t, db.GetRecipeStepVesselCalls(), 1)
 		assert.Len(t, db.UpdateRecipeStepVesselCalls(), 1)
@@ -172,7 +173,7 @@ func TestRecipeManager_ArchiveRecipeStepVessel(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		assert.NoError(t, rm.ArchiveRecipeStepVessel(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID))
+		require.NoError(t, rm.ArchiveRecipeStepVessel(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID))
 
 		assert.Len(t, db.ArchiveRecipeStepVesselCalls(), 1)
 	})

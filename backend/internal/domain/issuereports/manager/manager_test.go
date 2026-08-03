@@ -80,7 +80,7 @@ func TestIssueReportsDataManager_CreateIssueReport(t *testing.T) {
 
 		created, err := manager.CreateIssueReport(ctx, dbInput)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 		assert.Len(t, repo.CreateIssueReportCalls(), 1)
 	})

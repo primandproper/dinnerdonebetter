@@ -5,6 +5,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidMeasurementUnit_Update(T *testing.T) {
@@ -18,7 +19,7 @@ func TestValidMeasurementUnit_Update(T *testing.T) {
 		}
 		input := &ValidMeasurementUnitUpdateRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 		input.Volumetric = new(true)
 		input.Universal = new(true)
 		input.Imperial = new(false)

@@ -218,7 +218,7 @@ func TestQuerier_Integration_Recipes(t *testing.T) {
 	// update
 	updatedRecipe := buildRecipeForTestCreation(t, ctx, user.ID, dbc)
 	updatedRecipe.ID = createdRecipes[0].ID
-	assert.NoError(t, dbc.UpdateRecipe(ctx, updatedRecipe))
+	require.NoError(t, dbc.UpdateRecipe(ctx, updatedRecipe))
 
 	// create more
 	for i := range exampleQuantity {
@@ -229,21 +229,21 @@ func TestQuerier_Integration_Recipes(t *testing.T) {
 
 	// fetch as list
 	recipes, err := dbc.GetRecipes(ctx, mealplanning.RecipeStatusSubmitted, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, recipes.Data)
 	assert.Len(t, recipes.Data, len(createdRecipes))
 
 	needingIndexing, err := dbc.GetRecipeIDsThatNeedSearchIndexing(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, needingIndexing)
 
 	// search
 	searchResults, err := dbc.SearchForRecipes(ctx, createdRecipes[0].Name, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, searchResults)
 
 	byIDs, err := dbc.GetRecipesWithIDs(ctx, []string{createdRecipes[0].ID})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, byIDs)
 	assert.Equal(t, createdRecipes[0].ID, byIDs[0].ID)
 
@@ -254,7 +254,7 @@ func TestQuerier_Integration_Recipes(t *testing.T) {
 
 		var exists bool
 		exists, err = dbc.RecipeExists(ctx, recipe.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 	}
 }
@@ -348,7 +348,7 @@ func TestQuerier_RecipeExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.RecipeExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -363,7 +363,7 @@ func TestQuerier_CreateRecipe(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateRecipe(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

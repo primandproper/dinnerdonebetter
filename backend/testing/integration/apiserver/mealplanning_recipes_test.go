@@ -454,7 +454,7 @@ func TestRecipes_Creating(T *testing.T) {
 		created, err := c.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -471,7 +471,7 @@ func TestRecipes_Creating(T *testing.T) {
 		created, err := testClient.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -621,7 +621,7 @@ func TestRecipes_Searching(T *testing.T) {
 		results, err := c.SearchForRecipes(ctx, &mealplanninggrpc.SearchForRecipesRequest{
 			Query: "test",
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, results)
 	})
 }
@@ -695,7 +695,7 @@ func TestRecipes_SearchForRecipesWithInstrumentOwnership(T *testing.T) {
 		results, err := c.SearchForRecipesWithInstrumentOwnership(ctx, &mealplanninggrpc.SearchForRecipesWithInstrumentOwnershipRequest{
 			Query: "test",
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, results)
 	})
 }
@@ -727,7 +727,7 @@ func TestRecipes_Cloning(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 		cloned, err := c.CloneRecipe(ctx, &mealplanninggrpc.CloneRecipeRequest{RecipeId: createdRecipe.ID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, cloned)
 	})
 
@@ -736,7 +736,7 @@ func TestRecipes_Cloning(T *testing.T) {
 		ctx := t.Context()
 
 		cloned, err := adminClient.CloneRecipe(ctx, &mealplanninggrpc.CloneRecipeRequest{RecipeId: nonexistentID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, cloned)
 	})
 
@@ -748,7 +748,7 @@ func TestRecipes_Cloning(T *testing.T) {
 		_, _, createdRecipe := createRecipeForTest(t, nil)
 
 		cloned, err := testClient.CloneRecipe(ctx, &mealplanninggrpc.CloneRecipeRequest{RecipeId: createdRecipe.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, cloned)
 	})
 }
@@ -1785,7 +1785,7 @@ func TestRecipes_Reading(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 		recipe, err := c.GetRecipe(ctx, &mealplanninggrpc.GetRecipeRequest{RecipeId: createdRecipe.ID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, recipe)
 	})
 
@@ -1794,7 +1794,7 @@ func TestRecipes_Reading(T *testing.T) {
 		ctx := t.Context()
 
 		recipe, err := adminClient.GetRecipe(ctx, &mealplanninggrpc.GetRecipeRequest{RecipeId: nonexistentID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, recipe)
 	})
 }
@@ -1872,7 +1872,7 @@ func TestRecipes_Validation(T *testing.T) {
 		_, err := adminClient.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{
 			Input: converters.ConvertRecipeCreationRequestInputToGRPCRecipeCreationRequestInput(input),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "at least 2 steps")
 	})
 
@@ -2086,7 +2086,7 @@ func TestRecipes_Validation(T *testing.T) {
 		_, err := adminClient.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{
 			Input: converters.ConvertRecipeCreationRequestInputToGRPCRecipeCreationRequestInput(input),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "at least one instrument or vessel")
 	})
 
@@ -2161,7 +2161,7 @@ func TestRecipes_Validation(T *testing.T) {
 		_, err := adminClient.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{
 			Input: converters.ConvertRecipeCreationRequestInputToGRPCRecipeCreationRequestInput(input),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "step 0 ingredient 0")
 		assert.Contains(t, err.Error(), "ValidIngredientPreparation")
 		assert.Contains(t, err.Error(), "not found")
@@ -2240,7 +2240,7 @@ func TestRecipes_Validation(T *testing.T) {
 		_, err := adminClient.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{
 			Input: converters.ConvertRecipeCreationRequestInputToGRPCRecipeCreationRequestInput(input),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "step 0 ingredient 0")
 		assert.Contains(t, err.Error(), "is for preparation")
 		assert.Contains(t, err.Error(), "but step uses preparation")
@@ -2319,7 +2319,7 @@ func TestRecipes_Validation(T *testing.T) {
 		_, err := adminClient.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{
 			Input: converters.ConvertRecipeCreationRequestInputToGRPCRecipeCreationRequestInput(input),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "step 0 instrument 0")
 		assert.Contains(t, err.Error(), "is for preparation")
 		assert.Contains(t, err.Error(), "but step uses preparation")
@@ -2398,7 +2398,7 @@ func TestRecipes_Validation(T *testing.T) {
 		_, err := adminClient.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{
 			Input: converters.ConvertRecipeCreationRequestInputToGRPCRecipeCreationRequestInput(input),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "step 0 ingredient 0")
 		assert.Contains(t, err.Error(), "ValidIngredientMeasurementUnit")
 		assert.Contains(t, err.Error(), "is for ingredient")
@@ -2816,7 +2816,7 @@ func TestRecipes_Listing(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 		recipes, err := c.GetRecipes(ctx, &mealplanninggrpc.GetRecipesRequest{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, recipes)
 	})
 }
@@ -2844,7 +2844,7 @@ func TestRecipes_SearchForMealEligibleRecipes(T *testing.T) {
 		results, err := c.SearchForMealEligibleRecipes(ctx, &mealplanninggrpc.SearchForMealEligibleRecipesRequest{
 			Query: "test",
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, results)
 	})
 }
@@ -2875,7 +2875,7 @@ func TestRecipes_EstimateRecipePrepTasks(T *testing.T) {
 		results, err := c.EstimateRecipePrepTasks(ctx, &mealplanninggrpc.EstimateRecipePrepTasksRequest{
 			RecipeId: createdRecipe.ID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, results)
 	})
 
@@ -2886,7 +2886,7 @@ func TestRecipes_EstimateRecipePrepTasks(T *testing.T) {
 		results, err := adminClient.EstimateRecipePrepTasks(ctx, &mealplanninggrpc.EstimateRecipePrepTasksRequest{
 			RecipeId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, results)
 	})
 }
@@ -3078,7 +3078,7 @@ func TestRecipes_AssociatedRecipes(T *testing.T) {
 
 		// Cleanup
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: secondRecipe.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: firstRecipe.ID})
 		assert.NoError(t, err)
 	})

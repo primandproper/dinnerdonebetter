@@ -56,7 +56,7 @@ func TestCommentsManager_CreateComment(t *testing.T) {
 		attachRepositoryToCommentsManager(cm, repo)
 
 		actual, err := cm.CreateComment(ctx, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, repo.CreateCommentCalls(), 1)
@@ -89,7 +89,7 @@ func TestCommentsManager_UpdateComment(t *testing.T) {
 		attachRepositoryToCommentsManager(cm, repo)
 
 		err := cm.UpdateComment(ctx, commentID, belongsToUser, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, repo.UpdateCommentCalls(), 1)
 	})
@@ -116,7 +116,7 @@ func TestCommentsManager_ArchiveComment(t *testing.T) {
 		attachRepositoryToCommentsManager(cm, repo)
 
 		err := cm.ArchiveComment(ctx, commentID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, repo.ArchiveCommentCalls(), 1)
 	})

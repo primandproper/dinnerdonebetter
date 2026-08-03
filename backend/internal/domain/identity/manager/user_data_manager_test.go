@@ -113,7 +113,7 @@ func TestIdentityDataManager_AcceptAccountInvitation(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.AcceptAccountInvitation(ctx, accountID, accountInvitationID, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.GetAccountInvitationByTokenAndIDCalls(), 1)
 		assert.Len(t, db.AcceptAccountInvitationCalls(), 1)
@@ -152,7 +152,7 @@ func TestIdentityDataManager_RejectAccountInvitation(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.RejectAccountInvitation(ctx, accountID, accountInvitationID, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.GetAccountInvitationByTokenAndIDCalls(), 1)
 		assert.Len(t, db.RejectAccountInvitationCalls(), 1)
@@ -183,7 +183,7 @@ func TestIdentityDataManager_CancelAccountInvitation(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.CancelAccountInvitation(ctx, accountID, accountInvitationID, note)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.CancelAccountInvitationCalls(), 1)
 	})
@@ -211,7 +211,7 @@ func TestIdentityDataManager_ArchiveAccount(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.ArchiveAccount(ctx, accountID, ownerID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.ArchiveAccountCalls(), 1)
 	})
@@ -239,7 +239,7 @@ func TestIdentityDataManager_ArchiveUserMembership(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.ArchiveUserMembership(ctx, userID, accountID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.RemoveUserFromAccountCalls(), 1)
 	})
@@ -265,7 +265,7 @@ func TestIdentityDataManager_ArchiveUser(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.ArchiveUser(ctx, userID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.ArchiveUserCalls(), 1)
 	})
@@ -292,7 +292,7 @@ func TestIdentityDataManager_CreateAccount(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.CreateAccount(ctx, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateAccountCalls(), 1)
@@ -328,7 +328,7 @@ func TestIdentityDataManager_CreateAccountInvitation(T *testing.T) {
 		attachMocksToIdentityDataManager(m, db, secretGenerator, nil, nil)
 
 		actual, err := m.CreateAccountInvitation(ctx, userID, accountID, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateAccountInvitationCalls(), 1)
@@ -380,7 +380,7 @@ func TestIdentityDataManager_CreateUser(T *testing.T) {
 		attachMocksToIdentityDataManager(m, db, secretGenerator, authenticator, nil)
 
 		actual, err := m.CreateUser(ctx, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Equal(t, expected.ID, actual.CreatedUserID)
 		assert.True(t, strings.HasPrefix(actual.TwoFactorQRCode, "data:image/png;base64,"), "two factor QR code should be a PNG data URI")
@@ -417,7 +417,7 @@ func TestIdentityDataManager_GetAccount(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetAccount(ctx, accountID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetAccountCalls(), 1)
@@ -447,7 +447,7 @@ func TestIdentityDataManager_GetAccountInvitation(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetAccountInvitation(ctx, accountID, accountInvitationID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetAccountInvitationByAccountAndIDCalls(), 1)
@@ -476,7 +476,7 @@ func TestIdentityDataManager_GetAccounts(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetAccounts(ctx, userID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetAccountsCalls(), 1)
@@ -505,7 +505,7 @@ func TestIdentityDataManager_GetReceivedAccountInvitations(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetReceivedAccountInvitations(ctx, userID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetPendingAccountInvitationsForUserCalls(), 1)
@@ -534,7 +534,7 @@ func TestIdentityDataManager_GetSentAccountInvitations(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetSentAccountInvitations(ctx, userID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetPendingAccountInvitationsFromUserCalls(), 1)
@@ -562,7 +562,7 @@ func TestIdentityDataManager_GetUser(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetUser(ctx, userID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetUserCalls(), 1)
@@ -589,7 +589,7 @@ func TestIdentityDataManager_GetUsers(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetUsers(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetUsersCalls(), 1)
@@ -618,7 +618,7 @@ func TestIdentityDataManager_GetUsersForAccount(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.GetUsersForAccount(ctx, accountID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetUsersForAccountCalls(), 1)
@@ -647,7 +647,7 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		actual, err := m.SearchForUsers(ctx, query, false, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.SearchForUsersByUsernameCalls(), 1)
@@ -686,7 +686,7 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 		attachMocksToIdentityDataManager(m, db, nil, nil, searchIndex)
 
 		actual, err := m.SearchForUsers(ctx, query, true, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Len(t, actual.Data, 2)
 
@@ -737,7 +737,7 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 		attachMocksToIdentityDataManager(m, db, nil, nil, searchIndex)
 
 		actual, err := m.SearchForUsers(ctx, query, true, filter)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Len(t, actual.Data, 2)
 		assert.Equal(t, uint64(2), actual.FilteredCount)
@@ -775,7 +775,7 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 		attachMocksToIdentityDataManager(m, db, nil, nil, searchIndex)
 
 		actual, err := m.SearchForUsers(ctx, query, true, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Empty(t, actual.Cursor)
 
@@ -805,7 +805,7 @@ func TestIdentityDataManager_SetDefaultAccount(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.SetDefaultAccount(ctx, userID, accountID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.MarkAccountAsUserDefaultCalls(), 1)
 	})
@@ -833,7 +833,7 @@ func TestIdentityDataManager_TransferAccountOwnership(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.TransferAccountOwnership(ctx, accountID, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.TransferAccountOwnershipCalls(), 1)
 	})
@@ -866,7 +866,7 @@ func TestIdentityDataManager_UpdateAccount(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.UpdateAccount(ctx, accountID, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.GetAccountCalls(), 1)
 		assert.Len(t, db.UpdateAccountCalls(), 1)
@@ -897,7 +897,7 @@ func TestIdentityDataManager_UpdateAccountMemberPermissions(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.UpdateAccountMemberPermissions(ctx, accountID, userID, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.ModifyUserPermissionsCalls(), 1)
 	})
@@ -925,7 +925,7 @@ func TestIdentityDataManager_UpdateUserDetails(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.UpdateUserDetails(ctx, userID, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.UpdateUserDetailsCalls(), 1)
 	})
@@ -953,7 +953,7 @@ func TestIdentityDataManager_UpdateUserEmailAddress(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.UpdateUserEmailAddress(ctx, userID, newEmail)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.UpdateUserEmailAddressCalls(), 1)
 	})
@@ -981,7 +981,7 @@ func TestIdentityDataManager_UpdateUserUsername(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.UpdateUserUsername(ctx, userID, newUsername)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.UpdateUserUsernameCalls(), 1)
 	})
@@ -1009,7 +1009,7 @@ func TestIdentityDataManager_SetUserAvatar(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.SetUserAvatar(ctx, userID, uploadedMediaID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.SetUserAvatarCalls(), 1)
 	})
@@ -1039,7 +1039,7 @@ func TestIdentityDataManager_AdminUpdateUserStatus(T *testing.T) {
 		attachRepositoryToIdentityDataManager(m, db)
 
 		err := m.AdminUpdateUserStatus(ctx, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.UpdateUserAccountStatusCalls(), 1)
 	})

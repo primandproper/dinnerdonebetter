@@ -112,7 +112,7 @@ func TestCollector_Collect(T *testing.T) {
 
 		fragment, err := collector.Collect(t.Context(), subject(identifiers.New()))
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, fragment)
 	})
 }
@@ -151,7 +151,7 @@ func TestResolveAccountIDs(T *testing.T) {
 
 		ids, err := ResolveAccountIDs(repo)(t.Context(), identifiers.New())
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, ids)
 	})
 }

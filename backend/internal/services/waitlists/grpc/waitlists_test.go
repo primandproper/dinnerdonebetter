@@ -20,6 +20,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -96,7 +97,7 @@ func TestServiceImpl_CreateWaitlist(t *testing.T) {
 
 		response, err := service.CreateWaitlist(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Created)
 		assert.NotNil(t, response.ResponseDetails)
@@ -123,7 +124,7 @@ func TestServiceImpl_CreateWaitlist(t *testing.T) {
 
 		response, err := service.CreateWaitlist(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -145,7 +146,7 @@ func TestServiceImpl_CreateWaitlist(t *testing.T) {
 
 		response, err := service.CreateWaitlist(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
@@ -172,7 +173,7 @@ func TestServiceImpl_CreateWaitlist(t *testing.T) {
 
 		response, err := service.CreateWaitlist(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -204,7 +205,7 @@ func TestServiceImpl_GetWaitlist(t *testing.T) {
 
 		response, err := service.GetWaitlist(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Result)
 		assert.NotNil(t, response.ResponseDetails)
@@ -234,7 +235,7 @@ func TestServiceImpl_GetWaitlist(t *testing.T) {
 
 		response, err := service.GetWaitlist(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -263,7 +264,7 @@ func TestServiceImpl_GetWaitlists(t *testing.T) {
 
 		response, err := service.GetWaitlists(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Len(t, response.Results, len(fakeWaitlists.Data))
@@ -290,7 +291,7 @@ func TestServiceImpl_GetWaitlists(t *testing.T) {
 
 		response, err := service.GetWaitlists(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -319,7 +320,7 @@ func TestServiceImpl_GetActiveWaitlists(t *testing.T) {
 
 		response, err := service.GetActiveWaitlists(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Len(t, response.Results, len(fakeWaitlists.Data))
@@ -346,7 +347,7 @@ func TestServiceImpl_GetActiveWaitlists(t *testing.T) {
 
 		response, err := service.GetActiveWaitlists(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -385,7 +386,7 @@ func TestServiceImpl_UpdateWaitlist(t *testing.T) {
 
 		response, err := service.UpdateWaitlist(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Updated)
 		assert.NotNil(t, response.ResponseDetails)
@@ -415,7 +416,7 @@ func TestServiceImpl_UpdateWaitlist(t *testing.T) {
 
 		response, err := service.UpdateWaitlist(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -450,7 +451,7 @@ func TestServiceImpl_UpdateWaitlist(t *testing.T) {
 
 		response, err := service.UpdateWaitlist(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -482,7 +483,7 @@ func TestServiceImpl_ArchiveWaitlist(t *testing.T) {
 
 		response, err := service.ArchiveWaitlist(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 
@@ -509,7 +510,7 @@ func TestServiceImpl_ArchiveWaitlist(t *testing.T) {
 
 		response, err := service.ArchiveWaitlist(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -540,7 +541,7 @@ func TestServiceImpl_WaitlistIsNotExpired(t *testing.T) {
 
 		response, err := service.WaitlistIsNotExpired(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.True(t, response.IsNotExpired)
@@ -568,7 +569,7 @@ func TestServiceImpl_WaitlistIsNotExpired(t *testing.T) {
 
 		response, err := service.WaitlistIsNotExpired(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.False(t, response.IsNotExpired)
@@ -596,7 +597,7 @@ func TestServiceImpl_WaitlistIsNotExpired(t *testing.T) {
 
 		response, err := service.WaitlistIsNotExpired(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -629,7 +630,7 @@ func TestServiceImpl_CreateWaitlistSignup(t *testing.T) {
 
 		response, err := service.CreateWaitlistSignup(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Created)
 		assert.NotNil(t, response.ResponseDetails)
@@ -654,7 +655,7 @@ func TestServiceImpl_CreateWaitlistSignup(t *testing.T) {
 
 		response, err := service.CreateWaitlistSignup(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -675,7 +676,7 @@ func TestServiceImpl_CreateWaitlistSignup(t *testing.T) {
 
 		response, err := service.CreateWaitlistSignup(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
@@ -701,7 +702,7 @@ func TestServiceImpl_CreateWaitlistSignup(t *testing.T) {
 
 		response, err := service.CreateWaitlistSignup(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -737,7 +738,7 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 
 		response, err := service.GetWaitlistSignup(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Result)
 		assert.NotNil(t, response.ResponseDetails)
@@ -771,7 +772,7 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 
 		response, err := service.GetWaitlistSignup(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 
 		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
@@ -801,7 +802,7 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 
 		response, err := service.GetWaitlistSignup(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
@@ -821,7 +822,7 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 
 		response, err := service.GetWaitlistSignup(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -849,7 +850,7 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 
 		response, err := service.GetWaitlistSignup(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -882,7 +883,7 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 
 		response, err := service.GetWaitlistSignupsForWaitlist(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Len(t, response.Results, len(fakeSignups.Data))
@@ -906,7 +907,7 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 
 		response, err := service.GetWaitlistSignupsForWaitlist(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	})
@@ -924,7 +925,7 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 
 		response, err := service.GetWaitlistSignupsForWaitlist(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -950,7 +951,7 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 
 		response, err := service.GetWaitlistSignupsForWaitlist(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -993,7 +994,7 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 
 		response, err := service.UpdateWaitlistSignup(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Updated)
 		assert.NotNil(t, response.ResponseDetails)
@@ -1030,7 +1031,7 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 
 		response, err := service.UpdateWaitlistSignup(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
@@ -1051,7 +1052,7 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 
 		response, err := service.UpdateWaitlistSignup(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -1080,7 +1081,7 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 
 		response, err := service.UpdateWaitlistSignup(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -1119,7 +1120,7 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 
 		response, err := service.UpdateWaitlistSignup(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -1158,7 +1159,7 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 
 		response, err := service.ArchiveWaitlistSignup(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 
@@ -1192,7 +1193,7 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 
 		response, err := service.ArchiveWaitlistSignup(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 
 		assert.Len(t, mockRepo.GetWaitlistSignupByIDCalls(), 1)
@@ -1220,7 +1221,7 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 
 		response, err := service.ArchiveWaitlistSignup(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
@@ -1239,7 +1240,7 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 
 		response, err := service.ArchiveWaitlistSignup(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -1264,7 +1265,7 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 
 		response, err := service.ArchiveWaitlistSignup(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -1298,7 +1299,7 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 
 		response, err := service.ArchiveWaitlistSignup(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 

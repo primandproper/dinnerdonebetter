@@ -12,6 +12,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlanningManager_ListMealPlanOptionVotes(T *testing.T) {
@@ -40,7 +41,7 @@ func TestMealPlanningManager_ListMealPlanOptionVotes(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ListMealPlanOptionVotes(ctx, exampleMealPlanID, exampleMealPlanEventID, exampleMealPlanOptionID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealPlanOptionVotesCalls(), 1)
@@ -89,7 +90,7 @@ func TestMealPlanningManager_CreateMealPlanOptionVotes(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMealPlanOptionVotes(ctx, exampleMealPlanID, exampleMealPlanEventID, creatorID, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.MealPlanEventIsEligibleForVotingCalls(), 1)
@@ -120,7 +121,7 @@ func TestMealPlanningManager_CreateMealPlanOptionVotes(T *testing.T) {
 
 		actual, err := mpm.CreateMealPlanOptionVotes(ctx, exampleMealPlanID, exampleMealPlanEventID, creatorID, fakeInput)
 		assert.Nil(t, actual)
-		assert.ErrorIs(t, err, types.ErrMealPlanEventNotEligibleForVoting)
+		require.ErrorIs(t, err, types.ErrMealPlanEventNotEligibleForVoting)
 
 		assert.Len(t, db.MealPlanEventIsEligibleForVotingCalls(), 1)
 	})
@@ -154,7 +155,7 @@ func TestMealPlanningManager_CreateMealPlanOptionVotes(T *testing.T) {
 
 		actual, err := mpm.CreateMealPlanOptionVotes(ctx, exampleMealPlanID, exampleMealPlanEventID, creatorID, fakeInput)
 		assert.Nil(t, actual)
-		assert.ErrorIs(t, err, types.ErrMealPlanOptionNotFoundForEvent)
+		require.ErrorIs(t, err, types.ErrMealPlanOptionNotFoundForEvent)
 
 		assert.Len(t, db.MealPlanEventIsEligibleForVotingCalls(), 1)
 		assert.Len(t, db.GetMealPlanOptionCalls(), 1)
@@ -188,7 +189,7 @@ func TestMealPlanningManager_ReadMealPlanOptionVote(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ReadMealPlanOptionVote(ctx, exampleMealPlanID, exampleMealPlanEventID, exampleMealPlanOptionID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealPlanOptionVoteCalls(), 1)
@@ -225,7 +226,7 @@ func TestMealPlanningManager_UpdateMealPlanOptionVote(T *testing.T) {
 		}
 		attachRepositoryToManager(mpm, db)
 
-		assert.NoError(t, mpm.UpdateMealPlanOptionVote(ctx, exampleMealPlanID, exampleMealPlanEventID, exampleMealPlanOptionID, exampleMealPlanOptionVote.ID, exampleInput))
+		require.NoError(t, mpm.UpdateMealPlanOptionVote(ctx, exampleMealPlanID, exampleMealPlanEventID, exampleMealPlanOptionID, exampleMealPlanOptionVote.ID, exampleInput))
 
 		assert.Len(t, db.GetMealPlanOptionVoteCalls(), 1)
 		assert.Len(t, db.UpdateMealPlanOptionVoteCalls(), 1)
@@ -259,7 +260,7 @@ func TestMealPlanningManager_ArchiveMealPlanOptionVote(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		err := mpm.ArchiveMealPlanOptionVote(ctx, mealPlanID, mealPlanEventID, mealPlanOptionID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.ArchiveMealPlanOptionVoteCalls(), 1)
 	})

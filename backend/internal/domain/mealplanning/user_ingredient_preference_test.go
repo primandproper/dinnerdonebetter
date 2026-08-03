@@ -6,6 +6,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUserIngredientPreference_Update(T *testing.T) {
@@ -17,7 +18,7 @@ func TestUserIngredientPreference_Update(T *testing.T) {
 		x := &UserIngredientPreference{}
 		input := &UserIngredientPreferenceUpdateRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 
 		x.Update(input)
 	})

@@ -12,6 +12,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlanningManager_ListMealPlanEvents(T *testing.T) {
@@ -36,7 +37,7 @@ func TestMealPlanningManager_ListMealPlanEvents(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ListMealPlanEvents(ctx, exampleMealPlanID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealPlanEventsCalls(), 1)
@@ -63,7 +64,7 @@ func TestMealPlanningManager_CreateMealPlanEvent(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMealPlanEvent(ctx, expected.BelongsToMealPlan, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateMealPlanEventCalls(), 1)
@@ -93,7 +94,7 @@ func TestMealPlanningManager_ReadMealPlanEvent(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ReadMealPlanEvent(ctx, exampleMealPlanID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealPlanEventCalls(), 1)
@@ -127,7 +128,7 @@ func TestMealPlanningManager_UpdateMealPlanEvent(T *testing.T) {
 		}
 		attachRepositoryToManager(mpm, db)
 
-		assert.NoError(t, mpm.UpdateMealPlanEvent(ctx, exampleMealPlanID, exampleMealPlanEvent.ID, exampleInput))
+		require.NoError(t, mpm.UpdateMealPlanEvent(ctx, exampleMealPlanID, exampleMealPlanEvent.ID, exampleInput))
 
 		assert.Len(t, db.GetMealPlanEventCalls(), 1)
 		assert.Len(t, db.UpdateMealPlanEventCalls(), 1)
@@ -163,7 +164,7 @@ func TestMealPlanningManager_UpdateMealPlanEvent(T *testing.T) {
 		}
 		attachRepositoryToManager(mpm, db)
 
-		assert.NoError(t, mpm.UpdateMealPlanEvent(ctx, exampleMealPlanID, exampleMealPlanEvent.ID, exampleInput))
+		require.NoError(t, mpm.UpdateMealPlanEvent(ctx, exampleMealPlanID, exampleMealPlanEvent.ID, exampleInput))
 
 		assert.Len(t, db.GetMealPlanEventCalls(), 1)
 		assert.Len(t, db.UpdateMealPlanEventCalls(), 1)
@@ -202,7 +203,7 @@ func TestMealPlanningManager_SwapMealPlanEvents(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		err := mpm.SwapMealPlanEvents(ctx, mealPlanID, eventIDA, eventIDB)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.SwapMealPlanEventsCalls(), 1)
 		assert.Len(t, db.ClearMealPlanTaskNotificationSentForEventCalls(), 2)
@@ -232,7 +233,7 @@ func TestMealPlanningManager_ArchiveMealPlanEvent(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		err := mpm.ArchiveMealPlanEvent(ctx, mealPlanID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.ArchiveMealPlanEventCalls(), 1)
 	})

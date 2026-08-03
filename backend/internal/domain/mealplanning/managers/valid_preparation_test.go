@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidEnumerationManager_SearchValidPreparations(T *testing.T) {
@@ -46,7 +47,7 @@ func TestValidEnumerationManager_SearchValidPreparations(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidPreparations(ctx, exampleQuery, false, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.SearchForValidPreparationsCalls(), 1)
@@ -84,7 +85,7 @@ func TestValidEnumerationManager_ListValidPreparations(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidPreparations(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidPreparationsCalls(), 1)
@@ -112,7 +113,7 @@ func TestValidEnumerationManager_CreateValidPreparation(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidPreparation(ctx, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateValidPreparationCalls(), 1)
@@ -145,7 +146,7 @@ func TestValidEnumerationManager_ReadValidPreparation(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidPreparation(ctx, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidPreparationCalls(), 1)
@@ -177,7 +178,7 @@ func TestValidEnumerationManager_RandomValidPreparation(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.RandomValidPreparation(ctx)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRandomValidPreparationCalls(), 1)
@@ -216,7 +217,7 @@ func TestValidEnumerationManager_UpdateValidPreparation(T *testing.T) {
 
 		result, err := mpm.UpdateValidPreparation(ctx, exampleValidPreparation.ID, exampleInput)
 		assert.NotNil(t, result)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.GetValidPreparationCalls(), 2) // the manager re-reads the record after updating it
 		assert.Len(t, db.UpdateValidPreparationCalls(), 1)
@@ -244,7 +245,7 @@ func TestValidEnumerationManager_ArchiveValidPreparation(T *testing.T) {
 		}
 		attachRepositoryToManager(vem, db)
 
-		assert.NoError(t, vem.ArchiveValidPreparation(ctx, expected.ID))
+		require.NoError(t, vem.ArchiveValidPreparation(ctx, expected.ID))
 
 		assert.Len(t, db.ArchiveValidPreparationCalls(), 1)
 	})

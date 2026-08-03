@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlanningManager_ListMealLists(T *testing.T) {
@@ -40,7 +41,7 @@ func TestMealPlanningManager_ListMealLists(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ListMealLists(ctx, ml.BelongsToUser, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealListsCalls(), 1)
@@ -76,7 +77,7 @@ func TestMealPlanningManager_CreateMealList(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMealList(ctx, userID, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateMealListCalls(), 1)
@@ -105,7 +106,7 @@ func TestMealPlanningManager_ArchiveMealList(T *testing.T) {
 		}
 		attachRepositoryToManager(mpm, db)
 
-		assert.NoError(t, mpm.ArchiveMealList(ctx, listID, userID))
+		require.NoError(t, mpm.ArchiveMealList(ctx, listID, userID))
 
 		assert.Len(t, db.ArchiveMealListCalls(), 1)
 	})
@@ -136,7 +137,7 @@ func TestMealPlanningManager_UpdateMealList(T *testing.T) {
 		}
 		attachRepositoryToManager(mpm, db)
 
-		assert.NoError(t, mpm.UpdateMealList(ctx, listID, userID, input))
+		require.NoError(t, mpm.UpdateMealList(ctx, listID, userID, input))
 
 		assert.Len(t, db.UpdateMealListCalls(), 1)
 	})

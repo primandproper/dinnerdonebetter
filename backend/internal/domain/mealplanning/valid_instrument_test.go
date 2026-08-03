@@ -5,6 +5,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidInstrument_Update(T *testing.T) {
@@ -16,7 +17,7 @@ func TestValidInstrument_Update(T *testing.T) {
 		x := &ValidInstrument{}
 
 		input := &ValidInstrumentUpdateRequestInput{}
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 		input.UsableForStorage = new(true)
 		input.DisplayInSummaryLists = new(true)
 		input.IncludeInGeneratedInstructions = new(true)

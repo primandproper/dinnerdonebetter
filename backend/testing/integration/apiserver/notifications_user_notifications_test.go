@@ -40,7 +40,7 @@ func TestUserNotifications_Reading(T *testing.T) {
 		created := createUserNotificationForTest(t, user.ID)
 
 		retrieved, err := testClient.GetUserNotification(ctx, &notificationssvc.GetUserNotificationRequest{UserNotificationId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		converted := grpcconverters.ConvertGRPCUserNotificationToUserNotification(retrieved.Result)
 
@@ -86,7 +86,7 @@ func TestUserNotifications_Updating(T *testing.T) {
 			UserNotificationId: created.ID,
 			Input:              grpcconverters.ConvertUserNotificationUpdateRequestInputToGRPCUserNotificationUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		updated := grpcconverters.ConvertGRPCUserNotificationToUserNotification(response.Updated)
 		// Ensure UpdatedAt was set

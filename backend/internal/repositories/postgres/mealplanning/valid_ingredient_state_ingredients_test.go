@@ -31,7 +31,7 @@ func createValidIngredientStateIngredientForTest(t *testing.T, ctx context.Conte
 	dbInput := converters.ConvertValidIngredientStateIngredientToValidIngredientStateIngredientDatabaseCreationInput(exampleValidIngredientStateIngredient)
 
 	created, err := dbc.CreateValidIngredientStateIngredient(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 	exampleValidIngredientStateIngredient.CreatedAt = created.CreatedAt
 	assert.Equal(t, exampleValidIngredientStateIngredient, created)
@@ -41,7 +41,7 @@ func createValidIngredientStateIngredientForTest(t *testing.T, ctx context.Conte
 	exampleValidIngredientStateIngredient.IngredientState = validIngredientStateIngredient.IngredientState
 	exampleValidIngredientStateIngredient.Ingredient = validIngredientStateIngredient.Ingredient
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validIngredientStateIngredient, exampleValidIngredientStateIngredient)
 
 	return validIngredientStateIngredient
@@ -66,7 +66,7 @@ func TestQuerier_Integration_ValidIngredientStateIngredients(t *testing.T) {
 	updatedValidIngredientStateIngredient.ID = createdValidIngredientStateIngredients[0].ID
 	updatedValidIngredientStateIngredient.IngredientState = createdValidIngredientStateIngredients[0].IngredientState
 	updatedValidIngredientStateIngredient.Ingredient = createdValidIngredientStateIngredients[0].Ingredient
-	assert.NoError(t, dbc.UpdateValidIngredientStateIngredient(ctx, updatedValidIngredientStateIngredient))
+	require.NoError(t, dbc.UpdateValidIngredientStateIngredient(ctx, updatedValidIngredientStateIngredient))
 
 	// create more (each must have unique ingredient+state per active row)
 	for range exampleQuantity {
@@ -79,31 +79,31 @@ func TestQuerier_Integration_ValidIngredientStateIngredients(t *testing.T) {
 
 	// fetch as list
 	validIngredientStateIngredients, err := dbc.GetValidIngredientStateIngredients(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, validIngredientStateIngredients.Data)
 	assert.Len(t, validIngredientStateIngredients.Data, len(createdValidIngredientStateIngredients))
 
 	forIngredientState, err := dbc.GetValidIngredientStateIngredientsForIngredientState(ctx, createdValidIngredientStateIngredients[0].IngredientState.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, forIngredientState.Data)
 
 	forIngredient, err := dbc.GetValidIngredientStateIngredientsForIngredient(ctx, createdValidIngredientStateIngredients[0].Ingredient.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, forIngredient.Data)
 
 	// delete
 	for _, validIngredientStateIngredient := range createdValidIngredientStateIngredients {
-		assert.NoError(t, dbc.ArchiveValidIngredientStateIngredient(ctx, validIngredientStateIngredient.ID))
+		require.NoError(t, dbc.ArchiveValidIngredientStateIngredient(ctx, validIngredientStateIngredient.ID))
 
 		var exists bool
 		exists, err = dbc.ValidIngredientStateIngredientExists(ctx, validIngredientStateIngredient.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ValidIngredientStateIngredient
 		y, err = dbc.GetValidIngredientStateIngredient(ctx, validIngredientStateIngredient.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -119,7 +119,7 @@ func TestQuerier_ValidIngredientStateIngredientExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidIngredientStateIngredientExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -134,7 +134,7 @@ func TestQuerier_GetValidIngredientStateIngredient(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidIngredientStateIngredient(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -149,7 +149,7 @@ func TestQuerier_CreateValidIngredientStateIngredient(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateValidIngredientStateIngredient(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

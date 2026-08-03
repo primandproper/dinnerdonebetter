@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlanningManager_ListAccountInstrumentOwnerships(T *testing.T) {
@@ -35,7 +36,7 @@ func TestMealPlanningManager_ListAccountInstrumentOwnerships(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ListAccountInstrumentOwnerships(ctx, exampleOwnerID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetAccountInstrumentOwnershipsCalls(), 1)
@@ -66,7 +67,7 @@ func TestMealPlanningManager_SearchValidInstrumentsNotOwnedByAccount(T *testing.
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.SearchValidInstrumentsNotOwnedByAccount(ctx, exampleAccountID, exampleQuery, false, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.SearchForValidInstrumentsNotOwnedByAccountCalls(), 1)
@@ -94,7 +95,7 @@ func TestMealPlanningManager_CreateAccountInstrumentOwnership(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateAccountInstrumentOwnership(ctx, fakeOwnerID, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateAccountInstrumentOwnershipCalls(), 1)
@@ -124,7 +125,7 @@ func TestMealPlanningManager_ReadAccountInstrumentOwnership(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ReadAccountInstrumentOwnership(ctx, ownerID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetAccountInstrumentOwnershipCalls(), 1)
@@ -157,7 +158,7 @@ func TestMealPlanningManager_UpdateAccountInstrumentOwnership(T *testing.T) {
 		}
 		attachRepositoryToManager(mpm, db)
 
-		assert.NoError(t, mpm.UpdateAccountInstrumentOwnership(ctx, exampleAccountInstrumentOwnership.ID, ownerID, exampleInput))
+		require.NoError(t, mpm.UpdateAccountInstrumentOwnership(ctx, exampleAccountInstrumentOwnership.ID, ownerID, exampleInput))
 
 		assert.Len(t, db.GetAccountInstrumentOwnershipCalls(), 1)
 		assert.Len(t, db.UpdateAccountInstrumentOwnershipCalls(), 1)
@@ -187,7 +188,7 @@ func TestMealPlanningManager_ArchiveAccountInstrumentOwnership(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		err := mpm.ArchiveAccountInstrumentOwnership(ctx, ownershipID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.ArchiveAccountInstrumentOwnershipCalls(), 1)
 	})

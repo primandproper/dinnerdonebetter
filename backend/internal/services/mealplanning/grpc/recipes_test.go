@@ -16,6 +16,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func buildServiceImplForRecipesTest(t *testing.T) *serviceImpl {
@@ -57,7 +58,7 @@ func TestServiceImpl_verifyRecipeOwnership(T *testing.T) {
 
 		_, span := tracing.NewTracerForTest(t.Name()).StartSpan(ctx)
 		userID, err := s.verifyRecipeOwnership(ctx, exampleRecipeID, s.logger, span)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleUserID, userID)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -89,7 +90,7 @@ func TestServiceImpl_verifyRecipeOwnership(T *testing.T) {
 
 		_, span := tracing.NewTracerForTest(t.Name()).StartSpan(ctx)
 		_, err := s.verifyRecipeOwnership(ctx, exampleRecipeID, s.logger, span)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -132,7 +133,7 @@ func TestServiceImpl_ArchiveRecipe(T *testing.T) {
 
 		res, err := s.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: exampleRecipeID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeCalls(), 1)
@@ -164,7 +165,7 @@ func TestServiceImpl_ArchiveRecipe(T *testing.T) {
 
 		res, err := s.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: exampleRecipeID})
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -209,7 +210,7 @@ func TestServiceImpl_ArchiveRecipePrepTask(T *testing.T) {
 			RecipePrepTaskId: exampleRecipePrepTaskID,
 		})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipePrepTaskCalls(), 1)
@@ -245,7 +246,7 @@ func TestServiceImpl_ArchiveRecipePrepTask(T *testing.T) {
 			RecipePrepTaskId: exampleRecipePrepTaskID,
 		})
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -291,7 +292,7 @@ func TestServiceImpl_ArchiveRecipeRating(T *testing.T) {
 			RecipeRatingId: exampleRecipeRatingID,
 		})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeRatingCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeRatingCalls(), 1)
@@ -318,7 +319,7 @@ func TestServiceImpl_GetRecipeLists(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		res, err := s.GetRecipeLists(ctx, &mealplanninggrpc.GetRecipeListsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.Len(t, res.Results, 1)
 
@@ -353,7 +354,7 @@ func TestServiceImpl_CreateRecipeList(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		res, err := s.CreateRecipeList(ctx, &mealplanninggrpc.CreateRecipeListRequest{Input: input})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.Equal(t, created.ID, res.Created.Id)
 
@@ -397,7 +398,7 @@ func TestServiceImpl_UpdateRecipeList(T *testing.T) {
 			RecipeListId: listID,
 			Input:        input,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 
 		assert.Len(t, mrm.UpdateRecipeListCalls(), 1)
@@ -430,7 +431,7 @@ func TestServiceImpl_ArchiveRecipeList(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		res, err := s.ArchiveRecipeList(ctx, &mealplanninggrpc.ArchiveRecipeListRequest{RecipeListId: listID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 
 		assert.Len(t, mrm.ArchiveRecipeListCalls(), 1)
@@ -460,7 +461,7 @@ func TestServiceImpl_GetRecipeListItems(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		res, err := s.GetRecipeListItems(ctx, &mealplanninggrpc.GetRecipeListItemsRequest{RecipeListId: listID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.Len(t, res.Results, 1)
 
@@ -499,7 +500,7 @@ func TestServiceImpl_CreateRecipeListItem(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		res, err := s.CreateRecipeListItem(ctx, &mealplanninggrpc.CreateRecipeListItemRequest{Input: input})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.Equal(t, created.ID, res.Created.Id)
 
@@ -541,7 +542,7 @@ func TestServiceImpl_UpdateRecipeListItem(T *testing.T) {
 			RecipeListItemId: itemID,
 			Input:            input,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 
 		assert.Len(t, mrm.UpdateRecipeListItemCalls(), 1)
@@ -574,7 +575,7 @@ func TestServiceImpl_ArchiveRecipeListItem(T *testing.T) {
 			RecipeListItemId: itemID,
 			RecipeListId:     listID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 
 		assert.Len(t, mrm.RemoveRecipeFromRecipeListCalls(), 1)
@@ -620,7 +621,7 @@ func TestServiceImpl_ArchiveRecipeStep(T *testing.T) {
 			RecipeStepId: exampleRecipeStepID,
 		})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeStepCalls(), 1)
@@ -656,7 +657,7 @@ func TestServiceImpl_ArchiveRecipeStep(T *testing.T) {
 			RecipeStepId: exampleRecipeStepID,
 		})
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -704,7 +705,7 @@ func TestServiceImpl_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 			RecipeStepCompletionConditionId: exampleRecipeStepCompletionConditionID,
 		})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeStepCompletionConditionCalls(), 1)
@@ -742,7 +743,7 @@ func TestServiceImpl_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 			RecipeStepCompletionConditionId: exampleRecipeStepCompletionConditionID,
 		})
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -790,7 +791,7 @@ func TestServiceImpl_ArchiveRecipeStepIngredient(T *testing.T) {
 			RecipeStepIngredientId: exampleRecipeStepIngredientID,
 		})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeStepIngredientCalls(), 1)
@@ -828,7 +829,7 @@ func TestServiceImpl_ArchiveRecipeStepIngredient(T *testing.T) {
 			RecipeStepIngredientId: exampleRecipeStepIngredientID,
 		})
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -876,7 +877,7 @@ func TestServiceImpl_ArchiveRecipeStepInstrument(T *testing.T) {
 			RecipeStepInstrumentId: exampleRecipeStepInstrumentID,
 		})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeStepInstrumentCalls(), 1)
@@ -914,7 +915,7 @@ func TestServiceImpl_ArchiveRecipeStepInstrument(T *testing.T) {
 			RecipeStepInstrumentId: exampleRecipeStepInstrumentID,
 		})
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -962,7 +963,7 @@ func TestServiceImpl_ArchiveRecipeStepProduct(T *testing.T) {
 			RecipeStepProductId: exampleRecipeStepProductID,
 		})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeStepProductCalls(), 1)
@@ -1000,7 +1001,7 @@ func TestServiceImpl_ArchiveRecipeStepProduct(T *testing.T) {
 			RecipeStepProductId: exampleRecipeStepProductID,
 		})
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -1048,7 +1049,7 @@ func TestServiceImpl_ArchiveRecipeStepVessel(T *testing.T) {
 			RecipeStepVesselId: exampleRecipeStepVesselID,
 		})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeStepVesselCalls(), 1)
@@ -1086,7 +1087,7 @@ func TestServiceImpl_ArchiveRecipeStepVessel(T *testing.T) {
 			RecipeStepVesselId: exampleRecipeStepVesselID,
 		})
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -1123,7 +1124,7 @@ func TestServiceImpl_CloneRecipe(T *testing.T) {
 
 		res, err := s.CloneRecipe(ctx, &mealplanninggrpc.CloneRecipeRequest{RecipeId: exampleRecipeID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleClonedRecipe.ID, res.Cloned.Id)
 
 		assert.Len(t, mrm.CloneRecipeCalls(), 1)
@@ -1161,7 +1162,7 @@ func TestServiceImpl_CreateRecipe(T *testing.T) {
 
 		actual, err := s.CreateRecipe(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipe.ID, actual.Created.Id)
 
 		assert.Len(t, mrm.CreateRecipeCalls(), 1)
@@ -1206,7 +1207,7 @@ func TestServiceImpl_CreateRecipePrepTask(T *testing.T) {
 
 		actual, err := s.CreateRecipePrepTask(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipePrepTask.ID, actual.Created.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -1242,7 +1243,7 @@ func TestServiceImpl_CreateRecipePrepTask(T *testing.T) {
 
 		res, err := s.CreateRecipePrepTask(ctx, exampleInput)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -1281,7 +1282,7 @@ func TestServiceImpl_CreateRecipeRating(T *testing.T) {
 
 		actual, err := s.CreateRecipeRating(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipeRating.ID, actual.Created.Id)
 
 		assert.Len(t, mrm.CreateRecipeRatingCalls(), 1)
@@ -1326,7 +1327,7 @@ func TestServiceImpl_CreateRecipeStep(T *testing.T) {
 
 		actual, err := s.CreateRecipeStep(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipeStep.ID, actual.Created.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -1362,7 +1363,7 @@ func TestServiceImpl_CreateRecipeStep(T *testing.T) {
 
 		res, err := s.CreateRecipeStep(ctx, exampleInput)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -1409,7 +1410,7 @@ func TestServiceImpl_CreateRecipeStepCompletionCondition(T *testing.T) {
 
 		actual, err := s.CreateRecipeStepCompletionCondition(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipeStepCompletionCondition.ID, actual.Created.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -1447,7 +1448,7 @@ func TestServiceImpl_CreateRecipeStepCompletionCondition(T *testing.T) {
 
 		res, err := s.CreateRecipeStepCompletionCondition(ctx, exampleInput)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -1494,7 +1495,7 @@ func TestServiceImpl_CreateRecipeStepIngredient(T *testing.T) {
 
 		actual, err := s.CreateRecipeStepIngredient(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipeStepIngredient.ID, actual.Created.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -1532,7 +1533,7 @@ func TestServiceImpl_CreateRecipeStepIngredient(T *testing.T) {
 
 		res, err := s.CreateRecipeStepIngredient(ctx, exampleInput)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -1579,7 +1580,7 @@ func TestServiceImpl_CreateRecipeStepInstrument(T *testing.T) {
 
 		actual, err := s.CreateRecipeStepInstrument(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipeStepInstrument.ID, actual.Created.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -1617,7 +1618,7 @@ func TestServiceImpl_CreateRecipeStepInstrument(T *testing.T) {
 
 		res, err := s.CreateRecipeStepInstrument(ctx, exampleInput)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -1664,7 +1665,7 @@ func TestServiceImpl_CreateRecipeStepProduct(T *testing.T) {
 
 		actual, err := s.CreateRecipeStepProduct(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipeStepProduct.ID, actual.Created.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -1702,7 +1703,7 @@ func TestServiceImpl_CreateRecipeStepProduct(T *testing.T) {
 
 		res, err := s.CreateRecipeStepProduct(ctx, exampleInput)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -1749,7 +1750,7 @@ func TestServiceImpl_CreateRecipeStepVessel(T *testing.T) {
 
 		actual, err := s.CreateRecipeStepVessel(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipeStepVessel.ID, actual.Created.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -1787,7 +1788,7 @@ func TestServiceImpl_CreateRecipeStepVessel(T *testing.T) {
 
 		res, err := s.CreateRecipeStepVessel(ctx, exampleInput)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -1815,7 +1816,7 @@ func TestServiceImpl_GetMermaidDiagramForRecipe(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		result, err := s.GetMermaidDiagramForRecipe(ctx, &mealplanninggrpc.GetMermaidDiagramForRecipeRequest{RecipeId: exampleRecipeID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, exampleMermaidDiagram, result.Response)
 
@@ -1845,7 +1846,7 @@ func TestServiceImpl_GetRecipe(T *testing.T) {
 
 		result, err := s.GetRecipe(ctx, &mealplanninggrpc.GetRecipeRequest{RecipeId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -1877,7 +1878,7 @@ func TestServiceImpl_EstimateRecipePrepTasks(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		result, err := s.EstimateRecipePrepTasks(ctx, &mealplanninggrpc.EstimateRecipePrepTasksRequest{RecipeId: exampleRecipeID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleEstimatedPrepSteps))
 
@@ -1911,7 +1912,7 @@ func TestServiceImpl_GetRecipePrepTask(T *testing.T) {
 			RecipePrepTaskId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipePrepTaskCalls(), 1)
 	})
@@ -1939,7 +1940,7 @@ func TestServiceImpl_GetRecipePrepTasks(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		result, err := s.GetRecipePrepTasks(ctx, &mealplanninggrpc.GetRecipePrepTasksRequest{RecipeId: exampleRecipeID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1973,7 +1974,7 @@ func TestServiceImpl_GetRecipeRating(T *testing.T) {
 			RecipeRatingId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeRatingCalls(), 1)
 	})
@@ -2001,7 +2002,7 @@ func TestServiceImpl_GetRecipeRatingsForRecipe(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		result, err := s.GetRecipeRatingsForRecipe(ctx, &mealplanninggrpc.GetRecipeRatingsForRecipeRequest{RecipeId: exampleRecipeID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2035,7 +2036,7 @@ func TestServiceImpl_GetRecipeStep(T *testing.T) {
 			RecipeStepId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeStepCalls(), 1)
 	})
@@ -2070,7 +2071,7 @@ func TestServiceImpl_GetRecipeStepCompletionCondition(T *testing.T) {
 			RecipeStepCompletionConditionId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeStepCompletionConditionCalls(), 1)
 	})
@@ -2103,7 +2104,7 @@ func TestServiceImpl_GetRecipeStepCompletionConditions(T *testing.T) {
 			RecipeId:     exampleRecipeID,
 			RecipeStepId: exampleRecipeStepID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2140,7 +2141,7 @@ func TestServiceImpl_GetRecipeStepIngredient(T *testing.T) {
 			RecipeStepIngredientId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeStepIngredientCalls(), 1)
 	})
@@ -2173,7 +2174,7 @@ func TestServiceImpl_GetRecipeStepIngredients(T *testing.T) {
 			RecipeId:     exampleRecipeID,
 			RecipeStepId: exampleRecipeStepID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2210,7 +2211,7 @@ func TestServiceImpl_GetRecipeStepInstrument(T *testing.T) {
 			RecipeStepInstrumentId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeStepInstrumentCalls(), 1)
 	})
@@ -2243,7 +2244,7 @@ func TestServiceImpl_GetRecipeStepInstruments(T *testing.T) {
 			RecipeId:     exampleRecipeID,
 			RecipeStepId: exampleRecipeStepID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2280,7 +2281,7 @@ func TestServiceImpl_GetRecipeStepProduct(T *testing.T) {
 			RecipeStepProductId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeStepProductCalls(), 1)
 	})
@@ -2313,7 +2314,7 @@ func TestServiceImpl_GetRecipeStepProducts(T *testing.T) {
 			RecipeId:     exampleRecipeID,
 			RecipeStepId: exampleRecipeStepID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2350,7 +2351,7 @@ func TestServiceImpl_GetRecipeStepVessel(T *testing.T) {
 			RecipeStepVesselId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeStepVesselCalls(), 1)
 	})
@@ -2383,7 +2384,7 @@ func TestServiceImpl_GetRecipeStepVessels(T *testing.T) {
 			RecipeId:     exampleRecipeID,
 			RecipeStepId: exampleRecipeStepID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2413,7 +2414,7 @@ func TestServiceImpl_GetRecipeSteps(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		result, err := s.GetRecipeSteps(ctx, &mealplanninggrpc.GetRecipeStepsRequest{RecipeId: exampleRecipeID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2442,7 +2443,7 @@ func TestServiceImpl_GetRecipes(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		result, err := s.GetRecipes(ctx, &mealplanninggrpc.GetRecipesRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2473,7 +2474,7 @@ func TestServiceImpl_SearchForRecipes(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		result, err := s.SearchForRecipes(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2503,7 +2504,7 @@ func TestServiceImpl_SearchForMealEligibleRecipes(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		result, err := s.SearchForMealEligibleRecipes(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2539,7 +2540,7 @@ func TestServiceImpl_SearchForRecipesWithInstrumentOwnership(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		result, err := s.SearchForRecipesWithInstrumentOwnership(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2581,7 +2582,7 @@ func TestServiceImpl_UpdateRecipe(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		res, err := s.UpdateRecipe(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 2) // the service re-reads the record after updating it
@@ -2614,7 +2615,7 @@ func TestServiceImpl_UpdateRecipe(T *testing.T) {
 
 		res, err := s.UpdateRecipe(ctx, exampleRequest)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -2661,7 +2662,7 @@ func TestServiceImpl_UpdateRecipePrepTask(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		res, err := s.UpdateRecipePrepTask(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -2695,7 +2696,7 @@ func TestServiceImpl_UpdateRecipePrepTask(T *testing.T) {
 
 		res, err := s.UpdateRecipePrepTask(ctx, exampleRequest)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -2733,7 +2734,7 @@ func TestServiceImpl_UpdateRecipeRating(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		res, err := s.UpdateRecipeRating(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mrm.UpdateRecipeRatingCalls(), 1)
@@ -2782,7 +2783,7 @@ func TestServiceImpl_UpdateRecipeStep(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		res, err := s.UpdateRecipeStep(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -2816,7 +2817,7 @@ func TestServiceImpl_UpdateRecipeStep(T *testing.T) {
 
 		res, err := s.UpdateRecipeStep(ctx, exampleRequest)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -2865,7 +2866,7 @@ func TestServiceImpl_UpdateRecipeStepCompletionCondition(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		res, err := s.UpdateRecipeStepCompletionCondition(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -2899,7 +2900,7 @@ func TestServiceImpl_UpdateRecipeStepCompletionCondition(T *testing.T) {
 
 		res, err := s.UpdateRecipeStepCompletionCondition(ctx, exampleRequest)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -2948,7 +2949,7 @@ func TestServiceImpl_UpdateRecipeStepIngredient(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		res, err := s.UpdateRecipeStepIngredient(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -2982,7 +2983,7 @@ func TestServiceImpl_UpdateRecipeStepIngredient(T *testing.T) {
 
 		res, err := s.UpdateRecipeStepIngredient(ctx, exampleRequest)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -3031,7 +3032,7 @@ func TestServiceImpl_UpdateRecipeStepInstrument(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		res, err := s.UpdateRecipeStepInstrument(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -3065,7 +3066,7 @@ func TestServiceImpl_UpdateRecipeStepInstrument(T *testing.T) {
 
 		res, err := s.UpdateRecipeStepInstrument(ctx, exampleRequest)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -3114,7 +3115,7 @@ func TestServiceImpl_UpdateRecipeStepProduct(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		res, err := s.UpdateRecipeStepProduct(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -3148,7 +3149,7 @@ func TestServiceImpl_UpdateRecipeStepProduct(T *testing.T) {
 
 		res, err := s.UpdateRecipeStepProduct(ctx, exampleRequest)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})
@@ -3197,7 +3198,7 @@ func TestServiceImpl_UpdateRecipeStepVessel(T *testing.T) {
 		s.mealPlanningManager = mrm
 
 		res, err := s.UpdateRecipeStepVessel(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
@@ -3231,7 +3232,7 @@ func TestServiceImpl_UpdateRecipeStepVessel(T *testing.T) {
 
 		res, err := s.UpdateRecipeStepVessel(ctx, exampleRequest)
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 	})

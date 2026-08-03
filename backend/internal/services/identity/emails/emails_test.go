@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuildGeneratedPasswordResetTokenEmail(T *testing.T) {
@@ -22,7 +23,7 @@ func TestBuildGeneratedPasswordResetTokenEmail(T *testing.T) {
 		token := authfakes.BuildFakePasswordResetToken()
 
 		actual, err := BuildGeneratedPasswordResetTokenEmail(user, token, "https://example.com")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Contains(t, actual.HTMLContent, branding.LogoURL)
 	})
@@ -38,7 +39,7 @@ func TestBuildInviteMemberEmail(T *testing.T) {
 		invitation := fakes.BuildFakeAccountInvitation()
 
 		actual, err := BuildInviteMemberEmail(user, invitation, "https://example.com")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 	})
 }
@@ -53,7 +54,7 @@ func TestBuildPasswordResetTokenRedeemedEmail(T *testing.T) {
 		user.EmailAddressVerifiedAt = new(time.Now())
 
 		actual, err := BuildPasswordResetTokenRedeemedEmail(user, "https://example.com")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 	})
 }
@@ -68,7 +69,7 @@ func TestBuildUsernameReminderEmail(T *testing.T) {
 		user.EmailAddressVerifiedAt = new(time.Now())
 
 		actual, err := BuildUsernameReminderEmail(user, "https://example.com")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 	})
 }

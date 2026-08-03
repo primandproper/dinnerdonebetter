@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlanningManager_ListMealPlanGroceryListItemsByMealPlan(T *testing.T) {
@@ -35,7 +36,7 @@ func TestMealPlanningManager_ListMealPlanGroceryListItemsByMealPlan(T *testing.T
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ListMealPlanGroceryListItemsByMealPlan(ctx, exampleMealPlanID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealPlanGroceryListItemsForMealPlanCalls(), 1)
@@ -62,7 +63,7 @@ func TestMealPlanningManager_CreateMealPlanGroceryListItem(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMealPlanGroceryListItem(ctx, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateMealPlanGroceryListItemCalls(), 1)
@@ -92,7 +93,7 @@ func TestMealPlanningManager_ReadMealPlanGroceryListItem(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ReadMealPlanGroceryListItem(ctx, exampleMealPlanID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealPlanGroceryListItemCalls(), 1)
@@ -125,7 +126,7 @@ func TestMealPlanningManager_UpdateMealPlanGroceryListItem(T *testing.T) {
 		}
 		attachRepositoryToManager(mpm, db)
 
-		assert.NoError(t, mpm.UpdateMealPlanGroceryListItem(ctx, exampleMealPlanID, exampleMealPlanGroceryListItem.ID, exampleInput))
+		require.NoError(t, mpm.UpdateMealPlanGroceryListItem(ctx, exampleMealPlanID, exampleMealPlanGroceryListItem.ID, exampleInput))
 
 		assert.Len(t, db.GetMealPlanGroceryListItemCalls(), 1)
 		assert.Len(t, db.UpdateMealPlanGroceryListItemCalls(), 1)
@@ -154,7 +155,7 @@ func TestMealPlanningManager_ArchiveMealPlanGroceryListItem(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		err := mpm.ArchiveMealPlanGroceryListItem(ctx, mealPlanID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.ArchiveMealPlanGroceryListItemCalls(), 1)
 	})

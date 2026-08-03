@@ -5,6 +5,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecipe_FindStepForIndex(T *testing.T) {
@@ -277,7 +278,7 @@ func TestRecipe_Update(T *testing.T) {
 		x := &Recipe{}
 		input := &RecipeUpdateRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 		input.EligibleForMeals = new(true)
 
 		x.Update(input)

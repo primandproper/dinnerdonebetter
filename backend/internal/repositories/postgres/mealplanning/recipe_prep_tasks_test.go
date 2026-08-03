@@ -26,7 +26,7 @@ func createRecipePrepTaskForTest(t *testing.T, ctx context.Context, exampleRecip
 	dbInput := converters.ConvertRecipePrepTaskToRecipePrepTaskDatabaseCreationInput(exampleRecipePrepTask)
 
 	created, err := dbc.CreateRecipePrepTask(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	exampleRecipePrepTask.CreatedAt = created.CreatedAt
@@ -70,23 +70,23 @@ func TestQuerier_Integration_RecipePrepTasks(t *testing.T) {
 
 	// fetch as list
 	recipePrepTasks, err := dbc.GetRecipePrepTasksForRecipe(ctx, exampleRecipe.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, recipePrepTasks)
 	assert.Len(t, recipePrepTasks, len(createdRecipePrepTasks))
 
 	// delete
 	for _, recipePrepTask := range createdRecipePrepTasks {
-		assert.NoError(t, dbc.ArchiveRecipePrepTask(ctx, createdRecipe.ID, recipePrepTask.ID))
+		require.NoError(t, dbc.ArchiveRecipePrepTask(ctx, createdRecipe.ID, recipePrepTask.ID))
 
 		var exists bool
 		exists, err = dbc.RecipePrepTaskExists(ctx, createdRecipe.ID, recipePrepTask.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.RecipePrepTask
 		y, err = dbc.GetRecipePrepTask(ctx, createdRecipe.ID, recipePrepTask.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -103,7 +103,7 @@ func TestQuerier_RecipePrepTaskExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.RecipePrepTaskExists(ctx, "", exampleRecipePrepTask.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -120,7 +120,7 @@ func TestQuerier_GetRecipePrepTask(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipePrepTask(ctx, "", exampleRecipePrepTaskID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -135,7 +135,7 @@ func TestQuerier_CreateRecipePrepTask(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateRecipePrepTask(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -150,7 +150,7 @@ func TestQuerier_GetRecipePrepTasksForRecipe(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipePrepTasksForRecipe(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

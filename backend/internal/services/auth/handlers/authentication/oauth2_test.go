@@ -132,7 +132,7 @@ func TestBuildClientInfoHandler(T *testing.T) {
 
 		clientID, clientSecret, err := handler(req)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, "test-client-id", clientID)
 		assert.Equal(t, "test-client-secret", clientSecret)
 	})
@@ -152,7 +152,7 @@ func TestBuildClientInfoHandler(T *testing.T) {
 
 		clientID, clientSecret, err := handler(req)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, "test-client-id", clientID)
 		assert.Equal(t, "test-client-secret", clientSecret)
 	})
@@ -169,7 +169,7 @@ func TestBuildClientInfoHandler(T *testing.T) {
 
 		clientID, clientSecret, err := handler(req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, oauth2errors.ErrInvalidClient, err)
 		assert.Empty(t, clientID)
 		assert.Empty(t, clientSecret)
@@ -206,7 +206,7 @@ func TestBuildPasswordAuthorizationHandler(T *testing.T) {
 
 		userID, err := handler(ctx, "client-id", user.Username, "password")
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, user.ID, userID)
 
 		assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
@@ -232,7 +232,7 @@ func TestBuildPasswordAuthorizationHandler(T *testing.T) {
 
 		userID, err := handler(ctx, "client-id", "unknown-user", "password")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Empty(t, userID)
 		assert.Contains(t, err.Error(), "invalid username or password")
 
@@ -267,7 +267,7 @@ func TestBuildPasswordAuthorizationHandler(T *testing.T) {
 
 		userID, err := handler(ctx, "client-id", user.Username, "wrong-password")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Empty(t, userID)
 		assert.Contains(t, err.Error(), "invalid username or password")
 
@@ -302,7 +302,7 @@ func TestBuildPasswordAuthorizationHandler(T *testing.T) {
 
 		userID, err := handler(ctx, "client-id", user.Username, "password")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Empty(t, userID)
 		assert.Contains(t, err.Error(), "invalid username or password")
 
@@ -341,7 +341,7 @@ func TestBuildUserAuthorizationHandler(T *testing.T) {
 
 		userID, err := handler(nil, req)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, user.ID, userID)
 	})
 
@@ -368,7 +368,7 @@ func TestBuildUserAuthorizationHandler(T *testing.T) {
 
 		userID, err := handler(nil, req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, oauth2errors.ErrAccessDenied, err)
 		assert.Empty(t, userID)
 	})
@@ -392,7 +392,7 @@ func TestAuthorizeScopeHandler(T *testing.T) {
 
 		scope, err := handler(nil, req)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, "read write", scope)
 	})
 }
@@ -409,7 +409,7 @@ func TestAccessTokenExpHandler(T *testing.T) {
 
 		duration, err := handler(nil, nil)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, 24*time.Hour, duration)
 	})
 }
@@ -426,7 +426,7 @@ func TestClientScopeHandler(T *testing.T) {
 
 		allowed, err := handler(nil)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, allowed)
 	})
 }

@@ -15,6 +15,7 @@ import (
 	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMobileNotificationsEventHandler(t *testing.T) {
@@ -27,7 +28,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), []byte("not json"))
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "decoding")
 	})
 
@@ -46,7 +47,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), raw)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "title")
 	})
 
@@ -65,7 +66,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), raw)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "body")
 	})
 
@@ -83,7 +84,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), raw)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "request type")
 	})
 
@@ -102,7 +103,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), raw)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unknown request type")
 	})
 
@@ -121,7 +122,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), raw)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "mealPlanTaskID")
 	})
 
@@ -151,7 +152,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), raw)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, mealPlanRepo.MealPlanTaskNotificationHasBeenSentCalls(), 1)
 	})
 
@@ -186,7 +187,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), raw)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, mealPlanRepo.MealPlanTaskNotificationHasBeenSentCalls(), 1)
 		assert.Len(t, mealPlanRepo.MarkMealPlanTaskNotificationSentCalls(), 1)
 	})
@@ -230,7 +231,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), raw)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, mealPlanRepo.MealPlanTaskNotificationHasBeenSentCalls(), 1)
 		assert.Len(t, mealPlanRepo.MarkMealPlanTaskNotificationSentCalls(), 1)
 		assert.Len(t, notificationsRepo.GetUserDeviceTokensCalls(), 1)
@@ -282,7 +283,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), raw)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, mealPlanRepo.MealPlanTaskNotificationHasBeenSentCalls(), 1)
 		assert.Len(t, mealPlanRepo.MarkMealPlanTaskNotificationSentCalls(), 1)
 		assert.Len(t, notificationsRepo.GetUserDeviceTokensCalls(), 1)

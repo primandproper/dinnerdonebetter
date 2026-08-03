@@ -5,6 +5,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidVessel_Update(T *testing.T) {
@@ -18,7 +19,7 @@ func TestValidVessel_Update(T *testing.T) {
 		}
 		input := &ValidVesselUpdateRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 		input.CapacityUnitID = new(t.Name())
 		input.UsableForStorage = new(true)
 		input.DisplayInSummaryLists = new(true)

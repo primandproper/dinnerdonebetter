@@ -75,7 +75,7 @@ func TestValidInstruments_Creating(T *testing.T) {
 		created, err := c.CreateValidInstrument(ctx, &mealplanningsvc.CreateValidInstrumentRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -91,7 +91,7 @@ func TestValidInstruments_Creating(T *testing.T) {
 		created, err := adminClient.CreateValidInstrument(ctx, &mealplanningsvc.CreateValidInstrumentRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -107,7 +107,7 @@ func TestValidInstruments_Creating(T *testing.T) {
 		created, err := testClient.CreateValidInstrument(ctx, &mealplanningsvc.CreateValidInstrumentRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -124,7 +124,7 @@ func TestValidInstruments_Reading(T *testing.T) {
 		created := createValidInstrumentForTest(t)
 
 		retrieved, err := testClient.GetValidInstrument(ctx, &mealplanningsvc.GetValidInstrumentRequest{ValidInstrumentId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		converted := grpcconverters.ConvertGRPCValidInstrumentToValidInstrument(retrieved.Result)
 
@@ -168,7 +168,7 @@ func TestValidInstruments_Updating(T *testing.T) {
 			ValidInstrumentId: created.ID,
 			Input:             grpcconverters.ConvertValidInstrumentUpdateRequestInputToGRPCValidInstrumentUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		updated := grpcconverters.ConvertGRPCValidInstrumentToValidInstrument(response.Result)
 		// Ensure UpdatedAt was set
@@ -218,7 +218,7 @@ func TestValidInstruments_Updating(T *testing.T) {
 				Name: new("doesn't matter"),
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -233,7 +233,7 @@ func TestValidInstruments_Archiving(T *testing.T) {
 		created := createValidInstrumentForTest(t)
 
 		_, err := adminClient.ArchiveValidInstrument(ctx, &mealplanningsvc.ArchiveValidInstrumentRequest{ValidInstrumentId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetValidInstrument(ctx, &mealplanningsvc.GetValidInstrumentRequest{ValidInstrumentId: created.ID})
 		assert.Nil(t, x)
@@ -285,7 +285,7 @@ func TestValidInstruments_GetRandom(T *testing.T) {
 		createValidInstrumentForTest(t)
 
 		response, err := testClient.GetRandomValidInstrument(ctx, &mealplanningsvc.GetRandomValidInstrumentRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 	})
 
@@ -296,7 +296,7 @@ func TestValidInstruments_GetRandom(T *testing.T) {
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
 		response, err := c.GetRandomValidInstrument(ctx, &mealplanningsvc.GetRandomValidInstrumentRequest{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }

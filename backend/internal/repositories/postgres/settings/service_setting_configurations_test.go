@@ -89,15 +89,15 @@ func TestQuerier_Integration_ServiceSettingConfigurations(t *testing.T) {
 
 	// delete
 	for _, serviceSettingConfiguration := range createdServiceSettingConfigurations {
-		assert.NoError(t, dbc.ArchiveServiceSettingConfiguration(ctx, serviceSettingConfiguration.ID))
+		require.NoError(t, dbc.ArchiveServiceSettingConfiguration(ctx, serviceSettingConfiguration.ID))
 
 		exists, err := dbc.ServiceSettingConfigurationExists(ctx, serviceSettingConfiguration.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		y, err := dbc.GetServiceSettingConfiguration(ctx, serviceSettingConfiguration.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -113,7 +113,7 @@ func TestQuerier_ServiceSettingConfigurationExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ServiceSettingConfigurationExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -128,7 +128,7 @@ func TestQuerier_GetServiceSettingConfiguration(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetServiceSettingConfiguration(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -144,7 +144,7 @@ func TestQuerier_GetServiceSettingConfigurationForUserByName(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetServiceSettingConfigurationForUserByName(ctx, exampleUserID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -160,7 +160,7 @@ func TestQuerier_GetServiceSettingConfigurationForAccountByName(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetServiceSettingConfigurationForAccountByName(ctx, exampleAccountID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -175,7 +175,7 @@ func TestQuerier_GetServiceSettingConfigurationsForUser(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetServiceSettingConfigurationsForUser(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -190,7 +190,7 @@ func TestQuerier_CreateServiceSettingConfiguration(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateServiceSettingConfiguration(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

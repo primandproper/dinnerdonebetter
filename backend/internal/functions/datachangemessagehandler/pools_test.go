@@ -148,7 +148,7 @@ func TestAsyncDataChangeMessageHandler_Start(T *testing.T) {
 
 		handler := buildTestPoolsHandler(t, consumerProvider)
 
-		assert.ErrorIs(t, handler.Start(ctx), expected)
+		require.ErrorIs(t, handler.Start(ctx), expected)
 		// The pools that did start are closed rather than left consuming.
 		assert.Empty(t, handler.pools)
 	})
@@ -201,7 +201,7 @@ func TestAsyncDataChangeMessageHandler_Close(T *testing.T) {
 		closeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 
-		assert.NoError(t, handler.Close(closeCtx))
+		require.NoError(t, handler.Close(closeCtx))
 		assert.Empty(t, handler.pools)
 	})
 

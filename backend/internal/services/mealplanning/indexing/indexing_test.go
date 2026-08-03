@@ -14,6 +14,7 @@ import (
 	mocksearch "github.com/primandproper/platform-go/v9/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHandleIndexRequest(T *testing.T) {
@@ -70,7 +71,7 @@ func TestHandleIndexRequest(T *testing.T) {
 			Delete:    false,
 		}
 
-		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+		require.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
 
 		assert.Len(t, mealPlanningRepo.GetRecipeCalls(), 1)
 		assert.Len(t, mealPlanningRepo.MarkRecipeAsIndexedCalls(), 1)
@@ -128,7 +129,7 @@ func TestHandleIndexRequest(T *testing.T) {
 			Delete:    false,
 		}
 
-		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+		require.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
 
 		assert.Len(t, mealPlanningRepo.GetMealCalls(), 1)
 		assert.Len(t, mealPlanningRepo.MarkMealAsIndexedCalls(), 1)
@@ -185,7 +186,7 @@ func TestHandleIndexRequest(T *testing.T) {
 			Delete:    false,
 		}
 
-		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+		require.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
 
 		assert.Len(t, mealPlanningRepo.GetValidVesselCalls(), 1)
 		assert.Len(t, mealPlanningRepo.MarkValidVesselAsIndexedCalls(), 1)
@@ -242,7 +243,7 @@ func TestHandleIndexRequest(T *testing.T) {
 			Delete:    false,
 		}
 
-		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+		require.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
 
 		assert.Len(t, mealPlanningRepo.GetValidIngredientCalls(), 1)
 		assert.Len(t, mealPlanningRepo.MarkValidIngredientAsIndexedCalls(), 1)
@@ -300,7 +301,7 @@ func TestHandleIndexRequest(T *testing.T) {
 			Delete:    false,
 		}
 
-		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+		require.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
 
 		assert.Len(t, mealPlanningRepo.GetValidInstrumentCalls(), 1)
 		assert.Len(t, mealPlanningRepo.MarkValidInstrumentAsIndexedCalls(), 1)
@@ -358,7 +359,7 @@ func TestHandleIndexRequest(T *testing.T) {
 			Delete:    false,
 		}
 
-		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+		require.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
 
 		assert.Len(t, mealPlanningRepo.GetValidPreparationCalls(), 1)
 		assert.Len(t, mealPlanningRepo.MarkValidPreparationAsIndexedCalls(), 1)
@@ -416,7 +417,7 @@ func TestHandleIndexRequest(T *testing.T) {
 			Delete:    false,
 		}
 
-		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+		require.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
 
 		assert.Len(t, mealPlanningRepo.GetValidMeasurementUnitCalls(), 1)
 		assert.Len(t, mealPlanningRepo.MarkValidMeasurementUnitAsIndexedCalls(), 1)
@@ -474,7 +475,7 @@ func TestHandleIndexRequest(T *testing.T) {
 			Delete:    false,
 		}
 
-		assert.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
+		require.NoError(t, cdi.HandleIndexRequest(ctx, indexReq))
 
 		assert.Len(t, mealPlanningRepo.GetValidIngredientStateCalls(), 1)
 		assert.Len(t, mealPlanningRepo.MarkValidIngredientStateAsIndexedCalls(), 1)

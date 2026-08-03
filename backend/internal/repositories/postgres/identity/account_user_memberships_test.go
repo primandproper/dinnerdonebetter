@@ -10,6 +10,7 @@ import (
 	"github.com/primandproper/platform-go/v9/identifiers"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestQuerier_Integration_AccountUserMemberships(t *testing.T) {
@@ -18,7 +19,7 @@ func TestQuerier_Integration_AccountUserMemberships(t *testing.T) {
 
 	exampleUser := createUserForTest(t, ctx, nil, dbc)
 	accounts, err := dbc.GetAccounts(ctx, exampleUser.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, accounts.Data, 1)
 
 	account := fakes.BuildFakeAccount()
@@ -29,7 +30,7 @@ func TestQuerier_Integration_AccountUserMemberships(t *testing.T) {
 
 	for range exampleQuantity {
 		newMember := createUserForTest(t, ctx, nil, dbc)
-		assert.NoError(t, dbc.addUserToAccount(ctx, dbc.writeDB, &identity.AccountUserMembershipDatabaseCreationInput{
+		require.NoError(t, dbc.addUserToAccount(ctx, dbc.writeDB, &identity.AccountUserMembershipDatabaseCreationInput{
 			ID:        identifiers.New(),
 			Reason:    "testing",
 			UserID:    newMember.ID,
@@ -39,7 +40,7 @@ func TestQuerier_Integration_AccountUserMemberships(t *testing.T) {
 	}
 
 	account, err = dbc.GetAccount(ctx, exampleAccount.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	accountMemberUserIDs := []string{}
 	for _, member := range account.Members {
@@ -49,16 +50,16 @@ func TestQuerier_Integration_AccountUserMemberships(t *testing.T) {
 	assert.Subset(t, memberUserIDs, accountMemberUserIDs)
 
 	isMember, err := dbc.UserIsMemberOfAccount(ctx, memberUserIDs[0], exampleAccount.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, isMember)
 
-	assert.NoError(t, dbc.MarkAccountAsUserDefault(ctx, memberUserIDs[1], exampleAccount.ID))
+	require.NoError(t, dbc.MarkAccountAsUserDefault(ctx, memberUserIDs[1], exampleAccount.ID))
 	defaultAccountID, err := dbc.GetDefaultAccountIDForUser(ctx, memberUserIDs[1])
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, exampleAccount.ID, defaultAccountID)
 
 	sessionCtxData, err := dbc.BuildSessionContextDataForUser(ctx, memberUserIDs[1], "")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, sessionCtxData)
 	assert.Equal(t, exampleAccount.ID, sessionCtxData.ActiveAccountID)
 
@@ -86,7 +87,7 @@ func TestQuerier_BuildSessionContextDataForUser(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.BuildSessionContextDataForUser(ctx, "", "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -101,7 +102,7 @@ func TestQuerier_GetDefaultAccountIDForUser(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetDefaultAccountIDForUser(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Empty(t, actual)
 	})
 }

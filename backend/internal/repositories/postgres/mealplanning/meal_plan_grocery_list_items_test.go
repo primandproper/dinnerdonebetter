@@ -20,7 +20,7 @@ func createMealPlanGroceryListItemForTest(t *testing.T, ctx context.Context, exa
 	dbInput := converters.ConvertMealPlanGroceryListItemToMealPlanGroceryListItemDatabaseCreationInput(exampleMealPlanGroceryListItem)
 
 	created, err := dbc.CreateMealPlanGroceryListItem(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	exampleMealPlanGroceryListItem.CreatedAt = created.CreatedAt
@@ -80,11 +80,11 @@ func TestQuerier_Integration_MealPlanGroceryListItems(t *testing.T) {
 	createdMealPlanGroceryListItems = append(createdMealPlanGroceryListItems, createMealPlanGroceryListItemForTest(t, ctx, exampleMealPlanGroceryListItem, dbc))
 
 	// update
-	assert.NoError(t, dbc.UpdateMealPlanGroceryListItem(ctx, createdMealPlanGroceryListItems[0]))
+	require.NoError(t, dbc.UpdateMealPlanGroceryListItem(ctx, createdMealPlanGroceryListItems[0]))
 
 	// fetch as list
 	mealPlanGroceryListItems, err := dbc.GetMealPlanGroceryListItemsForMealPlan(ctx, mealPlan.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, mealPlanGroceryListItems)
 	assert.Len(t, mealPlanGroceryListItems.Data, len(createdMealPlanGroceryListItems))
 
@@ -108,11 +108,11 @@ func TestQuerier_Integration_MealPlanGroceryListItems(t *testing.T) {
 	doomedItem.ValidIngredientID = fakes.BuildFakeID()
 
 	initialized, err := dbc.InitializeMealPlanGroceryList(ctx, mealPlan.ID, account.ID, []*types.MealPlanGroceryListItemDatabaseCreationInput{goodInput(), doomedItem})
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, initialized)
 
 	mealPlanGroceryListItems, err = dbc.GetMealPlanGroceryListItemsForMealPlan(ctx, mealPlan.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, mealPlanGroceryListItems.Data, len(createdMealPlanGroceryListItems), "the item preceding the failure must have rolled back with it")
 
 	unmarkedMealPlan, err := dbc.GetMealPlan(ctx, mealPlan.ID, account.ID)
@@ -127,7 +127,7 @@ func TestQuerier_Integration_MealPlanGroceryListItems(t *testing.T) {
 	createdMealPlanGroceryListItems = append(createdMealPlanGroceryListItems, initialized...)
 
 	mealPlanGroceryListItems, err = dbc.GetMealPlanGroceryListItemsForMealPlan(ctx, mealPlan.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, mealPlanGroceryListItems.Data, len(createdMealPlanGroceryListItems))
 
 	markedMealPlan, err := dbc.GetMealPlan(ctx, mealPlan.ID, account.ID)
@@ -136,11 +136,11 @@ func TestQuerier_Integration_MealPlanGroceryListItems(t *testing.T) {
 
 	// delete
 	for _, mealPlanGroceryListItem := range createdMealPlanGroceryListItems {
-		assert.NoError(t, dbc.ArchiveMealPlanGroceryListItem(ctx, mealPlanGroceryListItem.ID))
+		require.NoError(t, dbc.ArchiveMealPlanGroceryListItem(ctx, mealPlanGroceryListItem.ID))
 
 		var exists bool
 		exists, err = dbc.MealPlanGroceryListItemExists(ctx, mealPlanGroceryListItem.ID, account.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 	}
 }
@@ -157,7 +157,7 @@ func TestQuerier_MealPlanGroceryListItemExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealPlanGroceryListItemExists(ctx, exampleMealPlan.ID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -172,7 +172,7 @@ func TestQuerier_fleshOutMealPlanGroceryListItem(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.fleshOutMealPlanGroceryListItem(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -188,7 +188,7 @@ func TestQuerier_GetMealPlanGroceryListItem(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlanGroceryListItem(ctx, exampleMealPlan.ID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -203,7 +203,7 @@ func TestQuerier_CreateMealPlanGroceryListItem(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateMealPlanGroceryListItem(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

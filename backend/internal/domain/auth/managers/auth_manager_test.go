@@ -159,7 +159,7 @@ func TestAuthManager_CheckUserPermissions(t *testing.T) {
 
 		result, err := manager.CheckUserPermissions(ctx, &auth.UserPermissionsRequestInput{Permissions: []string{"read"}})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 	})
 }
@@ -185,7 +185,7 @@ func TestProvideAuthManager_NilConfig(t *testing.T) {
 		nil, // nil config
 	)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, m)
 }
 
@@ -201,7 +201,7 @@ func TestAuthManager_Self_SessionError(t *testing.T) {
 
 	result, err := manager.Self(ctx)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, result)
 }
 
@@ -228,7 +228,7 @@ func TestAuthManager_Self_UserNotFound(t *testing.T) {
 
 	result, err := manager.Self(ctx)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, result)
 	assert.Len(t, userDataManager.GetUserCalls(), 1)
 }
@@ -328,7 +328,7 @@ func TestAuthManager_TOTPSecretVerification_AlreadyVerified(t *testing.T) {
 	input := &auth.TOTPSecretVerificationInput{UserID: user.ID, TOTPToken: "123456"}
 	err := manager.TOTPSecretVerification(ctx, input)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "already verified")
 	assert.Len(t, userDataManager.GetUserWithUnverifiedTwoFactorSecretCalls(), 1)
 }
@@ -389,7 +389,7 @@ func TestAuthManager_RequestUsernameReminder_UserNotFound(t *testing.T) {
 	err := manager.RequestUsernameReminder(ctx, input)
 
 	// A missing user must not leak existence: the flow returns success without sending a reminder.
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, userDataManager.GetUserByEmailCalls(), 1)
 }
 
@@ -467,7 +467,7 @@ func TestAuthManager_CreatePasswordResetToken_UserNotFound(t *testing.T) {
 	err := manager.CreatePasswordResetToken(ctx, input)
 
 	// Returns success without sending email to avoid email enumeration.
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, userDataManager.GetUserByEmailCalls(), 1)
 }
 
@@ -600,7 +600,7 @@ func TestAuthManager_VerifyUserEmailAddressByToken_UserNotFound(t *testing.T) {
 
 	err := manager.VerifyUserEmailAddressByToken(ctx, token)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Len(t, userDataManager.GetUserByEmailAddressVerificationTokenCalls(), 1)
 }
 
@@ -933,7 +933,7 @@ func TestAuthManager_PasswordResetTokenRedemption_TokenNotFound(t *testing.T) {
 
 	err := manager.PasswordResetTokenRedemption(ctx, input)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Len(t, prtManager.GetPasswordResetTokenByTokenCalls(), 1)
 }
 
@@ -972,7 +972,7 @@ func TestAuthManager_PasswordResetTokenRedemption_InvalidPassword(t *testing.T) 
 
 	err := manager.PasswordResetTokenRedemption(ctx, input)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Len(t, prtManager.GetPasswordResetTokenByTokenCalls(), 1)
 	assert.Len(t, userDataManager.GetUserCalls(), 1)
 }
@@ -999,7 +999,7 @@ func TestAuthManager_VerifyUserEmailAddress_UserNotFound(t *testing.T) {
 
 	err := manager.VerifyUserEmailAddress(ctx, input)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Len(t, userDataManager.GetUserByEmailAddressVerificationTokenCalls(), 1)
 }
 
@@ -1041,7 +1041,7 @@ func TestAuthManager_UpdatePassword_InvalidNewPassword(t *testing.T) {
 
 	err := manager.UpdatePassword(ctx, password)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Len(t, userDataManager.GetUserCalls(), 1)
 	assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
 }
@@ -1071,7 +1071,7 @@ func TestAuthManager_NewTOTPSecret_UserNotFound(t *testing.T) {
 
 	result, err := manager.NewTOTPSecret(ctx, input)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, result)
 	assert.Len(t, userDataManager.GetUserCalls(), 1)
 }
@@ -1164,7 +1164,7 @@ func TestAuthManager_GetActiveSessionsForUser(t *testing.T) {
 
 		result, err := manager.GetActiveSessionsForUser(ctx, userID, filter)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 		assert.Len(t, sessionDM.GetActiveSessionsForUserCalls(), 1)
 	})
@@ -1221,7 +1221,7 @@ func TestAuthManager_RevokeSession(t *testing.T) {
 
 		err := manager.RevokeSession(ctx, sessionID, userID)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Len(t, sessionDM.RevokeUserSessionCalls(), 1)
 	})
 }
@@ -1277,7 +1277,7 @@ func TestAuthManager_RevokeAllSessionsForUserExcept(t *testing.T) {
 
 		err := manager.RevokeAllSessionsForUserExcept(ctx, userID, currentSessionID)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Len(t, sessionDM.RevokeAllSessionsForUserExceptCalls(), 1)
 	})
 }

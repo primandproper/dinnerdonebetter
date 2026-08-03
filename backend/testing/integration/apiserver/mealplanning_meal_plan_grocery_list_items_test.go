@@ -104,7 +104,7 @@ func TestMealPlanGroceryListItems_Getting(T *testing.T) {
 			MealPlanId:                nonexistentID,
 			MealPlanGroceryListItemId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 
@@ -118,7 +118,7 @@ func TestMealPlanGroceryListItems_Getting(T *testing.T) {
 			MealPlanId:                nonexistentID,
 			MealPlanGroceryListItemId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 }
@@ -234,7 +234,7 @@ func TestMealPlanGroceryListItems_Updating(T *testing.T) {
 				Status: &newStatus,
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 
@@ -253,7 +253,7 @@ func TestMealPlanGroceryListItems_Updating(T *testing.T) {
 				Status: &newStatus,
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 }
@@ -318,7 +318,7 @@ func TestMealPlanGroceryListItems_Archiving(T *testing.T) {
 			MealPlanId:                mealPlanID,
 			MealPlanGroceryListItemId: firstItemID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, getRes)
 
 		// Clean up
@@ -335,7 +335,7 @@ func TestMealPlanGroceryListItems_Archiving(T *testing.T) {
 			MealPlanId:                nonexistentID,
 			MealPlanGroceryListItemId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 
@@ -349,7 +349,7 @@ func TestMealPlanGroceryListItems_Archiving(T *testing.T) {
 			MealPlanId:                nonexistentID,
 			MealPlanGroceryListItemId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 }

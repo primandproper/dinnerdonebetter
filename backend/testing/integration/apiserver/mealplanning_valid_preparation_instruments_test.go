@@ -89,7 +89,7 @@ func TestValidPreparationInstruments_Archiving(T *testing.T) {
 		_, _, created := createValidPreparationInstrumentForTest(t)
 
 		_, err := adminClient.ArchiveValidPreparationInstrument(ctx, &mealplanningsvc.ArchiveValidPreparationInstrumentRequest{ValidPreparationInstrumentId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetValidPreparationInstrument(ctx, &mealplanningsvc.GetValidPreparationInstrumentRequest{ValidPreparationInstrumentId: created.ID})
 		assert.Nil(t, x)
@@ -145,7 +145,7 @@ func TestValidPreparationInstruments_Updating(T *testing.T) {
 			ValidPreparationInstrumentId: created.ID,
 			Input:                        mealplanningconverters.ConvertValidPreparationInstrumentUpdateRequestInputToGRPCValidPreparationInstrumentUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, response)
 		require.NotNil(t, response.Result)
 	})
@@ -183,7 +183,7 @@ func TestValidPreparationInstruments_Updating(T *testing.T) {
 				Notes: new("doesn't matter"),
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }

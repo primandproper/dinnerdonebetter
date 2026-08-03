@@ -19,6 +19,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -79,7 +80,7 @@ func TestServiceImpl_CreateIssueReport(t *testing.T) {
 
 		response, err := service.CreateIssueReport(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Created)
 		assert.NotNil(t, response.ResponseDetails)
@@ -102,7 +103,7 @@ func TestServiceImpl_CreateIssueReport(t *testing.T) {
 
 		response, err := service.CreateIssueReport(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -127,7 +128,7 @@ func TestServiceImpl_CreateIssueReport(t *testing.T) {
 
 		response, err := service.CreateIssueReport(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -161,7 +162,7 @@ func TestServiceImpl_GetIssueReport(t *testing.T) {
 
 		response, err := service.GetIssueReport(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Result)
 		assert.Equal(t, fakeIssueReport.ID, response.Result.Id)
@@ -181,7 +182,7 @@ func TestServiceImpl_GetIssueReport(t *testing.T) {
 
 		response, err := service.GetIssueReport(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -209,7 +210,7 @@ func TestServiceImpl_GetIssueReport(t *testing.T) {
 
 		response, err := service.GetIssueReport(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
@@ -251,7 +252,7 @@ func TestServiceImpl_GetIssueReports(t *testing.T) {
 
 		response, err := service.GetIssueReports(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Len(t, response.Results, 2)
 
@@ -270,7 +271,7 @@ func TestServiceImpl_GetIssueReports(t *testing.T) {
 
 		response, err := service.GetIssueReports(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -312,7 +313,7 @@ func TestServiceImpl_GetIssueReportsForAccount(t *testing.T) {
 
 		response, err := service.GetIssueReportsForAccount(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Len(t, response.Results, 2)
 
@@ -332,7 +333,7 @@ func TestServiceImpl_GetIssueReportsForAccount(t *testing.T) {
 
 		response, err := service.GetIssueReportsForAccount(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -373,7 +374,7 @@ func TestServiceImpl_GetIssueReportsForTable(t *testing.T) {
 
 		response, err := service.GetIssueReportsForTable(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Len(t, response.Results, 1)
 
@@ -393,7 +394,7 @@ func TestServiceImpl_GetIssueReportsForTable(t *testing.T) {
 
 		response, err := service.GetIssueReportsForTable(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -436,7 +437,7 @@ func TestServiceImpl_GetIssueReportsForRecord(t *testing.T) {
 
 		response, err := service.GetIssueReportsForRecord(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Len(t, response.Results, 1)
 
@@ -457,7 +458,7 @@ func TestServiceImpl_GetIssueReportsForRecord(t *testing.T) {
 
 		response, err := service.GetIssueReportsForRecord(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -498,7 +499,7 @@ func TestServiceImpl_UpdateIssueReport(t *testing.T) {
 
 		response, err := service.UpdateIssueReport(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Updated)
 
@@ -519,7 +520,7 @@ func TestServiceImpl_UpdateIssueReport(t *testing.T) {
 
 		response, err := service.UpdateIssueReport(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -548,7 +549,7 @@ func TestServiceImpl_UpdateIssueReport(t *testing.T) {
 
 		response, err := service.UpdateIssueReport(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
@@ -588,7 +589,7 @@ func TestServiceImpl_ArchiveIssueReport(t *testing.T) {
 
 		response, err := service.ArchiveIssueReport(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 
 		assert.Len(t, mockRepo.GetIssueReportCalls(), 1)
@@ -607,7 +608,7 @@ func TestServiceImpl_ArchiveIssueReport(t *testing.T) {
 
 		response, err := service.ArchiveIssueReport(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -635,7 +636,7 @@ func TestServiceImpl_ArchiveIssueReport(t *testing.T) {
 
 		response, err := service.ArchiveIssueReport(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 

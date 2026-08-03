@@ -70,7 +70,7 @@ func TestValidIngredientGroups_Creating(T *testing.T) {
 		created, err := c.CreateValidIngredientGroup(ctx, &mealplanningsvc.CreateValidIngredientGroupRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -86,7 +86,7 @@ func TestValidIngredientGroups_Creating(T *testing.T) {
 		created, err := adminClient.CreateValidIngredientGroup(ctx, &mealplanningsvc.CreateValidIngredientGroupRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -102,7 +102,7 @@ func TestValidIngredientGroups_Creating(T *testing.T) {
 		created, err := testClient.CreateValidIngredientGroup(ctx, &mealplanningsvc.CreateValidIngredientGroupRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -119,7 +119,7 @@ func TestValidIngredientGroups_Reading(T *testing.T) {
 		created := createValidIngredientGroupForTest(t)
 
 		retrieved, err := testClient.GetValidIngredientGroup(ctx, &mealplanningsvc.GetValidIngredientGroupRequest{ValidIngredientGroupId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		converted := grpcconverters.ConvertGRPCValidIngredientGroupToValidIngredientGroup(retrieved.Result)
 
@@ -163,7 +163,7 @@ func TestValidIngredientGroups_Updating(T *testing.T) {
 			ValidIngredientGroupId: created.ID,
 			Input:                  grpcconverters.ConvertValidIngredientGroupUpdateRequestInputToGRPCValidIngredientGroupUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		updated := grpcconverters.ConvertGRPCValidIngredientGroupToValidIngredientGroup(response.Result)
 
 		// Ensure UpdatedAt was set
@@ -213,7 +213,7 @@ func TestValidIngredientGroups_Updating(T *testing.T) {
 				Name: new("doesn't matter"),
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -228,7 +228,7 @@ func TestValidIngredientGroups_Archiving(T *testing.T) {
 		created := createValidIngredientGroupForTest(t)
 
 		_, err := adminClient.ArchiveValidIngredientGroup(ctx, &mealplanningsvc.ArchiveValidIngredientGroupRequest{ValidIngredientGroupId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetValidIngredientGroup(ctx, &mealplanningsvc.GetValidIngredientGroupRequest{ValidIngredientGroupId: created.ID})
 		assert.Nil(t, x)

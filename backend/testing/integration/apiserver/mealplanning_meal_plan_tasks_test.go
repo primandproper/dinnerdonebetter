@@ -209,7 +209,7 @@ func TestMealPlanTasks_RunMealPlanTaskCreatorWorker(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 		res, err := c.RunMealPlanTaskCreatorWorker(ctx, &mealplanninggrpc.RunMealPlanTaskCreatorWorkerRequest{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 }
@@ -265,7 +265,7 @@ func TestMealPlanTasks_UpdateMealPlanTaskStatus(T *testing.T) {
 				StatusExplanation: "should fail",
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 
@@ -284,7 +284,7 @@ func TestMealPlanTasks_UpdateMealPlanTaskStatus(T *testing.T) {
 				StatusExplanation: "should fail",
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 }

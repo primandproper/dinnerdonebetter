@@ -38,7 +38,7 @@ func createMealPlanForTest(t *testing.T, ctx context.Context, exampleMealPlan *t
 	dbInput := converters.ConvertMealPlanToMealPlanDatabaseCreationInput(exampleMealPlan)
 
 	created, err := dbc.CreateMealPlan(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	exampleMealPlan.CreatedAt = created.CreatedAt
@@ -157,23 +157,23 @@ func TestQuerier_Integration_MealPlans(t *testing.T) {
 
 	// fetch as list
 	mealPlans, err := dbc.GetMealPlansForAccount(ctx, accountID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, mealPlans.Data)
 	assert.Len(t, mealPlans.Data, len(createdMealPlans))
 
 	_, err = dbc.GetMealPlansAwaitingFinalizationSaga(ctx, 10)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = dbc.GetFinalizedMealPlanOptionsForMealPlan(ctx, createdMealPlans[0].ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = dbc.FetchMissingVotesForMealPlan(ctx, createdMealPlans[0].ID, accountID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// delete
 	for _, mealPlan := range createdMealPlans {
 		_, err = dbc.AttemptToFinalizeMealPlan(ctx, mealPlan.ID, accountID)
-		assert.Error(t, err)
-		assert.ErrorIs(t, err, ErrAlreadyFinalized)
-		assert.NoError(t, dbc.ArchiveMealPlan(ctx, mealPlan.ID, accountID))
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrAlreadyFinalized)
+		require.NoError(t, dbc.ArchiveMealPlan(ctx, mealPlan.ID, accountID))
 
 		pgtesting.AssertAuditLogContains(t, ctx, auditRepo, accountID, []*audit.AuditLogEntry{
 			{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeMealPlans, RelevantID: mealPlan.ID},
@@ -181,13 +181,13 @@ func TestQuerier_Integration_MealPlans(t *testing.T) {
 
 		var exists bool
 		exists, err = dbc.MealPlanExists(ctx, mealPlan.ID, accountID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.MealPlan
 		y, err = dbc.GetMealPlan(ctx, mealPlan.ID, accountID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -204,7 +204,7 @@ func TestQuerier_MealPlanExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealPlanExists(ctx, "", exampleAccountID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -217,7 +217,7 @@ func TestQuerier_MealPlanExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealPlanExists(ctx, exampleMealPlanID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -233,7 +233,7 @@ func TestQuerier_GetMealPlan(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlan(ctx, "", exampleAccountID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -245,7 +245,7 @@ func TestQuerier_GetMealPlan(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlan(ctx, exampleMealPlanID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -260,7 +260,7 @@ func TestQuerier_CreateMealPlan(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateMealPlan(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -345,7 +345,7 @@ func TestQuerier_FetchMissingVotesForMealPlan(T *testing.T) {
 		exampleAccountID := fakes.BuildFakeID()
 
 		actual, err := c.FetchMissingVotesForMealPlan(ctx, "", exampleAccountID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -357,7 +357,7 @@ func TestQuerier_FetchMissingVotesForMealPlan(T *testing.T) {
 		exampleMealPlan := fakes.BuildFakeMealPlan()
 
 		actual, err := c.FetchMissingVotesForMealPlan(ctx, exampleMealPlan.ID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -430,7 +430,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		}
 
 		created, createErr := dbc.CreateMealPlan(ctx, dbInput)
-		assert.NoError(t, createErr)
+		require.NoError(t, createErr)
 		require.NotNil(t, created)
 		require.NotEmpty(t, created.Events)
 		require.NotEmpty(t, created.Events[0].Options)
@@ -438,7 +438,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		// Verify the selection was created by querying for it
 		optionID := created.Events[0].Options[0].ID
 		selections, selectionErr := dbc.GetSelectionsForMealPlanOption(ctx, optionID, nil)
-		assert.NoError(t, selectionErr)
+		require.NoError(t, selectionErr)
 		require.NotEmpty(t, selections.Data)
 		assert.Equal(t, recipe.ID, selections.Data[0].RecipeID)
 		assert.Equal(t, recipeStep.ID, selections.Data[0].RecipeStepID)
@@ -486,7 +486,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		}
 
 		created, createErr := dbc.CreateMealPlan(ctx, dbInput)
-		assert.NoError(t, createErr)
+		require.NoError(t, createErr)
 		require.NotNil(t, created)
 		require.NotEmpty(t, created.Events)
 		require.NotEmpty(t, created.Events[0].Options)
@@ -494,7 +494,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		// Verify all selections were created
 		optionID := created.Events[0].Options[0].ID
 		selections, selectionErr := dbc.GetSelectionsForMealPlanOption(ctx, optionID, nil)
-		assert.NoError(t, selectionErr)
+		require.NoError(t, selectionErr)
 		assert.Len(t, selections.Data, 3)
 
 		// Verify selection types
@@ -531,7 +531,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 
 		// Should succeed even though selection doesn't match
 		created, createErr := dbc.CreateMealPlan(ctx, dbInput)
-		assert.NoError(t, createErr)
+		require.NoError(t, createErr)
 		require.NotNil(t, created)
 		require.NotEmpty(t, created.Events)
 		require.NotEmpty(t, created.Events[0].Options)
@@ -539,7 +539,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		// Verify no selections were created (since recipe didn't match)
 		optionID := created.Events[0].Options[0].ID
 		selections, selectionErr := dbc.GetSelectionsForMealPlanOption(ctx, optionID, nil)
-		assert.NoError(t, selectionErr)
+		require.NoError(t, selectionErr)
 		assert.Empty(t, selections.Data)
 
 		// Cleanup
@@ -574,7 +574,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		}
 
 		created, createErr := dbc.CreateMealPlan(ctx, dbInput)
-		assert.NoError(t, createErr)
+		require.NoError(t, createErr)
 		require.NotNil(t, created)
 		require.NotEmpty(t, created.Events)
 		require.NotEmpty(t, created.Events[0].Options)
@@ -582,7 +582,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		// Verify only the matching selection was created
 		optionID := created.Events[0].Options[0].ID
 		selections, selectionErr := dbc.GetSelectionsForMealPlanOption(ctx, optionID, nil)
-		assert.NoError(t, selectionErr)
+		require.NoError(t, selectionErr)
 		assert.Len(t, selections.Data, 1)
 		assert.Equal(t, recipe.ID, selections.Data[0].RecipeID)
 
@@ -600,7 +600,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		dbInput.Selections = nil
 
 		created, createErr := dbc.CreateMealPlan(ctx, dbInput)
-		assert.NoError(t, createErr)
+		require.NoError(t, createErr)
 		require.NotNil(t, created)
 		require.NotEmpty(t, created.Events)
 		require.NotEmpty(t, created.Events[0].Options)
@@ -608,7 +608,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		// Verify no selections were created
 		optionID := created.Events[0].Options[0].ID
 		selections, selectionErr := dbc.GetSelectionsForMealPlanOption(ctx, optionID, nil)
-		assert.NoError(t, selectionErr)
+		require.NoError(t, selectionErr)
 		assert.Empty(t, selections.Data)
 
 		// Cleanup
@@ -643,12 +643,12 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		}
 
 		created, createErr := dbc.CreateMealPlan(ctx, dbInput)
-		assert.NoError(t, createErr)
+		require.NoError(t, createErr)
 		require.NotNil(t, created)
 
 		// Now fetch the meal plan via GetMealPlan
 		fetched, fetchErr := dbc.GetMealPlan(ctx, created.ID, accountID)
-		assert.NoError(t, fetchErr)
+		require.NoError(t, fetchErr)
 		require.NotNil(t, fetched)
 
 		// Verify the Selections field is populated
@@ -678,12 +678,12 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		dbInput.Selections = nil
 
 		created, createErr := dbc.CreateMealPlan(ctx, dbInput)
-		assert.NoError(t, createErr)
+		require.NoError(t, createErr)
 		require.NotNil(t, created)
 
 		// Now fetch the meal plan via GetMealPlan
 		fetched, fetchErr := dbc.GetMealPlan(ctx, created.ID, accountID)
-		assert.NoError(t, fetchErr)
+		require.NoError(t, fetchErr)
 		require.NotNil(t, fetched)
 
 		// Verify the Selections field is nil (not an empty slice)

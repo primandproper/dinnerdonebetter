@@ -133,13 +133,13 @@ func TestRecipeStepCompletionConditions_CompleteLifecycle(T *testing.T) {
 			RecipeStepId:                    createdRecipeStep.ID,
 			RecipeStepCompletionConditionId: createdRecipeStepCompletionCondition.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipeStep(ctx, &mealplanninggrpc.ArchiveRecipeStepRequest{
 			RecipeId:     createdRecipe.ID,
 			RecipeStepId: createdRecipeStep.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
 		assert.NoError(t, err)

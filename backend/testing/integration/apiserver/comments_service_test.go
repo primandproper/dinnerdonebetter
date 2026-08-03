@@ -104,7 +104,7 @@ func TestCommentsService_CreateComment(T *testing.T) {
 				ReferencedId: createdRecipe.ID,
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 
 		_, _ = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
@@ -146,7 +146,7 @@ func TestCommentsService_GetCommentsForReference(T *testing.T) {
 			TargetType:   mealplanning.CommentTargetTypeRecipes,
 			ReferencedId: createdRecipe.ID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, listRes)
 
 		_, _ = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})

@@ -24,7 +24,7 @@ func createMealPlanOptionVoteForTest(t *testing.T, ctx context.Context, mealPlan
 	dbInput := converters.ConvertMealPlanOptionVoteToMealPlanOptionVotesDatabaseCreationInput(exampleMealPlanOptionVote)
 
 	rawCreated, err := dbc.CreateMealPlanOptionVote(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, rawCreated)
 	assert.Len(t, rawCreated, 1)
 	created := rawCreated[0]
@@ -72,19 +72,19 @@ func TestQuerier_Integration_MealPlanOptionVotes(t *testing.T) {
 
 	// fetch as list
 	mealPlanOptionVotes, err := dbc.GetMealPlanOptionVotes(ctx, mealPlan.ID, mealPlanEvent.ID, mealPlanOption.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, mealPlanOptionVotes)
 	assert.Len(t, mealPlanOptionVotes.Data, len(createdMealPlanOptionVotes))
 
-	assert.NoError(t, dbc.UpdateMealPlanOptionVote(ctx, createdMealPlanOptionVotes[0]))
+	require.NoError(t, dbc.UpdateMealPlanOptionVote(ctx, createdMealPlanOptionVotes[0]))
 
 	// delete
 	for _, mealPlanOptionVote := range createdMealPlanOptionVotes {
-		assert.NoError(t, dbc.ArchiveMealPlanOptionVote(ctx, mealPlan.ID, mealPlanEvent.ID, mealPlanOption.ID, mealPlanOptionVote.ID))
+		require.NoError(t, dbc.ArchiveMealPlanOptionVote(ctx, mealPlan.ID, mealPlanEvent.ID, mealPlanOption.ID, mealPlanOptionVote.ID))
 
 		var exists bool
 		exists, err = dbc.MealPlanOptionVoteExists(ctx, mealPlan.ID, mealPlanEvent.ID, mealPlanOption.ID, mealPlanOptionVote.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 	}
 }
@@ -104,7 +104,7 @@ func TestQuerier_MealPlanOptionVoteExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealPlanOptionVoteExists(ctx, "", exampleMealPlanEventID, exampleMealPlanOptionID, exampleMealPlanOptionVote.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -120,7 +120,7 @@ func TestQuerier_MealPlanOptionVoteExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealPlanOptionVoteExists(ctx, exampleMealPlanID, exampleMealPlanEventID, "", exampleMealPlanOptionVote.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -136,7 +136,7 @@ func TestQuerier_MealPlanOptionVoteExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealPlanOptionVoteExists(ctx, exampleMealPlanID, exampleMealPlanEventID, exampleMealPlanOptionID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -155,7 +155,7 @@ func TestQuerier_GetMealPlanOptionVote(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlanOptionVote(ctx, "", exampleMealPlanEventID, exampleMealPlanOptionID, exampleMealPlanOptionVote.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -170,7 +170,7 @@ func TestQuerier_GetMealPlanOptionVote(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlanOptionVote(ctx, exampleMealPlanID, exampleMealPlanEventID, "", exampleMealPlanOptionVote.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -185,7 +185,7 @@ func TestQuerier_GetMealPlanOptionVote(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlanOptionVote(ctx, exampleMealPlanID, exampleMealPlanEventID, exampleMealPlanOptionID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -204,7 +204,7 @@ func TestQuerier_GetMealPlanOptionVotes(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlanOptionVotes(ctx, "", exampleMealPlanEventID, exampleMealPlanOptionID, filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -219,7 +219,7 @@ func TestQuerier_GetMealPlanOptionVotes(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlanOptionVotes(ctx, exampleMealPlanID, exampleMealPlanEventID, "", filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -234,7 +234,7 @@ func TestQuerier_CreateMealPlanOptionVote(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateMealPlanOptionVote(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

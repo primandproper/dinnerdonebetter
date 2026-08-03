@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 )
@@ -40,7 +41,7 @@ func TestRecipeGrapher_makeGraphForRecipe(T *testing.T) {
 		}
 
 		actual, err := g.MakeGraphForRecipe(ctx, r)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 	})
 }
@@ -61,7 +62,7 @@ func TestRecipeGrapher_makeDAGForRecipe(T *testing.T) {
 		}
 
 		actual, err := g.makeDAGForRecipe(ctx, r)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 	})
 }
@@ -135,7 +136,7 @@ func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 		}
 
 		actual, err := g.GenerateMealPlanTasksForRecipe(ctx, exampleMealPlanOption.ID, exampleRecipe)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// The frozen chicken breast in step 1 yields exactly one ad-hoc thaw task. Thaw tasks have
 		// no backing recipe prep task (belongs_to_recipe_prep_task is nullable).
@@ -195,7 +196,7 @@ func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 		}
 
 		actual, err := g.GenerateMealPlanTasksForRecipe(ctx, exampleMealPlanOptionID, exampleRecipe)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, actual)
 	})
 }
@@ -425,7 +426,7 @@ func TestRecipeAnalyzer_MakeGraphForRecipe_WithAssociatedRecipe(T *testing.T) {
 		}
 
 		actual, err := g.MakeGraphForRecipe(ctx, recipe)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 
 		// Should have 3 nodes: 1 from assoc + 2 from main
@@ -469,7 +470,7 @@ func TestRecipeAnalyzer_MakeGraphForMeal(T *testing.T) {
 		}
 
 		actual, err := g.MakeGraphForMeal(ctx, meal)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		// 2 steps from main + 1 from side = 3 nodes
 		assert.Equal(t, 3, actual.Nodes().Len())
@@ -687,7 +688,7 @@ func TestRecipeAnalyzer_ValidateRecipeCreationRequestInputIsDAG(T *testing.T) {
 		}
 
 		err := g.ValidateRecipeCreationRequestInputIsDAG(ctx, input)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, errNotAcyclic)
 	})
 
@@ -738,7 +739,7 @@ func TestRecipeAnalyzer_ValidateRecipeCreationRequestInputIsDAG(T *testing.T) {
 		}
 
 		err := g.ValidateRecipeCreationRequestInputIsDAG(ctx, input)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, errNotAcyclic)
 	})
 
@@ -778,7 +779,7 @@ func TestRecipeAnalyzer_ValidateRecipeCreationRequestInputIsDAG(T *testing.T) {
 		}
 
 		err := g.ValidateRecipeCreationRequestInputIsDAG(ctx, input)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, errNotAcyclic)
 	})
 
@@ -818,7 +819,7 @@ func TestRecipeAnalyzer_ValidateRecipeCreationRequestInputIsDAG(T *testing.T) {
 		}
 
 		err := g.ValidateRecipeCreationRequestInputIsDAG(ctx, input)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, errNotAcyclic)
 	})
 
@@ -847,7 +848,7 @@ func TestRecipeAnalyzer_ValidateRecipeCreationRequestInputIsDAG(T *testing.T) {
 		}
 
 		err := g.ValidateRecipeCreationRequestInputIsDAG(ctx, input)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "references invalid step array index")
 	})
 
@@ -876,7 +877,7 @@ func TestRecipeAnalyzer_ValidateRecipeCreationRequestInputIsDAG(T *testing.T) {
 		}
 
 		err := g.ValidateRecipeCreationRequestInputIsDAG(ctx, input)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "references invalid step array index")
 	})
 
@@ -905,7 +906,7 @@ func TestRecipeAnalyzer_ValidateRecipeCreationRequestInputIsDAG(T *testing.T) {
 		}
 
 		err := g.ValidateRecipeCreationRequestInputIsDAG(ctx, input)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "references invalid step array index")
 	})
 
@@ -966,7 +967,7 @@ func TestRecipeAnalyzer_ValidateRecipeCreationRequestInputIsDAG(T *testing.T) {
 		}
 
 		err := g.ValidateRecipeCreationRequestInputIsDAG(ctx, input)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, errNotAcyclic)
 	})
 

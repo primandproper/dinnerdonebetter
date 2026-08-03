@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/email"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAsyncDataChangeMessageHandler_OutboundEmailsEventHandler(t *testing.T) {
@@ -36,7 +37,7 @@ func TestAsyncDataChangeMessageHandler_OutboundEmailsEventHandler(t *testing.T) 
 		}
 
 		rawMsg, err := json.Marshal(emailMessage)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		emailer.SendEmailFunc = func(_ context.Context, _ *email.OutboundEmailMessage) error { return nil }
 		analyticsEventReporter.EventOccurredFunc = func(_ context.Context, _ string, _ string, _ map[string]any) error { return nil }
@@ -54,7 +55,7 @@ func TestAsyncDataChangeMessageHandler_OutboundEmailsEventHandler(t *testing.T) 
 		rawMsg := []byte("invalid json")
 
 		err := handler.OutboundEmailsEventHandler("outbound_emails")(ctx, rawMsg)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "decoding JSON body")
 	})
 
@@ -78,13 +79,13 @@ func TestAsyncDataChangeMessageHandler_OutboundEmailsEventHandler(t *testing.T) 
 		}
 
 		rawMsg, err := json.Marshal(emailMessage)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		expectedError := errors.New("email sending error")
 		emailer.SendEmailFunc = func(_ context.Context, _ *email.OutboundEmailMessage) error { return expectedError }
 
 		err = handler.OutboundEmailsEventHandler("outbound_emails")(ctx, rawMsg)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "sending email")
 	})
 
@@ -108,7 +109,7 @@ func TestAsyncDataChangeMessageHandler_OutboundEmailsEventHandler(t *testing.T) 
 		}
 
 		rawMsg, err := json.Marshal(emailMessage)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		emailer.SendEmailFunc = func(_ context.Context, _ *email.OutboundEmailMessage) error { return nil }
 		expectedError := errors.New("analytics error")
@@ -130,7 +131,7 @@ func TestAsyncDataChangeMessageHandler_handleEmailRequest(t *testing.T) {
 		ctx := t.Context()
 
 		err := handler.handleEmailRequest(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, errRequiredDataIsNil, err)
 	})
 
@@ -183,7 +184,7 @@ func TestAsyncDataChangeMessageHandler_handleEmailRequest(t *testing.T) {
 		emailer.SendEmailFunc = func(_ context.Context, _ *email.OutboundEmailMessage) error { return expectedError }
 
 		err := handler.handleEmailRequest(ctx, emailMessage)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "sending email")
 	})
 

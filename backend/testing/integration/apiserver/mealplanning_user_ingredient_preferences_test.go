@@ -61,7 +61,7 @@ func TestUserIngredientPreferences_Creating(T *testing.T) {
 		created, err := c.CreateUserIngredientPreference(ctx, &settingssvc.CreateUserIngredientPreferenceRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -80,7 +80,7 @@ func TestUserIngredientPreferences_Creating(T *testing.T) {
 		created, err := testClient.CreateUserIngredientPreference(ctx, &settingssvc.CreateUserIngredientPreferenceRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -96,7 +96,7 @@ func TestUserIngredientPreferences_Creating(T *testing.T) {
 		created, err := testClient.CreateUserIngredientPreference(ctx, &settingssvc.CreateUserIngredientPreferenceRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -153,7 +153,7 @@ func TestUserIngredientPreferences_Archiving(T *testing.T) {
 		created := createUserIngredientPreferenceForTest(t, testClient)
 
 		_, err := testClient.ArchiveUserIngredientPreference(ctx, &settingssvc.ArchiveUserIngredientPreferenceRequest{UserIngredientPreferenceId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := testClient.GetUserIngredientPreference(ctx, &settingssvc.GetUserIngredientPreferenceRequest{UserIngredientPreferenceId: created.ID})
 		assert.Nil(t, x)
@@ -205,7 +205,7 @@ func TestUserIngredientPreferences_Updating(T *testing.T) {
 				Allergy: updateInput.Allergy,
 			},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		updated := settingsconverters.ConvertGRPCUserIngredientPreferenceToUserIngredientPreference(response.Updated)
 		// Ensure UpdatedAt was set

@@ -84,7 +84,7 @@ func TestEraser_Erase(T *testing.T) {
 
 		outcome, err := eraser.Erase(t.Context(), nil, subject(identifiers.New()))
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Zero(t, outcome.Deleted)
 	})
 }

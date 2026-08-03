@@ -267,7 +267,7 @@ func TestManager_ProcessLogin(T *testing.T) {
 
 		response, err := m.ProcessLogin(ctx, false, loginInput, nil)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserByUsernameCalls(), 1)
@@ -296,8 +296,8 @@ func TestManager_ProcessLogin(T *testing.T) {
 		response, err := m.ProcessLogin(ctx, false, loginInput, nil)
 
 		// A banned user must be rejected with an error and no token response.
-		assert.Error(t, err)
-		assert.ErrorIs(t, err, ErrUserBanned)
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrUserBanned)
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserByUsernameCalls(), 1)
@@ -321,7 +321,7 @@ func TestManager_ProcessLogin(T *testing.T) {
 
 		response, err := m.ProcessLogin(ctx, false, loginInput, nil)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserByUsernameCalls(), 1)
@@ -340,7 +340,7 @@ func TestManager_ProcessLogin(T *testing.T) {
 
 		response, err := m.ProcessLogin(ctx, false, loginInput, nil)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 
@@ -380,7 +380,7 @@ func TestManager_ProcessLogin(T *testing.T) {
 
 		response, err := m.ProcessLogin(ctx, false, loginInput, nil)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserByUsernameCalls(), 1)
@@ -418,7 +418,7 @@ func TestManager_ProcessLogin(T *testing.T) {
 
 		response, err := m.ProcessLogin(ctx, false, loginInput, nil)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserByUsernameCalls(), 1)
@@ -567,7 +567,7 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 
 		response, err := m.ProcessPasskeyLogin(ctx, user.ID, "", nil)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
@@ -586,7 +586,7 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 
 		response, err := m.ProcessPasskeyLogin(ctx, "nonexistent", "", nil)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
@@ -612,7 +612,7 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 
 		response, err := m.ProcessPasskeyLogin(ctx, user.ID, "other-account", nil)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
@@ -704,7 +704,7 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 
 		response, err := m.ExchangeTokenForUser(ctx, refreshToken, "")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
@@ -785,8 +785,8 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		response, err := m.ExchangeTokenForUser(ctx, refreshToken, "")
 
 		// A banned user must be rejected with an error and no token response.
-		assert.Error(t, err)
-		assert.ErrorIs(t, err, ErrUserBanned)
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrUserBanned)
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
@@ -843,7 +843,7 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 
 		response, err := m.ExchangeTokenForUser(ctx, refreshToken, "")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 
@@ -865,7 +865,7 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 
 		response, err := m.ExchangeTokenForUser(ctx, refreshToken, "")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
@@ -904,7 +904,7 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 
 		response, err := m.ExchangeTokenForUser(ctx, refreshToken, "wrong-account")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)

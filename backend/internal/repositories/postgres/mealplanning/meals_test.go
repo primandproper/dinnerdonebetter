@@ -43,11 +43,11 @@ func createMealForTest(t *testing.T, ctx context.Context, exampleMeal *types.Mea
 	dbInput := converters.ConvertMealToMealDatabaseCreationInput(exampleMeal)
 
 	created, err := dbc.CreateMeal(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	meal, err := dbc.GetMeal(ctx, created.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, meal)
 
 	return meal
@@ -75,31 +75,31 @@ func TestQuerier_Integration_Meals(t *testing.T) {
 
 	// fetch as list
 	meals, err := dbc.GetMeals(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, meals.Data)
 	assert.Len(t, meals.Data, len(createdMeals))
 
 	results, err := dbc.GetMealsWithIDs(ctx, []string{createdMeals[0].ID})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, results)
 
 	ids, err := dbc.GetMealIDsThatNeedSearchIndexing(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, ids)
 
 	// delete
 	for _, meal := range createdMeals {
-		assert.NoError(t, dbc.ArchiveMeal(ctx, meal.ID, user.ID))
+		require.NoError(t, dbc.ArchiveMeal(ctx, meal.ID, user.ID))
 
 		var exists bool
 		exists, err = dbc.MealExists(ctx, meal.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.Meal
 		y, err = dbc.GetMeal(ctx, meal.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -177,7 +177,7 @@ func TestQuerier_MealExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -192,7 +192,7 @@ func TestQuerier_GetMeal(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMeal(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -207,7 +207,7 @@ func TestQuerier_CreateMeal(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateMeal(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

@@ -160,7 +160,7 @@ func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 
 		response, err := service.CreateUploadedMedia(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Created)
 		assert.NotNil(t, response.ResponseDetails)
@@ -182,7 +182,7 @@ func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 
 		response, err := service.CreateUploadedMedia(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -205,7 +205,7 @@ func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 
 		response, err := service.CreateUploadedMedia(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -237,7 +237,7 @@ func TestServiceImpl_GetUploadedMedia(t *testing.T) {
 
 		response, err := service.GetUploadedMedia(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Result)
 		assert.Equal(t, fakeUploadedMedia.ID, response.Result.Id)
@@ -257,7 +257,7 @@ func TestServiceImpl_GetUploadedMedia(t *testing.T) {
 
 		response, err := service.GetUploadedMedia(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -283,7 +283,7 @@ func TestServiceImpl_GetUploadedMedia(t *testing.T) {
 
 		response, err := service.GetUploadedMedia(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
@@ -308,7 +308,7 @@ func TestServiceImpl_GetUploadedMedia(t *testing.T) {
 
 		response, err := service.GetUploadedMedia(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -349,7 +349,7 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 
 		response, err := service.GetUploadedMediaWithIDs(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Len(t, response.Results, 2)
 
@@ -386,7 +386,7 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 
 		response, err := service.GetUploadedMediaWithIDs(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Len(t, response.Results, 1)
 		assert.Equal(t, fakeUploadedMedia1.ID, response.Results[0].Id)
@@ -406,7 +406,7 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 
 		response, err := service.GetUploadedMediaWithIDs(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -423,7 +423,7 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 
 		response, err := service.GetUploadedMediaWithIDs(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
@@ -448,7 +448,7 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 
 		response, err := service.GetUploadedMediaWithIDs(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -489,7 +489,7 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 
 		response, err := service.GetUploadedMediaForUser(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Len(t, response.Results, 2)
 
@@ -509,7 +509,7 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 
 		response, err := service.GetUploadedMediaForUser(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -527,7 +527,7 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 
 		response, err := service.GetUploadedMediaForUser(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	})
@@ -551,7 +551,7 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 
 		response, err := service.GetUploadedMediaForUser(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -591,7 +591,7 @@ func TestServiceImpl_UpdateUploadedMedia(t *testing.T) {
 
 		response, err := service.UpdateUploadedMedia(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Updated)
 
@@ -612,7 +612,7 @@ func TestServiceImpl_UpdateUploadedMedia(t *testing.T) {
 
 		response, err := service.UpdateUploadedMedia(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -639,7 +639,7 @@ func TestServiceImpl_UpdateUploadedMedia(t *testing.T) {
 
 		response, err := service.UpdateUploadedMedia(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
@@ -665,7 +665,7 @@ func TestServiceImpl_UpdateUploadedMedia(t *testing.T) {
 
 		response, err := service.UpdateUploadedMedia(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -697,7 +697,7 @@ func TestServiceImpl_UpdateUploadedMedia(t *testing.T) {
 
 		response, err := service.UpdateUploadedMedia(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -735,7 +735,7 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 
 		response, err := service.ArchiveUploadedMedia(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 
 		assert.Len(t, mockRepo.GetUploadedMediaCalls(), 1)
@@ -754,7 +754,7 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 
 		response, err := service.ArchiveUploadedMedia(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -780,7 +780,7 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 
 		response, err := service.ArchiveUploadedMedia(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
@@ -805,7 +805,7 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 
 		response, err := service.ArchiveUploadedMedia(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -838,7 +838,7 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 
 		response, err := service.ArchiveUploadedMedia(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -907,7 +907,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 		err := service.Upload(mockStream)
 
 		// Assert
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, mockRepo.CreateUploadedMediaCalls(), 1)
 
 		// The bytes are counted against the account, keyed by the row that was created —
@@ -951,7 +951,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 			return platformerrors.New("blah")
 		}
 
-		assert.NoError(t, service.Upload(mockStream))
+		require.NoError(t, service.Upload(mockStream))
 		assert.Len(t, usageRecorder.RecordCalls(), 1)
 	})
 
@@ -966,7 +966,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		err := service.Upload(mockStream)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 
@@ -990,7 +990,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		err := service.Upload(mockStream)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
 
@@ -1019,7 +1019,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		err := service.Upload(mockStream)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
 
@@ -1048,7 +1048,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		err := service.Upload(mockStream)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
 
@@ -1077,7 +1077,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		err := service.Upload(mockStream)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
 
@@ -1115,7 +1115,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		err := service.Upload(mockStream)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
 
@@ -1144,7 +1144,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		err := service.Upload(mockStream)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
 
@@ -1185,7 +1185,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		err := service.Upload(mockStream)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.Internal, status.Code(err))
 	})
 
@@ -1228,7 +1228,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		err := service.Upload(mockStream)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.Internal, status.Code(err))
 		assert.Len(t, mockRepo.CreateUploadedMediaCalls(), 1)
 	})

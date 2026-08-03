@@ -162,7 +162,7 @@ func TestWaitlists_Reading(T *testing.T) {
 		createdWaitlist := createWaitlistForTest(t, testClient)
 
 		retrieved, err := testClient.GetWaitlist(ctx, &waitlistssvc.GetWaitlistRequest{WaitlistId: createdWaitlist.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, retrieved)
 	})
 
@@ -173,7 +173,7 @@ func TestWaitlists_Reading(T *testing.T) {
 		_, testClient := createUserAndClientForTest(t)
 
 		retrieved, err := testClient.GetWaitlist(ctx, &waitlistssvc.GetWaitlistRequest{WaitlistId: nonexistentID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, retrieved)
 	})
 
@@ -202,7 +202,7 @@ func TestWaitlists_Listing(T *testing.T) {
 		}
 
 		results, err := testClient.GetWaitlists(ctx, &waitlistssvc.GetWaitlistsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
 		assert.GreaterOrEqual(t, len(results.Results), len(createdWaitlists))
 	})
@@ -232,7 +232,7 @@ func TestWaitlists_ListingActive(T *testing.T) {
 		}
 
 		results, err := testClient.GetActiveWaitlists(ctx, &waitlistssvc.GetActiveWaitlistsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
 		// All created waitlists should be active (not expired)
 		assert.GreaterOrEqual(t, len(results.Results), len(createdWaitlists))
@@ -270,7 +270,7 @@ func TestWaitlists_Updating(T *testing.T) {
 				ValidUntil:  timestamppb.New(newValidUntil),
 			},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		retrieved, err := testClient.GetWaitlist(ctx, &waitlistssvc.GetWaitlistRequest{WaitlistId: createdWaitlist.ID})
 		require.NoError(t, err)
@@ -349,7 +349,7 @@ func TestWaitlists_IsNotExpired(T *testing.T) {
 		createdWaitlist := createWaitlistForTest(t, testClient)
 
 		result, err := testClient.WaitlistIsNotExpired(ctx, &waitlistssvc.WaitlistIsNotExpiredRequest{WaitlistId: createdWaitlist.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.True(t, result.IsNotExpired)
 	})
@@ -431,7 +431,7 @@ func TestWaitlistSignups_Reading(T *testing.T) {
 			WaitlistSignupId: createdSignup.ID,
 			WaitlistId:       waitlist.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, retrieved)
 	})
 
@@ -446,7 +446,7 @@ func TestWaitlistSignups_Reading(T *testing.T) {
 			WaitlistSignupId: nonexistentID,
 			WaitlistId:       waitlist.ID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, retrieved)
 	})
 
@@ -479,7 +479,7 @@ func TestWaitlistSignups_Listing(T *testing.T) {
 		results, err := adminClient.GetWaitlistSignupsForWaitlist(ctx, &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
 			WaitlistId: waitlist.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
 		assert.GreaterOrEqual(t, len(results.Results), len(createdSignups))
 	})
@@ -529,7 +529,7 @@ func TestWaitlistSignups_Updating(T *testing.T) {
 				Notes: &newNotes,
 			},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		retrieved, err := testClient.GetWaitlistSignup(ctx, &waitlistssvc.GetWaitlistSignupRequest{
 			WaitlistSignupId: createdSignup.ID,

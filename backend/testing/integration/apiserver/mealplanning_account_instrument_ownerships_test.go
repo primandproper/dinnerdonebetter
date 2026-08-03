@@ -83,7 +83,7 @@ func TestAccountInstrumentOwnerships_Creating(T *testing.T) {
 		created, err := c.CreateAccountInstrumentOwnership(ctx, &settingssvc.CreateAccountInstrumentOwnershipRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -101,7 +101,7 @@ func TestAccountInstrumentOwnerships_Creating(T *testing.T) {
 		created, err := testClient.CreateAccountInstrumentOwnership(ctx, &settingssvc.CreateAccountInstrumentOwnershipRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -158,11 +158,11 @@ func TestAccountInstrumentOwnerships_Archiving(T *testing.T) {
 		created := createAccountInstrumentOwnershipForTest(t, testClient)
 
 		_, err := testClient.ArchiveAccountInstrumentOwnership(ctx, &settingssvc.ArchiveAccountInstrumentOwnershipRequest{AccountInstrumentOwnershipId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := testClient.GetAccountInstrumentOwnership(ctx, &settingssvc.GetAccountInstrumentOwnershipRequest{AccountInstrumentOwnershipId: created.ID})
 		assert.Nil(t, x)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "account_instrument_ownerships", RelevantID: created.ID},

@@ -130,7 +130,7 @@ func createRecipeStepForTest(t *testing.T, ctx context.Context, recipeID string,
 	dbInput := converters.ConvertRecipeStepToRecipeStepDatabaseCreationInput(exampleRecipeStep)
 
 	created, err := dbc.CreateRecipeStep(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	exampleRecipeStep.Media = nil
@@ -332,23 +332,23 @@ func TestQuerier_Integration_RecipeSteps(t *testing.T) {
 
 	// fetch as list
 	recipeSteps, err := dbc.GetRecipeSteps(ctx, exampleRecipe.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, recipeSteps.Data)
 	assert.Len(t, recipeSteps.Data, len(createdRecipeSteps))
 
 	// delete
 	for _, recipeStep := range createdRecipeSteps {
-		assert.NoError(t, dbc.ArchiveRecipeStep(ctx, exampleRecipe.ID, recipeStep.ID))
+		require.NoError(t, dbc.ArchiveRecipeStep(ctx, exampleRecipe.ID, recipeStep.ID))
 
 		var exists bool
 		exists, err = dbc.RecipeStepExists(ctx, exampleRecipe.ID, recipeStep.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.RecipeStep
 		y, err = dbc.GetRecipeStep(ctx, exampleRecipe.ID, recipeStep.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -366,7 +366,7 @@ func TestQuerier_RecipeStepExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.RecipeStepExists(ctx, "", exampleRecipeStep.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -380,7 +380,7 @@ func TestQuerier_RecipeStepExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.RecipeStepExists(ctx, exampleRecipeID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -397,7 +397,7 @@ func TestQuerier_GetRecipeStep(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipeStep(ctx, "", exampleRecipeStep.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -410,7 +410,7 @@ func TestQuerier_GetRecipeStep(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipeStep(ctx, exampleRecipeID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -425,7 +425,7 @@ func TestQuerier_getRecipeStepByID(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.getRecipeStepByID(ctx, c.writeDB, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -442,7 +442,7 @@ func TestQuerier_GetRecipeSteps(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipeSteps(ctx, "", filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -457,7 +457,7 @@ func TestQuerier_CreateRecipeStep(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateRecipeStep(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -472,7 +472,7 @@ func TestSQLQuerier_createRecipeStep(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.createRecipeStep(ctx, c.writeDB, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

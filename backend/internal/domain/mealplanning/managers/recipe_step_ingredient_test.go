@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecipeManager_ListRecipeStepIngredients(T *testing.T) {
@@ -37,7 +38,7 @@ func TestRecipeManager_ListRecipeStepIngredients(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ListRecipeStepIngredients(ctx, exampleRecipeID, exampleRecipeStepID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRecipeStepIngredientsCalls(), 1)
@@ -80,7 +81,7 @@ func TestRecipeManager_CreateRecipeStepIngredient(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.CreateRecipeStepIngredient(ctx, exampleRecipeID, exampleRecipeStepID, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidIngredientPreparationCalls(), 1)
@@ -114,7 +115,7 @@ func TestRecipeManager_ReadRecipeStepIngredient(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ReadRecipeStepIngredient(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRecipeStepIngredientCalls(), 1)
@@ -149,7 +150,7 @@ func TestRecipeManager_UpdateRecipeStepIngredient(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		assert.NoError(t, rm.UpdateRecipeStepIngredient(ctx, exampleRecipeID, exampleRecipeStepID, exampleRecipeStepIngredient.ID, exampleInput))
+		require.NoError(t, rm.UpdateRecipeStepIngredient(ctx, exampleRecipeID, exampleRecipeStepID, exampleRecipeStepIngredient.ID, exampleInput))
 
 		assert.Len(t, db.GetRecipeStepIngredientCalls(), 1)
 		assert.Len(t, db.UpdateRecipeStepIngredientCalls(), 1)
@@ -179,7 +180,7 @@ func TestRecipeManager_ArchiveRecipeStepIngredient(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		assert.NoError(t, rm.ArchiveRecipeStepIngredient(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID))
+		require.NoError(t, rm.ArchiveRecipeStepIngredient(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID))
 
 		assert.Len(t, db.ArchiveRecipeStepIngredientCalls(), 1)
 	})
