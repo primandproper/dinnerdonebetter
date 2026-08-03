@@ -21,7 +21,10 @@ spec:
     spec:
       containers:
         - name: dinner-done-better-async-message-handler
-          image: dinner-done-better-async-message-handler
+          image: dinner-done-better-backend
+          args:
+            - "worker"
+            - "async-messages"
           imagePullPolicy: Always
           env:
             - name: "CONFIGURATION_FILEPATH"

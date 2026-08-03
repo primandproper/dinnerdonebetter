@@ -13,7 +13,10 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: db-cleaner
-              image: dinner-done-better-job-db-cleaner
+              image: dinner-done-better-backend
+              args:
+                - "job"
+                - "db-cleaner"
               imagePullPolicy: Always
               env:
                 - name: "CONFIGURATION_FILEPATH"

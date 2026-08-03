@@ -10,29 +10,11 @@ resources:
   - ../../../kustomize/components/async_functions
   - ../../../kustomize/components/mcp_server
 
+# Every workload runs the same image and differs only in the subcommand its manifest passes,
+# so prod cannot end up running the API at one commit and the scheduler at another.
 images:
-  - name: dinner-done-better-service-api
-    newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-service-api
-    newTag: latest
-
-  - name: dinner-done-better-job-db-cleaner
-    newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-db-cleaner
-    newTag: latest
-
-  - name: dinner-done-better-job-email-deliverability-test
-    newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-job-email-deliverability-test
-    newTag: latest
-
-  - name: dinner-done-better-scheduler
-    newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-scheduler
-    newTag: latest
-
-  - name: dinner-done-better-async-message-handler
-    newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-async-message-handler
-    newTag: latest
-
-  - name: dinner-done-better-mcp-server
-    newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-mcp-server
+  - name: dinner-done-better-backend
+    newName: us-central1-docker.pkg.dev/dinner-done-better-prod/containers/dinner-done-better-backend
     newTag: latest
 
 # See: https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/patches/

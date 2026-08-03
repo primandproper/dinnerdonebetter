@@ -22,7 +22,7 @@ spec:
       containers:
         # this is the API server container
         - name: dinner-done-better-service-api
-          image: dinner-done-better-service-api
+          image: dinner-done-better-backend
           args: ["serve"]
           imagePullPolicy: Always
           env:

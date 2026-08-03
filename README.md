@@ -24,9 +24,10 @@ This is a **monorepo**. Main areas:
 
 ### Backend at a glance
 
-- **Services** (in `backend/cmd/services/`): `api` (main gRPC/HTTP), `mcp`. Admin and consumer **webapps** live in **`frontend/`** (SvelteKit).
-- **Workers** (in `backend/cmd/workers/`): meal plan finalizer, grocery list initializer, task creator, search index scheduler, mobile notification scheduler, DB cleaner, etc.
-- **Functions**: async handlers (e.g. data-change message handler) for Pub/Sub and queues.
+- **One binary** (`backend/cmd/ddb/`): every deployed workload is a subcommand, so a release ships one image rather than one per workload.
+  - **Services**: `ddb serve` (main gRPC/HTTP), `ddb serve mcp`. Admin and consumer **webapps** live in **`frontend/`** (SvelteKit).
+  - **Workers**: `ddb worker scheduler` (meal plan finalizer, grocery list initializer, task creator, search index scheduler, mobile notification scheduler, etc.), plus `ddb job db-cleaner` and `ddb job email-deliverability` as CronJobs.
+  - **Functions**: `ddb worker async-messages`, the data-change handler for Pub/Sub and queues.
 - **Stack**: Go 1.26, Chi, Wire, sqlc, PostgreSQL, Redis, GCP (Cloud SQL, Pub/Sub, Secret Manager, etc.), Algolia, Stripe, Resend, Firebase/APNs.
 
 ---

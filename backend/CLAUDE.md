@@ -43,15 +43,19 @@ The platform framework (database, cache, observability, messaging, uploads, sear
 ### Key Directories
 
 ```bash
-cmd/services/api/        # Primary API server (HTTP + gRPC)
-cmd/services/admin/      # Admin web app
-cmd/workers/             # Background job processors (meal plan finalizer, grocery lists, etc.)
+cmd/ddb/                 # The one deployed binary; every workload is a subcommand (see cmd/ddb/README.md)
 cmd/tools/codegen/       # Code generation: queries, configs, env vars
-cmd/functions/           # Cloud functions (async message handler)
+cmd/tools/               # Development-time tools, never deployed
+internal/mcpserver/      # MCP server, run by `ddb serve mcp`
 pkg/client/              # Public Go API client library
 testing/integration/     # Integration tests
-deploy/                  # Dockerfiles, Kustomize, environment configs
+deploy/                  # Dockerfile, Kustomize, environment configs
 ```
+
+Every deployed workload ships in one image and is selected by subcommand: `ddb serve`,
+`ddb serve mcp`, `ddb worker scheduler`, `ddb worker async-messages`, `ddb job db-cleaner`,
+`ddb job email-deliverability`, `ddb migrate`. Adding a workload means adding a subcommand and a
+manifest that names it — not a new `cmd/` directory, Dockerfile, and skaffold artifact.
 
 ## Code Conventions
 

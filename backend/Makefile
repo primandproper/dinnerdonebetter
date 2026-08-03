@@ -176,17 +176,15 @@ integration_tests_postgres:
 build:
 	$(SCRIPTS_DIR)/build.sh $(TOTAL_PACKAGE_LIST)
 
-.PHONY: build-api
-build-api: $(ARTIFACTS_DIR)
-	$(SCRIPTS_DIR)/build.sh -o $(ARTIFACTS_DIR)/api $(THIS)/cmd/services/api
+# Every deployed workload — API, MCP, workers, jobs, migrations — is a subcommand of this one
+# binary. See cmd/ddb.
+.PHONY: build-ddb
+build-ddb: $(ARTIFACTS_DIR)
+	$(SCRIPTS_DIR)/build.sh -o $(ARTIFACTS_DIR)/ddb $(THIS)/cmd/ddb
 
 .PHONY: build-bootstrap
 build-bootstrap: $(ARTIFACTS_DIR)
 	$(SCRIPTS_DIR)/build.sh -o $(ARTIFACTS_DIR)/bootstrap $(THIS)/cmd/tools/bootstrap
-
-.PHONY: build-migrate
-build-migrate: $(ARTIFACTS_DIR)
-	$(SCRIPTS_DIR)/build.sh -o $(ARTIFACTS_DIR)/migrate $(THIS)/cmd/tools/migrate
 
 .PHONY: test
 test: $(ARTIFACTS_DIR)

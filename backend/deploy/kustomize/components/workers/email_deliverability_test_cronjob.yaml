@@ -13,7 +13,10 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: email-deliverability-test
-              image: dinner-done-better-job-email-deliverability-test
+              image: dinner-done-better-backend
+              args:
+                - "job"
+                - "email-deliverability"
               imagePullPolicy: Always
               env:
                 - name: "CONFIGURATION_FILEPATH"
