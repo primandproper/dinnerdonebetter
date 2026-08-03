@@ -20,9 +20,7 @@ func main() {
 		Short: "Dinner Done Better",
 		Long: `Every Dinner Done Better workload lives in this one binary, selected by subcommand.
 
-One binary means one image, built and tagged once per release, so a deployment cannot drift
-to a commit its neighbors are not running. Each subcommand still loads only its own config,
-from the file named by CONFIGURATION_FILEPATH.`,
+Each subcommand loads its own config from the file named by CONFIGURATION_FILEPATH.`,
 		// A failing workload is a runtime problem, not a usage problem; printing the whole
 		// usage text after it would bury the error that actually matters.
 		SilenceUsage: true,
