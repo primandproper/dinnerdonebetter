@@ -63,6 +63,23 @@ func buildMealPlanGroceryListItemsQueries(database string) []*Query {
 
 		return []*Query{
 			{
+				// Compensation for the finalization saga's grocery list step. Deleting rather
+				// than archiving, for the same reason as DeleteMealPlanTasks: the step
+				// regenerates the whole list when it runs again, and an archived row would
+				// leave a tombstone beside every regenerated item forever.
+				//
+				// The IDs come from the saga's own state, so a user's own additions to the
+				// list — which the saga never recorded — are untouched.
+				Annotation: QueryAnnotation{
+					Name: "DeleteMealPlanGroceryListItems",
+					Type: ExecType,
+				},
+				Content: buildRawQuery((&builq.Builder{}).Addf(`DELETE FROM %s WHERE %s = ANY(sqlc.arg(ids)::text[]);`,
+					mealPlanGroceryListItemsTableName,
+					idColumn,
+				)),
+			},
+			{
 				Annotation: QueryAnnotation{
 					Name: "ArchiveMealPlanGroceryListItem",
 					Type: ExecRowsType,

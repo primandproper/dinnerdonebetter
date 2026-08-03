@@ -311,12 +311,25 @@ func (q *repository) GetMealPlanTasksForMealPlan(ctx context.Context, mealPlanID
 	return x, nil
 }
 
-// CreateMealPlanTasksForMealPlanOption creates meal plan tasks.
-func (q *repository) CreateMealPlanTasksForMealPlanOption(ctx context.Context, inputs []*types.MealPlanTaskDatabaseCreationInput) ([]*types.MealPlanTask, error) {
+// CreateMealPlanTasksForMealPlan creates a meal plan's tasks and marks the plan as having had them
+// created, in a single transaction.
+//
+// The mark has to commit with the tasks it describes. Written separately, a failure between the two
+// left the tasks committed against a plan still advertising itself as needing them, and the next run
+// created the whole set a second time — meal plan tasks carry no unique constraint that would have
+// caught it. It is now also the finalization saga's idempotency guard for this step: a replay after
+// a crash sees the flag and does nothing, which is a stronger promise than an idempotency key that
+// commits in a different transaction from the work.
+func (q *repository) CreateMealPlanTasksForMealPlan(ctx context.Context, mealPlanID string, inputs []*types.MealPlanTaskDatabaseCreationInput) ([]*types.MealPlanTask, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
+	if mealPlanID == "" {
+		return nil, platformerrors.ErrInvalidIDProvided
+	}
+
+	logger := q.logger.Clone().WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
+	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
 	outputs := []*types.MealPlanTask{}
 	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
@@ -326,7 +339,24 @@ func (q *repository) CreateMealPlanTasksForMealPlanOption(ctx context.Context, i
 				return observability.PrepareAndLogError(createMealPlanTaskErr, logger, span, "creating meal plan task")
 			}
 
+			// The events are more statements in this transaction, so they commit with the rows
+			// they describe. This is the only emit for these tasks — the task creator job used to
+			// publish them after the fact, which is exactly the gap the outbox closes. The job
+			// holds no session, and the finalized-plan query it works from does not name an
+			// account, so the event carries none.
+			if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanTaskCreatedServiceEventType, "", map[string]any{
+				mealplanningkeys.MealPlanIDKey:     mealPlanID,
+				mealplanningkeys.MealPlanTaskIDKey: mealPlanTask.ID,
+				mealplanningkeys.MealPlanTaskKey:   mealPlanTask,
+			}); emitErr != nil {
+				return observability.PrepareError(emitErr, span, "enqueuing meal plan task created event")
+			}
+
 			outputs = append(outputs, mealPlanTask)
+		}
+
+		if markErr := q.generatedQuerier.MarkMealPlanAsPrepTasksCreated(ctx, tx, mealPlanID); markErr != nil {
+			return observability.PrepareAndLogError(markErr, logger, span, "marking meal plan as having tasks created")
 		}
 
 		return nil
@@ -339,44 +369,47 @@ func (q *repository) CreateMealPlanTasksForMealPlanOption(ctx context.Context, i
 	return outputs, nil
 }
 
-// MarkMealPlanAsHavingTasksCreated marks a meal plan as having all its tasks created.
-func (q *repository) MarkMealPlanAsHavingTasksCreated(ctx context.Context, mealPlanID string) error {
+// UndoMealPlanTaskCreation deletes the named tasks and clears the plan's tasks-created flag, in a
+// single transaction.
+//
+// It is the compensation for CreateMealPlanTasksForMealPlan and it is the same transaction in
+// reverse: the flag says the tasks exist, so clearing it separately would leave a window in which
+// the plan advertises tasks that have already been deleted.
+//
+// An empty ID list still clears the flag. Compensation runs for the step that failed as well as the
+// steps that succeeded, so this is called for a Do whose transaction rolled back and left nothing
+// behind — the flag is already FALSE in that case and the update is a no-op, which is what an Undo
+// with nothing to undo is supposed to be.
+func (q *repository) UndoMealPlanTaskCreation(ctx context.Context, mealPlanID string, taskIDs []string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
-
-	logger := q.logger.Clone()
 
 	if mealPlanID == "" {
 		return platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
+
+	logger := q.logger.Clone().
+		WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID).
+		WithValue("task_count", len(taskIDs))
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
-	if err := q.generatedQuerier.MarkMealPlanAsPrepTasksCreated(ctx, q.writeDB, mealPlanID); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "marking meal plan as having tasks created")
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		if len(taskIDs) > 0 {
+			if deleteErr := q.generatedQuerier.DeleteMealPlanTasks(ctx, tx, taskIDs); deleteErr != nil {
+				return observability.PrepareAndLogError(deleteErr, logger, span, "deleting meal plan tasks")
+			}
+		}
+
+		if unmarkErr := q.generatedQuerier.UnmarkMealPlanPrepTasksCreated(ctx, tx, mealPlanID); unmarkErr != nil {
+			return observability.PrepareAndLogError(unmarkErr, logger, span, "unmarking meal plan as having tasks created")
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
-	return nil
-}
-
-// MarkMealPlanAsHavingGroceryListInitialized marks a meal plan as having all its tasks created.
-func (q *repository) MarkMealPlanAsHavingGroceryListInitialized(ctx context.Context, mealPlanID string) error {
-	ctx, span := q.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if err := q.generatedQuerier.MarkMealPlanAsGroceryListInitialized(ctx, q.writeDB, mealPlanID); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "marking meal plan as having tasks created")
-	}
-
-	logger.Info("meal plan marked as grocery list initialized")
+	logger.Info("meal plan task creation undone")
 
 	return nil
 }

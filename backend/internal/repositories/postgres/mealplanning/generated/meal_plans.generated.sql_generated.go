@@ -28,6 +28,28 @@ func (q *Queries) ArchiveMealPlan(ctx context.Context, db DBTX, arg *ArchiveMeal
 	return result.RowsAffected()
 }
 
+const attachMealPlanFinalizationSaga = `-- name: AttachMealPlanFinalizationSaga :execrows
+UPDATE meal_plans SET
+	finalization_saga_id = $1,
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND finalization_saga_id IS NULL
+	AND id = $2
+`
+
+type AttachMealPlanFinalizationSagaParams struct {
+	FinalizationSagaID sql.NullString
+	ID                 string
+}
+
+func (q *Queries) AttachMealPlanFinalizationSaga(ctx context.Context, db DBTX, arg *AttachMealPlanFinalizationSagaParams) (int64, error) {
+	result, err := db.ExecContext(ctx, attachMealPlanFinalizationSaga, arg.FinalizationSagaID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const checkMealPlanExistence = `-- name: CheckMealPlanExistence :one
 SELECT EXISTS (
 	SELECT meal_plans.id
@@ -184,80 +206,7 @@ func (q *Queries) FindMealPlansForDates(ctx context.Context, db DBTX, arg *FindM
 	return items, nil
 }
 
-const getExpiredAndUnresolvedMealPlans = `-- name: GetExpiredAndUnresolvedMealPlans :many
-SELECT
-	meal_plans.id,
-	meal_plans.notes,
-	meal_plans.status,
-	meal_plans.voting_deadline,
-	meal_plans.grocery_list_initialized,
-	meal_plans.tasks_created,
-	meal_plans.election_method,
-	meal_plans.created_at,
-	meal_plans.last_updated_at,
-	meal_plans.archived_at,
-	meal_plans.belongs_to_account,
-	meal_plans.created_by_user
-FROM meal_plans
-WHERE meal_plans.archived_at IS NULL
-	AND meal_plans.status = 'awaiting_votes'
-	AND voting_deadline < NOW()
-GROUP BY meal_plans.id
-ORDER BY meal_plans.id
-`
-
-type GetExpiredAndUnresolvedMealPlansRow struct {
-	ID                     string
-	Notes                  string
-	Status                 MealPlanStatus
-	VotingDeadline         time.Time
-	GroceryListInitialized bool
-	TasksCreated           bool
-	ElectionMethod         ValidElectionMethod
-	CreatedAt              time.Time
-	LastUpdatedAt          sql.NullTime
-	ArchivedAt             sql.NullTime
-	BelongsToAccount       string
-	CreatedByUser          string
-}
-
-func (q *Queries) GetExpiredAndUnresolvedMealPlans(ctx context.Context, db DBTX) ([]*GetExpiredAndUnresolvedMealPlansRow, error) {
-	rows, err := db.QueryContext(ctx, getExpiredAndUnresolvedMealPlans)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []*GetExpiredAndUnresolvedMealPlansRow{}
-	for rows.Next() {
-		var i GetExpiredAndUnresolvedMealPlansRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Notes,
-			&i.Status,
-			&i.VotingDeadline,
-			&i.GroceryListInitialized,
-			&i.TasksCreated,
-			&i.ElectionMethod,
-			&i.CreatedAt,
-			&i.LastUpdatedAt,
-			&i.ArchivedAt,
-			&i.BelongsToAccount,
-			&i.CreatedByUser,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, &i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getFinalizedMealPlansForPlanning = `-- name: GetFinalizedMealPlansForPlanning :many
+const getFinalizedMealPlanOptionsForMealPlan = `-- name: GetFinalizedMealPlanOptionsForMealPlan :many
 SELECT
 	meal_plans.id as meal_plan_id,
 	meal_plan_options.id as meal_plan_option_id,
@@ -274,7 +223,7 @@ WHERE
 	meal_plans.archived_at IS NULL
 	AND meal_plans.status = 'finalized'
 	AND meal_plan_options.chosen IS TRUE
-	AND meal_plans.tasks_created IS FALSE
+	AND meal_plans.id = $1
 GROUP BY
 	meal_plans.id,
 	meal_plan_options.id,
@@ -289,7 +238,7 @@ ORDER BY
 	meal_components.recipe_id
 `
 
-type GetFinalizedMealPlansForPlanningRow struct {
+type GetFinalizedMealPlanOptionsForMealPlanRow struct {
 	MealPlanID       string
 	MealPlanOptionID string
 	MealID           string
@@ -297,15 +246,15 @@ type GetFinalizedMealPlansForPlanningRow struct {
 	RecipeID         string
 }
 
-func (q *Queries) GetFinalizedMealPlansForPlanning(ctx context.Context, db DBTX) ([]*GetFinalizedMealPlansForPlanningRow, error) {
-	rows, err := db.QueryContext(ctx, getFinalizedMealPlansForPlanning)
+func (q *Queries) GetFinalizedMealPlanOptionsForMealPlan(ctx context.Context, db DBTX, mealPlanID string) ([]*GetFinalizedMealPlanOptionsForMealPlanRow, error) {
+	rows, err := db.QueryContext(ctx, getFinalizedMealPlanOptionsForMealPlan, mealPlanID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*GetFinalizedMealPlansForPlanningRow{}
+	items := []*GetFinalizedMealPlanOptionsForMealPlanRow{}
 	for rows.Next() {
-		var i GetFinalizedMealPlansForPlanningRow
+		var i GetFinalizedMealPlanOptionsForMealPlanRow
 		if err := rows.Scan(
 			&i.MealPlanID,
 			&i.MealPlanOptionID,
@@ -313,44 +262,6 @@ func (q *Queries) GetFinalizedMealPlansForPlanning(ctx context.Context, db DBTX)
 			&i.MealPlanEventID,
 			&i.RecipeID,
 		); err != nil {
-			return nil, err
-		}
-		items = append(items, &i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getFinalizedMealPlansWithoutGroceryListInit = `-- name: GetFinalizedMealPlansWithoutGroceryListInit :many
-SELECT
-	meal_plans.id,
-	meal_plans.belongs_to_account
-FROM meal_plans
-WHERE meal_plans.archived_at IS NULL
-	AND meal_plans.status = 'finalized'
-	AND meal_plans.grocery_list_initialized IS FALSE
-`
-
-type GetFinalizedMealPlansWithoutGroceryListInitRow struct {
-	ID               string
-	BelongsToAccount string
-}
-
-func (q *Queries) GetFinalizedMealPlansWithoutGroceryListInit(ctx context.Context, db DBTX) ([]*GetFinalizedMealPlansWithoutGroceryListInitRow, error) {
-	rows, err := db.QueryContext(ctx, getFinalizedMealPlansWithoutGroceryListInit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []*GetFinalizedMealPlansWithoutGroceryListInitRow{}
-	for rows.Next() {
-		var i GetFinalizedMealPlansWithoutGroceryListInitRow
-		if err := rows.Scan(&i.ID, &i.BelongsToAccount); err != nil {
 			return nil, err
 		}
 		items = append(items, &i)
@@ -484,6 +395,49 @@ func (q *Queries) GetMealPlanPastVotingDeadline(ctx context.Context, db DBTX, ar
 		&i.CreatedByUser,
 	)
 	return &i, err
+}
+
+const getMealPlansAwaitingFinalizationSaga = `-- name: GetMealPlansAwaitingFinalizationSaga :many
+SELECT
+	meal_plans.id,
+	meal_plans.belongs_to_account
+FROM meal_plans
+WHERE meal_plans.archived_at IS NULL
+	AND meal_plans.finalization_saga_id IS NULL
+	AND (
+		(meal_plans.status = 'awaiting_votes' AND meal_plans.voting_deadline < NOW())
+		OR (meal_plans.status = 'finalized' AND (meal_plans.tasks_created IS FALSE OR meal_plans.grocery_list_initialized IS FALSE))
+	)
+ORDER BY meal_plans.voting_deadline
+LIMIT $1
+`
+
+type GetMealPlansAwaitingFinalizationSagaRow struct {
+	ID               string
+	BelongsToAccount string
+}
+
+func (q *Queries) GetMealPlansAwaitingFinalizationSaga(ctx context.Context, db DBTX, queryLimit int32) ([]*GetMealPlansAwaitingFinalizationSagaRow, error) {
+	rows, err := db.QueryContext(ctx, getMealPlansAwaitingFinalizationSaga, queryLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*GetMealPlansAwaitingFinalizationSagaRow{}
+	for rows.Next() {
+		var i GetMealPlansAwaitingFinalizationSagaRow
+		if err := rows.Scan(&i.ID, &i.BelongsToAccount); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getMealPlansForAccount = `-- name: GetMealPlansForAccount :many
@@ -641,6 +595,32 @@ WHERE archived_at IS NULL
 
 func (q *Queries) MarkMealPlanAsPrepTasksCreated(ctx context.Context, db DBTX, id string) error {
 	_, err := db.ExecContext(ctx, markMealPlanAsPrepTasksCreated, id)
+	return err
+}
+
+const unmarkMealPlanGroceryListInitialized = `-- name: UnmarkMealPlanGroceryListInitialized :exec
+UPDATE meal_plans SET
+	grocery_list_initialized = FALSE,
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
+`
+
+func (q *Queries) UnmarkMealPlanGroceryListInitialized(ctx context.Context, db DBTX, id string) error {
+	_, err := db.ExecContext(ctx, unmarkMealPlanGroceryListInitialized, id)
+	return err
+}
+
+const unmarkMealPlanPrepTasksCreated = `-- name: UnmarkMealPlanPrepTasksCreated :exec
+UPDATE meal_plans SET
+	tasks_created = FALSE,
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
+`
+
+func (q *Queries) UnmarkMealPlanPrepTasksCreated(ctx context.Context, db DBTX, id string) error {
+	_, err := db.ExecContext(ctx, unmarkMealPlanPrepTasksCreated, id)
 	return err
 }
 

@@ -694,7 +694,7 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 		assert.Len(t, searchIndex.SearchCalls(), 1)
 	})
 
-	T.Run("with search service honoring page size and reporting total hits", func(t *testing.T) {
+	T.Run("with search service asking the index for the filter's page", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
@@ -702,7 +702,6 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 
 		query := "test-query"
 		searchResults := []*identityindexing.UserSearchSubset{
-			{ID: fakes.BuildFakeID()},
 			{ID: fakes.BuildFakeID()},
 			{ID: fakes.BuildFakeID()},
 		}
@@ -713,8 +712,10 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 		users[0].ID = searchResults[0].ID
 		users[1].ID = searchResults[1].ID
 
+		cursor := "cursor-from-a-previous-page"
 		filter := filtering.DefaultQueryFilter()
 		filter.MaxResponseSize = new(uint16(2))
+		filter.Cursor = &cursor
 
 		db := &identitymock.RepositoryMock{
 			GetUsersWithIDsFunc: func(_ context.Context, ids []string) ([]*identity.User, error) {
@@ -725,7 +726,12 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 		searchIndex := &mocksearch.IndexMock[identityindexing.UserSearchSubset]{
 			SearchFunc: func(_ context.Context, req textsearch.SearchRequest) (*textsearch.SearchResults[identityindexing.UserSearchSubset], error) {
 				assert.Equal(t, query, req.Query)
-				return &textsearch.SearchResults[identityindexing.UserSearchSubset]{Hits: searchResults}, nil
+				assert.Equal(t, 2, req.Limit)
+				assert.Equal(t, textsearch.Cursor(cursor), req.Cursor)
+				return &textsearch.SearchResults[identityindexing.UserSearchSubset]{
+					Hits:       searchResults,
+					NextCursor: textsearch.Cursor("cursor-for-the-next-page"),
+				}, nil
 			},
 		}
 		attachMocksToIdentityDataManager(m, db, nil, nil, searchIndex)
@@ -735,9 +741,44 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 		assert.NotNil(t, actual)
 		assert.Len(t, actual.Data, 2)
 		assert.Equal(t, uint64(2), actual.FilteredCount)
-		assert.Equal(t, uint64(3), actual.TotalCount)
+		assert.Equal(t, "cursor-for-the-next-page", actual.Cursor)
+		assert.Equal(t, cursor, actual.PreviousCursor)
 
 		assert.Len(t, db.GetUsersWithIDsCalls(), 1)
+		assert.Len(t, searchIndex.SearchCalls(), 1)
+	})
+
+	T.Run("with search service reaching the end of the results", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		m := buildIdentityDataManagerForTest(t)
+
+		query := "test-query"
+		searchResults := []*identityindexing.UserSearchSubset{
+			{ID: fakes.BuildFakeID()},
+		}
+		users := []*identity.User{fakes.BuildFakeUser()}
+		users[0].ID = searchResults[0].ID
+
+		db := &identitymock.RepositoryMock{
+			GetUsersWithIDsFunc: func(_ context.Context, ids []string) ([]*identity.User, error) {
+				assert.Equal(t, []string{searchResults[0].ID}, ids)
+				return users, nil
+			},
+		}
+		searchIndex := &mocksearch.IndexMock[identityindexing.UserSearchSubset]{
+			SearchFunc: func(_ context.Context, _ textsearch.SearchRequest) (*textsearch.SearchResults[identityindexing.UserSearchSubset], error) {
+				return &textsearch.SearchResults[identityindexing.UserSearchSubset]{Hits: searchResults}, nil
+			},
+		}
+		attachMocksToIdentityDataManager(m, db, nil, nil, searchIndex)
+
+		actual, err := m.SearchForUsers(ctx, query, true, nil)
+		assert.NoError(t, err)
+		assert.NotNil(t, actual)
+		assert.Empty(t, actual.Cursor)
+
 		assert.Len(t, searchIndex.SearchCalls(), 1)
 	})
 }

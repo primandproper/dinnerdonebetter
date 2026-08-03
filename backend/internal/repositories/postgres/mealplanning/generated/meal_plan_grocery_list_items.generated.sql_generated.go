@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 const archiveMealPlanGroceryListItem = `-- name: ArchiveMealPlanGroceryListItem :execrows
@@ -125,6 +127,15 @@ func (q *Queries) CreateMealPlanGroceryListItem(ctx context.Context, db DBTX, ar
 		arg.IngredientIndex,
 		arg.OptionIndex,
 	)
+	return err
+}
+
+const deleteMealPlanGroceryListItems = `-- name: DeleteMealPlanGroceryListItems :exec
+DELETE FROM meal_plan_grocery_list_items WHERE id = ANY($1::text[])
+`
+
+func (q *Queries) DeleteMealPlanGroceryListItems(ctx context.Context, db DBTX, ids []string) error {
+	_, err := db.ExecContext(ctx, deleteMealPlanGroceryListItems, pq.Array(ids))
 	return err
 }
 

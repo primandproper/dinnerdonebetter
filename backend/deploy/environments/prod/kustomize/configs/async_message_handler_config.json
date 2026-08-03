@@ -7,13 +7,22 @@
 		"mobileNotificationsTopicName": "mobile_notifications",
 		"userDataAggregationTopicName": "user_data_aggregation_requests"
 	},
-	"storage": {
-		"bucketName": "userdata.dinnerdonebetter.com",
-		"provider": "gcp",
-		"circuitBreakerConfig": {
-			"name": "",
-			"circuitBreakerErrorPercentage": 0,
-			"circuitBreakerMinimumOccurrenceThreshold": 0
+	"dataPrivacy": {
+		"encryption": {
+			"provider": "salsa20"
+		},
+		"artifactEncryptionKey": "",
+		"uploads": {
+			"storageConfig": {
+				"bucketName": "userdata.dinnerdonebetter.com",
+				"provider": "gcp",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				}
+			},
+			"debug": false
 		}
 	},
 	"pushNotifications": {

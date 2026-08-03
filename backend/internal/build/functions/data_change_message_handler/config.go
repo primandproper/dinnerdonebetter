@@ -4,6 +4,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"
@@ -14,16 +15,15 @@ import (
 	notificationscfg "github.com/primandproper/platform-go/v9/notifications/mobile/config"
 	"github.com/primandproper/platform-go/v9/observability"
 	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
-	"github.com/primandproper/platform-go/v9/uploads/objectstorage"
 
 	"github.com/samber/do/v2"
 )
 
 // RegisterConfigs registers all config sub-fields with the injector.
 func RegisterConfigs(i do.Injector) {
-	do.Provide[*objectstorage.Config](i, func(i do.Injector) (*objectstorage.Config, error) {
+	do.Provide[*dataprivacycfg.Config](i, func(i do.Injector) (*dataprivacycfg.Config, error) {
 		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
-		return &cfg.Storage, nil
+		return &cfg.DataPrivacy, nil
 	})
 	do.Provide[*queuescfg.Config](i, func(i do.Injector) (*queuescfg.Config, error) {
 		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)

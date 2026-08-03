@@ -7,17 +7,17 @@
 		"mobileNotificationsTopicName": "mobile_notifications",
 		"userDataAggregationTopicName": "user_data_aggregation_requests"
 	},
-	"pushNotifications": {
-		"apns": null,
-		"fcm": null,
-		"provider": "noop"
-	},
 	"routing": {
 		"chiConfig": {
 			"serviceName": "api_server",
 			"enableCORSForLocalhost": true
 		},
 		"provider": "chi"
+	},
+	"pushNotifications": {
+		"apns": null,
+		"fcm": null,
+		"provider": "noop"
 	},
 	"encoding": {
 		"contentType": "application/json"
@@ -87,17 +87,6 @@
 		"runMode": "testing",
 		"debug": false
 	},
-	"analytics": {
-		"proxySources": null,
-		"segment": null,
-		"posthog": null,
-		"provider": "noop",
-		"circuitBreaker": {
-			"name": "feature_flagger",
-			"circuitBreakerErrorPercentage": 0.5,
-			"circuitBreakerMinimumOccurrenceThreshold": 100
-		}
-	},
 	"email": {
 		"sendgrid": null,
 		"mailgun": null,
@@ -110,6 +99,17 @@
 			"name": "",
 			"circuitBreakerErrorPercentage": 0,
 			"circuitBreakerMinimumOccurrenceThreshold": 0
+		}
+	},
+	"analytics": {
+		"proxySources": null,
+		"segment": null,
+		"posthog": null,
+		"provider": "noop",
+		"circuitBreaker": {
+			"name": "feature_flagger",
+			"circuitBreakerErrorPercentage": 0.5,
+			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
 	},
 	"featureFlags": {
@@ -131,10 +131,6 @@
 			"circuitBreakerErrorPercentage": 0.5,
 			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
-	},
-	"http": {
-		"startupDeadline": 60000000000,
-		"port": 8000
 	},
 	"auth": {
 		"sessionStore": {
@@ -182,10 +178,17 @@
 		"runMigrations": true,
 		"enableDatabaseMetrics": false
 	},
+	"http": {
+		"startupDeadline": 60000000000,
+		"port": 8000
+	},
 	"services": {
 		"payments": {
-			"stripe": null,
-			"revenueCat": null
+			"revenueCat": null,
+			"capitalism": {
+				"stripe": null,
+				"provider": "noop"
+			}
 		},
 		"users": {
 			"publicMediaURLPrefix": "",
@@ -203,6 +206,10 @@
 			}
 		},
 		"dataPrivacy": {
+			"encryption": {
+				"provider": "salsa20"
+			},
+			"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
 			"uploads": {
 				"storageConfig": {
 					"filesystem": {
@@ -272,6 +279,37 @@
 			"creationEnabled": false
 		}
 	},
+	"idempotency": {
+		"manager": {
+			"keyPrefix": "",
+			"lock": {
+				"redis": null,
+				"postgres": null,
+				"provider": "",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				}
+			},
+			"cache": {
+				"redis": null,
+				"provider": "",
+				"circuitBreakerConfig": {
+					"name": "",
+					"circuitBreakerErrorPercentage": 0,
+					"circuitBreakerMinimumOccurrenceThreshold": 0
+				},
+				"expiry": 0,
+				"janitorInterval": 0
+			},
+			"ttl": 0,
+			"inFlightTTL": 0,
+			"maxKeyLength": 0,
+			"failOpen": false
+		},
+		"enabled": false
+	},
 	"webhooks": {
 		"tablePrefix": "",
 		"circuitBreaker": {
@@ -305,36 +343,5 @@
 			"maxIdleConnsPerHost": 100,
 			"enableTracing": false
 		}
-	},
-	"idempotency": {
-		"manager": {
-			"keyPrefix": "",
-			"lock": {
-				"redis": null,
-				"postgres": null,
-				"provider": "",
-				"circuitBreakerConfig": {
-					"name": "",
-					"circuitBreakerErrorPercentage": 0,
-					"circuitBreakerMinimumOccurrenceThreshold": 0
-				}
-			},
-			"cache": {
-				"redis": null,
-				"provider": "",
-				"circuitBreakerConfig": {
-					"name": "",
-					"circuitBreakerErrorPercentage": 0,
-					"circuitBreakerMinimumOccurrenceThreshold": 0
-				},
-				"expiry": 0,
-				"janitorInterval": 0
-			},
-			"ttl": 0,
-			"inFlightTTL": 0,
-			"maxKeyLength": 0,
-			"failOpen": false
-		},
-		"enabled": false
 	}
 }

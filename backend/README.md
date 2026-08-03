@@ -10,7 +10,7 @@ Go backend for Dinner Done Better — meal planning, recipes, grocery lists, and
 
 ```bash
 cd backend
-make setup      # first-time: vendor, wire, configs, install tools
+make setup      # first-time: generate configs
 make dev        # start local dev server
 ```
 
@@ -52,8 +52,10 @@ rewrite) and skips generated and test files by default.
 make setup
 ```
 
-Runs: `revendor` and `configs`. The Go tools above do not need installing separately —
-they are declared in the `tool` block of `go.mod` and invoked as `go tool <name>`.
+Runs: `configs`. Dependencies are not vendored; `go.mod` and `go.sum` are the committed
+source of truth and Go resolves them from the module cache on demand. The Go tools above do
+not need installing separately — they are declared in the `tool` block of `go.mod` and
+invoked as `go tool <name>`.
 
 ### Running locally
 
@@ -116,10 +118,9 @@ flowchart TB
         DataChangesWorker["Data Changes Worker"]
     end
 
-    subgraph CronJobs["CronJobs"]
-        MealPlanFinalizer["Meal Plan Finalizer"]
-        MealPlanGroceryListInit["Grocery List Initializer"]
-        MealPlanTaskCreator["Meal Plan Task Creator"]
+    subgraph CronJobs["Scheduled Jobs"]
+        MealPlanFinalizationStarter["Meal Plan Finalization Starter"]
+        SagaWorker["Saga Worker"]
         SearchDataIndexScheduler["Search Data Index Scheduler"]
         MobileNotificationScheduler["Mobile Notification Scheduler"]
         DBCleaner["DB Cleaner"]
@@ -130,16 +131,13 @@ flowchart TB
         SearchDataIndexer["Search Data Indexer"]
     end
 
-    Cron["Cron"] --> MealPlanFinalizer
-    Cron --> MealPlanGroceryListInit
-    Cron --> MealPlanTaskCreator
+    Cron["Cron"] --> MealPlanFinalizationStarter
     Cron --> SearchDataIndexScheduler
     Cron --> MobileNotificationScheduler
     Cron --> DBCleaner
 
-    MealPlanFinalizer -.->|publish| DataChangesQueue
-    MealPlanGroceryListInit -.->|publish| DataChangesQueue
-    MealPlanTaskCreator -.->|publish| DataChangesQueue
+    MealPlanFinalizationStarter -->|starts a saga per plan| SagaWorker
+    SagaWorker -.->|publish| DataChangesQueue
 
     DataChangesQueue --> DataChangesWorker
     DataChangesWorker --> OutboundEmailer

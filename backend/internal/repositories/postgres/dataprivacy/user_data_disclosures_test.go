@@ -129,6 +129,20 @@ func TestArchiveUserDataDisclosure(T *testing.T) {
 	})
 }
 
+func TestMarkUserDataDisclosureExpired(T *testing.T) {
+	T.Parallel()
+
+	T.Run("with empty disclosure ID", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+		c := buildInertClientForTest(t)
+
+		err := c.MarkUserDataDisclosureExpired(ctx, "")
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
+	})
+}
+
 // --- Integration tests (require DB container) ---
 
 func TestQuerier_Integration_UserDataDisclosures(t *testing.T) {
@@ -203,6 +217,57 @@ func TestQuerier_Integration_UserDataDisclosures_MarkFailed(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, failed)
 	assert.Equal(t, dataprivacy.UserDataDisclosureStatusFailed, failed.Status)
+}
+
+func TestQuerier_Integration_UserDataDisclosures_Expiry(t *testing.T) {
+	ctx := t.Context()
+	dbc, _, identityRepo := buildDatabaseClientForTest(t)
+
+	exampleUser := fakes.BuildFakeUser()
+	exampleUser.Username = "dataprivacy_exp_" + identifiers.New()[:8]
+	exampleUser.TwoFactorSecretVerifiedAt = nil
+	createdUser := createUserForTest(t, ctx, exampleUser, identityRepo)
+
+	// One disclosure whose window has closed and one that is still open. Only the first should
+	// ever be handed to the reaper.
+	stale, err := dbc.CreateUserDataDisclosure(ctx, &dataprivacy.UserDataDisclosureCreationInput{
+		ID:            identifiers.New(),
+		BelongsToUser: createdUser.ID,
+		ExpiresAt:     time.Now().Add(-24 * time.Hour),
+	})
+	require.NoError(t, err)
+
+	fresh, err := dbc.CreateUserDataDisclosure(ctx, &dataprivacy.UserDataDisclosureCreationInput{
+		ID:            identifiers.New(),
+		BelongsToUser: createdUser.ID,
+		ExpiresAt:     time.Now().Add(24 * time.Hour),
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, dbc.MarkUserDataDisclosureCompleted(ctx, stale.ID, identifiers.New()))
+
+	expired, err := dbc.GetExpiredUserDataDisclosures(ctx)
+	require.NoError(t, err)
+
+	ids := make([]string, 0, len(expired))
+	for _, d := range expired {
+		ids = append(ids, d.ID)
+	}
+	assert.Contains(t, ids, stale.ID)
+	assert.NotContains(t, ids, fresh.ID)
+
+	require.NoError(t, dbc.MarkUserDataDisclosureExpired(ctx, stale.ID))
+
+	reaped, err := dbc.GetUserDataDisclosure(ctx, stale.ID)
+	require.NoError(t, err)
+	assert.Equal(t, dataprivacy.UserDataDisclosureStatusExpired, reaped.Status)
+
+	// A reaped disclosure must not come back, or the sweep never converges.
+	expired, err = dbc.GetExpiredUserDataDisclosures(ctx)
+	require.NoError(t, err)
+	for _, d := range expired {
+		assert.NotEqual(t, stale.ID, d.ID)
+	}
 }
 
 func TestQuerier_Integration_UserDataDisclosures_Archive(t *testing.T) {

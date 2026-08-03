@@ -1,6 +1,6 @@
 -- Webhooks: adopt the platform delivery tables.
 --
--- The five webhooks_* tables are created by the generated migration at version 23, rendered from
+-- The five webhooks_* tables are created by the generated migration at version 25, rendered from
 -- platform-go's own DDL. This file reconciles the application's side of the model with them.
 
 -- =============================================================================

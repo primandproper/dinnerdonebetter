@@ -9,6 +9,11 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	// Embeds the zoneinfo database. Cron schedules name IANA zones, and both the scheduler's
+	// own Timezone and a job's CRON_TZ= prefix are resolved at startup — so without this, a
+	// zone the base image happens not to ship is a crash loop rather than a missed run. The
+	// image is Debian and does ship one today; this makes the binary not care.
+	_ "time/tzdata"
 
 	schedulerbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/scheduler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/telemetry"
@@ -16,6 +21,7 @@ import (
 
 	"github.com/primandproper/platform-go/v9/jobs"
 	"github.com/primandproper/platform-go/v9/outbox"
+	"github.com/primandproper/platform-go/v9/saga"
 	"github.com/primandproper/platform-go/v9/webhooks"
 
 	"github.com/samber/do/v2"
@@ -50,6 +56,7 @@ func run(ctx context.Context, cfg *config.SchedulerConfig) error {
 
 	scheduler := do.MustInvoke[*jobs.Scheduler](i)
 	relay := do.MustInvoke[*outbox.Relay](i)
+	sagaWorker := do.MustInvoke[*saga.Worker](i)
 	webhookWorker := do.MustInvoke[*webhooks.Worker](i)
 
 	signalChan := make(chan os.Signal, 1)
@@ -61,12 +68,13 @@ func run(ctx context.Context, cfg *config.SchedulerConfig) error {
 		syscall.SIGTERM,
 	)
 
-	// None of these Runs takes a context, on purpose: tied to a server context they would
-	// stop mid-job, mid-publish and mid-delivery the instant that context was canceled,
-	// which is the worst moment to stop. Close is the stop signal, and it lets in-flight
-	// work finish.
+	// None of these Runs takes a context, on purpose: tied to a server context they would stop
+	// mid-job, mid-publish, mid-saga, and mid-delivery the instant that context was canceled,
+	// which is the worst moment to stop. Close is the stop signal, and it lets in-flight work
+	// finish.
 	go scheduler.Run()
 	go relay.Run()
+	go sagaWorker.Run()
 	go webhookWorker.Run()
 
 	<-signalChan
@@ -74,11 +82,13 @@ func run(ctx context.Context, cfg *config.SchedulerConfig) error {
 	closeCtx, cancel := context.WithTimeout(ctx, drainTimeout)
 	defer cancel()
 
-	// All three are closed even if an earlier one fails, so a scheduler that will not drain
-	// cannot leave the relay holding claims it will never publish, or the webhook worker
-	// holding leases on dispatches it will never deliver.
+	// All four are closed even if an earlier one fails, so a scheduler that will not drain
+	// cannot leave the relay holding claims it is never going to publish, the saga worker
+	// holding leases on instances it is never going to advance, or the webhook worker holding
+	// leases on dispatches it is never going to deliver.
 	return errors.Join(
 		wrapClose("scheduler", scheduler.Close(closeCtx)),
+		wrapClose("saga worker", sagaWorker.Close(closeCtx)),
 		wrapClose("outbox relay", relay.Close(closeCtx)),
 		wrapClose("webhook worker", webhookWorker.Close(closeCtx)),
 	)

@@ -4,13 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
 	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/uploads"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +19,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, uploadManager, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, reportArtifacts, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -46,7 +44,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 			return &dataprivacy.UserDataCollection{}, nil
 		}
 
-		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
+		reportArtifacts.SaveFunc = func(_ context.Context, _ string, _ []byte) error { return nil }
 
 		err = handler.UserDataAggregationEventHandler("user_data_aggregation")(ctx, rawMsg)
 		assert.NoError(t, err)
@@ -57,7 +55,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 	t.Run("marks disclosure completed when request carries a disclosure ID", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, uploadManager, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, reportArtifacts, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -91,7 +89,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 			return nil
 		}
 
-		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
+		reportArtifacts.SaveFunc = func(_ context.Context, _ string, _ []byte) error { return nil }
 
 		err = handler.UserDataAggregationEventHandler("user_data_aggregation")(ctx, rawMsg)
 		assert.NoError(t, err)
@@ -200,7 +198,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 	t.Run("with upload error", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, uploadManager, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, reportArtifacts, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -226,7 +224,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 		}
 
 		expectedError := errors.New("upload error")
-		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return expectedError }
+		reportArtifacts.SaveFunc = func(_ context.Context, _ string, _ []byte) error { return expectedError }
 
 		err = handler.UserDataAggregationEventHandler("user_data_aggregation")(ctx, rawMsg)
 		assert.Error(t, err)
@@ -238,7 +236,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 	t.Run("with empty report ID", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, uploadManager, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, reportArtifacts, _, decoder, dataPrivacyRepo := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -263,7 +261,7 @@ func TestAsyncDataChangeMessageHandler_UserDataAggregationEventHandler(t *testin
 			return &dataprivacy.UserDataCollection{}, nil
 		}
 
-		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
+		reportArtifacts.SaveFunc = func(_ context.Context, _ string, _ []byte) error { return nil }
 
 		err = handler.UserDataAggregationEventHandler("user_data_aggregation")(ctx, rawMsg)
 		assert.NoError(t, err)

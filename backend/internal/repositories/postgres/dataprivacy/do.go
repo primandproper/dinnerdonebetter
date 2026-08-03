@@ -41,3 +41,18 @@ func RegisterDataPrivacyRepository(i do.Injector) {
 		), nil
 	})
 }
+
+// RegisterUserDataDisclosureRepository registers just the disclosure-record half of the data
+// privacy repository with the injector, for processes that track disclosure requests without
+// gathering the data behind them. Registering the whole repository there instead would drag in
+// every domain repository in the application.
+func RegisterUserDataDisclosureRepository(i do.Injector) {
+	do.Provide[domaindataprivacy.UserDataDisclosureDataManager](i, func(i do.Injector) (domaindataprivacy.UserDataDisclosureDataManager, error) {
+		return ProvideUserDataDisclosureRepository(
+			do.MustInvoke[logging.Logger](i),
+			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[audit.Repository](i),
+			do.MustInvoke[database.Client](i),
+		), nil
+	})
+}

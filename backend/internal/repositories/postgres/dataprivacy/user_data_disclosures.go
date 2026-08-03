@@ -23,7 +23,7 @@ const (
 )
 
 // CreateUserDataDisclosure creates a new user data disclosure record.
-func (r *repository) CreateUserDataDisclosure(ctx context.Context, input *dataprivacy.UserDataDisclosureCreationInput) (*dataprivacy.UserDataDisclosure, error) {
+func (r *disclosureRepository) CreateUserDataDisclosure(ctx context.Context, input *dataprivacy.UserDataDisclosureCreationInput) (*dataprivacy.UserDataDisclosure, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -68,7 +68,7 @@ func (r *repository) CreateUserDataDisclosure(ctx context.Context, input *datapr
 }
 
 // GetUserDataDisclosure fetches a user data disclosure by ID.
-func (r *repository) GetUserDataDisclosure(ctx context.Context, disclosureID string) (*dataprivacy.UserDataDisclosure, error) {
+func (r *disclosureRepository) GetUserDataDisclosure(ctx context.Context, disclosureID string) (*dataprivacy.UserDataDisclosure, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -109,7 +109,7 @@ func (r *repository) GetUserDataDisclosure(ctx context.Context, disclosureID str
 }
 
 // GetUserDataDisclosuresForUser fetches user data disclosures for a user.
-func (r *repository) GetUserDataDisclosuresForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[dataprivacy.UserDataDisclosure], error) {
+func (r *disclosureRepository) GetUserDataDisclosuresForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[dataprivacy.UserDataDisclosure], error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -185,8 +185,72 @@ func (r *repository) GetUserDataDisclosuresForUser(ctx context.Context, userID s
 	}, nil
 }
 
+// GetExpiredUserDataDisclosures fetches disclosures that are past their expiry and have not yet
+// been reaped, oldest first, up to dataprivacy.ExpiredUserDataDisclosureBatchSize of them. A full
+// batch means there may be more waiting.
+func (r *disclosureRepository) GetExpiredUserDataDisclosures(ctx context.Context) ([]*dataprivacy.UserDataDisclosure, error) {
+	ctx, span := r.tracer.StartSpan(ctx)
+	defer span.End()
+
+	results, err := r.generatedQuerier.GetExpiredUserDataDisclosures(ctx, r.readDB)
+	if err != nil {
+		return nil, observability.PrepareAndLogError(err, r.logger, span, "fetching expired user data disclosures")
+	}
+
+	disclosures := make([]*dataprivacy.UserDataDisclosure, 0, len(results))
+	for _, result := range results {
+		disclosure := &dataprivacy.UserDataDisclosure{
+			ID:            result.ID,
+			BelongsToUser: result.BelongsToUser,
+			Status:        dataprivacy.UserDataDisclosureStatus(result.Status),
+			ExpiresAt:     result.ExpiresAt,
+			CreatedAt:     result.CreatedAt,
+		}
+
+		if result.LastUpdatedAt.Valid {
+			disclosure.LastUpdatedAt = &result.LastUpdatedAt.Time
+		}
+		if result.CompletedAt.Valid {
+			disclosure.CompletedAt = &result.CompletedAt.Time
+		}
+		if result.ArchivedAt.Valid {
+			disclosure.ArchivedAt = &result.ArchivedAt.Time
+		}
+		if result.ReportID.Valid {
+			disclosure.ReportID = result.ReportID.String
+		}
+
+		disclosures = append(disclosures, disclosure)
+	}
+
+	return disclosures, nil
+}
+
+// MarkUserDataDisclosureExpired marks a disclosure as expired.
+//
+// This is the record that the artifact is gone, so it must be written after the artifact is
+// actually destroyed and never before: a row claiming a report has expired while the object is
+// still in the bucket is worse than no row at all, because nothing will come back for it.
+func (r *disclosureRepository) MarkUserDataDisclosureExpired(ctx context.Context, disclosureID string) error {
+	ctx, span := r.tracer.StartSpan(ctx)
+	defer span.End()
+
+	if disclosureID == "" {
+		return platformerrors.ErrInvalidIDProvided
+	}
+
+	tracing.AttachToSpan(span, disclosureIDKey, disclosureID)
+	logger := r.logger.WithValue(disclosureIDKey, disclosureID)
+
+	if err := r.generatedQuerier.MarkUserDataDisclosureExpired(ctx, r.writeDB, disclosureID); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "marking disclosure expired")
+	}
+
+	return nil
+}
+
 // MarkUserDataDisclosureCompleted marks a disclosure as completed.
-func (r *repository) MarkUserDataDisclosureCompleted(ctx context.Context, disclosureID, reportID string) error {
+func (r *disclosureRepository) MarkUserDataDisclosureCompleted(ctx context.Context, disclosureID, reportID string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -208,7 +272,7 @@ func (r *repository) MarkUserDataDisclosureCompleted(ctx context.Context, disclo
 }
 
 // MarkUserDataDisclosureFailed marks a disclosure as failed.
-func (r *repository) MarkUserDataDisclosureFailed(ctx context.Context, disclosureID string) error {
+func (r *disclosureRepository) MarkUserDataDisclosureFailed(ctx context.Context, disclosureID string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -227,7 +291,7 @@ func (r *repository) MarkUserDataDisclosureFailed(ctx context.Context, disclosur
 }
 
 // ArchiveUserDataDisclosure archives a disclosure.
-func (r *repository) ArchiveUserDataDisclosure(ctx context.Context, disclosureID string) error {
+func (r *disclosureRepository) ArchiveUserDataDisclosure(ctx context.Context, disclosureID string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 

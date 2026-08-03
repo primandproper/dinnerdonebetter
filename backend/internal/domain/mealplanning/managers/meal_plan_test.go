@@ -7,21 +7,11 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	mealplanningworkers "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
 )
-
-// buildNoopWorkerMocks returns a pair of workers that record their invocations and do nothing.
-func buildNoopWorkerMocks() (groceryWorker, taskWorker *mealplanningworkers.WorkerMock) {
-	return &mealplanningworkers.WorkerMock{
-			WorkFunc: func(context.Context) error { return nil },
-		}, &mealplanningworkers.WorkerMock{
-			WorkFunc: func(context.Context) error { return nil },
-		}
-}
 
 func TestMealPlanningManager_ListMealPlans(T *testing.T) {
 	T.Parallel()
@@ -80,13 +70,13 @@ func TestMealPlanningManager_CreateMealPlan(T *testing.T) {
 		assert.Len(t, db.CreateMealPlanCalls(), 1)
 	})
 
-	T.Run("invokes workers when meal plan is created finalized", func(t *testing.T) {
+	T.Run("starts the finalization saga when meal plan is created finalized", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		groceryWorker, taskWorker := buildNoopWorkerMocks()
+		starter := &fakeFinalizationStarter{}
 
-		mpm := buildMealPlanManagerForTestWithWorkers(t, groceryWorker, taskWorker)
+		mpm := buildMealPlanManagerForTestWithStarter(t, starter)
 
 		ownerID := fakes.BuildFakeID()
 		creatorID := fakes.BuildFakeID()
@@ -106,8 +96,7 @@ func TestMealPlanningManager_CreateMealPlan(T *testing.T) {
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateMealPlanCalls(), 1)
-		assert.Len(t, groceryWorker.WorkCalls(), 1)
-		assert.Len(t, taskWorker.WorkCalls(), 1)
+		assert.Equal(t, []string{expected.ID}, starter.calls)
 	})
 }
 
@@ -230,13 +219,13 @@ func TestMealPlanningManager_FinalizeMealPlan(T *testing.T) {
 		assert.Len(t, db.AttemptToFinalizeMealPlanCalls(), 1)
 	})
 
-	T.Run("invokes workers when finalized", func(t *testing.T) {
+	T.Run("starts the finalization saga when finalized", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		groceryWorker, taskWorker := buildNoopWorkerMocks()
+		starter := &fakeFinalizationStarter{}
 
-		mpm := buildMealPlanManagerForTestWithWorkers(t, groceryWorker, taskWorker)
+		mpm := buildMealPlanManagerForTestWithStarter(t, starter)
 
 		expected := fakes.BuildFakeMealPlan()
 
@@ -255,7 +244,6 @@ func TestMealPlanningManager_FinalizeMealPlan(T *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Len(t, db.AttemptToFinalizeMealPlanCalls(), 1)
-		assert.Len(t, groceryWorker.WorkCalls(), 1)
-		assert.Len(t, taskWorker.WorkCalls(), 1)
+		assert.Equal(t, []string{expected.ID}, starter.calls)
 	})
 }

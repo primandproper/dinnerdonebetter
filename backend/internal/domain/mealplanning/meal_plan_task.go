@@ -97,9 +97,16 @@ type (
 		CreateMealPlanTask(ctx context.Context, input *MealPlanTaskDatabaseCreationInput) (*MealPlanTask, error)
 		GetMealPlanTask(ctx context.Context, mealPlanTaskID string) (*MealPlanTask, error)
 		GetMealPlanTasksForMealPlan(ctx context.Context, mealPlanID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[MealPlanTask], error)
-		CreateMealPlanTasksForMealPlanOption(ctx context.Context, inputs []*MealPlanTaskDatabaseCreationInput) ([]*MealPlanTask, error)
+		// CreateMealPlanTasksForMealPlan writes a meal plan's tasks and the flag saying they were
+		// written in one transaction. The two are deliberately not separable: a mark that fails
+		// after the tasks commit leaves the plan selectable again, and the next run creates every
+		// task a second time.
+		CreateMealPlanTasksForMealPlan(ctx context.Context, mealPlanID string, inputs []*MealPlanTaskDatabaseCreationInput) ([]*MealPlanTask, error)
+		// UndoMealPlanTaskCreation is CreateMealPlanTasksForMealPlan's compensation: it deletes
+		// the named tasks and clears the flag, in the one transaction that wrote them. Only the
+		// IDs the caller passes are removed, so it cannot reach past the work it is undoing.
+		UndoMealPlanTaskCreation(ctx context.Context, mealPlanID string, taskIDs []string) error
 		ChangeMealPlanTaskStatus(ctx context.Context, input *MealPlanTaskStatusChangeRequestInput) error
-		MarkMealPlanAsHavingTasksCreated(ctx context.Context, mealPlanID string) error
 		MealPlanTaskNotificationHasBeenSent(ctx context.Context, mealPlanTaskID string) (bool, error)
 		MarkMealPlanTaskNotificationSent(ctx context.Context, mealPlanTaskID string) error
 		ClearMealPlanTaskNotificationSentForEvent(ctx context.Context, mealPlanEventID string) error

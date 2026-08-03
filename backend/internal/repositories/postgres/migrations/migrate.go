@@ -10,6 +10,8 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/outbox"
 	outboxmigrations "github.com/primandproper/platform-go/v9/outbox/migrations"
+	"github.com/primandproper/platform-go/v9/saga"
+	sagamigrations "github.com/primandproper/platform-go/v9/saga/migrations"
 	"github.com/primandproper/platform-go/v9/webhooks"
 	webhooksmigrations "github.com/primandproper/platform-go/v9/webhooks/migrations"
 )
@@ -24,20 +26,17 @@ var (
 // replica applies migrations while the rest wait rather than racing.
 const lockKey = "dinnerdonebetter"
 
-// Versions for the platform-supplied schemas. The platform ships no numbered files — numbering
-// is global per consumer, so a platform-owned number would collide the moment either side added
-// one — and hands us the DDL instead.
+// Where the platform's own tables land in this repository's migration ordering. The platform
+// ships no numbered files — numbering is global per consumer, so a platform-owned number would
+// collide the moment either side added one — and hands us the DDL instead.
 //
-// These interleave with migration_files rather than sitting above all of them, because a
-// numbered file may need to run after one of them: 00023 backfills the webhook endpoints table,
-// which cannot exist before 23 creates it.
+// The numbering is one sequence shared with migration_files, so these must not collide with a
+// filename and must never be renumbered once applied. Adding another means taking the next
+// free number, whichever side it comes from.
 const (
-	// outboxMigrationVersion is where the platform's outbox table lands.
-	outboxMigrationVersion = 22
-
-	// webhooksMigrationVersion is where the platform's five webhook tables land. It must stay
-	// below 00023_webhooks_platform.sql, which backfills endpoints for existing webhooks.
-	webhooksMigrationVersion = 23
+	outboxMigrationVersion   = 22
+	sagaMigrationVersion     = 24
+	webhooksMigrationVersion = 25
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -59,6 +58,12 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, errors.Wrap(err, "rendering outbox migration")
 	}
 
+	// Likewise for the saga instance table, which durable meal plan finalization runs on.
+	sagaDDL, err := sagamigrations.SQL(dialect.Postgres, saga.DefaultTablePrefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "rendering saga migration")
+	}
+
 	// Likewise the five webhook tables — endpoints, subscriptions, deliveries, dispatches, and
 	// attempts — together with the partial indexes the claim predicate depends on. Copying
 	// those by hand is how a claim quietly starts scanning history instead of backlog.
@@ -73,6 +78,7 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithLogger(logging.EnsureLogger(logger)),
 		migrate.WithLockKey(lockKey),
 		migrate.WithGeneratedMigration(outboxMigrationVersion, "create_outbox_messages", outboxDDL),
+		migrate.WithGeneratedMigration(sagaMigrationVersion, "create_saga_instances", sagaDDL),
 		migrate.WithGeneratedMigration(webhooksMigrationVersion, "create_webhooks_tables", webhooksDDL),
 	)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
 	authmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
@@ -40,6 +41,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	authhttpsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	commentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/comments/grpc"
+	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
@@ -101,6 +103,9 @@ func BuildInjector(
 	qrcodes.RegisterBuilder(i)
 	uploadscfg.RegisterStorageConfig(i)
 	objectstorage.RegisterUploadManager(i)
+	// Disclosure artifacts get an upload manager of their own, pointed at the user data bucket
+	// rather than the media bucket the ambient one above serves.
+	dataprivacycfg.RegisterReportArtifactStore(i)
 	featureflagscfg.RegisterFeatureFlagManager(i)
 	multisource.RegisterMultiSourceEventReporter(i)
 
@@ -161,6 +166,10 @@ func BuildInjector(
 	paymentssvc.RegisterPaymentsService(i)
 	waitlistssvc.RegisterWaitlistsService(i)
 	uploadedmediacfg.RegisterUploadedMediaConfig(i)
+
+	// The saga machinery, minus the worker: this process starts durable processes and does not
+	// advance them. Registered before the domain, which puts its definitions on the registry.
+	sagas.RegisterSagas(i)
 
 	// Domain: mealplanning
 	mealplanningregistration.RegisterForGRPCAPI(i)

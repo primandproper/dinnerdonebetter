@@ -9,6 +9,13 @@ ARTIFACTS_DIR := artifacts
 SCRIPTS_DIR   := scripts
 COVERAGE_OUT  := $(ARTIFACTS_DIR)/coverage.out
 
+# This module is not vendored: go.mod and go.sum are the committed source of truth and
+# dependencies are resolved from the module cache. -mod=readonly is already the default
+# without a vendor directory, but setting it explicitly turns a stale go.mod into a hard
+# error rather than a silent rewrite, and keeps a leftover vendor/ from quietly taking over.
+# It is exported above the computed variables below so their `go` invocations inherit it too.
+export GOFLAGS := -mod=readonly
+
 # COMPUTED
 TOTAL_PACKAGE_LIST := $(shell go list $(THIS)/...)
 
@@ -24,12 +31,15 @@ CONTAINER_RUNNER      := docker
 RUN_CONTAINER         := $(CONTAINER_RUNNER) run --rm --volume $(PWD):$(PWD) --workdir=$(PWD) --network=host
 RUN_CONTAINER_AS_USER := $(RUN_CONTAINER) --user $(MYSELF):$(MY_GROUP)
 
-# The linter runs with --rm, so without a named volume golangci-lint's analysis cache dies with
-# the container and every run is a cold full type-check of the module — including reading all of
-# vendor/ to resolve imports, which is most of the wall clock. The volume is keyed to the image
-# tag so bumping the linter starts from a clean cache rather than a stale one.
+# The linter runs with --rm, so without named volumes both of the caches it depends on die
+# with the container: golangci-lint's own analysis cache (making every run a cold full
+# type-check of the module) and the Go module cache (making every run re-download the whole
+# dependency graph, since the host's GOMODCACHE is not mounted). The analysis cache volume is
+# keyed to the image tag so bumping the linter starts from a clean cache rather than a stale
+# one; the module cache is keyed by content and safe to share across versions.
 LINTER_CACHE_VOLUME   := golangci-lint-cache-$(subst :,-,$(subst /,-,$(LINTER_IMAGE)))
-LINTER                := $(RUN_CONTAINER) --volume $(LINTER_CACHE_VOLUME):/root/.cache $(LINTER_IMAGE) golangci-lint
+GO_MOD_CACHE_VOLUME   := go-mod-cache
+LINTER                := $(RUN_CONTAINER) --volume $(LINTER_CACHE_VOLUME):/root/.cache --volume $(GO_MOD_CACHE_VOLUME):/go/pkg/mod --env GOFLAGS=$(GOFLAGS) $(LINTER_IMAGE) golangci-lint
 SQL_GENERATOR         := $(RUN_CONTAINER_AS_USER) $(SQL_GENERATOR_IMAGE)
 
 ## non-PHONY folders/files
@@ -44,17 +54,7 @@ clean-$(ARTIFACTS_DIR):
 	@rm -rf $(ARTIFACTS_DIR)
 
 .PHONY: setup
-setup: $(ARTIFACTS_DIR) revendor configs
-
-.PHONY: clean_vendor
-clean_vendor:
-	$(SCRIPTS_DIR)/clean_vendor.sh
-
-vendor:
-	$(SCRIPTS_DIR)/vendor.sh
-
-.PHONY: revendor
-revendor: clean_vendor vendor
+setup: $(ARTIFACTS_DIR) configs
 
 ## FORMATTING
 
@@ -189,7 +189,7 @@ build-migrate: $(ARTIFACTS_DIR)
 	$(SCRIPTS_DIR)/build.sh -o $(ARTIFACTS_DIR)/migrate $(THIS)/cmd/tools/migrate
 
 .PHONY: test
-test: $(ARTIFACTS_DIR) vendor
+test: $(ARTIFACTS_DIR)
 	$(SCRIPTS_DIR)/test.sh
 
 .PHONY: dev

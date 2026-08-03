@@ -25,5 +25,9 @@ type PaymentsDataManager interface {
 	GetPurchasesForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[payments.Purchase], error)
 	GetPaymentTransactionsForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[payments.PaymentTransaction], error)
 
-	ProcessWebhookEvent(ctx context.Context, provider string, payload []byte, signature, accountID string) error
+	// ProcessWebhookEvent applies an already-verified, already-parsed provider event to our own
+	// records. Verification and parsing are a payments.PaymentProcessor's job and happen at the
+	// transport edge, where the request still exists; by the time an event reaches here it is
+	// domain data, and this manager needs to know nothing about HTTP.
+	ProcessWebhookEvent(ctx context.Context, provider string, event *payments.ParsedWebhookEvent, accountID string) error
 }

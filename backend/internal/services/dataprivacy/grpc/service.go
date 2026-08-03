@@ -10,6 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	dataprivacykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/keys"
 	dataprivacymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/manager"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/reportartifacts"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
@@ -24,7 +25,6 @@ import (
 	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v9/uploads"
 
 	"google.golang.org/grpc/codes"
 )
@@ -45,7 +45,7 @@ type (
 		logger                    logging.Logger
 		sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error)
 		dataPrivacyManager        dataprivacymanager.DataPrivacyManager
-		uploadManager             uploads.UploadManager
+		reportArtifacts           reportartifacts.Store
 		msgConfig                 *msgconfig.Config
 		queuesConfig              *queuescfg.Config
 	}
@@ -57,7 +57,7 @@ func NewDataPrivacyService(
 	tracerProvider tracing.TracerProvider,
 	sessionContextDataFetcher func(context.Context) (*sessions.ContextData, error),
 	dataPrivacyManager dataprivacymanager.DataPrivacyManager,
-	uploadManager uploads.UploadManager,
+	reportArtifacts reportartifacts.Store,
 	msgConfig *msgconfig.Config,
 	queuesConfig *queuescfg.Config,
 ) dataprivacysvc.DataPrivacyServiceServer {
@@ -66,7 +66,7 @@ func NewDataPrivacyService(
 		tracer:                    tracing.NewNamedTracer(tracerProvider, o11yName),
 		sessionContextDataFetcher: sessionContextDataFetcher,
 		dataPrivacyManager:        dataPrivacyManager,
-		uploadManager:             uploadManager,
+		reportArtifacts:           reportArtifacts,
 		msgConfig:                 msgConfig,
 		queuesConfig:              queuesConfig,
 	}
@@ -201,8 +201,10 @@ func (s *serviceImpl) FetchUserDataReport(ctx context.Context, request *datapriv
 
 	logger.Info("fetching user data report")
 
-	// Read the report from object storage
-	reportBytes, err := uploads.ReadFile(ctx, s.uploadManager, fmt.Sprintf("%s.json", reportID))
+	// Read and decrypt the report. This is the only delivery path there is: the object holds
+	// ciphertext, so handing the subject a signed URL to it would hand them bytes they cannot
+	// open. The server reads, decrypts, and returns the collection over the authenticated call.
+	reportBytes, err := s.reportArtifacts.Open(ctx, reportID)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "reading report from storage")
 	}

@@ -5,13 +5,11 @@ resource "google_storage_bucket" "user_data_storage" {
   uniform_bucket_level_access = false
   force_destroy               = true
 
+  # Versioning off: the reaper deleting an artifact has to mean the artifact is gone. With
+  # versioning on, a delete only writes a tombstone and the object survives as a noncurrent
+  # version, so the expiry this bucket exists to honor would not actually happen.
   versioning {
-    enabled = true
-  }
-
-  website {
-    main_page_suffix = "index.html"
-    not_found_page   = "index.html"
+    enabled = false
   }
 
   cors {
@@ -21,9 +19,23 @@ resource "google_storage_bucket" "user_data_storage" {
     max_age_seconds = 3600
   }
 
+  # Backstop, not the mechanism. The reaper deletes each artifact when its disclosure expires
+  # after seven days; this catches anything the reaper never got to, and is deliberately shorter
+  # than it was so a missed object does not sit for a month.
   lifecycle_rule {
     condition {
-      age = 30
+      age = 14
+    }
+    action {
+      type = "Delete"
+    }
+  }
+
+  # Purges the noncurrent versions that accumulated while versioning was on. Without this,
+  # turning versioning off leaves every previously "deleted" artifact intact.
+  lifecycle_rule {
+    condition {
+      with_state = "ARCHIVED"
     }
     action {
       type = "Delete"
@@ -33,7 +45,7 @@ resource "google_storage_bucket" "user_data_storage" {
 
 resource "google_storage_bucket_iam_policy" "user_data_policy" {
   bucket      = google_storage_bucket.user_data_storage.name
-  policy_data = data.google_iam_policy.public_policy.policy_data
+  policy_data = data.google_iam_policy.user_data_policy.policy_data
 }
 
 # Domain-named bucket for user data. Requires Search Console domain verification.
@@ -44,13 +56,11 @@ resource "google_storage_bucket" "user_data_domain" {
   uniform_bucket_level_access = false
   force_destroy               = true
 
+  # Versioning off: the reaper deleting an artifact has to mean the artifact is gone. With
+  # versioning on, a delete only writes a tombstone and the object survives as a noncurrent
+  # version, so the expiry this bucket exists to honor would not actually happen.
   versioning {
-    enabled = true
-  }
-
-  website {
-    main_page_suffix = "index.html"
-    not_found_page   = "index.html"
+    enabled = false
   }
 
   cors {
@@ -60,9 +70,23 @@ resource "google_storage_bucket" "user_data_domain" {
     max_age_seconds = 3600
   }
 
+  # Backstop, not the mechanism. The reaper deletes each artifact when its disclosure expires
+  # after seven days; this catches anything the reaper never got to, and is deliberately shorter
+  # than it was so a missed object does not sit for a month.
   lifecycle_rule {
     condition {
-      age = 30
+      age = 14
+    }
+    action {
+      type = "Delete"
+    }
+  }
+
+  # Purges the noncurrent versions that accumulated while versioning was on. Without this,
+  # turning versioning off leaves every previously "deleted" artifact intact.
+  lifecycle_rule {
+    condition {
+      with_state = "ARCHIVED"
     }
     action {
       type = "Delete"
@@ -72,5 +96,5 @@ resource "google_storage_bucket" "user_data_domain" {
 
 resource "google_storage_bucket_iam_policy" "user_data_domain_policy" {
   bucket      = google_storage_bucket.user_data_domain.name
-  policy_data = data.google_iam_policy.public_policy.policy_data
+  policy_data = data.google_iam_policy.user_data_policy.policy_data
 }

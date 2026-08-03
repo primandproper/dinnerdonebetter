@@ -5,6 +5,7 @@ import (
 
 	mobilenotificationscheduler "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/mobile_notification_scheduler"
 	searchdataindexscheduler "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/search_data_index_scheduler"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -12,15 +13,16 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
+	dataprivacyrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
+	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
+	disclosureartifactreaper "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/workers/disclosure_artifact_reaper"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
-	mealplanfinalizer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalizer"
-	mealplangrocerylistinitializer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_grocery_list_initializer"
-	mealplantaskcreator "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_creator"
+	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
 	"github.com/primandproper/platform-go/v9/database"
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"
@@ -72,11 +74,13 @@ func BuildInjector(
 	auditlogentries.RegisterAuditLogRepository(i)
 	identityrepo.RegisterIdentityRepository(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
+	dataprivacyrepo.RegisterUserDataDisclosureRepository(i)
+	dataprivacycfg.RegisterReportArtifactStore(i)
+
 	// Dispatch happens inside the transaction that causes the event, so this process needs
 	// the webhook write side too — the meal plan finalizer emits events like any request does.
 	webhookdispatch.RegisterWebhookDispatch(i)
 	RegisterWebhookWorker(i)
-
 	// Domain: mealplanning
 	events.RegisterOutboxEmitter(i)
 	mealplanningrepo.RegisterMealPlanningRepository(i)
@@ -84,10 +88,9 @@ func BuildInjector(
 	recipeanalysis.RegisterRecipeAnalyzer(i)
 
 	// the periodic jobs themselves
-	mealplanfinalizer.RegisterMealPlanFinalizer(i)
-	mealplangrocerylistinitializer.RegisterMealPlanGroceryListInitializer(i)
-	mealplantaskcreator.RegisterMealPlanTaskCreator(i)
+	mealplanfinalization.RegisterStarter(i)
 	queuetest.RegisterQueueTest(i)
+	disclosureartifactreaper.RegisterDisclosureArtifactReaper(i)
 
 	do.Provide[*queuetest.JobParams](i, func(i do.Injector) (*queuetest.JobParams, error) {
 		return &queuetest.JobParams{Queues: *do.MustInvoke[*queuescfg.Config](i)}, nil
@@ -134,6 +137,11 @@ func BuildInjector(
 			distributedlockcfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 	})
+
+	// The saga machinery, and the one worker that advances every definition in the process.
+	// Registered after the lock, which it takes a per-instance scope of.
+	sagas.RegisterSagas(i)
+	sagas.RegisterSagaWorker(i)
 
 	RegisterScheduler(i)
 	RegisterOutboxRelay(i)

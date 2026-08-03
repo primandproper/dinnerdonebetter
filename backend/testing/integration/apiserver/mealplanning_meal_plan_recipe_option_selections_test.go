@@ -193,20 +193,12 @@ func TestMealPlans_WithRecipeOptionSelections(T *testing.T) {
 		require.NoError(t, err)
 		require.NotZero(t, rowsAffected)
 
-		// Run the finalization worker
+		// Start a finalization saga for the plan, then wait for its first step to do the tally.
 		runFinalizeRes, err := adminClient.RunFinalizeMealPlanWorker(ctx, &mealplanninggrpc.RunFinalizeMealPlanWorkerRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, runFinalizeRes)
 
-		// Verify the meal plan is finalized
-		finalizedMealPlanRes, err := accountAdminUserClient.GetMealPlan(ctx, &mealplanninggrpc.GetMealPlanRequest{
-			MealPlanId: createdMealPlan.ID,
-		})
-		require.NoError(t, err)
-		require.NotNil(t, finalizedMealPlanRes)
-
-		finalizedMealPlan := converters.ConvertGRPCMealPlanToMealPlan(finalizedMealPlanRes.Result)
-		assert.Equal(t, string(mealplanning.MealPlanStatusFinalized), finalizedMealPlan.Status)
+		finalizedMealPlan := awaitMealPlanFinalized(t, ctx, accountAdminUserClient, createdMealPlan.ID)
 
 		// Verify the correct option was chosen (meal1 should be chosen since all users voted for it)
 		var chosenOption *mealplanning.MealPlanOption
@@ -221,23 +213,13 @@ func TestMealPlans_WithRecipeOptionSelections(T *testing.T) {
 		require.NotNil(t, chosenOption, "expected one option to be chosen")
 		assert.Equal(t, meal1.ID, chosenOption.Meal.ID, "expected meal1 to be chosen")
 
-		// Run the grocery list initializer worker
-		runGroceryListRes, err := adminClient.RunMealPlanGroceryListInitializerWorker(ctx, &mealplanninggrpc.RunMealPlanGroceryListInitializerWorkerRequest{})
-		require.NoError(t, err)
-		require.NotNil(t, runGroceryListRes)
-
-		// Fetch the grocery list
-		groceryListRes, err := accountAdminUserClient.GetMealPlanGroceryListItemsForMealPlan(ctx, &mealplanninggrpc.GetMealPlanGroceryListItemsForMealPlanRequest{
-			MealPlanId: createdMealPlan.ID,
-		})
-		require.NoError(t, err)
-		require.NotNil(t, groceryListRes)
-		require.NotEmpty(t, groceryListRes.Results, "expected grocery list to have items")
+		// The same saga builds the grocery list two steps later; no second worker to run.
+		groceryListItems := awaitMealPlanGroceryListItems(t, ctx, accountAdminUserClient, createdMealPlan.ID)
 
 		// Verify that we have the selected option item (items with OptionIndex set)
 		// Since we selected optionIndex=1, only Alternative B should be in the grocery list
 		optionItemCount := 0
-		for _, item := range groceryListRes.Results {
+		for _, item := range groceryListItems {
 			if item.OptionIndex == nil {
 				continue
 			}

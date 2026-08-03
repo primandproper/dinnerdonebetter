@@ -20,6 +20,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
+	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
@@ -34,7 +35,6 @@ import (
 	loggingcfg "github.com/primandproper/platform-go/v9/observability/logging/config"
 	metricscfg "github.com/primandproper/platform-go/v9/observability/metrics/config"
 	tracingcfg "github.com/primandproper/platform-go/v9/observability/tracing/config"
-	"github.com/primandproper/platform-go/v9/uploads/objectstorage"
 
 	"github.com/samber/do/v2"
 )
@@ -64,7 +64,7 @@ func BuildInjector(
 	emailcfg.RegisterEmailer(i)
 	databasecfg.RegisterClientConfig(i)
 	postgres.RegisterDatabaseClient(i)
-	objectstorage.RegisterUploadManager(i)
+	dataprivacycfg.RegisterReportArtifactStore(i)
 	notificationscfg.RegisterPushSender(i)
 
 	// Domain: mealplanning

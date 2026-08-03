@@ -152,6 +152,9 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			ArchiveValidVesselFunc: func(ctx context.Context, validVesselID string) error {
 //				panic("mock out the ArchiveValidVessel method")
 //			},
+//			AttachMealPlanFinalizationSagaFunc: func(ctx context.Context, mealPlanID string, start mealplanning.MealPlanFinalizationSagaStarter) (string, error) {
+//				panic("mock out the AttachMealPlanFinalizationSaga method")
+//			},
 //			AttemptToFinalizeMealPlanFunc: func(ctx context.Context, mealPlanID string, accountID string) (bool, error) {
 //				panic("mock out the AttemptToFinalizeMealPlan method")
 //			},
@@ -194,8 +197,8 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			CreateMealPlanTaskFunc: func(ctx context.Context, input *mealplanning.MealPlanTaskDatabaseCreationInput) (*mealplanning.MealPlanTask, error) {
 //				panic("mock out the CreateMealPlanTask method")
 //			},
-//			CreateMealPlanTasksForMealPlanOptionFunc: func(ctx context.Context, inputs []*mealplanning.MealPlanTaskDatabaseCreationInput) ([]*mealplanning.MealPlanTask, error) {
-//				panic("mock out the CreateMealPlanTasksForMealPlanOption method")
+//			CreateMealPlanTasksForMealPlanFunc: func(ctx context.Context, mealPlanID string, inputs []*mealplanning.MealPlanTaskDatabaseCreationInput) ([]*mealplanning.MealPlanTask, error) {
+//				panic("mock out the CreateMealPlanTasksForMealPlan method")
 //			},
 //			CreateRecipeFunc: func(ctx context.Context, input *mealplanning.RecipeDatabaseCreationInput) (*mealplanning.Recipe, error) {
 //				panic("mock out the CreateRecipe method")
@@ -290,11 +293,8 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			GetAccountInstrumentOwnershipsFunc: func(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.AccountInstrumentOwnership], error) {
 //				panic("mock out the GetAccountInstrumentOwnerships method")
 //			},
-//			GetFinalizedMealPlanIDsForTheNextWeekFunc: func(ctx context.Context) ([]*mealplanning.FinalizedMealPlanDatabaseResult, error) {
-//				panic("mock out the GetFinalizedMealPlanIDsForTheNextWeek method")
-//			},
-//			GetFinalizedMealPlansWithUninitializedGroceryListsFunc: func(ctx context.Context) ([]*mealplanning.MealPlan, error) {
-//				panic("mock out the GetFinalizedMealPlansWithUninitializedGroceryLists method")
+//			GetFinalizedMealPlanOptionsForMealPlanFunc: func(ctx context.Context, mealPlanID string) ([]*mealplanning.FinalizedMealPlanDatabaseResult, error) {
+//				panic("mock out the GetFinalizedMealPlanOptionsForMealPlan method")
 //			},
 //			GetIngredientMediaByIngredientFunc: func(ctx context.Context, validIngredientID string) ([]*mealplanning.IngredientMediaRow, error) {
 //				panic("mock out the GetIngredientMediaByIngredient method")
@@ -358,6 +358,9 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			},
 //			GetMealPlanTasksForMealPlanFunc: func(ctx context.Context, mealPlanID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlanTask], error) {
 //				panic("mock out the GetMealPlanTasksForMealPlan method")
+//			},
+//			GetMealPlansAwaitingFinalizationSagaFunc: func(ctx context.Context, limit uint16) ([]*mealplanning.MealPlanFinalizationCandidate, error) {
+//				panic("mock out the GetMealPlansAwaitingFinalizationSaga method")
 //			},
 //			GetMealPlansForAccountFunc: func(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlan], error) {
 //				panic("mock out the GetMealPlansForAccount method")
@@ -475,9 +478,6 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			},
 //			GetSelectionsForMealPlanOptionFunc: func(ctx context.Context, mealPlanOptionID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlanRecipeOptionSelection], error) {
 //				panic("mock out the GetSelectionsForMealPlanOption method")
-//			},
-//			GetUnfinalizedMealPlansWithExpiredVotingPeriodsFunc: func(ctx context.Context) ([]*mealplanning.MealPlan, error) {
-//				panic("mock out the GetUnfinalizedMealPlansWithExpiredVotingPeriods method")
 //			},
 //			GetUploadedMediaWithIDsFunc: func(ctx context.Context, ids []string) ([]*uploadedmedia.UploadedMedia, error) {
 //				panic("mock out the GetUploadedMediaWithIDs method")
@@ -662,14 +662,11 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			GetValidVesselsWithIDsFunc: func(ctx context.Context, ids []string) ([]*mealplanning.ValidVessel, error) {
 //				panic("mock out the GetValidVesselsWithIDs method")
 //			},
+//			InitializeMealPlanGroceryListFunc: func(ctx context.Context, mealPlanID string, accountID string, inputs []*mealplanning.MealPlanGroceryListItemDatabaseCreationInput) ([]*mealplanning.MealPlanGroceryListItem, error) {
+//				panic("mock out the InitializeMealPlanGroceryList method")
+//			},
 //			MarkMealAsIndexedFunc: func(ctx context.Context, mealID string) error {
 //				panic("mock out the MarkMealAsIndexed method")
-//			},
-//			MarkMealPlanAsGroceryListInitializedFunc: func(ctx context.Context, mealPlanID string) error {
-//				panic("mock out the MarkMealPlanAsGroceryListInitialized method")
-//			},
-//			MarkMealPlanAsHavingTasksCreatedFunc: func(ctx context.Context, mealPlanID string) error {
-//				panic("mock out the MarkMealPlanAsHavingTasksCreated method")
 //			},
 //			MarkMealPlanTaskNotificationSentFunc: func(ctx context.Context, mealPlanTaskID string) error {
 //				panic("mock out the MarkMealPlanTaskNotificationSent method")
@@ -802,6 +799,12 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			},
 //			SwapMealPlanEventsFunc: func(ctx context.Context, mealPlanID string, mealPlanEventIDA string, mealPlanEventIDB string) error {
 //				panic("mock out the SwapMealPlanEvents method")
+//			},
+//			UndoMealPlanGroceryListInitializationFunc: func(ctx context.Context, mealPlanID string, itemIDs []string) error {
+//				panic("mock out the UndoMealPlanGroceryListInitialization method")
+//			},
+//			UndoMealPlanTaskCreationFunc: func(ctx context.Context, mealPlanID string, taskIDs []string) error {
+//				panic("mock out the UndoMealPlanTaskCreation method")
 //			},
 //			UpdateAccountInstrumentOwnershipFunc: func(ctx context.Context, updated *mealplanning.AccountInstrumentOwnership) error {
 //				panic("mock out the UpdateAccountInstrumentOwnership method")
@@ -1098,6 +1101,9 @@ type RepositoryMock struct {
 	// ArchiveValidVesselFunc mocks the ArchiveValidVessel method.
 	ArchiveValidVesselFunc func(ctx context.Context, validVesselID string) error
 
+	// AttachMealPlanFinalizationSagaFunc mocks the AttachMealPlanFinalizationSaga method.
+	AttachMealPlanFinalizationSagaFunc func(ctx context.Context, mealPlanID string, start mealplanning.MealPlanFinalizationSagaStarter) (string, error)
+
 	// AttemptToFinalizeMealPlanFunc mocks the AttemptToFinalizeMealPlan method.
 	AttemptToFinalizeMealPlanFunc func(ctx context.Context, mealPlanID string, accountID string) (bool, error)
 
@@ -1140,8 +1146,8 @@ type RepositoryMock struct {
 	// CreateMealPlanTaskFunc mocks the CreateMealPlanTask method.
 	CreateMealPlanTaskFunc func(ctx context.Context, input *mealplanning.MealPlanTaskDatabaseCreationInput) (*mealplanning.MealPlanTask, error)
 
-	// CreateMealPlanTasksForMealPlanOptionFunc mocks the CreateMealPlanTasksForMealPlanOption method.
-	CreateMealPlanTasksForMealPlanOptionFunc func(ctx context.Context, inputs []*mealplanning.MealPlanTaskDatabaseCreationInput) ([]*mealplanning.MealPlanTask, error)
+	// CreateMealPlanTasksForMealPlanFunc mocks the CreateMealPlanTasksForMealPlan method.
+	CreateMealPlanTasksForMealPlanFunc func(ctx context.Context, mealPlanID string, inputs []*mealplanning.MealPlanTaskDatabaseCreationInput) ([]*mealplanning.MealPlanTask, error)
 
 	// CreateRecipeFunc mocks the CreateRecipe method.
 	CreateRecipeFunc func(ctx context.Context, input *mealplanning.RecipeDatabaseCreationInput) (*mealplanning.Recipe, error)
@@ -1236,11 +1242,8 @@ type RepositoryMock struct {
 	// GetAccountInstrumentOwnershipsFunc mocks the GetAccountInstrumentOwnerships method.
 	GetAccountInstrumentOwnershipsFunc func(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.AccountInstrumentOwnership], error)
 
-	// GetFinalizedMealPlanIDsForTheNextWeekFunc mocks the GetFinalizedMealPlanIDsForTheNextWeek method.
-	GetFinalizedMealPlanIDsForTheNextWeekFunc func(ctx context.Context) ([]*mealplanning.FinalizedMealPlanDatabaseResult, error)
-
-	// GetFinalizedMealPlansWithUninitializedGroceryListsFunc mocks the GetFinalizedMealPlansWithUninitializedGroceryLists method.
-	GetFinalizedMealPlansWithUninitializedGroceryListsFunc func(ctx context.Context) ([]*mealplanning.MealPlan, error)
+	// GetFinalizedMealPlanOptionsForMealPlanFunc mocks the GetFinalizedMealPlanOptionsForMealPlan method.
+	GetFinalizedMealPlanOptionsForMealPlanFunc func(ctx context.Context, mealPlanID string) ([]*mealplanning.FinalizedMealPlanDatabaseResult, error)
 
 	// GetIngredientMediaByIngredientFunc mocks the GetIngredientMediaByIngredient method.
 	GetIngredientMediaByIngredientFunc func(ctx context.Context, validIngredientID string) ([]*mealplanning.IngredientMediaRow, error)
@@ -1304,6 +1307,9 @@ type RepositoryMock struct {
 
 	// GetMealPlanTasksForMealPlanFunc mocks the GetMealPlanTasksForMealPlan method.
 	GetMealPlanTasksForMealPlanFunc func(ctx context.Context, mealPlanID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlanTask], error)
+
+	// GetMealPlansAwaitingFinalizationSagaFunc mocks the GetMealPlansAwaitingFinalizationSaga method.
+	GetMealPlansAwaitingFinalizationSagaFunc func(ctx context.Context, limit uint16) ([]*mealplanning.MealPlanFinalizationCandidate, error)
 
 	// GetMealPlansForAccountFunc mocks the GetMealPlansForAccount method.
 	GetMealPlansForAccountFunc func(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlan], error)
@@ -1421,9 +1427,6 @@ type RepositoryMock struct {
 
 	// GetSelectionsForMealPlanOptionFunc mocks the GetSelectionsForMealPlanOption method.
 	GetSelectionsForMealPlanOptionFunc func(ctx context.Context, mealPlanOptionID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlanRecipeOptionSelection], error)
-
-	// GetUnfinalizedMealPlansWithExpiredVotingPeriodsFunc mocks the GetUnfinalizedMealPlansWithExpiredVotingPeriods method.
-	GetUnfinalizedMealPlansWithExpiredVotingPeriodsFunc func(ctx context.Context) ([]*mealplanning.MealPlan, error)
 
 	// GetUploadedMediaWithIDsFunc mocks the GetUploadedMediaWithIDs method.
 	GetUploadedMediaWithIDsFunc func(ctx context.Context, ids []string) ([]*uploadedmedia.UploadedMedia, error)
@@ -1608,14 +1611,11 @@ type RepositoryMock struct {
 	// GetValidVesselsWithIDsFunc mocks the GetValidVesselsWithIDs method.
 	GetValidVesselsWithIDsFunc func(ctx context.Context, ids []string) ([]*mealplanning.ValidVessel, error)
 
+	// InitializeMealPlanGroceryListFunc mocks the InitializeMealPlanGroceryList method.
+	InitializeMealPlanGroceryListFunc func(ctx context.Context, mealPlanID string, accountID string, inputs []*mealplanning.MealPlanGroceryListItemDatabaseCreationInput) ([]*mealplanning.MealPlanGroceryListItem, error)
+
 	// MarkMealAsIndexedFunc mocks the MarkMealAsIndexed method.
 	MarkMealAsIndexedFunc func(ctx context.Context, mealID string) error
-
-	// MarkMealPlanAsGroceryListInitializedFunc mocks the MarkMealPlanAsGroceryListInitialized method.
-	MarkMealPlanAsGroceryListInitializedFunc func(ctx context.Context, mealPlanID string) error
-
-	// MarkMealPlanAsHavingTasksCreatedFunc mocks the MarkMealPlanAsHavingTasksCreated method.
-	MarkMealPlanAsHavingTasksCreatedFunc func(ctx context.Context, mealPlanID string) error
 
 	// MarkMealPlanTaskNotificationSentFunc mocks the MarkMealPlanTaskNotificationSent method.
 	MarkMealPlanTaskNotificationSentFunc func(ctx context.Context, mealPlanTaskID string) error
@@ -1748,6 +1748,12 @@ type RepositoryMock struct {
 
 	// SwapMealPlanEventsFunc mocks the SwapMealPlanEvents method.
 	SwapMealPlanEventsFunc func(ctx context.Context, mealPlanID string, mealPlanEventIDA string, mealPlanEventIDB string) error
+
+	// UndoMealPlanGroceryListInitializationFunc mocks the UndoMealPlanGroceryListInitialization method.
+	UndoMealPlanGroceryListInitializationFunc func(ctx context.Context, mealPlanID string, itemIDs []string) error
+
+	// UndoMealPlanTaskCreationFunc mocks the UndoMealPlanTaskCreation method.
+	UndoMealPlanTaskCreationFunc func(ctx context.Context, mealPlanID string, taskIDs []string) error
 
 	// UpdateAccountInstrumentOwnershipFunc mocks the UpdateAccountInstrumentOwnership method.
 	UpdateAccountInstrumentOwnershipFunc func(ctx context.Context, updated *mealplanning.AccountInstrumentOwnership) error
@@ -2297,6 +2303,15 @@ type RepositoryMock struct {
 			// ValidVesselID is the validVesselID argument value.
 			ValidVesselID string
 		}
+		// AttachMealPlanFinalizationSaga holds details about calls to the AttachMealPlanFinalizationSaga method.
+		AttachMealPlanFinalizationSaga []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// MealPlanID is the mealPlanID argument value.
+			MealPlanID string
+			// Start is the start argument value.
+			Start mealplanning.MealPlanFinalizationSagaStarter
+		}
 		// AttemptToFinalizeMealPlan holds details about calls to the AttemptToFinalizeMealPlan method.
 		AttemptToFinalizeMealPlan []struct {
 			// Ctx is the ctx argument value.
@@ -2397,10 +2412,12 @@ type RepositoryMock struct {
 			// Input is the input argument value.
 			Input *mealplanning.MealPlanTaskDatabaseCreationInput
 		}
-		// CreateMealPlanTasksForMealPlanOption holds details about calls to the CreateMealPlanTasksForMealPlanOption method.
-		CreateMealPlanTasksForMealPlanOption []struct {
+		// CreateMealPlanTasksForMealPlan holds details about calls to the CreateMealPlanTasksForMealPlan method.
+		CreateMealPlanTasksForMealPlan []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// MealPlanID is the mealPlanID argument value.
+			MealPlanID string
 			// Inputs is the inputs argument value.
 			Inputs []*mealplanning.MealPlanTaskDatabaseCreationInput
 		}
@@ -2643,15 +2660,12 @@ type RepositoryMock struct {
 			// Filter is the filter argument value.
 			Filter *filtering.QueryFilter
 		}
-		// GetFinalizedMealPlanIDsForTheNextWeek holds details about calls to the GetFinalizedMealPlanIDsForTheNextWeek method.
-		GetFinalizedMealPlanIDsForTheNextWeek []struct {
+		// GetFinalizedMealPlanOptionsForMealPlan holds details about calls to the GetFinalizedMealPlanOptionsForMealPlan method.
+		GetFinalizedMealPlanOptionsForMealPlan []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-		}
-		// GetFinalizedMealPlansWithUninitializedGroceryLists holds details about calls to the GetFinalizedMealPlansWithUninitializedGroceryLists method.
-		GetFinalizedMealPlansWithUninitializedGroceryLists []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
+			// MealPlanID is the mealPlanID argument value.
+			MealPlanID string
 		}
 		// GetIngredientMediaByIngredient holds details about calls to the GetIngredientMediaByIngredient method.
 		GetIngredientMediaByIngredient []struct {
@@ -2843,6 +2857,13 @@ type RepositoryMock struct {
 			MealPlanID string
 			// Filter is the filter argument value.
 			Filter *filtering.QueryFilter
+		}
+		// GetMealPlansAwaitingFinalizationSaga holds details about calls to the GetMealPlansAwaitingFinalizationSaga method.
+		GetMealPlansAwaitingFinalizationSaga []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Limit is the limit argument value.
+			Limit uint16
 		}
 		// GetMealPlansForAccount holds details about calls to the GetMealPlansForAccount method.
 		GetMealPlansForAccount []struct {
@@ -3172,11 +3193,6 @@ type RepositoryMock struct {
 			MealPlanOptionID string
 			// Filter is the filter argument value.
 			Filter *filtering.QueryFilter
-		}
-		// GetUnfinalizedMealPlansWithExpiredVotingPeriods holds details about calls to the GetUnfinalizedMealPlansWithExpiredVotingPeriods method.
-		GetUnfinalizedMealPlansWithExpiredVotingPeriods []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
 		}
 		// GetUploadedMediaWithIDs holds details about calls to the GetUploadedMediaWithIDs method.
 		GetUploadedMediaWithIDs []struct {
@@ -3627,26 +3643,23 @@ type RepositoryMock struct {
 			// Ids is the ids argument value.
 			Ids []string
 		}
+		// InitializeMealPlanGroceryList holds details about calls to the InitializeMealPlanGroceryList method.
+		InitializeMealPlanGroceryList []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// MealPlanID is the mealPlanID argument value.
+			MealPlanID string
+			// AccountID is the accountID argument value.
+			AccountID string
+			// Inputs is the inputs argument value.
+			Inputs []*mealplanning.MealPlanGroceryListItemDatabaseCreationInput
+		}
 		// MarkMealAsIndexed holds details about calls to the MarkMealAsIndexed method.
 		MarkMealAsIndexed []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// MealID is the mealID argument value.
 			MealID string
-		}
-		// MarkMealPlanAsGroceryListInitialized holds details about calls to the MarkMealPlanAsGroceryListInitialized method.
-		MarkMealPlanAsGroceryListInitialized []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// MealPlanID is the mealPlanID argument value.
-			MealPlanID string
-		}
-		// MarkMealPlanAsHavingTasksCreated holds details about calls to the MarkMealPlanAsHavingTasksCreated method.
-		MarkMealPlanAsHavingTasksCreated []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// MealPlanID is the mealPlanID argument value.
-			MealPlanID string
 		}
 		// MarkMealPlanTaskNotificationSent holds details about calls to the MarkMealPlanTaskNotificationSent method.
 		MarkMealPlanTaskNotificationSent []struct {
@@ -4043,6 +4056,24 @@ type RepositoryMock struct {
 			MealPlanEventIDA string
 			// MealPlanEventIDB is the mealPlanEventIDB argument value.
 			MealPlanEventIDB string
+		}
+		// UndoMealPlanGroceryListInitialization holds details about calls to the UndoMealPlanGroceryListInitialization method.
+		UndoMealPlanGroceryListInitialization []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// MealPlanID is the mealPlanID argument value.
+			MealPlanID string
+			// ItemIDs is the itemIDs argument value.
+			ItemIDs []string
+		}
+		// UndoMealPlanTaskCreation holds details about calls to the UndoMealPlanTaskCreation method.
+		UndoMealPlanTaskCreation []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// MealPlanID is the mealPlanID argument value.
+			MealPlanID string
+			// TaskIDs is the taskIDs argument value.
+			TaskIDs []string
 		}
 		// UpdateAccountInstrumentOwnership holds details about calls to the UpdateAccountInstrumentOwnership method.
 		UpdateAccountInstrumentOwnership []struct {
@@ -4483,6 +4514,7 @@ type RepositoryMock struct {
 	lockArchiveValidPreparationInstrument                    sync.RWMutex
 	lockArchiveValidPreparationVessel                        sync.RWMutex
 	lockArchiveValidVessel                                   sync.RWMutex
+	lockAttachMealPlanFinalizationSaga                       sync.RWMutex
 	lockAttemptToFinalizeMealPlan                            sync.RWMutex
 	lockChangeMealPlanTaskStatus                             sync.RWMutex
 	lockClearMealPlanTaskNotificationSentForEvent            sync.RWMutex
@@ -4497,7 +4529,7 @@ type RepositoryMock struct {
 	lockCreateMealPlanOptionVote                             sync.RWMutex
 	lockCreateMealPlanRecipeOptionSelection                  sync.RWMutex
 	lockCreateMealPlanTask                                   sync.RWMutex
-	lockCreateMealPlanTasksForMealPlanOption                 sync.RWMutex
+	lockCreateMealPlanTasksForMealPlan                       sync.RWMutex
 	lockCreateRecipe                                         sync.RWMutex
 	lockCreateRecipeList                                     sync.RWMutex
 	lockCreateRecipeListItem                                 sync.RWMutex
@@ -4529,8 +4561,7 @@ type RepositoryMock struct {
 	lockFindMealWithSameComponents                           sync.RWMutex
 	lockGetAccountInstrumentOwnership                        sync.RWMutex
 	lockGetAccountInstrumentOwnerships                       sync.RWMutex
-	lockGetFinalizedMealPlanIDsForTheNextWeek                sync.RWMutex
-	lockGetFinalizedMealPlansWithUninitializedGroceryLists   sync.RWMutex
+	lockGetFinalizedMealPlanOptionsForMealPlan               sync.RWMutex
 	lockGetIngredientMediaByIngredient                       sync.RWMutex
 	lockGetMeal                                              sync.RWMutex
 	lockGetMealIDsThatNeedSearchIndexing                     sync.RWMutex
@@ -4552,6 +4583,7 @@ type RepositoryMock struct {
 	lockGetMealPlanTaskIDsThatNeedNotification               sync.RWMutex
 	lockGetMealPlanTaskNotificationContext                   sync.RWMutex
 	lockGetMealPlanTasksForMealPlan                          sync.RWMutex
+	lockGetMealPlansAwaitingFinalizationSaga                 sync.RWMutex
 	lockGetMealPlansForAccount                               sync.RWMutex
 	lockGetMeals                                             sync.RWMutex
 	lockGetMealsCreatedByUser                                sync.RWMutex
@@ -4591,7 +4623,6 @@ type RepositoryMock struct {
 	lockGetRecipesCreatedByUser                              sync.RWMutex
 	lockGetRecipesWithIDs                                    sync.RWMutex
 	lockGetSelectionsForMealPlanOption                       sync.RWMutex
-	lockGetUnfinalizedMealPlansWithExpiredVotingPeriods      sync.RWMutex
 	lockGetUploadedMediaWithIDs                              sync.RWMutex
 	lockGetUserIngredientPreference                          sync.RWMutex
 	lockGetUserIngredientPreferences                         sync.RWMutex
@@ -4653,9 +4684,8 @@ type RepositoryMock struct {
 	lockGetValidVesselIDsThatNeedSearchIndexing              sync.RWMutex
 	lockGetValidVessels                                      sync.RWMutex
 	lockGetValidVesselsWithIDs                               sync.RWMutex
+	lockInitializeMealPlanGroceryList                        sync.RWMutex
 	lockMarkMealAsIndexed                                    sync.RWMutex
-	lockMarkMealPlanAsGroceryListInitialized                 sync.RWMutex
-	lockMarkMealPlanAsHavingTasksCreated                     sync.RWMutex
 	lockMarkMealPlanTaskNotificationSent                     sync.RWMutex
 	lockMarkRecipeAsIndexed                                  sync.RWMutex
 	lockMarkValidIngredientAsIndexed                         sync.RWMutex
@@ -4700,6 +4730,8 @@ type RepositoryMock struct {
 	lockSearchForValidPreparations                           sync.RWMutex
 	lockSearchForValidVessels                                sync.RWMutex
 	lockSwapMealPlanEvents                                   sync.RWMutex
+	lockUndoMealPlanGroceryListInitialization                sync.RWMutex
+	lockUndoMealPlanTaskCreation                             sync.RWMutex
 	lockUpdateAccountInstrumentOwnership                     sync.RWMutex
 	lockUpdateMealList                                       sync.RWMutex
 	lockUpdateMealListItem                                   sync.RWMutex
@@ -6475,6 +6507,46 @@ func (mock *RepositoryMock) ArchiveValidVesselCalls() []struct {
 	return calls
 }
 
+// AttachMealPlanFinalizationSaga calls AttachMealPlanFinalizationSagaFunc.
+func (mock *RepositoryMock) AttachMealPlanFinalizationSaga(ctx context.Context, mealPlanID string, start mealplanning.MealPlanFinalizationSagaStarter) (string, error) {
+	if mock.AttachMealPlanFinalizationSagaFunc == nil {
+		panic("RepositoryMock.AttachMealPlanFinalizationSagaFunc: method is nil but Repository.AttachMealPlanFinalizationSaga was just called")
+	}
+	callInfo := struct {
+		Ctx        context.Context
+		MealPlanID string
+		Start      mealplanning.MealPlanFinalizationSagaStarter
+	}{
+		Ctx:        ctx,
+		MealPlanID: mealPlanID,
+		Start:      start,
+	}
+	mock.lockAttachMealPlanFinalizationSaga.Lock()
+	mock.calls.AttachMealPlanFinalizationSaga = append(mock.calls.AttachMealPlanFinalizationSaga, callInfo)
+	mock.lockAttachMealPlanFinalizationSaga.Unlock()
+	return mock.AttachMealPlanFinalizationSagaFunc(ctx, mealPlanID, start)
+}
+
+// AttachMealPlanFinalizationSagaCalls gets all the calls that were made to AttachMealPlanFinalizationSaga.
+// Check the length with:
+//
+//	len(mockedRepository.AttachMealPlanFinalizationSagaCalls())
+func (mock *RepositoryMock) AttachMealPlanFinalizationSagaCalls() []struct {
+	Ctx        context.Context
+	MealPlanID string
+	Start      mealplanning.MealPlanFinalizationSagaStarter
+} {
+	var calls []struct {
+		Ctx        context.Context
+		MealPlanID string
+		Start      mealplanning.MealPlanFinalizationSagaStarter
+	}
+	mock.lockAttachMealPlanFinalizationSaga.RLock()
+	calls = mock.calls.AttachMealPlanFinalizationSaga
+	mock.lockAttachMealPlanFinalizationSaga.RUnlock()
+	return calls
+}
+
 // AttemptToFinalizeMealPlan calls AttemptToFinalizeMealPlanFunc.
 func (mock *RepositoryMock) AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID string, accountID string) (bool, error) {
 	if mock.AttemptToFinalizeMealPlanFunc == nil {
@@ -6983,39 +7055,43 @@ func (mock *RepositoryMock) CreateMealPlanTaskCalls() []struct {
 	return calls
 }
 
-// CreateMealPlanTasksForMealPlanOption calls CreateMealPlanTasksForMealPlanOptionFunc.
-func (mock *RepositoryMock) CreateMealPlanTasksForMealPlanOption(ctx context.Context, inputs []*mealplanning.MealPlanTaskDatabaseCreationInput) ([]*mealplanning.MealPlanTask, error) {
-	if mock.CreateMealPlanTasksForMealPlanOptionFunc == nil {
-		panic("RepositoryMock.CreateMealPlanTasksForMealPlanOptionFunc: method is nil but Repository.CreateMealPlanTasksForMealPlanOption was just called")
+// CreateMealPlanTasksForMealPlan calls CreateMealPlanTasksForMealPlanFunc.
+func (mock *RepositoryMock) CreateMealPlanTasksForMealPlan(ctx context.Context, mealPlanID string, inputs []*mealplanning.MealPlanTaskDatabaseCreationInput) ([]*mealplanning.MealPlanTask, error) {
+	if mock.CreateMealPlanTasksForMealPlanFunc == nil {
+		panic("RepositoryMock.CreateMealPlanTasksForMealPlanFunc: method is nil but Repository.CreateMealPlanTasksForMealPlan was just called")
 	}
 	callInfo := struct {
-		Ctx    context.Context
-		Inputs []*mealplanning.MealPlanTaskDatabaseCreationInput
+		Ctx        context.Context
+		MealPlanID string
+		Inputs     []*mealplanning.MealPlanTaskDatabaseCreationInput
 	}{
-		Ctx:    ctx,
-		Inputs: inputs,
+		Ctx:        ctx,
+		MealPlanID: mealPlanID,
+		Inputs:     inputs,
 	}
-	mock.lockCreateMealPlanTasksForMealPlanOption.Lock()
-	mock.calls.CreateMealPlanTasksForMealPlanOption = append(mock.calls.CreateMealPlanTasksForMealPlanOption, callInfo)
-	mock.lockCreateMealPlanTasksForMealPlanOption.Unlock()
-	return mock.CreateMealPlanTasksForMealPlanOptionFunc(ctx, inputs)
+	mock.lockCreateMealPlanTasksForMealPlan.Lock()
+	mock.calls.CreateMealPlanTasksForMealPlan = append(mock.calls.CreateMealPlanTasksForMealPlan, callInfo)
+	mock.lockCreateMealPlanTasksForMealPlan.Unlock()
+	return mock.CreateMealPlanTasksForMealPlanFunc(ctx, mealPlanID, inputs)
 }
 
-// CreateMealPlanTasksForMealPlanOptionCalls gets all the calls that were made to CreateMealPlanTasksForMealPlanOption.
+// CreateMealPlanTasksForMealPlanCalls gets all the calls that were made to CreateMealPlanTasksForMealPlan.
 // Check the length with:
 //
-//	len(mockedRepository.CreateMealPlanTasksForMealPlanOptionCalls())
-func (mock *RepositoryMock) CreateMealPlanTasksForMealPlanOptionCalls() []struct {
-	Ctx    context.Context
-	Inputs []*mealplanning.MealPlanTaskDatabaseCreationInput
+//	len(mockedRepository.CreateMealPlanTasksForMealPlanCalls())
+func (mock *RepositoryMock) CreateMealPlanTasksForMealPlanCalls() []struct {
+	Ctx        context.Context
+	MealPlanID string
+	Inputs     []*mealplanning.MealPlanTaskDatabaseCreationInput
 } {
 	var calls []struct {
-		Ctx    context.Context
-		Inputs []*mealplanning.MealPlanTaskDatabaseCreationInput
+		Ctx        context.Context
+		MealPlanID string
+		Inputs     []*mealplanning.MealPlanTaskDatabaseCreationInput
 	}
-	mock.lockCreateMealPlanTasksForMealPlanOption.RLock()
-	calls = mock.calls.CreateMealPlanTasksForMealPlanOption
-	mock.lockCreateMealPlanTasksForMealPlanOption.RUnlock()
+	mock.lockCreateMealPlanTasksForMealPlan.RLock()
+	calls = mock.calls.CreateMealPlanTasksForMealPlan
+	mock.lockCreateMealPlanTasksForMealPlan.RUnlock()
 	return calls
 }
 
@@ -8179,67 +8255,39 @@ func (mock *RepositoryMock) GetAccountInstrumentOwnershipsCalls() []struct {
 	return calls
 }
 
-// GetFinalizedMealPlanIDsForTheNextWeek calls GetFinalizedMealPlanIDsForTheNextWeekFunc.
-func (mock *RepositoryMock) GetFinalizedMealPlanIDsForTheNextWeek(ctx context.Context) ([]*mealplanning.FinalizedMealPlanDatabaseResult, error) {
-	if mock.GetFinalizedMealPlanIDsForTheNextWeekFunc == nil {
-		panic("RepositoryMock.GetFinalizedMealPlanIDsForTheNextWeekFunc: method is nil but Repository.GetFinalizedMealPlanIDsForTheNextWeek was just called")
+// GetFinalizedMealPlanOptionsForMealPlan calls GetFinalizedMealPlanOptionsForMealPlanFunc.
+func (mock *RepositoryMock) GetFinalizedMealPlanOptionsForMealPlan(ctx context.Context, mealPlanID string) ([]*mealplanning.FinalizedMealPlanDatabaseResult, error) {
+	if mock.GetFinalizedMealPlanOptionsForMealPlanFunc == nil {
+		panic("RepositoryMock.GetFinalizedMealPlanOptionsForMealPlanFunc: method is nil but Repository.GetFinalizedMealPlanOptionsForMealPlan was just called")
 	}
 	callInfo := struct {
-		Ctx context.Context
+		Ctx        context.Context
+		MealPlanID string
 	}{
-		Ctx: ctx,
+		Ctx:        ctx,
+		MealPlanID: mealPlanID,
 	}
-	mock.lockGetFinalizedMealPlanIDsForTheNextWeek.Lock()
-	mock.calls.GetFinalizedMealPlanIDsForTheNextWeek = append(mock.calls.GetFinalizedMealPlanIDsForTheNextWeek, callInfo)
-	mock.lockGetFinalizedMealPlanIDsForTheNextWeek.Unlock()
-	return mock.GetFinalizedMealPlanIDsForTheNextWeekFunc(ctx)
+	mock.lockGetFinalizedMealPlanOptionsForMealPlan.Lock()
+	mock.calls.GetFinalizedMealPlanOptionsForMealPlan = append(mock.calls.GetFinalizedMealPlanOptionsForMealPlan, callInfo)
+	mock.lockGetFinalizedMealPlanOptionsForMealPlan.Unlock()
+	return mock.GetFinalizedMealPlanOptionsForMealPlanFunc(ctx, mealPlanID)
 }
 
-// GetFinalizedMealPlanIDsForTheNextWeekCalls gets all the calls that were made to GetFinalizedMealPlanIDsForTheNextWeek.
+// GetFinalizedMealPlanOptionsForMealPlanCalls gets all the calls that were made to GetFinalizedMealPlanOptionsForMealPlan.
 // Check the length with:
 //
-//	len(mockedRepository.GetFinalizedMealPlanIDsForTheNextWeekCalls())
-func (mock *RepositoryMock) GetFinalizedMealPlanIDsForTheNextWeekCalls() []struct {
-	Ctx context.Context
+//	len(mockedRepository.GetFinalizedMealPlanOptionsForMealPlanCalls())
+func (mock *RepositoryMock) GetFinalizedMealPlanOptionsForMealPlanCalls() []struct {
+	Ctx        context.Context
+	MealPlanID string
 } {
 	var calls []struct {
-		Ctx context.Context
+		Ctx        context.Context
+		MealPlanID string
 	}
-	mock.lockGetFinalizedMealPlanIDsForTheNextWeek.RLock()
-	calls = mock.calls.GetFinalizedMealPlanIDsForTheNextWeek
-	mock.lockGetFinalizedMealPlanIDsForTheNextWeek.RUnlock()
-	return calls
-}
-
-// GetFinalizedMealPlansWithUninitializedGroceryLists calls GetFinalizedMealPlansWithUninitializedGroceryListsFunc.
-func (mock *RepositoryMock) GetFinalizedMealPlansWithUninitializedGroceryLists(ctx context.Context) ([]*mealplanning.MealPlan, error) {
-	if mock.GetFinalizedMealPlansWithUninitializedGroceryListsFunc == nil {
-		panic("RepositoryMock.GetFinalizedMealPlansWithUninitializedGroceryListsFunc: method is nil but Repository.GetFinalizedMealPlansWithUninitializedGroceryLists was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
-	mock.lockGetFinalizedMealPlansWithUninitializedGroceryLists.Lock()
-	mock.calls.GetFinalizedMealPlansWithUninitializedGroceryLists = append(mock.calls.GetFinalizedMealPlansWithUninitializedGroceryLists, callInfo)
-	mock.lockGetFinalizedMealPlansWithUninitializedGroceryLists.Unlock()
-	return mock.GetFinalizedMealPlansWithUninitializedGroceryListsFunc(ctx)
-}
-
-// GetFinalizedMealPlansWithUninitializedGroceryListsCalls gets all the calls that were made to GetFinalizedMealPlansWithUninitializedGroceryLists.
-// Check the length with:
-//
-//	len(mockedRepository.GetFinalizedMealPlansWithUninitializedGroceryListsCalls())
-func (mock *RepositoryMock) GetFinalizedMealPlansWithUninitializedGroceryListsCalls() []struct {
-	Ctx context.Context
-} {
-	var calls []struct {
-		Ctx context.Context
-	}
-	mock.lockGetFinalizedMealPlansWithUninitializedGroceryLists.RLock()
-	calls = mock.calls.GetFinalizedMealPlansWithUninitializedGroceryLists
-	mock.lockGetFinalizedMealPlansWithUninitializedGroceryLists.RUnlock()
+	mock.lockGetFinalizedMealPlanOptionsForMealPlan.RLock()
+	calls = mock.calls.GetFinalizedMealPlanOptionsForMealPlan
+	mock.lockGetFinalizedMealPlanOptionsForMealPlan.RUnlock()
 	return calls
 }
 
@@ -9084,6 +9132,42 @@ func (mock *RepositoryMock) GetMealPlanTasksForMealPlanCalls() []struct {
 	mock.lockGetMealPlanTasksForMealPlan.RLock()
 	calls = mock.calls.GetMealPlanTasksForMealPlan
 	mock.lockGetMealPlanTasksForMealPlan.RUnlock()
+	return calls
+}
+
+// GetMealPlansAwaitingFinalizationSaga calls GetMealPlansAwaitingFinalizationSagaFunc.
+func (mock *RepositoryMock) GetMealPlansAwaitingFinalizationSaga(ctx context.Context, limit uint16) ([]*mealplanning.MealPlanFinalizationCandidate, error) {
+	if mock.GetMealPlansAwaitingFinalizationSagaFunc == nil {
+		panic("RepositoryMock.GetMealPlansAwaitingFinalizationSagaFunc: method is nil but Repository.GetMealPlansAwaitingFinalizationSaga was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		Limit uint16
+	}{
+		Ctx:   ctx,
+		Limit: limit,
+	}
+	mock.lockGetMealPlansAwaitingFinalizationSaga.Lock()
+	mock.calls.GetMealPlansAwaitingFinalizationSaga = append(mock.calls.GetMealPlansAwaitingFinalizationSaga, callInfo)
+	mock.lockGetMealPlansAwaitingFinalizationSaga.Unlock()
+	return mock.GetMealPlansAwaitingFinalizationSagaFunc(ctx, limit)
+}
+
+// GetMealPlansAwaitingFinalizationSagaCalls gets all the calls that were made to GetMealPlansAwaitingFinalizationSaga.
+// Check the length with:
+//
+//	len(mockedRepository.GetMealPlansAwaitingFinalizationSagaCalls())
+func (mock *RepositoryMock) GetMealPlansAwaitingFinalizationSagaCalls() []struct {
+	Ctx   context.Context
+	Limit uint16
+} {
+	var calls []struct {
+		Ctx   context.Context
+		Limit uint16
+	}
+	mock.lockGetMealPlansAwaitingFinalizationSaga.RLock()
+	calls = mock.calls.GetMealPlansAwaitingFinalizationSaga
+	mock.lockGetMealPlansAwaitingFinalizationSaga.RUnlock()
 	return calls
 }
 
@@ -10600,38 +10684,6 @@ func (mock *RepositoryMock) GetSelectionsForMealPlanOptionCalls() []struct {
 	mock.lockGetSelectionsForMealPlanOption.RLock()
 	calls = mock.calls.GetSelectionsForMealPlanOption
 	mock.lockGetSelectionsForMealPlanOption.RUnlock()
-	return calls
-}
-
-// GetUnfinalizedMealPlansWithExpiredVotingPeriods calls GetUnfinalizedMealPlansWithExpiredVotingPeriodsFunc.
-func (mock *RepositoryMock) GetUnfinalizedMealPlansWithExpiredVotingPeriods(ctx context.Context) ([]*mealplanning.MealPlan, error) {
-	if mock.GetUnfinalizedMealPlansWithExpiredVotingPeriodsFunc == nil {
-		panic("RepositoryMock.GetUnfinalizedMealPlansWithExpiredVotingPeriodsFunc: method is nil but Repository.GetUnfinalizedMealPlansWithExpiredVotingPeriods was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
-	mock.lockGetUnfinalizedMealPlansWithExpiredVotingPeriods.Lock()
-	mock.calls.GetUnfinalizedMealPlansWithExpiredVotingPeriods = append(mock.calls.GetUnfinalizedMealPlansWithExpiredVotingPeriods, callInfo)
-	mock.lockGetUnfinalizedMealPlansWithExpiredVotingPeriods.Unlock()
-	return mock.GetUnfinalizedMealPlansWithExpiredVotingPeriodsFunc(ctx)
-}
-
-// GetUnfinalizedMealPlansWithExpiredVotingPeriodsCalls gets all the calls that were made to GetUnfinalizedMealPlansWithExpiredVotingPeriods.
-// Check the length with:
-//
-//	len(mockedRepository.GetUnfinalizedMealPlansWithExpiredVotingPeriodsCalls())
-func (mock *RepositoryMock) GetUnfinalizedMealPlansWithExpiredVotingPeriodsCalls() []struct {
-	Ctx context.Context
-} {
-	var calls []struct {
-		Ctx context.Context
-	}
-	mock.lockGetUnfinalizedMealPlansWithExpiredVotingPeriods.RLock()
-	calls = mock.calls.GetUnfinalizedMealPlansWithExpiredVotingPeriods
-	mock.lockGetUnfinalizedMealPlansWithExpiredVotingPeriods.RUnlock()
 	return calls
 }
 
@@ -12875,6 +12927,50 @@ func (mock *RepositoryMock) GetValidVesselsWithIDsCalls() []struct {
 	return calls
 }
 
+// InitializeMealPlanGroceryList calls InitializeMealPlanGroceryListFunc.
+func (mock *RepositoryMock) InitializeMealPlanGroceryList(ctx context.Context, mealPlanID string, accountID string, inputs []*mealplanning.MealPlanGroceryListItemDatabaseCreationInput) ([]*mealplanning.MealPlanGroceryListItem, error) {
+	if mock.InitializeMealPlanGroceryListFunc == nil {
+		panic("RepositoryMock.InitializeMealPlanGroceryListFunc: method is nil but Repository.InitializeMealPlanGroceryList was just called")
+	}
+	callInfo := struct {
+		Ctx        context.Context
+		MealPlanID string
+		AccountID  string
+		Inputs     []*mealplanning.MealPlanGroceryListItemDatabaseCreationInput
+	}{
+		Ctx:        ctx,
+		MealPlanID: mealPlanID,
+		AccountID:  accountID,
+		Inputs:     inputs,
+	}
+	mock.lockInitializeMealPlanGroceryList.Lock()
+	mock.calls.InitializeMealPlanGroceryList = append(mock.calls.InitializeMealPlanGroceryList, callInfo)
+	mock.lockInitializeMealPlanGroceryList.Unlock()
+	return mock.InitializeMealPlanGroceryListFunc(ctx, mealPlanID, accountID, inputs)
+}
+
+// InitializeMealPlanGroceryListCalls gets all the calls that were made to InitializeMealPlanGroceryList.
+// Check the length with:
+//
+//	len(mockedRepository.InitializeMealPlanGroceryListCalls())
+func (mock *RepositoryMock) InitializeMealPlanGroceryListCalls() []struct {
+	Ctx        context.Context
+	MealPlanID string
+	AccountID  string
+	Inputs     []*mealplanning.MealPlanGroceryListItemDatabaseCreationInput
+} {
+	var calls []struct {
+		Ctx        context.Context
+		MealPlanID string
+		AccountID  string
+		Inputs     []*mealplanning.MealPlanGroceryListItemDatabaseCreationInput
+	}
+	mock.lockInitializeMealPlanGroceryList.RLock()
+	calls = mock.calls.InitializeMealPlanGroceryList
+	mock.lockInitializeMealPlanGroceryList.RUnlock()
+	return calls
+}
+
 // MarkMealAsIndexed calls MarkMealAsIndexedFunc.
 func (mock *RepositoryMock) MarkMealAsIndexed(ctx context.Context, mealID string) error {
 	if mock.MarkMealAsIndexedFunc == nil {
@@ -12908,78 +13004,6 @@ func (mock *RepositoryMock) MarkMealAsIndexedCalls() []struct {
 	mock.lockMarkMealAsIndexed.RLock()
 	calls = mock.calls.MarkMealAsIndexed
 	mock.lockMarkMealAsIndexed.RUnlock()
-	return calls
-}
-
-// MarkMealPlanAsGroceryListInitialized calls MarkMealPlanAsGroceryListInitializedFunc.
-func (mock *RepositoryMock) MarkMealPlanAsGroceryListInitialized(ctx context.Context, mealPlanID string) error {
-	if mock.MarkMealPlanAsGroceryListInitializedFunc == nil {
-		panic("RepositoryMock.MarkMealPlanAsGroceryListInitializedFunc: method is nil but Repository.MarkMealPlanAsGroceryListInitialized was just called")
-	}
-	callInfo := struct {
-		Ctx        context.Context
-		MealPlanID string
-	}{
-		Ctx:        ctx,
-		MealPlanID: mealPlanID,
-	}
-	mock.lockMarkMealPlanAsGroceryListInitialized.Lock()
-	mock.calls.MarkMealPlanAsGroceryListInitialized = append(mock.calls.MarkMealPlanAsGroceryListInitialized, callInfo)
-	mock.lockMarkMealPlanAsGroceryListInitialized.Unlock()
-	return mock.MarkMealPlanAsGroceryListInitializedFunc(ctx, mealPlanID)
-}
-
-// MarkMealPlanAsGroceryListInitializedCalls gets all the calls that were made to MarkMealPlanAsGroceryListInitialized.
-// Check the length with:
-//
-//	len(mockedRepository.MarkMealPlanAsGroceryListInitializedCalls())
-func (mock *RepositoryMock) MarkMealPlanAsGroceryListInitializedCalls() []struct {
-	Ctx        context.Context
-	MealPlanID string
-} {
-	var calls []struct {
-		Ctx        context.Context
-		MealPlanID string
-	}
-	mock.lockMarkMealPlanAsGroceryListInitialized.RLock()
-	calls = mock.calls.MarkMealPlanAsGroceryListInitialized
-	mock.lockMarkMealPlanAsGroceryListInitialized.RUnlock()
-	return calls
-}
-
-// MarkMealPlanAsHavingTasksCreated calls MarkMealPlanAsHavingTasksCreatedFunc.
-func (mock *RepositoryMock) MarkMealPlanAsHavingTasksCreated(ctx context.Context, mealPlanID string) error {
-	if mock.MarkMealPlanAsHavingTasksCreatedFunc == nil {
-		panic("RepositoryMock.MarkMealPlanAsHavingTasksCreatedFunc: method is nil but Repository.MarkMealPlanAsHavingTasksCreated was just called")
-	}
-	callInfo := struct {
-		Ctx        context.Context
-		MealPlanID string
-	}{
-		Ctx:        ctx,
-		MealPlanID: mealPlanID,
-	}
-	mock.lockMarkMealPlanAsHavingTasksCreated.Lock()
-	mock.calls.MarkMealPlanAsHavingTasksCreated = append(mock.calls.MarkMealPlanAsHavingTasksCreated, callInfo)
-	mock.lockMarkMealPlanAsHavingTasksCreated.Unlock()
-	return mock.MarkMealPlanAsHavingTasksCreatedFunc(ctx, mealPlanID)
-}
-
-// MarkMealPlanAsHavingTasksCreatedCalls gets all the calls that were made to MarkMealPlanAsHavingTasksCreated.
-// Check the length with:
-//
-//	len(mockedRepository.MarkMealPlanAsHavingTasksCreatedCalls())
-func (mock *RepositoryMock) MarkMealPlanAsHavingTasksCreatedCalls() []struct {
-	Ctx        context.Context
-	MealPlanID string
-} {
-	var calls []struct {
-		Ctx        context.Context
-		MealPlanID string
-	}
-	mock.lockMarkMealPlanAsHavingTasksCreated.RLock()
-	calls = mock.calls.MarkMealPlanAsHavingTasksCreated
-	mock.lockMarkMealPlanAsHavingTasksCreated.RUnlock()
 	return calls
 }
 
@@ -14740,6 +14764,86 @@ func (mock *RepositoryMock) SwapMealPlanEventsCalls() []struct {
 	mock.lockSwapMealPlanEvents.RLock()
 	calls = mock.calls.SwapMealPlanEvents
 	mock.lockSwapMealPlanEvents.RUnlock()
+	return calls
+}
+
+// UndoMealPlanGroceryListInitialization calls UndoMealPlanGroceryListInitializationFunc.
+func (mock *RepositoryMock) UndoMealPlanGroceryListInitialization(ctx context.Context, mealPlanID string, itemIDs []string) error {
+	if mock.UndoMealPlanGroceryListInitializationFunc == nil {
+		panic("RepositoryMock.UndoMealPlanGroceryListInitializationFunc: method is nil but Repository.UndoMealPlanGroceryListInitialization was just called")
+	}
+	callInfo := struct {
+		Ctx        context.Context
+		MealPlanID string
+		ItemIDs    []string
+	}{
+		Ctx:        ctx,
+		MealPlanID: mealPlanID,
+		ItemIDs:    itemIDs,
+	}
+	mock.lockUndoMealPlanGroceryListInitialization.Lock()
+	mock.calls.UndoMealPlanGroceryListInitialization = append(mock.calls.UndoMealPlanGroceryListInitialization, callInfo)
+	mock.lockUndoMealPlanGroceryListInitialization.Unlock()
+	return mock.UndoMealPlanGroceryListInitializationFunc(ctx, mealPlanID, itemIDs)
+}
+
+// UndoMealPlanGroceryListInitializationCalls gets all the calls that were made to UndoMealPlanGroceryListInitialization.
+// Check the length with:
+//
+//	len(mockedRepository.UndoMealPlanGroceryListInitializationCalls())
+func (mock *RepositoryMock) UndoMealPlanGroceryListInitializationCalls() []struct {
+	Ctx        context.Context
+	MealPlanID string
+	ItemIDs    []string
+} {
+	var calls []struct {
+		Ctx        context.Context
+		MealPlanID string
+		ItemIDs    []string
+	}
+	mock.lockUndoMealPlanGroceryListInitialization.RLock()
+	calls = mock.calls.UndoMealPlanGroceryListInitialization
+	mock.lockUndoMealPlanGroceryListInitialization.RUnlock()
+	return calls
+}
+
+// UndoMealPlanTaskCreation calls UndoMealPlanTaskCreationFunc.
+func (mock *RepositoryMock) UndoMealPlanTaskCreation(ctx context.Context, mealPlanID string, taskIDs []string) error {
+	if mock.UndoMealPlanTaskCreationFunc == nil {
+		panic("RepositoryMock.UndoMealPlanTaskCreationFunc: method is nil but Repository.UndoMealPlanTaskCreation was just called")
+	}
+	callInfo := struct {
+		Ctx        context.Context
+		MealPlanID string
+		TaskIDs    []string
+	}{
+		Ctx:        ctx,
+		MealPlanID: mealPlanID,
+		TaskIDs:    taskIDs,
+	}
+	mock.lockUndoMealPlanTaskCreation.Lock()
+	mock.calls.UndoMealPlanTaskCreation = append(mock.calls.UndoMealPlanTaskCreation, callInfo)
+	mock.lockUndoMealPlanTaskCreation.Unlock()
+	return mock.UndoMealPlanTaskCreationFunc(ctx, mealPlanID, taskIDs)
+}
+
+// UndoMealPlanTaskCreationCalls gets all the calls that were made to UndoMealPlanTaskCreation.
+// Check the length with:
+//
+//	len(mockedRepository.UndoMealPlanTaskCreationCalls())
+func (mock *RepositoryMock) UndoMealPlanTaskCreationCalls() []struct {
+	Ctx        context.Context
+	MealPlanID string
+	TaskIDs    []string
+} {
+	var calls []struct {
+		Ctx        context.Context
+		MealPlanID string
+		TaskIDs    []string
+	}
+	mock.lockUndoMealPlanTaskCreation.RLock()
+	calls = mock.calls.UndoMealPlanTaskCreation
+	mock.lockUndoMealPlanTaskCreation.RUnlock()
 	return calls
 }
 

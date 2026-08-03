@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
+
 	"github.com/cristalhq/builq"
 )
 
@@ -107,6 +109,54 @@ WHERE %s.%s IS NULL
 					userDataDisclosuresTableName, belongsToUserColumn,
 					buildFilterConditions(userDataDisclosuresTableName, false, false),
 					buildCursorLimitClause(userDataDisclosuresTableName),
+				)),
+			},
+			{
+				Annotation: QueryAnnotation{
+					Name: "GetExpiredUserDataDisclosures",
+					Type: ManyType,
+				},
+				// Every disclosure past its expiry that has not already been reaped, oldest
+				// first. Not filtered to 'completed': a disclosure that never produced a
+				// report still has an expiry that ought to mean something, and one that did
+				// produce a report has a report_id for the reaper to destroy. Excluding
+				// 'expired' is what makes the sweep converge — a reaped row stops coming back.
+				//
+				// The limit is fixed rather than a parameter because sqlc cannot infer a type
+				// for a bare LIMIT argument and types it as interface{}. The reaper drains a
+				// backlog by taking more than one batch per run, not by asking for a bigger one.
+				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+	%s
+FROM %s
+WHERE %s.%s IS NULL
+	AND %s.%s != 'expired'
+	AND %s.%s <= %s
+ORDER BY %s.%s
+LIMIT %d;`,
+					strings.Join(fullSelectColumns, ",\n\t"),
+					userDataDisclosuresTableName,
+					userDataDisclosuresTableName, archivedAtColumn,
+					userDataDisclosuresTableName, statusColumn,
+					userDataDisclosuresTableName, expiresAtColumn, currentTimeExpression,
+					userDataDisclosuresTableName, expiresAtColumn,
+					dataprivacy.ExpiredUserDataDisclosureBatchSize,
+				)),
+			},
+			{
+				Annotation: QueryAnnotation{
+					Name: "MarkUserDataDisclosureExpired",
+					Type: ExecType,
+				},
+				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
+	%s = 'expired',
+	%s = %s
+WHERE %s.%s = sqlc.arg(%s)
+	AND %s.%s IS NULL;`,
+					userDataDisclosuresTableName,
+					statusColumn,
+					lastUpdatedAtColumn, currentTimeExpression,
+					userDataDisclosuresTableName, idColumn, idColumn,
+					userDataDisclosuresTableName, archivedAtColumn,
 				)),
 			},
 			{

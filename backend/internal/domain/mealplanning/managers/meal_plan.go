@@ -66,7 +66,7 @@ func (m *mealPlanningManager) CreateMealPlan(ctx context.Context, ownerID, creat
 	}
 
 	if created.Status == string(types.MealPlanStatusFinalized) {
-		m.runPostFinalizationWorkers(ctx, logger, span)
+		m.startFinalizationPipeline(ctx, created.ID, ownerID, logger, span)
 	}
 
 	return created, nil
@@ -157,9 +157,9 @@ func (m *mealPlanningManager) FinalizeMealPlan(ctx context.Context, mealPlanID, 
 		return false, observability.PrepareAndLogError(err, logger, span, "finalizing meal plan")
 	}
 
-	// only run downstream workers when the plan actually finalized.
+	// only enter the plan into the pipeline when it actually finalized.
 	if finalized {
-		m.runPostFinalizationWorkers(ctx, logger, span)
+		m.startFinalizationPipeline(ctx, mealPlanID, ownerID, logger, span)
 	}
 
 	return finalized, nil

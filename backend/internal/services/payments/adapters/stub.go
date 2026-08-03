@@ -1,7 +1,7 @@
 package adapters
 
 import (
-	"context"
+	"net/http"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
@@ -22,15 +22,10 @@ func NewStubPaymentProcessor(logger logging.Logger) *StubPaymentProcessor {
 	}
 }
 
-// VerifyWebhookSignature always returns true for the stub (accepts all webhooks in dev).
-func (s *StubPaymentProcessor) VerifyWebhookSignature(_ context.Context, _ []byte, _, _ string) bool {
-	s.logger.Info("StubPaymentProcessor VerifyWebhookSignature invoked")
-	return true
-}
-
-// ParseWebhookEvent returns placeholder values. Real adapters would parse provider-specific payloads.
-func (s *StubPaymentProcessor) ParseWebhookEvent(_ context.Context, _ []byte) (*payments.ParsedWebhookEvent, error) {
-	s.logger.Info("StubPaymentProcessor ParseWebhookEvent invoked")
+// HandleWebhook accepts any request and returns placeholder values. Real adapters verify
+// signatures and parse provider-specific payloads.
+func (s *StubPaymentProcessor) HandleWebhook(_ *http.Request) (*payments.ParsedWebhookEvent, error) {
+	s.logger.Info("StubPaymentProcessor HandleWebhook invoked")
 	return &payments.ParsedWebhookEvent{
 		EventType:      "subscription.updated",
 		AccountID:      "",

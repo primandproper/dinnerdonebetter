@@ -4,11 +4,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"
 	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
 	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v9/saga"
 	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
 	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
 
@@ -37,6 +39,12 @@ func RegisterConfigs(i do.Injector) {
 	})
 	do.Provide[*textsearchcfg.Config](i, func(i do.Injector) (*textsearchcfg.Config, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Search, nil
+	})
+	do.Provide[*dataprivacycfg.Config](i, func(i do.Injector) (*dataprivacycfg.Config, error) {
+		return &do.MustInvoke[*config.SchedulerConfig](i).DataPrivacy, nil
+	})
+	do.Provide[*saga.WorkerConfig](i, func(i do.Injector) (*saga.WorkerConfig, error) {
+		return &do.MustInvoke[*config.SchedulerConfig](i).Sagas, nil
 	})
 	do.Provide[*config.ScheduledJobsConfig](i, func(i do.Injector) (*config.ScheduledJobsConfig, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Jobs, nil

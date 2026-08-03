@@ -85,6 +85,20 @@ func (m *dataPrivacyManager) GetUserDataDisclosuresForUser(ctx context.Context, 
 	return m.repo.GetUserDataDisclosuresForUser(ctx, userID, filter)
 }
 
+func (m *dataPrivacyManager) GetExpiredUserDataDisclosures(ctx context.Context) ([]*dataprivacy.UserDataDisclosure, error) {
+	ctx, span := m.tracer.StartSpan(ctx)
+	defer span.End()
+
+	return m.repo.GetExpiredUserDataDisclosures(ctx)
+}
+
+func (m *dataPrivacyManager) MarkUserDataDisclosureExpired(ctx context.Context, disclosureID string) error {
+	ctx, span := m.tracer.StartSpan(ctx)
+	defer span.End()
+
+	return m.repo.MarkUserDataDisclosureExpired(ctx, disclosureID)
+}
+
 func (m *dataPrivacyManager) MarkUserDataDisclosureCompleted(ctx context.Context, disclosureID, reportID string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()

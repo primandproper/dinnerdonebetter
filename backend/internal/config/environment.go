@@ -17,6 +17,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/outbox"
 	retrycfg "github.com/primandproper/platform-go/v9/retry/config"
+	"github.com/primandproper/platform-go/v9/saga"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -44,7 +45,12 @@ type EnvironmentConfigSet struct {
 func defaultScheduledJobsConfig() ScheduledJobsConfig {
 	return ScheduledJobsConfig{
 		Scheduler: jobs.SchedulerConfig{
-			LockKeyPrefix:   "dinner_done_better.scheduler.",
+			LockKeyPrefix: "dinner_done_better.scheduler.",
+			// Named rather than left empty. The default is UTC either way, but a cron
+			// expression's zone is the one thing about it that cannot be read off the
+			// expression, and a zone that arrives by omission is a zone nobody chose.
+			// A job that wants a calendar says so with its own CRON_TZ= prefix.
+			Timezone:        "UTC",
 			DefaultLeaseTTL: 2 * time.Minute,
 			DefaultTimeout:  time.Minute,
 		},
@@ -56,23 +62,68 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 				ConnWaitTimeout: 5 * time.Second,
 			},
 		},
+		// A bulk re-index competing with daytime traffic for the same tables, so it is
+		// confined to the small hours — 06:00-11:59 UTC is roughly midnight to 6am US
+		// Central, an hour later in summer. In UTC and not Central because the window is
+		// about load rather than about people, and a fixed instant has no daylight saving
+		// day where it runs twice or not at all.
+		//
+		// A window rather than a single nightly fire, and at the same ten-minute spacing it
+		// ran at around the clock, because IndexScheduler.IndexTypes sweeps one randomly
+		// chosen index type per run rather than all of them. Nine types are registered, so
+		// one fire a night would sweep a given type every nine days on average; thirty-six
+		// fires a night covers all nine with room to spare. The interval this replaced was
+		// really a draw rate dressed up as a frequency.
 		SearchDataIndexScheduler: ScheduledJobConfig{
 			Enabled:  true,
-			Interval: 10 * time.Minute,
-			Timeout:  5 * time.Minute,
-			LeaseTTL: 10 * time.Minute,
+			Schedule: "*/10 6-11 * * *",
+			// Fires once at startup as well, because an overnight window is a long time
+			// for a freshly deployed environment to have no sweep at all, and because it
+			// is otherwise the whole working day before a developer running localdev sees
+			// this job do anything. A sweep publishes index requests for rows that need
+			// indexing, so an extra one is redundant rather than harmful.
+			RunOnStart: true,
+			Timeout:    5 * time.Minute,
+			LeaseTTL:   10 * time.Minute,
 		},
+		// Push notifications, so the hours are the point: this fires on the hour from 08:00
+		// to 21:00 US Central and never overnight. It carries its own zone because it is the
+		// one job here whose correctness is a fact about people rather than about load, and
+		// because the scheduler's own default is deliberately UTC.
+		//
+		// Hourly rather than once in the morning: the query is "every prep task not yet
+		// notified, for an event that has not started", and each task notifies exactly once.
+		// A task created after the day's last fire waits for the next one, and is dropped
+		// entirely if its event starts first — so the gap between fires bounds how much
+		// short notice the app can give.
+		//
+		// Per-user timezones are the real answer here and a much larger conversation; one
+		// zone's waking hours are strictly better than every two minutes in the meantime.
 		MobileNotificationScheduler: ScheduledJobConfig{
 			Enabled:  true,
-			Interval: 2 * time.Minute,
-			Timeout:  time.Minute,
-			LeaseTTL: 3 * time.Minute,
+			Schedule: "CRON_TZ=America/Chicago 0 8-21 * * *",
+			// An hour's worth of accumulated tasks per run instead of two minutes'
+			// worth, and a few queries per task, so the old one-minute bound is no
+			// longer generous.
+			Timeout:  5 * time.Minute,
+			LeaseTTL: 10 * time.Minute,
 		},
 		QueueTest: ScheduledJobConfig{
 			Enabled:  true,
 			Interval: 15 * time.Minute,
 			Timeout:  time.Minute,
 			LeaseTTL: 2 * time.Minute,
+		},
+		DisclosureArtifactReaper: ScheduledJobConfig{
+			Enabled: true,
+			// Hourly is far finer than the seven-day disclosure TTL needs, and the run costs
+			// one indexed query when there is nothing to do. RunOnStart is what drains the
+			// artifacts that accumulated before anything reaped them, on the first deploy that
+			// carries this job.
+			Interval:   time.Hour,
+			Timeout:    5 * time.Minute,
+			LeaseTTL:   10 * time.Minute,
+			RunOnStart: true,
 		},
 		// Domain: mealplanning
 		MealPlanning: defaultMealPlanningScheduledJobsConfig(),
@@ -104,6 +155,47 @@ func defaultOutboxRelayConfig() outbox.RelayConfig {
 		Retention:     7 * 24 * time.Hour,
 		ReapInterval:  time.Hour,
 		ReapBatchSize: 1000,
+	}
+}
+
+// defaultSagaWorkerConfig returns the settings for the loop that advances saga instances.
+//
+// The package's own defaults, spelled out rather than left to EnsureDefaults, because these are
+// rendered into the environment config files and a knob that is blank in the file and non-blank
+// in the binary is a knob nobody can reason about from the file.
+//
+// The one departure is StepTimeout. A meal plan finalization step reads a plan with all of its
+// events, options, and votes, then generates prep tasks or a whole grocery list from it, and the
+// package's thirty seconds is sized for a third-party call rather than for that. The three
+// timeouts move together: a pass must fit at least one step, and both the lease and the lock
+// must outlast a pass plus the step it may still have running.
+func defaultSagaWorkerConfig() saga.WorkerConfig {
+	return saga.WorkerConfig{
+		LockKeyPrefix:        saga.DefaultLockKeyPrefix,
+		IdempotencyKeyPrefix: saga.DefaultIdempotencyKeyPrefix,
+		Backoff: retrycfg.Config{
+			MaxAttempts:  3,
+			InitialDelay: time.Second,
+			MaxDelay:     time.Minute,
+			Multiplier:   2,
+			UseJitter:    true,
+		},
+		// Deliberately more attempts than the forward budget. Giving up going forward costs a
+		// compensation; giving up on a compensation costs somebody's evening.
+		CompensationBackoff: retrycfg.Config{
+			MaxAttempts:  saga.DefaultCompensationAttempts,
+			InitialDelay: time.Second,
+			MaxDelay:     time.Minute,
+			Multiplier:   2,
+			UseJitter:    true,
+		},
+		PollInterval:   time.Second,
+		StepTimeout:    2 * time.Minute,
+		AdvanceTimeout: 5 * time.Minute,
+		LeaseDuration:  10 * time.Minute,
+		LockTTL:        10 * time.Minute,
+		BatchSize:      saga.DefaultBatchSize,
+		Concurrency:    saga.DefaultConcurrency,
 	}
 }
 
@@ -268,8 +360,10 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 		Search:        s.RootConfig.TextSearch,
 		Database:      databaseConfigForService(&s.RootConfig.Database, s.ServiceDatabaseUsers, schedulerConfigObservabilityServiceName),
 		Queues:        s.RootConfig.Queues,
+		DataPrivacy:   s.RootConfig.Services.DataPrivacy,
 		Jobs:          defaultScheduledJobsConfig(),
 		Outbox:        defaultOutboxRelayConfig(),
+		Sagas:         defaultSagaWorkerConfig(),
 		// The same webhook configuration the API service writes with, so the worker
 		// claims from the tables the dispatch rows are written into.
 		Webhooks: s.RootConfig.Webhooks,
@@ -280,7 +374,7 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 	schedulerConfig.Observability.Profiling.ServiceName = schedulerConfigObservabilityServiceName
 
 	amhConfig := &AsyncMessageHandlerConfig{
-		Storage:           s.RootConfig.Services.DataPrivacy.Uploads.Storage,
+		DataPrivacy:       s.RootConfig.Services.DataPrivacy,
 		Queues:            s.RootConfig.Queues,
 		Email:             s.RootConfig.Email,
 		Analytics:         s.RootConfig.Analytics,

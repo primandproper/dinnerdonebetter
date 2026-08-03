@@ -13,6 +13,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	platformconfig "github.com/primandproper/platform-go/v9/config"
@@ -29,7 +30,6 @@ import (
 	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
 	"github.com/primandproper/platform-go/v9/server/grpc"
 	"github.com/primandproper/platform-go/v9/server/http"
-	"github.com/primandproper/platform-go/v9/uploads/objectstorage"
 	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -138,10 +138,16 @@ type (
 
 	// AsyncMessageHandlerConfig configures an instance of the search data index scheduler job.
 	AsyncMessageHandlerConfig struct {
-		_                 struct{}                `json:"-"`
-		HTTPClient        *httpclientcfg.Config   `envPrefix:"HTTP_CLIENT_"        json:"httpClient"`
-		Queues            queuescfg.Config        `envPrefix:"QUEUES_"             json:"queues"`
-		Storage           objectstorage.Config    `envPrefix:"STORAGE_"            json:"storage"`
+		_          struct{}              `json:"-"`
+		HTTPClient *httpclientcfg.Config `envPrefix:"HTTP_CLIENT_" json:"httpClient"`
+		Queues     queuescfg.Config      `envPrefix:"QUEUES_"      json:"queues"`
+
+		// DataPrivacy is here for the object storage and cipher the user data aggregation
+		// handler writes disclosure artifacts with. It is the same struct the API server and
+		// the scheduler are configured with, because all three have to agree on the bucket and
+		// the key or an artifact one writes is not one the others can read or find.
+		DataPrivacy dataprivacycfg.Config `envPrefix:"DATA_PRIVACY_" json:"dataPrivacy"`
+
 		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications"`
 		Encoding          encoding.Config         `envPrefix:"ENCODING_"           json:"encoding"`
 		BaseURL           string                  `env:"BASE_URL"                  json:"baseURL"`
@@ -313,7 +319,7 @@ func (cfg *AsyncMessageHandlerConfig) ValidateWithContext(ctx context.Context) e
 		"Database":      cfg.Database.ValidateWithContext,
 		"Email":         cfg.Email.ValidateWithContext,
 		"TextSearch":    cfg.Search.ValidateWithContext,
-		"Storage":       cfg.Storage.ValidateWithContext,
+		"DataPrivacy":   cfg.DataPrivacy.ValidateWithContext,
 		"Pools":         cfg.Pools.ValidateWithContext,
 	}
 

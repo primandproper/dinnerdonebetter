@@ -14,12 +14,14 @@ import (
 	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
 	mealplanningcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/config"
 	oauthcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/config"
+	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
 	analyticsposthog "github.com/primandproper/platform-go/v9/analytics/posthog"
 	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
+	capitalismcfg "github.com/primandproper/platform-go/v9/capitalism/config"
 	circuitbreakingcfg "github.com/primandproper/platform-go/v9/circuitbreaking/config"
 	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
 	databasecfg "github.com/primandproper/platform-go/v9/database/config"
@@ -286,6 +288,14 @@ func buildProdConfig() *config.APIServiceConfig {
 			MinimumPasswordLength: 8,
 		},
 		Services: config.ServicesConfig{
+			// The capitalism provider is named rather than left empty: platform-go treats an
+			// unset provider as an error precisely so that "we forgot to configure billing"
+			// cannot masquerade as "we chose not to bill".
+			Payments: paymentscfg.Config{
+				Capitalism: capitalismcfg.Config{
+					Provider: capitalismcfg.NoopProvider,
+				},
+			},
 			Auth: authservice.Config{
 				OAuth2: authservice.OAuth2Config{
 					Domain:               prodOAuth2Domain,
@@ -312,6 +322,9 @@ func buildProdConfig() *config.APIServiceConfig {
 					Storage: gcpUserDataStorage,
 					Debug:   false,
 				},
+				Encryption: encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
+				// Supplied from the environment, like every other secret in this file.
+				ArtifactEncryptionKey: "",
 			},
 			Users: identitycfg.Config{
 				PublicMediaURLPrefix: "https://" + prodMediaBucket + "/avatars",

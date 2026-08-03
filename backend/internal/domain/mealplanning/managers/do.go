@@ -6,8 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
-	mealplangrocerylistinitializer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_grocery_list_initializer"
-	mealplantaskcreator "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_creator"
+	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
 	"github.com/primandproper/platform-go/v9/messagequeue"
 	"github.com/primandproper/platform-go/v9/observability/logging"
@@ -20,12 +19,8 @@ import (
 
 // RegisterManagers registers the meal planning manager with the injector.
 func RegisterManagers(i do.Injector) {
-	do.Provide[mealPlanTaskCreatorWorker](i, func(i do.Injector) (mealPlanTaskCreatorWorker, error) {
-		return BuildMealPlanTaskCreatorWorker(do.MustInvoke[*mealplantaskcreator.Worker](i)), nil
-	})
-
-	do.Provide[mealPlanGroceryListInitializerWorker](i, func(i do.Injector) (mealPlanGroceryListInitializerWorker, error) {
-		return BuildMealPlanGroceryListInitializerWorker(do.MustInvoke[*mealplangrocerylistinitializer.Worker](i)), nil
+	do.Provide[mealPlanFinalizationStarter](i, func(i do.Injector) (mealPlanFinalizationStarter, error) {
+		return do.MustInvoke[*mealplanfinalization.Starter](i), nil
 	})
 
 	do.Provide[MealPlanningManager](i, func(i do.Injector) (MealPlanningManager, error) {
@@ -39,16 +34,7 @@ func RegisterManagers(i do.Injector) {
 			do.MustInvoke[recipeanalysis.RecipeAnalyzer](i),
 			do.MustInvoke[*textsearchcfg.Config](i),
 			do.MustInvoke[metrics.Provider](i),
-			do.MustInvoke[mealPlanGroceryListInitializerWorker](i),
-			do.MustInvoke[mealPlanTaskCreatorWorker](i),
+			do.MustInvoke[mealPlanFinalizationStarter](i),
 		)
 	})
-}
-
-func BuildMealPlanTaskCreatorWorker(x *mealplantaskcreator.Worker) mealPlanTaskCreatorWorker {
-	return x
-}
-
-func BuildMealPlanGroceryListInitializerWorker(x *mealplangrocerylistinitializer.Worker) mealPlanGroceryListInitializerWorker {
-	return x
 }
