@@ -9,9 +9,7 @@ import (
 	mockmanagers "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers/mock"
 	uploadedmediamock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/mock"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	mealplanfinalizer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalizer"
-	mealplangrocerylistinitializer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_grocery_list_initializer"
-	mealplantaskcreator "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_creator"
+	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
 	"github.com/primandproper/platform-go/v9/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
@@ -54,9 +52,7 @@ func TestNewService(t *testing.T) {
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
 		mealPlanningManager := &mockmanagers.MealPlanningManagerMock{}
-		mealPlanFinalizerWorker := &mealplanfinalizer.Worker{}
-		mealPlanGroceryListInitializerWorker := &mealplangrocerylistinitializer.Worker{}
-		mealPlanTaskCreatorWorker := &mealplantaskcreator.Worker{}
+		mealPlanFinalizationStarter := &mealplanfinalization.Starter{}
 		commentsManager := &noopCommentsManager{}
 		uploadedMediaManager := &uploadedmediamock.RepositoryMock{}
 		uploadManager := &mockuploads.UploadManagerMock{}
@@ -65,9 +61,7 @@ func TestNewService(t *testing.T) {
 			logger,
 			tracerProvider,
 			mealPlanningManager,
-			mealPlanFinalizerWorker,
-			mealPlanGroceryListInitializerWorker,
-			mealPlanTaskCreatorWorker,
+			mealPlanFinalizationStarter,
 			commentsManager,
 			uploadedMediaManager,
 			uploadManager,
@@ -82,9 +76,7 @@ func TestNewService(t *testing.T) {
 		assert.NotNil(t, impl.logger)
 		assert.NotNil(t, impl.tracer)
 		assert.Equal(t, mealPlanningManager, impl.mealPlanningManager)
-		assert.Equal(t, mealPlanFinalizerWorker, impl.mealPlanFinalizerWorker)
-		assert.Equal(t, mealPlanGroceryListInitializerWorker, impl.mealPlanGroceryListInitializerWorker)
-		assert.Equal(t, mealPlanTaskCreatorWorker, impl.mealPlanTaskCreatorWorker)
+		assert.Equal(t, mealPlanFinalizationStarter, impl.mealPlanFinalizationStarter)
 		assert.Equal(t, commentsManager, impl.commentsManager)
 		assert.NotNil(t, impl.sessionContextDataFetcher)
 	})

@@ -8,7 +8,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
-	mealplanningworkers "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
 	"github.com/primandproper/platform-go/v9/messagequeue"
 	mockpublishers "github.com/primandproper/platform-go/v9/messagequeue/mock"
@@ -21,9 +20,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// fakeFinalizationStarter records the plans it was asked to enter into the finalization
+// pipeline, so a test can assert that finalizing one started its saga.
+//
+// Hand-written rather than generated: the interface it satisfies is unexported, because nothing
+// outside this package needs to name it.
+type fakeFinalizationStarter struct {
+	err   error
+	calls []string
+}
+
+func (f *fakeFinalizationStarter) EnsureStarted(_ context.Context, mealPlanID, _ string) error {
+	f.calls = append(f.calls, mealPlanID)
+
+	return f.err
+}
+
 // newManagerForTest constructs a manager wired to unconfigured mocks. Tests swap in their own
 // configured repository via attachRepositoryToManager.
-func newManagerForTest(t *testing.T, groceryWorker, taskWorker mealplanningworkers.Worker) *mealPlanningManager {
+func newManagerForTest(t *testing.T, starter mealPlanFinalizationStarter) *mealPlanningManager {
 	t.Helper()
 
 	queueCfg := &queuescfg.Config{
@@ -46,8 +61,7 @@ func newManagerForTest(t *testing.T, groceryWorker, taskWorker mealplanningworke
 		&recipeanalysis.RecipeAnalyzerMock{},
 		&textsearchcfg.Config{Provider: textsearchcfg.ProviderNoop},
 		metricsnoop.NewMetricsProvider(),
-		groceryWorker,
-		taskWorker,
+		starter,
 	)
 	require.NoError(t, err)
 
@@ -57,25 +71,25 @@ func newManagerForTest(t *testing.T, groceryWorker, taskWorker mealplanningworke
 func buildMealPlanManagerForTest(t *testing.T) *mealPlanningManager {
 	t.Helper()
 
-	return newManagerForTest(t, nil, nil)
+	return newManagerForTest(t, nil)
 }
 
-func buildMealPlanManagerForTestWithWorkers(t *testing.T, groceryWorker, taskWorker *mealplanningworkers.WorkerMock) *mealPlanningManager {
+func buildMealPlanManagerForTestWithStarter(t *testing.T, starter *fakeFinalizationStarter) *mealPlanningManager {
 	t.Helper()
 
-	return newManagerForTest(t, groceryWorker, taskWorker)
+	return newManagerForTest(t, starter)
 }
 
 func buildRecipeManagerForTest(t *testing.T) *mealPlanningManager {
 	t.Helper()
 
-	return newManagerForTest(t, nil, nil)
+	return newManagerForTest(t, nil)
 }
 
 func buildValidEnumerationsManagerForTest(t *testing.T) *mealPlanningManager {
 	t.Helper()
 
-	return newManagerForTest(t, nil, nil)
+	return newManagerForTest(t, nil)
 }
 
 // attachRepositoryToManager wires a configured repository mock into the manager under test.

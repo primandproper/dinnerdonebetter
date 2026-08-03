@@ -194,16 +194,13 @@ func TestMealPlanTasks_RunMealPlanTaskCreatorWorker(T *testing.T) {
 
 		mealPlanID, userClient := createFinalizedMealPlanWithTasks(t)
 
-		// Run the task creator worker (admin endpoint)
+		// The admin endpoint starts a finalization saga for every plan that needs one; the saga
+		// worker is what creates the tasks, a moment later.
 		runRes, err := adminClient.RunMealPlanTaskCreatorWorker(ctx, &mealplanninggrpc.RunMealPlanTaskCreatorWorkerRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, runRes)
 
-		// Verify tasks were created for the meal plan
-		tasksRes, err := userClient.GetMealPlanTasks(ctx, &mealplanninggrpc.GetMealPlanTasksRequest{MealPlanId: mealPlanID})
-		require.NoError(t, err)
-		require.NotNil(t, tasksRes)
-		assert.Greater(t, len(tasksRes.Results), 0, "expected tasks to be created after running the task creator worker")
+		assert.NotEmpty(t, awaitMealPlanTasks(t, ctx, userClient, mealPlanID))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -226,18 +223,12 @@ func TestMealPlanTasks_UpdateMealPlanTaskStatus(T *testing.T) {
 
 		mealPlanID, userClient := createFinalizedMealPlanWithTasks(t)
 
-		// Run the task creator worker to ensure tasks exist
+		// Nudge the starter, then wait for the saga to get to the task step.
 		runRes, err := adminClient.RunMealPlanTaskCreatorWorker(ctx, &mealplanninggrpc.RunMealPlanTaskCreatorWorkerRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, runRes)
 
-		// Get tasks for the meal plan
-		tasksRes, err := userClient.GetMealPlanTasks(ctx, &mealplanninggrpc.GetMealPlanTasksRequest{MealPlanId: mealPlanID})
-		require.NoError(t, err)
-		require.NotNil(t, tasksRes)
-		require.Greater(t, len(tasksRes.Results), 0, "expected tasks to exist for the finalized meal plan")
-
-		taskToUpdate := tasksRes.Results[0]
+		taskToUpdate := awaitMealPlanTasks(t, ctx, userClient, mealPlanID)[0]
 		newStatus := mealplanninggrpc.MealPlanTaskStatus_MEAL_PLAN_TASK_STATUS_FINISHED
 
 		// Update the task status

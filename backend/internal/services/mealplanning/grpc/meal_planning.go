@@ -1396,35 +1396,50 @@ func (s *serviceImpl) GetUserIngredientPreferences(ctx context.Context, request 
 	return x, nil
 }
 
+// RunFinalizeMealPlanWorker starts a finalization saga for every meal plan that needs one, and
+// reports how many it started.
+//
+// Finalizing, creating tasks, and initializing the grocery list used to be three workers with
+// three RPCs to run them on demand. They are one saga now, so all three RPCs do this — see
+// RunMealPlanGroceryListInitializerWorker. Finalized counts sagas started rather than plans
+// finalized: this call no longer waits for the pipeline, it only enters plans into it.
 func (s *serviceImpl) RunFinalizeMealPlanWorker(ctx context.Context, _ *mealplanningsvc.RunFinalizeMealPlanWorkerRequest) (*mealplanningsvc.RunFinalizeMealPlanWorkerResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
 
-	finalized, err := s.mealPlanFinalizerWorker.Work(ctx)
+	started, err := s.mealPlanFinalizationStarter.Work(ctx)
 	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "running meal plan finalizer worker")
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "starting meal plan finalization sagas")
 	}
 
 	x := &mealplanningsvc.RunFinalizeMealPlanWorkerResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Finalized: uint32(finalized),
+		Finalized: uint32(started),
 	}
 
 	return x, nil
 }
 
+// RunMealPlanGroceryListInitializerWorker starts a finalization saga for every meal plan that
+// needs one.
+//
+// It does the same thing RunFinalizeMealPlanWorker does, because there is no longer a separate
+// grocery list job to run: a plan whose grocery list is missing is a plan the finalization saga
+// owes a step to, and the starter's query picks it up on exactly those terms. The RPC is kept so
+// that clients built against the old three-worker shape keep working; it is a candidate for
+// removal the next time this service's proto changes.
 func (s *serviceImpl) RunMealPlanGroceryListInitializerWorker(ctx context.Context, _ *mealplanningsvc.RunMealPlanGroceryListInitializerWorkerRequest) (*mealplanningsvc.RunMealPlanGroceryListInitializerWorkerResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
 
-	if err := s.mealPlanGroceryListInitializerWorker.Work(ctx); err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "running meal plan grocery list initializer worker")
+	if _, err := s.mealPlanFinalizationStarter.Work(ctx); err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "starting meal plan finalization sagas")
 	}
 
 	x := &mealplanningsvc.RunMealPlanGroceryListInitializerWorkerResponse{
@@ -1436,14 +1451,16 @@ func (s *serviceImpl) RunMealPlanGroceryListInitializerWorker(ctx context.Contex
 	return x, nil
 }
 
+// RunMealPlanTaskCreatorWorker starts a finalization saga for every meal plan that needs one.
+// See RunMealPlanGroceryListInitializerWorker for why it is the same call.
 func (s *serviceImpl) RunMealPlanTaskCreatorWorker(ctx context.Context, _ *mealplanningsvc.RunMealPlanTaskCreatorWorkerRequest) (*mealplanningsvc.RunMealPlanTaskCreatorWorkerResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
 
-	if err := s.mealPlanTaskCreatorWorker.Work(ctx); err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "running meal plan task creator worker")
+	if _, err := s.mealPlanFinalizationStarter.Work(ctx); err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "starting meal plan finalization sagas")
 	}
 
 	x := &mealplanningsvc.RunMealPlanTaskCreatorWorkerResponse{

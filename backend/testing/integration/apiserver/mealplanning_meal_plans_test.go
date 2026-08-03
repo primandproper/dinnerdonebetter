@@ -82,11 +82,13 @@ func TestMealPlans_AutoFinalizedImmediateGroceryAndTasks(T *testing.T) {
 		mealPlan := &mealplanning.MealPlan{
 			Notes: "auto-finalized test",
 			// voting deadline must be before every event's start time; see MealPlanCreationRequestInput.ValidateWithContext.
-			VotingDeadline:         inFiveMinutes,
-			ElectionMethod:         mealplanning.MealPlanElectionMethodSchulze,
-			Status:                 string(mealplanning.MealPlanStatusFinalized),
-			TasksCreated:           true,
-			GroceryListInitialized: true,
+			VotingDeadline: inFiveMinutes,
+			ElectionMethod: mealplanning.MealPlanElectionMethodSchulze,
+			Status:         string(mealplanning.MealPlanStatusFinalized),
+			// Both flags are false at creation. Creating a finalized plan starts its
+			// finalization saga rather than running the pipeline inline, so the read-back
+			// below happens before the steps that set them; the awaits further down are what
+			// assert they get set.
 			Events: []*mealplanning.MealPlanEvent{
 				{
 					Notes:    "dinner",
@@ -105,16 +107,20 @@ func TestMealPlans_AutoFinalizedImmediateGroceryAndTasks(T *testing.T) {
 		created := createMealPlanForTest(t, userClient, mealPlan)
 		mealPlanID := created.ID
 
-		// Immediately fetch grocery list and tasks; post-finalization workers run synchronously at creation.
-		groceryRes, err := userClient.GetMealPlanGroceryListItemsForMealPlan(ctx, &mealplanninggrpc.GetMealPlanGroceryListItemsForMealPlanRequest{MealPlanId: mealPlanID})
-		require.NoError(t, err)
-		require.NotNil(t, groceryRes)
-		assert.Greater(t, len(groceryRes.Results), 0, "expected grocery list items to exist immediately after auto-finalized meal plan creation")
+		// Creating a plan already finalized starts its finalization saga, which builds both of
+		// these. It no longer happens before CreateMealPlan returns — that used to mean a user's
+		// request waited on the grocery list of every finalized plan in the database.
+		assert.NotEmpty(t, awaitMealPlanGroceryListItems(t, ctx, userClient, mealPlanID))
+		assert.NotEmpty(t, awaitMealPlanTasks(t, ctx, userClient, mealPlanID))
 
-		tasksRes, err := userClient.GetMealPlanTasks(ctx, &mealplanninggrpc.GetMealPlanTasksRequest{MealPlanId: mealPlanID})
+		// And the flags the steps write with them, which are what stop a second saga — or a
+		// second pass of this one — from doing the work again.
+		finishedRes, err := userClient.GetMealPlan(ctx, &mealplanninggrpc.GetMealPlanRequest{MealPlanId: mealPlanID})
 		require.NoError(t, err)
-		require.NotNil(t, tasksRes)
-		assert.Greater(t, len(tasksRes.Results), 0, "expected prep tasks to exist immediately after auto-finalized meal plan creation")
+
+		finished := converters.ConvertGRPCMealPlanToMealPlan(finishedRes.Result)
+		assert.True(t, finished.TasksCreated)
+		assert.True(t, finished.GroceryListInitialized)
 	})
 }
 
@@ -362,16 +368,12 @@ func TestMealPlans_CompleteLifecycleForAllVotesReceived(T *testing.T) {
 		require.NoError(t, err)
 		require.NotZero(t, rowsAffected)
 
+		// The admin endpoint starts a saga per finalizable plan; its first step does the tally.
 		runRes, err := adminClient.RunFinalizeMealPlanWorker(ctx, &mealplanninggrpc.RunFinalizeMealPlanWorkerRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, runRes)
 
-		createdMealPlanRes, err := accountAdminUserClient.GetMealPlan(ctx, &mealplanninggrpc.GetMealPlanRequest{MealPlanId: createdMealPlan.ID})
-		require.NotNil(t, createdMealPlanRes)
-		require.NoError(t, err)
-
-		actual := converters.ConvertGRPCMealPlanToMealPlan(createdMealPlanRes.Result)
-		assert.Equal(t, string(mealplanning.MealPlanStatusFinalized), actual.Status)
+		actual := awaitMealPlanFinalized(t, ctx, accountAdminUserClient, createdMealPlan.ID)
 
 		for _, event := range actual.Events {
 			selectionMade := false
@@ -841,13 +843,7 @@ func TestMealPlans_CompleteLifecycleForSomeVotesReceived(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, runRes)
 
-		createdMealPlanRes, err = accountAdminUserClient.GetMealPlan(ctx, &mealplanninggrpc.GetMealPlanRequest{MealPlanId: createdMealPlan.ID})
-		require.NotNil(t, createdMealPlan)
-		require.NoError(t, err)
-
-		createdMealPlan = converters.ConvertGRPCMealPlanToMealPlan(createdMealPlanRes.Result)
-
-		assert.Equal(t, string(mealplanning.MealPlanStatusFinalized), createdMealPlan.Status)
+		createdMealPlan = awaitMealPlanFinalized(t, ctx, accountAdminUserClient, createdMealPlan.ID)
 
 		for _, event := range createdMealPlan.Events {
 			selectionMade := false

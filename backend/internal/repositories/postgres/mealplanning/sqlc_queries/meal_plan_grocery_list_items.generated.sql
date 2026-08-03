@@ -1,3 +1,6 @@
+-- name: DeleteMealPlanGroceryListItems :exec
+DELETE FROM meal_plan_grocery_list_items WHERE id = ANY(sqlc.arg(ids)::text[]);
+
 -- name: ArchiveMealPlanGroceryListItem :execrows
 UPDATE meal_plan_grocery_list_items SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
 

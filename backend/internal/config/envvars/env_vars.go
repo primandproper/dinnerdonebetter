@@ -496,59 +496,23 @@ const (
 	// JobsLockRedisUsernameEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.Lock.Redis.Username`.
 	JobsLockRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_REDIS_USERNAME"
 
-	// JobsMealPlanningMealPlanFinalizerEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.Enabled`.
-	JobsMealPlanningMealPlanFinalizerEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_ENABLED"
+	// JobsMealPlanningMealPlanFinalizationStarterEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizationStarter.Enabled`.
+	JobsMealPlanningMealPlanFinalizationStarterEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZATION_STARTER_ENABLED"
 
-	// JobsMealPlanningMealPlanFinalizerIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.Interval`.
-	JobsMealPlanningMealPlanFinalizerIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_INTERVAL"
+	// JobsMealPlanningMealPlanFinalizationStarterIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizationStarter.Interval`.
+	JobsMealPlanningMealPlanFinalizationStarterIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZATION_STARTER_INTERVAL"
 
-	// JobsMealPlanningMealPlanFinalizerLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.LeaseTTL`.
-	JobsMealPlanningMealPlanFinalizerLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_LEASE_TTL"
+	// JobsMealPlanningMealPlanFinalizationStarterLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizationStarter.LeaseTTL`.
+	JobsMealPlanningMealPlanFinalizationStarterLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZATION_STARTER_LEASE_TTL"
 
-	// JobsMealPlanningMealPlanFinalizerRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.RunOnStart`.
-	JobsMealPlanningMealPlanFinalizerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_RUN_ON_START"
+	// JobsMealPlanningMealPlanFinalizationStarterRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizationStarter.RunOnStart`.
+	JobsMealPlanningMealPlanFinalizationStarterRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZATION_STARTER_RUN_ON_START"
 
-	// JobsMealPlanningMealPlanFinalizerScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.Schedule`.
-	JobsMealPlanningMealPlanFinalizerScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_SCHEDULE"
+	// JobsMealPlanningMealPlanFinalizationStarterScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizationStarter.Schedule`.
+	JobsMealPlanningMealPlanFinalizationStarterScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZATION_STARTER_SCHEDULE"
 
-	// JobsMealPlanningMealPlanFinalizerTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizer.Timeout`.
-	JobsMealPlanningMealPlanFinalizerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZER_TIMEOUT"
-
-	// JobsMealPlanningMealPlanGroceryListInitializerEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.Enabled`.
-	JobsMealPlanningMealPlanGroceryListInitializerEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_ENABLED"
-
-	// JobsMealPlanningMealPlanGroceryListInitializerIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.Interval`.
-	JobsMealPlanningMealPlanGroceryListInitializerIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_INTERVAL"
-
-	// JobsMealPlanningMealPlanGroceryListInitializerLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.LeaseTTL`.
-	JobsMealPlanningMealPlanGroceryListInitializerLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_LEASE_TTL"
-
-	// JobsMealPlanningMealPlanGroceryListInitializerRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.RunOnStart`.
-	JobsMealPlanningMealPlanGroceryListInitializerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_RUN_ON_START"
-
-	// JobsMealPlanningMealPlanGroceryListInitializerScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.Schedule`.
-	JobsMealPlanningMealPlanGroceryListInitializerScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_SCHEDULE"
-
-	// JobsMealPlanningMealPlanGroceryListInitializerTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanGroceryListInitializer.Timeout`.
-	JobsMealPlanningMealPlanGroceryListInitializerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_GROCERY_LIST_INITIALIZER_TIMEOUT"
-
-	// JobsMealPlanningMealPlanTaskCreatorEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.Enabled`.
-	JobsMealPlanningMealPlanTaskCreatorEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_ENABLED"
-
-	// JobsMealPlanningMealPlanTaskCreatorIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.Interval`.
-	JobsMealPlanningMealPlanTaskCreatorIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_INTERVAL"
-
-	// JobsMealPlanningMealPlanTaskCreatorLeaseTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.LeaseTTL`.
-	JobsMealPlanningMealPlanTaskCreatorLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_LEASE_TTL"
-
-	// JobsMealPlanningMealPlanTaskCreatorRunOnStartEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.RunOnStart`.
-	JobsMealPlanningMealPlanTaskCreatorRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_RUN_ON_START"
-
-	// JobsMealPlanningMealPlanTaskCreatorScheduleEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.Schedule`.
-	JobsMealPlanningMealPlanTaskCreatorScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_SCHEDULE"
-
-	// JobsMealPlanningMealPlanTaskCreatorTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskCreator.Timeout`.
-	JobsMealPlanningMealPlanTaskCreatorTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_CREATOR_TIMEOUT"
+	// JobsMealPlanningMealPlanFinalizationStarterTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizationStarter.Timeout`.
+	JobsMealPlanningMealPlanFinalizationStarterTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZATION_STARTER_TIMEOUT"
 
 	// JobsMobileNotificationSchedulerEnabledEnvVarKey is the environment variable name to set to override `SchedulerConfig.Jobs.MobileNotificationScheduler.Enabled`.
 	JobsMobileNotificationSchedulerEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_ENABLED"
@@ -1020,6 +984,69 @@ const (
 
 	// RoutingStdlibValidDomainsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.Stdlib.ValidDomains`.
 	RoutingStdlibValidDomainsEnvVarKey = "DINNER_DONE_BETTER_ROUTING_STDLIB_VALID_DOMAINS"
+
+	// SagasAdvanceTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.AdvanceTimeout`.
+	SagasAdvanceTimeoutEnvVarKey = "DINNER_DONE_BETTER_SAGAS_ADVANCE_TIMEOUT"
+
+	// SagasBackoffInitialDelayEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.Backoff.InitialDelay`.
+	SagasBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_SAGAS_BACKOFF_INITIAL_DELAY"
+
+	// SagasBackoffMaxAttemptsEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.Backoff.MaxAttempts`.
+	SagasBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_SAGAS_BACKOFF_MAX_ATTEMPTS"
+
+	// SagasBackoffMaxDelayEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.Backoff.MaxDelay`.
+	SagasBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_SAGAS_BACKOFF_MAX_DELAY"
+
+	// SagasBackoffMultiplierEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.Backoff.Multiplier`.
+	SagasBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_SAGAS_BACKOFF_MULTIPLIER"
+
+	// SagasBackoffProviderEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.Backoff.Provider`.
+	SagasBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_SAGAS_BACKOFF_PROVIDER"
+
+	// SagasBackoffUseJitterEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.Backoff.UseJitter`.
+	SagasBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_SAGAS_BACKOFF_USE_JITTER"
+
+	// SagasBatchSizeEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.BatchSize`.
+	SagasBatchSizeEnvVarKey = "DINNER_DONE_BETTER_SAGAS_BATCH_SIZE"
+
+	// SagasCompensationBackoffInitialDelayEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.CompensationBackoff.InitialDelay`.
+	SagasCompensationBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_SAGAS_COMPENSATION_BACKOFF_INITIAL_DELAY"
+
+	// SagasCompensationBackoffMaxAttemptsEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.CompensationBackoff.MaxAttempts`.
+	SagasCompensationBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_SAGAS_COMPENSATION_BACKOFF_MAX_ATTEMPTS"
+
+	// SagasCompensationBackoffMaxDelayEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.CompensationBackoff.MaxDelay`.
+	SagasCompensationBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_SAGAS_COMPENSATION_BACKOFF_MAX_DELAY"
+
+	// SagasCompensationBackoffMultiplierEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.CompensationBackoff.Multiplier`.
+	SagasCompensationBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_SAGAS_COMPENSATION_BACKOFF_MULTIPLIER"
+
+	// SagasCompensationBackoffProviderEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.CompensationBackoff.Provider`.
+	SagasCompensationBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_SAGAS_COMPENSATION_BACKOFF_PROVIDER"
+
+	// SagasCompensationBackoffUseJitterEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.CompensationBackoff.UseJitter`.
+	SagasCompensationBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_SAGAS_COMPENSATION_BACKOFF_USE_JITTER"
+
+	// SagasConcurrencyEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.Concurrency`.
+	SagasConcurrencyEnvVarKey = "DINNER_DONE_BETTER_SAGAS_CONCURRENCY"
+
+	// SagasIdempotencyKeyPrefixEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.IdempotencyKeyPrefix`.
+	SagasIdempotencyKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_SAGAS_IDEMPOTENCY_KEY_PREFIX"
+
+	// SagasLeaseDurationEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.LeaseDuration`.
+	SagasLeaseDurationEnvVarKey = "DINNER_DONE_BETTER_SAGAS_LEASE_DURATION"
+
+	// SagasLockKeyPrefixEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.LockKeyPrefix`.
+	SagasLockKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_SAGAS_LOCK_KEY_PREFIX"
+
+	// SagasLockTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.LockTTL`.
+	SagasLockTTLEnvVarKey = "DINNER_DONE_BETTER_SAGAS_LOCK_TTL"
+
+	// SagasPollIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.PollInterval`.
+	SagasPollIntervalEnvVarKey = "DINNER_DONE_BETTER_SAGAS_POLL_INTERVAL"
+
+	// SagasStepTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.Sagas.StepTimeout`.
+	SagasStepTimeoutEnvVarKey = "DINNER_DONE_BETTER_SAGAS_STEP_TIMEOUT"
 
 	// SearchAlgoliaAPIKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.TextSearch.Algolia.APIKey`.
 	SearchAlgoliaAPIKeyEnvVarKey = "DINNER_DONE_BETTER_SEARCH_ALGOLIA_API_KEY"

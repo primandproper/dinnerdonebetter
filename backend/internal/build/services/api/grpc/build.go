@@ -6,6 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
 	authmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
@@ -163,6 +164,10 @@ func BuildInjector(
 	paymentssvc.RegisterPaymentsService(i)
 	waitlistssvc.RegisterWaitlistsService(i)
 	uploadedmediacfg.RegisterUploadedMediaConfig(i)
+
+	// The saga machinery, minus the worker: this process starts durable processes and does not
+	// advance them. Registered before the domain, which puts its definitions on the registry.
+	sagas.RegisterSagas(i)
 
 	// Domain: mealplanning
 	mealplanningregistration.RegisterForGRPCAPI(i)

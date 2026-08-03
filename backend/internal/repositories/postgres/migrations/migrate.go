@@ -10,6 +10,8 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/outbox"
 	outboxmigrations "github.com/primandproper/platform-go/v9/outbox/migrations"
+	"github.com/primandproper/platform-go/v9/saga"
+	sagamigrations "github.com/primandproper/platform-go/v9/saga/migrations"
 )
 
 var (
@@ -22,11 +24,17 @@ var (
 // replica applies migrations while the rest wait rather than racing.
 const lockKey = "dinnerdonebetter"
 
-// outboxMigrationVersion is where the platform's outbox table lands in this repository's
-// migration ordering. The platform does not ship a numbered file — numbering is global per
-// consumer, so a platform-owned number would collide the moment either side added one — and
-// hands us the DDL instead. Keep it above every file in migration_files.
-const outboxMigrationVersion = 22
+// Where the platform's own tables land in this repository's migration ordering. The platform
+// ships no numbered files — numbering is global per consumer, so a platform-owned number would
+// collide the moment either side added one — and hands us the DDL instead.
+//
+// The numbering is one sequence shared with migration_files, so these must not collide with a
+// filename and must never be renumbered once applied. Adding another means taking the next
+// free number, whichever side it comes from.
+const (
+	outboxMigrationVersion = 22
+	sagaMigrationVersion   = 24
+)
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
 //
@@ -47,12 +55,19 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, errors.Wrap(err, "rendering outbox migration")
 	}
 
+	// Likewise for the saga instance table, which durable meal plan finalization runs on.
+	sagaDDL, err := sagamigrations.SQL(dialect.Postgres, saga.DefaultTablePrefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "rendering saga migration")
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
 		migrate.WithLogger(logging.EnsureLogger(logger)),
 		migrate.WithLockKey(lockKey),
 		migrate.WithGeneratedMigration(outboxMigrationVersion, "create_outbox_messages", outboxDDL),
+		migrate.WithGeneratedMigration(sagaMigrationVersion, "create_saga_instances", sagaDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")

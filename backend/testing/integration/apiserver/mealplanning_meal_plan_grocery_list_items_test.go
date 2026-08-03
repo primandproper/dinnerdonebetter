@@ -76,19 +76,9 @@ func TestMealPlanGroceryListItems_Getting(T *testing.T) {
 		require.NoError(t, err)
 		mealPlanID := createdRes.Created.Id
 
-		// Run grocery list initializer worker
-		_, err = adminClient.RunMealPlanGroceryListInitializerWorker(ctx, &mealplanninggrpc.RunMealPlanGroceryListInitializerWorkerRequest{})
-		require.NoError(t, err)
-
-		// Fetch the grocery list to get an item ID
-		groceryRes, err := userClient.GetMealPlanGroceryListItemsForMealPlan(ctx, &mealplanninggrpc.GetMealPlanGroceryListItemsForMealPlanRequest{MealPlanId: mealPlanID})
-		require.NoError(t, err)
-
-		if len(groceryRes.Results) == 0 {
-			t.Skip("no grocery list items generated for this meal plan, skipping detailed assertions")
-		}
-
-		firstItemID := groceryRes.Results[0].Id
+		// The plan was created finalized, so its finalization saga is already running. Wait for
+		// the step that builds the grocery list rather than reading straight back.
+		firstItemID := awaitMealPlanGroceryListItems(t, ctx, userClient, mealPlanID)[0].Id
 
 		// Get the individual grocery list item
 		getRes, err := userClient.GetMealPlanGroceryListItem(ctx, &mealplanninggrpc.GetMealPlanGroceryListItemRequest{
@@ -176,19 +166,9 @@ func TestMealPlanGroceryListItems_Updating(T *testing.T) {
 		require.NoError(t, err)
 		mealPlanID := createdRes.Created.Id
 
-		// Run grocery list initializer worker
-		_, err = adminClient.RunMealPlanGroceryListInitializerWorker(ctx, &mealplanninggrpc.RunMealPlanGroceryListInitializerWorkerRequest{})
-		require.NoError(t, err)
-
-		// Fetch the grocery list to get an item ID
-		groceryRes, err := userClient.GetMealPlanGroceryListItemsForMealPlan(ctx, &mealplanninggrpc.GetMealPlanGroceryListItemsForMealPlanRequest{MealPlanId: mealPlanID})
-		require.NoError(t, err)
-
-		if len(groceryRes.Results) == 0 {
-			t.Skip("no grocery list items generated for this meal plan, skipping detailed assertions")
-		}
-
-		firstItemID := groceryRes.Results[0].Id
+		// The plan was created finalized, so its finalization saga is already running. Wait for
+		// the step that builds the grocery list rather than reading straight back.
+		firstItemID := awaitMealPlanGroceryListItems(t, ctx, userClient, mealPlanID)[0].Id
 
 		// Update the grocery list item: mark as acquired with purchase details
 		newStatus := mealplanninggrpc.MealPlanGroceryListItemStatus_MEAL_PLAN_GROCERY_LIST_ITEM_STATUS_ACQUIRED
@@ -321,19 +301,9 @@ func TestMealPlanGroceryListItems_Archiving(T *testing.T) {
 		require.NoError(t, err)
 		mealPlanID := createdRes.Created.Id
 
-		// Run grocery list initializer worker
-		_, err = adminClient.RunMealPlanGroceryListInitializerWorker(ctx, &mealplanninggrpc.RunMealPlanGroceryListInitializerWorkerRequest{})
-		require.NoError(t, err)
-
-		// Fetch the grocery list to get an item ID
-		groceryRes, err := userClient.GetMealPlanGroceryListItemsForMealPlan(ctx, &mealplanninggrpc.GetMealPlanGroceryListItemsForMealPlanRequest{MealPlanId: mealPlanID})
-		require.NoError(t, err)
-
-		if len(groceryRes.Results) == 0 {
-			t.Skip("no grocery list items generated for this meal plan, skipping detailed assertions")
-		}
-
-		firstItemID := groceryRes.Results[0].Id
+		// The plan was created finalized, so its finalization saga is already running. Wait for
+		// the step that builds the grocery list rather than reading straight back.
+		firstItemID := awaitMealPlanGroceryListItems(t, ctx, userClient, mealPlanID)[0].Id
 
 		// Archive the grocery list item
 		archiveRes, err := userClient.ArchiveMealPlanGroceryListItem(ctx, &mealplanninggrpc.ArchiveMealPlanGroceryListItemRequest{

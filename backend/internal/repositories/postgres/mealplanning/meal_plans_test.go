@@ -161,11 +161,9 @@ func TestQuerier_Integration_MealPlans(t *testing.T) {
 	assert.NotEmpty(t, mealPlans.Data)
 	assert.Equal(t, len(createdMealPlans), len(mealPlans.Data))
 
-	_, err = dbc.GetUnfinalizedMealPlansWithExpiredVotingPeriods(ctx)
+	_, err = dbc.GetMealPlansAwaitingFinalizationSaga(ctx, 10)
 	assert.NoError(t, err)
-	_, err = dbc.GetFinalizedMealPlanIDsForTheNextWeek(ctx)
-	assert.NoError(t, err)
-	_, err = dbc.GetFinalizedMealPlansWithUninitializedGroceryLists(ctx)
+	_, err = dbc.GetFinalizedMealPlanOptionsForMealPlan(ctx, createdMealPlans[0].ID)
 	assert.NoError(t, err)
 	_, err = dbc.FetchMissingVotesForMealPlan(ctx, createdMealPlans[0].ID, accountID)
 	assert.NoError(t, err)
