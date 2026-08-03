@@ -55,16 +55,33 @@ func buildWebhookTriggerConfigsQueries(database string) []*Query {
 					Name: "ArchiveWebhookTriggerConfig",
 					Type: ExecRowsType,
 				},
+				// Scoped to the account through the owning webhook, not only to the
+				// webhook. The account is checked at the service layer too, but a query
+				// that will happily archive any account's trigger config given its two
+				// IDs is one call site away from being an IDOR, and the join costs an
+				// index lookup on a primary key.
 				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
 	%s = %s
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
-	AND %s = sqlc.arg(%s);`,
+	AND %s IN (
+		SELECT %s FROM %s
+		WHERE %s = sqlc.arg(%s)
+			AND %s = sqlc.arg(%s)
+			AND %s IS NULL
+	);`,
 					webhookTriggerConfigsTableName,
 					archivedAtColumn, currentTimeExpression,
-					archivedAtColumn,
-					idColumn, idColumn,
-					belongsToWebhookColumn, belongsToWebhookColumn,
+					fullColumnName(webhookTriggerConfigsTableName, archivedAtColumn),
+					fullColumnName(webhookTriggerConfigsTableName, idColumn), idColumn,
+					fullColumnName(webhookTriggerConfigsTableName, belongsToWebhookColumn),
+					// Fully qualified inside the subquery: the outer UPDATE and the inner
+					// SELECT both have an id and an archived_at, and an unqualified
+					// reference to either is ambiguous.
+					fullColumnName(webhooksTableName, idColumn), webhooksTableName,
+					fullColumnName(webhooksTableName, idColumn), belongsToWebhookColumn,
+					fullColumnName(webhooksTableName, belongsToAccountColumn), belongsToAccountColumn,
+					fullColumnName(webhooksTableName, archivedAtColumn),
 				)),
 			},
 		}

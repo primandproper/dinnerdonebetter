@@ -13,7 +13,7 @@ import (
 var webhookTriggerConfigSchema = map[string]any{
 	"ID":               stringField("The ID of the trigger config"),
 	"BelongsToWebhook": stringField("The ID of the webhook this config belongs to"),
-	"TriggerEventID":   stringField("The ID of the trigger event"),
+	"EventType":        stringField("The catalog event type this webhook is subscribed to"),
 	"CreatedAt":        timestampField("When the trigger config was created"),
 	"ArchivedAt":       timestampField("When the trigger config was archived"),
 }
@@ -22,8 +22,8 @@ var webhookSchema = map[string]any{
 	"ID":               stringField("The ID of the webhook"),
 	"Name":             stringField("The webhook name"),
 	"URL":              stringField("The webhook URL"),
-	"Method":           stringField("The HTTP method (GET, POST, PUT, PATCH, DELETE)"),
-	"ContentType":      stringField("The content type (application/json or application/xml)"),
+	"Method":           stringField("The HTTP method deliveries are made with; always POST"),
+	"ContentType":      stringField("The content type; always application/json"),
 	"BelongsToAccount": stringField("The ID of the account this webhook belongs to"),
 	"CreatedByUser":    stringField("The ID of the user who created this webhook"),
 	"TriggerConfigs":   arrayType(schemaObject(webhookTriggerConfigSchema)),
@@ -32,13 +32,9 @@ var webhookSchema = map[string]any{
 	"ArchivedAt":       timestampField("When the webhook was archived"),
 }
 
-var webhookTriggerEventSchema = map[string]any{
-	"ID":            stringField("The ID of the trigger event"),
-	"Name":          stringField("The trigger event name"),
-	"Description":   stringField("The trigger event description"),
-	"CreatedAt":     timestampField("When the trigger event was created"),
-	"LastUpdatedAt": timestampField("When the trigger event was last updated"),
-	"ArchivedAt":    timestampField("When the trigger event was archived"),
+var webhookEventTypeSchema = map[string]any{
+	"Type":        stringField("The event type, as it appears in a webhook subscription"),
+	"Description": stringField("Prose explaining when the event fires"),
 }
 
 var getWebhookTool = &mcp.Tool{
@@ -106,34 +102,29 @@ func (h *mcpToolManager) GetWebhooks() mcp.ToolHandlerFor[*GetWebhooksInvocation
 	}
 }
 
-var getWebhookTriggerEventsTool = &mcp.Tool{
-	Name:        "GetWebhookTriggerEvents",
-	Description: "Get webhook trigger events (the catalog of available event types)",
-	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
-	}),
+var getWebhookEventTypesTool = &mcp.Tool{
+	Name:        "GetWebhookEventTypes",
+	Description: "Get the event types a webhook can subscribe to",
+	InputSchema: schemaObject(map[string]any{}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(webhookTriggerEventSchema)),
+		"Results": arrayType(schemaObject(webhookEventTypeSchema)),
 	}),
 }
 
 type (
-	GetWebhookTriggerEventsInvocation struct {
-		Filter *filtering.QueryFilter
-	}
+	GetWebhookEventTypesInvocation struct{}
 
-	GetWebhookTriggerEventsResult struct {
-		Results []*webhooks.WebhookTriggerEvent
+	GetWebhookEventTypesResult struct {
+		Results []*webhooks.WebhookEventType
 	}
 )
 
-func (h *mcpToolManager) GetWebhookTriggerEvents() mcp.ToolHandlerFor[*GetWebhookTriggerEventsInvocation, *GetWebhookTriggerEventsResult] {
-	return func(ctx context.Context, req *mcp.CallToolRequest, x *GetWebhookTriggerEventsInvocation) (*mcp.CallToolResult, *GetWebhookTriggerEventsResult, error) {
-		results, err := h.webhooksRepo.GetWebhookTriggerEvents(ctx, x.Filter)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return nil, &GetWebhookTriggerEventsResult{Results: results.Data}, nil
+// GetWebhookEventTypes reads the generated catalog rather than the database.
+//
+// It takes no filter because there is nothing to filter against: the catalog is Go, identical
+// for every account, and constant for the lifetime of the deployment.
+func (h *mcpToolManager) GetWebhookEventTypes() mcp.ToolHandlerFor[*GetWebhookEventTypesInvocation, *GetWebhookEventTypesResult] {
+	return func(context.Context, *mcp.CallToolRequest, *GetWebhookEventTypesInvocation) (*mcp.CallToolResult, *GetWebhookEventTypesResult, error) {
+		return nil, &GetWebhookEventTypesResult{Results: webhooks.EventTypeCatalog()}, nil
 	}
 }

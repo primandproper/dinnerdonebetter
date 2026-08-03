@@ -48,6 +48,7 @@ func buildIntegrationTestsConfig() *config.APIServiceConfig {
 	}
 
 	return &config.APIServiceConfig{
+		Webhooks: buildWebhooksConfig(),
 		Routing: routingcfg.Config{
 			Provider: routingcfg.ProviderChi,
 			Chi: &chi.Config{
@@ -61,12 +62,11 @@ func buildIntegrationTestsConfig() *config.APIServiceConfig {
 			RunMode: testingEnv,
 		},
 		Queues: queuescfg.Config{
-			DataChangesTopicName:              dataChangesTopicName,
-			OutboundEmailsTopicName:           outboundEmailsTopicName,
-			SearchIndexRequestsTopicName:      searchIndexRequestsTopicName,
-			MobileNotificationsTopicName:      mobileNotificationsTopicName,
-			UserDataAggregationTopicName:      userDataAggregationTopicName,
-			WebhookExecutionRequestsTopicName: webhookExecutionRequestsTopicName,
+			DataChangesTopicName:         dataChangesTopicName,
+			OutboundEmailsTopicName:      outboundEmailsTopicName,
+			SearchIndexRequestsTopicName: searchIndexRequestsTopicName,
+			MobileNotificationsTopicName: mobileNotificationsTopicName,
+			UserDataAggregationTopicName: userDataAggregationTopicName,
 		},
 		Events: msgconfig.Config{
 			Consumer: msgconfig.MessageQueueConfig{

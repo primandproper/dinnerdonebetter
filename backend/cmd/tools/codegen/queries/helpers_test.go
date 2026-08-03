@@ -107,12 +107,11 @@ func Test_mergeColumns(T *testing.T) {
 			"webhooks.content_type",
 			"webhooks.url",
 			"webhooks.method",
-			"webhook_trigger_events.id",
-			"webhook_trigger_events.name",
-			"webhook_trigger_events.description",
-			"webhook_trigger_events.created_at",
-			"webhook_trigger_events.last_updated_at",
-			"webhook_trigger_events.archived_at",
+			"webhook_trigger_configs.id",
+			"webhook_trigger_configs.trigger_event",
+			"webhook_trigger_configs.belongs_to_webhook",
+			"webhook_trigger_configs.created_at",
+			"webhook_trigger_configs.archived_at",
 			"webhooks.created_at",
 			"webhooks.last_updated_at",
 			"webhooks.archived_at",
@@ -124,8 +123,8 @@ func Test_mergeColumns(T *testing.T) {
 			applyToEach(webhooksColumns, func(_ int, s string) string {
 				return fullColumnName(webhooksTableName, s)
 			}),
-			applyToEach(webhookTriggerEventsColumns, func(_ int, s string) string {
-				return fullColumnName(webhookTriggerEventsTableName, s)
+			applyToEach(webhookTriggerConfigsColumns, func(_ int, s string) string {
+				return fullColumnName(webhookTriggerConfigsTableName, s)
 			}),
 			5,
 		)

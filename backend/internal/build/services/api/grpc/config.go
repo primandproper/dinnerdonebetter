@@ -26,6 +26,7 @@ import (
 	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
 	"github.com/primandproper/platform-go/v9/server/grpc"
 	"github.com/primandproper/platform-go/v9/server/http"
+	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
 
 	"github.com/samber/do/v2"
 )
@@ -52,6 +53,10 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*textsearchcfg.Config](i, func(i do.Injector) (*textsearchcfg.Config, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)
 		return &cfg.TextSearch, nil
+	})
+	do.Provide[*webhookscfg.Config](i, func(i do.Injector) (*webhookscfg.Config, error) {
+		cfg := do.MustInvoke[*config.APIServiceConfig](i)
+		return &cfg.Webhooks, nil
 	})
 	do.Provide[*featureflagscfg.Config](i, func(i do.Injector) (*featureflagscfg.Config, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)

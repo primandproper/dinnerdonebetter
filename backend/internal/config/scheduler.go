@@ -15,6 +15,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/outbox"
 	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
+	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -42,8 +43,16 @@ type (
 		// lives here because it is a background loop, which is what this process is for,
 		// and because it needs exactly what this process already has: the database and a
 		// publisher provider.
-		Outbox outbox.RelayConfig  `envPrefix:"OUTBOX_" json:"outbox"`
-		Jobs   ScheduledJobsConfig `envPrefix:"JOBS_"   json:"jobs"`
+		Outbox outbox.RelayConfig `envPrefix:"OUTBOX_" json:"outbox"`
+
+		// Webhooks configures the outbound webhook delivery worker, which lives here for
+		// the same reasons the outbox relay does: it is a polling loop that must not be
+		// tied to a request, and it needs exactly what this process already has.
+		//
+		// Its own tick also reaps delivered dispatches and their attempts past the
+		// retention window, so retention needs no separate scheduled job.
+		Webhooks webhookscfg.Config  `envPrefix:"WEBHOOKS_" json:"webhooks"`
+		Jobs     ScheduledJobsConfig `envPrefix:"JOBS_"     json:"jobs"`
 	}
 
 	// ScheduledJobsConfig carries the scheduler's own knobs, the lock backend that serializes
@@ -146,6 +155,7 @@ func (cfg *SchedulerConfig) ValidateWithContext(ctx context.Context) error {
 		"Search":        cfg.Search.ValidateWithContext,
 		"Jobs":          cfg.Jobs.ValidateWithContext,
 		"Outbox":        cfg.Outbox.ValidateWithContext,
+		"Webhooks":      cfg.Webhooks.ValidateWithContext,
 	}
 
 	for name, validator := range validators {

@@ -4,6 +4,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks/generated"
 
 	"github.com/primandproper/platform-go/v9/database"
@@ -23,8 +24,12 @@ type repository struct {
 	generatedQuerier  generated.Querier
 	auditLogEntryRepo audit.Repository
 	events            *events.Emitter
-	readDB            database.SQLQueryExecutor
-	writeDB           database.SQLQueryExecutor
+	// dispatcher owns the delivery side of a webhook: the endpoint, its signing secret, and
+	// its subscriptions. It is required rather than optional, because a webhook that is stored
+	// and not registered is one the account was told exists and that will never fire.
+	dispatcher *webhookdispatch.Dispatcher
+	readDB     database.SQLQueryExecutor
+	writeDB    database.SQLQueryExecutor
 }
 
 // ProvideWebhooksRepository provides a new repository.
@@ -34,6 +39,7 @@ func ProvideWebhooksRepository(
 	auditLogEntryRepo audit.Repository,
 	client database.Client,
 	eventEmitter *events.Emitter,
+	dispatcher *webhookdispatch.Dispatcher,
 ) webhooks.Repository {
 	c := &repository{
 		Client:            client,
@@ -43,6 +49,7 @@ func ProvideWebhooksRepository(
 		generatedQuerier:  generated.New(),
 		auditLogEntryRepo: auditLogEntryRepo,
 		events:            eventEmitter,
+		dispatcher:        dispatcher,
 		logger:            logging.NewNamedLogger(logger, o11yName),
 	}
 

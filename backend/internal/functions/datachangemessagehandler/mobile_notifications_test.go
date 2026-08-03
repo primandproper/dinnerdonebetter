@@ -23,7 +23,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("invalid JSON", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), []byte("not json"))
 
@@ -34,7 +34,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("missing title", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		req := notifications.MobileNotificationRequest{
 			RequestType:      mealplanningnotifications.MobileNotificationRequestTypeMealPlanTask,
@@ -53,7 +53,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("missing body", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		req := notifications.MobileNotificationRequest{
 			RequestType:      mealplanningnotifications.MobileNotificationRequestTypeMealPlanTask,
@@ -72,7 +72,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("missing request type", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		req := notifications.MobileNotificationRequest{
 			RecipientUserIDs: []string{"user-1"},
@@ -90,7 +90,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("unknown request type", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		req := notifications.MobileNotificationRequest{
 			RequestType:      "unknown_type",
@@ -109,7 +109,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("meal plan task requires mealPlanTaskID in context", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		req := notifications.MobileNotificationRequest{
 			RequestType:      mealplanningnotifications.MobileNotificationRequestTypeMealPlanTask,
@@ -128,7 +128,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("idempotent skip when meal plan task already sent", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 		mealPlanRepo := &mealplanningmock.RepositoryMock{}
 		handler.mealPlanRepo = mealPlanRepo
 
@@ -158,7 +158,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("no recipients with meal plan task ID marks sent", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 		mealPlanRepo := &mealplanningmock.RepositoryMock{}
 		handler.mealPlanRepo = mealPlanRepo
 
@@ -194,7 +194,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("no device tokens with meal plan task ID marks sent", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 		mealPlanRepo := &mealplanningmock.RepositoryMock{}
 		notificationsRepo := &notificationsmock.RepositoryMock{}
 		handler.mealPlanRepo = mealPlanRepo
@@ -239,7 +239,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("success sends push and marks meal plan task sent", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 		mealPlanRepo := &mealplanningmock.RepositoryMock{}
 		notificationsRepo := &notificationsmock.RepositoryMock{}
 		handler.mealPlanRepo = mealPlanRepo

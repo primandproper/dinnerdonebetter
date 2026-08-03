@@ -352,7 +352,7 @@ func (h *mcpToolManager) setupServer() *mcp.Server {
 	// Webhooks (read-only)
 	mcp.AddTool(mcpServer, getWebhookTool, h.GetWebhook())
 	mcp.AddTool(mcpServer, getWebhooksTool, h.GetWebhooks())
-	mcp.AddTool(mcpServer, getWebhookTriggerEventsTool, h.GetWebhookTriggerEvents())
+	mcp.AddTool(mcpServer, getWebhookEventTypesTool, h.GetWebhookEventTypes())
 
 	// Waitlists (read-only)
 	mcp.AddTool(mcpServer, getWaitlistTool, h.GetWaitlist())

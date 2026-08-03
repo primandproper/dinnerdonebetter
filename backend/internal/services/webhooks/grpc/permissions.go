@@ -29,20 +29,16 @@ func ProvideMethodPermissions() WebhooksMethodPermissions {
 		webhookssvc.WebhooksService_ArchiveWebhookTriggerConfig_FullMethodName: {
 			authorization.ArchiveWebhookTriggerConfigsPermission,
 		},
-		webhookssvc.WebhooksService_ArchiveWebhookTriggerEvent_FullMethodName: {
-			authorization.ArchiveWebhookTriggerEventsPermission,
+		// Rotating a signing secret invalidates the old one for every delivery once the
+		// window closes, so it is gated as a webhook mutation rather than a read.
+		webhookssvc.WebhooksService_RotateWebhookSecret_FullMethodName: {
+			authorization.UpdateWebhooksPermission,
 		},
-		webhookssvc.WebhooksService_CreateWebhookTriggerEvent_FullMethodName: {
-			authorization.CreateWebhookTriggerEventsPermission,
-		},
-		webhookssvc.WebhooksService_GetWebhookTriggerEvent_FullMethodName: {
-			authorization.ReadWebhookTriggerEventsPermission,
-		},
-		webhookssvc.WebhooksService_GetWebhookTriggerEvents_FullMethodName: {
-			authorization.ReadWebhookTriggerEventsPermission,
-		},
-		webhookssvc.WebhooksService_UpdateWebhookTriggerEvent_FullMethodName: {
-			authorization.UpdateWebhookTriggerEventsPermission,
+		// The catalog is generated Go, identical for every account, and names no account's
+		// data — so reading it needs only the permission that lets someone see webhooks at
+		// all, and there is no create/update/archive counterpart to gate.
+		webhookssvc.WebhooksService_GetWebhookEventTypes_FullMethodName: {
+			authorization.ReadWebhooksPermission,
 		},
 	}
 }

@@ -5,7 +5,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
 	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"
@@ -20,8 +19,9 @@ func BuildQueueTestMessage(topicName, testID, userID string) (any, error) {
 		return &queuemessages.OutboundEmailMessage{TestID: testID, UserID: userID}, nil
 	case "search_index_requests":
 		return &queuemessages.IndexRequest{TestID: testID}, nil
-	case "webhook_execution_requests":
-		return &webhooks.WebhookExecutionRequest{TestID: testID}, nil
+	// There is no webhook_execution_requests topic any more. Webhook deliveries are rows
+	// written inside the transaction that caused them and claimed by a worker, not messages on
+	// a broker, so there is no queue here to probe.
 	case "user_data_aggregation", "user_data_aggregation_requests":
 		return &dataprivacy.UserDataAggregationRequest{TestID: testID, UserID: userID}, nil
 	case "mobile_notifications":

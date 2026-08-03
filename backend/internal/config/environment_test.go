@@ -133,11 +133,10 @@ func TestEnvironmentConfigSet_Render(T *testing.T) {
 		rootConfig := &APIServiceConfig{
 			Auth: authcfg.Config{},
 			Queues: queuescfg.Config{
-				DataChangesTopicName:              "data-changes",
-				OutboundEmailsTopicName:           "outbound-emails",
-				SearchIndexRequestsTopicName:      "search-index-requests",
-				UserDataAggregationTopicName:      "user-data-aggregation",
-				WebhookExecutionRequestsTopicName: "webhook-execution-requests",
+				DataChangesTopicName:         "data-changes",
+				OutboundEmailsTopicName:      "outbound-emails",
+				SearchIndexRequestsTopicName: "search-index-requests",
+				UserDataAggregationTopicName: "user-data-aggregation",
 			},
 			Email:        emailcfg.Config{},
 			Analytics:    analyticscfg.Config{},

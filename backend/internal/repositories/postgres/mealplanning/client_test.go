@@ -74,7 +74,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 		auditLogEntryRepo,
 		identitiesRepo,
 		pgc,
-		events.NewEmitter(outboxWriter, testDataChangesTopic),
+		events.NewEmitter(outboxWriter, testDataChangesTopic, nil),
 	)
 
 	return c.(*repository), auditLogEntryRepo

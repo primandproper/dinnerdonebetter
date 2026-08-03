@@ -94,25 +94,6 @@ WHERE webhooks.archived_at IS NULL
 ORDER BY webhooks.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
--- name: GetWebhooksForAccountAndEvent :many
-SELECT
-	webhooks.id,
-	webhooks.name,
-	webhooks.content_type,
-	webhooks.url,
-	webhooks.method,
-	webhooks.created_at,
-	webhooks.last_updated_at,
-	webhooks.archived_at,
-	webhooks.created_by_user,
-	webhooks.belongs_to_account
-FROM webhooks
-	JOIN webhook_trigger_configs ON webhooks.id = webhook_trigger_configs.belongs_to_webhook
-WHERE webhook_trigger_configs.archived_at IS NULL
-	AND webhook_trigger_configs.trigger_event = sqlc.arg(trigger_event)
-	AND webhooks.belongs_to_account = sqlc.arg(belongs_to_account)
-	AND webhooks.archived_at IS NULL;
-
 -- name: GetWebhook :many
 SELECT
 	webhooks.id as webhook_id,
@@ -131,8 +112,7 @@ SELECT
 	webhooks.created_by_user as webhook_created_by_user,
 	webhooks.belongs_to_account as webhook_belongs_to_account
 FROM webhooks
-	LEFT JOIN webhook_trigger_configs ON webhooks.id = webhook_trigger_configs.belongs_to_webhook
-WHERE webhook_trigger_configs.archived_at IS NULL
-	AND webhooks.archived_at IS NULL
+	LEFT JOIN webhook_trigger_configs ON webhooks.id = webhook_trigger_configs.belongs_to_webhook AND webhook_trigger_configs.archived_at IS NULL
+WHERE webhooks.archived_at IS NULL
 	AND webhooks.belongs_to_account = sqlc.arg(belongs_to_account)
 	AND webhooks.id = sqlc.arg(id);

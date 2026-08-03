@@ -42,7 +42,10 @@ func (s *serviceImpl) CreateWebhook(ctx context.Context, request *webhookssvc.Cr
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Created: converters.ConvertWebhookToGRPCWebhook(created),
+		Created: converters.ConvertWebhookToGRPCWebhook(created.Webhook),
+		// The only time this value leaves the server. It is not logged and no read path can
+		// produce it; a caller who loses it calls RotateWebhookSecret.
+		Secret: created.Secret,
 	}
 
 	return x, nil
@@ -62,8 +65,12 @@ func (s *serviceImpl) AddWebhookTriggerConfig(ctx context.Context, request *webh
 
 	requestInput := &webhooks.WebhookTriggerConfigCreationRequestInput{
 		BelongsToWebhook: request.WebhookId,
-		TriggerEventID:   request.Input.GetTriggerEventId(),
+		EventType:        request.Input.GetEventType(),
 	}
+	if err = requestInput.ValidateWithContext(ctx); err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate webhook trigger config request")
+	}
+
 	created, err := s.webhookManager.AddWebhookTriggerConfig(ctx, sessionContextData.ActiveAccountID, requestInput)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to add webhook trigger config")
@@ -180,7 +187,7 @@ func (s *serviceImpl) ArchiveWebhookTriggerConfig(ctx context.Context, request *
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch webhook")
 	}
 
-	if err = s.webhookManager.ArchiveWebhookTriggerConfig(ctx, request.WebhookId, request.WebhookTriggerConfigId); err != nil {
+	if err = s.webhookManager.ArchiveWebhookTriggerConfig(ctx, request.WebhookId, sessionContextData.ActiveAccountID, request.WebhookTriggerConfigId); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive webhook trigger config")
 	}
 
@@ -191,24 +198,40 @@ func (s *serviceImpl) ArchiveWebhookTriggerConfig(ctx context.Context, request *
 	}, nil
 }
 
-func (s *serviceImpl) ArchiveWebhookTriggerEvent(ctx context.Context, request *webhookssvc.ArchiveWebhookTriggerEventRequest) (*webhookssvc.ArchiveWebhookTriggerEventResponse, error) {
+// RotateWebhookSecret mints a new signing secret for a webhook and returns it, once.
+//
+// Deliveries are signed under both the new key and the outgoing one until this is called again,
+// so a subscriber accepts either signature for as long as it needs to switch over.
+func (s *serviceImpl) RotateWebhookSecret(ctx context.Context, request *webhookssvc.RotateWebhookSecretRequest) (*webhookssvc.RotateWebhookSecretResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := s.logger.WithValue(webhookkeys.WebhookTriggerEventIDKey, request.Id)
+	logger := s.logger.WithSpan(span).WithValue(webhookkeys.WebhookIDKey, request.WebhookId)
 
-	if err := s.webhookManager.ArchiveWebhookTriggerEvent(ctx, request.Id); err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive webhook trigger event")
+	sessionContextData, err := s.sessionContextDataFetcher(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to fetch session context data")
+	}
+	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.ActiveAccountID)
+
+	secret, err := s.webhookManager.RotateWebhookSecret(ctx, request.WebhookId, sessionContextData.ActiveAccountID)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to rotate webhook signing secret")
 	}
 
-	return &webhookssvc.ArchiveWebhookTriggerEventResponse{
+	return &webhookssvc.RotateWebhookSecretResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
+		Secret: secret,
 	}, nil
 }
 
-func (s *serviceImpl) CreateWebhookTriggerEvent(ctx context.Context, request *webhookssvc.CreateWebhookTriggerEventRequest) (*webhookssvc.CreateWebhookTriggerEventResponse, error) {
+// GetWebhookEventTypes lists the events a webhook may subscribe to.
+//
+// The list is generated Go rather than a table, so this reads no database and takes no filter:
+// it is a constant for the lifetime of the deployment.
+func (s *serviceImpl) GetWebhookEventTypes(ctx context.Context, _ *webhookssvc.GetWebhookEventTypesRequest) (*webhookssvc.GetWebhookEventTypesResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -216,59 +239,15 @@ func (s *serviceImpl) CreateWebhookTriggerEvent(ctx context.Context, request *we
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Unauthenticated, "failed to fetch session context data")
 	}
 
-	requestInput := converters.ConvertGRPCWebhookTriggerEventCreationRequestInputToWebhookTriggerEventCreationRequestInput(request.Input)
-	created, err := s.webhookManager.CreateWebhookTriggerEvent(ctx, requestInput)
-	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Internal, "failed to create webhook trigger event")
+	x := &webhookssvc.GetWebhookEventTypesResponse{
+		ResponseDetails: &types.ResponseDetails{
+			TraceId: span.SpanContext().TraceID().String(),
+		},
 	}
-	return &webhookssvc.CreateWebhookTriggerEventResponse{
-		ResponseDetails: &types.ResponseDetails{TraceId: span.SpanContext().TraceID().String()},
-		Created:         converters.ConvertWebhookTriggerEventCatalogToGRPCWebhookTriggerEvent(created),
-	}, nil
-}
 
-func (s *serviceImpl) GetWebhookTriggerEvent(ctx context.Context, request *webhookssvc.GetWebhookTriggerEventRequest) (*webhookssvc.GetWebhookTriggerEventResponse, error) {
-	ctx, span := s.tracer.StartSpan(ctx)
-	defer span.End()
+	for _, eventType := range s.webhookManager.GetWebhookEventTypes(ctx) {
+		x.Results = append(x.Results, converters.ConvertWebhookEventTypeToGRPCWebhookEventType(eventType))
+	}
 
-	result, err := s.webhookManager.GetWebhookTriggerEvent(ctx, request.Id)
-	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Internal, "failed to get webhook trigger event")
-	}
-	return &webhookssvc.GetWebhookTriggerEventResponse{
-		ResponseDetails: &types.ResponseDetails{TraceId: span.SpanContext().TraceID().String()},
-		Result:          converters.ConvertWebhookTriggerEventCatalogToGRPCWebhookTriggerEvent(result),
-	}, nil
-}
-
-func (s *serviceImpl) GetWebhookTriggerEvents(ctx context.Context, request *webhookssvc.GetWebhookTriggerEventsRequest) (*webhookssvc.GetWebhookTriggerEventsResponse, error) {
-	ctx, span := s.tracer.StartSpan(ctx)
-	defer span.End()
-
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
-	retrieved, err := s.webhookManager.GetWebhookTriggerEvents(ctx, filter)
-	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Internal, "failed to get webhook trigger events")
-	}
-	x := &webhookssvc.GetWebhookTriggerEventsResponse{
-		ResponseDetails: &types.ResponseDetails{TraceId: span.SpanContext().TraceID().String()},
-		Pagination:      grpcconverters.ConvertPaginationToGRPCPagination(retrieved.Pagination, filter),
-	}
-	for _, ev := range retrieved.Data {
-		x.Results = append(x.Results, converters.ConvertWebhookTriggerEventCatalogToGRPCWebhookTriggerEvent(ev))
-	}
 	return x, nil
-}
-
-func (s *serviceImpl) UpdateWebhookTriggerEvent(ctx context.Context, request *webhookssvc.UpdateWebhookTriggerEventRequest) (*webhookssvc.UpdateWebhookTriggerEventResponse, error) {
-	ctx, span := s.tracer.StartSpan(ctx)
-	defer span.End()
-
-	input := converters.ConvertGRPCWebhookTriggerEventUpdateRequestInputToWebhookTriggerEventUpdateRequestInput(request.Input)
-	if err := s.webhookManager.UpdateWebhookTriggerEvent(ctx, request.Id, input); err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Internal, "failed to update webhook trigger event")
-	}
-	return &webhookssvc.UpdateWebhookTriggerEventResponse{
-		ResponseDetails: &types.ResponseDetails{TraceId: span.SpanContext().TraceID().String()},
-	}, nil
 }

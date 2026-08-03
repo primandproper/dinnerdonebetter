@@ -23,6 +23,7 @@ import (
 	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
 	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
 	"github.com/primandproper/platform-go/v9/server/http"
+	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -312,6 +313,18 @@ func TestAPIServiceConfig_Commit(T *testing.T) {
 	})
 }
 
+// validWebhooksConfigForTest renders a webhooks config that passes validation.
+//
+// EnsureDefaults fills every knob but the circuit breaker's name, which has no default worth
+// having: an unnamed breaker reports that something is failing without saying which subscriber.
+func validWebhooksConfigForTest() webhookscfg.Config {
+	cfg := webhookscfg.Config{}
+	cfg.EnsureDefaults()
+	cfg.CircuitBreaker.Name = "webhook_delivery"
+
+	return cfg
+}
+
 func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 	T.Parallel()
 
@@ -334,12 +347,11 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 				StartupDeadline: time.Minute,
 			},
 			Queues: queuescfg.Config{
-				DataChangesTopicName:              "data-changes",
-				OutboundEmailsTopicName:           "outbound-emails",
-				SearchIndexRequestsTopicName:      "search-index-requests",
-				UserDataAggregationTopicName:      "user-data-aggregation",
-				WebhookExecutionRequestsTopicName: "webhook-execution-requests",
-				MobileNotificationsTopicName:      "mobile-notifications",
+				DataChangesTopicName:         "data-changes",
+				OutboundEmailsTopicName:      "outbound-emails",
+				SearchIndexRequestsTopicName: "search-index-requests",
+				UserDataAggregationTopicName: "user-data-aggregation",
+				MobileNotificationsTopicName: "mobile-notifications",
 			},
 			Database: dbcfg.Config{
 				Config: databasecfg.Config{
@@ -360,6 +372,7 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 			Analytics:    analyticscfg.Config{SourceConfig: analyticscfg.SourceConfig{Provider: analyticscfg.ProviderNoop}},
 			TextSearch:   textsearchcfg.Config{Provider: textsearchcfg.ProviderNoop},
 			Email:        emailcfg.Config{Provider: emailcfg.ProviderNoop},
+			Webhooks:     validWebhooksConfigForTest(),
 		}
 
 		err := cfg.ValidateWithContext(ctx)
@@ -384,11 +397,10 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 				StartupDeadline: time.Minute,
 			},
 			Queues: queuescfg.Config{
-				DataChangesTopicName:              "data-changes",
-				OutboundEmailsTopicName:           "outbound-emails",
-				SearchIndexRequestsTopicName:      "search-index-requests",
-				UserDataAggregationTopicName:      "user-data-aggregation",
-				WebhookExecutionRequestsTopicName: "webhook-execution-requests",
+				DataChangesTopicName:         "data-changes",
+				OutboundEmailsTopicName:      "outbound-emails",
+				SearchIndexRequestsTopicName: "search-index-requests",
+				UserDataAggregationTopicName: "user-data-aggregation",
 			},
 			Database: dbcfg.Config{
 				Config: databasecfg.Config{

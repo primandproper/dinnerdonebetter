@@ -39,12 +39,11 @@ func buildTestPoolsHandler(t *testing.T, consumerProvider messagequeue.ConsumerP
 	t.Helper()
 
 	queues := queuescfg.Config{
-		DataChangesTopicName:              "data-changes",
-		OutboundEmailsTopicName:           "outbound-emails",
-		SearchIndexRequestsTopicName:      "search-index-requests",
-		WebhookExecutionRequestsTopicName: "webhook-execution-requests",
-		UserDataAggregationTopicName:      "user-data-aggregation",
-		MobileNotificationsTopicName:      "mobile-notifications",
+		DataChangesTopicName:         "data-changes",
+		OutboundEmailsTopicName:      "outbound-emails",
+		SearchIndexRequestsTopicName: "search-index-requests",
+		UserDataAggregationTopicName: "user-data-aggregation",
+		MobileNotificationsTopicName: "mobile-notifications",
 	}
 
 	return &AsyncDataChangeMessageHandler{
@@ -93,7 +92,7 @@ func TestAsyncDataChangeMessageHandler_Start(T *testing.T) {
 			assert.NoError(t, handler.Close(closeCtx))
 		})
 
-		assert.Len(t, handler.pools, 6)
+		assert.Len(t, handler.pools, 5)
 
 		hat.Lock()
 		defer hat.Unlock()
@@ -101,7 +100,6 @@ func TestAsyncDataChangeMessageHandler_Start(T *testing.T) {
 			"data-changes",
 			"outbound-emails",
 			"search-index-requests",
-			"webhook-execution-requests",
 			"user-data-aggregation",
 			"mobile-notifications",
 		}, topics)

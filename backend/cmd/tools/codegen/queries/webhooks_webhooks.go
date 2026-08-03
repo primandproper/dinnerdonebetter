@@ -128,41 +128,26 @@ WHERE %s.%s IS NULL
 					buildCursorLimitClause(webhooksTableName),
 				)),
 			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetWebhooksForAccountAndEvent",
-					Type: ManyType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT 
-	%s
-FROM %s
-	JOIN %s ON %s.%s = %s.%s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s IS NULL;`,
-					strings.Join(applyToEach(webhooksColumns, func(_ int, s string) string {
-						return fullColumnName(webhooksTableName, s)
-					}), ",\n\t"),
-					webhooksTableName,
-					webhookTriggerConfigsTableName, webhooksTableName, idColumn, webhookTriggerConfigsTableName, belongsToWebhookColumn,
-					webhookTriggerConfigsTableName, archivedAtColumn,
-					webhookTriggerConfigsTableName, triggerEventColumn, triggerEventColumn,
-					webhooksTableName, belongsToAccountColumn, belongsToAccountColumn,
-					webhooksTableName, archivedAtColumn,
-				)),
-			},
+			// There is deliberately no "webhooks for this account and event" query here any
+			// more. Fan-out reads the platform's webhooks_subscriptions table, whose event
+			// types carry the account, so that table is the single answer to "who wants this
+			// event" — two tables that could answer it would eventually answer differently.
 			{
 				Annotation: QueryAnnotation{
 					Name: "GetWebhook",
 					Type: ManyType,
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT 
+				// The archived-config filter belongs in the JOIN, not the WHERE.
+				//
+				// In the WHERE it silently turns the LEFT JOIN into an inner one: a webhook
+				// whose every trigger config is archived matches no rows and disappears
+				// from its owner's view entirely, which is what unsubscribing from your
+				// last event used to do to a webhook.
+				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
-	LEFT JOIN %s ON %s.%s = %s.%s
+	LEFT JOIN %s ON %s.%s = %s.%s AND %s.%s IS NULL
 WHERE %s.%s IS NULL
-	AND %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 	AND %s.%s = sqlc.arg(%s);`,
 					strings.Join(applyToEach(fullSelectColumns, func(_ int, s string) string {

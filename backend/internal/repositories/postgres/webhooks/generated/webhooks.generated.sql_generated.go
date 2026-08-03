@@ -115,9 +115,8 @@ SELECT
 	webhooks.created_by_user as webhook_created_by_user,
 	webhooks.belongs_to_account as webhook_belongs_to_account
 FROM webhooks
-	LEFT JOIN webhook_trigger_configs ON webhooks.id = webhook_trigger_configs.belongs_to_webhook
-WHERE webhook_trigger_configs.archived_at IS NULL
-	AND webhooks.archived_at IS NULL
+	LEFT JOIN webhook_trigger_configs ON webhooks.id = webhook_trigger_configs.belongs_to_webhook AND webhook_trigger_configs.archived_at IS NULL
+WHERE webhooks.archived_at IS NULL
 	AND webhooks.belongs_to_account = $1
 	AND webhooks.id = $2
 `
@@ -313,65 +312,6 @@ func (q *Queries) GetWebhooksForAccount(ctx context.Context, db DBTX, arg *GetWe
 			&i.BelongsToAccount,
 			&i.FilteredCount,
 			&i.TotalCount,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, &i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getWebhooksForAccountAndEvent = `-- name: GetWebhooksForAccountAndEvent :many
-SELECT
-	webhooks.id,
-	webhooks.name,
-	webhooks.content_type,
-	webhooks.url,
-	webhooks.method,
-	webhooks.created_at,
-	webhooks.last_updated_at,
-	webhooks.archived_at,
-	webhooks.created_by_user,
-	webhooks.belongs_to_account
-FROM webhooks
-	JOIN webhook_trigger_configs ON webhooks.id = webhook_trigger_configs.belongs_to_webhook
-WHERE webhook_trigger_configs.archived_at IS NULL
-	AND webhook_trigger_configs.trigger_event = $1
-	AND webhooks.belongs_to_account = $2
-	AND webhooks.archived_at IS NULL
-`
-
-type GetWebhooksForAccountAndEventParams struct {
-	TriggerEvent     string
-	BelongsToAccount string
-}
-
-func (q *Queries) GetWebhooksForAccountAndEvent(ctx context.Context, db DBTX, arg *GetWebhooksForAccountAndEventParams) ([]*Webhooks, error) {
-	rows, err := db.QueryContext(ctx, getWebhooksForAccountAndEvent, arg.TriggerEvent, arg.BelongsToAccount)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []*Webhooks{}
-	for rows.Next() {
-		var i Webhooks
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.ContentType,
-			&i.URL,
-			&i.Method,
-			&i.CreatedAt,
-			&i.LastUpdatedAt,
-			&i.ArchivedAt,
-			&i.CreatedByUser,
-			&i.BelongsToAccount,
 		); err != nil {
 			return nil, err
 		}

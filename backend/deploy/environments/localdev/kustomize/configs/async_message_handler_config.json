@@ -5,8 +5,7 @@
 		"outboundEmailsTopicName": "outbound_emails",
 		"searchIndexRequestsTopicName": "search_index_requests",
 		"mobileNotificationsTopicName": "mobile_notifications",
-		"userDataAggregationTopicName": "user_data_aggregation_requests",
-		"webhookExecutionRequestsTopicName": "webhook_execution_requests"
+		"userDataAggregationTopicName": "user_data_aggregation_requests"
 	},
 	"storage": {
 		"filesystem": {
@@ -218,19 +217,6 @@
 				"useJitter": true
 			},
 			"concurrency": 8,
-			"handlerTimeout": 30000000000
-		},
-		"webhookExecutionRequests": {
-			"topic": "",
-			"retry": {
-				"provider": "",
-				"maxAttempts": 4,
-				"initialDelay": 100000000,
-				"maxDelay": 30000000000,
-				"multiplier": 2,
-				"useJitter": true
-			},
-			"concurrency": 16,
 			"handlerTimeout": 30000000000
 		},
 		"userDataAggregation": {

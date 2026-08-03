@@ -28,8 +28,15 @@ func createWebhookForTest(t *testing.T, ctx context.Context, exampleWebhook *typ
 	}
 	dbInput := converters.ConvertWebhookToWebhookDatabaseCreationInput(exampleWebhook)
 
-	created, err := dbc.CreateWebhook(ctx, dbInput)
+	response, err := dbc.CreateWebhook(ctx, dbInput)
 	assert.NoError(t, err)
+	require.NotNil(t, response)
+
+	// The signing secret is returned here and nowhere else, so this is the only place it can
+	// be asserted on at all.
+	assert.NotEmpty(t, response.Secret)
+
+	created := response.Webhook
 	require.NotNil(t, created)
 
 	exampleWebhook.CreatedAt = created.CreatedAt
@@ -57,19 +64,9 @@ func TestQuerier_Integration_Webhooks(t *testing.T) {
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
 
-	// Create catalog trigger events so webhook trigger configs can reference them
-	catalogEvent, err := dbc.CreateWebhookTriggerEvent(ctx, &types.WebhookTriggerEventDatabaseCreationInput{
-		ID:          identifiers.New(),
-		Name:        "webhook_created",
-		Description: "test",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, catalogEvent)
-
 	exampleWebhook := fakes.BuildFakeWebhook()
 	exampleWebhook.BelongsToAccount = account.ID
 	exampleWebhook.CreatedByUser = user.ID
-	exampleWebhook.TriggerConfigs[0].TriggerEventID = catalogEvent.ID
 	createdWebhooks := []*types.Webhook{}
 
 	// create
@@ -81,7 +78,6 @@ func TestQuerier_Integration_Webhooks(t *testing.T) {
 		input.Name = fmt.Sprintf("%s %d", exampleWebhook.Name, i)
 		input.BelongsToAccount = account.ID
 		input.CreatedByUser = user.ID
-		input.TriggerConfigs[0].TriggerEventID = catalogEvent.ID
 		createdWebhooks = append(createdWebhooks, createWebhookForTest(t, ctx, input, dbc))
 	}
 
@@ -91,25 +87,17 @@ func TestQuerier_Integration_Webhooks(t *testing.T) {
 	assert.NotEmpty(t, webhooks.Data)
 	assert.Equal(t, len(createdWebhooks), len(webhooks.Data))
 
-	// fetch as list (by trigger event ID from first webhook's first config)
-	triggerEventID := createdWebhooks[0].TriggerConfigs[0].TriggerEventID
-	webhooksByAccountAndEvent, err := dbc.GetWebhooksForAccountAndEvent(ctx, account.ID, triggerEventID)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, webhooksByAccountAndEvent)
-
-	// Create a catalog trigger event and add a trigger config for it
-	catalogEvent2, err := dbc.CreateWebhookTriggerEvent(ctx, &types.WebhookTriggerEventDatabaseCreationInput{
-		ID:          identifiers.New(),
-		Name:        "test_event",
-		Description: "test",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, catalogEvent2)
+	// Subscribe the webhook to a second event type. It has to differ from the one the fake
+	// already carries: (trigger_event, belongs_to_webhook, archived_at) is unique.
+	secondEventType := fakes.BuildFakeWebhookEventType()
+	for secondEventType == createdWebhooks[0].TriggerConfigs[0].EventType {
+		secondEventType = fakes.BuildFakeWebhookEventType()
+	}
 
 	createdConfig, err := dbc.AddWebhookTriggerConfig(ctx, account.ID, &types.WebhookTriggerConfigDatabaseCreationInput{
 		ID:               identifiers.New(),
 		BelongsToWebhook: createdWebhooks[0].ID,
-		TriggerEventID:   catalogEvent2.ID,
+		EventType:        secondEventType,
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, createdConfig)
@@ -126,7 +114,7 @@ func TestQuerier_Integration_Webhooks(t *testing.T) {
 	// delete: archive trigger configs then archive webhook; archive catalog event if needed
 	for _, webhook := range createdWebhooks {
 		for _, cfg := range webhook.TriggerConfigs {
-			assert.NoError(t, dbc.ArchiveWebhookTriggerConfig(ctx, webhook.ID, cfg.ID))
+			assert.NoError(t, dbc.ArchiveWebhookTriggerConfig(ctx, webhook.ID, account.ID, cfg.ID))
 		}
 
 		assert.NoError(t, dbc.ArchiveWebhook(ctx, webhook.ID, account.ID))
@@ -213,23 +201,6 @@ func TestQuerier_CreateWebhook(T *testing.T) {
 	})
 }
 
-func TestQuerier_CreateWebhookTriggerEvent(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with nil input", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		created, err := c.CreateWebhookTriggerEvent(ctx, nil)
-		assert.Error(t, err)
-		assert.Nil(t, created)
-	})
-
-	// "with valid input" requires a real DB and is covered by integration tests
-}
-
 func TestQuerier_ArchiveWebhook(T *testing.T) {
 	T.Parallel()
 
@@ -267,7 +238,7 @@ func TestQuerier_ArchiveWebhookTriggerConfig(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveWebhookTriggerConfig(ctx, "", exampleConfigID))
+		assert.Error(t, c.ArchiveWebhookTriggerConfig(ctx, "", fakes.BuildFakeID(), exampleConfigID))
 	})
 
 	T.Run("with invalid webhook trigger config ID", func(t *testing.T) {
@@ -278,20 +249,7 @@ func TestQuerier_ArchiveWebhookTriggerConfig(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveWebhookTriggerConfig(ctx, exampleWebhookID, ""))
-	})
-}
-
-func TestQuerier_ArchiveWebhookTriggerEvent(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with invalid catalog event ID", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		assert.Error(t, c.ArchiveWebhookTriggerEvent(ctx, ""))
+		assert.Error(t, c.ArchiveWebhookTriggerConfig(ctx, exampleWebhookID, fakes.BuildFakeID(), ""))
 	})
 }
 
@@ -301,14 +259,6 @@ func TestQuerier_Integration_CursorBasedPagination(t *testing.T) {
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
-
-	catalogEvent, err := dbc.CreateWebhookTriggerEvent(ctx, &types.WebhookTriggerEventDatabaseCreationInput{
-		ID:          identifiers.New(),
-		Name:        "pagination_event",
-		Description: "for pagination test",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, catalogEvent)
 
 	// Use the generic pagination test helper
 	pgtesting.TestCursorBasedPagination(t, ctx, pgtesting.PaginationTestConfig[types.Webhook]{
@@ -320,7 +270,6 @@ func TestQuerier_Integration_CursorBasedPagination(t *testing.T) {
 			webhook.Name = fmt.Sprintf("Webhook %02d", i) // Use zero-padded numbers for consistent sorting
 			webhook.BelongsToAccount = account.ID
 			webhook.CreatedByUser = user.ID
-			webhook.TriggerConfigs[0].TriggerEventID = catalogEvent.ID
 			return createWebhookForTest(t, ctx, webhook, dbc)
 		},
 		FetchPage: func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Webhook], error) {
@@ -331,7 +280,7 @@ func TestQuerier_Integration_CursorBasedPagination(t *testing.T) {
 		},
 		CleanupItem: func(ctx context.Context, webhook *types.Webhook) error {
 			for _, cfg := range webhook.TriggerConfigs {
-				if err = dbc.ArchiveWebhookTriggerConfig(ctx, webhook.ID, cfg.ID); err != nil {
+				if err := dbc.ArchiveWebhookTriggerConfig(ctx, webhook.ID, account.ID, cfg.ID); err != nil {
 					return err
 				}
 			}

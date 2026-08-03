@@ -10,6 +10,8 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/logging"
 	"github.com/primandproper/platform-go/v9/outbox"
 	outboxmigrations "github.com/primandproper/platform-go/v9/outbox/migrations"
+	"github.com/primandproper/platform-go/v9/webhooks"
+	webhooksmigrations "github.com/primandproper/platform-go/v9/webhooks/migrations"
 )
 
 var (
@@ -22,11 +24,21 @@ var (
 // replica applies migrations while the rest wait rather than racing.
 const lockKey = "dinnerdonebetter"
 
-// outboxMigrationVersion is where the platform's outbox table lands in this repository's
-// migration ordering. The platform does not ship a numbered file — numbering is global per
-// consumer, so a platform-owned number would collide the moment either side added one — and
-// hands us the DDL instead. Keep it above every file in migration_files.
-const outboxMigrationVersion = 22
+// Versions for the platform-supplied schemas. The platform ships no numbered files — numbering
+// is global per consumer, so a platform-owned number would collide the moment either side added
+// one — and hands us the DDL instead.
+//
+// These interleave with migration_files rather than sitting above all of them, because a
+// numbered file may need to run after one of them: 00023 backfills the webhook endpoints table,
+// which cannot exist before 23 creates it.
+const (
+	// outboxMigrationVersion is where the platform's outbox table lands.
+	outboxMigrationVersion = 22
+
+	// webhooksMigrationVersion is where the platform's five webhook tables land. It must stay
+	// below 00023_webhooks_platform.sql, which backfills endpoints for existing webhooks.
+	webhooksMigrationVersion = 23
+)
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
 //
@@ -47,12 +59,21 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, errors.Wrap(err, "rendering outbox migration")
 	}
 
+	// Likewise the five webhook tables — endpoints, subscriptions, deliveries, dispatches, and
+	// attempts — together with the partial indexes the claim predicate depends on. Copying
+	// those by hand is how a claim quietly starts scanning history instead of backlog.
+	webhooksDDL, err := webhooksmigrations.SQL(dialect.Postgres, webhooks.DefaultTablePrefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "rendering webhooks migration")
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
 		migrate.WithLogger(logging.EnsureLogger(logger)),
 		migrate.WithLockKey(lockKey),
 		migrate.WithGeneratedMigration(outboxMigrationVersion, "create_outbox_messages", outboxDDL),
+		migrate.WithGeneratedMigration(webhooksMigrationVersion, "create_webhooks_tables", webhooksDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")

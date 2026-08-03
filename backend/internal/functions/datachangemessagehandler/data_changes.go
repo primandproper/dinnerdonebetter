@@ -3,12 +3,10 @@ package datachangemessagehandler
 import (
 	"context"
 	"fmt"
-	"slices"
 	"sync"
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/retry"
@@ -88,31 +86,12 @@ func (a *AsyncDataChangeMessageHandler) handleDataChangeMessage(
 		}
 	}
 
+	// Webhook fan-out used to happen here, one queue message per subscriber. It does not any
+	// more: deliveries are dispatch rows written inside the transaction that caused the event,
+	// by internal/repositories/postgres/events, and claimed by the delivery worker. That is
+	// what makes a delivery commit with the state change it describes rather than being
+	// published afterwards and lost if the publish fails.
 	var wg sync.WaitGroup
-
-	wg.Go(func() {
-		a.nonWebhookEventTypesHat.RLock()
-		eventTypeIsValid := slices.Contains(a.nonWebhookEventTypes, changeMessage.EventType)
-		a.nonWebhookEventTypesHat.RUnlock()
-
-		if changeMessage.AccountID != "" && !eventTypeIsValid {
-			relevantWebhooks, err := a.webhookRepo.GetWebhooksForAccountAndEvent(ctx, changeMessage.AccountID, changeMessage.EventType)
-			if err != nil {
-				observability.AcknowledgeError(err, logger, span, "getting webhooks")
-				return
-			}
-
-			for _, webhook := range relevantWebhooks {
-				if err = a.webhookExecutionRequestPublisher.Publish(ctx, &webhooks.WebhookExecutionRequest{
-					WebhookID: webhook.ID,
-					AccountID: changeMessage.AccountID,
-					Payload:   changeMessage,
-				}); err != nil {
-					observability.AcknowledgeError(err, logger, span, "publishing webhook execution request")
-				}
-			}
-		}
-	})
 
 	wg.Go(func() {
 		if err := a.handleOutboundNotifications(ctx, changeMessage); err != nil {

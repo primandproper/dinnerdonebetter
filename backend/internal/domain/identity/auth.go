@@ -35,9 +35,9 @@ const (
 	UsernameReminderRequestedEventType = "username_reminder_requested"
 	// UserLoggedInServiceEventType indicates a user has logged in.
 	UserLoggedInServiceEventType = "user_logged_in"
-	// UserLoggedOutServiceEventType indicates a user has logged in.
+	// UserLoggedOutServiceEventType indicates a user has logged out.
 	UserLoggedOutServiceEventType = "user_logged_out"
-	// UserChangedActiveAccountServiceEventType indicates a user has logged in.
+	// UserChangedActiveAccountServiceEventType indicates a user switched their active account.
 	UserChangedActiveAccountServiceEventType = "changed_active_account"
 	// UserEmailAddressVerifiedEventType indicates a user created a password reset token.
 	UserEmailAddressVerifiedEventType = "user_email_address_verified"

@@ -10,6 +10,7 @@ import (
 	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
 	"github.com/primandproper/platform-go/v9/observability"
 	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
+	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
 
 	"github.com/samber/do/v2"
 )
@@ -39,5 +40,8 @@ func RegisterConfigs(i do.Injector) {
 	})
 	do.Provide[*config.ScheduledJobsConfig](i, func(i do.Injector) (*config.ScheduledJobsConfig, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Jobs, nil
+	})
+	do.Provide[*webhookscfg.Config](i, func(i do.Injector) (*webhookscfg.Config, error) {
+		return &do.MustInvoke[*config.SchedulerConfig](i).Webhooks, nil
 	})
 }

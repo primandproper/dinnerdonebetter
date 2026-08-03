@@ -814,33 +814,6 @@ const (
 	// PoolsUserDataAggregationTopicEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.UserDataAggregation.Topic`.
 	PoolsUserDataAggregationTopicEnvVarKey = "DINNER_DONE_BETTER_POOLS_USER_DATA_AGGREGATION_TOPIC"
 
-	// PoolsWebhookExecutionRequestsConcurrencyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Concurrency`.
-	PoolsWebhookExecutionRequestsConcurrencyEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_CONCURRENCY"
-
-	// PoolsWebhookExecutionRequestsHandlerTimeoutEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.HandlerTimeout`.
-	PoolsWebhookExecutionRequestsHandlerTimeoutEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_HANDLER_TIMEOUT"
-
-	// PoolsWebhookExecutionRequestsRetryInitialDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Retry.InitialDelay`.
-	PoolsWebhookExecutionRequestsRetryInitialDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_RETRY_INITIAL_DELAY"
-
-	// PoolsWebhookExecutionRequestsRetryMaxAttemptsEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Retry.MaxAttempts`.
-	PoolsWebhookExecutionRequestsRetryMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_RETRY_MAX_ATTEMPTS"
-
-	// PoolsWebhookExecutionRequestsRetryMaxDelayEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Retry.MaxDelay`.
-	PoolsWebhookExecutionRequestsRetryMaxDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_RETRY_MAX_DELAY"
-
-	// PoolsWebhookExecutionRequestsRetryMultiplierEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Retry.Multiplier`.
-	PoolsWebhookExecutionRequestsRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_RETRY_MULTIPLIER"
-
-	// PoolsWebhookExecutionRequestsRetryProviderEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Retry.Provider`.
-	PoolsWebhookExecutionRequestsRetryProviderEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_RETRY_PROVIDER"
-
-	// PoolsWebhookExecutionRequestsRetryUseJitterEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Retry.UseJitter`.
-	PoolsWebhookExecutionRequestsRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_RETRY_USE_JITTER"
-
-	// PoolsWebhookExecutionRequestsTopicEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Pools.WebhookExecutionRequests.Topic`.
-	PoolsWebhookExecutionRequestsTopicEnvVarKey = "DINNER_DONE_BETTER_POOLS_WEBHOOK_EXECUTION_REQUESTS_TOPIC"
-
 	// PushNotificationsApnsAuthKeyPathEnvVarKey is the environment variable name to set to override `APIServiceConfig.PushNotifications.APNs.AuthKeyPath`.
 	PushNotificationsApnsAuthKeyPathEnvVarKey = "DINNER_DONE_BETTER_PUSH_NOTIFICATIONS_APNS_AUTH_KEY_PATH"
 
@@ -876,9 +849,6 @@ const (
 
 	// QueuesUserDataAggregationTopicNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Queues.UserDataAggregationTopicName`.
 	QueuesUserDataAggregationTopicNameEnvVarKey = "DINNER_DONE_BETTER_QUEUES_USER_DATA_AGGREGATION_TOPIC_NAME"
-
-	// QueuesWebhookExecutionRequestsTopicNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Queues.WebhookExecutionRequestsTopicName`.
-	QueuesWebhookExecutionRequestsTopicNameEnvVarKey = "DINNER_DONE_BETTER_QUEUES_WEBHOOK_EXECUTION_REQUESTS_TOPIC_NAME"
 
 	// RecipientEmailAddressEnvVarKey is the environment variable name to set to override `EmailDeliverabilityTestConfigRecipientEmailAddress`.
 	RecipientEmailAddressEnvVarKey = "DINNER_DONE_BETTER_RECIPIENT_EMAIL_ADDRESS"
@@ -1263,4 +1233,76 @@ const (
 
 	// StorageR2SecretAccessKeyEnvVarKey is the environment variable name to set to override `AsyncMessageHandlerConfig.Storage.R2Config.SecretAccessKey`.
 	StorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_STORAGE_R2_SECRET_ACCESS_KEY"
+
+	// WebhooksCircuitBreakerErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.CircuitBreaker.ErrorRate`.
+	WebhooksCircuitBreakerErrorRateEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_CIRCUIT_BREAKER_ERROR_RATE"
+
+	// WebhooksCircuitBreakerMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.CircuitBreaker.MinimumSampleThreshold`.
+	WebhooksCircuitBreakerMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_CIRCUIT_BREAKER_MINIMUM_SAMPLE_THRESHOLD"
+
+	// WebhooksCircuitBreakerNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.CircuitBreaker.Name`.
+	WebhooksCircuitBreakerNameEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_CIRCUIT_BREAKER_NAME"
+
+	// WebhooksHTTPEnableTracingEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.HTTPClient.EnableTracing`.
+	WebhooksHTTPEnableTracingEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_ENABLE_TRACING"
+
+	// WebhooksHTTPMaxIdleConnsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.HTTPClient.MaxIdleConns`.
+	WebhooksHTTPMaxIdleConnsEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_MAX_IDLE_CONNS"
+
+	// WebhooksHTTPMaxIdleConnsPerHostEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.HTTPClient.MaxIdleConnsPerHost`.
+	WebhooksHTTPMaxIdleConnsPerHostEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_MAX_IDLE_CONNS_PER_HOST"
+
+	// WebhooksHTTPTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.HTTPClient.Timeout`.
+	WebhooksHTTPTimeoutEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_TIMEOUT"
+
+	// WebhooksTablePrefixEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.TablePrefix`.
+	WebhooksTablePrefixEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_TABLE_PREFIX"
+
+	// WebhooksWorkerBackoffInitialDelayEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.Backoff.InitialDelay`.
+	WebhooksWorkerBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_BACKOFF_INITIAL_DELAY"
+
+	// WebhooksWorkerBackoffMaxAttemptsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.Backoff.MaxAttempts`.
+	WebhooksWorkerBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_BACKOFF_MAX_ATTEMPTS"
+
+	// WebhooksWorkerBackoffMaxDelayEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.Backoff.MaxDelay`.
+	WebhooksWorkerBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_BACKOFF_MAX_DELAY"
+
+	// WebhooksWorkerBackoffMultiplierEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.Backoff.Multiplier`.
+	WebhooksWorkerBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_BACKOFF_MULTIPLIER"
+
+	// WebhooksWorkerBackoffProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.Backoff.Provider`.
+	WebhooksWorkerBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_BACKOFF_PROVIDER"
+
+	// WebhooksWorkerBackoffUseJitterEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.Backoff.UseJitter`.
+	WebhooksWorkerBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_BACKOFF_USE_JITTER"
+
+	// WebhooksWorkerBatchSizeEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.BatchSize`.
+	WebhooksWorkerBatchSizeEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_BATCH_SIZE"
+
+	// WebhooksWorkerCircuitOpenRetryDelayEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.CircuitOpenRetryDelay`.
+	WebhooksWorkerCircuitOpenRetryDelayEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_CIRCUIT_OPEN_RETRY_DELAY"
+
+	// WebhooksWorkerConcurrencyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.Concurrency`.
+	WebhooksWorkerConcurrencyEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_CONCURRENCY"
+
+	// WebhooksWorkerLeaseDurationEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.LeaseDuration`.
+	WebhooksWorkerLeaseDurationEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_LEASE_DURATION"
+
+	// WebhooksWorkerPollIntervalEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.PollInterval`.
+	WebhooksWorkerPollIntervalEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_POLL_INTERVAL"
+
+	// WebhooksWorkerReapBatchSizeEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.ReapBatchSize`.
+	WebhooksWorkerReapBatchSizeEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_REAP_BATCH_SIZE"
+
+	// WebhooksWorkerReapIntervalEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.ReapInterval`.
+	WebhooksWorkerReapIntervalEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_REAP_INTERVAL"
+
+	// WebhooksWorkerRequestTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.RequestTimeout`.
+	WebhooksWorkerRequestTimeoutEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_REQUEST_TIMEOUT"
+
+	// WebhooksWorkerRetentionEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.Retention`.
+	WebhooksWorkerRetentionEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_RETENTION"
+
+	// WebhooksWorkerUserAgentEnvVarKey is the environment variable name to set to override `APIServiceConfig.Webhooks.Worker.UserAgent`.
+	WebhooksWorkerUserAgentEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_USER_AGENT"
 )

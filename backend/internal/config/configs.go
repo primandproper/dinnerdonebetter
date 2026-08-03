@@ -30,6 +30,7 @@ import (
 	"github.com/primandproper/platform-go/v9/server/grpc"
 	"github.com/primandproper/platform-go/v9/server/http"
 	"github.com/primandproper/platform-go/v9/uploads/objectstorage"
+	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -75,21 +76,21 @@ type (
 		_                 struct{}                `json:"-"`
 		HTTPClient        *httpclientcfg.Config   `envPrefix:"HTTP_CLIENT_"        json:"httpClient"`
 		Queues            queuescfg.Config        `envPrefix:"QUEUES_"             json:"queues"`
-		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications"`
 		Routing           routingcfg.Config       `envPrefix:"ROUTING_"            json:"routing"`
+		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications"`
 		Encoding          encoding.Config         `envPrefix:"ENCODING_"           json:"encoding"`
 		BaseURL           string                  `env:"BASE_URL"                  json:"baseURL"`
 		Events            msgconfig.Config        `envPrefix:"EVENTS_"             json:"events"`
 		Observability     observability.Config    `envPrefix:"OBSERVABILITY_"      json:"observability"`
 		GRPCServer        grpc.Config             `envPrefix:"GRPC_"               json:"grpc"`
 		Meta              MetaSettings            `envPrefix:"META_"               json:"meta"`
-		Analytics         analyticscfg.Config     `envPrefix:"ANALYTICS_"          json:"analytics"`
 		Email             emailcfg.Config         `envPrefix:"EMAIL_"              json:"email"`
+		Analytics         analyticscfg.Config     `envPrefix:"ANALYTICS_"          json:"analytics"`
 		FeatureFlags      featureflagscfg.Config  `envPrefix:"FEATURE_FLAGS_"      json:"featureFlags"`
 		TextSearch        textsearchcfg.Config    `envPrefix:"SEARCH_"             json:"search"`
-		HTTPServer        http.Config             `envPrefix:"HTTP_"               json:"http"`
 		Auth              authcfg.Config          `envPrefix:"AUTH_"               json:"auth"`
 		Database          dbcfg.Config            `envPrefix:"DATABASE_"           json:"database"`
+		HTTPServer        http.Config             `envPrefix:"HTTP_"               json:"http"`
 		Services          ServicesConfig          `envPrefix:"SERVICE_"            json:"services"`
 
 		// Idempotency guards the mutations where running the work twice costs real money.
@@ -97,6 +98,11 @@ type (
 		// deliberate second purchase unless it supplies a key, so this is opt-in per call:
 		// a request without the idempotency-key metadata passes through untouched.
 		Idempotency IdempotencyConfig `envPrefix:"IDEMPOTENCY_" json:"idempotency"`
+
+		// Webhooks configures the outbound webhook tables this service writes into. Only the
+		// write side lives here: dispatch rows are written inside the transactions that
+		// caused them, and the worker that delivers them runs in the scheduler.
+		Webhooks webhookscfg.Config `envPrefix:"WEBHOOKS_" json:"webhooks"`
 
 		validateServices bool
 	}
@@ -159,12 +165,11 @@ type (
 		// messages, so it is required rather than defaulted.
 		DeadLetterTopicName string `env:"DEAD_LETTER_TOPIC_NAME" json:"deadLetterTopicName"`
 
-		DataChanges              jobs.PoolConfig `envPrefix:"DATA_CHANGES_"               json:"dataChanges"`
-		OutboundEmails           jobs.PoolConfig `envPrefix:"OUTBOUND_EMAILS_"            json:"outboundEmails"`
-		SearchIndexRequests      jobs.PoolConfig `envPrefix:"SEARCH_INDEX_REQUESTS_"      json:"searchIndexRequests"`
-		WebhookExecutionRequests jobs.PoolConfig `envPrefix:"WEBHOOK_EXECUTION_REQUESTS_" json:"webhookExecutionRequests"`
-		UserDataAggregation      jobs.PoolConfig `envPrefix:"USER_DATA_AGGREGATION_"      json:"userDataAggregation"`
-		MobileNotifications      jobs.PoolConfig `envPrefix:"MOBILE_NOTIFICATIONS_"       json:"mobileNotifications"`
+		DataChanges         jobs.PoolConfig `envPrefix:"DATA_CHANGES_"          json:"dataChanges"`
+		OutboundEmails      jobs.PoolConfig `envPrefix:"OUTBOUND_EMAILS_"       json:"outboundEmails"`
+		SearchIndexRequests jobs.PoolConfig `envPrefix:"SEARCH_INDEX_REQUESTS_" json:"searchIndexRequests"`
+		UserDataAggregation jobs.PoolConfig `envPrefix:"USER_DATA_AGGREGATION_" json:"userDataAggregation"`
+		MobileNotifications jobs.PoolConfig `envPrefix:"MOBILE_NOTIFICATIONS_"  json:"mobileNotifications"`
 	}
 
 	// EmailDeliverabilityTestConfig configures the email deliverability test cron job.
@@ -233,6 +238,7 @@ func (cfg *APIServiceConfig) ValidateWithContext(ctx context.Context) error {
 		"FeatureFlags":  cfg.FeatureFlags.ValidateWithContext,
 		"TextSearch":    cfg.TextSearch.ValidateWithContext,
 		"Idempotency":   cfg.Idempotency.ValidateWithContext,
+		"Webhooks":      cfg.Webhooks.ValidateWithContext,
 		// no "Events" here, that's a collection of publisher/subscriber configs that can each optionally be setup
 	}
 

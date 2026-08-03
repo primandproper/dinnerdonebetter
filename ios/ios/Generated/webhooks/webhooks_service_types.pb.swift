@@ -31,42 +31,19 @@ public struct Webhooks_WebhookCreationRequestInput: Sendable {
 
   public var url: String = String()
 
-  public var method: Webhooks_WebhookMethod = .get
+  public var method: Webhooks_WebhookMethod = .unspecified
 
-  public var events: [Webhooks_WebhookTriggerEventCreationRequestInput] = []
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
-}
-
-public struct Webhooks_WebhookExecutionRequest: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var requestID: String = String()
-
-  public var payload: SwiftProtobuf.Google_Protobuf_Any {
-    get {return _payload ?? SwiftProtobuf.Google_Protobuf_Any()}
-    set {_payload = newValue}
-  }
-  /// Returns true if `payload` has been explicitly set.
-  public var hasPayload: Bool {return self._payload != nil}
-  /// Clears the value of `payload`. Subsequent reads from it will return its default value.
-  public mutating func clearPayload() {self._payload = nil}
-
-  public var webhookID: String = String()
-
-  public var accountID: String = String()
-
-  public var triggerEvent: String = String()
+  /// event_types are the catalog event types this webhook subscribes to.
+  ///
+  /// Field 5 previously carried WebhookTriggerEventCreationRequestInput, which let a caller
+  /// define new catalog rows inline. That is gone: the catalog is generated from the events the
+  /// application actually publishes, so an event type a caller invents is one nothing will ever
+  /// emit. Subscribing to an unknown type is now rejected rather than silently stored.
+  public var eventTypes: [String] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
-
-  fileprivate var _payload: SwiftProtobuf.Google_Protobuf_Any? = nil
 }
 
 public struct Webhooks_WebhookTriggerConfigCreationRequestInput: Sendable {
@@ -76,7 +53,7 @@ public struct Webhooks_WebhookTriggerConfigCreationRequestInput: Sendable {
 
   public var belongsToWebhook: String = String()
 
-  public var triggerEventID: String = String()
+  public var eventType: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -104,35 +81,48 @@ public struct Webhooks_CreateWebhookRequest: Sendable {
   fileprivate var _input: Webhooks_WebhookCreationRequestInput? = nil
 }
 
-public struct Webhooks_CreateWebhookResponse: Sendable {
+public struct Webhooks_CreateWebhookResponse: @unchecked Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
   public var responseDetails: Common_ResponseDetails {
-    get {return _responseDetails ?? Common_ResponseDetails()}
-    set {_responseDetails = newValue}
+    get {return _storage._responseDetails ?? Common_ResponseDetails()}
+    set {_uniqueStorage()._responseDetails = newValue}
   }
   /// Returns true if `responseDetails` has been explicitly set.
-  public var hasResponseDetails: Bool {return self._responseDetails != nil}
+  public var hasResponseDetails: Bool {return _storage._responseDetails != nil}
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
-  public mutating func clearResponseDetails() {self._responseDetails = nil}
+  public mutating func clearResponseDetails() {_uniqueStorage()._responseDetails = nil}
 
   public var created: Webhooks_Webhook {
-    get {return _created ?? Webhooks_Webhook()}
-    set {_created = newValue}
+    get {return _storage._created ?? Webhooks_Webhook()}
+    set {_uniqueStorage()._created = newValue}
   }
   /// Returns true if `created` has been explicitly set.
-  public var hasCreated: Bool {return self._created != nil}
+  public var hasCreated: Bool {return _storage._created != nil}
   /// Clears the value of `created`. Subsequent reads from it will return its default value.
-  public mutating func clearCreated() {self._created = nil}
+  public mutating func clearCreated() {_uniqueStorage()._created = nil}
+
+  /// secret is the hex-encoded HMAC signing key, returned exactly once.
+  ///
+  /// It is on the creation response and on no read message, so there is no request an attacker
+  /// with read access can make that yields it. A caller who loses it calls RotateWebhookSecret.
+  ///
+  /// Deliveries carry X-Platform-Signature: v1,t=<unix>,s=<hex>, over "v1.<t>.<body>". The
+  /// timestamp is inside the signed material, which is what makes a captured delivery expire —
+  /// verify it before spending an HMAC. platform-go's webhooks.Verify is the reference
+  /// implementation.
+  public var secret: String {
+    get {return _storage._secret}
+    set {_uniqueStorage()._secret = newValue}
+  }
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _created: Webhooks_Webhook? = nil
+  fileprivate var _storage = _StorageClass.defaultInstance
 }
 
 public struct Webhooks_AddWebhookTriggerConfigRequest: Sendable {
@@ -354,56 +344,24 @@ public struct Webhooks_GetWebhooksResponse: Sendable {
   fileprivate var _pagination: Filtering_Pagination? = nil
 }
 
-/// Catalog trigger event CRUD
-/// When id is set, the existing catalog event is used; otherwise name (and optionally description) create a new catalog event.
-public struct Webhooks_WebhookTriggerEventCreationRequestInput: Sendable {
+/// RotateWebhookSecret mints a new signing secret for a webhook.
+///
+/// Deliveries are signed under both the new key and the outgoing one until this is called again,
+/// so a subscriber accepts either signature while it switches over. Rotating twice retires the
+/// original key.
+public struct Webhooks_RotateWebhookSecretRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var name: String = String()
-
-  public var description_p: String = String()
-
-  /// reference existing catalog event by id
-  public var id: String {
-    get {return _id ?? String()}
-    set {_id = newValue}
-  }
-  /// Returns true if `id` has been explicitly set.
-  public var hasID: Bool {return self._id != nil}
-  /// Clears the value of `id`. Subsequent reads from it will return its default value.
-  public mutating func clearID() {self._id = nil}
+  public var webhookID: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
-
-  fileprivate var _id: String? = nil
 }
 
-public struct Webhooks_CreateWebhookTriggerEventRequest: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var input: Webhooks_WebhookTriggerEventCreationRequestInput {
-    get {return _input ?? Webhooks_WebhookTriggerEventCreationRequestInput()}
-    set {_input = newValue}
-  }
-  /// Returns true if `input` has been explicitly set.
-  public var hasInput: Bool {return self._input != nil}
-  /// Clears the value of `input`. Subsequent reads from it will return its default value.
-  public mutating func clearInput() {self._input = nil}
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
-
-  fileprivate var _input: Webhooks_WebhookTriggerEventCreationRequestInput? = nil
-}
-
-public struct Webhooks_CreateWebhookTriggerEventResponse: Sendable {
+public struct Webhooks_RotateWebhookSecretResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -417,170 +375,8 @@ public struct Webhooks_CreateWebhookTriggerEventResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var created: Webhooks_WebhookTriggerEvent {
-    get {return _created ?? Webhooks_WebhookTriggerEvent()}
-    set {_created = newValue}
-  }
-  /// Returns true if `created` has been explicitly set.
-  public var hasCreated: Bool {return self._created != nil}
-  /// Clears the value of `created`. Subsequent reads from it will return its default value.
-  public mutating func clearCreated() {self._created = nil}
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
-
-  fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _created: Webhooks_WebhookTriggerEvent? = nil
-}
-
-public struct Webhooks_GetWebhookTriggerEventRequest: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var id: String = String()
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
-}
-
-public struct Webhooks_GetWebhookTriggerEventResponse: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var responseDetails: Common_ResponseDetails {
-    get {return _responseDetails ?? Common_ResponseDetails()}
-    set {_responseDetails = newValue}
-  }
-  /// Returns true if `responseDetails` has been explicitly set.
-  public var hasResponseDetails: Bool {return self._responseDetails != nil}
-  /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
-  public mutating func clearResponseDetails() {self._responseDetails = nil}
-
-  public var result: Webhooks_WebhookTriggerEvent {
-    get {return _result ?? Webhooks_WebhookTriggerEvent()}
-    set {_result = newValue}
-  }
-  /// Returns true if `result` has been explicitly set.
-  public var hasResult: Bool {return self._result != nil}
-  /// Clears the value of `result`. Subsequent reads from it will return its default value.
-  public mutating func clearResult() {self._result = nil}
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
-
-  fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _result: Webhooks_WebhookTriggerEvent? = nil
-}
-
-public struct Webhooks_GetWebhookTriggerEventsRequest: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
-    set {_filter = newValue}
-  }
-  /// Returns true if `filter` has been explicitly set.
-  public var hasFilter: Bool {return self._filter != nil}
-  /// Clears the value of `filter`. Subsequent reads from it will return its default value.
-  public mutating func clearFilter() {self._filter = nil}
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
-
-  fileprivate var _filter: Filtering_QueryFilter? = nil
-}
-
-public struct Webhooks_GetWebhookTriggerEventsResponse: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var responseDetails: Common_ResponseDetails {
-    get {return _responseDetails ?? Common_ResponseDetails()}
-    set {_responseDetails = newValue}
-  }
-  /// Returns true if `responseDetails` has been explicitly set.
-  public var hasResponseDetails: Bool {return self._responseDetails != nil}
-  /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
-  public mutating func clearResponseDetails() {self._responseDetails = nil}
-
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
-    set {_pagination = newValue}
-  }
-  /// Returns true if `pagination` has been explicitly set.
-  public var hasPagination: Bool {return self._pagination != nil}
-  /// Clears the value of `pagination`. Subsequent reads from it will return its default value.
-  public mutating func clearPagination() {self._pagination = nil}
-
-  public var results: [Webhooks_WebhookTriggerEvent] = []
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
-
-  fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
-}
-
-public struct Webhooks_WebhookTriggerEventUpdateRequestInput: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var name: String = String()
-
-  public var description_p: String = String()
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
-}
-
-public struct Webhooks_UpdateWebhookTriggerEventRequest: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var id: String = String()
-
-  public var input: Webhooks_WebhookTriggerEventUpdateRequestInput {
-    get {return _input ?? Webhooks_WebhookTriggerEventUpdateRequestInput()}
-    set {_input = newValue}
-  }
-  /// Returns true if `input` has been explicitly set.
-  public var hasInput: Bool {return self._input != nil}
-  /// Clears the value of `input`. Subsequent reads from it will return its default value.
-  public mutating func clearInput() {self._input = nil}
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
-
-  fileprivate var _input: Webhooks_WebhookTriggerEventUpdateRequestInput? = nil
-}
-
-public struct Webhooks_UpdateWebhookTriggerEventResponse: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var responseDetails: Common_ResponseDetails {
-    get {return _responseDetails ?? Common_ResponseDetails()}
-    set {_responseDetails = newValue}
-  }
-  /// Returns true if `responseDetails` has been explicitly set.
-  public var hasResponseDetails: Bool {return self._responseDetails != nil}
-  /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
-  public mutating func clearResponseDetails() {self._responseDetails = nil}
+  /// secret is the new hex-encoded HMAC signing key, returned exactly once.
+  public var secret: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -589,19 +385,17 @@ public struct Webhooks_UpdateWebhookTriggerEventResponse: Sendable {
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
 }
 
-public struct Webhooks_ArchiveWebhookTriggerEventRequest: Sendable {
+public struct Webhooks_GetWebhookEventTypesRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
-
-  public var id: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 }
 
-public struct Webhooks_ArchiveWebhookTriggerEventResponse: Sendable {
+public struct Webhooks_GetWebhookEventTypesResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -614,6 +408,8 @@ public struct Webhooks_ArchiveWebhookTriggerEventResponse: Sendable {
   public var hasResponseDetails: Bool {return self._responseDetails != nil}
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
+
+  public var results: [Webhooks_WebhookEventType] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -628,7 +424,7 @@ fileprivate let _protobuf_package = "webhooks"
 
 extension Webhooks_WebhookCreationRequestInput: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".WebhookCreationRequestInput"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{3}content_type\0\u{1}url\0\u{1}method\0\u{1}events\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{3}content_type\0\u{1}url\0\u{1}method\0\u{4}\u{2}event_types\0\u{b}events\0\u{c}\u{5}\u{1}")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -640,7 +436,7 @@ extension Webhooks_WebhookCreationRequestInput: SwiftProtobuf.Message, SwiftProt
       case 2: try { try decoder.decodeSingularEnumField(value: &self.contentType) }()
       case 3: try { try decoder.decodeSingularStringField(value: &self.url) }()
       case 4: try { try decoder.decodeSingularEnumField(value: &self.method) }()
-      case 5: try { try decoder.decodeRepeatedMessageField(value: &self.events) }()
+      case 6: try { try decoder.decodeRepeatedStringField(value: &self.eventTypes) }()
       default: break
       }
     }
@@ -656,11 +452,11 @@ extension Webhooks_WebhookCreationRequestInput: SwiftProtobuf.Message, SwiftProt
     if !self.url.isEmpty {
       try visitor.visitSingularStringField(value: self.url, fieldNumber: 3)
     }
-    if self.method != .get {
+    if self.method != .unspecified {
       try visitor.visitSingularEnumField(value: self.method, fieldNumber: 4)
     }
-    if !self.events.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.events, fieldNumber: 5)
+    if !self.eventTypes.isEmpty {
+      try visitor.visitRepeatedStringField(value: self.eventTypes, fieldNumber: 6)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -670,61 +466,7 @@ extension Webhooks_WebhookCreationRequestInput: SwiftProtobuf.Message, SwiftProt
     if lhs.contentType != rhs.contentType {return false}
     if lhs.url != rhs.url {return false}
     if lhs.method != rhs.method {return false}
-    if lhs.events != rhs.events {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension Webhooks_WebhookExecutionRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".WebhookExecutionRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}request_id\0\u{1}payload\0\u{3}webhook_id\0\u{3}account_id\0\u{3}trigger_event\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.requestID) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._payload) }()
-      case 3: try { try decoder.decodeSingularStringField(value: &self.webhookID) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self.accountID) }()
-      case 5: try { try decoder.decodeSingularStringField(value: &self.triggerEvent) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    if !self.requestID.isEmpty {
-      try visitor.visitSingularStringField(value: self.requestID, fieldNumber: 1)
-    }
-    try { if let v = self._payload {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-    } }()
-    if !self.webhookID.isEmpty {
-      try visitor.visitSingularStringField(value: self.webhookID, fieldNumber: 3)
-    }
-    if !self.accountID.isEmpty {
-      try visitor.visitSingularStringField(value: self.accountID, fieldNumber: 4)
-    }
-    if !self.triggerEvent.isEmpty {
-      try visitor.visitSingularStringField(value: self.triggerEvent, fieldNumber: 5)
-    }
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Webhooks_WebhookExecutionRequest, rhs: Webhooks_WebhookExecutionRequest) -> Bool {
-    if lhs.requestID != rhs.requestID {return false}
-    if lhs._payload != rhs._payload {return false}
-    if lhs.webhookID != rhs.webhookID {return false}
-    if lhs.accountID != rhs.accountID {return false}
-    if lhs.triggerEvent != rhs.triggerEvent {return false}
+    if lhs.eventTypes != rhs.eventTypes {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -732,7 +474,7 @@ extension Webhooks_WebhookExecutionRequest: SwiftProtobuf.Message, SwiftProtobuf
 
 extension Webhooks_WebhookTriggerConfigCreationRequestInput: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".WebhookTriggerConfigCreationRequestInput"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}belongs_to_webhook\0\u{3}trigger_event_id\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}belongs_to_webhook\0\u{4}\u{2}event_type\0\u{b}trigger_event_id\0\u{c}\u{2}\u{1}")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -741,7 +483,7 @@ extension Webhooks_WebhookTriggerConfigCreationRequestInput: SwiftProtobuf.Messa
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.belongsToWebhook) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self.triggerEventID) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.eventType) }()
       default: break
       }
     }
@@ -751,15 +493,15 @@ extension Webhooks_WebhookTriggerConfigCreationRequestInput: SwiftProtobuf.Messa
     if !self.belongsToWebhook.isEmpty {
       try visitor.visitSingularStringField(value: self.belongsToWebhook, fieldNumber: 1)
     }
-    if !self.triggerEventID.isEmpty {
-      try visitor.visitSingularStringField(value: self.triggerEventID, fieldNumber: 2)
+    if !self.eventType.isEmpty {
+      try visitor.visitSingularStringField(value: self.eventType, fieldNumber: 3)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Webhooks_WebhookTriggerConfigCreationRequestInput, rhs: Webhooks_WebhookTriggerConfigCreationRequestInput) -> Bool {
     if lhs.belongsToWebhook != rhs.belongsToWebhook {return false}
-    if lhs.triggerEventID != rhs.triggerEventID {return false}
+    if lhs.eventType != rhs.eventType {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -801,38 +543,83 @@ extension Webhooks_CreateWebhookRequest: SwiftProtobuf.Message, SwiftProtobuf._M
 
 extension Webhooks_CreateWebhookResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".CreateWebhookResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}created\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}created\0\u{1}secret\0")
+
+  fileprivate class _StorageClass {
+    var _responseDetails: Common_ResponseDetails? = nil
+    var _created: Webhooks_Webhook? = nil
+    var _secret: String = String()
+
+      // This property is used as the initial default value for new instances of the type.
+      // The type itself is protecting the reference to its storage via CoW semantics.
+      // This will force a copy to be made of this reference when the first mutation occurs;
+      // hence, it is safe to mark this as `nonisolated(unsafe)`.
+      static nonisolated(unsafe) let defaultInstance = _StorageClass()
+
+    private init() {}
+
+    init(copying source: _StorageClass) {
+      _responseDetails = source._responseDetails
+      _created = source._created
+      _secret = source._secret
+    }
+  }
+
+  fileprivate mutating func _uniqueStorage() -> _StorageClass {
+    if !isKnownUniquelyReferenced(&_storage) {
+      _storage = _StorageClass(copying: _storage)
+    }
+    return _storage
+  }
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._created) }()
-      default: break
+    _ = _uniqueStorage()
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      while let fieldNumber = try decoder.nextFieldNumber() {
+        // The use of inline closures is to circumvent an issue where the compiler
+        // allocates stack space for every case branch when no optimizations are
+        // enabled. https://github.com/apple/swift-protobuf/issues/1034
+        switch fieldNumber {
+        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._responseDetails) }()
+        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._created) }()
+        case 3: try { try decoder.decodeSingularStringField(value: &_storage._secret) }()
+        default: break
+        }
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._responseDetails {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-    } }()
-    try { if let v = self._created {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-    } }()
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every if/case branch local when no optimizations
+      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+      // https://github.com/apple/swift-protobuf/issues/1182
+      try { if let v = _storage._responseDetails {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+      } }()
+      try { if let v = _storage._created {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+      } }()
+      if !_storage._secret.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._secret, fieldNumber: 3)
+      }
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Webhooks_CreateWebhookResponse, rhs: Webhooks_CreateWebhookResponse) -> Bool {
-    if lhs._responseDetails != rhs._responseDetails {return false}
-    if lhs._created != rhs._created {return false}
+    if lhs._storage !== rhs._storage {
+      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
+        let _storage = _args.0
+        let rhs_storage = _args.1
+        if _storage._responseDetails != rhs_storage._responseDetails {return false}
+        if _storage._created != rhs_storage._created {return false}
+        if _storage._secret != rhs_storage._secret {return false}
+        return true
+      }
+      if !storagesAreEqual {return false}
+    }
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -1196,9 +983,9 @@ extension Webhooks_GetWebhooksResponse: SwiftProtobuf.Message, SwiftProtobuf._Me
   }
 }
 
-extension Webhooks_WebhookTriggerEventCreationRequestInput: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".WebhookTriggerEventCreationRequestInput"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{1}description\0\u{1}id\0")
+extension Webhooks_RotateWebhookSecretRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".RotateWebhookSecretRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}webhook_id\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -1206,77 +993,29 @@ extension Webhooks_WebhookTriggerEventCreationRequestInput: SwiftProtobuf.Messag
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.name) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
-      case 3: try { try decoder.decodeSingularStringField(value: &self._id) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.webhookID) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    if !self.name.isEmpty {
-      try visitor.visitSingularStringField(value: self.name, fieldNumber: 1)
+    if !self.webhookID.isEmpty {
+      try visitor.visitSingularStringField(value: self.webhookID, fieldNumber: 1)
     }
-    if !self.description_p.isEmpty {
-      try visitor.visitSingularStringField(value: self.description_p, fieldNumber: 2)
-    }
-    try { if let v = self._id {
-      try visitor.visitSingularStringField(value: v, fieldNumber: 3)
-    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Webhooks_WebhookTriggerEventCreationRequestInput, rhs: Webhooks_WebhookTriggerEventCreationRequestInput) -> Bool {
-    if lhs.name != rhs.name {return false}
-    if lhs.description_p != rhs.description_p {return false}
-    if lhs._id != rhs._id {return false}
+  public static func ==(lhs: Webhooks_RotateWebhookSecretRequest, rhs: Webhooks_RotateWebhookSecretRequest) -> Bool {
+    if lhs.webhookID != rhs.webhookID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
 }
 
-extension Webhooks_CreateWebhookTriggerEventRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".CreateWebhookTriggerEventRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}input\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularMessageField(value: &self._input) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._input {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-    } }()
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Webhooks_CreateWebhookTriggerEventRequest, rhs: Webhooks_CreateWebhookTriggerEventRequest) -> Bool {
-    if lhs._input != rhs._input {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension Webhooks_CreateWebhookTriggerEventResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".CreateWebhookTriggerEventResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}created\0")
+extension Webhooks_RotateWebhookSecretResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".RotateWebhookSecretResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}secret\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -1285,7 +1024,7 @@ extension Webhooks_CreateWebhookTriggerEventResponse: SwiftProtobuf.Message, Swi
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._created) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.secret) }()
       default: break
       }
     }
@@ -1299,53 +1038,42 @@ extension Webhooks_CreateWebhookTriggerEventResponse: SwiftProtobuf.Message, Swi
     try { if let v = self._responseDetails {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
     } }()
-    try { if let v = self._created {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-    } }()
+    if !self.secret.isEmpty {
+      try visitor.visitSingularStringField(value: self.secret, fieldNumber: 2)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Webhooks_CreateWebhookTriggerEventResponse, rhs: Webhooks_CreateWebhookTriggerEventResponse) -> Bool {
+  public static func ==(lhs: Webhooks_RotateWebhookSecretResponse, rhs: Webhooks_RotateWebhookSecretResponse) -> Bool {
     if lhs._responseDetails != rhs._responseDetails {return false}
-    if lhs._created != rhs._created {return false}
+    if lhs.secret != rhs.secret {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
 }
 
-extension Webhooks_GetWebhookTriggerEventRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".GetWebhookTriggerEventRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0")
+extension Webhooks_GetWebhookEventTypesRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".GetWebhookEventTypesRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap()
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.id) }()
-      default: break
-      }
-    }
+    // Load everything into unknown fields
+    while try decoder.nextFieldNumber() != nil {}
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.id.isEmpty {
-      try visitor.visitSingularStringField(value: self.id, fieldNumber: 1)
-    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Webhooks_GetWebhookTriggerEventRequest, rhs: Webhooks_GetWebhookTriggerEventRequest) -> Bool {
-    if lhs.id != rhs.id {return false}
+  public static func ==(lhs: Webhooks_GetWebhookEventTypesRequest, rhs: Webhooks_GetWebhookEventTypesRequest) -> Bool {
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
 }
 
-extension Webhooks_GetWebhookTriggerEventResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".GetWebhookTriggerEventResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}result\0")
+extension Webhooks_GetWebhookEventTypesResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".GetWebhookEventTypesResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}results\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -1354,7 +1082,7 @@ extension Webhooks_GetWebhookTriggerEventResponse: SwiftProtobuf.Message, SwiftP
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._result) }()
+      case 2: try { try decoder.decodeRepeatedMessageField(value: &self.results) }()
       default: break
       }
     }
@@ -1367,266 +1095,16 @@ extension Webhooks_GetWebhookTriggerEventResponse: SwiftProtobuf.Message, SwiftP
     // https://github.com/apple/swift-protobuf/issues/1182
     try { if let v = self._responseDetails {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-    } }()
-    try { if let v = self._result {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-    } }()
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Webhooks_GetWebhookTriggerEventResponse, rhs: Webhooks_GetWebhookTriggerEventResponse) -> Bool {
-    if lhs._responseDetails != rhs._responseDetails {return false}
-    if lhs._result != rhs._result {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension Webhooks_GetWebhookTriggerEventsRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".GetWebhookTriggerEventsRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}filter\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularMessageField(value: &self._filter) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._filter {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-    } }()
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Webhooks_GetWebhookTriggerEventsRequest, rhs: Webhooks_GetWebhookTriggerEventsRequest) -> Bool {
-    if lhs._filter != rhs._filter {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension Webhooks_GetWebhookTriggerEventsResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".GetWebhookTriggerEventsResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}pagination\0\u{1}results\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._pagination) }()
-      case 3: try { try decoder.decodeRepeatedMessageField(value: &self.results) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._responseDetails {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-    } }()
-    try { if let v = self._pagination {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
     } }()
     if !self.results.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.results, fieldNumber: 3)
+      try visitor.visitRepeatedMessageField(value: self.results, fieldNumber: 2)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Webhooks_GetWebhookTriggerEventsResponse, rhs: Webhooks_GetWebhookTriggerEventsResponse) -> Bool {
+  public static func ==(lhs: Webhooks_GetWebhookEventTypesResponse, rhs: Webhooks_GetWebhookEventTypesResponse) -> Bool {
     if lhs._responseDetails != rhs._responseDetails {return false}
-    if lhs._pagination != rhs._pagination {return false}
     if lhs.results != rhs.results {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension Webhooks_WebhookTriggerEventUpdateRequestInput: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".WebhookTriggerEventUpdateRequestInput"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{1}description\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.name) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.name.isEmpty {
-      try visitor.visitSingularStringField(value: self.name, fieldNumber: 1)
-    }
-    if !self.description_p.isEmpty {
-      try visitor.visitSingularStringField(value: self.description_p, fieldNumber: 2)
-    }
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Webhooks_WebhookTriggerEventUpdateRequestInput, rhs: Webhooks_WebhookTriggerEventUpdateRequestInput) -> Bool {
-    if lhs.name != rhs.name {return false}
-    if lhs.description_p != rhs.description_p {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension Webhooks_UpdateWebhookTriggerEventRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".UpdateWebhookTriggerEventRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{1}input\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.id) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._input) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    if !self.id.isEmpty {
-      try visitor.visitSingularStringField(value: self.id, fieldNumber: 1)
-    }
-    try { if let v = self._input {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-    } }()
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Webhooks_UpdateWebhookTriggerEventRequest, rhs: Webhooks_UpdateWebhookTriggerEventRequest) -> Bool {
-    if lhs.id != rhs.id {return false}
-    if lhs._input != rhs._input {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension Webhooks_UpdateWebhookTriggerEventResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".UpdateWebhookTriggerEventResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._responseDetails {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-    } }()
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Webhooks_UpdateWebhookTriggerEventResponse, rhs: Webhooks_UpdateWebhookTriggerEventResponse) -> Bool {
-    if lhs._responseDetails != rhs._responseDetails {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension Webhooks_ArchiveWebhookTriggerEventRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".ArchiveWebhookTriggerEventRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.id) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.id.isEmpty {
-      try visitor.visitSingularStringField(value: self.id, fieldNumber: 1)
-    }
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Webhooks_ArchiveWebhookTriggerEventRequest, rhs: Webhooks_ArchiveWebhookTriggerEventRequest) -> Bool {
-    if lhs.id != rhs.id {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension Webhooks_ArchiveWebhookTriggerEventResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".ArchiveWebhookTriggerEventResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._responseDetails {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-    } }()
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Webhooks_ArchiveWebhookTriggerEventResponse, rhs: Webhooks_ArchiveWebhookTriggerEventResponse) -> Bool {
-    if lhs._responseDetails != rhs._responseDetails {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

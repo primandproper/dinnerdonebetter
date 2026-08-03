@@ -12,11 +12,11 @@ import (
 const (
 	// AccountInvitationCreatedServiceEventType indicates an account invitation was created.
 	AccountInvitationCreatedServiceEventType = "account_invitation_created"
-	// AccountInvitationCanceledServiceEventType indicates an account invitation was created.
+	// AccountInvitationCanceledServiceEventType indicates an account invitation was canceled.
 	AccountInvitationCanceledServiceEventType = "account_invitation_canceled"
-	// AccountInvitationAcceptedServiceEventType indicates an account invitation was created.
+	// AccountInvitationAcceptedServiceEventType indicates an account invitation was accepted.
 	AccountInvitationAcceptedServiceEventType = "account_invitation_accepted"
-	// AccountInvitationRejectedServiceEventType indicates an account invitation was created.
+	// AccountInvitationRejectedServiceEventType indicates an account invitation was rejected.
 	AccountInvitationRejectedServiceEventType = "account_invitation_rejected"
 
 	// PendingAccountInvitationStatus indicates an account invitation is pending.

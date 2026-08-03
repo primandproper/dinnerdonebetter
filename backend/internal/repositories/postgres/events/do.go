@@ -2,6 +2,7 @@ package events
 
 import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 
 	"github.com/primandproper/platform-go/v9/database/dialect"
 	"github.com/primandproper/platform-go/v9/observability/logging"
@@ -36,7 +37,15 @@ func RegisterOutboxEmitter(i do.Injector) {
 			topic = queues.DataChangesTopicName
 		}
 
+		// The dispatcher is resolved leniently for the same reason the topic is: the MCP
+		// server and the one-shot CLI tools register repositories they only read through,
+		// and have no webhook tables to dispatch into. A nil dispatcher dispatches nothing.
+		dispatcher, err := do.Invoke[*webhookdispatch.Dispatcher](i)
+		if err != nil {
+			dispatcher = nil
+		}
+
 		// NewEmitter returns nil for an empty topic, and a nil Emitter emits nothing.
-		return NewEmitter(do.MustInvoke[*outbox.Writer](i), topic), nil
+		return NewEmitter(do.MustInvoke[*outbox.Writer](i), topic, dispatcher), nil
 	})
 }

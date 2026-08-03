@@ -13,9 +13,15 @@ service WebhooksService {
   rpc AddWebhookTriggerConfig(AddWebhookTriggerConfigRequest) returns (AddWebhookTriggerConfigResponse);
   rpc GetWebhook(GetWebhookRequest) returns (GetWebhookResponse);
   rpc GetWebhooks(GetWebhooksRequest) returns (GetWebhooksResponse);
-  rpc CreateWebhookTriggerEvent(CreateWebhookTriggerEventRequest) returns (CreateWebhookTriggerEventResponse);
-  rpc GetWebhookTriggerEvent(GetWebhookTriggerEventRequest) returns (GetWebhookTriggerEventResponse);
-  rpc GetWebhookTriggerEvents(GetWebhookTriggerEventsRequest) returns (GetWebhookTriggerEventsResponse);
-  rpc UpdateWebhookTriggerEvent(UpdateWebhookTriggerEventRequest) returns (UpdateWebhookTriggerEventResponse);
-  rpc ArchiveWebhookTriggerEvent(ArchiveWebhookTriggerEventRequest) returns (ArchiveWebhookTriggerEventResponse);
+  rpc RotateWebhookSecret(RotateWebhookSecretRequest) returns (RotateWebhookSecretResponse);
+
+  // GetWebhookEventTypes lists what a webhook may subscribe to.
+  //
+  // The trigger-event CRUD this replaces — Create/Get/Update/ArchiveWebhookTriggerEvent — is
+  // gone. Those wrote rows to a catalog table with randomly generated IDs, which the fan-out
+  // then compared against event type strings; nothing ever matched, so no webhook could fire.
+  // The catalog is now generated from the events the application actually publishes, and is
+  // read-only because inventing an event type nothing emits is not a useful thing to be able
+  // to do.
+  rpc GetWebhookEventTypes(GetWebhookEventTypesRequest) returns (GetWebhookEventTypesResponse);
 }
