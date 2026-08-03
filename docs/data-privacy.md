@@ -15,7 +15,7 @@ the old `user_data_disclosures` table and the report ID that named an object bes
 that owns its artifact, rather than a pair that could disagree about whether the artifact still
 existed.
 
-```
+```text
 [*] --> pending      Submit
 pending --> processing        claimed by the fulfillment worker
 processing --> pending        retryable failure, attempts remaining
@@ -165,10 +165,10 @@ the compressor, and the table prefix; a mismatch surfaces as an unreadable expor
 deletes nothing and reports success, neither of which fails at startup. `EnsurePackaging` and a
 pinned table prefix are what keep them from being configurable apart.
 
-| Process | Env var for the key |
-|---------|---------------------|
+| Process    | Env var for the key                                               |
+|------------|-------------------------------------------------------------------|
 | API server | `DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_ARTIFACT_ENCRYPTION_KEY` |
-| Scheduler | `DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACT_ENCRYPTION_KEY` |
+| Scheduler  | `DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACT_ENCRYPTION_KEY`         |
 
 The API server's spelling differs because it reaches this config through `Services`. Both take the
 same value, from the `DISCLOSURE_ARTIFACT_ENCRYPTION_KEY` entry of the `api-service-config`
