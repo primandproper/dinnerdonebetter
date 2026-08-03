@@ -20,6 +20,13 @@ export interface DataCollection_AccountAuditLogEntriesEntry {
   value: AuditLogEntry | undefined;
 }
 
+/**
+ * ChangeLog is one field's before and after.
+ *
+ * The values are rendered strings rather than a typed Value because that is what
+ * they have always been on this wire, and a client that shows an audit trail
+ * shows text. The stored form is typed; the rendering happens at the edge.
+ */
 export interface ChangeLog {
   oldValue: string;
   newValue: string;
@@ -34,6 +41,29 @@ export interface AuditLogEntry {
   relevantId: string;
   eventType: string;
   belongsToUser: string;
+  /**
+   * What kind of principal acted, and where from. Recorded rather than derived at
+   * read time: the association between a principal and an address is what an
+   * investigation needs and is not recoverable afterwards.
+   */
+  actorType: string;
+  actorIp: string;
+  /**
+   * The hash chain. Entries chain per scope, each carrying its predecessor's hash
+   * and its own hash over that plus its own contents, so any edit, removal or
+   * reordering breaks the chain at a nameable position.
+   *
+   * These are exposed so a caller can check the chain without trusting this
+   * service to check it for them — which is the only version of the check worth
+   * much. A clean walk proves nobody altered an entry without also rewriting every
+   * entry after it; it does not prove the table was not replaced wholesale, and
+   * nothing self-contained can. Publishing hash somewhere this database's owner
+   * does not control is the answer to that.
+   */
+  scope: string;
+  prevHash: string;
+  hash: string;
+  seq: number;
 }
 
 export interface AuditLogEntry_ChangesEntry {
@@ -328,6 +358,12 @@ function createBaseAuditLogEntry(): AuditLogEntry {
     relevantId: '',
     eventType: '',
     belongsToUser: '',
+    actorType: '',
+    actorIp: '',
+    scope: '',
+    prevHash: '',
+    hash: '',
+    seq: 0,
   };
 }
 
@@ -356,6 +392,24 @@ export const AuditLogEntry: MessageFns<AuditLogEntry> = {
     }
     if (message.belongsToUser !== '') {
       writer.uint32(66).string(message.belongsToUser);
+    }
+    if (message.actorType !== '') {
+      writer.uint32(74).string(message.actorType);
+    }
+    if (message.actorIp !== '') {
+      writer.uint32(82).string(message.actorIp);
+    }
+    if (message.scope !== '') {
+      writer.uint32(90).string(message.scope);
+    }
+    if (message.prevHash !== '') {
+      writer.uint32(98).string(message.prevHash);
+    }
+    if (message.hash !== '') {
+      writer.uint32(106).string(message.hash);
+    }
+    if (message.seq !== 0) {
+      writer.uint32(112).int64(message.seq);
     }
     return writer;
   },
@@ -434,6 +488,54 @@ export const AuditLogEntry: MessageFns<AuditLogEntry> = {
           message.belongsToUser = reader.string();
           continue;
         }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.actorType = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.actorIp = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.scope = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.prevHash = reader.string();
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.hash = reader.string();
+          continue;
+        }
+        case 14: {
+          if (tag !== 112) {
+            break;
+          }
+
+          message.seq = longToNumber(reader.int64());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -485,6 +587,24 @@ export const AuditLogEntry: MessageFns<AuditLogEntry> = {
         : isSet(object.belongs_to_user)
           ? globalThis.String(object.belongs_to_user)
           : '',
+      actorType: isSet(object.actorType)
+        ? globalThis.String(object.actorType)
+        : isSet(object.actor_type)
+          ? globalThis.String(object.actor_type)
+          : '',
+      actorIp: isSet(object.actorIp)
+        ? globalThis.String(object.actorIp)
+        : isSet(object.actor_ip)
+          ? globalThis.String(object.actor_ip)
+          : '',
+      scope: isSet(object.scope) ? globalThis.String(object.scope) : '',
+      prevHash: isSet(object.prevHash)
+        ? globalThis.String(object.prevHash)
+        : isSet(object.prev_hash)
+          ? globalThis.String(object.prev_hash)
+          : '',
+      hash: isSet(object.hash) ? globalThis.String(object.hash) : '',
+      seq: isSet(object.seq) ? globalThis.Number(object.seq) : 0,
     };
   },
 
@@ -520,6 +640,24 @@ export const AuditLogEntry: MessageFns<AuditLogEntry> = {
     if (message.belongsToUser !== '') {
       obj.belongsToUser = message.belongsToUser;
     }
+    if (message.actorType !== '') {
+      obj.actorType = message.actorType;
+    }
+    if (message.actorIp !== '') {
+      obj.actorIp = message.actorIp;
+    }
+    if (message.scope !== '') {
+      obj.scope = message.scope;
+    }
+    if (message.prevHash !== '') {
+      obj.prevHash = message.prevHash;
+    }
+    if (message.hash !== '') {
+      obj.hash = message.hash;
+    }
+    if (message.seq !== 0) {
+      obj.seq = Math.round(message.seq);
+    }
     return obj;
   },
 
@@ -544,6 +682,12 @@ export const AuditLogEntry: MessageFns<AuditLogEntry> = {
     message.relevantId = object.relevantId ?? '';
     message.eventType = object.eventType ?? '';
     message.belongsToUser = object.belongsToUser ?? '';
+    message.actorType = object.actorType ?? '';
+    message.actorIp = object.actorIp ?? '';
+    message.scope = object.scope ?? '';
+    message.prevHash = object.prevHash ?? '';
+    message.hash = object.hash ?? '';
+    message.seq = object.seq ?? 0;
     return message;
   },
 };
@@ -662,6 +806,17 @@ function fromJsonTimestamp(o: any): Date {
   } else {
     return fromTimestamp(Timestamp.fromJSON(o));
   }
+}
+
+function longToNumber(int64: { toString(): string }): number {
+  const num = globalThis.Number(int64.toString());
+  if (num > globalThis.Number.MAX_SAFE_INTEGER) {
+    throw new globalThis.Error('Value is larger than Number.MAX_SAFE_INTEGER');
+  }
+  if (num < globalThis.Number.MIN_SAFE_INTEGER) {
+    throw new globalThis.Error('Value is smaller than Number.MIN_SAFE_INTEGER');
+  }
+  return num;
 }
 
 function isObject(value: any): boolean {

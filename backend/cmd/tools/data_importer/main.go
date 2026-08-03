@@ -115,7 +115,10 @@ func runImport(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, 
 		}
 	}()
 
-	auditRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, client)
+	auditRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, client)
+	if err != nil {
+		return fmt.Errorf("building audit log repository: %w", err)
+	}
 	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil)
 	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, client, nil)
 

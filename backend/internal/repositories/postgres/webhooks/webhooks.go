@@ -14,7 +14,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -239,9 +238,9 @@ func (r *repository) CreateWebhook(ctx context.Context, input *types.WebhookData
 			CreatedAt:        r.CurrentTime(),
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &x.BelongsToAccount,
-			ID:               identifiers.New(),
+			BelongsToUser:    x.CreatedByUser,
 			ResourceType:     resourceTypeWebhooks,
 			RelevantID:       x.ID,
 			EventType:        audit.AuditLogEventTypeCreated,
@@ -316,9 +315,8 @@ func (r *repository) createWebhookTriggerConfig(ctx context.Context, querier dat
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing webhook trigger config creation query")
 	}
 
-	if _, err := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, querier, &audit.AuditLogEntryDatabaseCreationInput{
+	if err := r.auditLogEntryRepo.Record(ctx, querier, &audit.AuditLogEntry{
 		BelongsToAccount: &accountID,
-		ID:               identifiers.New(),
 		ResourceType:     resourceTypeWebhookTriggerConfigs,
 		RelevantID:       input.ID,
 		EventType:        audit.AuditLogEventTypeCreated,
@@ -389,9 +387,8 @@ func (r *repository) ArchiveWebhook(ctx context.Context, webhookID, accountID st
 			return sql.ErrNoRows
 		}
 
-		if _, auditErr := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if auditErr := r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
-			ID:               identifiers.New(),
 			ResourceType:     resourceTypeWebhooks,
 			RelevantID:       webhookID,
 			EventType:        audit.AuditLogEventTypeArchived,
@@ -509,9 +506,8 @@ func (r *repository) ArchiveWebhookTriggerConfig(ctx context.Context, webhookID,
 			return sql.ErrNoRows
 		}
 
-		if _, auditErr := r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if auditErr := r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
-			ID:               identifiers.New(),
 			ResourceType:     resourceTypeWebhookTriggerConfigs,
 			RelevantID:       configID,
 			EventType:        audit.AuditLogEventTypeArchived,

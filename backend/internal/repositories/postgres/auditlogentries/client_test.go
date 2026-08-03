@@ -10,16 +10,14 @@ import (
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/platform-go/v9/database"
+	"github.com/primandproper/platform-go/v9/database/dialect"
 	mockdatabase "github.com/primandproper/platform-go/v9/database/mock"
 	"github.com/primandproper/platform-go/v9/database/postgres"
 	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/stretchr/testify/require"
-)
-
-const (
-	exampleQuantity = 3
 )
 
 // TestMain starts the one postgres container this package's tests share and migrates
@@ -37,7 +35,13 @@ func TestMain(m *testing.M) {
 	}))
 }
 
-func buildDatabaseClientForTest(t *testing.T) *repository {
+// buildDatabaseClientForTest returns the repository under test and the client it
+// was built over.
+//
+// The client is handed back because the repository deliberately holds no database
+// handle — writes take the caller's executor — so a test that wants to record has
+// to open a transaction the same way a repository would.
+func buildDatabaseClientForTest(t *testing.T) (*repository, database.Client) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -49,15 +53,21 @@ func buildDatabaseClientForTest(t *testing.T) *repository {
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
-	c := ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
+	c, err := ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
+	require.NoError(t, err)
 
-	return c.(*repository)
+	return c.(*repository), pgc
 }
 
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
+	c, err := ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), &mockdatabase.ClientMock{
+		ReaderFunc:  func() database.SQLQueryExecutor { return nil },
+		WriterFunc:  func() database.SQLQueryExecutor { return nil },
+		DialectFunc: func() dialect.Dialect { return dialect.Postgres },
+	})
+	require.NoError(t, err)
 
 	return c.(*repository)
 }

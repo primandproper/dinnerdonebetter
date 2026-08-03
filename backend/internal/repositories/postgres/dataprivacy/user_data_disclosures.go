@@ -12,7 +12,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -41,22 +40,23 @@ func (r *disclosureRepository) CreateUserDataDisclosure(ctx context.Context, inp
 	logger := r.logger.WithValue(disclosureIDKey, input.ID).WithValue(identitykeys.UserIDKey, input.BelongsToUser)
 	logger.Info("creating user data disclosure")
 
-	if err := r.generatedQuerier.CreateUserDataDisclosure(ctx, r.writeDB, &generated.CreateUserDataDisclosureParams{
-		ID:            input.ID,
-		BelongsToUser: input.BelongsToUser,
-		ExpiresAt:     input.ExpiresAt,
+	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		if err := r.generatedQuerier.CreateUserDataDisclosure(ctx, tx, &generated.CreateUserDataDisclosureParams{
+			ID:            input.ID,
+			BelongsToUser: input.BelongsToUser,
+			ExpiresAt:     input.ExpiresAt,
+		}); err != nil {
+			return err
+		}
+
+		return r.auditLogRepo.Record(ctx, tx, &audit.AuditLogEntry{
+			ResourceType:  resourceTypeUserDataDisclosure,
+			RelevantID:    input.ID,
+			EventType:     audit.AuditLogEventTypeCreated,
+			BelongsToUser: input.BelongsToUser,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating user data disclosure")
-	}
-
-	if _, err := r.auditLogRepo.CreateAuditLogEntry(ctx, r.writeDB, &audit.AuditLogEntryDatabaseCreationInput{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUserDataDisclosure,
-		RelevantID:    input.ID,
-		EventType:     audit.AuditLogEventTypeCreated,
-		BelongsToUser: input.BelongsToUser,
-	}); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "creating audit log entry")
 	}
 
 	disclosure, err := r.GetUserDataDisclosure(ctx, input.ID)
@@ -312,8 +312,7 @@ func (r *disclosureRepository) ArchiveUserDataDisclosure(ctx context.Context, di
 			return observability.PrepareAndLogError(err, logger, span, "archiving disclosure")
 		}
 
-		if _, err = r.auditLogRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:            identifiers.New(),
+		if err = r.auditLogRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUserDataDisclosure,
 			RelevantID:    disclosureID,
 			EventType:     audit.AuditLogEventTypeArchived,

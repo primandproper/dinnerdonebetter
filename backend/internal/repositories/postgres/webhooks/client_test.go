@@ -55,7 +55,8 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
-	auditLogEntryRepo := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
+	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, pgc)
+	require.NoError(t, err)
 
 	// A real dispatcher over the same database: creating a webhook registers a delivery
 	// endpoint, and these tests assert what actually lands in the webhook tables.

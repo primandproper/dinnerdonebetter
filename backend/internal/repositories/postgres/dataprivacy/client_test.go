@@ -62,7 +62,8 @@ func buildDatabaseClientForTest(t *testing.T) (repo *repository, auditRepo audit
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
-	auditLogEntryRepo := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
+	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, pgc)
+	require.NoError(t, err)
 	identityRepo := identityrepo.ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil)
 	issueReportsRepo := issue_reports.ProvideIssueReportsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil)
 	mealPlanningRepo := mealplanning.ProvideMealPlanningRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, identityRepo, pgc, nil)

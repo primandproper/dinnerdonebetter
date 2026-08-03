@@ -101,7 +101,15 @@ This is a known gap rather than a designed behavior. It is bounded rather than u
 artifacts are ciphertext in a private bucket, and #1254 addresses it properly as part of adopting
 platform-go's `dataprivacy`, which models collection and erasure together.
 
+**The audit log does not cascade.** Its entries carry no foreign key back to the user, because a
+hash chain cannot survive rows being removed from the middle of it. `DeleteUser` erases the whole
+audit scopes that belong to the user — the accounts they own, and their own user scope, which is
+where every account-less event of theirs chains — and reports what it could not remove: their
+actions inside other people's accounts. See `backend/docs/audit.md` for the reasoning and the
+exact split.
+
 ## Related
 
+- `backend/docs/audit.md` — the audit log, and what erasure can and cannot remove from it
 - `docs/identity.md` — users, accounts, memberships
 - Issue #1254 — replacing this machinery with platform-go's `dataprivacy` package

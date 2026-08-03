@@ -86,6 +86,9 @@ func run(ctx context.Context, cfg *config.SchedulerConfig) error {
 	// cannot leave the relay holding claims it is never going to publish, the saga worker
 	// holding leases on instances it is never going to advance, or the webhook worker holding
 	// leases on dispatches it is never going to deliver.
+	//
+	// The audit sweeper is not among them: it runs as a scheduled job rather than as a loop
+	// of its own, so the scheduler's own drain is what waits for a sweep in flight.
 	return errors.Join(
 		wrapClose("scheduler", scheduler.Close(closeCtx)),
 		wrapClose("saga worker", sagaWorker.Close(closeCtx)),

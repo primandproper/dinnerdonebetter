@@ -81,7 +81,8 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
-	auditLogRepo := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
+	auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, pgc)
+	require.NoError(t, err)
 
 	c := ProvideAuthRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, pgc)
 

@@ -7,6 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	"github.com/primandproper/platform-go/v9/filtering"
 	"github.com/primandproper/platform-go/v9/identifiers"
 
 	"github.com/stretchr/testify/assert"
@@ -95,4 +96,31 @@ func TestQuerier_Integration_DeleteUser(t *testing.T) {
 
 	_, err = identityRepo.GetUser(ctx, createdUser.ID)
 	assert.Error(t, err)
+}
+
+// TestQuerier_Integration_DeleteUser_ErasesAuditScopes is separate from the
+// deletion test above because the audit log is the one store the cascade does not
+// reach: its entries carry no foreign key back to the user, because a hash chain
+// cannot survive rows being removed from the middle of it. Erasing them is
+// explicit work, and work that is explicit is work that can be forgotten.
+func TestQuerier_Integration_DeleteUser_ErasesAuditScopes(t *testing.T) {
+	ctx := t.Context()
+	dbc, auditRepo, identityRepo := buildDatabaseClientForTest(t)
+
+	exampleUser := fakes.BuildFakeUser()
+	exampleUser.Username = "dataprivacy_erase_" + identifiers.New()[:8]
+	exampleUser.TwoFactorSecretVerifiedAt = nil
+	createdUser := createUserForTest(t, ctx, exampleUser, identityRepo)
+
+	// Creating the user wrote entries of its own, so there is something to erase
+	// without this test having to manufacture it.
+	before, err := auditRepo.GetAuditLogEntriesForUser(ctx, createdUser.ID, filtering.DefaultQueryFilter())
+	require.NoError(t, err)
+	require.NotEmpty(t, before.Data, "expected the user's creation to have been audited")
+
+	require.NoError(t, dbc.DeleteUser(ctx, createdUser.ID))
+
+	after, err := auditRepo.GetAuditLogEntriesForUser(ctx, createdUser.ID, filtering.DefaultQueryFilter())
+	require.NoError(t, err)
+	assert.Empty(t, after.Data, "expected the user's audit scopes to have been erased")
 }

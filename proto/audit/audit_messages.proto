@@ -11,6 +11,11 @@ message DataCollection {
   repeated AuditLogEntry user_audit_log_entries = 2;
 }
 
+// ChangeLog is one field's before and after.
+//
+// The values are rendered strings rather than a typed Value because that is what
+// they have always been on this wire, and a client that shows an audit trail
+// shows text. The stored form is typed; the rendering happens at the edge.
 message ChangeLog {
   string old_value = 1;
   string new_value = 2;
@@ -25,4 +30,25 @@ message AuditLogEntry {
   string relevant_id = 6;
   string event_type = 7;
   string belongs_to_user = 8;
+
+  // What kind of principal acted, and where from. Recorded rather than derived at
+  // read time: the association between a principal and an address is what an
+  // investigation needs and is not recoverable afterwards.
+  string actor_type = 9;
+  string actor_ip = 10;
+
+  // The hash chain. Entries chain per scope, each carrying its predecessor's hash
+  // and its own hash over that plus its own contents, so any edit, removal or
+  // reordering breaks the chain at a nameable position.
+  //
+  // These are exposed so a caller can check the chain without trusting this
+  // service to check it for them — which is the only version of the check worth
+  // much. A clean walk proves nobody altered an entry without also rewriting every
+  // entry after it; it does not prove the table was not replaced wholesale, and
+  // nothing self-contained can. Publishing hash somewhere this database's owner
+  // does not control is the answer to that.
+  string scope = 11;
+  string prev_hash = 12;
+  string hash = 13;
+  int64 seq = 14;
 }

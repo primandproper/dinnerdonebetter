@@ -15,6 +15,7 @@ import (
 	"github.com/primandproper/platform-go/v9/database/dialect"
 	pglock "github.com/primandproper/platform-go/v9/distributedlock/postgres"
 	"github.com/primandproper/platform-go/v9/observability/logging"
+	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 	"github.com/primandproper/platform-go/v9/outbox"
 	"github.com/primandproper/platform-go/v9/saga"
@@ -43,7 +44,11 @@ func StartSagaWorker(
 		return nil, fmt.Errorf("building outbox writer: %w", err)
 	}
 
-	auditRepo := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, databaseClient)
+	auditRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, metricsnoop.NewMetricsProvider(), databaseClient)
+	if err != nil {
+		return nil, fmt.Errorf("building audit log repository: %w", err)
+	}
+
 	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, databaseClient, nil)
 
 	registry := saga.NewRegistry()

@@ -103,7 +103,7 @@ func (q *repository) CreateComment(ctx context.Context, input *types.CommentData
 			return observability.PrepareAndLogError(err, logger, span, "performing comment creation query")
 		}
 
-		if _, err := q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if err := q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			ID:            identifiers.New(),
 			ResourceType:  resourceTypeComments,
 			RelevantID:    x.ID,
@@ -295,7 +295,7 @@ func (q *repository) UpdateComment(ctx context.Context, id, belongsToUser, conte
 			return sql.ErrNoRows
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			ID:            identifiers.New(),
 			ResourceType:  resourceTypeComments,
 			RelevantID:    id,
@@ -342,7 +342,7 @@ func (q *repository) ArchiveComment(ctx context.Context, id string) error {
 			return sql.ErrNoRows
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			ID:            identifiers.New(),
 			ResourceType:  resourceTypeComments,
 			RelevantID:    id,
@@ -393,7 +393,7 @@ func (q *repository) ArchiveCommentsForReference(ctx context.Context, targetType
 		}
 
 		for _, c := range commentsResult.Data {
-			if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+			if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 				ID:            identifiers.New(),
 				ResourceType:  resourceTypeComments,
 				RelevantID:    c.ID,

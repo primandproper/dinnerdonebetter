@@ -11,6 +11,7 @@ import (
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
+	"github.com/primandproper/platform-go/v9/audit"
 	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
 	"github.com/primandproper/platform-go/v9/jobs"
 	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
@@ -49,7 +50,13 @@ type (
 		// the data the artifacts are made of.
 		DataPrivacy dataprivacycfg.Config `envPrefix:"DATA_PRIVACY_" json:"dataPrivacy"`
 
-		Jobs     ScheduledJobsConfig `envPrefix:"JOBS_"     json:"jobs"`
+		Jobs ScheduledJobsConfig `envPrefix:"JOBS_" json:"jobs"`
+
+		// Audit carries the retention window for the audit log. It lives here for the
+		// same reason the outbox does — the sweeper is a background loop over the
+		// database — and it runs in exactly one process, unlike the Recorder, which runs
+		// wherever a mutation does.
+		Audit    audit.SweeperConfig `envPrefix:"AUDIT_"    json:"audit"`
 		Database dbcfg.Config        `envPrefix:"DATABASE_" json:"database"`
 
 		// Outbox moves events written inside a caller's transaction onto the broker. It
@@ -93,6 +100,17 @@ type (
 		// Disabling it does not pause expiry so much as abandon it: the artifacts keep
 		// accumulating and nothing else will ever delete them.
 		DisclosureArtifactReaper ScheduledJobConfig `envPrefix:"DISCLOSURE_ARTIFACT_REAPER_" json:"disclosureArtifactReaper"`
+
+		// AuditRetentionSweeper prunes audit entries past the retention window in
+		// SchedulerConfig.Audit. Disabling it does not pause retention so much as
+		// abandon it: the log grows without bound and nothing else will trim it.
+		//
+		// It is a scheduled job rather than the Sweeper's own Run loop so that one
+		// replica prunes per tick, by construction rather than by convention. The
+		// Sweeper is safe to run concurrently — it prunes a prefix of a chain inside a
+		// transaction — but every replica sweeping every hour is the same work done
+		// several times for one result, and it is work that deletes.
+		AuditRetentionSweeper ScheduledJobConfig `envPrefix:"AUDIT_RETENTION_SWEEPER_" json:"auditRetentionSweeper"`
 
 		// Domain: mealplanning — swapping the domain replaces this field and the type it
 		// names, and touches nothing else in this struct.
@@ -212,6 +230,7 @@ func (cfg *ScheduledJobsConfig) ValidateWithContext(ctx context.Context) error {
 		"MobileNotificationScheduler": cfg.MobileNotificationScheduler.ValidateWithContext,
 		"QueueTest":                   cfg.QueueTest.ValidateWithContext,
 		"DisclosureArtifactReaper":    cfg.DisclosureArtifactReaper.ValidateWithContext,
+		"AuditRetentionSweeper":       cfg.AuditRetentionSweeper.ValidateWithContext,
 		"MealPlanning":                cfg.MealPlanning.ValidateWithContext,
 	}
 
@@ -239,6 +258,7 @@ func (cfg *SchedulerConfig) ValidateWithContext(ctx context.Context) error {
 		"DataPrivacy":   cfg.DataPrivacy.ValidateWithContext,
 		"Jobs":          cfg.Jobs.ValidateWithContext,
 		"Outbox":        cfg.Outbox.ValidateWithContext,
+		"Audit":         cfg.Audit.ValidateWithContext,
 		"Webhooks":      cfg.Webhooks.ValidateWithContext,
 		"Sagas":         cfg.Sagas.ValidateWithContext,
 	}

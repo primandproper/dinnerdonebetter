@@ -14,7 +14,6 @@ import (
 	"github.com/primandproper/platform-go/v9/database"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 )
@@ -432,9 +431,8 @@ func (q *Repository) CreateServiceSettingConfiguration(ctx context.Context, inpu
 			CreatedAt:        q.CurrentTime(),
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &input.BelongsToAccount,
-			ID:               identifiers.New(),
 			ResourceType:     resourceTypeServiceSettingConfigurations,
 			RelevantID:       x.ID,
 			EventType:        audit.AuditLogEventTypeCreated,
@@ -486,9 +484,8 @@ func (q *Repository) UpdateServiceSettingConfiguration(ctx context.Context, upda
 			return observability.PrepareAndLogError(err, logger, span, "updating service setting configuration")
 		}
 
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &updated.BelongsToAccount,
-			ID:               identifiers.New(),
 			ResourceType:     resourceTypeServiceSettingConfigurations,
 			RelevantID:       updated.ID,
 			EventType:        audit.AuditLogEventTypeUpdated,
@@ -540,8 +537,7 @@ func (q *Repository) ArchiveServiceSettingConfiguration(ctx context.Context, ser
 		}
 
 		// ArchiveServiceSettingConfiguration does not have account ID in signature; create audit entry without it
-		if _, err = q.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
-			ID:           identifiers.New(),
+		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			ResourceType: resourceTypeServiceSettingConfigurations,
 			RelevantID:   serviceSettingConfigurationID,
 			EventType:    audit.AuditLogEventTypeArchived,

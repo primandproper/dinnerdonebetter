@@ -10,7 +10,10 @@ import (
 	"time"
 
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
+	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
+	"github.com/primandproper/platform-go/v9/audit"
+	"github.com/primandproper/platform-go/v9/database/dialect"
 	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
 	pglock "github.com/primandproper/platform-go/v9/distributedlock/postgres"
 	"github.com/primandproper/platform-go/v9/jobs"
@@ -125,8 +128,47 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 			LeaseTTL:   10 * time.Minute,
 			RunOnStart: true,
 		},
+		AuditRetentionSweeper: ScheduledJobConfig{
+			Enabled: true,
+			// Daily, in the same overnight window the bulk re-index uses and for the same
+			// reason: one sweep removes a bounded batch per scope, so it is cheap, but it
+			// is a DELETE against the table every write path touches.
+			//
+			// No RunOnStart. The other jobs' first run is catch-up work; this one's would
+			// be a deletion, and a deletion from the audit log is not a thing to do a few
+			// seconds into a deploy on the strength of a config file nobody has read yet.
+			Schedule: "17 7 * * *",
+			Timeout:  10 * time.Minute,
+			LeaseTTL: 20 * time.Minute,
+		},
 		// Domain: mealplanning
 		MealPlanning: defaultMealPlanningScheduledJobsConfig(),
+	}
+}
+
+// defaultAuditSweeperConfig returns the audit log's retention knobs.
+//
+// Two years, against the platform's seven-year default. Seven is the window the regulations
+// that ask for an audit log in the first place tend to name, and this application is under
+// none of them; two still comfortably covers a dispute, an incident review, or a question
+// about an account somebody closed last year, which is what this log actually gets asked.
+//
+// It is a knob rather than a constant because the right answer is a deployment's to make, and
+// shortening it is a config change rather than a code change. Lengthening it is too — but note
+// that lengthening only affects what has not already been swept. Retention deletes; a window
+// that was too short is not recoverable by widening it afterwards.
+//
+// The batch and scope limits are the platform defaults: one sweep removes at most a thousand
+// entries from any one scope and visits at most a hundred scopes, so a long-neglected log is
+// trimmed over several passes rather than by one DELETE holding locks for minutes.
+func defaultAuditSweeperConfig() audit.SweeperConfig {
+	return audit.SweeperConfig{
+		Dialect:       dialect.Postgres,
+		TablePrefix:   ddbaudit.TablePrefix,
+		Retention:     2 * 365 * 24 * time.Hour,
+		SweepInterval: time.Hour,
+		BatchSize:     audit.DefaultSweepBatchSize,
+		ScopeLimit:    audit.DefaultSweepScopeLimit,
 	}
 }
 
@@ -363,6 +405,7 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 		DataPrivacy:   s.RootConfig.Services.DataPrivacy,
 		Jobs:          defaultScheduledJobsConfig(),
 		Outbox:        defaultOutboxRelayConfig(),
+		Audit:         defaultAuditSweeperConfig(),
 		Sagas:         defaultSagaWorkerConfig(),
 		// The same webhook configuration the API service writes with, so the worker
 		// claims from the tables the dispatch rows are written into.

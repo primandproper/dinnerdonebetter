@@ -85,6 +85,7 @@ Two-stage config: JSON file (path from `CONFIGURATION_FILEPATH` env var) + envir
 
 ## Documentation
 
+- `docs/audit.md` — the tamper-evident audit log: how to record an entry, what the chain guarantees, retention, redaction
 - `docs/search-pagination.md` — how clients page search results, and what the cursor means on each path
 - `docs/writing_go.md` — Go conventions, testing, naming, patterns
 - `docs/adding_a_new_domain.md` — Step-by-step domain creation checklist

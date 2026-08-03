@@ -15,6 +15,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
+	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
 	"github.com/primandproper/platform-go/v9/observability"
@@ -252,13 +253,40 @@ func (r *repository) DeleteUser(ctx context.Context, userID string) error {
 	logger := r.logger.WithValue("user_id", userID)
 	logger.Info("deleting user and all associated data")
 
+	// Read before the delete: the cascade takes the accounts that name these scopes
+	// with it, and a deleted user owns nothing.
+	scopes, err := erasableAuditScopes(ctx, r.identityRepo, userID)
+	if err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "resolving audit scopes")
+	}
+
+	auditEraser, err := eraserForScopes(scopes)
+	if err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "building audit eraser")
+	}
+
 	// The database schema uses ON DELETE CASCADE on all belongs_to_user foreign keys,
 	// so deleting the user record will automatically delete all associated data.
-	if err := r.identityRepo.DeleteUser(ctx, userID); err != nil {
+	if err = r.identityRepo.DeleteUser(ctx, userID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "deleting user")
 	}
 
-	logger.Info("user deleted successfully")
+	// The audit log is the one store the cascade does not reach, because a hash chain
+	// cannot carry a foreign key that removes rows from the middle of it. It is erased
+	// after the user rather than before: an erasure that ran first and then failed
+	// would have destroyed the audit trail of an account that still exists, while one
+	// that fails here leaves rows a re-run removes.
+	outcome, err := auditEraser.Erase(ctx, r.writeDB, platformdataprivacy.Subject{
+		ID:   userID,
+		Type: platformdataprivacy.SubjectUser,
+	})
+	if err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "erasing audit scopes")
+	}
+
+	logger.WithValue("audit_entries_deleted", outcome.Deleted).
+		WithValue("audit_entries_retained", outcome.Retained).
+		Info("user deleted successfully")
 
 	return nil
 }

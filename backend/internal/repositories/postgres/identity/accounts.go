@@ -3,7 +3,6 @@ package identity
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
@@ -245,9 +244,8 @@ func (r *repository) CreateAccount(ctx context.Context, input *identity.AccountD
 			CreatedAt:     r.CurrentTime(),
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &account.ID,
-			ID:               identifiers.New(),
 			ResourceType:     resourceTypeAccounts,
 			RelevantID:       account.ID,
 			EventType:        audit.AuditLogEventTypeCreated,
@@ -275,9 +273,8 @@ func (r *repository) CreateAccount(ctx context.Context, input *identity.AccountD
 			return observability.PrepareAndLogError(err, logger, span, "assigning account role")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &account.ID,
-			ID:               identifiers.New(),
 			ResourceType:     resourceTypeAccountUserMemberships,
 			RelevantID:       accountMembershipID,
 			EventType:        audit.AuditLogEventTypeCreated,
@@ -363,14 +360,24 @@ func (r *repository) UpdateAccount(ctx context.Context, updated *identity.Accoun
 			return observability.PrepareAndLogError(err, logger, span, "updating account")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		// Diff rather than a hand-written comparison, because both sides here are
+		// complete Accounts of the same type — the manager fetches one, applies the
+		// input to it, and hands it back — so anything that differs is a real change.
+		// The version that listed fields by hand would silently miss the next column
+		// somebody adds, and the field an investigation wants is exactly the one
+		// nobody remembered to add to the list.
+		changes, diffErr := audit.Diff(account, updated)
+		if diffErr != nil {
+			return observability.PrepareError(diffErr, span, "diffing account for audit log")
+		}
+
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &updated.ID,
-			ID:               identifiers.New(),
 			ResourceType:     resourceTypeAccounts,
 			RelevantID:       updated.ID,
 			EventType:        audit.AuditLogEventTypeUpdated,
 			BelongsToUser:    account.BelongsToUser,
-			Changes:          buildChangesForAccount(account, updated),
+			Changes:          changes,
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
@@ -393,82 +400,6 @@ func (r *repository) UpdateAccount(ctx context.Context, updated *identity.Accoun
 	return nil
 }
 
-func buildChangesForAccount(account, updated *identity.Account) map[string]*audit.ChangeLog {
-	changes := map[string]*audit.ChangeLog{}
-
-	if account.Name != updated.Name {
-		changes["name"] = &audit.ChangeLog{
-			OldValue: account.Name,
-			NewValue: updated.Name,
-		}
-	}
-
-	if account.ContactPhone != updated.ContactPhone {
-		changes["contact_phone"] = &audit.ChangeLog{
-			OldValue: account.ContactPhone,
-			NewValue: updated.ContactPhone,
-		}
-	}
-
-	if account.AddressLine1 != updated.AddressLine1 {
-		changes["address_line_1"] = &audit.ChangeLog{
-			OldValue: account.AddressLine1,
-			NewValue: updated.AddressLine1,
-		}
-	}
-
-	if account.AddressLine2 != updated.AddressLine2 {
-		changes["address_line_2"] = &audit.ChangeLog{
-			OldValue: account.AddressLine2,
-			NewValue: updated.AddressLine2,
-		}
-	}
-
-	if account.City != updated.City {
-		changes["city"] = &audit.ChangeLog{
-			OldValue: account.City,
-			NewValue: updated.City,
-		}
-	}
-
-	if account.State != updated.State {
-		changes["state"] = &audit.ChangeLog{
-			OldValue: account.State,
-			NewValue: updated.State,
-		}
-	}
-
-	if account.ZipCode != updated.ZipCode {
-		changes["zip_code"] = &audit.ChangeLog{
-			OldValue: account.ZipCode,
-			NewValue: updated.ZipCode,
-		}
-	}
-
-	if account.Country != updated.Country {
-		changes["country"] = &audit.ChangeLog{
-			OldValue: account.Country,
-			NewValue: updated.Country,
-		}
-	}
-
-	if account.Latitude != updated.Latitude {
-		changes["latitude"] = &audit.ChangeLog{
-			OldValue: fmt.Sprintf("%v", account.Latitude),
-			NewValue: fmt.Sprintf("%v", updated.Latitude),
-		}
-	}
-
-	if account.Longitude != updated.Longitude {
-		changes["longitude"] = &audit.ChangeLog{
-			OldValue: fmt.Sprintf("%v", account.Longitude),
-			NewValue: fmt.Sprintf("%v", updated.Longitude),
-		}
-	}
-
-	return changes
-}
-
 // ArchiveAccount archives an account from the database by its ID.
 func (r *repository) ArchiveAccount(ctx context.Context, accountID, ownerID string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
@@ -486,16 +417,26 @@ func (r *repository) ArchiveAccount(ctx context.Context, accountID, ownerID stri
 
 	var err error
 	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
-		if _, err = r.generatedQuerier.ArchiveAccount(ctx, tx, &generated.ArchiveAccountParams{
+		rowsAffected, archiveErr := r.generatedQuerier.ArchiveAccount(ctx, tx, &generated.ArchiveAccountParams{
 			BelongsToUser: ownerID,
 			ID:            accountID,
-		}); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "archiving account")
+		})
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving account")
 		}
 
-		if _, err = r.auditLogEntryRepo.CreateAuditLogEntry(ctx, tx, &audit.AuditLogEntryDatabaseCreationInput{
+		// Archiving an account that does not exist is not a success. This used to be
+		// caught by accident: the old audit table had a foreign key from
+		// belongs_to_account to accounts, so the audit insert was what failed. The
+		// platform's audit table stores an opaque scope with no foreign key — rightly,
+		// since the log outlives what it describes — so the check belongs here, where
+		// every other Archive in this repository already puts it.
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
-			ID:               identifiers.New(),
 			ResourceType:     resourceTypeAccounts,
 			RelevantID:       accountID,
 			EventType:        audit.AuditLogEventTypeArchived,

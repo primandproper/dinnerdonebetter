@@ -158,6 +158,14 @@
 			"enabled": true,
 			"runOnStart": true
 		},
+		"auditRetentionSweeper": {
+			"schedule": "17 7 * * *",
+			"interval": 0,
+			"timeout": 600000000000,
+			"leaseTTL": 1200000000000,
+			"enabled": true,
+			"runOnStart": false
+		},
 		"mealPlanning": {
 			"mealPlanFinalizationStarter": {
 				"schedule": "",
@@ -168,6 +176,14 @@
 				"runOnStart": false
 			}
 		}
+	},
+	"audit": {
+		"dialect": "postgres",
+		"tablePrefix": "ddb",
+		"retention": 63072000000000000,
+		"sweepInterval": 3600000000000,
+		"batchSize": 1000,
+		"scopeLimit": 100
 	},
 	"database": {
 		"encryption": {

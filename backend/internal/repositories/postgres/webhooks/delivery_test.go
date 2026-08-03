@@ -106,7 +106,8 @@ func buildDeliveryHarness(t *testing.T) (*repository, *events.Emitter, *webhooks
 	)
 	require.NoError(t, err)
 
-	auditRepo := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), pgc)
+	auditRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
+	require.NoError(t, err)
 
 	writer, err := outbox.NewWriter(dialect.Postgres)
 	require.NoError(t, err)
