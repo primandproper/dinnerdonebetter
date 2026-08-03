@@ -7,9 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	disclosureartifactreaper "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/workers/disclosure_artifact_reaper"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
-	mealplanfinalizer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalizer"
-	mealplangrocerylistinitializer "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_grocery_list_initializer"
-	mealplantaskcreator "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_creator"
+	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
 	"github.com/primandproper/platform-go/v9/distributedlock"
 	"github.com/primandproper/platform-go/v9/jobs"
@@ -24,13 +22,11 @@ import (
 // Job names. These are also the distributed lock keys, so renaming one lets an old replica and
 // a new replica both run that job during a rollout.
 const (
-	jobMealPlanFinalizer              = "meal_plan_finalizer"
-	jobMealPlanGroceryListInitializer = "meal_plan_grocery_list_initializer"
-	jobMealPlanTaskCreator            = "meal_plan_task_creator"
-	jobSearchDataIndexScheduler       = "search_data_index_scheduler"
-	jobMobileNotificationScheduler    = "mobile_notification_scheduler"
-	jobQueueTest                      = "queue_test"
-	jobDisclosureArtifactReaper       = "disclosure_artifact_reaper"
+	jobMealPlanFinalizationStarter = "meal_plan_finalization_starter"
+	jobSearchDataIndexScheduler    = "search_data_index_scheduler"
+	jobMobileNotificationScheduler = "mobile_notification_scheduler"
+	jobQueueTest                   = "queue_test"
+	jobDisclosureArtifactReaper    = "disclosure_artifact_reaper"
 )
 
 // RegisterScheduler registers the jobs.Scheduler, with every enabled job already registered on
@@ -57,24 +53,14 @@ func RegisterScheduler(i do.Injector) {
 			name string
 		}{
 			{
-				name: jobMealPlanFinalizer,
-				cfg:  &jobsCfg.MealPlanning.MealPlanFinalizer,
-				// The finalizer reports how many meal plans it changed; the scheduler has
-				// nowhere to put a count, and the worker already records it as a metric.
+				name: jobMealPlanFinalizationStarter,
+				cfg:  &jobsCfg.MealPlanning.MealPlanFinalizationStarter,
+				// The starter reports how many sagas it began; the scheduler has nowhere to
+				// put a count, and the worker already records it as a metric.
 				run: func(ctx context.Context) error {
-					_, workErr := do.MustInvoke[*mealplanfinalizer.Worker](i).Work(ctx)
+					_, workErr := do.MustInvoke[*mealplanfinalization.Starter](i).Work(ctx)
 					return workErr
 				},
-			},
-			{
-				name: jobMealPlanGroceryListInitializer,
-				cfg:  &jobsCfg.MealPlanning.MealPlanGroceryListInitializer,
-				run:  do.MustInvoke[*mealplangrocerylistinitializer.Worker](i).Work,
-			},
-			{
-				name: jobMealPlanTaskCreator,
-				cfg:  &jobsCfg.MealPlanning.MealPlanTaskCreator,
-				run:  do.MustInvoke[*mealplantaskcreator.Worker](i).Work,
 			},
 			{
 				name: jobSearchDataIndexScheduler,

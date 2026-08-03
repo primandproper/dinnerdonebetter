@@ -17,9 +17,12 @@ type (
 	MealPlanningScheduledJobsConfig struct {
 		_ struct{} `json:"-"`
 
-		MealPlanFinalizer              ScheduledJobConfig `envPrefix:"MEAL_PLAN_FINALIZER_"                json:"mealPlanFinalizer"`
-		MealPlanGroceryListInitializer ScheduledJobConfig `envPrefix:"MEAL_PLAN_GROCERY_LIST_INITIALIZER_" json:"mealPlanGroceryListInitializer"`
-		MealPlanTaskCreator            ScheduledJobConfig `envPrefix:"MEAL_PLAN_TASK_CREATOR_"             json:"mealPlanTaskCreator"`
+		// MealPlanFinalizationStarter replaces the three jobs that used to poll for expired
+		// plans, for finalized plans without tasks, and for finalized plans without a grocery
+		// list. It only claims plans and writes a saga instance for each; the saga worker does
+		// the pipeline, so this interval is the delay before a plan enters the pipeline rather
+		// than the delay before it comes out the other end.
+		MealPlanFinalizationStarter ScheduledJobConfig `envPrefix:"MEAL_PLAN_FINALIZATION_STARTER_" json:"mealPlanFinalizationStarter"`
 	}
 )
 
@@ -30,9 +33,7 @@ func (cfg *MealPlanningScheduledJobsConfig) ValidateWithContext(ctx context.Cont
 	result := &multierror.Error{}
 
 	validators := map[string]func(context.Context) error{
-		"MealPlanFinalizer":              cfg.MealPlanFinalizer.ValidateWithContext,
-		"MealPlanGroceryListInitializer": cfg.MealPlanGroceryListInitializer.ValidateWithContext,
-		"MealPlanTaskCreator":            cfg.MealPlanTaskCreator.ValidateWithContext,
+		"MealPlanFinalizationStarter": cfg.MealPlanFinalizationStarter.ValidateWithContext,
 	}
 
 	for name, validator := range validators {

@@ -439,11 +439,13 @@ func (q *repository) CreateMealPlanGroceryListItem(ctx context.Context, input *m
 // had it initialized, in a single transaction.
 //
 // Written item by item, a failure partway through left the committed items behind with the plan still
-// flagged uninitialized. GetFinalizedMealPlansWithUninitializedGroceryLists then re-selected it, the
-// grocery list creator regenerated every item with fresh IDs, and the items that had already
-// committed were written a second time — there is no unique constraint on the table to absorb that.
-// All or nothing is the only shape that makes the retry safe, because the retry cannot tell which
-// items it already wrote.
+// flagged uninitialized. The uninitialized-plans query then re-selected it, the grocery list creator
+// regenerated every item with fresh IDs, and the items that had already committed were written a
+// second time — there is no unique constraint on the table to absorb that. All or nothing is the only
+// shape that makes the retry safe, because the retry cannot tell which items it already wrote.
+//
+// The flag is now also the finalization saga's idempotency guard for this step, on the same terms as
+// tasks_created: it commits with the work, so a replay after a crash sees it and does nothing.
 //
 // accountID is passed rather than read from the context because this runs in a background job with
 // no session; it is the ordering key for the events below.
@@ -487,6 +489,49 @@ func (q *repository) InitializeMealPlanGroceryList(ctx context.Context, mealPlan
 	logger.WithValue("created", len(created)).Info("meal plan grocery list initialized")
 
 	return created, nil
+}
+
+// UndoMealPlanGroceryListInitialization deletes the named items and clears the plan's
+// grocery-list-initialized flag, in a single transaction.
+//
+// It is InitializeMealPlanGroceryList's compensation, and the same transaction in reverse: the flag
+// says the list exists, so clearing it separately would leave a window in which the plan advertises
+// a list whose items have already been deleted.
+//
+// It deletes only the IDs it is given — the ones the saga recorded creating — so items a user added
+// to the list themselves are not swept up in an unwind of work that was never theirs.
+func (q *repository) UndoMealPlanGroceryListInitialization(ctx context.Context, mealPlanID string, itemIDs []string) error {
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	if mealPlanID == "" {
+		return platformerrors.ErrInvalidIDProvided
+	}
+
+	logger := q.logger.Clone().
+		WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID).
+		WithValue("item_count", len(itemIDs))
+	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
+
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		if len(itemIDs) > 0 {
+			if deleteErr := q.generatedQuerier.DeleteMealPlanGroceryListItems(ctx, tx, itemIDs); deleteErr != nil {
+				return observability.PrepareAndLogError(deleteErr, logger, span, "deleting meal plan grocery list items")
+			}
+		}
+
+		if unmarkErr := q.generatedQuerier.UnmarkMealPlanGroceryListInitialized(ctx, tx, mealPlanID); unmarkErr != nil {
+			return observability.PrepareAndLogError(unmarkErr, logger, span, "unmarking meal plan as having grocery list initialized")
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	logger.Info("meal plan grocery list initialization undone")
+
+	return nil
 }
 
 // UpdateMealPlanGroceryListItem updates a particular meal plan grocery list.

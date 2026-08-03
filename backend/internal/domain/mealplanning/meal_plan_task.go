@@ -102,6 +102,10 @@ type (
 		// after the tasks commit leaves the plan selectable again, and the next run creates every
 		// task a second time.
 		CreateMealPlanTasksForMealPlan(ctx context.Context, mealPlanID string, inputs []*MealPlanTaskDatabaseCreationInput) ([]*MealPlanTask, error)
+		// UndoMealPlanTaskCreation is CreateMealPlanTasksForMealPlan's compensation: it deletes
+		// the named tasks and clears the flag, in the one transaction that wrote them. Only the
+		// IDs the caller passes are removed, so it cannot reach past the work it is undoing.
+		UndoMealPlanTaskCreation(ctx context.Context, mealPlanID string, taskIDs []string) error
 		ChangeMealPlanTaskStatus(ctx context.Context, input *MealPlanTaskStatusChangeRequestInput) error
 		MealPlanTaskNotificationHasBeenSent(ctx context.Context, mealPlanTaskID string) (bool, error)
 		MarkMealPlanTaskNotificationSent(ctx context.Context, mealPlanTaskID string) error

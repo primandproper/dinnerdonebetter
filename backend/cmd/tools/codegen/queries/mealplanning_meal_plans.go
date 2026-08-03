@@ -15,6 +15,7 @@ const (
 	mealPlanVotingDeadlineColumn         = "voting_deadline"
 	mealPlanGroceryListInitializedColumn = "grocery_list_initialized"
 	mealPlanTasksCreatedColumn           = "tasks_created"
+	mealPlanFinalizationSagaIDColumn     = "finalization_saga_id"
 	electionMethodColumn                 = "election_method"
 )
 
@@ -112,32 +113,71 @@ func buildMealPlansQueries(database string) []*Query {
 				)),
 			},
 			{
+				// The finalization saga's working set: every plan the pipeline still owes
+				// something to and has no saga for yet. The two arms are the two ways a plan
+				// gets here — one that has just run out of voting time, and one that was
+				// finalized by a user request or by a build that predates the saga and never
+				// had its tasks or its grocery list built.
+				//
+				// The second arm is also the migration. A plan left half-processed by the
+				// three jobs this replaced is picked up by exactly the same predicate, and
+				// the saga's steps skip whatever it already has.
 				Annotation: QueryAnnotation{
-					Name: "GetExpiredAndUnresolvedMealPlans",
+					Name: "GetMealPlansAwaitingFinalizationSaga",
 					Type: ManyType,
 				},
 				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
-	%s
+	%s.%s,
+	%s.%s
 FROM %s
 WHERE %s.%s IS NULL
-	AND %s.%s = 'awaiting_votes'
-	AND %s < %s
-GROUP BY %s.%s
-ORDER BY %s.%s;`,
-					strings.Join(applyToEach(mealPlansColumns, func(i int, s string) string {
-						return fmt.Sprintf("%s.%s", mealPlansTableName, s)
-					}), ",\n\t"),
+	AND %s.%s IS NULL
+	AND (
+		(%s.%s = 'awaiting_votes' AND %s.%s < %s)
+		OR (%s.%s = 'finalized' AND (%s.%s IS FALSE OR %s.%s IS FALSE))
+	)
+ORDER BY %s.%s
+LIMIT sqlc.arg(query_limit);`,
+					mealPlansTableName, idColumn,
+					mealPlansTableName, belongsToAccountColumn,
 					mealPlansTableName,
 					mealPlansTableName, archivedAtColumn,
-					mealPlansTableName, mealPlanStatusColumn,
-					mealPlanVotingDeadlineColumn, currentTimeExpression,
-					mealPlansTableName, idColumn,
-					mealPlansTableName, idColumn,
+					mealPlansTableName, mealPlanFinalizationSagaIDColumn,
+					mealPlansTableName, mealPlanStatusColumn, mealPlansTableName, mealPlanVotingDeadlineColumn, currentTimeExpression,
+					mealPlansTableName, mealPlanStatusColumn, mealPlansTableName, mealPlanTasksCreatedColumn, mealPlansTableName, mealPlanGroceryListInitializedColumn,
+					mealPlansTableName, mealPlanVotingDeadlineColumn,
 				)),
 			},
 			{
+				// Claims a plan for one saga. The IS NULL predicate is what makes starting
+				// idempotent: the instance row is written in this same transaction, so a
+				// second starter that loses the race matches no rows here and rolls its
+				// instance back rather than running the pipeline twice.
 				Annotation: QueryAnnotation{
-					Name: "GetFinalizedMealPlansForPlanning",
+					Name: "AttachMealPlanFinalizationSaga",
+					Type: ExecRowsType,
+				},
+				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
+	%s = sqlc.arg(%s),
+	%s = %s
+WHERE %s IS NULL
+	AND %s IS NULL
+	AND %s = sqlc.arg(%s);`,
+					mealPlansTableName,
+					mealPlanFinalizationSagaIDColumn, mealPlanFinalizationSagaIDColumn,
+					lastUpdatedAtColumn, currentTimeExpression,
+					archivedAtColumn,
+					mealPlanFinalizationSagaIDColumn,
+					idColumn, idColumn,
+				)),
+			},
+			{
+				// The task creator's query, narrowed to one plan. It used to select every
+				// finalized plan with tasks_created IS FALSE, because the job rediscovered
+				// its own work; the saga already knows which plan it is running for, and the
+				// flag it used to filter on is now the step's own idempotency guard.
+				Annotation: QueryAnnotation{
+					Name: "GetFinalizedMealPlanOptionsForMealPlan",
 					Type: ManyType,
 				},
 				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
@@ -156,7 +196,7 @@ WHERE
 	%s.%s IS NULL
 	AND %s.%s = 'finalized'
 	AND %s.%s IS TRUE
-	AND %s.%s IS FALSE
+	AND %s.%s = sqlc.arg(%s)
 GROUP BY
 	%s.%s,
 	%s.%s,
@@ -182,7 +222,7 @@ ORDER BY
 					mealPlansTableName, archivedAtColumn,
 					mealPlansTableName, mealPlanStatusColumn,
 					mealPlanOptionsTableName, mealPlanOptionsChosenColumn,
-					mealPlansTableName, mealPlanTasksCreatedColumn,
+					mealPlansTableName, idColumn, mealPlanIDColumn,
 					mealPlansTableName, idColumn,
 					mealPlanOptionsTableName, idColumn,
 					mealsTableName, idColumn,
@@ -196,23 +236,41 @@ ORDER BY
 				)),
 			},
 			{
+				// Compensation for the grocery list step, paired with the DELETE of the items
+				// the saga recorded. The flag and the rows it describes are cleared in one
+				// transaction, exactly as they were written.
 				Annotation: QueryAnnotation{
-					Name: "GetFinalizedMealPlansWithoutGroceryListInit",
-					Type: ManyType,
+					Name: "UnmarkMealPlanGroceryListInitialized",
+					Type: ExecType,
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
-	%s.%s,
-	%s.%s
-FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s = 'finalized'
-	AND %s.%s IS FALSE;`,
-					mealPlansTableName, idColumn,
-					mealPlansTableName, belongsToAccountColumn,
+				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
+	%s = FALSE,
+	%s = %s
+WHERE %s IS NULL
+	AND %s = sqlc.arg(%s);`,
 					mealPlansTableName,
-					mealPlansTableName, archivedAtColumn,
-					mealPlansTableName, mealPlanStatusColumn,
-					mealPlansTableName, mealPlanGroceryListInitializedColumn,
+					mealPlanGroceryListInitializedColumn,
+					lastUpdatedAtColumn, currentTimeExpression,
+					archivedAtColumn,
+					idColumn, idColumn,
+				)),
+			},
+			{
+				// Compensation for the task creation step. See above.
+				Annotation: QueryAnnotation{
+					Name: "UnmarkMealPlanPrepTasksCreated",
+					Type: ExecType,
+				},
+				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
+	%s = FALSE,
+	%s = %s
+WHERE %s IS NULL
+	AND %s = sqlc.arg(%s);`,
+					mealPlansTableName,
+					mealPlanTasksCreatedColumn,
+					lastUpdatedAtColumn, currentTimeExpression,
+					archivedAtColumn,
+					idColumn, idColumn,
 				)),
 			},
 			{

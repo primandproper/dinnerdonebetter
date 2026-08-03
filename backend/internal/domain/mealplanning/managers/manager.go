@@ -8,7 +8,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
 	platformerrors "github.com/primandproper/platform-go/v9/errors"
 	"github.com/primandproper/platform-go/v9/filtering"
@@ -326,12 +325,14 @@ type (
 		ArchiveValidVessel(ctx context.Context, validVesselID string) error
 	}
 
-	mealPlanTaskCreatorWorker interface {
-		workers.Worker
-	}
-
-	mealPlanGroceryListInitializerWorker interface {
-		workers.Worker
+	// mealPlanFinalizationStarter enters a meal plan into the finalization pipeline.
+	//
+	// It is an interface here, rather than the concrete starter, for the same reason the two
+	// workers it replaces were: this manager is constructed in processes that have no saga
+	// runner to give it, and a nil one means "somebody else will pick the plan up on the next
+	// tick" rather than a construction failure.
+	mealPlanFinalizationStarter interface {
+		EnsureStarted(ctx context.Context, mealPlanID, accountID string) error
 	}
 
 	mealPlanningManager struct {
@@ -339,8 +340,7 @@ type (
 		logger                           logging.Logger
 		db                               types.Repository
 		recipeAnalyzer                   recipeanalysis.RecipeAnalyzer
-		groceryListInitializer           mealPlanGroceryListInitializerWorker
-		taskCreator                      mealPlanTaskCreatorWorker
+		finalizationStarter              mealPlanFinalizationStarter
 		mealsSearchIndex                 textsearch.IndexSearcher[eatingindexing.MealSearchSubset]
 		recipeSearchIndex                textsearch.IndexSearcher[eatingindexing.RecipeSearchSubset]
 		validIngredientStatesSearchIndex textsearch.IndexSearcher[eatingindexing.ValidIngredientStateSearchSubset]
@@ -376,8 +376,7 @@ func NewMealPlanningManager(
 	recipeAnalyzer recipeanalysis.RecipeAnalyzer,
 	searchConfig *textsearchcfg.Config,
 	metricsProvider metrics.Provider,
-	groceryListInitializer mealPlanGroceryListInitializerWorker,
-	taskCreator mealPlanTaskCreatorWorker,
+	finalizationStarter mealPlanFinalizationStarter,
 ) (MealPlanningManager, error) {
 	mealsSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.MealSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeMeals, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
@@ -424,8 +423,7 @@ func NewMealPlanningManager(
 		tracer:                           tracing.NewNamedTracer(tracerProvider, mealPlannerName),
 		logger:                           logging.NewNamedLogger(logger, mealPlannerName),
 		recipeAnalyzer:                   recipeAnalyzer,
-		groceryListInitializer:           groceryListInitializer,
-		taskCreator:                      taskCreator,
+		finalizationStarter:              finalizationStarter,
 		mealsSearchIndex:                 mealsSearchIndex,
 		recipeSearchIndex:                recipeSearchIndex,
 		validIngredientStatesSearchIndex: validIngredientStatesSearchIndex,
@@ -439,14 +437,23 @@ func NewMealPlanningManager(
 	return m, nil
 }
 
-func (m *mealPlanningManager) runPostFinalizationWorkers(ctx context.Context, logger logging.Logger, span tracing.Span) {
-	if m.groceryListInitializer == nil || m.taskCreator == nil {
+// startFinalizationPipeline enters a plan the caller has just finalized into the finalization
+// saga, so its prep tasks and grocery list get built.
+//
+// This used to run the two downstream workers inline, which meant a user's finalize request
+// waited on the grocery list of every finalized plan in the database, not only theirs. Now it
+// writes one row: the saga worker picks the plan up within its poll interval and does the rest
+// durably, with retries and compensation the request could never have given it.
+//
+// A failure here is acknowledged rather than returned. The plan is finalized either way, and the
+// starter's scheduled tick selects finalized plans that have no saga — so the worst case is that
+// the pipeline begins a minute later instead of immediately.
+func (m *mealPlanningManager) startFinalizationPipeline(ctx context.Context, mealPlanID, accountID string, logger logging.Logger, span tracing.Span) {
+	if m.finalizationStarter == nil {
 		return
 	}
-	if err := m.groceryListInitializer.Work(ctx); err != nil {
-		observability.AcknowledgeError(err, logger, span, "running grocery list initializer after meal plan finalization")
-	}
-	if err := m.taskCreator.Work(ctx); err != nil {
-		observability.AcknowledgeError(err, logger, span, "running task creator after meal plan finalization")
+
+	if err := m.finalizationStarter.EnsureStarted(ctx, mealPlanID, accountID); err != nil {
+		observability.AcknowledgeError(err, logger, span, "starting finalization saga after meal plan finalization")
 	}
 }

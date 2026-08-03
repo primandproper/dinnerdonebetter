@@ -129,6 +129,11 @@ type (
 		// partial list behind on failure, and the retry regenerates every item — the ones that
 		// already committed included.
 		InitializeMealPlanGroceryList(ctx context.Context, mealPlanID, accountID string, inputs []*MealPlanGroceryListItemDatabaseCreationInput) ([]*MealPlanGroceryListItem, error)
+		// UndoMealPlanGroceryListInitialization is InitializeMealPlanGroceryList's compensation:
+		// it deletes the named items and clears the flag, in the one transaction that wrote
+		// them. Only the IDs the caller passes are removed, so anything a user added to the
+		// list themselves survives.
+		UndoMealPlanGroceryListInitialization(ctx context.Context, mealPlanID string, itemIDs []string) error
 		UpdateMealPlanGroceryListItem(ctx context.Context, updated *MealPlanGroceryListItem) error
 		ArchiveMealPlanGroceryListItem(ctx context.Context, mealPlanGroceryListItemID string) error
 	}

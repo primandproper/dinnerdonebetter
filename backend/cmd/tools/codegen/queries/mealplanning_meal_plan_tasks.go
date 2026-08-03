@@ -89,6 +89,23 @@ func buildMealPlanTasksQueries(database string) []*Query {
 
 		return []*Query{
 			{
+				// Compensation for the finalization saga's task creation step. It deletes
+				// rather than archives because this table has no archived_at: a task is
+				// derived from the plan's chosen options and is regenerated wholesale when
+				// the step runs again, so a tombstone would be a row nothing could ever read.
+				//
+				// The IDs come from the saga's own state, so it only ever removes what that
+				// instance created — not whatever else happens to hang off the plan.
+				Annotation: QueryAnnotation{
+					Name: "DeleteMealPlanTasks",
+					Type: ExecType,
+				},
+				Content: buildRawQuery((&builq.Builder{}).Addf(`DELETE FROM %s WHERE %s = ANY(sqlc.arg(ids)::text[]);`,
+					mealPlanTasksTableName,
+					idColumn,
+				)),
+			},
+			{
 				Annotation: QueryAnnotation{
 					Name: "ChangeMealPlanTaskStatus",
 					Type: ExecType,

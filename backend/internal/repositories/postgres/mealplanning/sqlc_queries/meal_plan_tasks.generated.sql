@@ -1,3 +1,6 @@
+-- name: DeleteMealPlanTasks :exec
+DELETE FROM meal_plan_tasks WHERE id = ANY(sqlc.arg(ids)::text[]);
+
 -- name: ChangeMealPlanTaskStatus :exec
 UPDATE meal_plan_tasks SET
 	completed_at = sqlc.arg(completed_at),

@@ -6,6 +6,14 @@ Almost all of them belong in `scheduler/`. Two do not, and the reason is isolati
 
 ## `scheduler/` — clock-driven work
 
+The process also runs two loops that are not scheduled jobs: the **outbox relay**, which moves
+events written inside a caller's transaction onto the broker, and the **saga worker**, which
+advances every durable saga instance this build knows how to run. Neither takes a schedule — they
+poll — and both live here because this is the process that does background work. Jobs start
+sagas; the worker is what steps them through, which is why `meal_plan_finalization_starter`'s
+interval is the delay before a meal plan enters the finalization pipeline rather than the delay
+before it comes out the other end.
+
 One long-lived process running `jobs.Scheduler` (from `platform-go/v9/jobs`). Every registered job fires on a schedule, and each execution is held under a `distributedlock` lease, so every replica ticks and only the one that wins the lock actually runs the job. A contended lock is the mechanism working, not an error.
 
 Jobs are registered in `internal/build/jobs/scheduler/jobs.go` and scheduled by `config.ScheduledJobsConfig`. Adding one means writing the entrypoint, adding a `ScheduledJobConfig` field, and adding a row to `registrations`.
@@ -28,7 +36,7 @@ Two jobs are on a calendar:
 - **`mobile_notification_scheduler`** — `CRON_TZ=America/Chicago 0 8-21 * * *`. Push notifications, so the hours are the point. Hourly rather than once in the morning because each task notifies exactly once and is dropped if its event starts first, so the gap between fires bounds how much short notice the app can give. Per-user timezones are the real answer and a larger conversation.
 - **`search_data_index_scheduler`** — `*/10 6-11 * * *`. A bulk sweep, so it belongs in the small hours rather than competing with daytime traffic. A window and not a single fire because `IndexScheduler.IndexTypes` sweeps one *randomly chosen* index type per run: with nine types registered, one fire a night would sweep a given type every nine days.
 
-The rest stay on intervals. The meal plan jobs are time-sensitive — a plan should finalize soon after its voting deadline, not at a fixed hour — and `queue_test` is a liveness probe, which wants a frequency by definition.
+The rest stay on intervals. `meal_plan_finalization_starter` is time-sensitive — a plan should finalize soon after its voting deadline, not at a fixed hour — and `queue_test` is a liveness probe, which wants a frequency by definition.
 
 ### Timezones
 

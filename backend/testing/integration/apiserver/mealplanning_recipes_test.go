@@ -919,9 +919,10 @@ func TestRecipes_GetMealPlanTasksForRecipe(T *testing.T) {
 		createdRecipe := converters.ConvertGRPCRecipeToRecipe(created.Created)
 		checkRecipeEquality(t, expected, createdRecipe)
 
-		// Build a meal from the recipe and an auto-finalized single-option meal plan so that meal plan
-		// tasks are generated synchronously. GetMealPlanTasks is now account-scoped (verifyMealPlanAccess),
-		// so it must be queried with a real meal plan ID owned by the requester's account, not a recipe ID.
+		// Build a meal from the recipe and an auto-finalized single-option meal plan, whose
+		// finalization saga generates the meal plan tasks. GetMealPlanTasks is account-scoped
+		// (verifyMealPlanAccess), so it must be queried with a real meal plan ID owned by the
+		// requester's account, not a recipe ID.
 		_, userClient := createUserAndClientForTest(t)
 		meal := createMealFromRecipe(t, createdRecipe, t.Name())
 		require.NotNil(t, meal)
@@ -954,15 +955,13 @@ func TestRecipes_GetMealPlanTasksForRecipe(T *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, createMealPlanRes.Created.Id)
 
-		tasksRes, err := userClient.GetMealPlanTasks(ctx, &mealplanninggrpc.GetMealPlanTasksRequest{MealPlanId: createMealPlanRes.Created.Id})
-		require.NoError(t, err)
-		require.NotNil(t, tasksRes)
+		tasks := awaitMealPlanTasksCreated(t, ctx, userClient, createMealPlanRes.Created.Id)
 
 		// H15: frozen thaw-task generation is intentionally deferred. meal_plan_tasks.belongs_to_recipe_prep_task
 		// is NOT NULL and references recipe_prep_tasks(id), so ad-hoc thaw tasks (which have no backing prep task)
 		// cannot be persisted until a migration makes that column nullable. Until then, NO thaw task is generated.
 		// This mirrors the unit test "does not currently create frozen thawing steps".
-		for _, task := range tasksRes.Results {
+		for _, task := range tasks {
 			assert.NotContains(t, task.GetCreationExplanation(), "thawed",
 				"frozen thaw-task generation is deferred (H15); no thaw task should be produced")
 		}

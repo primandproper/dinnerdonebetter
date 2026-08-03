@@ -195,23 +195,7 @@
 			"runOnStart": true
 		},
 		"mealPlanning": {
-			"mealPlanFinalizer": {
-				"schedule": "",
-				"interval": 300000000000,
-				"timeout": 600000000000,
-				"leaseTTL": 900000000000,
-				"enabled": true,
-				"runOnStart": false
-			},
-			"mealPlanGroceryListInitializer": {
-				"schedule": "",
-				"interval": 60000000000,
-				"timeout": 120000000000,
-				"leaseTTL": 300000000000,
-				"enabled": true,
-				"runOnStart": false
-			},
-			"mealPlanTaskCreator": {
+			"mealPlanFinalizationStarter": {
 				"schedule": "",
 				"interval": 60000000000,
 				"timeout": 120000000000,
@@ -288,5 +272,32 @@
 		"retention": 604800000000000,
 		"reapInterval": 3600000000000,
 		"reapBatchSize": 1000
+	},
+	"sagas": {
+		"lockKeyPrefix": "saga:instance:",
+		"idempotencyKeyPrefix": "saga:",
+		"backoff": {
+			"provider": "",
+			"maxAttempts": 3,
+			"initialDelay": 1000000000,
+			"maxDelay": 60000000000,
+			"multiplier": 2,
+			"useJitter": true
+		},
+		"compensationBackoff": {
+			"provider": "",
+			"maxAttempts": 10,
+			"initialDelay": 1000000000,
+			"maxDelay": 60000000000,
+			"multiplier": 2,
+			"useJitter": true
+		},
+		"pollInterval": 1000000000,
+		"leaseDuration": 600000000000,
+		"lockTTL": 600000000000,
+		"advanceTimeout": 300000000000,
+		"stepTimeout": 120000000000,
+		"batchSize": 10,
+		"concurrency": 4
 	}
 }

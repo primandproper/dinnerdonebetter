@@ -118,10 +118,9 @@ flowchart TB
         DataChangesWorker["Data Changes Worker"]
     end
 
-    subgraph CronJobs["CronJobs"]
-        MealPlanFinalizer["Meal Plan Finalizer"]
-        MealPlanGroceryListInit["Grocery List Initializer"]
-        MealPlanTaskCreator["Meal Plan Task Creator"]
+    subgraph CronJobs["Scheduled Jobs"]
+        MealPlanFinalizationStarter["Meal Plan Finalization Starter"]
+        SagaWorker["Saga Worker"]
         SearchDataIndexScheduler["Search Data Index Scheduler"]
         MobileNotificationScheduler["Mobile Notification Scheduler"]
         DBCleaner["DB Cleaner"]
@@ -132,16 +131,13 @@ flowchart TB
         SearchDataIndexer["Search Data Indexer"]
     end
 
-    Cron["Cron"] --> MealPlanFinalizer
-    Cron --> MealPlanGroceryListInit
-    Cron --> MealPlanTaskCreator
+    Cron["Cron"] --> MealPlanFinalizationStarter
     Cron --> SearchDataIndexScheduler
     Cron --> MobileNotificationScheduler
     Cron --> DBCleaner
 
-    MealPlanFinalizer -.->|publish| DataChangesQueue
-    MealPlanGroceryListInit -.->|publish| DataChangesQueue
-    MealPlanTaskCreator -.->|publish| DataChangesQueue
+    MealPlanFinalizationStarter -->|starts a saga per plan| SagaWorker
+    SagaWorker -.->|publish| DataChangesQueue
 
     DataChangesQueue --> DataChangesWorker
     DataChangesWorker --> OutboundEmailer

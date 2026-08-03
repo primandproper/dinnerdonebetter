@@ -33,10 +33,8 @@ func buildServiceImplForMealPlanningTest(t *testing.T) *serviceImpl {
 				ActiveAccountID: mealplanningfakes.BuildFakeID(),
 			}, nil
 		},
-		// Workers are set to nil for most tests since they're only used in specific worker methods
-		mealPlanFinalizerWorker:              nil,
-		mealPlanGroceryListInitializerWorker: nil,
-		mealPlanTaskCreatorWorker:            nil,
+		// The saga starter is nil for most tests: only the three admin RPCs reach it.
+		mealPlanFinalizationStarter: nil,
 	}
 }
 

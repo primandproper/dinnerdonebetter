@@ -17,6 +17,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability"
 	"github.com/primandproper/platform-go/v9/outbox"
 	retrycfg "github.com/primandproper/platform-go/v9/retry/config"
+	"github.com/primandproper/platform-go/v9/saga"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -154,6 +155,47 @@ func defaultOutboxRelayConfig() outbox.RelayConfig {
 		Retention:     7 * 24 * time.Hour,
 		ReapInterval:  time.Hour,
 		ReapBatchSize: 1000,
+	}
+}
+
+// defaultSagaWorkerConfig returns the settings for the loop that advances saga instances.
+//
+// The package's own defaults, spelled out rather than left to EnsureDefaults, because these are
+// rendered into the environment config files and a knob that is blank in the file and non-blank
+// in the binary is a knob nobody can reason about from the file.
+//
+// The one departure is StepTimeout. A meal plan finalization step reads a plan with all of its
+// events, options, and votes, then generates prep tasks or a whole grocery list from it, and the
+// package's thirty seconds is sized for a third-party call rather than for that. The three
+// timeouts move together: a pass must fit at least one step, and both the lease and the lock
+// must outlast a pass plus the step it may still have running.
+func defaultSagaWorkerConfig() saga.WorkerConfig {
+	return saga.WorkerConfig{
+		LockKeyPrefix:        saga.DefaultLockKeyPrefix,
+		IdempotencyKeyPrefix: saga.DefaultIdempotencyKeyPrefix,
+		Backoff: retrycfg.Config{
+			MaxAttempts:  3,
+			InitialDelay: time.Second,
+			MaxDelay:     time.Minute,
+			Multiplier:   2,
+			UseJitter:    true,
+		},
+		// Deliberately more attempts than the forward budget. Giving up going forward costs a
+		// compensation; giving up on a compensation costs somebody's evening.
+		CompensationBackoff: retrycfg.Config{
+			MaxAttempts:  saga.DefaultCompensationAttempts,
+			InitialDelay: time.Second,
+			MaxDelay:     time.Minute,
+			Multiplier:   2,
+			UseJitter:    true,
+		},
+		PollInterval:   time.Second,
+		StepTimeout:    2 * time.Minute,
+		AdvanceTimeout: 5 * time.Minute,
+		LeaseDuration:  10 * time.Minute,
+		LockTTL:        10 * time.Minute,
+		BatchSize:      saga.DefaultBatchSize,
+		Concurrency:    saga.DefaultConcurrency,
 	}
 }
 
@@ -325,6 +367,7 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 		DataPrivacy:   s.RootConfig.Services.DataPrivacy,
 		Jobs:          defaultScheduledJobsConfig(),
 		Outbox:        defaultOutboxRelayConfig(),
+		Sagas:         defaultSagaWorkerConfig(),
 	}
 	schedulerConfig.Observability.Tracing.ServiceName = schedulerConfigObservabilityServiceName
 	schedulerConfig.Observability.Metrics.ServiceName = schedulerConfigObservabilityServiceName
