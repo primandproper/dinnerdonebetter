@@ -24,7 +24,7 @@ func createPasswordResetTokenForTest(t *testing.T, ctx context.Context, exampleP
 	dbInput := authconverters.ConvertPasswordResetTokenToPasswordResetTokenDatabaseCreationInput(examplePasswordResetToken)
 
 	created, err := dbc.CreatePasswordResetToken(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	examplePasswordResetToken.CreatedAt = created.CreatedAt
@@ -34,7 +34,7 @@ func createPasswordResetTokenForTest(t *testing.T, ctx context.Context, exampleP
 	examplePasswordResetToken.CreatedAt = passwordResetToken.CreatedAt
 	examplePasswordResetToken.ExpiresAt = passwordResetToken.ExpiresAt
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, passwordResetToken, examplePasswordResetToken)
 
 	return created
@@ -66,7 +66,7 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 
 	// redeem (update)
 	for _, passwordResetToken := range createdPasswordResetTokens {
-		assert.NoError(t, dbc.RedeemPasswordResetToken(ctx, passwordResetToken.ID))
+		require.NoError(t, dbc.RedeemPasswordResetToken(ctx, passwordResetToken.ID))
 	}
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypePasswordResetTokens, RelevantID: created.ID},
@@ -84,7 +84,7 @@ func TestSQLQuerier_GetPasswordResetTokenByToken(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetPasswordResetTokenByToken(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -99,7 +99,7 @@ func TestSQLQuerier_CreatePasswordResetToken(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreatePasswordResetToken(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

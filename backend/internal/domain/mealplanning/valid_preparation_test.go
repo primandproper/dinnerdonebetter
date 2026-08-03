@@ -5,6 +5,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidPreparationCreationRequestInput_Validate(T *testing.T) {
@@ -78,7 +79,7 @@ func TestValidPreparation_Update(T *testing.T) {
 		}
 		input := &ValidPreparationUpdateRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 		input.YieldsNothing = new(true)
 		input.RestrictToIngredients = new(true)
 		input.MaxIngredientCount = new(uint16(1))

@@ -22,7 +22,7 @@ func TestCreateQueueTestMessage(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		err := c.CreateQueueTestMessage(ctx, "", "test-queue")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})
 
@@ -32,7 +32,7 @@ func TestCreateQueueTestMessage(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		err := c.CreateQueueTestMessage(ctx, identifiers.New(), "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})
 }
@@ -46,7 +46,7 @@ func TestAcknowledgeQueueTestMessage(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		err := c.AcknowledgeQueueTestMessage(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})
 }
@@ -60,7 +60,7 @@ func TestGetQueueTestMessage(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetQueueTestMessage(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})
@@ -75,7 +75,7 @@ func TestPruneQueueTestMessages(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		err := c.PruneQueueTestMessages(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})
 }
@@ -117,7 +117,7 @@ func TestQuerier_Integration_QueueTestMessages_GetNotFound(t *testing.T) {
 	dbc := buildDatabaseClientForTest(t)
 
 	msg, err := dbc.GetQueueTestMessage(ctx, "nonexistent-id-"+identifiers.New())
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, msg)
 	assert.ErrorIs(t, err, sql.ErrNoRows)
 }

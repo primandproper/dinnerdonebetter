@@ -32,7 +32,7 @@ func createUploadedMediaForTest(t *testing.T, ctx context.Context, exampleUpload
 	}
 
 	created, err := dbc.CreateUploadedMedia(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	exampleUploadedMedia.CreatedAt = created.CreatedAt
@@ -41,7 +41,7 @@ func createUploadedMediaForTest(t *testing.T, ctx context.Context, exampleUpload
 	uploadedMedia, err := dbc.GetUploadedMedia(ctx, created.ID)
 	exampleUploadedMedia.CreatedAt = uploadedMedia.CreatedAt
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, uploadedMedia, exampleUploadedMedia)
 
 	return created
@@ -75,21 +75,21 @@ func TestQuerier_Integration_UploadedMedia(t *testing.T) {
 
 	// fetch as list for user
 	uploadedMediaList, err := dbc.GetUploadedMediaForUser(ctx, user.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, uploadedMediaList.Data)
-	assert.Equal(t, len(createdUploadedMedia), len(uploadedMediaList.Data))
+	assert.Len(t, uploadedMediaList.Data, len(createdUploadedMedia))
 
 	// fetch with IDs
 	ids := []string{createdUploadedMedia[0].ID, createdUploadedMedia[1].ID}
 	uploadedMediaWithIDs, err := dbc.GetUploadedMediaWithIDs(ctx, ids)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, uploadedMediaWithIDs, 2)
 	assert.Contains(t, ids, uploadedMediaWithIDs[0].ID)
 	assert.Contains(t, ids, uploadedMediaWithIDs[1].ID)
 
 	// update
 	createdUploadedMedia[0].StoragePath = "/new/storage/path.png"
-	assert.NoError(t, dbc.UpdateUploadedMedia(ctx, createdUploadedMedia[0]))
+	require.NoError(t, dbc.UpdateUploadedMedia(ctx, createdUploadedMedia[0]))
 
 	// Assert audit log entry for update
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
@@ -98,19 +98,19 @@ func TestQuerier_Integration_UploadedMedia(t *testing.T) {
 
 	// fetch again to verify update
 	updated, err := dbc.GetUploadedMedia(ctx, createdUploadedMedia[0].ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "/new/storage/path.png", updated.StoragePath)
 
 	// delete
 	for _, uploadedMedia := range createdUploadedMedia {
-		assert.NoError(t, dbc.ArchiveUploadedMedia(ctx, uploadedMedia.ID))
+		require.NoError(t, dbc.ArchiveUploadedMedia(ctx, uploadedMedia.ID))
 	}
 
 	for _, uploadedMedia := range createdUploadedMedia {
 		var y *types.UploadedMedia
 		y, err = dbc.GetUploadedMedia(ctx, uploadedMedia.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -125,7 +125,7 @@ func TestQuerier_GetUploadedMedia(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUploadedMedia(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -140,7 +140,7 @@ func TestQuerier_GetUploadedMediaWithIDs(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUploadedMediaWithIDs(ctx, []string{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -151,7 +151,7 @@ func TestQuerier_GetUploadedMediaWithIDs(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUploadedMediaWithIDs(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -167,7 +167,7 @@ func TestQuerier_GetUploadedMediaForUser(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUploadedMediaForUser(ctx, "", filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -186,7 +186,7 @@ func TestQuerier_GetUploadedMediaForUser(T *testing.T) {
 
 		// Should work with nil filter (uses default)
 		actual, err := dbc.GetUploadedMediaForUser(ctx, user.ID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.NotEmpty(t, actual.Data)
 
@@ -205,7 +205,7 @@ func TestQuerier_CreateUploadedMedia(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateUploadedMedia(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

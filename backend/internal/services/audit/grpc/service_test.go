@@ -20,6 +20,7 @@ import (
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -108,7 +109,7 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 
 		response, err := service.GetAuditLogEntriesForAccount(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Len(t, response.Results, len(fakeAuditLogEntries.Data))
@@ -155,7 +156,7 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 
 		response, err := service.GetAuditLogEntriesForAccount(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -204,7 +205,7 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 
 		response, err := service.GetAuditLogEntriesForUser(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Len(t, response.Results, len(fakeAuditLogEntries.Data))
@@ -248,7 +249,7 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 
 		response, err := service.GetAuditLogEntriesForUser(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -290,7 +291,7 @@ func TestServiceImpl_GetAuditLogEntryByID(t *testing.T) {
 
 		response, err := service.GetAuditLogEntryByID(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotNil(t, response.Result)
@@ -326,7 +327,7 @@ func TestServiceImpl_GetAuditLogEntryByID(t *testing.T) {
 
 		response, err := service.GetAuditLogEntryByID(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 

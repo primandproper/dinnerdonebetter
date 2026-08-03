@@ -26,7 +26,7 @@ func createRecipeRatingForTest(t *testing.T, ctx context.Context, exampleRecipeR
 	dbInput := converters.ConvertRecipeRatingToRecipeRatingDatabaseCreationInput(exampleRecipeRating)
 
 	created, err := dbc.CreateRecipeRating(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	exampleRecipeRating.CreatedAt = created.CreatedAt
@@ -35,7 +35,7 @@ func createRecipeRatingForTest(t *testing.T, ctx context.Context, exampleRecipeR
 	recipeRating, err := dbc.GetRecipeRating(ctx, created.BelongsToRecipe, created.ID)
 	exampleRecipeRating.CreatedAt = recipeRating.CreatedAt
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, recipeRating, exampleRecipeRating)
 
 	return created
@@ -60,23 +60,23 @@ func TestQuerier_Integration_RecipeRatings(t *testing.T) {
 
 	// fetch as list
 	recipeRatings, err := dbc.GetRecipeRatingsForRecipe(ctx, createdRecipe.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, recipeRatings.Data)
-	assert.Equal(t, len(createdRecipeRatings), len(recipeRatings.Data))
+	assert.Len(t, recipeRatings.Data, len(createdRecipeRatings))
 
 	// delete
 	for _, recipeRating := range createdRecipeRatings {
-		assert.NoError(t, dbc.ArchiveRecipeRating(ctx, createdRecipe.ID, recipeRating.ID))
+		require.NoError(t, dbc.ArchiveRecipeRating(ctx, createdRecipe.ID, recipeRating.ID))
 
 		var exists bool
 		exists, err = dbc.RecipeRatingExists(ctx, createdRecipe.ID, recipeRating.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.RecipeRating
 		y, err = dbc.GetRecipeRating(ctx, createdRecipe.ID, recipeRating.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -91,7 +91,7 @@ func TestQuerier_RecipeRatingExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.RecipeRatingExists(ctx, "", t.Name())
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -102,7 +102,7 @@ func TestQuerier_RecipeRatingExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.RecipeRatingExists(ctx, t.Name(), "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -117,7 +117,7 @@ func TestQuerier_GetRecipeRating(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipeRating(ctx, "", t.Name())
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -128,7 +128,7 @@ func TestQuerier_GetRecipeRating(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipeRating(ctx, t.Name(), "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -143,7 +143,7 @@ func TestQuerier_CreateRecipeRating(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateRecipeRating(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

@@ -85,7 +85,7 @@ func TestWaitlistDataManager_CreateWaitlist(t *testing.T) {
 
 		created, err := manager.CreateWaitlist(ctx, dbInput)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 		assert.Len(t, repo.CreateWaitlistCalls(), 1)
 	})

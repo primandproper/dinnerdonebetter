@@ -41,7 +41,7 @@ func TestUsers_Creating(T *testing.T) {
 		testClient := buildUnauthenticatedGRPCClientForTest(t)
 
 		_, err := testClient.CreateUser(ctx, &identitysvc.CreateUserRequest{Input: identityconverters.ConvertUserRegistrationInputToGRPCUserRegistrationInput(input)})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = testClient.CreateUser(ctx, &identitysvc.CreateUserRequest{Input: identityconverters.ConvertUserRegistrationInputToGRPCUserRegistrationInput(input)})
 		assert.Error(t, err)
@@ -70,7 +70,7 @@ func TestUsers_Reading(T *testing.T) {
 		u, _ := createUserAndClientForTest(t)
 
 		user, err := adminClient.GetUser(ctx, &identitysvc.GetUserRequest{UserId: u.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, user)
 		assert.Equal(t, u.ID, user.Result.Id)
 	})
@@ -80,7 +80,7 @@ func TestUsers_Reading(T *testing.T) {
 		ctx := t.Context()
 
 		user, err := adminClient.GetUser(ctx, &identitysvc.GetUserRequest{UserId: nonexistentID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, user)
 	})
 
@@ -92,7 +92,7 @@ func TestUsers_Reading(T *testing.T) {
 		u, _ := createUserAndClientForTest(t)
 
 		user, err := c.GetUser(ctx, &identitysvc.GetUserRequest{UserId: u.ID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, user)
 	})
 }
@@ -110,13 +110,13 @@ func TestUsers_PermissionChecking(T *testing.T) {
 			string(authorization.ImpersonateUserPermission),
 			string(authorization.ReadWebhooksPermission), // permission everyone has
 		}})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 
-		assert.Equal(t, response.Permissions, map[string]bool{
+		assert.Equal(t, map[string]bool{
 			string(authorization.ImpersonateUserPermission): false,
 			string(authorization.ReadWebhooksPermission):    true,
-		})
+		}, response.Permissions)
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -126,7 +126,7 @@ func TestUsers_PermissionChecking(T *testing.T) {
 		testClient := buildUnauthenticatedGRPCClientForTest(t)
 
 		response, err := testClient.CheckPermissions(ctx, &authsvc.UserPermissionsRequestInput{Permissions: []string{string(authorization.ReadWebhooksPermission)}})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -148,9 +148,9 @@ func TestUsers_Searching(T *testing.T) {
 		results, err := adminClient.SearchForUsers(ctx, &identitysvc.SearchForUsersRequest{
 			Query: createdUsers[0].Username[:2],
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= 1)
+		assert.GreaterOrEqual(t, len(results.Results), 1)
 	})
 
 	T.Run("only admins can do it", func(t *testing.T) {
@@ -162,7 +162,7 @@ func TestUsers_Searching(T *testing.T) {
 		results, err := testClient.SearchForUsers(ctx, &identitysvc.SearchForUsersRequest{
 			Query: createdUsers[0].Username[:2],
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, results)
 	})
 }
@@ -180,9 +180,9 @@ func TestUsers_GetUsers(T *testing.T) {
 		ctx := t.Context()
 
 		results, err := adminClient.GetUsers(ctx, &identitysvc.GetUsersRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= exampleQuantity)
+		assert.GreaterOrEqual(t, len(results.Results), exampleQuantity)
 	})
 
 	T.Run("only admins can do it", func(t *testing.T) {
@@ -192,7 +192,7 @@ func TestUsers_GetUsers(T *testing.T) {
 		_, testClient := createUserAndClientForTest(t)
 
 		results, err := testClient.GetUsers(ctx, &identitysvc.GetUsersRequest{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, results)
 	})
 
@@ -203,7 +203,7 @@ func TestUsers_GetUsers(T *testing.T) {
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
 		results, err := c.GetUsers(ctx, &identitysvc.GetUsersRequest{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, results)
 	})
 }
@@ -220,15 +220,15 @@ func TestUsers_GetUsersForAccount(T *testing.T) {
 		// get the user's account via admin
 		accountsRes, err := adminClient.GetAccountsForUser(ctx, &identitysvc.GetAccountsForUserRequest{UserId: user.ID})
 		require.NoError(t, err)
-		require.True(t, len(accountsRes.Results) >= 1)
+		require.GreaterOrEqual(t, len(accountsRes.Results), 1)
 		accountID := accountsRes.Results[0].Id
 
 		results, err := adminClient.GetUsersForAccount(ctx, &identitysvc.GetUsersForAccountRequest{
 			AccountId: accountID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= 1)
+		assert.GreaterOrEqual(t, len(results.Results), 1)
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -240,7 +240,7 @@ func TestUsers_GetUsersForAccount(T *testing.T) {
 		results, err := c.GetUsersForAccount(ctx, &identitysvc.GetUsersForAccountRequest{
 			AccountId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, results)
 	})
 }
@@ -262,11 +262,11 @@ func TestUsers_UpdateUserDetails(T *testing.T) {
 				TotpToken:       generateTOTPCodeForUserForTest(t, user),
 			},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// verify the update took effect
 		updatedUser, err := adminClient.GetUser(ctx, &identitysvc.GetUserRequest{UserId: user.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, updatedUser)
 		assert.Equal(t, "UpdatedFirst", updatedUser.Result.FirstName)
 		assert.Equal(t, "UpdatedLast", updatedUser.Result.LastName)
@@ -304,11 +304,11 @@ func TestUsers_UpdateUserEmailAddress(T *testing.T) {
 			CurrentPassword: user.HashedPassword,
 			TotpToken:       generateTOTPCodeForUserForTest(t, user),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// verify the update took effect
 		updatedUser, err := adminClient.GetUser(ctx, &identitysvc.GetUserRequest{UserId: user.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, updatedUser)
 		assert.Equal(t, newEmail, updatedUser.Result.EmailAddress)
 	})
@@ -342,11 +342,11 @@ func TestUsers_UpdateUserUsername(T *testing.T) {
 		_, err := testClient.UpdateUserUsername(ctx, &identitysvc.UpdateUserUsernameRequest{
 			NewUsername: newUsername,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// verify the update took effect
 		updatedUser, err := adminClient.GetUser(ctx, &identitysvc.GetUserRequest{UserId: user.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, updatedUser)
 		assert.Equal(t, newUsername, updatedUser.Result.Username)
 	})
@@ -376,7 +376,7 @@ func TestUsers_Archiving(T *testing.T) {
 		_, err := adminClient.ArchiveUser(ctx, &identitysvc.ArchiveUserRequest{
 			UserId: user.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		AssertAuditLogContainsFuzzyForUser(t, ctx, adminClient, user.ID, 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "users", RelevantID: user.ID},

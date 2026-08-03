@@ -18,6 +18,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -76,14 +77,14 @@ func TestServiceImpl_CreateServiceSetting(t *testing.T) {
 		}
 
 		settingsRepo.CreateServiceSettingFunc = func(_ context.Context, input *settings.ServiceSettingDatabaseCreationInput) (*settings.ServiceSetting, error) {
-			assert.True(t, input != nil)
+			assert.NotNil(t, input)
 
 			return exampleServiceSetting, nil
 		}
 
 		actual, err := service.CreateServiceSetting(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.NotNil(t, actual.ResponseDetails)
 		assert.NotNil(t, actual.Created)
@@ -107,7 +108,7 @@ func TestServiceImpl_CreateServiceSetting(t *testing.T) {
 
 		actual, err := service.CreateServiceSetting(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.InvalidArgument)
 	})
@@ -132,14 +133,14 @@ func TestServiceImpl_CreateServiceSetting(t *testing.T) {
 		}
 
 		settingsRepo.CreateServiceSettingFunc = func(_ context.Context, input *settings.ServiceSettingDatabaseCreationInput) (*settings.ServiceSetting, error) {
-			assert.True(t, input != nil)
+			assert.NotNil(t, input)
 
 			return nil, errors.New("repository error")
 		}
 
 		actual, err := service.CreateServiceSetting(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
@@ -170,7 +171,7 @@ func TestServiceImpl_GetServiceSetting(t *testing.T) {
 
 		actual, err := service.GetServiceSetting(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.NotNil(t, actual.ResponseDetails)
 		assert.NotNil(t, actual.Result)
@@ -199,7 +200,7 @@ func TestServiceImpl_GetServiceSetting(t *testing.T) {
 
 		actual, err := service.GetServiceSetting(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
@@ -226,14 +227,14 @@ func TestServiceImpl_GetServiceSettings(t *testing.T) {
 		}
 
 		settingsRepo.GetServiceSettingsFunc = func(_ context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSetting], error) {
-			assert.True(t, filter != nil)
+			assert.NotNil(t, filter)
 
 			return exampleServiceSettingsList, nil
 		}
 
 		actual, err := service.GetServiceSettings(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.NotNil(t, actual.ResponseDetails)
 		assert.Len(t, actual.Results, len(exampleServiceSettingsList.Data))
@@ -261,7 +262,7 @@ func TestServiceImpl_GetServiceSettings(t *testing.T) {
 
 		actual, err := service.GetServiceSettings(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
@@ -295,7 +296,7 @@ func TestServiceImpl_SearchForServiceSettings(t *testing.T) {
 
 		actual, err := service.SearchForServiceSettings(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.NotNil(t, actual.ResponseDetails)
 		assert.Len(t, actual.Results, len(exampleServiceSettings.Data))
@@ -323,7 +324,7 @@ func TestServiceImpl_SearchForServiceSettings(t *testing.T) {
 
 		actual, err := service.SearchForServiceSettings(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 
@@ -354,7 +355,7 @@ func TestServiceImpl_ArchiveServiceSetting(t *testing.T) {
 
 		actual, err := service.ArchiveServiceSetting(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.NotNil(t, actual.ResponseDetails)
 
@@ -381,7 +382,7 @@ func TestServiceImpl_ArchiveServiceSetting(t *testing.T) {
 
 		actual, err := service.ArchiveServiceSetting(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assertGRPCErrorHasStatus(t, err, codes.Internal)
 

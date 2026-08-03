@@ -28,13 +28,13 @@ func createValidIngredientForTest(t *testing.T, ctx context.Context, exampleVali
 
 	created, err := dbc.CreateValidIngredient(ctx, dbInput)
 	exampleValidIngredient.CreatedAt = created.CreatedAt
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, exampleValidIngredient, created)
 
 	validIngredient, err := dbc.GetValidIngredient(ctx, created.ID)
 	exampleValidIngredient.CreatedAt = validIngredient.CreatedAt
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validIngredient, exampleValidIngredient)
 
 	return validIngredient
@@ -53,7 +53,7 @@ func TestQuerier_Integration_ValidIngredients(t *testing.T) {
 	// update
 	updatedValidIngredient := fakes.BuildFakeValidIngredient()
 	updatedValidIngredient.ID = createdValidIngredients[0].ID
-	assert.NoError(t, dbc.UpdateValidIngredient(ctx, updatedValidIngredient))
+	require.NoError(t, dbc.UpdateValidIngredient(ctx, updatedValidIngredient))
 	createdValidIngredients[0] = updatedValidIngredient
 
 	// create more
@@ -65,9 +65,9 @@ func TestQuerier_Integration_ValidIngredients(t *testing.T) {
 
 	// fetch as list
 	validIngredients, err := dbc.GetValidIngredients(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, validIngredients.Data)
-	assert.Equal(t, len(createdValidIngredients), len(validIngredients.Data))
+	assert.Len(t, validIngredients.Data, len(createdValidIngredients))
 
 	// fetch as list of IDs
 	validIngredientIDs := []string{}
@@ -76,12 +76,12 @@ func TestQuerier_Integration_ValidIngredients(t *testing.T) {
 	}
 
 	byIDs, err := dbc.GetValidIngredientsWithIDs(ctx, validIngredientIDs)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validIngredients.Data, byIDs)
 
 	// fetch via name search
 	byName, err := dbc.SearchForValidIngredients(ctx, updatedValidIngredient.Name, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validIngredients.Data, byName.Data)
 
 	random, err := dbc.GetRandomValidIngredient(ctx)
@@ -103,7 +103,7 @@ func TestQuerier_Integration_ValidIngredients(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, createdIngredientPreparation)
 	validIngredientPreparations, err := dbc.SearchForValidIngredientsForPreparation(ctx, preparation.ID, updatedValidIngredient.Name[0:2], nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, validIngredientPreparations.Data)
 
 	validIngredientStateIngredient := fakes.BuildFakeValidIngredientStateIngredient()
@@ -122,13 +122,13 @@ func TestQuerier_Integration_ValidIngredients(t *testing.T) {
 
 		var exists bool
 		exists, err = dbc.ValidIngredientExists(ctx, validIngredient.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ValidIngredient
 		y, err = dbc.GetValidIngredient(ctx, validIngredient.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -144,7 +144,7 @@ func TestQuerier_ValidIngredientExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidIngredientExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -159,7 +159,7 @@ func TestQuerier_GetValidIngredient(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidIngredient(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -175,7 +175,7 @@ func TestQuerier_SearchForValidIngredients(T *testing.T) {
 		filter := filtering.DefaultQueryFilter()
 
 		actual, err := c.SearchForValidIngredients(ctx, "", filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -192,7 +192,7 @@ func TestQuerier_SearchForValidIngredientsForPreparation(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.SearchForValidIngredientsForPreparation(ctx, "", exampleValidIngredient.Name, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -207,7 +207,7 @@ func TestQuerier_CreateValidIngredient(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateValidIngredient(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

@@ -5,6 +5,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidIngredientMeasurementUnit_Update(T *testing.T) {
@@ -18,7 +19,7 @@ func TestValidIngredientMeasurementUnit_Update(T *testing.T) {
 		}
 		input := &ValidIngredientMeasurementUnitUpdateRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 		input.MaxAllowableQuantity = new(float32(1.23))
 
 		x.Update(input)

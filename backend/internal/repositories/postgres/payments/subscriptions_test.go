@@ -25,7 +25,7 @@ func TestCreateSubscription(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateSubscription(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assert.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
 	})
@@ -40,7 +40,7 @@ func TestGetSubscription(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetSubscription(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})
@@ -55,7 +55,7 @@ func TestGetSubscriptionsForAccount(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetSubscriptionsForAccount(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})
@@ -70,7 +70,7 @@ func TestUpdateSubscription(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		err := c.UpdateSubscription(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
 	})
 }
@@ -84,7 +84,7 @@ func TestUpdateSubscriptionStatus(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		err := c.UpdateSubscriptionStatus(ctx, "", payments.SubscriptionStatusActive)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})
 }
@@ -98,7 +98,7 @@ func TestArchiveSubscription(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		err := c.ArchiveSubscription(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})
 }

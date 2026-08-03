@@ -13,6 +13,7 @@ import (
 	mocktotp "github.com/primandproper/platform-go/v9/authentication/totp/mock"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAuthenticationService_validateLogin(T *testing.T) {
@@ -37,7 +38,7 @@ func TestAuthenticationService_validateLogin(T *testing.T) {
 
 		actual, err := helper.service.validateLogin(helper.ctx, helper.exampleUser, helper.exampleLoginInput)
 		assert.True(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
 	})
@@ -65,8 +66,8 @@ func TestAuthenticationService_validateLogin(T *testing.T) {
 
 		actual, err := helper.service.validateLogin(helper.ctx, helper.exampleUser, helper.exampleLoginInput)
 		assert.False(t, actual)
-		assert.Error(t, err)
-		assert.ErrorIs(t, err, totp.ErrInvalidCode)
+		require.Error(t, err)
+		require.ErrorIs(t, err, totp.ErrInvalidCode)
 
 		assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
 	})
@@ -89,7 +90,7 @@ func TestAuthenticationService_validateLogin(T *testing.T) {
 
 		actual, err := helper.service.validateLogin(helper.ctx, helper.exampleUser, helper.exampleLoginInput)
 		assert.False(t, actual)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
 	})
@@ -110,8 +111,8 @@ func TestAuthenticationService_validateLogin(T *testing.T) {
 
 		actual, err := helper.service.validateLogin(helper.ctx, helper.exampleUser, helper.exampleLoginInput)
 		assert.False(t, actual)
-		assert.Error(t, err)
-		assert.ErrorIs(t, err, authentication.ErrPasswordDoesNotMatch)
+		require.Error(t, err)
+		require.ErrorIs(t, err, authentication.ErrPasswordDoesNotMatch)
 
 		assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
 	})

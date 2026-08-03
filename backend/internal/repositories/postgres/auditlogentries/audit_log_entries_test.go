@@ -171,7 +171,7 @@ func TestQuerier_GetAuditLogEntry(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetAuditLogEntry(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

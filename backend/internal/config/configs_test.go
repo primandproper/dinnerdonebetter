@@ -92,7 +92,7 @@ func TestAPIServiceConfig_EncodeToFile(T *testing.T) {
 		require.NoError(t, err)
 
 		err = cfg.EncodeToFile(f.Name(), json.Marshal)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "nil config")
 	})
 }
@@ -116,10 +116,10 @@ func TestLoadConfigFromEnvironment(T *testing.T) {
 		t.Setenv(ConfigurationFilePathEnvVarKey, configFilepath)
 
 		actual, err := LoadConfigFromEnvironment[APIServiceConfig]()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 
-		assert.Equal(t, actual.Database.Debug, true)
+		assert.True(t, actual.Database.Debug)
 	})
 
 	// prior TODOs count here too
@@ -141,17 +141,17 @@ func TestLoadConfigFromEnvironment(T *testing.T) {
 		t.Setenv(envvars.MetaDebugEnvVarKey, strconv.FormatBool(false))
 
 		actual, err := LoadConfigFromEnvironment[APIServiceConfig]()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 
-		assert.Equal(t, actual.Meta.Debug, false)
+		assert.False(t, actual.Meta.Debug)
 	})
 
 	T.Run("with invalid config file", func(t *testing.T) {
 		t.Setenv(ConfigurationFilePathEnvVarKey, "/nonexistent/path")
 
 		actual, err := LoadConfigFromEnvironment[APIServiceConfig]()
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -162,7 +162,7 @@ func TestLoadConfigFromEnvironment(T *testing.T) {
 		t.Setenv(ConfigurationFilePathEnvVarKey, configFilepath)
 
 		actual, err := LoadConfigFromEnvironment[APIServiceConfig]()
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -179,7 +179,7 @@ func TestLoadConfigFromEnvironment(T *testing.T) {
 		t.Setenv(envvars.HTTPPortEnvVarKey, "invalid_port")
 
 		actual, err := LoadConfigFromEnvironment[APIServiceConfig]()
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -241,7 +241,7 @@ func TestLoadConfigFromEnvironment_WithDotEnv(T *testing.T) {
 		t.Setenv(ConfigurationFilePathEnvVarKey, "/nonexistent/config.json")
 
 		actual, err := LoadConfigFromEnvironment[APIServiceConfig]()
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -279,7 +279,7 @@ func TestLoadConfigFromDotEnvFile(T *testing.T) {
 		ctx := t.Context()
 
 		actual, err := LoadConfigFromDotEnvFile[DBCleanerConfig](ctx, "/nonexistent/.env")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assert.Contains(t, err.Error(), "loading .env file")
 	})

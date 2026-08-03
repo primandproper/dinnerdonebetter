@@ -195,14 +195,14 @@ func TestIntegration_WebhookDelivery(t *testing.T) {
 	// The signature must verify over the exact bytes received. Verifying a re-serialized body
 	// is the classic way a subscriber ends up authenticating something it did not receive, so
 	// the body is passed through untouched.
-	assert.NoError(t, webhooks.Verify(
+	require.NoError(t, webhooks.Verify(
 		webhooks.Secret{Current: secret},
 		delivery.body,
 		delivery.headers.Get(webhooks.SignatureHeader),
 	))
 
 	// A wrong key must not verify, or the assertion above proves nothing.
-	assert.Error(t, webhooks.Verify(
+	require.Error(t, webhooks.Verify(
 		webhooks.Secret{Current: []byte("not the signing secret at all!!!")},
 		delivery.body,
 		delivery.headers.Get(webhooks.SignatureHeader),

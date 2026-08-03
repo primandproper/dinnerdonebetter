@@ -14,6 +14,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createValidInstrumentForTest(t *testing.T, ctx context.Context, exampleValidInstrument *types.ValidInstrument, dbc *repository) *types.ValidInstrument {
@@ -27,13 +28,13 @@ func createValidInstrumentForTest(t *testing.T, ctx context.Context, exampleVali
 
 	created, err := dbc.CreateValidInstrument(ctx, dbInput)
 	exampleValidInstrument.CreatedAt = created.CreatedAt
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, exampleValidInstrument, created)
 
 	validInstrument, err := dbc.GetValidInstrument(ctx, created.ID)
 	exampleValidInstrument.CreatedAt = validInstrument.CreatedAt
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validInstrument, exampleValidInstrument)
 
 	return validInstrument
@@ -52,7 +53,7 @@ func TestQuerier_Integration_ValidInstruments(t *testing.T) {
 	// update
 	updatedValidInstrument := fakes.BuildFakeValidInstrument()
 	updatedValidInstrument.ID = createdValidInstruments[0].ID
-	assert.NoError(t, dbc.UpdateValidInstrument(ctx, updatedValidInstrument))
+	require.NoError(t, dbc.UpdateValidInstrument(ctx, updatedValidInstrument))
 
 	// create more
 	for i := range exampleQuantity {
@@ -63,9 +64,9 @@ func TestQuerier_Integration_ValidInstruments(t *testing.T) {
 
 	// fetch as list
 	validInstruments, err := dbc.GetValidInstruments(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, validInstruments.Data)
-	assert.Equal(t, len(createdValidInstruments), len(validInstruments.Data))
+	assert.Len(t, validInstruments.Data, len(createdValidInstruments))
 
 	// fetch as list of IDs
 	validInstrumentIDs := []string{}
@@ -74,20 +75,20 @@ func TestQuerier_Integration_ValidInstruments(t *testing.T) {
 	}
 
 	byIDs, err := dbc.GetValidInstrumentsWithIDs(ctx, validInstrumentIDs)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validInstruments.Data, byIDs)
 
 	// fetch via name search
 	byName, err := dbc.SearchForValidInstruments(ctx, updatedValidInstrument.Name, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validInstruments, byName)
 
 	random, err := dbc.GetRandomValidInstrument(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, random)
 
 	needingIndexing, err := dbc.GetValidInstrumentIDsThatNeedSearchIndexing(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, needingIndexing)
 
 	// delete
@@ -97,13 +98,13 @@ func TestQuerier_Integration_ValidInstruments(t *testing.T) {
 
 		var exists bool
 		exists, err = dbc.ValidInstrumentExists(ctx, validInstrument.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ValidInstrument
 		y, err = dbc.GetValidInstrument(ctx, validInstrument.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -119,7 +120,7 @@ func TestQuerier_ValidInstrumentExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidInstrumentExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -134,7 +135,7 @@ func TestQuerier_GetValidInstrument(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidInstrument(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -149,7 +150,7 @@ func TestQuerier_SearchForValidInstruments(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.SearchForValidInstruments(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -164,7 +165,7 @@ func TestQuerier_CreateValidInstrument(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateValidInstrument(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidEnumerationManager_SearchValidVessels(T *testing.T) {
@@ -35,7 +36,7 @@ func TestValidEnumerationManager_SearchValidVessels(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidVessels(ctx, exampleQuery, false, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.SearchForValidVesselsCalls(), 1)
@@ -61,7 +62,7 @@ func TestValidEnumerationManager_ListValidVessels(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidVessels(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidVesselsCalls(), 1)
@@ -88,7 +89,7 @@ func TestValidEnumerationManager_CreateValidVessel(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidVessel(ctx, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateValidVesselCalls(), 1)
@@ -116,7 +117,7 @@ func TestValidEnumerationManager_ReadValidVessel(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidVessel(ctx, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidVesselCalls(), 1)
@@ -142,7 +143,7 @@ func TestValidEnumerationManager_RandomValidVessel(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.RandomValidVessel(ctx)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRandomValidVesselCalls(), 1)
@@ -175,7 +176,7 @@ func TestValidEnumerationManager_UpdateValidVessel(T *testing.T) {
 
 		result, err := mpm.UpdateValidVessel(ctx, exampleValidVessel.ID, exampleInput)
 		assert.NotNil(t, result)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.GetValidVesselCalls(), 2) // the manager re-reads the record after updating it
 		assert.Len(t, db.UpdateValidVesselCalls(), 1)
@@ -202,7 +203,7 @@ func TestValidEnumerationManager_ArchiveValidVessel(T *testing.T) {
 		}
 		attachRepositoryToManager(vem, db)
 
-		assert.NoError(t, vem.ArchiveValidVessel(ctx, expected.ID))
+		require.NoError(t, vem.ArchiveValidVessel(ctx, expected.ID))
 
 		assert.Len(t, db.ArchiveValidVesselCalls(), 1)
 	})

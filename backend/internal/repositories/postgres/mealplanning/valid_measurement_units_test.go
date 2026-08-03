@@ -28,13 +28,13 @@ func createValidMeasurementUnitForTest(t *testing.T, ctx context.Context, exampl
 
 	created, err := dbc.CreateValidMeasurementUnit(ctx, dbInput)
 	exampleValidMeasurementUnit.CreatedAt = created.CreatedAt
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, exampleValidMeasurementUnit, created)
 
 	validMeasurementUnit, err := dbc.GetValidMeasurementUnit(ctx, created.ID)
 	exampleValidMeasurementUnit.CreatedAt = validMeasurementUnit.CreatedAt
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validMeasurementUnit, exampleValidMeasurementUnit)
 
 	return validMeasurementUnit
@@ -53,7 +53,7 @@ func TestQuerier_Integration_ValidMeasurementUnits(t *testing.T) {
 	// update
 	updatedValidMeasurementUnit := fakes.BuildFakeValidMeasurementUnit()
 	updatedValidMeasurementUnit.ID = createdValidMeasurementUnits[0].ID
-	assert.NoError(t, dbc.UpdateValidMeasurementUnit(ctx, updatedValidMeasurementUnit))
+	require.NoError(t, dbc.UpdateValidMeasurementUnit(ctx, updatedValidMeasurementUnit))
 
 	// create more
 	for i := range exampleQuantity {
@@ -64,7 +64,7 @@ func TestQuerier_Integration_ValidMeasurementUnits(t *testing.T) {
 
 	// fetch as list
 	validMeasurementUnits, err := dbc.GetValidMeasurementUnits(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, validMeasurementUnits.Data)
 	assert.GreaterOrEqual(t, len(validMeasurementUnits.Data), len(createdValidMeasurementUnits))
 
@@ -75,20 +75,20 @@ func TestQuerier_Integration_ValidMeasurementUnits(t *testing.T) {
 	}
 
 	byIDs, err := dbc.GetValidMeasurementUnitsWithIDs(ctx, validMeasurementUnitIDs)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Subset(t, validMeasurementUnits.Data, byIDs)
 
 	// fetch via name search
 	byName, err := dbc.SearchForValidMeasurementUnits(ctx, updatedValidMeasurementUnit.Name, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Subset(t, validMeasurementUnits.Data, byName.Data)
 
 	random, err := dbc.GetRandomValidMeasurementUnit(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, random)
 
 	needingIndexing, err := dbc.GetValidMeasurementUnitIDsThatNeedSearchIndexing(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, needingIndexing)
 
 	ingredient := createValidIngredientForTest(t, ctx, nil, dbc)
@@ -111,13 +111,13 @@ func TestQuerier_Integration_ValidMeasurementUnits(t *testing.T) {
 
 		var exists bool
 		exists, err = dbc.ValidMeasurementUnitExists(ctx, validMeasurementUnit.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ValidMeasurementUnit
 		y, err = dbc.GetValidMeasurementUnit(ctx, validMeasurementUnit.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -133,7 +133,7 @@ func TestQuerier_ValidMeasurementUnitExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidMeasurementUnitExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -148,7 +148,7 @@ func TestQuerier_GetValidMeasurementUnit(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidMeasurementUnit(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -163,7 +163,7 @@ func TestQuerier_SearchForValidMeasurementUnits(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.SearchForValidMeasurementUnits(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -179,7 +179,7 @@ func TestQuerier_ValidMeasurementUnitsForIngredientID(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidMeasurementUnitsForIngredientID(ctx, "", filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -194,7 +194,7 @@ func TestQuerier_CreateValidMeasurementUnit(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateValidMeasurementUnit(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

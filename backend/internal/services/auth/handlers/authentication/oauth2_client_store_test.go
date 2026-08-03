@@ -13,6 +13,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewOAuth2ClientStore(T *testing.T) {
@@ -66,7 +67,7 @@ func TestOAuth2ClientStoreImpl_GetByID(T *testing.T) {
 
 		result, err := store.GetByID(ctx, client.ID)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, client.ID, result.GetID())
 		assert.Equal(t, client.ClientSecret, result.GetSecret())
@@ -101,7 +102,7 @@ func TestOAuth2ClientStoreImpl_GetByID(T *testing.T) {
 
 		result, err := store.GetByID(ctx, clientID)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		assert.Len(t, dataManager.GetOAuth2ClientByClientIDCalls(), 1)

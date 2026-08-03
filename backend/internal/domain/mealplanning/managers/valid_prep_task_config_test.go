@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidEnumerationManager_ListValidPrepTaskConfigs(T *testing.T) {
@@ -32,7 +33,7 @@ func TestValidEnumerationManager_ListValidPrepTaskConfigs(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidPrepTaskConfigs(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidPrepTaskConfigsCalls(), 1)
@@ -59,7 +60,7 @@ func TestValidEnumerationManager_CreateValidPrepTaskConfig(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidPrepTaskConfig(ctx, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateValidPrepTaskConfigCalls(), 1)
@@ -87,7 +88,7 @@ func TestValidEnumerationManager_ReadValidPrepTaskConfig(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidPrepTaskConfig(ctx, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidPrepTaskConfigCalls(), 1)
@@ -120,7 +121,7 @@ func TestValidEnumerationManager_UpdateValidPrepTaskConfig(T *testing.T) {
 
 		result, err := mpm.UpdateValidPrepTaskConfig(ctx, exampleValidPrepTaskConfig.ID, exampleInput)
 		assert.NotNil(t, result)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.GetValidPrepTaskConfigCalls(), 2) // the manager re-reads the record after updating it
 		assert.Len(t, db.UpdateValidPrepTaskConfigCalls(), 1)
@@ -147,7 +148,7 @@ func TestValidEnumerationManager_ArchiveValidPrepTaskConfig(T *testing.T) {
 		}
 		attachRepositoryToManager(vem, db)
 
-		assert.NoError(t, vem.ArchiveValidPrepTaskConfig(ctx, expected.ID))
+		require.NoError(t, vem.ArchiveValidPrepTaskConfig(ctx, expected.ID))
 
 		assert.Len(t, db.ArchiveValidPrepTaskConfigCalls(), 1)
 	})
@@ -175,7 +176,7 @@ func TestValidEnumerationManager_SearchValidPrepTaskConfigsByIngredient(T *testi
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidPrepTaskConfigsByIngredient(ctx, exampleIngredientID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidPrepTaskConfigsForIngredientCalls(), 1)
@@ -204,7 +205,7 @@ func TestValidEnumerationManager_SearchValidPrepTaskConfigsByPreparation(T *test
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidPrepTaskConfigsByPreparation(ctx, examplePreparationID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidPrepTaskConfigsForPreparationCalls(), 1)
@@ -235,7 +236,7 @@ func TestValidEnumerationManager_SearchValidPrepTaskConfigsByIngredientAndPrepar
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidPrepTaskConfigsByIngredientAndPreparation(ctx, exampleIngredientID, examplePreparationID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidPrepTaskConfigsForIngredientAndPreparationCalls(), 1)

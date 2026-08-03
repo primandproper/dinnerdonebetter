@@ -34,7 +34,7 @@ func createMealPlanEventForTest(t *testing.T, ctx context.Context, exampleMealPl
 	dbInput := converters.ConvertMealPlanEventToMealPlanEventDatabaseCreationInput(exampleMealPlanEvent)
 
 	created, err := dbc.CreateMealPlanEvent(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	exampleMealPlanEvent.CreatedAt = created.CreatedAt
@@ -100,22 +100,22 @@ func TestQuerier_Integration_MealPlanEvents(t *testing.T) {
 
 	// fetch as list
 	mealPlanEvents, err := dbc.GetMealPlanEvents(ctx, mealPlan.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, mealPlanEvents)
-	assert.Equal(t, len(createdMealPlanEvents), len(mealPlanEvents.Data))
+	assert.Len(t, mealPlanEvents.Data, len(createdMealPlanEvents))
 
-	assert.NoError(t, dbc.UpdateMealPlanEvent(ctx, createdMealPlanEvents[0]))
+	require.NoError(t, dbc.UpdateMealPlanEvent(ctx, createdMealPlanEvents[0]))
 
 	_, err = dbc.MealPlanEventIsEligibleForVoting(ctx, mealPlan.ID, createdMealPlanEvents[0].ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// delete
 	for _, mealPlanEvent := range createdMealPlanEvents {
-		assert.NoError(t, dbc.ArchiveMealPlanEvent(ctx, mealPlan.ID, mealPlanEvent.ID))
+		require.NoError(t, dbc.ArchiveMealPlanEvent(ctx, mealPlan.ID, mealPlanEvent.ID))
 
 		var exists bool
 		exists, err = dbc.MealPlanEventExists(ctx, mealPlanEvent.ID, account.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 	}
 }
@@ -133,7 +133,7 @@ func TestQuerier_MealPlanEventExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealPlanEventExists(ctx, "", exampleMealPlanEventID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -147,7 +147,7 @@ func TestQuerier_MealPlanEventExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealPlanEventExists(ctx, exampleMealPlanID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -164,7 +164,7 @@ func TestQuerier_GetMealPlanEvent(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlanEvent(ctx, "", exampleMealPlanEventID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -177,7 +177,7 @@ func TestQuerier_GetMealPlanEvent(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlanEvent(ctx, exampleMealPlan.ID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -192,7 +192,7 @@ func TestQuerier_getMealPlanEventsForMealPlan(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.getMealPlanEventsForMealPlan(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -207,7 +207,7 @@ func TestQuerier_GetMealPlanEvents(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlanEvents(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -222,7 +222,7 @@ func TestQuerier_CreateMealPlanEvent(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateMealPlanEvent(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

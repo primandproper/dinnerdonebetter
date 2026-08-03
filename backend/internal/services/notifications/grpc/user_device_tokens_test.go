@@ -15,6 +15,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -47,7 +48,7 @@ func TestServiceImpl_RegisterDeviceToken(t *testing.T) {
 
 		response, err := service.RegisterDeviceToken(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotNil(t, response.Created)
@@ -74,7 +75,7 @@ func TestServiceImpl_RegisterDeviceToken(t *testing.T) {
 
 		response, err := service.RegisterDeviceToken(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -90,7 +91,7 @@ func TestServiceImpl_RegisterDeviceToken(t *testing.T) {
 
 		response, err := service.RegisterDeviceToken(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 		assert.Empty(t, mockRepo.CreateUserDeviceTokenCalls())
@@ -117,7 +118,7 @@ func TestServiceImpl_RegisterDeviceToken(t *testing.T) {
 
 		response, err := service.RegisterDeviceToken(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -152,7 +153,7 @@ func TestServiceImpl_GetUserDeviceToken(t *testing.T) {
 
 		response, err := service.GetUserDeviceToken(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotNil(t, response.Result)
@@ -174,7 +175,7 @@ func TestServiceImpl_GetUserDeviceToken(t *testing.T) {
 
 		response, err := service.GetUserDeviceToken(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -202,7 +203,7 @@ func TestServiceImpl_GetUserDeviceToken(t *testing.T) {
 
 		response, err := service.GetUserDeviceToken(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.NotFound, status.Code(err))
 
@@ -244,7 +245,7 @@ func TestServiceImpl_GetUserDeviceTokens(t *testing.T) {
 
 		response, err := service.GetUserDeviceTokens(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Len(t, response.Results, len(fakeTokens.Data))
@@ -267,7 +268,7 @@ func TestServiceImpl_GetUserDeviceTokens(t *testing.T) {
 
 		response, err := service.GetUserDeviceTokens(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -299,7 +300,7 @@ func TestServiceImpl_ArchiveUserDeviceToken(t *testing.T) {
 
 		response, err := service.ArchiveUserDeviceToken(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 
@@ -318,7 +319,7 @@ func TestServiceImpl_ArchiveUserDeviceToken(t *testing.T) {
 
 		response, err := service.ArchiveUserDeviceToken(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -346,7 +347,7 @@ func TestServiceImpl_ArchiveUserDeviceToken(t *testing.T) {
 
 		response, err := service.ArchiveUserDeviceToken(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.NotFound, status.Code(err))
 

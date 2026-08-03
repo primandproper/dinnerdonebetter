@@ -89,7 +89,7 @@ func TestValidPreparationVessels_Archiving(T *testing.T) {
 		_, _, created := createValidPreparationVesselForTest(t)
 
 		_, err := adminClient.ArchiveValidPreparationVessel(ctx, &mealplanningsvc.ArchiveValidPreparationVesselRequest{ValidPreparationVesselId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetValidPreparationVessel(ctx, &mealplanningsvc.GetValidPreparationVesselRequest{ValidPreparationVesselId: created.ID})
 		assert.Nil(t, x)
@@ -145,7 +145,7 @@ func TestValidPreparationVessels_Updating(T *testing.T) {
 			ValidPreparationVesselId: created.ID,
 			Input:                    mealplanningconverters.ConvertValidPreparationVesselUpdateRequestInputToGRPCValidPreparationVesselUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, response)
 		require.NotNil(t, response.Result)
 	})
@@ -183,7 +183,7 @@ func TestValidPreparationVessels_Updating(T *testing.T) {
 				Notes: new("doesn't matter"),
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -208,7 +208,7 @@ func TestValidPreparationVessels_Listing(T *testing.T) {
 		results, err := adminClient.GetValidPreparationVessels(ctx, &mealplanningsvc.GetValidPreparationVesselsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidPreparationVessels))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidPreparationVessels))
 	})
 
 	T.Run("by vessel", func(t *testing.T) {
@@ -218,7 +218,7 @@ func TestValidPreparationVessels_Listing(T *testing.T) {
 		results, err := adminClient.GetValidPreparationVesselsByVessel(ctx, &mealplanningsvc.GetValidPreparationVesselsByVesselRequest{ValidVesselId: validVessel.ID})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidPreparationVessels))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidPreparationVessels))
 	})
 
 	T.Run("by preparation", func(t *testing.T) {
@@ -228,6 +228,6 @@ func TestValidPreparationVessels_Listing(T *testing.T) {
 		results, err := adminClient.GetValidPreparationVesselsByPreparation(ctx, &mealplanningsvc.GetValidPreparationVesselsByPreparationRequest{ValidPreparationId: validPreparation.ID})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= 1, "at least one VPV for this preparation")
+		assert.GreaterOrEqual(t, len(results.Results), 1, "at least one VPV for this preparation")
 	})
 }

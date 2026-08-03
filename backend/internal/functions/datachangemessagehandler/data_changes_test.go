@@ -20,6 +20,7 @@ import (
 	textsearch "github.com/primandproper/platform-go/v9/search/text"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(t *testing.T) {
@@ -75,7 +76,7 @@ func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(t *testing.T) {
 		}
 
 		err := handler.DataChangesEventHandler("data_changes")(ctx, rawMsg)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "decoding message body")
 	})
 }
@@ -91,7 +92,7 @@ func TestAsyncDataChangeMessageHandler_handleDataChangeMessage(t *testing.T) {
 		ctx := t.Context()
 
 		err := handler.handleDataChangeMessage(ctx, nil, "data_changes")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, errRequiredDataIsNil, err)
 	})
 
@@ -151,7 +152,7 @@ func TestAsyncDataChangeMessageHandler_handleSearchIndexUpdates(t *testing.T) {
 		handler.searchDataIndexPublisher = mockPublisher
 
 		err := handler.handleSearchIndexUpdates(ctx, dataChangeMessage)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.NotNil(t, publishedReq)
 		assert.Equal(t, dataChangeMessage.UserID, publishedReq.RowID)
@@ -185,7 +186,7 @@ func TestAsyncDataChangeMessageHandler_handleSearchIndexUpdates(t *testing.T) {
 		handler.searchDataIndexPublisher = mockPublisher
 
 		err := handler.handleSearchIndexUpdates(ctx, dataChangeMessage)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.NotNil(t, publishedReq)
 		assert.Equal(t, dataChangeMessage.UserID, publishedReq.RowID)
@@ -223,7 +224,7 @@ func TestAsyncDataChangeMessageHandler_handleSearchIndexUpdates(t *testing.T) {
 		handler.searchDataIndexPublisher = mockPublisher
 
 		err := handler.handleSearchIndexUpdates(ctx, dataChangeMessage)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.NotNil(t, publishedReq)
 		assert.Equal(t, recipe.ID, publishedReq.RowID)
@@ -275,7 +276,7 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 		ctx := t.Context()
 
 		err := handler.handleOutboundNotifications(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "nil data change message")
 	})
 
@@ -307,7 +308,7 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 		analyticsEventReporter.AddUserFunc = func(_ context.Context, _ string, _ map[string]any) error { return nil }
 
 		err := handler.handleOutboundNotifications(ctx, dataChangeMessage)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, identityRepo.GetUserCalls(), 1)
 	})
@@ -335,7 +336,7 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 		}
 
 		err := handler.handleOutboundNotifications(ctx, dataChangeMessage)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "getting user")
 
 		assert.Len(t, identityRepo.GetUserCalls(), 1)
@@ -365,7 +366,7 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 		}
 
 		err := handler.handleOutboundNotifications(ctx, dataChangeMessage)
-		assert.NoError(t, err) // Should handle gracefully with no outbound emails
+		require.NoError(t, err) // Should handle gracefully with no outbound emails
 
 		assert.Len(t, identityRepo.GetUserCalls(), 1)
 	})

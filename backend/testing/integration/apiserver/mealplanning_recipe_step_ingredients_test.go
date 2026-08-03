@@ -15,7 +15,7 @@ import (
 
 func checkRecipeStepIngredientSliceEquality(t *testing.T, stepIndex int, expected, actual []*mealplanning.RecipeStepIngredient) {
 	t.Helper()
-	require.Equal(t, len(expected), len(actual), "expected recipe step %d ingredients length", stepIndex)
+	require.Len(t, actual, len(expected), "expected recipe step %d ingredients length", stepIndex)
 	for i := range expected {
 		checkRecipeStepIngredientEquality(t, stepIndex, i, expected[i], actual[i])
 	}
@@ -119,10 +119,10 @@ func TestRecipeStepIngredients_CompleteLifecycle(T *testing.T) {
 			RecipeStepId:           createdRecipeStepID,
 			RecipeStepIngredientId: createdRecipeStepIngredientID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipeStep(ctx, &mealplanninggrpc.ArchiveRecipeStepRequest{RecipeId: createdRecipe.ID, RecipeStepId: createdRecipeStepID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
 		assert.NoError(t, err)
@@ -212,9 +212,9 @@ func TestRecipeStepIngredients_Listing(T *testing.T) {
 		})
 		require.NotNil(t, actual)
 		require.NoError(t, err)
-		assert.True(
+		assert.LessOrEqual(
 			t,
-			len(expected) <= len(actual.Results),
+			len(expected), len(actual.Results),
 			"expected %d to be <= %d",
 			len(expected),
 			len(actual.Results),
@@ -226,14 +226,14 @@ func TestRecipeStepIngredients_Listing(T *testing.T) {
 				RecipeStepId:           createdRecipeStepID,
 				RecipeStepIngredientId: createdRecipeStepIngredient.ID,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 
 		_, err = adminClient.ArchiveRecipeStep(ctx, &mealplanninggrpc.ArchiveRecipeStepRequest{
 			RecipeId:     createdRecipe.ID,
 			RecipeStepId: createdRecipeStepID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
 		assert.NoError(t, err)

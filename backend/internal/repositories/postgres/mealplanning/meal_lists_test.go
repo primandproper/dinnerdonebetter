@@ -38,7 +38,7 @@ func TestIntegration_MealLists(t *testing.T) {
 	res, err := dbc.GetMealLists(ctx, user.ID, nil)
 	require.NoError(t, err)
 	require.Len(t, res.Data, 1)
-	require.Len(t, res.Data[0].Items, 0)
+	require.Empty(t, res.Data[0].Items)
 
 	updated := &mealplanning.MealList{
 		ID:            createdList.ID,
@@ -52,5 +52,5 @@ func TestIntegration_MealLists(t *testing.T) {
 
 	resAfterArchive, err := dbc.GetMealLists(ctx, user.ID, nil)
 	require.NoError(t, err)
-	assert.Len(t, resAfterArchive.Data, 0)
+	assert.Empty(t, resAfterArchive.Data)
 }

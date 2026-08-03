@@ -31,7 +31,7 @@ func createValidIngredientPreparationForTest(t *testing.T, ctx context.Context, 
 	dbInput := converters.ConvertValidIngredientPreparationToValidIngredientPreparationDatabaseCreationInput(exampleValidIngredientPreparation)
 
 	created, err := dbc.CreateValidIngredientPreparation(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 	exampleValidIngredientPreparation.CreatedAt = created.CreatedAt
 	assert.Equal(t, exampleValidIngredientPreparation, created)
@@ -42,7 +42,7 @@ func createValidIngredientPreparationForTest(t *testing.T, ctx context.Context, 
 	exampleValidIngredientPreparation.Preparation = validIngredientPreparation.Preparation
 	exampleValidIngredientPreparation.Ingredient = validIngredientPreparation.Ingredient
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validIngredientPreparation, exampleValidIngredientPreparation)
 
 	return created
@@ -67,7 +67,7 @@ func TestQuerier_Integration_ValidIngredientPreparations(t *testing.T) {
 	updatedValidIngredientPreparation.ID = createdValidIngredientPreparations[0].ID
 	updatedValidIngredientPreparation.Preparation = createdValidIngredientPreparations[0].Preparation
 	updatedValidIngredientPreparation.Ingredient = createdValidIngredientPreparations[0].Ingredient
-	assert.NoError(t, dbc.UpdateValidIngredientPreparation(ctx, updatedValidIngredientPreparation))
+	require.NoError(t, dbc.UpdateValidIngredientPreparation(ctx, updatedValidIngredientPreparation))
 
 	// create more (each must have unique prep+ingredient per active row)
 	for range exampleQuantity {
@@ -80,31 +80,31 @@ func TestQuerier_Integration_ValidIngredientPreparations(t *testing.T) {
 
 	// fetch as list
 	validIngredientPreparations, err := dbc.GetValidIngredientPreparations(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, validIngredientPreparations.Data)
-	assert.Equal(t, len(createdValidIngredientPreparations), len(validIngredientPreparations.Data))
+	assert.Len(t, validIngredientPreparations.Data, len(createdValidIngredientPreparations))
 
 	forIngredient, err := dbc.GetValidIngredientPreparationsForIngredient(ctx, createdValidIngredientPreparations[0].Ingredient.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, forIngredient.Data)
 
 	forPreparation, err := dbc.GetValidIngredientPreparationsForPreparation(ctx, createdValidIngredientPreparations[0].Preparation.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, forPreparation.Data)
 
 	// delete
 	for _, validIngredientPreparation := range createdValidIngredientPreparations {
-		assert.NoError(t, dbc.ArchiveValidIngredientPreparation(ctx, validIngredientPreparation.ID))
+		require.NoError(t, dbc.ArchiveValidIngredientPreparation(ctx, validIngredientPreparation.ID))
 
 		var exists bool
 		exists, err = dbc.ValidIngredientPreparationExists(ctx, validIngredientPreparation.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ValidIngredientPreparation
 		y, err = dbc.GetValidIngredientPreparation(ctx, validIngredientPreparation.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -120,7 +120,7 @@ func TestQuerier_ValidIngredientPreparationExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidIngredientPreparationExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -135,7 +135,7 @@ func TestQuerier_GetValidIngredientPreparation(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidIngredientPreparation(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -150,7 +150,7 @@ func TestQuerier_GetValidIngredientPreparationsForIngredient(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidIngredientPreparationsForIngredient(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -165,7 +165,7 @@ func TestQuerier_GetValidIngredientPreparationsForPreparation(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidIngredientPreparationsForPreparation(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -180,7 +180,7 @@ func TestQuerier_CreateValidIngredientPreparation(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateValidIngredientPreparation(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -221,7 +221,7 @@ func TestQuerier_GetValidIngredientPreparationsByIDs(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidIngredientPreparationsByIDs(ctx, []string{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Empty(t, actual)
 	})
@@ -239,7 +239,7 @@ func TestQuerier_Integration_GetValidIngredientPreparationsByIDs(t *testing.T) {
 	// Test fetching by IDs
 	ids := []string{created1.ID, created2.ID, created3.ID}
 	results, err := dbc.GetValidIngredientPreparationsByIDs(ctx, ids)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, results, 3)
 	assert.NotNil(t, results[created1.ID])
 	assert.NotNil(t, results[created2.ID])
@@ -248,13 +248,13 @@ func TestQuerier_Integration_GetValidIngredientPreparationsByIDs(t *testing.T) {
 	// Test with partial IDs (some exist, some don't)
 	partialIDs := []string{created1.ID, "nonexistent-id"}
 	partialResults, err := dbc.GetValidIngredientPreparationsByIDs(ctx, partialIDs)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, partialResults, 1)
 	assert.NotNil(t, partialResults[created1.ID])
 
 	// Test with empty list
 	emptyResults, err := dbc.GetValidIngredientPreparationsByIDs(ctx, []string{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Empty(t, emptyResults)
 
 	// Cleanup

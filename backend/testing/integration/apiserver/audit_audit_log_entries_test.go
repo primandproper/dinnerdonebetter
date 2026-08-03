@@ -74,7 +74,7 @@ func TestAuditLogEntries_GetByID(T *testing.T) {
 		result, err := userClient.GetAuditLogEntryByID(ctx, &auditgrpc.GetAuditLogEntryByIDRequest{
 			AuditLogEntryId: entryID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, entryID, result.Result.Id)
 	})
@@ -88,7 +88,7 @@ func TestAuditLogEntries_GetByID(T *testing.T) {
 		result, err := userClient.GetAuditLogEntryByID(ctx, &auditgrpc.GetAuditLogEntryByIDRequest{
 			AuditLogEntryId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 	})
 
@@ -101,7 +101,7 @@ func TestAuditLogEntries_GetByID(T *testing.T) {
 		result, err := c.GetAuditLogEntryByID(ctx, &auditgrpc.GetAuditLogEntryByIDRequest{
 			AuditLogEntryId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 	})
 }

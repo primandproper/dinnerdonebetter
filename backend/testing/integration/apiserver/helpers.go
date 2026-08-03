@@ -283,7 +283,7 @@ func assertRoughEquality[T any](t *testing.T, expected, actual T, ignoreFieldNam
 		func() { /* some no-op to set expected breakpoint on */ }()
 	}
 
-	assert.True(t, len(diff) == 0, "diffs: %+v", diff)
+	assert.Empty(t, diff, "diffs: %+v", diff)
 }
 
 func toSet(xs []string) map[string]struct{} {

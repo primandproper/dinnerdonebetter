@@ -63,7 +63,7 @@ func TestNewDispatcher(T *testing.T) {
 			tracingnoop.NewTracerProvider(),
 			metricsnoop.NewMetricsProvider(),
 		)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, d)
 	})
 
@@ -71,7 +71,7 @@ func TestNewDispatcher(T *testing.T) {
 		t.Parallel()
 
 		d, err := NewDispatcher(nil, testCatalog(), loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider())
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, d)
 	})
 
@@ -81,7 +81,7 @@ func TestNewDispatcher(T *testing.T) {
 		// An empty catalog rejects every event type, which would present as a total webhook
 		// outage made of individually plausible rejections. Refused at construction instead.
 		d, err := NewDispatcher(&webhooksmock.StoreMock{}, webhooks.Catalog{}, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider())
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, d)
 	})
 }
@@ -124,7 +124,7 @@ func TestDispatcher_Dispatch(T *testing.T) {
 		d := buildDispatcherForTest(t, store)
 
 		err := d.Dispatch(ctx, executor, exampleAccountID, exampleEventType, "meal_plan_1", json.RawMessage(`{"hello":"world"}`))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, store.EndpointsForEventCalls(), 1)
 		assert.Len(t, store.EnqueueCalls(), 1)
 	})
@@ -145,7 +145,7 @@ func TestDispatcher_Dispatch(T *testing.T) {
 		// An event nobody subscribes to is the common case and writes nothing. Enqueue is
 		// unconfigured, so calling it would panic — which is the assertion.
 		err := d.Dispatch(ctx, &mockdatabase.SQLQueryExecutorMock{}, exampleAccountID, exampleEventType, "", json.RawMessage(`{}`))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, store.EnqueueCalls())
 	})
 
@@ -165,7 +165,7 @@ func TestDispatcher_Dispatch(T *testing.T) {
 		// A typo is caught at registration, where a human types one, and by the catalog's own
 		// test — at build time rather than by taking down a write at runtime.
 		err := d.Dispatch(ctx, &mockdatabase.SQLQueryExecutorMock{}, exampleAccountID, "reciped_created", "", json.RawMessage(`{}`))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, store.EndpointsForEventCalls())
 		assert.Empty(t, store.EnqueueCalls())
 	})
@@ -180,7 +180,7 @@ func TestDispatcher_Dispatch(T *testing.T) {
 
 		// Background jobs emit events with no account. Those belong to no subscriber.
 		err := d.Dispatch(ctx, &mockdatabase.SQLQueryExecutorMock{}, "", exampleEventType, "", json.RawMessage(`{}`))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, store.EndpointsForEventCalls())
 	})
 
@@ -276,8 +276,8 @@ func TestDispatcher_Register(T *testing.T) {
 			URL:        "https://example.com/hook",
 			EventTypes: []string{"reciped_created"},
 		})
-		assert.Error(t, err)
-		assert.ErrorIs(t, err, webhooks.ErrUnknownEventType)
+		require.Error(t, err)
+		require.ErrorIs(t, err, webhooks.ErrUnknownEventType)
 		assert.Empty(t, store.SaveEndpointCalls())
 	})
 
@@ -324,7 +324,7 @@ func TestDispatcher_Register(T *testing.T) {
 			URL:        "https://127.0.0.1/hook",
 			EventTypes: []string{exampleEventType},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Empty(t, store.SaveEndpointCalls())
 	})
 
@@ -340,7 +340,7 @@ func TestDispatcher_Register(T *testing.T) {
 			URL:        "http://example.com/hook",
 			EventTypes: []string{exampleEventType},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Empty(t, store.SaveEndpointCalls())
 	})
 
@@ -405,7 +405,7 @@ func TestDispatcher_SetEventTypes(T *testing.T) {
 		d := buildDispatcherForTest(t, store)
 
 		err := d.SetEventTypes(t.Context(), exampleWebhookID, exampleAccountID, []string{"reciped_created"})
-		assert.ErrorIs(t, err, webhooks.ErrUnknownEventType)
+		require.ErrorIs(t, err, webhooks.ErrUnknownEventType)
 		// Refused before the read, so a bad request costs no query.
 		assert.Empty(t, store.GetEndpointCalls())
 	})

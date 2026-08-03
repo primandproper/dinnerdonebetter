@@ -26,7 +26,7 @@ func checkWebhookEquality(t *testing.T, expected, actual *webhooks.Webhook) {
 	assert.Equal(t, expected.ContentType, actual.ContentType, "expected Webhook ContentType")
 	assert.NotEmpty(t, actual.BelongsToAccount, "expected Webhook to have BelongsToAccount")
 
-	require.Equal(t, len(expected.TriggerConfigs), len(actual.TriggerConfigs), "expected Webhook TriggerConfigs length")
+	require.Len(t, actual.TriggerConfigs, len(expected.TriggerConfigs), "expected Webhook TriggerConfigs length")
 	for i, expectedCfg := range expected.TriggerConfigs {
 		if i >= len(actual.TriggerConfigs) {
 			continue
@@ -120,7 +120,7 @@ func TestWebhooks_Reading(T *testing.T) {
 		createdWebhook := createWebhookForTest(t, testClient)
 
 		retrieved, err := testClient.GetWebhook(ctx, &webhookssvc.GetWebhookRequest{WebhookId: createdWebhook.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, retrieved)
 	})
 
@@ -131,7 +131,7 @@ func TestWebhooks_Reading(T *testing.T) {
 		_, testClient := createUserAndClientForTest(t)
 
 		retrieved, err := testClient.GetWebhook(ctx, &webhookssvc.GetWebhookRequest{WebhookId: nonexistentID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, retrieved)
 	})
 
@@ -160,9 +160,9 @@ func TestWebhooks_Listing(T *testing.T) {
 		}
 
 		results, err := testClient.GetWebhooks(ctx, &webhookssvc.GetWebhooksRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdWebhooks))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdWebhooks))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -186,7 +186,7 @@ func TestWebhooks_Archiving(T *testing.T) {
 		createdWebhook := createWebhookForTest(t, testClient)
 
 		_, err := testClient.ArchiveWebhook(ctx, &webhookssvc.ArchiveWebhookRequest{WebhookId: createdWebhook.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 10, []*ExpectedAuditEntry{
 			{EventType: "archived", ResourceType: "webhooks", RelevantID: createdWebhook.ID},
@@ -232,7 +232,7 @@ func TestWebhookTriggerEvents_Adding(T *testing.T) {
 				EventType:        eventType,
 			},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "webhook_trigger_configs", RelevantID: addedConfig.Created.Id},

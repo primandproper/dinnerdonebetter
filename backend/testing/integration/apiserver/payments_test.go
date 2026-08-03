@@ -78,7 +78,7 @@ func TestPayments_CreateProduct(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 		created, err := c.CreateProduct(ctx, &paymentsgrpc.CreateProductRequest{Input: grpcInput})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -91,7 +91,7 @@ func TestPayments_CreateProduct(T *testing.T) {
 		grpcInput := paymentssvcconverters.ConvertProductCreationRequestInputToGRPC(input)
 
 		created, err := adminClient.CreateProduct(ctx, &paymentsgrpc.CreateProductRequest{Input: grpcInput})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -104,7 +104,7 @@ func TestPayments_CreateProduct(T *testing.T) {
 		grpcInput := paymentssvcconverters.ConvertProductCreationRequestInputToGRPC(input)
 
 		created, err := adminClient.CreateProduct(ctx, &paymentsgrpc.CreateProductRequest{Input: grpcInput})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -117,7 +117,7 @@ func TestPayments_CreateProduct(T *testing.T) {
 		grpcInput := paymentssvcconverters.ConvertProductCreationRequestInputToGRPC(input)
 
 		created, err := testClient.CreateProduct(ctx, &paymentsgrpc.CreateProductRequest{Input: grpcInput})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -314,7 +314,7 @@ func TestPayments_CreateSubscription(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 		created, err := c.CreateSubscription(ctx, &paymentsgrpc.CreateSubscriptionRequest{Input: grpcInput})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -331,7 +331,7 @@ func TestPayments_CreateSubscription(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(T)
 		created, err := testClient.CreateSubscription(ctx, &paymentsgrpc.CreateSubscriptionRequest{Input: grpcInput})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -350,7 +350,7 @@ func TestPayments_GetSubscription(T *testing.T) {
 		created := createSubscriptionForTest(t, product.ID, accountID)
 
 		retrieved, err := testClient.GetSubscription(ctx, &paymentsgrpc.GetSubscriptionRequest{SubscriptionId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		converted := paymentssvcconverters.ConvertGRPCSubscriptionToSubscription(retrieved.Result)
 		assertRoughEquality(t, created, converted, defaultIgnoredFields()...)
 	})
@@ -498,7 +498,7 @@ func TestPayments_ArchiveSubscription(T *testing.T) {
 
 		res, err := adminClient.GetSubscription(ctx, &paymentsgrpc.GetSubscriptionRequest{SubscriptionId: created.ID})
 		assert.Nil(t, res)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		AssertAuditLogContainsFuzzy(t, ctx, accountClient, accountID, 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "subscriptions", RelevantID: created.ID},

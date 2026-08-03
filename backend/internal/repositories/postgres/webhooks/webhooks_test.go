@@ -29,7 +29,7 @@ func createWebhookForTest(t *testing.T, ctx context.Context, exampleWebhook *typ
 	dbInput := converters.ConvertWebhookToWebhookDatabaseCreationInput(exampleWebhook)
 
 	response, err := dbc.CreateWebhook(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, response)
 
 	// The signing secret is returned here and nowhere else, so this is the only place it can
@@ -51,7 +51,7 @@ func createWebhookForTest(t *testing.T, ctx context.Context, exampleWebhook *typ
 		exampleWebhook.TriggerConfigs[i].CreatedAt = webhook.TriggerConfigs[i].CreatedAt
 	}
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, webhook, exampleWebhook)
 
 	return created
@@ -83,9 +83,9 @@ func TestQuerier_Integration_Webhooks(t *testing.T) {
 
 	// fetch as list
 	webhooks, err := dbc.GetWebhooks(ctx, account.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, webhooks.Data)
-	assert.Equal(t, len(createdWebhooks), len(webhooks.Data))
+	assert.Len(t, webhooks.Data, len(createdWebhooks))
 
 	// Subscribe the webhook to a second event type. It has to differ from the one the fake
 	// already carries: (trigger_event, belongs_to_webhook, archived_at) is unique.
@@ -99,7 +99,7 @@ func TestQuerier_Integration_Webhooks(t *testing.T) {
 		BelongsToWebhook: createdWebhooks[0].ID,
 		EventType:        secondEventType,
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, createdConfig)
 
 	createdWebhooks[0].TriggerConfigs = append(createdWebhooks[0].TriggerConfigs, createdConfig)
@@ -114,10 +114,10 @@ func TestQuerier_Integration_Webhooks(t *testing.T) {
 	// delete: archive trigger configs then archive webhook; archive catalog event if needed
 	for _, webhook := range createdWebhooks {
 		for _, cfg := range webhook.TriggerConfigs {
-			assert.NoError(t, dbc.ArchiveWebhookTriggerConfig(ctx, webhook.ID, account.ID, cfg.ID))
+			require.NoError(t, dbc.ArchiveWebhookTriggerConfig(ctx, webhook.ID, account.ID, cfg.ID))
 		}
 
-		assert.NoError(t, dbc.ArchiveWebhook(ctx, webhook.ID, account.ID))
+		require.NoError(t, dbc.ArchiveWebhook(ctx, webhook.ID, account.ID))
 	}
 
 	// Assert audit log entries were written for webhook archives (ArchiveWebhookTriggerConfig
@@ -129,13 +129,13 @@ func TestQuerier_Integration_Webhooks(t *testing.T) {
 	for _, webhook := range createdWebhooks {
 		var exists bool
 		exists, err = dbc.WebhookExists(ctx, webhook.ID, account.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.Webhook
 		y, err = dbc.GetWebhook(ctx, webhook.ID, account.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -152,7 +152,7 @@ func TestQuerier_GetWebhook(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetWebhook(ctx, "", exampleAccountID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -165,7 +165,7 @@ func TestQuerier_GetWebhook(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetWebhook(ctx, exampleWebhook.ID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -181,7 +181,7 @@ func TestQuerier_GetWebhooks(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetWebhooks(ctx, "", filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -196,7 +196,7 @@ func TestQuerier_CreateWebhook(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateWebhook(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

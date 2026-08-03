@@ -42,7 +42,7 @@ func createValidPreparationForTest(t *testing.T) *mealplanning.ValidPreparation 
 func checkValidPreparationEquality(t *testing.T, i int, expected, actual *mealplanning.ValidPreparation) {
 	t.Helper()
 
-	assert.NotEmpty(t, expected.CreatedAt, actual.CreatedAt, "expected recipe step %d preparation CreatedAt to be %v, but it was %v", i, expected.CreatedAt, actual.CreatedAt)
+	assert.NotZero(t, actual.CreatedAt, "expected recipe step %d preparation to have CreatedAt", i)
 	assert.Equal(t, expected.MinInstrumentCount, actual.MinInstrumentCount, "expected recipe step %d preparation MinInstrumentCount to be %v, but it was %v", i, expected.MinInstrumentCount, actual.MinInstrumentCount)
 	assert.Equal(t, expected.MaxInstrumentCount, actual.MaxInstrumentCount, "expected recipe step %d preparation MaxInstrumentCount to be %v, but it was %v", i, expected.MaxInstrumentCount, actual.MaxInstrumentCount)
 	assert.Equal(t, expected.MinIngredientCount, actual.MinIngredientCount, "expected recipe step %d preparation MinIngredientCount to be %v, but it was %v", i, expected.MinIngredientCount, actual.MinIngredientCount)
@@ -84,7 +84,7 @@ func TestValidPreparations_Creating(T *testing.T) {
 		created, err := c.CreateValidPreparation(ctx, &mealplanningsvc.CreateValidPreparationRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -100,7 +100,7 @@ func TestValidPreparations_Creating(T *testing.T) {
 		created, err := adminClient.CreateValidPreparation(ctx, &mealplanningsvc.CreateValidPreparationRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -116,7 +116,7 @@ func TestValidPreparations_Creating(T *testing.T) {
 		created, err := testClient.CreateValidPreparation(ctx, &mealplanningsvc.CreateValidPreparationRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -133,7 +133,7 @@ func TestValidPreparations_Reading(T *testing.T) {
 		created := createValidPreparationForTest(t)
 
 		retrieved, err := testClient.GetValidPreparation(ctx, &mealplanningsvc.GetValidPreparationRequest{ValidPreparationId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		converted := grpcconverters.ConvertGRPCValidPreparationToValidPreparation(retrieved.Result)
 
@@ -177,7 +177,7 @@ func TestValidPreparations_Updating(T *testing.T) {
 			ValidPreparationId: created.ID,
 			Input:              grpcconverters.ConvertValidPreparationUpdateRequestInputToGRPCValidPreparationUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		updated := grpcconverters.ConvertGRPCValidPreparationToValidPreparation(response.Result)
 		// Ensure UpdatedAt was set
@@ -227,7 +227,7 @@ func TestValidPreparations_Updating(T *testing.T) {
 				Name: new("doesn't matter"),
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -242,7 +242,7 @@ func TestValidPreparations_Archiving(T *testing.T) {
 		created := createValidPreparationForTest(t)
 
 		_, err := adminClient.ArchiveValidPreparation(ctx, &mealplanningsvc.ArchiveValidPreparationRequest{ValidPreparationId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetValidPreparation(ctx, &mealplanningsvc.GetValidPreparationRequest{ValidPreparationId: created.ID})
 		assert.Nil(t, x)
@@ -294,7 +294,7 @@ func TestValidPreparations_GetRandom(T *testing.T) {
 		createValidPreparationForTest(t)
 
 		response, err := testClient.GetRandomValidPreparation(ctx, &mealplanningsvc.GetRandomValidPreparationRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 	})
 
@@ -305,7 +305,7 @@ func TestValidPreparations_GetRandom(T *testing.T) {
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
 		response, err := c.GetRandomValidPreparation(ctx, &mealplanningsvc.GetRandomValidPreparationRequest{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -327,7 +327,7 @@ func TestValidPreparations_Listing(T *testing.T) {
 		retrieved, err := testClient.GetValidPreparations(ctx, &mealplanningsvc.GetValidPreparationsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdValidPreparations))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdValidPreparations))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

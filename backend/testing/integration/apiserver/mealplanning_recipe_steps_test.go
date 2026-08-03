@@ -100,7 +100,7 @@ func TestRecipeSteps_CompleteLifecycle(T *testing.T) {
 			RecipeId:     createdRecipe.ID,
 			RecipeStepId: createdRecipeStep.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
 		assert.NoError(t, err)
@@ -231,9 +231,9 @@ func TestRecipeSteps_Listing(T *testing.T) {
 		// assert recipe step list equality
 		actual, err := adminClient.GetRecipeSteps(ctx, &mealplanninggrpc.GetRecipeStepsRequest{RecipeId: createdRecipe.ID})
 		require.NoError(t, err)
-		assert.True(
+		assert.LessOrEqual(
 			t,
-			len(expected) <= len(actual.Results),
+			len(expected), len(actual.Results),
 			"expected %d to be <= %d",
 			len(expected),
 			len(actual.Results),
@@ -241,7 +241,7 @@ func TestRecipeSteps_Listing(T *testing.T) {
 
 		for _, createdRecipeStep := range expected {
 			_, err = adminClient.ArchiveRecipeStep(ctx, &mealplanninggrpc.ArchiveRecipeStepRequest{RecipeId: createdRecipe.ID, RecipeStepId: createdRecipeStep.ID})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})

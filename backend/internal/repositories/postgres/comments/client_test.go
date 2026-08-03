@@ -77,11 +77,11 @@ func createCommentForTest(t *testing.T, ctx context.Context, input *comments.Com
 	}
 
 	created, err := dbc.CreateComment(ctx, input)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	fetched, err := dbc.GetComment(ctx, created.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, fetched)
 	assert.Equal(t, created.ID, fetched.ID)
 	assert.Equal(t, created.Content, fetched.Content)
@@ -113,29 +113,29 @@ func TestQuerier_Integration_Comments(t *testing.T) {
 
 	// fetch as list
 	result, err := dbc.GetCommentsForReference(ctx, targetType, referencedID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotEmpty(t, result.Data)
-	assert.Equal(t, 1, len(result.Data))
+	assert.Len(t, result.Data, 1)
 	assert.Equal(t, created.ID, result.Data[0].ID)
 
 	// update
 	newContent := "updated content"
 	err = dbc.UpdateComment(ctx, created.ID, user.ID, newContent)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: created.ID},
 		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, RelevantID: created.ID},
 	})
 
 	updated, err := dbc.GetComment(ctx, created.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, updated)
 	assert.Equal(t, newContent, updated.Content)
 	assert.NotNil(t, updated.LastUpdatedAt)
 
 	// archive
 	err = dbc.ArchiveComment(ctx, created.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: created.ID},
 		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, RelevantID: created.ID},
@@ -143,7 +143,7 @@ func TestQuerier_Integration_Comments(t *testing.T) {
 	})
 
 	fetchedAfterArchive, err := dbc.GetComment(ctx, created.ID)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, fetchedAfterArchive)
 	assert.ErrorIs(t, err, sql.ErrNoRows)
 }
@@ -173,7 +173,7 @@ func TestQuerier_Integration_Comments_WithReplies(t *testing.T) {
 
 	// fetch all for reference - should get both parent and reply
 	result, err := dbc.GetCommentsForReference(ctx, targetType, referencedID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.Len(t, result.Data, 2)
 	var foundParent, foundReply bool
 	for _, c := range result.Data {
@@ -208,7 +208,7 @@ func TestQuerier_Integration_ArchiveCommentsForReference(t *testing.T) {
 
 	// archive all for reference
 	err := dbc.ArchiveCommentsForReference(ctx, targetType, referencedID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: created.ID},
 		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeComments, RelevantID: created.ID},
@@ -216,13 +216,13 @@ func TestQuerier_Integration_ArchiveCommentsForReference(t *testing.T) {
 
 	// comment should no longer be fetchable (GetComment returns archived)
 	fetched, err := dbc.GetComment(ctx, created.ID)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, fetched)
-	assert.ErrorIs(t, err, sql.ErrNoRows)
+	require.ErrorIs(t, err, sql.ErrNoRows)
 
 	// list should be empty when not including archived
 	result, err := dbc.GetCommentsForReference(ctx, targetType, referencedID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Empty(t, result.Data)
 }
 
@@ -236,7 +236,7 @@ func TestQuerier_CreateComment(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateComment(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -251,7 +251,7 @@ func TestQuerier_GetComment(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetComment(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -266,7 +266,7 @@ func TestQuerier_GetCommentsForReference(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetCommentsForReference(ctx, "", "ref-id", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -277,7 +277,7 @@ func TestQuerier_GetCommentsForReference(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetCommentsForReference(ctx, mealplanning.CommentTargetTypeRecipes, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

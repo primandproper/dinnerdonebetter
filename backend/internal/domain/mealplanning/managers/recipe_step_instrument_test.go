@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecipeManager_ListRecipeStepInstruments(T *testing.T) {
@@ -37,7 +38,7 @@ func TestRecipeManager_ListRecipeStepInstruments(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ListRecipeStepInstruments(ctx, exampleRecipeID, exampleRecipeStepID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRecipeStepInstrumentsCalls(), 1)
@@ -74,7 +75,7 @@ func TestRecipeManager_CreateRecipeStepInstrument(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.CreateRecipeStepInstrument(ctx, exampleRecipeID, exampleRecipeStepID, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidPreparationInstrumentCalls(), 1)
@@ -107,7 +108,7 @@ func TestRecipeManager_ReadRecipeStepInstrument(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ReadRecipeStepInstrument(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRecipeStepInstrumentCalls(), 1)
@@ -142,7 +143,7 @@ func TestRecipeManager_UpdateRecipeStepInstrument(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		assert.NoError(t, rm.UpdateRecipeStepInstrument(ctx, exampleRecipeID, exampleRecipeStepID, exampleRecipeStepInstrument.ID, exampleInput))
+		require.NoError(t, rm.UpdateRecipeStepInstrument(ctx, exampleRecipeID, exampleRecipeStepID, exampleRecipeStepInstrument.ID, exampleInput))
 
 		assert.Len(t, db.GetRecipeStepInstrumentCalls(), 1)
 		assert.Len(t, db.UpdateRecipeStepInstrumentCalls(), 1)
@@ -172,7 +173,7 @@ func TestRecipeManager_ArchiveRecipeStepInstrument(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		assert.NoError(t, rm.ArchiveRecipeStepInstrument(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID))
+		require.NoError(t, rm.ArchiveRecipeStepInstrument(ctx, exampleRecipeID, exampleRecipeStepID, expected.ID))
 
 		assert.Len(t, db.ArchiveRecipeStepInstrumentCalls(), 1)
 	})

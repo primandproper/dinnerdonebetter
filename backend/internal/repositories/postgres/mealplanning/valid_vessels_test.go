@@ -29,7 +29,7 @@ func createValidVesselForTest(t *testing.T, ctx context.Context, exampleValidVes
 	dbInput := converters.ConvertValidVesselToValidVesselDatabaseCreationInput(exampleValidVessel)
 
 	created, err := dbc.CreateValidVessel(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	exampleValidVessel.CreatedAt = created.CreatedAt
@@ -40,7 +40,7 @@ func createValidVesselForTest(t *testing.T, ctx context.Context, exampleValidVes
 	exampleValidVessel.CreatedAt = validVessel.CreatedAt
 	exampleValidVessel.CapacityUnit = validVessel.CapacityUnit
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validVessel, exampleValidVessel)
 
 	return validVessel
@@ -63,7 +63,7 @@ func TestQuerier_Integration_ValidVessels(t *testing.T) {
 	updatedValidVessel := fakes.BuildFakeValidVessel()
 	updatedValidVessel.ID = createdValidVessels[0].ID
 	updatedValidVessel.CapacityUnit = createdValidMeasurementUnit
-	assert.NoError(t, dbc.UpdateValidVessel(ctx, updatedValidVessel))
+	require.NoError(t, dbc.UpdateValidVessel(ctx, updatedValidVessel))
 
 	// create more
 	for i := range exampleQuantity {
@@ -75,9 +75,9 @@ func TestQuerier_Integration_ValidVessels(t *testing.T) {
 
 	// fetch as list
 	validVessels, err := dbc.GetValidVessels(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, validVessels.Data)
-	assert.Equal(t, len(createdValidVessels), len(validVessels.Data))
+	assert.Len(t, validVessels.Data, len(createdValidVessels))
 
 	// fetch as list of IDs
 	validVesselIDs := []string{}
@@ -86,7 +86,7 @@ func TestQuerier_Integration_ValidVessels(t *testing.T) {
 	}
 
 	byIDs, err := dbc.GetValidVesselsWithIDs(ctx, validVesselIDs)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	for i, v := range byIDs {
 		validVessels.Data[i].CreatedAt = v.CreatedAt
@@ -107,15 +107,15 @@ func TestQuerier_Integration_ValidVessels(t *testing.T) {
 		validVessels.Data[i].CapacityUnit.LastUpdatedAt = v.CapacityUnit.LastUpdatedAt
 	}
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validVessels, byName)
 
 	random, err := dbc.GetRandomValidVessel(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, random)
 
 	results, err := dbc.GetValidVesselIDsThatNeedSearchIndexing(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, results)
 
 	// delete
@@ -125,13 +125,13 @@ func TestQuerier_Integration_ValidVessels(t *testing.T) {
 
 		var exists bool
 		exists, err = dbc.ValidVesselExists(ctx, validVessel.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ValidVessel
 		y, err = dbc.GetValidVessel(ctx, validVessel.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -147,7 +147,7 @@ func TestQuerier_ValidVesselExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidVesselExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -162,7 +162,7 @@ func TestQuerier_GetValidVessel(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidVessel(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -177,7 +177,7 @@ func TestQuerier_SearchForValidVessels(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.SearchForValidVessels(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -192,7 +192,7 @@ func TestQuerier_GetValidVesselsWithIDs(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidVesselsWithIDs(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -207,7 +207,7 @@ func TestQuerier_CreateValidVessel(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateValidVessel(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlanningManager_ListMealPlans(T *testing.T) {
@@ -35,7 +36,7 @@ func TestMealPlanningManager_ListMealPlans(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ListMealPlans(ctx, exampleOwnerID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealPlansForAccountCalls(), 1)
@@ -64,7 +65,7 @@ func TestMealPlanningManager_CreateMealPlan(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMealPlan(ctx, ownerID, creatorID, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateMealPlanCalls(), 1)
@@ -92,7 +93,7 @@ func TestMealPlanningManager_CreateMealPlan(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMealPlan(ctx, ownerID, creatorID, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateMealPlanCalls(), 1)
@@ -123,7 +124,7 @@ func TestMealPlanningManager_ReadMealPlan(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ReadMealPlan(ctx, exampleMealPlanID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealPlanCalls(), 1)
@@ -156,7 +157,7 @@ func TestMealPlanningManager_UpdateMealPlan(T *testing.T) {
 		}
 		attachRepositoryToManager(mpm, db)
 
-		assert.NoError(t, mpm.UpdateMealPlan(ctx, exampleMealPlan.ID, ownerID, exampleInput))
+		require.NoError(t, mpm.UpdateMealPlan(ctx, exampleMealPlan.ID, ownerID, exampleInput))
 
 		assert.Len(t, db.GetMealPlanCalls(), 1)
 		assert.Len(t, db.UpdateMealPlanCalls(), 1)
@@ -185,7 +186,7 @@ func TestMealPlanningManager_ArchiveMealPlan(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		err := mpm.ArchiveMealPlan(ctx, expected.ID, expected.CreatedByUser)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.ArchiveMealPlanCalls(), 1)
 	})
@@ -214,7 +215,7 @@ func TestMealPlanningManager_FinalizeMealPlan(T *testing.T) {
 
 		finalized, err := mpm.FinalizeMealPlan(ctx, expected.ID, expected.CreatedByUser)
 		assert.True(t, finalized)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.AttemptToFinalizeMealPlanCalls(), 1)
 	})
@@ -241,7 +242,7 @@ func TestMealPlanningManager_FinalizeMealPlan(T *testing.T) {
 
 		finalized, err := mpm.FinalizeMealPlan(ctx, expected.ID, expected.CreatedByUser)
 		assert.True(t, finalized)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.AttemptToFinalizeMealPlanCalls(), 1)
 		assert.Equal(t, []string{expected.ID}, starter.calls)

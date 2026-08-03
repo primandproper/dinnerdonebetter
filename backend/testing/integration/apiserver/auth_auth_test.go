@@ -115,7 +115,7 @@ func TestAuth_LoginForToken_DesiredAccount(T *testing.T) {
 				DesiredAccountId: nonexistentID,
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, tokenRes)
 	})
 }
@@ -148,7 +148,7 @@ func TestAuth_LoginForToken(T *testing.T) {
 		tokenRes, err := unauthedClient.LoginForToken(ctx, &authsvc.LoginForTokenRequest{
 			Input: loginInput,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, tokenRes)
 		assert.NotEmpty(t, tokenRes.Result.AccessToken)
 	})
@@ -168,7 +168,7 @@ func TestAuth_LoginForToken(T *testing.T) {
 		tokenRes, err := unauthedClient.LoginForToken(ctx, &authsvc.LoginForTokenRequest{
 			Input: loginInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, tokenRes)
 	})
 }
@@ -191,7 +191,7 @@ func TestAuth_AdminLoginForToken(T *testing.T) {
 		tokenRes, err := unauthedClient.AdminLoginForToken(ctx, &authsvc.AdminLoginForTokenRequest{
 			Input: loginInput,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, tokenRes)
 		assert.NotEmpty(t, tokenRes.Result.AccessToken)
 	})
@@ -213,7 +213,7 @@ func TestAuth_AdminLoginForToken(T *testing.T) {
 		tokenRes, err := unauthedClient.AdminLoginForToken(ctx, &authsvc.AdminLoginForTokenRequest{
 			Input: loginInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, tokenRes)
 	})
 
@@ -232,7 +232,7 @@ func TestAuth_AdminLoginForToken(T *testing.T) {
 		tokenRes, err := unauthedClient.AdminLoginForToken(ctx, &authsvc.AdminLoginForTokenRequest{
 			Input: loginInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, tokenRes)
 	})
 
@@ -251,7 +251,7 @@ func TestAuth_AdminLoginForToken(T *testing.T) {
 		tokenRes, err := unauthedClient.AdminLoginForToken(ctx, &authsvc.AdminLoginForTokenRequest{
 			Input: loginInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, tokenRes)
 	})
 
@@ -270,7 +270,7 @@ func TestAuth_AdminLoginForToken(T *testing.T) {
 		tokenRes, err := unauthedClient.AdminLoginForToken(ctx, &authsvc.AdminLoginForTokenRequest{
 			Input: loginInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, tokenRes)
 	})
 }
@@ -357,7 +357,7 @@ func TestAuth_GetAuthStatus(T *testing.T) {
 		unauthedClient := buildUnauthenticatedGRPCClientForTest(t)
 
 		res, err := unauthedClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 
@@ -368,7 +368,7 @@ func TestAuth_GetAuthStatus(T *testing.T) {
 		user, testClient := createUserAndClientForTest(T)
 
 		res, err := testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.Equal(t, user.ID, res.UserId)
 	})
@@ -384,7 +384,7 @@ func TestAuth_GetSelf(T *testing.T) {
 		user, testClient := createUserAndClientForTest(T)
 
 		res, err := testClient.GetSelf(ctx, &authsvc.GetSelfRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.NotNil(t, res.Result)
 		assert.Equal(t, user.ID, res.Result.Id)
@@ -398,7 +398,7 @@ func TestAuth_GetSelf(T *testing.T) {
 		unauthedClient := buildUnauthenticatedGRPCClientForTest(t)
 
 		res, err := unauthedClient.GetSelf(ctx, &authsvc.GetSelfRequest{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 }
@@ -428,7 +428,7 @@ func TestAuth_ChangingPassword(T *testing.T) {
 				TotpToken: generateTOTPCodeForUserForTest(t, user),
 			},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, tokenRes)
 		assert.NotEmpty(t, tokenRes.Result.AccessToken)
 
@@ -478,7 +478,7 @@ func TestAuth_ChangingTOTPSecret(T *testing.T) {
 			TotpToken: generateTOTPCodeForUserForTest(t, user),
 			UserId:    user.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 10, []*ExpectedAuditEntry{
 			{EventType: "updated", ResourceType: "users", RelevantID: user.ID},
@@ -691,7 +691,7 @@ func TestAuth_Passkey(T *testing.T) {
 		res, err := unauthedClient.BeginPasskeyAuthentication(ctx, &authsvc.BeginPasskeyAuthenticationRequest{
 			Username: user.Username,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 
@@ -704,7 +704,7 @@ func TestAuth_Passkey(T *testing.T) {
 		res, err := unauthedClient.BeginPasskeyAuthentication(ctx, &authsvc.BeginPasskeyAuthenticationRequest{
 			Username: "nonexistent_user_12345",
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 
@@ -715,7 +715,7 @@ func TestAuth_Passkey(T *testing.T) {
 		unauthedClient := buildUnauthenticatedGRPCClientForTest(t)
 
 		res, err := unauthedClient.BeginPasskeyRegistration(ctx, &authsvc.BeginPasskeyRegistrationRequest{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -748,7 +748,7 @@ func TestAuth_Passkey(T *testing.T) {
 			Challenge:         beginRes.Challenge,
 			AssertionResponse: nil,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
@@ -763,7 +763,7 @@ func TestAuth_Passkey(T *testing.T) {
 			Challenge:         "",
 			AssertionResponse: []byte("some-bytes"),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
@@ -785,7 +785,7 @@ func TestAuth_Passkey(T *testing.T) {
 			Challenge:         beginRes.Challenge,
 			AssertionResponse: invalidAssertion,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		// Invalid/malformed assertion fails validation (signature check, etc.)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
@@ -801,7 +801,7 @@ func TestAuth_Passkey(T *testing.T) {
 			Challenge:           "some-challenge",
 			AttestationResponse: []byte("some-bytes"),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -820,7 +820,7 @@ func TestAuth_Passkey(T *testing.T) {
 			Challenge:           beginRes.Challenge,
 			AttestationResponse: nil,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
@@ -835,7 +835,7 @@ func TestAuth_Passkey(T *testing.T) {
 			Challenge:           "",
 			AttestationResponse: []byte("some-bytes"),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
@@ -857,7 +857,7 @@ func TestAuth_Passkey(T *testing.T) {
 			Challenge:           beginRes.Challenge,
 			AttestationResponse: invalidAttestation,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
@@ -869,7 +869,7 @@ func TestAuth_Passkey(T *testing.T) {
 		unauthedClient := buildUnauthenticatedGRPCClientForTest(t)
 
 		res, err := unauthedClient.ListPasskeys(ctx, &authsvc.ListPasskeysRequest{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -911,7 +911,7 @@ func TestAuth_Passkey(T *testing.T) {
 		res, err := unauthedClient.ArchivePasskey(ctx, &authsvc.ArchivePasskeyRequest{
 			CredentialId: "some-cred-id",
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -925,7 +925,7 @@ func TestAuth_Passkey(T *testing.T) {
 		res, err := testClient.ArchivePasskey(ctx, &authsvc.ArchivePasskeyRequest{
 			CredentialId: "",
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})

@@ -38,7 +38,7 @@ func createUserNotificationForTest(t *testing.T, ctx context.Context, userID str
 	userNotification, err := dbc.GetUserNotification(ctx, created.BelongsToUser, created.ID)
 	exampleUserNotification.CreatedAt = userNotification.CreatedAt
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, userNotification, exampleUserNotification)
 
 	return created
@@ -64,7 +64,7 @@ func TestQuerier_Integration_UserNotifications(t *testing.T) {
 	updatedUserNotification := fakes.BuildFakeUserNotification()
 	updatedUserNotification.ID = createdUserNotifications[0].ID
 	updatedUserNotification.BelongsToUser = user.ID
-	assert.NoError(t, dbc.UpdateUserNotification(ctx, updatedUserNotification))
+	require.NoError(t, dbc.UpdateUserNotification(ctx, updatedUserNotification))
 	createdUserNotifications[0] = updatedUserNotification
 
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
@@ -81,15 +81,15 @@ func TestQuerier_Integration_UserNotifications(t *testing.T) {
 
 	// fetch as list
 	userNotifications, err := dbc.GetUserNotifications(ctx, user.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, userNotifications.Data)
-	assert.Equal(t, len(createdUserNotifications), len(userNotifications.Data))
+	assert.Len(t, userNotifications.Data, len(createdUserNotifications))
 
 	// delete
 	for _, userNotification := range createdUserNotifications {
 		var exists bool
 		exists, err = dbc.UserNotificationExists(ctx, user.ID, userNotification.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, exists)
 	}
 }
@@ -105,7 +105,7 @@ func TestQuerier_UserNotificationExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.UserNotificationExists(ctx, fakes.BuildFakeID(), "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -117,7 +117,7 @@ func TestQuerier_UserNotificationExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.UserNotificationExists(ctx, "", fakes.BuildFakeID())
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -132,7 +132,7 @@ func TestQuerier_GetUserNotification(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUserNotification(ctx, "", fakes.BuildFakeID())
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -143,7 +143,7 @@ func TestQuerier_GetUserNotification(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUserNotification(ctx, fakes.BuildFakeID(), "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -158,7 +158,7 @@ func TestQuerier_CreateUserNotification(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateUserNotification(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -76,7 +77,7 @@ func TestServiceImpl_GetUserNotification(t *testing.T) {
 
 		response, err := service.GetUserNotification(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotNil(t, response.Result)
@@ -97,7 +98,7 @@ func TestServiceImpl_GetUserNotification(t *testing.T) {
 
 		response, err := service.GetUserNotification(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -125,7 +126,7 @@ func TestServiceImpl_GetUserNotification(t *testing.T) {
 
 		response, err := service.GetUserNotification(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -166,7 +167,7 @@ func TestServiceImpl_GetUserNotifications(t *testing.T) {
 
 		response, err := service.GetUserNotifications(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Len(t, response.Results, len(fakeNotifications.Data))
@@ -189,7 +190,7 @@ func TestServiceImpl_GetUserNotifications(t *testing.T) {
 
 		response, err := service.GetUserNotifications(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -217,7 +218,7 @@ func TestServiceImpl_GetUserNotifications(t *testing.T) {
 
 		response, err := service.GetUserNotifications(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -271,7 +272,7 @@ func TestServiceImpl_UpdateUserNotification(t *testing.T) {
 
 		response, err := service.UpdateUserNotification(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotNil(t, response.Updated)
@@ -297,7 +298,7 @@ func TestServiceImpl_UpdateUserNotification(t *testing.T) {
 
 		response, err := service.UpdateUserNotification(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -329,7 +330,7 @@ func TestServiceImpl_UpdateUserNotification(t *testing.T) {
 
 		response, err := service.UpdateUserNotification(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -370,7 +371,7 @@ func TestServiceImpl_UpdateUserNotification(t *testing.T) {
 
 		response, err := service.UpdateUserNotification(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 

@@ -47,7 +47,7 @@ func createValidIngredientGroupForTest(t *testing.T, ctx context.Context, exampl
 		exampleValidIngredientGroup.Members[i].ValidIngredient = validIngredientGroup.Members[i].ValidIngredient
 	}
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validIngredientGroup, exampleValidIngredientGroup)
 
 	return created
@@ -74,32 +74,32 @@ func TestQuerier_Integration_ValidIngredientGroups(t *testing.T) {
 	// update
 	updatedValidIngredientGroup := fakes.BuildFakeValidIngredientGroup()
 	updatedValidIngredientGroup.ID = createdValidIngredientGroups[0].ID
-	assert.NoError(t, dbc.UpdateValidIngredientGroup(ctx, updatedValidIngredientGroup))
+	require.NoError(t, dbc.UpdateValidIngredientGroup(ctx, updatedValidIngredientGroup))
 
 	// fetch as list
 	validIngredientGroups, err := dbc.GetValidIngredientGroups(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, validIngredientGroups.Data)
-	assert.Equal(t, len(createdValidIngredientGroups), len(validIngredientGroups.Data))
+	assert.Len(t, validIngredientGroups.Data, len(createdValidIngredientGroups))
 
 	// fetch via name search
 	byName, err := dbc.SearchForValidIngredientGroups(ctx, updatedValidIngredientGroup.Name, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validIngredientGroups, byName)
 
 	// delete
 	for _, validIngredientGroup := range createdValidIngredientGroups {
-		assert.NoError(t, dbc.ArchiveValidIngredientGroup(ctx, validIngredientGroup.ID))
+		require.NoError(t, dbc.ArchiveValidIngredientGroup(ctx, validIngredientGroup.ID))
 
 		var exists bool
 		exists, err = dbc.ValidIngredientGroupExists(ctx, validIngredientGroup.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ValidIngredientGroup
 		y, err = dbc.GetValidIngredientGroup(ctx, validIngredientGroup.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -115,7 +115,7 @@ func TestQuerier_ValidIngredientGroupExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidIngredientGroupExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -130,7 +130,7 @@ func TestQuerier_GetValidIngredientGroup(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidIngredientGroup(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -146,7 +146,7 @@ func TestQuerier_SearchForValidIngredientGroups(T *testing.T) {
 		filter := filtering.DefaultQueryFilter()
 
 		actual, err := c.SearchForValidIngredientGroups(ctx, "", filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -161,7 +161,7 @@ func TestQuerier_CreateValidIngredientGroup(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateValidIngredientGroup(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

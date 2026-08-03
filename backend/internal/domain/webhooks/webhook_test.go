@@ -32,7 +32,7 @@ func TestWebhookCreationInput_Validate(T *testing.T) {
 
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
-		assert.Nil(t, buildValidWebhookCreationInput().ValidateWithContext(t.Context()))
+		assert.NoError(t, buildValidWebhookCreationInput().ValidateWithContext(t.Context()))
 	})
 
 	T.Run("bad name", func(t *testing.T) {

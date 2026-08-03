@@ -84,7 +84,7 @@ func TestValidVessels_Creating(T *testing.T) {
 		created, err := c.CreateValidVessel(ctx, &mealplanningsvc.CreateValidVesselRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -100,7 +100,7 @@ func TestValidVessels_Creating(T *testing.T) {
 		created, err := adminClient.CreateValidVessel(ctx, &mealplanningsvc.CreateValidVesselRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -116,7 +116,7 @@ func TestValidVessels_Creating(T *testing.T) {
 		created, err := testClient.CreateValidVessel(ctx, &mealplanningsvc.CreateValidVesselRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -133,7 +133,7 @@ func TestValidVessels_Reading(T *testing.T) {
 		created := createValidVesselForTest(t)
 
 		retrieved, err := testClient.GetValidVessel(ctx, &mealplanningsvc.GetValidVesselRequest{ValidVesselId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		converted := grpcconverters.ConvertGRPCValidVesselToValidVessel(retrieved.Result)
 
@@ -178,7 +178,7 @@ func TestValidVessels_Updating(T *testing.T) {
 			ValidVesselId: created.ID,
 			Input:         grpcconverters.ConvertValidVesselUpdateRequestInputToGRPCValidVesselUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		updated := grpcconverters.ConvertGRPCValidVesselToValidVessel(response.Result)
 		// Ensure UpdatedAt was set
@@ -228,7 +228,7 @@ func TestValidVessels_Updating(T *testing.T) {
 				Name: new("doesn't matter"),
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -243,7 +243,7 @@ func TestValidVessels_Archiving(T *testing.T) {
 		created := createValidVesselForTest(t)
 
 		_, err := adminClient.ArchiveValidVessel(ctx, &mealplanningsvc.ArchiveValidVesselRequest{ValidVesselId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetValidVessel(ctx, &mealplanningsvc.GetValidVesselRequest{ValidVesselId: created.ID})
 		assert.Nil(t, x)
@@ -295,7 +295,7 @@ func TestValidVessels_GetRandom(T *testing.T) {
 		createValidVesselForTest(t)
 
 		response, err := testClient.GetRandomValidVessel(ctx, &mealplanningsvc.GetRandomValidVesselRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 	})
 
@@ -306,7 +306,7 @@ func TestValidVessels_GetRandom(T *testing.T) {
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
 		response, err := c.GetRandomValidVessel(ctx, &mealplanningsvc.GetRandomValidVesselRequest{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -328,7 +328,7 @@ func TestValidVessels_Listing(T *testing.T) {
 		retrieved, err := testClient.GetValidVessels(ctx, &mealplanningsvc.GetValidVesselsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdValidVessels))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdValidVessels))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

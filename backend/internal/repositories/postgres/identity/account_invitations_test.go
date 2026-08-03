@@ -32,7 +32,7 @@ func createAccountInvitationForTest(t *testing.T, ctx context.Context, exampleAc
 	dbInput := converters.ConvertAccountInvitationToAccountInvitationDatabaseCreationInput(exampleAccountInvitation)
 
 	created, err := dbc.CreateAccountInvitation(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 	exampleAccountInvitation.CreatedAt = created.CreatedAt
 	exampleAccountInvitation.StatusNote = created.StatusNote
@@ -42,7 +42,7 @@ func createAccountInvitationForTest(t *testing.T, ctx context.Context, exampleAc
 	assert.Equal(t, exampleAccountInvitation, created)
 
 	accountInvitation, err := dbc.GetAccountInvitationByAccountAndID(ctx, created.DestinationAccount.ID, created.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, accountInvitation)
 	exampleAccountInvitation.CreatedAt = accountInvitation.CreatedAt
 	exampleAccountInvitation.ExpiresAt = accountInvitation.ExpiresAt
@@ -96,19 +96,19 @@ func TestQuerier_Integration_AccountInvitations(t *testing.T) {
 	})
 
 	outboundInvites, err := dbc.GetPendingAccountInvitationsFromUser(ctx, fromUser.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, outboundInvites.Data, 3)
 
 	inboundInvites, err := dbc.GetPendingAccountInvitationsForUser(ctx, toUserC.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, inboundInvites.Data, 1)
 
 	exists, err := dbc.AccountInvitationExists(ctx, toBeCancelled.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, exists)
 
 	invite, err := dbc.GetAccountInvitationByEmailAndToken(ctx, toUserC.EmailAddress, toBeAccepted.Token)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, invite)
 
 	// create invite for nonexistent user
@@ -127,7 +127,7 @@ func TestQuerier_Integration_AccountInvitations(t *testing.T) {
 	dbInput.DestinationAccountID = account.ID
 
 	createdUser, err := dbc.CreateUser(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, createdUser)
 
 	assert.NoError(t, dbc.CancelAccountInvitation(ctx, "", toBeCancelled.ID, "testing"))
@@ -145,7 +145,7 @@ func TestQuerier_AccountInvitationExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.AccountInvitationExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -162,7 +162,7 @@ func TestQuerier_GetAccountInvitationByTokenAndID(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetAccountInvitationByTokenAndID(ctx, "", exampleAccountID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -175,7 +175,7 @@ func TestQuerier_GetAccountInvitationByTokenAndID(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetAccountInvitationByTokenAndID(ctx, exampleAccountID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -192,7 +192,7 @@ func TestQuerier_GetAccountInvitationByAccountAndID(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetAccountInvitationByAccountAndID(ctx, "", exampleAccountID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -205,7 +205,7 @@ func TestQuerier_GetAccountInvitationByAccountAndID(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetAccountInvitationByAccountAndID(ctx, exampleAccountID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -222,7 +222,7 @@ func TestQuerier_GetAccountInvitationByEmailAndToken(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetAccountInvitationByEmailAndToken(ctx, "", exampleAccountID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -235,7 +235,7 @@ func TestQuerier_GetAccountInvitationByEmailAndToken(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetAccountInvitationByEmailAndToken(ctx, exampleAccountID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -250,7 +250,7 @@ func TestQuerier_CreateAccountInvitation(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateAccountInvitation(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

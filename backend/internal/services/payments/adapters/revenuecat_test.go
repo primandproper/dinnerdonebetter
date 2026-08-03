@@ -79,7 +79,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 		body := `{"type": "INITIAL_PURCHASE", "app_user_id": "account_example"}`
 
 		actual, err := processor.HandleWebhook(buildRevenueCatRequest(body, "Bearer wrong_token"))
-		assert.ErrorIs(t, err, ErrInvalidWebhookSignature)
+		require.ErrorIs(t, err, ErrInvalidWebhookSignature)
 		assert.Nil(t, actual)
 	})
 
@@ -91,7 +91,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 		body := `{"type": "INITIAL_PURCHASE", "app_user_id": "account_example"}`
 
 		actual, err := processor.HandleWebhook(buildRevenueCatRequest(body, ""))
-		assert.ErrorIs(t, err, ErrInvalidWebhookSignature)
+		require.ErrorIs(t, err, ErrInvalidWebhookSignature)
 		assert.Nil(t, actual)
 	})
 
@@ -121,7 +121,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 		processor := buildRevenueCatProcessorForTest(t)
 
 		actual, err := processor.HandleWebhook(buildRevenueCatRequest(`{"type":`, exampleRevenueCatAuthHeader))
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

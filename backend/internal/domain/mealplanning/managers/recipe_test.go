@@ -16,6 +16,7 @@ import (
 	mocksearch "github.com/primandproper/platform-go/v9/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecipeManager_ListRecipes(T *testing.T) {
@@ -40,7 +41,7 @@ func TestRecipeManager_ListRecipes(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ListRecipes(ctx, status, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRecipesCalls(), 1)
@@ -79,7 +80,7 @@ func TestRecipeManager_CreateRecipe(T *testing.T) {
 		attachRepositoryAndAnalyzerToManager(rm, db, analyzer)
 
 		actual, err := rm.CreateRecipe(ctx, fakeCreatorID, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateRecipeCalls(), 1)
@@ -106,7 +107,7 @@ func TestRecipeManager_CreateRecipe(T *testing.T) {
 		attachRepositoryAndAnalyzerToManager(rm, db, analyzer)
 
 		actual, err := rm.CreateRecipe(ctx, fakeCreatorID, fakeInput)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 
 		assert.Len(t, analyzer.ValidateRecipeCreationRequestInputIsDAGCalls(), 1)
@@ -136,7 +137,7 @@ func TestRecipeManager_ReadRecipe(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ReadRecipe(ctx, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRecipeCalls(), 1)
@@ -165,7 +166,7 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.SearchRecipes(ctx, exampleQuery, false, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.SearchForRecipesCalls(), 1)
@@ -190,7 +191,7 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.SearchRecipes(ctx, exampleQuery, true, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.SearchForRecipesCalls(), 1)
@@ -234,7 +235,7 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		attachRecipeSearchIndexToManager(rm, index)
 
 		actual, err := rm.SearchRecipes(ctx, exampleQuery, true, filter)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, []*types.Recipe{expected}, actual.Data)
 		assert.Equal(t, "cursor-for-the-next-page", actual.Cursor)
 
@@ -275,7 +276,7 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		attachRecipeSearchIndexToManager(rm, index)
 
 		actual, err := rm.SearchRecipes(ctx, exampleQuery, true, filter)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.SearchForRecipesCalls(), 1)
@@ -305,7 +306,7 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 
 		actual, err := rm.SearchRecipes(ctx, exampleQuery, true, filter)
 		assert.Nil(t, actual)
-		assert.ErrorIs(t, err, textsearch.ErrInvalidCursor)
+		require.ErrorIs(t, err, textsearch.ErrInvalidCursor)
 
 		// Restarting the database from the first page would answer a question the
 		// caller did not ask, so the refusal reaches them instead.
@@ -335,7 +336,7 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		attachRecipeSearchIndexToManager(rm, index)
 
 		actual, err := rm.SearchRecipes(ctx, exampleQuery, true, filter)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, actual.Data)
 		assert.Empty(t, actual.Cursor)
 
@@ -367,7 +368,7 @@ func TestRecipeManager_UpdateRecipe(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		assert.NoError(t, rm.UpdateRecipe(ctx, exampleRecipe.ID, exampleInput))
+		require.NoError(t, rm.UpdateRecipe(ctx, exampleRecipe.ID, exampleInput))
 
 		assert.Len(t, db.GetRecipeCalls(), 1)
 		assert.Len(t, db.UpdateRecipeCalls(), 1)
@@ -396,7 +397,7 @@ func TestRecipeManager_ArchiveRecipe(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		assert.NoError(t, rm.ArchiveRecipe(ctx, expected.ID, exampleOwnerID))
+		require.NoError(t, rm.ArchiveRecipe(ctx, expected.ID, exampleOwnerID))
 
 		assert.Len(t, db.ArchiveRecipeCalls(), 1)
 	})
@@ -433,9 +434,9 @@ func TestRecipeManager_RecipeEstimatedPrepSteps(T *testing.T) {
 		attachRepositoryAndAnalyzerToManager(rm, db, analyzer)
 
 		results, err := rm.RecipeEstimatedPrepSteps(ctx, exampleRecipe.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
-		assert.Equal(t, len(results), len(expectedResults))
+		assert.Len(t, results, len(expectedResults))
 
 		assert.Len(t, db.GetRecipeCalls(), 1)
 		assert.Len(t, analyzer.GenerateMealPlanTasksForRecipeCalls(), 1)
@@ -465,7 +466,7 @@ func TestRecipeManager_MealMermaid(T *testing.T) {
 		attachRepositoryAndAnalyzerToManager(rm, db, analyzer)
 
 		result, err := rm.MealMermaid(ctx, exampleMeal)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expectedResult, result)
 
 		assert.Len(t, analyzer.RenderMermaidDiagramForMealCalls(), 1)
@@ -501,8 +502,8 @@ func TestRecipeManager_RecipeMermaid(T *testing.T) {
 		attachRepositoryAndAnalyzerToManager(rm, db, analyzer)
 
 		result, err := rm.RecipeMermaid(ctx, exampleRecipe.ID)
-		assert.NoError(t, err)
-		assert.Equal(t, result, expectedResult)
+		require.NoError(t, err)
+		assert.Equal(t, expectedResult, result)
 
 		assert.Len(t, db.GetRecipeCalls(), 1)
 		assert.Len(t, analyzer.RenderMermaidDiagramForRecipeCalls(), 1)
@@ -535,7 +536,7 @@ func TestRecipeManager_CloneRecipe(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.CloneRecipe(ctx, expected.ID, exampleOwnerID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, cloned, actual)
 
 		assert.Len(t, db.GetRecipeCalls(), 1)

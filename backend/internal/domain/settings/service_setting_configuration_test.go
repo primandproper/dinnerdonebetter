@@ -5,6 +5,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestServiceSettingConfiguration_Update(T *testing.T) {
@@ -16,7 +17,7 @@ func TestServiceSettingConfiguration_Update(T *testing.T) {
 		x := &ServiceSettingConfiguration{}
 		input := &ServiceSettingConfigurationUpdateRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 
 		x.Update(input)
 	})

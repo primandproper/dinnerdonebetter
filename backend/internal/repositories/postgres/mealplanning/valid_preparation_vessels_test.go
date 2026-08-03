@@ -31,7 +31,7 @@ func createValidPreparationVesselForTest(t *testing.T, ctx context.Context, exam
 	dbInput := converters.ConvertValidPreparationVesselToValidPreparationVesselDatabaseCreationInput(exampleValidPreparationVessel)
 
 	created, err := dbc.CreateValidPreparationVessel(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 	exampleValidPreparationVessel.CreatedAt = created.CreatedAt
 	assert.Equal(t, exampleValidPreparationVessel, created)
@@ -41,7 +41,7 @@ func createValidPreparationVesselForTest(t *testing.T, ctx context.Context, exam
 	exampleValidPreparationVessel.Preparation = validPreparationVessel.Preparation
 	exampleValidPreparationVessel.Vessel = validPreparationVessel.Vessel
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validPreparationVessel, exampleValidPreparationVessel)
 
 	return created
@@ -66,7 +66,7 @@ func TestQuerier_Integration_ValidPreparationVessels(t *testing.T) {
 	updatedValidPreparationVessel.ID = createdValidPreparationVessels[0].ID
 	updatedValidPreparationVessel.Preparation = createdValidPreparationVessels[0].Preparation
 	updatedValidPreparationVessel.Vessel = createdValidPreparationVessels[0].Vessel
-	assert.NoError(t, dbc.UpdateValidPreparationVessel(ctx, updatedValidPreparationVessel))
+	require.NoError(t, dbc.UpdateValidPreparationVessel(ctx, updatedValidPreparationVessel))
 
 	// create more (each must have unique prep+vessel per active row)
 	for range exampleQuantity {
@@ -79,31 +79,31 @@ func TestQuerier_Integration_ValidPreparationVessels(t *testing.T) {
 
 	// fetch as list
 	validPreparationVessels, err := dbc.GetValidPreparationVessels(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, validPreparationVessels.Data)
-	assert.Equal(t, len(createdValidPreparationVessels), len(validPreparationVessels.Data))
+	assert.Len(t, validPreparationVessels.Data, len(createdValidPreparationVessels))
 
 	forPreparation, err := dbc.GetValidPreparationVesselsForPreparation(ctx, createdValidPreparationVessels[0].Preparation.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, forPreparation.Data)
 
 	forVessel, err := dbc.GetValidPreparationVesselsForVessel(ctx, createdValidPreparationVessels[0].Vessel.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, forVessel.Data)
 
 	// delete
 	for _, validPreparationVessel := range createdValidPreparationVessels {
-		assert.NoError(t, dbc.ArchiveValidPreparationVessel(ctx, validPreparationVessel.ID))
+		require.NoError(t, dbc.ArchiveValidPreparationVessel(ctx, validPreparationVessel.ID))
 
 		var exists bool
 		exists, err = dbc.ValidPreparationVesselExists(ctx, validPreparationVessel.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ValidPreparationVessel
 		y, err = dbc.GetValidPreparationVessel(ctx, validPreparationVessel.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -119,7 +119,7 @@ func TestQuerier_ValidPreparationVesselExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidPreparationVesselExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -134,7 +134,7 @@ func TestQuerier_GetValidPreparationVessel(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidPreparationVessel(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -149,7 +149,7 @@ func TestQuerier_CreateValidPreparationVessel(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateValidPreparationVessel(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -190,7 +190,7 @@ func TestQuerier_GetValidPreparationVesselsByIDs(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidPreparationVesselsByIDs(ctx, []string{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Empty(t, actual)
 	})
@@ -208,7 +208,7 @@ func TestQuerier_Integration_GetValidPreparationVesselsByIDs(t *testing.T) {
 	// Test fetching by IDs
 	ids := []string{created1.ID, created2.ID, created3.ID}
 	results, err := dbc.GetValidPreparationVesselsByIDs(ctx, ids)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, results, 3)
 	assert.NotNil(t, results[created1.ID])
 	assert.NotNil(t, results[created2.ID])
@@ -217,13 +217,13 @@ func TestQuerier_Integration_GetValidPreparationVesselsByIDs(t *testing.T) {
 	// Test with partial IDs (some exist, some don't)
 	partialIDs := []string{created1.ID, "nonexistent-id"}
 	partialResults, err := dbc.GetValidPreparationVesselsByIDs(ctx, partialIDs)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, partialResults, 1)
 	assert.NotNil(t, partialResults[created1.ID])
 
 	// Test with empty list
 	emptyResults, err := dbc.GetValidPreparationVesselsByIDs(ctx, []string{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Empty(t, emptyResults)
 
 	// Cleanup

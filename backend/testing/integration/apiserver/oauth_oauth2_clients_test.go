@@ -69,7 +69,7 @@ func TestOAuth2Clients_Creating(T *testing.T) {
 		created, err := c.CreateOAuth2Client(ctx, &oauthsvc.CreateOAuth2ClientRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -85,7 +85,7 @@ func TestOAuth2Clients_Creating(T *testing.T) {
 		created, err := adminClient.CreateOAuth2Client(ctx, &oauthsvc.CreateOAuth2ClientRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -101,7 +101,7 @@ func TestOAuth2Clients_Creating(T *testing.T) {
 		created, err := testClient.CreateOAuth2Client(ctx, &oauthsvc.CreateOAuth2ClientRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -118,7 +118,7 @@ func TestOAuth2Clients_Reading(T *testing.T) {
 		created := createOAuth2ClientForTest(t)
 
 		retrieved, err := testClient.GetOAuth2Client(ctx, &oauthsvc.GetOAuth2ClientRequest{Oauth2ClientId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		converted := grpcconverters.ConvertGRPCOAuth2ClientToOAuth2Client(retrieved.Result)
 
@@ -156,7 +156,7 @@ func TestOAuth2Clients_Archiving(T *testing.T) {
 		created := createOAuth2ClientForTest(t)
 
 		_, err := adminClient.ArchiveOAuth2Client(ctx, &oauthsvc.ArchiveOAuth2ClientRequest{Oauth2ClientId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetOAuth2Client(ctx, &oauthsvc.GetOAuth2ClientRequest{Oauth2ClientId: created.ID})
 		assert.Nil(t, x)
@@ -212,7 +212,7 @@ func TestOAuth2Clients_Listing(T *testing.T) {
 		retrieved, err := testClient.GetOAuth2Clients(ctx, &oauthsvc.GetOAuth2ClientsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdOAuth2Clients))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdOAuth2Clients))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

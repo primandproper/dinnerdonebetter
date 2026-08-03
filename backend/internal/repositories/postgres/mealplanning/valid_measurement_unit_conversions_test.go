@@ -63,29 +63,29 @@ func TestQuerier_Integration_ValidMeasurementUnitConversions(t *testing.T) {
 	updatedValidMeasurementUnitConversion.ID = createdValidMeasurementUnitConversions[0].ID
 	updatedValidMeasurementUnitConversion.From = *from
 	updatedValidMeasurementUnitConversion.To = *to
-	assert.NoError(t, dbc.UpdateValidMeasurementUnitConversion(ctx, updatedValidMeasurementUnitConversion))
+	require.NoError(t, dbc.UpdateValidMeasurementUnitConversion(ctx, updatedValidMeasurementUnitConversion))
 
 	toUnits, err := dbc.GetValidMeasurementUnitConversionsForUnit(ctx, updatedValidMeasurementUnitConversion.To.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, toUnits)
 
 	fromUnits, err := dbc.GetValidMeasurementUnitConversionsForUnit(ctx, updatedValidMeasurementUnitConversion.From.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, fromUnits)
 
 	// delete
 	for _, validMeasurementUnitConversion := range createdValidMeasurementUnitConversions {
-		assert.NoError(t, dbc.ArchiveValidMeasurementUnitConversion(ctx, validMeasurementUnitConversion.ID))
+		require.NoError(t, dbc.ArchiveValidMeasurementUnitConversion(ctx, validMeasurementUnitConversion.ID))
 
 		var exists bool
 		exists, err = dbc.ValidMeasurementUnitConversionExists(ctx, validMeasurementUnitConversion.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ValidMeasurementUnitConversion
 		y, err = dbc.GetValidMeasurementUnitConversion(ctx, validMeasurementUnitConversion.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -101,7 +101,7 @@ func TestQuerier_ValidMeasurementUnitConversionExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidMeasurementUnitConversionExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -116,7 +116,7 @@ func TestQuerier_GetValidMeasurementUnitConversion(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidMeasurementUnitConversion(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -131,7 +131,7 @@ func TestQuerier_CreateValidMeasurementUnitConversion(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateValidMeasurementUnitConversion(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

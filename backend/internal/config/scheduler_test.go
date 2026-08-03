@@ -182,7 +182,7 @@ func TestScheduledJobConfig_Job(T *testing.T) {
 
 		job, err := (&ScheduledJobConfig{Schedule: "0 3 * *"}).Job("example", noopRun)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Zero(t, job)
 	})
 }

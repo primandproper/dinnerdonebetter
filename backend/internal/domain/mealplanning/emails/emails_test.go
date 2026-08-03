@@ -9,6 +9,7 @@ import (
 	mealplanningfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuildMealPlanCreatedEmail(T *testing.T) {
@@ -22,7 +23,7 @@ func TestBuildMealPlanCreatedEmail(T *testing.T) {
 		mealPlan := mealplanningfakes.BuildFakeMealPlan()
 
 		actual, err := BuildMealPlanCreatedEmail(user, mealPlan, "https://example.com")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Contains(t, actual.HTMLContent, branding.LogoURL)
 	})

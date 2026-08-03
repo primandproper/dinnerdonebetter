@@ -14,7 +14,7 @@ import (
 
 func checkRecipeStepCompletionConditionSliceEquality(t *testing.T, stepIndex int, expected, actual []*mealplanning.RecipeStepCompletionCondition) {
 	t.Helper()
-	require.Equal(t, len(expected), len(actual), "expected recipe step %d completion conditions length", stepIndex)
+	require.Len(t, actual, len(expected), "expected recipe step %d completion conditions length", stepIndex)
 	for i := range expected {
 		checkRecipeStepCompletionConditionEquality(t, stepIndex, i, expected[i], actual[i])
 	}
@@ -33,7 +33,7 @@ func checkRecipeStepCompletionConditionEquality(t *testing.T, stepIndex, condInd
 
 func checkRecipeStepCompletionConditionIngredientSliceEquality(t *testing.T, stepIndex, condIndex int, expected, actual []*mealplanning.RecipeStepCompletionConditionIngredient) {
 	t.Helper()
-	require.Equal(t, len(expected), len(actual), "expected step %d condition %d ingredients length", stepIndex, condIndex)
+	require.Len(t, actual, len(expected), "expected step %d condition %d ingredients length", stepIndex, condIndex)
 	for i := range expected {
 		e, a := expected[i], actual[i]
 		assert.NotEmpty(t, a.ID, "expected step %d condition %d ingredient %d to have ID", stepIndex, condIndex, i)
@@ -120,9 +120,9 @@ func TestRecipeStepCompletionConditions_CompleteLifecycle(T *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, actual)
-		assert.True(
+		assert.LessOrEqual(
 			t,
-			1 <= len(listResponse.Results),
+			1, len(listResponse.Results),
 			"expected %d to be <= %d",
 			1,
 			len(listResponse.Results),
@@ -133,13 +133,13 @@ func TestRecipeStepCompletionConditions_CompleteLifecycle(T *testing.T) {
 			RecipeStepId:                    createdRecipeStep.ID,
 			RecipeStepCompletionConditionId: createdRecipeStepCompletionCondition.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipeStep(ctx, &mealplanninggrpc.ArchiveRecipeStepRequest{
 			RecipeId:     createdRecipe.ID,
 			RecipeStepId: createdRecipeStep.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
 		assert.NoError(t, err)

@@ -27,7 +27,7 @@ func createAccountInstrumentOwnershipForTest(t *testing.T, ctx context.Context, 
 	dbInput := converters.ConvertAccountInstrumentOwnershipToAccountInstrumentOwnershipDatabaseCreationInput(exampleAccountInstrumentOwnership)
 
 	created, err := dbc.CreateAccountInstrumentOwnership(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	exampleAccountInstrumentOwnership.CreatedAt = created.CreatedAt
@@ -40,7 +40,7 @@ func createAccountInstrumentOwnershipForTest(t *testing.T, ctx context.Context, 
 	assert.Equal(t, exampleAccountInstrumentOwnership.Instrument.ID, accountInstrumentOwnership.Instrument.ID)
 	exampleAccountInstrumentOwnership.Instrument = accountInstrumentOwnership.Instrument
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, accountInstrumentOwnership, exampleAccountInstrumentOwnership)
 
 	return created
@@ -68,7 +68,7 @@ func TestQuerier_Integration_AccountInstrumentOwnerships(t *testing.T) {
 	})
 
 	// update
-	assert.NoError(t, dbc.UpdateAccountInstrumentOwnership(ctx, createdAccountInstrumentOwnerships[0]))
+	require.NoError(t, dbc.UpdateAccountInstrumentOwnership(ctx, createdAccountInstrumentOwnerships[0]))
 
 	// create more
 	for range exampleQuantity {
@@ -81,9 +81,9 @@ func TestQuerier_Integration_AccountInstrumentOwnerships(t *testing.T) {
 
 	// fetch as list
 	accountInstrumentOwnerships, err := dbc.GetAccountInstrumentOwnerships(ctx, account.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, accountInstrumentOwnerships.Data)
-	assert.Equal(t, len(createdAccountInstrumentOwnerships), len(accountInstrumentOwnerships.Data))
+	assert.Len(t, accountInstrumentOwnerships.Data, len(createdAccountInstrumentOwnerships))
 
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: createdAccountInstrumentOwnerships[0].ID},
@@ -92,7 +92,7 @@ func TestQuerier_Integration_AccountInstrumentOwnerships(t *testing.T) {
 
 	// delete
 	for _, accountInstrumentOwnership := range createdAccountInstrumentOwnerships {
-		assert.NoError(t, dbc.ArchiveAccountInstrumentOwnership(ctx, accountInstrumentOwnership.ID, account.ID))
+		require.NoError(t, dbc.ArchiveAccountInstrumentOwnership(ctx, accountInstrumentOwnership.ID, account.ID))
 
 		pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
 			{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: accountInstrumentOwnership.ID},
@@ -100,13 +100,13 @@ func TestQuerier_Integration_AccountInstrumentOwnerships(t *testing.T) {
 
 		var exists bool
 		exists, err = dbc.AccountInstrumentOwnershipExists(ctx, accountInstrumentOwnership.ID, account.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.AccountInstrumentOwnership
 		y, err = dbc.GetAccountInstrumentOwnership(ctx, accountInstrumentOwnership.ID, account.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -123,7 +123,7 @@ func TestQuerier_AccountInstrumentOwnershipExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.AccountInstrumentOwnershipExists(ctx, "", exampleAccountID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -140,7 +140,7 @@ func TestQuerier_GetAccountInstrumentOwnership(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetAccountInstrumentOwnership(ctx, "", exampleAccountID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -155,7 +155,7 @@ func TestQuerier_CreateAccountInstrumentOwnership(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateAccountInstrumentOwnership(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

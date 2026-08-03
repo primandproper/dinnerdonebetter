@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlanningManager_ListMealPlanTasksByMealPlan(T *testing.T) {
@@ -35,7 +36,7 @@ func TestMealPlanningManager_ListMealPlanTasksByMealPlan(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ListMealPlanTasksByMealPlan(ctx, exampleMealPlanID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealPlanTasksForMealPlanCalls(), 1)
@@ -64,7 +65,7 @@ func TestMealPlanningManager_ReadMealPlanTask(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ReadMealPlanTask(ctx, exampleMealPlanID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealPlanTaskCalls(), 1)
@@ -91,7 +92,7 @@ func TestMealPlanningManager_CreateMealPlanTask(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMealPlanTask(ctx, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateMealPlanTaskCalls(), 1)
@@ -118,7 +119,7 @@ func TestMealPlanningManager_MealPlanTaskStatusChange(T *testing.T) {
 		}
 		attachRepositoryToManager(mpm, db)
 
-		assert.NoError(t, mpm.MealPlanTaskStatusChange(ctx, exampleInput))
+		require.NoError(t, mpm.MealPlanTaskStatusChange(ctx, exampleInput))
 
 		assert.Len(t, db.ChangeMealPlanTaskStatusCalls(), 1)
 	})

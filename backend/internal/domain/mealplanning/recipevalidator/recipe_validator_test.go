@@ -18,7 +18,7 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 
 		validator := NewRecipeValidator(nil, nil, nil, nil)
 		err := validator.ValidateAndPopulate(nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "input is nil")
 	})
 
@@ -81,7 +81,7 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		validator := NewRecipeValidator(vipMap, vimuMap, vpiMap, vpvMap)
 		err := validator.ValidateAndPopulate(input)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Verify derived IDs are populated
 		require.Len(t, input.Steps, 1)
@@ -125,7 +125,7 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		validator := NewRecipeValidator(nil, nil, nil, nil)
 		err := validator.ValidateAndPopulate(input)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "step 0 ingredient 0")
 		assert.Contains(t, err.Error(), "ValidIngredientPreparation")
 		assert.Contains(t, err.Error(), "not found")
@@ -163,7 +163,7 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		validator := NewRecipeValidator(vipMap, nil, nil, nil)
 		err := validator.ValidateAndPopulate(input)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "step 0 ingredient 0")
 		assert.Contains(t, err.Error(), "ValidIngredientPreparation")
 		assert.Contains(t, err.Error(), "is for preparation")
@@ -206,7 +206,7 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		validator := NewRecipeValidator(vipMap, vimuMap, nil, nil)
 		err := validator.ValidateAndPopulate(input)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "step 0 ingredient 0")
 		assert.Contains(t, err.Error(), "ValidIngredientMeasurementUnit")
 		assert.Contains(t, err.Error(), "is for ingredient")
@@ -237,7 +237,7 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		validator := NewRecipeValidator(nil, nil, nil, nil)
 		err := validator.ValidateAndPopulate(input)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "step 0 instrument 0")
 		assert.Contains(t, err.Error(), "ValidPreparationInstrument")
 		assert.Contains(t, err.Error(), "not found")
@@ -274,7 +274,7 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		validator := NewRecipeValidator(nil, nil, vpiMap, nil)
 		err := validator.ValidateAndPopulate(input)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "step 0 instrument 0")
 		assert.Contains(t, err.Error(), "ValidPreparationInstrument")
 		assert.Contains(t, err.Error(), "is for preparation")
@@ -305,7 +305,7 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		validator := NewRecipeValidator(nil, nil, nil, nil)
 		err := validator.ValidateAndPopulate(input)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "step 0 vessel 0")
 		assert.Contains(t, err.Error(), "ValidPreparationVessel")
 		assert.Contains(t, err.Error(), "not found")
@@ -342,7 +342,7 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		validator := NewRecipeValidator(nil, nil, nil, vpvMap)
 		err := validator.ValidateAndPopulate(input)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "step 0 vessel 0")
 		assert.Contains(t, err.Error(), "ValidPreparationVessel")
 		assert.Contains(t, err.Error(), "is for preparation")

@@ -35,13 +35,13 @@ func createMealPlanOptionForTest(t *testing.T, ctx context.Context, mealPlanID s
 	dbInput := converters.ConvertMealPlanOptionToMealPlanOptionDatabaseCreationInput(exampleMealPlanOption)
 
 	created, err := dbc.CreateMealPlanOption(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	exampleMealPlanOption.CreatedAt = created.CreatedAt
 	require.Equal(t, exampleMealPlanOption.Meal.ID, created.Meal.ID)
 	exampleMealPlanOption.Meal = created.Meal
-	require.Equal(t, len(exampleMealPlanOption.Votes), len(created.Votes))
+	require.Len(t, created.Votes, len(exampleMealPlanOption.Votes))
 	exampleMealPlanOption.Votes = created.Votes
 	assert.Equal(t, exampleMealPlanOption, created)
 
@@ -51,7 +51,7 @@ func createMealPlanOptionForTest(t *testing.T, ctx context.Context, mealPlanID s
 	exampleMealPlanOption.CreatedAt = mealPlanOption.CreatedAt
 	require.Equal(t, exampleMealPlanOption.Meal.ID, mealPlanOption.Meal.ID)
 	exampleMealPlanOption.Meal = mealPlanOption.Meal
-	require.Equal(t, len(exampleMealPlanOption.Votes), len(mealPlanOption.Votes))
+	require.Len(t, mealPlanOption.Votes, len(exampleMealPlanOption.Votes))
 	exampleMealPlanOption.Votes = mealPlanOption.Votes
 	require.Equal(t, exampleMealPlanOption.CreatedAt, mealPlanOption.CreatedAt)
 	require.Equal(t, exampleMealPlanOption.LastUpdatedAt, mealPlanOption.LastUpdatedAt)
@@ -89,26 +89,26 @@ func TestQuerier_Integration_MealPlanOptions(t *testing.T) {
 
 	// fetch as list
 	mealPlanOptions, err := dbc.GetMealPlanOptions(ctx, mealPlan.ID, exampleMealPlanOption.BelongsToMealPlanEvent, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, mealPlanOptions)
-	assert.Equal(t, len(createdMealPlanOptions), len(mealPlanOptions.Data))
+	assert.Len(t, mealPlanOptions.Data, len(createdMealPlanOptions))
 
-	assert.NoError(t, dbc.UpdateMealPlanOption(ctx, createdMealPlanOptions[0]))
+	require.NoError(t, dbc.UpdateMealPlanOption(ctx, createdMealPlanOptions[0]))
 
 	byID, err := dbc.getMealPlanOptionByID(ctx, createdMealPlanOptions[0].ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, createdMealPlanOptions[0].ID, byID.ID)
 
 	_, err = dbc.FinalizeMealPlanOption(ctx, mealPlan.ID, mealPlan.Events[0].ID, createdMealPlanOptions[0].ID, account.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// delete
 	for _, mealPlanOption := range createdMealPlanOptions {
-		assert.NoError(t, dbc.ArchiveMealPlanOption(ctx, mealPlan.ID, exampleMealPlanOption.BelongsToMealPlanEvent, mealPlanOption.ID))
+		require.NoError(t, dbc.ArchiveMealPlanOption(ctx, mealPlan.ID, exampleMealPlanOption.BelongsToMealPlanEvent, mealPlanOption.ID))
 
 		var exists bool
 		exists, err = dbc.MealPlanOptionExists(ctx, mealPlan.ID, exampleMealPlanOption.BelongsToMealPlanEvent, mealPlanOption.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 	}
 }
@@ -158,7 +158,7 @@ func TestQuerier_MealPlanOptionExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealPlanOptionExists(ctx, "", "", exampleMealPlanOption.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -173,7 +173,7 @@ func TestQuerier_MealPlanOptionExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealPlanOptionExists(ctx, exampleMealPlanID, exampleMealPlanEventID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -190,7 +190,7 @@ func TestQuerier_GetMealPlanOption(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlanOption(ctx, "", "", exampleMealPlanOption.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -204,7 +204,7 @@ func TestQuerier_GetMealPlanOption(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlanOption(ctx, exampleMealPlanID, exampleMealPlanEventID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -219,7 +219,7 @@ func TestQuerier_getMealPlanOptionByID(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.getMealPlanOptionByID(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -236,7 +236,7 @@ func TestQuerier_GetMealPlanOptions(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlanOptions(ctx, "", "", filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -251,7 +251,7 @@ func TestQuerier_CreateMealPlanOption(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateMealPlanOption(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

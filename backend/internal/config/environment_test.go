@@ -102,7 +102,7 @@ func TestWriteFile(T *testing.T) {
 		content := []byte("test content")
 
 		err := writeFile(filePath, content)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Verify file was written
 		data, err := os.ReadFile(filePath)
@@ -177,7 +177,7 @@ func TestEnvironmentConfigSet_Render(T *testing.T) {
 		}
 
 		err := configSet.Render(tmpDir, true, false)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Verify files were created
 		expectedFiles := []string{
@@ -299,7 +299,7 @@ func TestEnvironmentConfigSet_Render(T *testing.T) {
 		}
 
 		err := configSet.Render(tmpDir, false, false)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Verify custom files were created
 		assert.FileExists(t, filepath.Join(tmpDir, "custom_api.json"))

@@ -66,7 +66,7 @@ func TestServiceSettingConfigurations_Creating(T *testing.T) {
 		created, err := c.CreateServiceSettingConfiguration(ctx, &settingssvc.CreateServiceSettingConfigurationRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -82,7 +82,7 @@ func TestServiceSettingConfigurations_Creating(T *testing.T) {
 		created, err := adminClient.CreateServiceSettingConfiguration(ctx, &settingssvc.CreateServiceSettingConfigurationRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -98,7 +98,7 @@ func TestServiceSettingConfigurations_Creating(T *testing.T) {
 		created, err := testClient.CreateServiceSettingConfiguration(ctx, &settingssvc.CreateServiceSettingConfigurationRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -155,7 +155,7 @@ func TestServiceSettingConfigurations_Archiving(T *testing.T) {
 		created := createServiceSettingConfigurationForTest(t, testClient)
 
 		_, err := adminClient.ArchiveServiceSettingConfiguration(ctx, &settingssvc.ArchiveServiceSettingConfigurationRequest{ServiceSettingConfigurationId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetServiceSettingConfigurationByName(ctx, &settingssvc.GetServiceSettingConfigurationByNameRequest{ServiceSettingConfigurationName: created.ServiceSetting.Name})
 		assert.Nil(t, x)
@@ -256,7 +256,7 @@ func TestServiceSettingConfigurations_Listing_ForUser(T *testing.T) {
 		retrieved, err := testClient.GetServiceSettingConfigurationsForUser(ctx, &settingssvc.GetServiceSettingConfigurationsForUserRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdServiceSettingConfigurations))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdServiceSettingConfigurations))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -287,7 +287,7 @@ func TestServiceSettingConfigurations_Listing_ForAccount(T *testing.T) {
 		retrieved, err := testClient.GetServiceSettingConfigurationsForAccount(ctx, &settingssvc.GetServiceSettingConfigurationsForAccountRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdServiceSettingConfigurations))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdServiceSettingConfigurations))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

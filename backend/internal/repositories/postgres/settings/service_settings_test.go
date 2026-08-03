@@ -38,7 +38,7 @@ func createServiceSettingForTest(t *testing.T, ctx context.Context, exampleServi
 	require.NotNil(t, serviceSetting)
 	exampleServiceSetting.CreatedAt = serviceSetting.CreatedAt
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, serviceSetting, exampleServiceSetting)
 
 	return created
@@ -63,13 +63,13 @@ func TestQuerier_Integration_ServiceSettings(t *testing.T) {
 
 	// fetch as list
 	serviceSettings, err := dbc.GetServiceSettings(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, serviceSettings.Data)
-	assert.Equal(t, len(createdServiceSettings)+migratedServiceSettingsCount, len(serviceSettings.Data))
+	assert.Len(t, serviceSettings.Data, len(createdServiceSettings)+migratedServiceSettingsCount)
 
 	// fetch via name search (returns only settings matching the name, not migrated ones)
 	byName, err := dbc.SearchForServiceSettings(ctx, exampleServiceSetting.Name, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, byName.Data, len(createdServiceSettings))
 	createdIDs := make(map[string]bool)
 	for _, s := range createdServiceSettings {
@@ -81,17 +81,17 @@ func TestQuerier_Integration_ServiceSettings(t *testing.T) {
 
 	// delete
 	for _, serviceSetting := range createdServiceSettings {
-		assert.NoError(t, dbc.ArchiveServiceSetting(ctx, serviceSetting.ID))
+		require.NoError(t, dbc.ArchiveServiceSetting(ctx, serviceSetting.ID))
 
 		var exists bool
 		exists, err = dbc.ServiceSettingExists(ctx, serviceSetting.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ServiceSetting
 		y, err = dbc.GetServiceSetting(ctx, serviceSetting.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -107,7 +107,7 @@ func TestQuerier_ServiceSettingExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ServiceSettingExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -122,7 +122,7 @@ func TestQuerier_GetServiceSetting(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetServiceSetting(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -137,7 +137,7 @@ func TestQuerier_SearchForServiceSettings(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.SearchForServiceSettings(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -152,7 +152,7 @@ func TestQuerier_CreateServiceSetting(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateServiceSetting(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

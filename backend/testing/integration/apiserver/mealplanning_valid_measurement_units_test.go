@@ -76,7 +76,7 @@ func TestValidMeasurementUnits_Creating(T *testing.T) {
 		created, err := c.CreateValidMeasurementUnit(ctx, &mealplanningsvc.CreateValidMeasurementUnitRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -92,7 +92,7 @@ func TestValidMeasurementUnits_Creating(T *testing.T) {
 		created, err := adminClient.CreateValidMeasurementUnit(ctx, &mealplanningsvc.CreateValidMeasurementUnitRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 
@@ -108,7 +108,7 @@ func TestValidMeasurementUnits_Creating(T *testing.T) {
 		created, err := testClient.CreateValidMeasurementUnit(ctx, &mealplanningsvc.CreateValidMeasurementUnitRequest{
 			Input: convertedInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -125,7 +125,7 @@ func TestValidMeasurementUnits_Reading(T *testing.T) {
 		created := createValidMeasurementUnitForTest(t)
 
 		retrieved, err := testClient.GetValidMeasurementUnit(ctx, &mealplanningsvc.GetValidMeasurementUnitRequest{ValidMeasurementUnitId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		converted := grpcconverters.ConvertGRPCValidMeasurementUnitToValidMeasurementUnit(retrieved.Result)
 
@@ -169,7 +169,7 @@ func TestValidMeasurementUnits_Updating(T *testing.T) {
 			ValidMeasurementUnitId: created.ID,
 			Input:                  grpcconverters.ConvertValidMeasurementUnitUpdateRequestInputToGRPCValidMeasurementUnitUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		updated := grpcconverters.ConvertGRPCValidMeasurementUnitToValidMeasurementUnit(response.Result)
 		// Ensure UpdatedAt was set
@@ -219,7 +219,7 @@ func TestValidMeasurementUnits_Updating(T *testing.T) {
 				Name: new("doesn't matter"),
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -234,7 +234,7 @@ func TestValidMeasurementUnits_Archiving(T *testing.T) {
 		created := createValidMeasurementUnitForTest(t)
 
 		_, err := adminClient.ArchiveValidMeasurementUnit(ctx, &mealplanningsvc.ArchiveValidMeasurementUnitRequest{ValidMeasurementUnitId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetValidMeasurementUnit(ctx, &mealplanningsvc.GetValidMeasurementUnitRequest{ValidMeasurementUnitId: created.ID})
 		assert.Nil(t, x)
@@ -321,7 +321,7 @@ func TestValidMeasurementUnits_Listing(T *testing.T) {
 		retrieved, err := testClient.GetValidMeasurementUnits(ctx, &mealplanningsvc.GetValidMeasurementUnitsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.True(t, len(retrieved.Results) >= len(createdValidMeasurementUnits))
+		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdValidMeasurementUnits))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

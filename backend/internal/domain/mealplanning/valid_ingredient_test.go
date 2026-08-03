@@ -5,6 +5,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidIngredient_Update(T *testing.T) {
@@ -16,7 +17,7 @@ func TestValidIngredient_Update(T *testing.T) {
 		actual := &ValidIngredient{}
 
 		input := &ValidIngredientUpdateRequestInput{}
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 		input.ContainsEgg = new(true)
 		input.ContainsDairy = new(true)
 		input.ContainsPeanut = new(true)

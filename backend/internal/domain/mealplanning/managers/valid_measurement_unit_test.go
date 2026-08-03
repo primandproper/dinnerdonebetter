@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidEnumerationManager_SearchValidMeasurementUnits(T *testing.T) {
@@ -35,7 +36,7 @@ func TestValidEnumerationManager_SearchValidMeasurementUnits(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidMeasurementUnits(ctx, exampleQuery, false, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.SearchForValidMeasurementUnitsCalls(), 1)
@@ -64,7 +65,7 @@ func TestValidEnumerationManager_SearchValidMeasurementUnitsByIngredientID(T *te
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidMeasurementUnitsByIngredientID(ctx, exampleQuery, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.ValidMeasurementUnitsForIngredientIDCalls(), 1)
@@ -90,7 +91,7 @@ func TestValidEnumerationManager_ListValidMeasurementUnits(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidMeasurementUnits(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidMeasurementUnitsCalls(), 1)
@@ -117,7 +118,7 @@ func TestValidEnumerationManager_CreateValidMeasurementUnit(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidMeasurementUnit(ctx, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateValidMeasurementUnitCalls(), 1)
@@ -145,7 +146,7 @@ func TestValidEnumerationManager_ReadValidMeasurementUnit(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidMeasurementUnit(ctx, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidMeasurementUnitCalls(), 1)
@@ -178,7 +179,7 @@ func TestValidEnumerationManager_UpdateValidMeasurementUnit(T *testing.T) {
 
 		result, err := mpm.UpdateValidMeasurementUnit(ctx, exampleValidMeasurementUnit.ID, exampleInput)
 		assert.NotNil(t, result)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.GetValidMeasurementUnitCalls(), 2) // the manager re-reads the record after updating it
 		assert.Len(t, db.UpdateValidMeasurementUnitCalls(), 1)
@@ -205,7 +206,7 @@ func TestValidEnumerationManager_ArchiveValidMeasurementUnit(T *testing.T) {
 		}
 		attachRepositoryToManager(vem, db)
 
-		assert.NoError(t, vem.ArchiveValidMeasurementUnit(ctx, expected.ID))
+		require.NoError(t, vem.ArchiveValidMeasurementUnit(ctx, expected.ID))
 
 		assert.Len(t, db.ArchiveValidMeasurementUnitCalls(), 1)
 	})

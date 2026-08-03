@@ -28,6 +28,7 @@ import (
 	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/metric"
 )
 
@@ -214,7 +215,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 			pushNotificationSender,
 		)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, handler)
 		assert.Equal(t, identityRepo, handler.identityRepo)
 		assert.Equal(t, consumerProvider, handler.consumerProvider)

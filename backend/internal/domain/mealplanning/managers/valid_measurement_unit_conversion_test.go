@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidEnumerationManager_ValidMeasurementUnitConversionsForMeasurementUnit(T *testing.T) {
@@ -35,7 +36,7 @@ func TestValidEnumerationManager_ValidMeasurementUnitConversionsForMeasurementUn
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ValidMeasurementUnitConversionsForMeasurementUnit(ctx, exampleQuery, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidMeasurementUnitConversionsForUnitCalls(), 1)
@@ -62,7 +63,7 @@ func TestValidEnumerationManager_CreateValidMeasurementUnitConversion(T *testing
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidMeasurementUnitConversion(ctx, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateValidMeasurementUnitConversionCalls(), 1)
@@ -90,7 +91,7 @@ func TestValidEnumerationManager_ReadValidMeasurementUnitConversion(T *testing.T
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidMeasurementUnitConversion(ctx, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidMeasurementUnitConversionCalls(), 1)
@@ -123,7 +124,7 @@ func TestValidEnumerationManager_UpdateValidMeasurementUnitConversion(T *testing
 
 		result, err := mpm.UpdateValidMeasurementUnitConversion(ctx, exampleValidMeasurementUnitConversion.ID, exampleInput)
 		assert.NotNil(t, result)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.GetValidMeasurementUnitConversionCalls(), 2) // the manager re-reads the record after updating it
 		assert.Len(t, db.UpdateValidMeasurementUnitConversionCalls(), 1)
@@ -150,7 +151,7 @@ func TestValidEnumerationManager_ArchiveValidMeasurementUnitConversion(T *testin
 		}
 		attachRepositoryToManager(vem, db)
 
-		assert.NoError(t, vem.ArchiveValidMeasurementUnitConversion(ctx, expected.ID))
+		require.NoError(t, vem.ArchiveValidMeasurementUnitConversion(ctx, expected.ID))
 
 		assert.Len(t, db.ArchiveValidMeasurementUnitConversionCalls(), 1)
 	})

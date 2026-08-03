@@ -14,6 +14,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createValidIngredientStateForTest(t *testing.T, ctx context.Context, exampleValidIngredientState *types.ValidIngredientState, dbc *repository) *types.ValidIngredientState {
@@ -27,13 +28,13 @@ func createValidIngredientStateForTest(t *testing.T, ctx context.Context, exampl
 
 	created, err := dbc.CreateValidIngredientState(ctx, dbInput)
 	exampleValidIngredientState.CreatedAt = created.CreatedAt
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, exampleValidIngredientState, created)
 
 	validIngredientState, err := dbc.GetValidIngredientState(ctx, created.ID)
 	exampleValidIngredientState.CreatedAt = validIngredientState.CreatedAt
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validIngredientState, exampleValidIngredientState)
 
 	return validIngredientState
@@ -52,7 +53,7 @@ func TestQuerier_Integration_ValidIngredientStates(t *testing.T) {
 	// update
 	updatedValidIngredientState := fakes.BuildFakeValidIngredientState()
 	updatedValidIngredientState.ID = createdValidIngredientStates[0].ID
-	assert.NoError(t, dbc.UpdateValidIngredientState(ctx, updatedValidIngredientState))
+	require.NoError(t, dbc.UpdateValidIngredientState(ctx, updatedValidIngredientState))
 
 	// create more
 	for i := range exampleQuantity {
@@ -63,9 +64,9 @@ func TestQuerier_Integration_ValidIngredientStates(t *testing.T) {
 
 	// fetch as list
 	validIngredientStates, err := dbc.GetValidIngredientStates(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, validIngredientStates.Data)
-	assert.Equal(t, len(createdValidIngredientStates), len(validIngredientStates.Data))
+	assert.Len(t, validIngredientStates.Data, len(createdValidIngredientStates))
 
 	// fetch as list of IDs
 	validIngredientStateIDs := []string{}
@@ -74,16 +75,16 @@ func TestQuerier_Integration_ValidIngredientStates(t *testing.T) {
 	}
 
 	byIDs, err := dbc.GetValidIngredientStatesWithIDs(ctx, validIngredientStateIDs)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validIngredientStates.Data, byIDs)
 
 	// fetch via name search
 	byName, err := dbc.SearchForValidIngredientStates(ctx, updatedValidIngredientState.Name, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, validIngredientStates, byName)
 
 	needingIndexing, err := dbc.GetValidIngredientStateIDsThatNeedSearchIndexing(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, needingIndexing)
 
 	// delete
@@ -93,13 +94,13 @@ func TestQuerier_Integration_ValidIngredientStates(t *testing.T) {
 
 		var exists bool
 		exists, err = dbc.ValidIngredientStateExists(ctx, validIngredientState.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ValidIngredientState
 		y, err = dbc.GetValidIngredientState(ctx, validIngredientState.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -115,7 +116,7 @@ func TestQuerier_ValidIngredientStateExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidIngredientStateExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -130,7 +131,7 @@ func TestQuerier_GetValidIngredientState(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidIngredientState(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -145,7 +146,7 @@ func TestQuerier_SearchForValidIngredientStates(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.SearchForValidIngredientStates(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -160,7 +161,7 @@ func TestQuerier_CreateValidIngredientState(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateValidIngredientState(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

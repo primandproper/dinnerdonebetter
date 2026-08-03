@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/fakes"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createOAuth2ClientForTest(t *testing.T, ctx context.Context, exampleOAuth2Client *types.OAuth2Client, dbc *repository) *types.OAuth2Client {
@@ -24,13 +25,13 @@ func createOAuth2ClientForTest(t *testing.T, ctx context.Context, exampleOAuth2C
 
 	created, err := dbc.CreateOAuth2Client(ctx, dbInput)
 	exampleOAuth2Client.CreatedAt = created.CreatedAt
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, exampleOAuth2Client, created)
 
 	oauth2Client, err := dbc.GetOAuth2ClientByDatabaseID(ctx, created.ID)
 	exampleOAuth2Client.CreatedAt = oauth2Client.CreatedAt
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, oauth2Client, exampleOAuth2Client)
 
 	return created
@@ -55,18 +56,18 @@ func TestQuerier_Integration_OAuth2Clients(t *testing.T) {
 
 	// fetch as list
 	oauth2Clients, err := dbc.GetOAuth2Clients(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, oauth2Clients.Data)
-	assert.Equal(t, len(createdOAuth2Clients), len(oauth2Clients.Data))
+	assert.Len(t, oauth2Clients.Data, len(createdOAuth2Clients))
 
 	// delete
 	for _, oauth2Client := range createdOAuth2Clients {
-		assert.NoError(t, dbc.ArchiveOAuth2Client(ctx, oauth2Client.ID))
+		require.NoError(t, dbc.ArchiveOAuth2Client(ctx, oauth2Client.ID))
 
 		var y *types.OAuth2Client
 		y, err = dbc.GetOAuth2ClientByClientID(ctx, oauth2Client.ClientID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -81,7 +82,7 @@ func TestQuerier_GetOAuth2ClientByClientID(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetOAuth2ClientByClientID(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -96,7 +97,7 @@ func TestQuerier_GetOAuth2ClientByDatabaseID(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetOAuth2ClientByDatabaseID(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -111,7 +112,7 @@ func TestQuerier_CreateOAuth2Client(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateOAuth2Client(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

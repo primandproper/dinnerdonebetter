@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecipeManager_UpdateRecipeListItem(T *testing.T) {
@@ -37,7 +38,7 @@ func TestRecipeManager_UpdateRecipeListItem(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		assert.NoError(t, rm.UpdateRecipeListItem(ctx, itemID, listID, recipeID, input))
+		require.NoError(t, rm.UpdateRecipeListItem(ctx, itemID, listID, recipeID, input))
 
 		assert.Len(t, db.UpdateRecipeListItemCalls(), 1)
 	})
@@ -69,7 +70,7 @@ func TestRecipeManager_AddRecipeToRecipeList(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.AddRecipeToRecipeList(ctx, listID, recipeID, expected.Notes)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateRecipeListItemCalls(), 1)
@@ -98,7 +99,7 @@ func TestRecipeManager_RemoveRecipeFromRecipeList(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		assert.NoError(t, rm.RemoveRecipeFromRecipeList(ctx, listID, itemID))
+		require.NoError(t, rm.RemoveRecipeFromRecipeList(ctx, listID, itemID))
 
 		assert.Len(t, db.ArchiveRecipeListItemCalls(), 1)
 	})
@@ -132,7 +133,7 @@ func TestRecipeManager_ListRecipeListItems(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ListRecipeListItems(ctx, listID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRecipeListItemsCalls(), 1)

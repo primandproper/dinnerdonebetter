@@ -39,7 +39,7 @@ func TestAdmin_BanningUsers(T *testing.T) {
 		require.NoError(t, err)
 
 		status, err = testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, status.AccountStatus, newStatus)
 	})
 
@@ -93,7 +93,7 @@ func TestAdmin_UserImpersonation(T *testing.T) {
 		t.Logf("impersonating user %s and account %s to get webhook %s", user.ID, account.Result.Id, webhook.ID)
 
 		retrievedWebhook, err := adminClient.GetWebhook(impersonatedCtx, &webhookssvc.GetWebhookRequest{WebhookId: webhook.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, retrievedWebhook)
 	})
 
@@ -130,7 +130,7 @@ func TestAdmin_UserImpersonation(T *testing.T) {
 		t.Logf("impersonating user %s and account %s to get webhook %s", user.ID, account.Result.Id, retrievedWebhook.Result.Id)
 
 		webhook, err := testClient2.GetWebhook(impersonatedCtx, &webhookssvc.GetWebhookRequest{WebhookId: retrievedWebhook.Result.Id})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, webhook)
 	})
 }

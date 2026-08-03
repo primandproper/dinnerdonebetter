@@ -65,7 +65,7 @@ func TestUserLoginInput_ValidateWithContext(T *testing.T) {
 		err := x.ValidateWithContext(ctx)
 		var validationErr validation.Errors
 		if errors.As(err, &validationErr) {
-			assert.NotNil(t, validationErr["totpToken"])
+			assert.Error(t, validationErr["totpToken"])
 		}
 
 		assert.Error(t, err)

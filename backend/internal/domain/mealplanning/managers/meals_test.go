@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlanningManager_ListMeals(T *testing.T) {
@@ -32,7 +33,7 @@ func TestMealPlanningManager_ListMeals(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ListMeals(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealsCalls(), 1)
@@ -65,7 +66,7 @@ func TestMealPlanningManager_CreateMeal(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMeal(ctx, creator, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.FindMealWithSameComponentsCalls(), 1)
@@ -92,7 +93,7 @@ func TestMealPlanningManager_CreateMeal(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMeal(ctx, creator, fakeInput)
-		assert.ErrorIs(t, err, types.ErrDuplicateMeal)
+		require.ErrorIs(t, err, types.ErrDuplicateMeal)
 		assert.Nil(t, actual)
 
 		assert.Len(t, db.FindMealWithSameComponentsCalls(), 1)
@@ -120,7 +121,7 @@ func TestMealPlanningManager_ReadMeal(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.ReadMeal(ctx, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealCalls(), 1)
@@ -149,7 +150,7 @@ func TestMealPlanningManager_SearchMeals(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.SearchMeals(ctx, exampleQuery, false, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.SearchForMealsCalls(), 1)
@@ -174,7 +175,7 @@ func TestMealPlanningManager_SearchMeals(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.SearchMeals(ctx, exampleQuery, true, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.SearchForMealsCalls(), 1)
@@ -203,7 +204,7 @@ func TestMealPlanningManager_ArchiveMeal(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		err := mpm.ArchiveMeal(ctx, expected.ID, expected.CreatedByUser)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.ArchiveMealCalls(), 1)
 	})

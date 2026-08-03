@@ -5,6 +5,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecipeStepIngredient_Update(T *testing.T) {
@@ -16,7 +17,7 @@ func TestRecipeStepIngredient_Update(T *testing.T) {
 		x := &RecipeStepIngredient{}
 		input := &RecipeStepIngredientUpdateRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 		input.RecipeStepProductRecipeID = new(t.Name())
 		input.MaxQuantity = new(fake.Float32())
 		input.Optional = new(true)

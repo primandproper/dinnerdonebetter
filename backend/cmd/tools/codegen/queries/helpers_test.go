@@ -32,7 +32,7 @@ func Test_applyToEach(T *testing.T) {
 		}
 		actual := applyToEach(exampleInput, exampleFunc)
 
-		assert.Equal(t, callCount, len(exampleInput))
+		assert.Len(t, exampleInput, callCount)
 		assert.Equal(t, expected, actual)
 	})
 }

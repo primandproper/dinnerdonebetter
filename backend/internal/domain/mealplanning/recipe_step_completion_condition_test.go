@@ -5,6 +5,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecipeStepCompletionCondition_Update(T *testing.T) {
@@ -16,7 +17,7 @@ func TestRecipeStepCompletionCondition_Update(T *testing.T) {
 		x := &RecipeStepCompletionCondition{}
 		input := &RecipeStepCompletionConditionUpdateRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 		input.Optional = new(true)
 
 		x.Update(input)

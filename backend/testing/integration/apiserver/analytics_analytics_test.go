@@ -39,7 +39,7 @@ func TestAnalytics_TrackEvent(T *testing.T) {
 			Source: "ios",
 			Event:  "test_event",
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 	})
 }

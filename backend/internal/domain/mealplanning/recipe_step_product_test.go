@@ -5,6 +5,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecipeStepProduct_Update(T *testing.T) {
@@ -19,7 +20,7 @@ func TestRecipeStepProduct_Update(T *testing.T) {
 		}
 		input := &RecipeStepProductUpdateRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 		input.Compostable = new(true)
 		input.ContainedInVesselIndex = new(uint16(1))
 		input.IsLiquid = new(true)

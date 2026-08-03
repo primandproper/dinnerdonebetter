@@ -45,7 +45,7 @@ func TestMealLists_CompleteLifecycle(T *testing.T) {
 				Description: &newDesc,
 			},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = userClient.ArchiveMealList(ctx, &mealplanninggrpc.ArchiveMealListRequest{MealListId: listID})
 		assert.NoError(t, err)
@@ -111,7 +111,7 @@ func TestMealListItems_CompleteLifecycle(T *testing.T) {
 				Notes:             newNotes,
 			},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Archive item
 		_, err = userClient.ArchiveMealListItem(ctx, &mealplanninggrpc.ArchiveMealListItemRequest{
@@ -158,7 +158,7 @@ func TestMealListItems_DuplicatePrevention(T *testing.T) {
 				Notes:             "notes2",
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.AlreadyExists, status.Code(err))
 	})
 
@@ -262,7 +262,7 @@ func TestMealLists_DuplicatePrevention(T *testing.T) {
 				},
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.AlreadyExists, status.Code(err))
 	})
 }

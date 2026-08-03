@@ -58,7 +58,7 @@ func TestPaymentsManager_CreateProduct(t *testing.T) {
 		attachRepositoryToPaymentsManager(pm, repo)
 
 		actual, err := pm.CreateProduct(ctx, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, repo.CreateProductCalls(), 1)
@@ -95,7 +95,7 @@ func TestPaymentsManager_UpdateProduct(t *testing.T) {
 		attachRepositoryToPaymentsManager(pm, repo)
 
 		err := pm.UpdateProduct(ctx, productID, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, repo.GetProductCalls(), 1)
 		assert.Len(t, repo.UpdateProductCalls(), 1)
@@ -123,7 +123,7 @@ func TestPaymentsManager_ArchiveProduct(t *testing.T) {
 		attachRepositoryToPaymentsManager(pm, repo)
 
 		err := pm.ArchiveProduct(ctx, productID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, repo.ArchiveProductCalls(), 1)
 	})
@@ -151,7 +151,7 @@ func TestPaymentsManager_CreateSubscription(t *testing.T) {
 		attachRepositoryToPaymentsManager(pm, repo)
 
 		actual, err := pm.CreateSubscription(ctx, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, repo.CreateSubscriptionCalls(), 1)
@@ -190,7 +190,7 @@ func TestPaymentsManager_UpdateSubscription(t *testing.T) {
 		attachRepositoryToPaymentsManager(pm, repo)
 
 		err := pm.UpdateSubscription(ctx, subID, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, repo.GetSubscriptionCalls(), 1)
 		assert.Len(t, repo.UpdateSubscriptionCalls(), 1)
@@ -218,7 +218,7 @@ func TestPaymentsManager_ArchiveSubscription(t *testing.T) {
 		attachRepositoryToPaymentsManager(pm, repo)
 
 		err := pm.ArchiveSubscription(ctx, subID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, repo.ArchiveSubscriptionCalls(), 1)
 	})

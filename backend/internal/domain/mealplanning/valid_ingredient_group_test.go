@@ -130,6 +130,6 @@ func TestValidIngredientGroup_Update(T *testing.T) {
 
 		actual.Update(input)
 
-		assert.Equal(t, actual, expected)
+		assert.Equal(t, expected, actual)
 	})
 }

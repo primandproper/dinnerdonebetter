@@ -5,6 +5,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecipeStepVessel_Update(T *testing.T) {
@@ -21,7 +22,7 @@ func TestRecipeStepVessel_Update(T *testing.T) {
 		}
 		input := &RecipeStepVesselUpdateRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 		input.UnavailableAfterStep = new(true)
 		input.MinQuantity = new(uint16(1))
 		input.MaxQuantity = new(uint16(1))

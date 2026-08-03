@@ -15,7 +15,7 @@ import (
 
 func checkRecipeStepInstrumentSliceEquality(t *testing.T, stepIndex int, expected, actual []*mealplanning.RecipeStepInstrument) {
 	t.Helper()
-	require.Equal(t, len(expected), len(actual), "expected recipe step %d instruments length", stepIndex)
+	require.Len(t, actual, len(expected), "expected recipe step %d instruments length", stepIndex)
 	for i := range expected {
 		checkRecipeStepInstrumentEquality(t, stepIndex, i, expected[i], actual[i])
 	}
@@ -126,7 +126,7 @@ func TestRecipeStepInstruments_CompleteLifecycle(T *testing.T) {
 			RecipeStepInstrumentId: createdRecipeStepInstrument.ID,
 			Input:                  converters.ConvertRecipeStepInstrumentUpdateRequestInputToGRPCRecipeStepInstrumentUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		retrievedRecipeStepInstrumentRes, err = adminClient.GetRecipeStepInstrument(ctx, &mealplanninggrpc.GetRecipeStepInstrumentRequest{
 			RecipeId:               createdRecipe.ID,
@@ -146,10 +146,10 @@ func TestRecipeStepInstruments_CompleteLifecycle(T *testing.T) {
 			RecipeStepId:           createdRecipeStepID,
 			RecipeStepInstrumentId: createdRecipeStepInstrument.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipeStep(ctx, &mealplanninggrpc.ArchiveRecipeStepRequest{RecipeId: createdRecipe.ID, RecipeStepId: createdRecipeStepID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
 		assert.NoError(t, err)
@@ -352,9 +352,9 @@ func TestRecipeStepInstruments_Listing(T *testing.T) {
 			RecipeStepId: createdRecipeStepID,
 		})
 		require.NoError(t, err)
-		assert.True(
+		assert.LessOrEqual(
 			t,
-			len(expected) <= len(actual.Results),
+			len(expected), len(actual.Results),
 			"expected %d to be <= %d",
 			len(expected),
 			len(actual.Results),
@@ -366,11 +366,11 @@ func TestRecipeStepInstruments_Listing(T *testing.T) {
 				RecipeStepId:           createdRecipeStepID,
 				RecipeStepInstrumentId: createdRecipeStepInstrument.ID,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 
 		_, err = adminClient.ArchiveRecipeStep(ctx, &mealplanninggrpc.ArchiveRecipeStepRequest{RecipeId: createdRecipe.ID, RecipeStepId: createdRecipeStepID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
 		assert.NoError(t, err)

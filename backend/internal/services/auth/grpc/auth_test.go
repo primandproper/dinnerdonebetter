@@ -20,6 +20,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
@@ -66,7 +67,7 @@ func TestServiceImpl_GetAuthStatus(t *testing.T) {
 
 		response, err := service.GetAuthStatus(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -86,7 +87,7 @@ func TestServiceImpl_GetAuthStatus(t *testing.T) {
 
 		response, err := service.GetAuthStatus(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -112,7 +113,7 @@ func TestServiceImpl_EvaluateBooleanFeatureFlag(t *testing.T) {
 			FeatureFlag: "test-flag",
 		})
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.True(t, response.Enabled)
 	})
@@ -127,7 +128,7 @@ func TestServiceImpl_EvaluateBooleanFeatureFlag(t *testing.T) {
 			FeatureFlag: "test-flag",
 		})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		grpcErr, _ := status.FromError(err)
 		assert.Equal(t, codes.Unauthenticated, grpcErr.Code())
@@ -143,7 +144,7 @@ func TestServiceImpl_EvaluateBooleanFeatureFlag(t *testing.T) {
 			FeatureFlag: "",
 		})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		grpcErr, _ := status.FromError(err)
 		assert.Equal(t, codes.InvalidArgument, grpcErr.Code())
@@ -167,7 +168,7 @@ func TestServiceImpl_EvaluateStringFeatureFlag(t *testing.T) {
 			FeatureFlag: "test-flag",
 		})
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Equal(t, "variant-a", response.Value)
 	})
@@ -190,7 +191,7 @@ func TestServiceImpl_EvaluateInt64FeatureFlag(t *testing.T) {
 			FeatureFlag: "test-flag",
 		})
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Equal(t, int64(42), response.Value)
 	})
@@ -224,7 +225,7 @@ func TestServiceImpl_ExchangeToken(t *testing.T) {
 
 		response, err := service.ExchangeToken(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -248,7 +249,7 @@ func TestServiceImpl_ExchangeToken(t *testing.T) {
 
 		response, err := service.ExchangeToken(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -273,7 +274,7 @@ func TestServiceImpl_ExchangeToken(t *testing.T) {
 
 		response, err := service.ExchangeToken(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -318,7 +319,7 @@ func TestServiceImpl_LoginForToken(t *testing.T) {
 
 		response, err := service.LoginForToken(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -352,7 +353,7 @@ func TestServiceImpl_LoginForToken(t *testing.T) {
 
 		response, err := service.LoginForToken(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		// Login failures return a single generic Unauthenticated status so distinct outcomes
@@ -399,7 +400,7 @@ func TestServiceImpl_AdminLoginForToken(t *testing.T) {
 
 		response, err := service.AdminLoginForToken(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -433,7 +434,7 @@ func TestServiceImpl_AdminLoginForToken(t *testing.T) {
 
 		response, err := service.AdminLoginForToken(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		// Login failures return a single generic Unauthenticated status so distinct outcomes
@@ -473,7 +474,7 @@ func TestServiceImpl_CheckPermissions(t *testing.T) {
 
 		response, err := service.CheckPermissions(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -494,7 +495,7 @@ func TestServiceImpl_CheckPermissions(t *testing.T) {
 
 		response, err := service.CheckPermissions(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -519,7 +520,7 @@ func TestServiceImpl_CheckPermissions(t *testing.T) {
 
 		response, err := service.CheckPermissions(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -551,7 +552,7 @@ func TestServiceImpl_GetActiveAccount(t *testing.T) {
 
 		response, err := service.GetActiveAccount(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -571,7 +572,7 @@ func TestServiceImpl_GetActiveAccount(t *testing.T) {
 
 		response, err := service.GetActiveAccount(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -595,7 +596,7 @@ func TestServiceImpl_GetActiveAccount(t *testing.T) {
 
 		response, err := service.GetActiveAccount(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -621,7 +622,7 @@ func TestServiceImpl_GetActiveAccount(t *testing.T) {
 
 		response, err := service.GetActiveAccount(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -653,7 +654,7 @@ func TestServiceImpl_GetSelf(t *testing.T) {
 
 		response, err := service.GetSelf(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -673,7 +674,7 @@ func TestServiceImpl_GetSelf(t *testing.T) {
 
 		response, err := service.GetSelf(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -697,7 +698,7 @@ func TestServiceImpl_GetSelf(t *testing.T) {
 
 		response, err := service.GetSelf(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -723,7 +724,7 @@ func TestServiceImpl_GetSelf(t *testing.T) {
 
 		response, err := service.GetSelf(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -755,7 +756,7 @@ func TestServiceImpl_RedeemPasswordResetToken(t *testing.T) {
 
 		response, err := service.RedeemPasswordResetToken(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -781,7 +782,7 @@ func TestServiceImpl_RedeemPasswordResetToken(t *testing.T) {
 
 		response, err := service.RedeemPasswordResetToken(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Len(t, authManager.PasswordResetTokenRedemptionCalls(), 1)
 	})
@@ -804,7 +805,7 @@ func TestServiceImpl_RedeemPasswordResetToken(t *testing.T) {
 
 		response, err := service.RedeemPasswordResetToken(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -840,7 +841,7 @@ func TestServiceImpl_RefreshTOTPSecret(t *testing.T) {
 
 		response, err := service.RefreshTOTPSecret(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -864,7 +865,7 @@ func TestServiceImpl_RefreshTOTPSecret(t *testing.T) {
 
 		response, err := service.RefreshTOTPSecret(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -890,7 +891,7 @@ func TestServiceImpl_RefreshTOTPSecret(t *testing.T) {
 
 		response, err := service.RefreshTOTPSecret(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -916,7 +917,7 @@ func TestServiceImpl_RequestEmailVerificationEmail(t *testing.T) {
 
 		response, err := service.RequestEmailVerificationEmail(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -934,7 +935,7 @@ func TestServiceImpl_RequestEmailVerificationEmail(t *testing.T) {
 
 		response, err := service.RequestEmailVerificationEmail(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -956,7 +957,7 @@ func TestServiceImpl_RequestEmailVerificationEmail(t *testing.T) {
 
 		response, err := service.RequestEmailVerificationEmail(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -987,7 +988,7 @@ func TestServiceImpl_RequestPasswordResetToken(t *testing.T) {
 
 		response, err := service.RequestPasswordResetToken(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -1012,7 +1013,7 @@ func TestServiceImpl_RequestPasswordResetToken(t *testing.T) {
 
 		response, err := service.RequestPasswordResetToken(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Len(t, authManager.CreatePasswordResetTokenCalls(), 1)
 	})
@@ -1034,7 +1035,7 @@ func TestServiceImpl_RequestPasswordResetToken(t *testing.T) {
 
 		response, err := service.RequestPasswordResetToken(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -1065,7 +1066,7 @@ func TestServiceImpl_RequestUsernameReminder(t *testing.T) {
 
 		response, err := service.RequestUsernameReminder(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -1091,7 +1092,7 @@ func TestServiceImpl_RequestUsernameReminder(t *testing.T) {
 
 		response, err := service.RequestUsernameReminder(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -1116,7 +1117,7 @@ func TestServiceImpl_RequestUsernameReminder(t *testing.T) {
 
 		response, err := service.RequestUsernameReminder(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -1147,7 +1148,7 @@ func TestServiceImpl_VerifyEmailAddress(t *testing.T) {
 
 		response, err := service.VerifyEmailAddress(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -1173,7 +1174,7 @@ func TestServiceImpl_VerifyEmailAddress(t *testing.T) {
 
 		response, err := service.VerifyEmailAddress(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -1205,7 +1206,7 @@ func TestServiceImpl_VerifyTOTPSecret(t *testing.T) {
 
 		response, err := service.VerifyTOTPSecret(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -1232,7 +1233,7 @@ func TestServiceImpl_VerifyTOTPSecret(t *testing.T) {
 
 		response, err := service.VerifyTOTPSecret(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -1265,7 +1266,7 @@ func TestServiceImpl_UpdatePassword(t *testing.T) {
 
 		response, err := service.UpdatePassword(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -1287,7 +1288,7 @@ func TestServiceImpl_UpdatePassword(t *testing.T) {
 
 		response, err := service.UpdatePassword(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -1314,7 +1315,7 @@ func TestServiceImpl_UpdatePassword(t *testing.T) {
 
 		response, err := service.UpdatePassword(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -1458,7 +1459,7 @@ func TestServiceImpl_ListActiveSessions(t *testing.T) {
 
 		response, err := service.ListActiveSessions(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -1485,7 +1486,7 @@ func TestServiceImpl_ListActiveSessions(t *testing.T) {
 
 		response, err := service.ListActiveSessions(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -1509,7 +1510,7 @@ func TestServiceImpl_ListActiveSessions(t *testing.T) {
 
 		response, err := service.ListActiveSessions(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -1543,7 +1544,7 @@ func TestServiceImpl_RevokeSession(t *testing.T) {
 
 		response, err := service.RevokeSession(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -1563,7 +1564,7 @@ func TestServiceImpl_RevokeSession(t *testing.T) {
 
 		response, err := service.RevokeSession(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -1583,7 +1584,7 @@ func TestServiceImpl_RevokeSession(t *testing.T) {
 
 		response, err := service.RevokeSession(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -1611,7 +1612,7 @@ func TestServiceImpl_RevokeAllOtherSessions(t *testing.T) {
 
 		response, err := service.RevokeAllOtherSessions(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -1629,7 +1630,7 @@ func TestServiceImpl_RevokeAllOtherSessions(t *testing.T) {
 
 		response, err := service.RevokeAllOtherSessions(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -1657,7 +1658,7 @@ func TestServiceImpl_RevokeCurrentSession(t *testing.T) {
 
 		response, err := service.RevokeCurrentSession(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
@@ -1675,7 +1676,7 @@ func TestServiceImpl_RevokeCurrentSession(t *testing.T) {
 
 		response, err := service.RevokeCurrentSession(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -1693,7 +1694,7 @@ func TestServiceImpl_RevokeCurrentSession(t *testing.T) {
 
 		response, err := service.RevokeCurrentSession(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)
@@ -1717,7 +1718,7 @@ func TestServiceImpl_RevokeCurrentSession(t *testing.T) {
 
 		response, err := service.RevokeCurrentSession(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 
 		grpcErr, ok := status.FromError(err)

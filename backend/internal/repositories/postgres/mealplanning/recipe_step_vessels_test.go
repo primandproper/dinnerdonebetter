@@ -32,7 +32,7 @@ func createRecipeStepVesselForTest(t *testing.T, ctx context.Context, recipeID s
 	dbInput := converters.ConvertRecipeStepVesselToRecipeStepVesselDatabaseCreationInput(exampleRecipeStepVessel)
 
 	created, err := dbc.CreateRecipeStepVessel(ctx, recipeID, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	exampleRecipeStepVessel.CreatedAt = created.CreatedAt
@@ -48,7 +48,7 @@ func createRecipeStepVesselForTest(t *testing.T, ctx context.Context, recipeID s
 
 	require.Equal(t, exampleRecipeStepVessel, recipeStepVessel)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, recipeStepVessel, exampleRecipeStepVessel)
 
 	return created
@@ -92,23 +92,23 @@ func TestQuerier_Integration_RecipeStepVessels(t *testing.T) {
 
 	// fetch as list
 	recipeStepVessels, err := dbc.GetRecipeStepVessels(ctx, exampleRecipe.ID, createdRecipeStepVessels[0].BelongsToRecipeStep, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, recipeStepVessels.Data)
-	assert.Equal(t, len(createdRecipeStepVessels), len(recipeStepVessels.Data))
+	assert.Len(t, recipeStepVessels.Data, len(createdRecipeStepVessels))
 
 	// delete
 	for _, recipeStepVessel := range createdRecipeStepVessels {
-		assert.NoError(t, dbc.ArchiveRecipeStepVessel(ctx, createdRecipe.ID, exampleRecipeStep.ID, recipeStepVessel.ID))
+		require.NoError(t, dbc.ArchiveRecipeStepVessel(ctx, createdRecipe.ID, exampleRecipeStep.ID, recipeStepVessel.ID))
 
 		var exists bool
 		exists, err = dbc.RecipeStepVesselExists(ctx, exampleRecipe.ID, recipeStepVessel.BelongsToRecipeStep, recipeStepVessel.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.RecipeStepVessel
 		y, err = dbc.GetRecipeStepVessel(ctx, exampleRecipe.ID, recipeStepVessel.BelongsToRecipeStep, recipeStepVessel.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -127,7 +127,7 @@ func TestQuerier_RecipeStepVesselExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.RecipeStepVesselExists(ctx, "", exampleRecipeStepID, exampleRecipeStepVessel.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -142,7 +142,7 @@ func TestQuerier_RecipeStepVesselExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.RecipeStepVesselExists(ctx, exampleRecipeID, "", exampleRecipeStepVessel.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -157,7 +157,7 @@ func TestQuerier_RecipeStepVesselExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.RecipeStepVesselExists(ctx, exampleRecipeID, exampleRecipeStepID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -175,7 +175,7 @@ func TestQuerier_GetRecipeStepVessel(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipeStepVessel(ctx, "", exampleRecipeStepID, exampleRecipeStepVessel.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -189,7 +189,7 @@ func TestQuerier_GetRecipeStepVessel(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipeStepVessel(ctx, exampleRecipeID, "", exampleRecipeStepVessel.ID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -203,7 +203,7 @@ func TestQuerier_GetRecipeStepVessel(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipeStepVessel(ctx, exampleRecipeID, exampleRecipeStepID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -221,7 +221,7 @@ func TestQuerier_GetRecipeStepVessels(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipeStepVessels(ctx, "", exampleRecipeStepID, filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -235,7 +235,7 @@ func TestQuerier_GetRecipeStepVessels(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetRecipeStepVessels(ctx, exampleRecipeID, "", filter)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -250,7 +250,7 @@ func TestQuerier_CreateRecipeStepVessel(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateRecipeStepVessel(ctx, fakes.BuildFakeID(), nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

@@ -6,6 +6,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlanEventCreationRequestInput_ValidateWithContext(T *testing.T) {
@@ -84,7 +85,7 @@ func TestMealPlanEvent_Update(T *testing.T) {
 		x := &MealPlanEvent{}
 		input := &MealPlanEventUpdateRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 		input.StartsAt = new(time.Now())
 		input.EndsAt = new(time.Now())
 

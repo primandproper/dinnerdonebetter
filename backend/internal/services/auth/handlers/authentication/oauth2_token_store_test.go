@@ -14,6 +14,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOAuth2TokenStoreImpl_Create(T *testing.T) {
@@ -44,7 +45,7 @@ func TestOAuth2TokenStoreImpl_Create(T *testing.T) {
 
 		err := store.Create(ctx, tokenInfo)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		// Verify that the expiration times were set
 		assert.Equal(t, 24*time.Hour, tokenInfo.GetAccessExpiresIn())
 		assert.Equal(t, 72*time.Hour, tokenInfo.GetRefreshExpiresIn())
@@ -77,7 +78,7 @@ func TestOAuth2TokenStoreImpl_Create(T *testing.T) {
 
 		err := store.Create(ctx, tokenInfo)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, dataManager.CreateOAuth2ClientTokenCalls(), 1)
 	})
@@ -110,7 +111,7 @@ func TestOAuth2TokenStoreImpl_RemoveByCode(T *testing.T) {
 
 		err := store.RemoveByCode(ctx, code)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, dataManager.DeleteOAuth2ClientTokenByCodeCalls(), 1)
 	})
@@ -139,7 +140,7 @@ func TestOAuth2TokenStoreImpl_RemoveByCode(T *testing.T) {
 
 		err := store.RemoveByCode(ctx, code)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, dataManager.DeleteOAuth2ClientTokenByCodeCalls(), 1)
 	})
@@ -172,7 +173,7 @@ func TestOAuth2TokenStoreImpl_RemoveByAccess(T *testing.T) {
 
 		err := store.RemoveByAccess(ctx, access)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, dataManager.DeleteOAuth2ClientTokenByAccessCalls(), 1)
 	})
@@ -201,7 +202,7 @@ func TestOAuth2TokenStoreImpl_RemoveByAccess(T *testing.T) {
 
 		err := store.RemoveByAccess(ctx, access)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, dataManager.DeleteOAuth2ClientTokenByAccessCalls(), 1)
 	})
@@ -234,7 +235,7 @@ func TestOAuth2TokenStoreImpl_RemoveByRefresh(T *testing.T) {
 
 		err := store.RemoveByRefresh(ctx, refresh)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, dataManager.DeleteOAuth2ClientTokenByRefreshCalls(), 1)
 	})
@@ -263,7 +264,7 @@ func TestOAuth2TokenStoreImpl_RemoveByRefresh(T *testing.T) {
 
 		err := store.RemoveByRefresh(ctx, refresh)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		assert.Len(t, dataManager.DeleteOAuth2ClientTokenByRefreshCalls(), 1)
 	})
@@ -296,7 +297,7 @@ func TestOAuth2TokenStoreImpl_GetByCode(T *testing.T) {
 
 		result, err := store.GetByCode(ctx, token.Code)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, token.ClientID, result.GetClientID())
 		assert.Equal(t, token.Code, result.GetCode())
@@ -328,7 +329,7 @@ func TestOAuth2TokenStoreImpl_GetByCode(T *testing.T) {
 
 		result, err := store.GetByCode(ctx, code)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		assert.Len(t, dataManager.GetOAuth2ClientTokenByCodeCalls(), 1)
@@ -362,7 +363,7 @@ func TestOAuth2TokenStoreImpl_GetByAccess(T *testing.T) {
 
 		result, err := store.GetByAccess(ctx, token.Access)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, token.ClientID, result.GetClientID())
 		assert.Equal(t, token.Access, result.GetAccess())
@@ -394,7 +395,7 @@ func TestOAuth2TokenStoreImpl_GetByAccess(T *testing.T) {
 
 		result, err := store.GetByAccess(ctx, access)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		assert.Len(t, dataManager.GetOAuth2ClientTokenByAccessCalls(), 1)
@@ -428,7 +429,7 @@ func TestOAuth2TokenStoreImpl_GetByRefresh(T *testing.T) {
 
 		result, err := store.GetByRefresh(ctx, token.Refresh)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, token.ClientID, result.GetClientID())
 		assert.Equal(t, token.Refresh, result.GetRefresh())
@@ -460,7 +461,7 @@ func TestOAuth2TokenStoreImpl_GetByRefresh(T *testing.T) {
 
 		result, err := store.GetByRefresh(ctx, refresh)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		assert.Len(t, dataManager.GetOAuth2ClientTokenByRefreshCalls(), 1)

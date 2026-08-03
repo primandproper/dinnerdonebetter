@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlanningManager_GetMealPlanRecipeOptionSelection(T *testing.T) {
@@ -41,7 +42,7 @@ func TestMealPlanningManager_GetMealPlanRecipeOptionSelection(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.GetMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetMealPlanRecipeOptionSelectionCalls(), 1)
@@ -70,7 +71,7 @@ func TestMealPlanningManager_GetMealPlanRecipeOptionSelectionsForMealPlanOption(
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx, mealPlanOptionID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetSelectionsForMealPlanOptionCalls(), 1)
@@ -98,7 +99,7 @@ func TestMealPlanningManager_CreateMealPlanRecipeOptionSelection(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		actual, err := mpm.CreateMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateMealPlanRecipeOptionSelectionCalls(), 1)
@@ -142,7 +143,7 @@ func TestMealPlanningManager_UpdateMealPlanRecipeOptionSelection(T *testing.T) {
 		attachRepositoryToManager(mpm, db)
 
 		err := mpm.UpdateMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.GetMealPlanRecipeOptionSelectionCalls(), 1)
 		assert.Len(t, db.UpdateMealPlanRecipeOptionSelectionCalls(), 1)
@@ -176,7 +177,7 @@ func TestMealPlanningManager_ArchiveMealPlanRecipeOptionSelection(T *testing.T) 
 		attachRepositoryToManager(mpm, db)
 
 		err := mpm.ArchiveMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.ArchiveMealPlanRecipeOptionSelectionCalls(), 1)
 	})

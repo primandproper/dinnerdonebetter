@@ -57,7 +57,7 @@ func TestSettingsManager_CreateServiceSetting(t *testing.T) {
 		attachRepositoryToSettingsManager(sm, repo)
 
 		actual, err := sm.CreateServiceSetting(ctx, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, repo.CreateServiceSettingCalls(), 1)
@@ -85,7 +85,7 @@ func TestSettingsManager_ArchiveServiceSetting(t *testing.T) {
 		attachRepositoryToSettingsManager(sm, repo)
 
 		err := sm.ArchiveServiceSetting(ctx, serviceSettingID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, repo.ArchiveServiceSettingCalls(), 1)
 	})
@@ -111,7 +111,7 @@ func TestSettingsManager_CreateServiceSettingConfiguration(t *testing.T) {
 		attachRepositoryToSettingsManager(sm, repo)
 
 		actual, err := sm.CreateServiceSettingConfiguration(ctx, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, repo.CreateServiceSettingConfigurationCalls(), 1)
@@ -139,7 +139,7 @@ func TestSettingsManager_UpdateServiceSettingConfiguration(t *testing.T) {
 		attachRepositoryToSettingsManager(sm, repo)
 
 		err := sm.UpdateServiceSettingConfiguration(ctx, updated)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, repo.UpdateServiceSettingConfigurationCalls(), 1)
 	})
@@ -166,7 +166,7 @@ func TestSettingsManager_ArchiveServiceSettingConfiguration(t *testing.T) {
 		attachRepositoryToSettingsManager(sm, repo)
 
 		err := sm.ArchiveServiceSettingConfiguration(ctx, serviceSettingConfigurationID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, repo.ArchiveServiceSettingConfigurationCalls(), 1)
 	})

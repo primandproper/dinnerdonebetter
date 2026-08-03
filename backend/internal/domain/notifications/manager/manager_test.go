@@ -57,7 +57,7 @@ func TestNotificationsManager_CreateUserNotification(t *testing.T) {
 		attachRepositoryToNotificationsManager(nm, repo)
 
 		actual, err := nm.CreateUserNotification(ctx, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, repo.CreateUserNotificationCalls(), 1)
@@ -86,7 +86,7 @@ func TestNotificationsManager_UpdateUserNotification(t *testing.T) {
 		attachRepositoryToNotificationsManager(nm, repo)
 
 		err := nm.UpdateUserNotification(ctx, updated)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, repo.UpdateUserNotificationCalls(), 1)
 	})
@@ -112,7 +112,7 @@ func TestNotificationsManager_CreateUserDeviceToken(t *testing.T) {
 		attachRepositoryToNotificationsManager(nm, repo)
 
 		actual, err := nm.CreateUserDeviceToken(ctx, input)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, repo.CreateUserDeviceTokenCalls(), 1)
@@ -142,7 +142,7 @@ func TestNotificationsManager_ArchiveUserDeviceToken(t *testing.T) {
 		attachRepositoryToNotificationsManager(nm, repo)
 
 		err := nm.ArchiveUserDeviceToken(ctx, userID, tokenID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, repo.ArchiveUserDeviceTokenCalls(), 1)
 	})

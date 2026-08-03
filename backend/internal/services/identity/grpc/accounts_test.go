@@ -13,6 +13,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -39,7 +40,7 @@ func TestServiceImpl_ArchiveAccount(t *testing.T) {
 
 		result, err := service.ArchiveAccount(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})
@@ -55,7 +56,7 @@ func TestServiceImpl_ArchiveAccount(t *testing.T) {
 
 		result, err := service.ArchiveAccount(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -82,7 +83,7 @@ func TestServiceImpl_ArchiveAccount(t *testing.T) {
 
 		result, err := service.ArchiveAccount(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -121,7 +122,7 @@ func TestServiceImpl_CreateAccount(t *testing.T) {
 
 		result, err := service.CreateAccount(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 		assert.NotNil(t, result.Created)
@@ -142,7 +143,7 @@ func TestServiceImpl_CreateAccount(t *testing.T) {
 
 		result, err := service.CreateAccount(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -167,7 +168,7 @@ func TestServiceImpl_CreateAccount(t *testing.T) {
 
 		result, err := service.CreateAccount(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -202,7 +203,7 @@ func TestServiceImpl_CreateAccountInvitation(t *testing.T) {
 
 		result, err := service.CreateAccountInvitation(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 		assert.NotNil(t, result.Created)
@@ -223,7 +224,7 @@ func TestServiceImpl_CreateAccountInvitation(t *testing.T) {
 
 		result, err := service.CreateAccountInvitation(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -248,7 +249,7 @@ func TestServiceImpl_CreateAccountInvitation(t *testing.T) {
 
 		result, err := service.CreateAccountInvitation(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -280,7 +281,7 @@ func TestServiceImpl_GetAccount(t *testing.T) {
 
 		result, err := service.GetAccount(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 		assert.NotNil(t, result.Result)
@@ -308,7 +309,7 @@ func TestServiceImpl_GetAccount(t *testing.T) {
 
 		result, err := service.GetAccount(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -346,10 +347,10 @@ func TestServiceImpl_GetAccounts(t *testing.T) {
 
 		result, err := service.GetAccounts(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
-		assert.Equal(t, len(exampleAccounts.Data), len(result.Results))
+		assert.Len(t, result.Results, len(exampleAccounts.Data))
 		for i := range result.Results {
 			assert.Equal(t, result.Results[i].Id, exampleAccounts.Data[i].ID)
 		}
@@ -369,7 +370,7 @@ func TestServiceImpl_GetAccounts(t *testing.T) {
 
 		result, err := service.GetAccounts(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -395,7 +396,7 @@ func TestServiceImpl_GetAccounts(t *testing.T) {
 
 		result, err := service.GetAccounts(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -426,7 +427,7 @@ func TestServiceImpl_SetDefaultAccount(t *testing.T) {
 
 		result, err := service.SetDefaultAccount(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 		assert.True(t, result.Success)
@@ -443,7 +444,7 @@ func TestServiceImpl_SetDefaultAccount(t *testing.T) {
 
 		result, err := service.SetDefaultAccount(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -470,7 +471,7 @@ func TestServiceImpl_SetDefaultAccount(t *testing.T) {
 
 		result, err := service.SetDefaultAccount(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -502,7 +503,7 @@ func TestServiceImpl_TransferAccountOwnership(t *testing.T) {
 
 		result, err := service.TransferAccountOwnership(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 		assert.True(t, result.Success)
@@ -523,7 +524,7 @@ func TestServiceImpl_TransferAccountOwnership(t *testing.T) {
 
 		result, err := service.TransferAccountOwnership(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -550,7 +551,7 @@ func TestServiceImpl_TransferAccountOwnership(t *testing.T) {
 
 		result, err := service.TransferAccountOwnership(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -581,7 +582,7 @@ func TestServiceImpl_UpdateAccount(t *testing.T) {
 
 		result, err := service.UpdateAccount(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})
@@ -600,7 +601,7 @@ func TestServiceImpl_UpdateAccount(t *testing.T) {
 
 		result, err := service.UpdateAccount(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -626,7 +627,7 @@ func TestServiceImpl_UpdateAccount(t *testing.T) {
 
 		result, err := service.UpdateAccount(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -661,7 +662,7 @@ func TestServiceImpl_UpdateAccountMemberPermissions(t *testing.T) {
 
 		result, err := service.UpdateAccountMemberPermissions(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})
@@ -680,7 +681,7 @@ func TestServiceImpl_UpdateAccountMemberPermissions(t *testing.T) {
 
 		result, err := service.UpdateAccountMemberPermissions(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -706,7 +707,7 @@ func TestServiceImpl_UpdateAccountMemberPermissions(t *testing.T) {
 
 		result, err := service.UpdateAccountMemberPermissions(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -740,7 +741,7 @@ func TestServiceImpl_ArchiveUserMembership(t *testing.T) {
 
 		result, err := service.ArchiveUserMembership(buildSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})
@@ -767,7 +768,7 @@ func TestServiceImpl_ArchiveUserMembership(t *testing.T) {
 
 		result, err := service.ArchiveUserMembership(buildSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)

@@ -16,6 +16,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func buildServiceImplForMealPlanningTest(t *testing.T) *serviceImpl {
@@ -70,7 +71,7 @@ func TestServiceImpl_ArchiveMeal(T *testing.T) {
 
 		res, err := s.ArchiveMeal(ctx, &mealplanninggrpc.ArchiveMealRequest{MealId: exampleMealID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ArchiveMealCalls(), 1)
 	})
@@ -104,7 +105,7 @@ func TestServiceImpl_ArchiveMealPlan(T *testing.T) {
 
 		res, err := s.ArchiveMealPlan(ctx, &mealplanninggrpc.ArchiveMealPlanRequest{MealPlanId: exampleMealPlanID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ArchiveMealPlanCalls(), 1)
 	})
@@ -140,7 +141,7 @@ func TestServiceImpl_ArchiveMealPlanEvent(T *testing.T) {
 			MealPlanEventId: exampleMealPlanEventID,
 		})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
 		assert.Len(t, mmpm.ArchiveMealPlanEventCalls(), 1)
@@ -177,7 +178,7 @@ func TestServiceImpl_ArchiveMealPlanGroceryListItem(T *testing.T) {
 			MealPlanGroceryListItemId: exampleMealPlanGroceryListItemID,
 		})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
 		assert.Len(t, mmpm.ArchiveMealPlanGroceryListItemCalls(), 1)
@@ -217,7 +218,7 @@ func TestServiceImpl_ArchiveMealPlanOption(T *testing.T) {
 			MealPlanOptionId: exampleMealPlanOptionID,
 		})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
 		assert.Len(t, mmpm.ArchiveMealPlanOptionCalls(), 1)
@@ -260,7 +261,7 @@ func TestServiceImpl_ArchiveMealPlanOptionVote(T *testing.T) {
 			MealPlanOptionVoteId: exampleMealPlanOptionVoteID,
 		})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
 		assert.Len(t, mmpm.ArchiveMealPlanOptionVoteCalls(), 1)
@@ -299,7 +300,7 @@ func TestServiceImpl_ArchiveUserIngredientPreference(T *testing.T) {
 			UserIngredientPreferenceId: exampleUserIngredientPreferenceID,
 		})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ArchiveUserIngredientPreferenceCalls(), 1)
 	})
@@ -325,7 +326,7 @@ func TestServiceImpl_GetMealLists(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		res, err := s.GetMealLists(ctx, &mealplanninggrpc.GetMealListsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.Len(t, res.Results, 1)
 
@@ -360,7 +361,7 @@ func TestServiceImpl_CreateMealList(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		res, err := s.CreateMealList(ctx, &mealplanninggrpc.CreateMealListRequest{Input: input})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.Equal(t, created.ID, res.Created.Id)
 
@@ -404,7 +405,7 @@ func TestServiceImpl_UpdateMealList(T *testing.T) {
 			MealListId: listID,
 			Input:      input,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 
 		assert.Len(t, mmpm.UpdateMealListCalls(), 1)
@@ -437,7 +438,7 @@ func TestServiceImpl_ArchiveMealList(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		res, err := s.ArchiveMealList(ctx, &mealplanninggrpc.ArchiveMealListRequest{MealListId: listID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 
 		assert.Len(t, mmpm.ArchiveMealListCalls(), 1)
@@ -467,7 +468,7 @@ func TestServiceImpl_GetMealListItems(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		res, err := s.GetMealListItems(ctx, &mealplanninggrpc.GetMealListItemsRequest{MealListId: listID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.Len(t, res.Results, 1)
 
@@ -506,7 +507,7 @@ func TestServiceImpl_CreateMealListItem(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		res, err := s.CreateMealListItem(ctx, &mealplanninggrpc.CreateMealListItemRequest{Input: input})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.Equal(t, created.ID, res.Created.Id)
 
@@ -548,7 +549,7 @@ func TestServiceImpl_UpdateMealListItem(T *testing.T) {
 			MealListItemId: itemID,
 			Input:          input,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 
 		assert.Len(t, mmpm.UpdateMealListItemCalls(), 1)
@@ -581,7 +582,7 @@ func TestServiceImpl_ArchiveMealListItem(T *testing.T) {
 			MealListItemId: itemID,
 			MealListId:     listID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 
 		assert.Len(t, mmpm.RemoveMealFromMealListCalls(), 1)
@@ -619,7 +620,7 @@ func TestServiceImpl_CreateMeal(T *testing.T) {
 
 		actual, err := s.CreateMeal(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedMeal.ID, actual.Created.Id)
 
 		assert.Len(t, mmpm.CreateMealCalls(), 1)
@@ -660,7 +661,7 @@ func TestServiceImpl_CreateMealPlan(T *testing.T) {
 
 		actual, err := s.CreateMealPlan(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedMealPlan.ID, actual.Created.Id)
 
 		assert.Len(t, mmpm.CreateMealPlanCalls(), 1)
@@ -696,7 +697,7 @@ func TestServiceImpl_CreateMealPlanEvent(T *testing.T) {
 
 		actual, err := s.CreateMealPlanEvent(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedMealPlanEvent.ID, actual.Created.Id)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
@@ -735,7 +736,7 @@ func TestServiceImpl_CreateMealPlanOption(T *testing.T) {
 
 		actual, err := s.CreateMealPlanOption(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedMealPlanOption.ID, actual.Created.Id)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
@@ -782,7 +783,7 @@ func TestServiceImpl_CreateMealPlanOptionVote(T *testing.T) {
 
 		actual, err := s.CreateMealPlanOptionVote(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, actual.Created, len(exampleCreatedMealPlanOptionVotes))
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
@@ -817,7 +818,7 @@ func TestServiceImpl_CreateMealPlanTask(T *testing.T) {
 
 		actual, err := s.CreateMealPlanTask(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedMealPlanTask.ID, actual.Created.Id)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
@@ -858,7 +859,7 @@ func TestServiceImpl_CreateUserIngredientPreference(T *testing.T) {
 
 		actual, err := s.CreateUserIngredientPreference(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, actual.Created, len(exampleCreatedUserIngredientPreferences))
 
 		assert.Len(t, mmpm.CreateUserIngredientPreferenceCalls(), 1)
@@ -894,7 +895,7 @@ func TestServiceImpl_FinalizeMealPlan(T *testing.T) {
 
 		res, err := s.FinalizeMealPlan(ctx, &mealplanninggrpc.FinalizeMealPlanRequest{MealPlanId: exampleMealPlanID})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleFinalized, res.Finalized)
 
 		assert.Len(t, mmpm.FinalizeMealPlanCalls(), 1)
@@ -928,7 +929,7 @@ func TestServiceImpl_GetMermaidDiagramForMeal(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		result, err := s.GetMermaidDiagramForMeal(ctx, &mealplanninggrpc.GetMermaidDiagramForMealRequest{MealId: exampleMeal.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, exampleMermaidDiagram, result.Response)
 
@@ -959,7 +960,7 @@ func TestServiceImpl_GetMeal(T *testing.T) {
 
 		result, err := s.GetMeal(ctx, &mealplanninggrpc.GetMealRequest{MealId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ReadMealCalls(), 1)
 	})
@@ -993,7 +994,7 @@ func TestServiceImpl_GetMealPlan(T *testing.T) {
 
 		result, err := s.GetMealPlan(ctx, &mealplanninggrpc.GetMealPlanRequest{MealPlanId: exampleResult.ID})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
 	})
@@ -1025,7 +1026,7 @@ func TestServiceImpl_GetMealPlansForAccount(T *testing.T) {
 		})
 
 		result, err := s.GetMealPlansForAccount(ctx, &mealplanninggrpc.GetMealPlansForAccountRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1062,7 +1063,7 @@ func TestServiceImpl_GetMealPlanEvent(T *testing.T) {
 			MealPlanEventId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
 		assert.Len(t, mmpm.ReadMealPlanEventCalls(), 1)
@@ -1094,7 +1095,7 @@ func TestServiceImpl_GetMealPlanEvents(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		result, err := s.GetMealPlanEvents(ctx, &mealplanninggrpc.GetMealPlanEventsRequest{MealPlanId: exampleMealPlanID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1132,7 +1133,7 @@ func TestServiceImpl_GetMealPlanGroceryListItem(T *testing.T) {
 			MealPlanGroceryListItemId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
 		assert.Len(t, mmpm.ReadMealPlanGroceryListItemCalls(), 1)
@@ -1164,7 +1165,7 @@ func TestServiceImpl_GetMealPlanGroceryListItemsForMealPlan(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		result, err := s.GetMealPlanGroceryListItemsForMealPlan(ctx, &mealplanninggrpc.GetMealPlanGroceryListItemsForMealPlanRequest{MealPlanId: exampleMealPlanID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1206,7 +1207,7 @@ func TestServiceImpl_GetMealPlanOption(T *testing.T) {
 			MealPlanOptionId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
 		assert.Len(t, mmpm.ReadMealPlanOptionCalls(), 1)
@@ -1249,7 +1250,7 @@ func TestServiceImpl_GetMealPlanOptionVote(T *testing.T) {
 			MealPlanOptionVoteId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
 		assert.Len(t, mmpm.ReadMealPlanOptionVoteCalls(), 1)
@@ -1289,7 +1290,7 @@ func TestServiceImpl_GetMealPlanOptionVotes(T *testing.T) {
 			MealPlanEventId:  exampleMealPlanEventID,
 			MealPlanOptionId: exampleMealPlanOptionID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1328,7 +1329,7 @@ func TestServiceImpl_GetMealPlanOptions(T *testing.T) {
 			MealPlanId:      exampleMealPlanID,
 			MealPlanEventId: exampleMealPlanEventID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1367,7 +1368,7 @@ func TestServiceImpl_GetMealPlanTask(T *testing.T) {
 			MealPlanTaskId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
 		assert.Len(t, mmpm.ReadMealPlanTaskCalls(), 1)
@@ -1399,7 +1400,7 @@ func TestServiceImpl_GetMealPlanTasks(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		result, err := s.GetMealPlanTasks(ctx, &mealplanninggrpc.GetMealPlanTasksRequest{MealPlanId: exampleMealPlanID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1427,7 +1428,7 @@ func TestServiceImpl_GetMeals(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		result, err := s.GetMeals(ctx, &mealplanninggrpc.GetMealsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1467,7 +1468,7 @@ func TestServiceImpl_GetUserIngredientPreference(T *testing.T) {
 			UserIngredientPreferenceId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ReadUserIngredientPreferenceCalls(), 1)
 	})
@@ -1501,7 +1502,7 @@ func TestServiceImpl_GetUserIngredientPreferences(T *testing.T) {
 		})
 
 		result, err := s.GetUserIngredientPreferences(ctx, &mealplanninggrpc.GetUserIngredientPreferencesRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1532,7 +1533,7 @@ func TestServiceImpl_SearchForMeals(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		result, err := s.SearchForMeals(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1574,7 +1575,7 @@ func TestServiceImpl_UpdateMealPlan(T *testing.T) {
 		})
 
 		res, err := s.UpdateMealPlan(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mmpm.UpdateMealPlanCalls(), 1)
@@ -1614,7 +1615,7 @@ func TestServiceImpl_UpdateMealPlanEvent(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		res, err := s.UpdateMealPlanEvent(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
@@ -1655,7 +1656,7 @@ func TestServiceImpl_UpdateMealPlanGroceryListItem(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		res, err := s.UpdateMealPlanGroceryListItem(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
@@ -1698,7 +1699,7 @@ func TestServiceImpl_UpdateMealPlanOption(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		res, err := s.UpdateMealPlanOption(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
@@ -1743,7 +1744,7 @@ func TestServiceImpl_UpdateMealPlanOptionVote(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		res, err := s.UpdateMealPlanOptionVote(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
@@ -1781,7 +1782,7 @@ func TestServiceImpl_UpdateMealPlanTaskStatus(T *testing.T) {
 		s.mealPlanningManager = mmpm
 
 		res, err := s.UpdateMealPlanTaskStatus(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mmpm.ReadMealPlanCalls(), 1)
@@ -1826,7 +1827,7 @@ func TestServiceImpl_UpdateUserIngredientPreference(T *testing.T) {
 		})
 
 		res, err := s.UpdateUserIngredientPreference(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
 		assert.Len(t, mmpm.UpdateUserIngredientPreferenceCalls(), 1)
@@ -1863,7 +1864,7 @@ func TestServiceImpl_CreateAccountInstrumentOwnership(T *testing.T) {
 
 		actual, err := s.CreateAccountInstrumentOwnership(ctx, exampleInput)
 		assert.NotNil(t, actual)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedAccountInstrumentOwnership.ID, actual.Created.Id)
 
 		assert.Len(t, mmpm.CreateAccountInstrumentOwnershipCalls(), 1)
@@ -1900,7 +1901,7 @@ func TestServiceImpl_GetAccountInstrumentOwnership(T *testing.T) {
 			AccountInstrumentOwnershipId: exampleResult.ID,
 		})
 		assert.Equal(t, exampleResult.ID, result.Result.Id)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ReadAccountInstrumentOwnershipCalls(), 1)
 	})
@@ -1932,7 +1933,7 @@ func TestServiceImpl_GetAccountInstrumentOwnerships(T *testing.T) {
 		})
 
 		result, err := s.GetAccountInstrumentOwnerships(ctx, &mealplanninggrpc.GetAccountInstrumentOwnershipsRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -1969,7 +1970,7 @@ func TestServiceImpl_SearchForValidInstrumentsNotOwnedByAccount(T *testing.T) {
 		})
 
 		result, err := s.SearchForValidInstrumentsNotOwnedByAccount(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
@@ -2011,7 +2012,7 @@ func TestServiceImpl_UpdateAccountInstrumentOwnership(T *testing.T) {
 		})
 
 		res, err := s.UpdateAccountInstrumentOwnership(ctx, exampleRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 
 		assert.Len(t, mmpm.ReadAccountInstrumentOwnershipCalls(), 1)
@@ -2049,7 +2050,7 @@ func TestServiceImpl_ArchiveAccountInstrumentOwnership(T *testing.T) {
 			AccountInstrumentOwnershipId: exampleAccountInstrumentOwnershipID,
 		})
 		assert.NotNil(t, res)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ArchiveAccountInstrumentOwnershipCalls(), 1)
 	})

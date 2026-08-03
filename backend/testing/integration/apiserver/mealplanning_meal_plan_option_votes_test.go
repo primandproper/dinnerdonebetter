@@ -16,7 +16,7 @@ import (
 func checkMealPlanOptionVoteEquality(t *testing.T, expected, actual *mealplanning.MealPlanOptionVote) {
 	t.Helper()
 
-	assert.NotZero(t, actual.ID)
+	assert.NotEmpty(t, actual.ID)
 	assert.Equal(t, expected.Rank, actual.Rank, "expected Rank for meal plan option vote %s to be %v, but it was %v", expected.ID, expected.Rank, actual.Rank)
 	assert.Equal(t, expected.Abstain, actual.Abstain, "expected Abstain for meal plan option vote %s to be %v, but it was %v", expected.ID, expected.Abstain, actual.Abstain)
 	assert.Equal(t, expected.Notes, actual.Notes, "expected StatusExplanation for meal plan option vote %s to be %v, but it was %v", expected.ID, expected.Notes, actual.Notes)
@@ -81,7 +81,7 @@ func TestMealPlanOptionVotes_CompleteLifecycle(T *testing.T) {
 				MealPlanOptionVoteId: createdMealPlanOptionVote.ID,
 				Input:                converters.ConvertMealPlanOptionVoteUpdateRequestInputToGRPCMealPlanOptionVoteUpdateRequestInput(updateInput),
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			actualRes, err := userClient.GetMealPlanOptionVote(ctx, &mealplanninggrpc.GetMealPlanOptionVoteRequest{
 				MealPlanId:           createdMealPlan.ID,
@@ -103,7 +103,7 @@ func TestMealPlanOptionVotes_CompleteLifecycle(T *testing.T) {
 				MealPlanOptionId:     createdMealPlanOption.ID,
 				MealPlanOptionVoteId: createdMealPlanOptionVote.ID,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 
 		_, err := userClient.ArchiveMealPlanOption(ctx, &mealplanninggrpc.ArchiveMealPlanOptionRequest{
@@ -188,7 +188,7 @@ func TestMealPlanOptionVotes_Listing(T *testing.T) {
 				MealPlanOptionId:     createdMealPlanOption.ID,
 				MealPlanOptionVoteId: createdMealPlanOptionVote.ID,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 
 		_, err := userClient.ArchiveMealPlanOption(ctx, &mealplanninggrpc.ArchiveMealPlanOptionRequest{
@@ -196,7 +196,7 @@ func TestMealPlanOptionVotes_Listing(T *testing.T) {
 			MealPlanEventId:  createdMealPlanEvent.ID,
 			MealPlanOptionId: createdMealPlanOption.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = userClient.ArchiveMealPlanEvent(ctx, &mealplanninggrpc.ArchiveMealPlanEventRequest{
 			MealPlanId:      createdMealPlan.ID,

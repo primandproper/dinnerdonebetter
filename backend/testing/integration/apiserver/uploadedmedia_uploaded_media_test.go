@@ -104,7 +104,7 @@ func TestUploadedMedia_Reading(T *testing.T) {
 		createdUploadedMedia := createUploadedMediaForTest(t, testClient)
 
 		retrieved, err := testClient.GetUploadedMedia(ctx, &uploadedmediasvc.GetUploadedMediaRequest{UploadedMediaId: createdUploadedMedia.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, retrieved)
 	})
 
@@ -115,7 +115,7 @@ func TestUploadedMedia_Reading(T *testing.T) {
 		_, testClient := createUserAndClientForTest(t)
 
 		retrieved, err := testClient.GetUploadedMedia(ctx, &uploadedmediasvc.GetUploadedMediaRequest{UploadedMediaId: nonexistentID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, retrieved)
 	})
 
@@ -139,7 +139,7 @@ func TestUploadedMedia_Reading(T *testing.T) {
 		// Try to access as user 2
 		_, testClient2 := createUserAndClientForTest(t)
 		retrieved, err := testClient2.GetUploadedMedia(ctx, &uploadedmediasvc.GetUploadedMediaRequest{UploadedMediaId: createdUploadedMedia.ID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, retrieved)
 	})
 }
@@ -164,7 +164,7 @@ func TestUploadedMedia_ReadingWithIDs(T *testing.T) {
 		results, err := testClient.GetUploadedMediaWithIDs(ctx, &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
 			Ids: ids,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
 		assert.Len(t, results.Results, len(createdUploadedMedia))
 	})
@@ -185,7 +185,7 @@ func TestUploadedMedia_ReadingWithIDs(T *testing.T) {
 		results, err := testClient2.GetUploadedMediaWithIDs(ctx, &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
 			Ids: []string{media1.ID, media2.ID},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
 		// Should only get their own media
 		assert.Len(t, results.Results, 1)
@@ -201,7 +201,7 @@ func TestUploadedMedia_ReadingWithIDs(T *testing.T) {
 		results, err := testClient.GetUploadedMediaWithIDs(ctx, &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
 			Ids: []string{},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, results)
 	})
 
@@ -232,9 +232,9 @@ func TestUploadedMedia_ListingForUser(T *testing.T) {
 		results, err := testClient.GetUploadedMediaForUser(ctx, &uploadedmediasvc.GetUploadedMediaForUserRequest{
 			UserId: user.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdUploadedMedia))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdUploadedMedia))
 	})
 
 	T.Run("cannot access other user's media", func(t *testing.T) {
@@ -250,7 +250,7 @@ func TestUploadedMedia_ListingForUser(T *testing.T) {
 		results, err := testClient2.GetUploadedMediaForUser(ctx, &uploadedmediasvc.GetUploadedMediaForUserRequest{
 			UserId: user1.ID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, results)
 	})
 
@@ -286,14 +286,14 @@ func TestUploadedMedia_Updating(T *testing.T) {
 			UploadedMediaId: createdUploadedMedia.ID,
 			Input:           updateInput,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, updated)
 		assert.Equal(t, newStoragePath, updated.Updated.StoragePath)
 		assert.Equal(t, newMimeType, updated.Updated.MimeType)
 
 		// Verify the update persisted
 		retrieved, err := testClient.GetUploadedMedia(ctx, &uploadedmediasvc.GetUploadedMediaRequest{UploadedMediaId: createdUploadedMedia.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, newStoragePath, retrieved.Result.StoragePath)
 		assert.Equal(t, newMimeType, retrieved.Result.MimeType)
 
@@ -318,7 +318,7 @@ func TestUploadedMedia_Updating(T *testing.T) {
 			UploadedMediaId: nonexistentID,
 			Input:           updateInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, updated)
 	})
 
@@ -342,7 +342,7 @@ func TestUploadedMedia_Updating(T *testing.T) {
 			UploadedMediaId: createdUploadedMedia.ID,
 			Input:           updateInput,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, updated)
 	})
 
@@ -369,12 +369,12 @@ func TestUploadedMedia_Archiving(T *testing.T) {
 		archived, err := testClient.ArchiveUploadedMedia(ctx, &uploadedmediasvc.ArchiveUploadedMediaRequest{
 			UploadedMediaId: createdUploadedMedia.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, archived)
 
 		// Verify it's been archived (should not be retrievable)
 		retrieved, err := testClient.GetUploadedMedia(ctx, &uploadedmediasvc.GetUploadedMediaRequest{UploadedMediaId: createdUploadedMedia.ID})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, retrieved)
 
 		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
@@ -391,7 +391,7 @@ func TestUploadedMedia_Archiving(T *testing.T) {
 		archived, err := testClient.ArchiveUploadedMedia(ctx, &uploadedmediasvc.ArchiveUploadedMediaRequest{
 			UploadedMediaId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, archived)
 	})
 
@@ -409,12 +409,12 @@ func TestUploadedMedia_Archiving(T *testing.T) {
 		archived, err := testClient2.ArchiveUploadedMedia(ctx, &uploadedmediasvc.ArchiveUploadedMediaRequest{
 			UploadedMediaId: createdUploadedMedia.ID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, archived)
 
 		// Verify it's still accessible to user 1
 		retrieved, err := testClient1.GetUploadedMedia(ctx, &uploadedmediasvc.GetUploadedMediaRequest{UploadedMediaId: createdUploadedMedia.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, retrieved)
 	})
 
@@ -607,7 +607,7 @@ func TestUploadedMedia_Pagination(T *testing.T) {
 				MaxResponseSize: new(uint32(5)),
 			},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, results)
 		assert.LessOrEqual(t, len(results.Results), 5)
 	})

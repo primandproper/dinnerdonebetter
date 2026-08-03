@@ -32,14 +32,14 @@ func createUserIngredientPreferenceForTest(t *testing.T, ctx context.Context, ex
 	exampleUserIngredientPreference.CreatedAt = created.CreatedAt
 	exampleUserIngredientPreference.Ingredient = created.Ingredient
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, exampleUserIngredientPreference, created)
 
 	userIngredientPreference, err := dbc.GetUserIngredientPreference(ctx, created.ID, dbInput.CreatedByUser)
 	exampleUserIngredientPreference.CreatedAt = userIngredientPreference.CreatedAt
 	exampleUserIngredientPreference.Ingredient = userIngredientPreference.Ingredient
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, userIngredientPreference, exampleUserIngredientPreference)
 
 	return created
@@ -66,7 +66,7 @@ func TestQuerier_Integration_UserIngredientPreferences(t *testing.T) {
 	updatedUserIngredientPreference.ID = createdUserIngredientPreferences[0].ID
 	updatedUserIngredientPreference.CreatedByUser = user.ID
 	updatedUserIngredientPreference.Ingredient = *ingredient2
-	assert.NoError(t, dbc.UpdateUserIngredientPreference(ctx, updatedUserIngredientPreference))
+	require.NoError(t, dbc.UpdateUserIngredientPreference(ctx, updatedUserIngredientPreference))
 
 	// create more
 	for range exampleQuantity {
@@ -79,23 +79,23 @@ func TestQuerier_Integration_UserIngredientPreferences(t *testing.T) {
 
 	// fetch as list
 	userIngredientPreferences, err := dbc.GetUserIngredientPreferences(ctx, user.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, userIngredientPreferences.Data)
-	assert.Equal(t, len(createdUserIngredientPreferences), len(userIngredientPreferences.Data))
+	assert.Len(t, userIngredientPreferences.Data, len(createdUserIngredientPreferences))
 
 	// delete
 	for _, userIngredientPreference := range createdUserIngredientPreferences {
-		assert.NoError(t, dbc.ArchiveUserIngredientPreference(ctx, userIngredientPreference.ID, user.ID))
+		require.NoError(t, dbc.ArchiveUserIngredientPreference(ctx, userIngredientPreference.ID, user.ID))
 
 		var exists bool
 		exists, err = dbc.UserIngredientPreferenceExists(ctx, userIngredientPreference.ID, user.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.UserIngredientPreference
 		y, err = dbc.GetUserIngredientPreference(ctx, userIngredientPreference.ID, user.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -112,7 +112,7 @@ func TestQuerier_UserIngredientPreferenceExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.UserIngredientPreferenceExists(ctx, "", exampleUserID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -125,7 +125,7 @@ func TestQuerier_UserIngredientPreferenceExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.UserIngredientPreferenceExists(ctx, exampleUserIngredientPreferenceID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -141,7 +141,7 @@ func TestQuerier_GetUserIngredientPreference(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUserIngredientPreference(ctx, "", exampleUserID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -156,7 +156,7 @@ func TestQuerier_CreateUserIngredientPreference(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateUserIngredientPreference(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

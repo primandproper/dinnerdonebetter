@@ -10,6 +10,7 @@ import (
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -26,7 +27,7 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 
 		identityDataManager.AdminSetPasswordChangeRequiredFunc = func(_ context.Context, userID string, requiresChange bool) error {
 			assert.Equal(t, exampleUserID, userID)
-			assert.Equal(t, true, requiresChange)
+			assert.True(t, requiresChange)
 
 			return nil
 		}
@@ -38,7 +39,7 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 
 		result, err := service.AdminSetPasswordChangeRequired(buildAdminSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})
@@ -55,7 +56,7 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 
 		result, err := service.AdminSetPasswordChangeRequired(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -69,7 +70,7 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 		service, identityDataManager := buildTestService(t)
 
 		identityDataManager.AdminSetPasswordChangeRequiredFunc = func(_ context.Context, _ string, requiresChange bool) error {
-			assert.Equal(t, true, requiresChange)
+			assert.True(t, requiresChange)
 
 			return errors.New("update error")
 		}
@@ -81,7 +82,7 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 
 		result, err := service.AdminSetPasswordChangeRequired(buildAdminSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -101,7 +102,7 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 
 		result, err := service.AdminSetPasswordChangeRequired(buildInsufficientPermissionsSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -134,7 +135,7 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 
 		result, err := service.AdminUpdateUserStatus(buildAdminSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})
@@ -151,7 +152,7 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 
 		result, err := service.AdminUpdateUserStatus(t.Context(), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -175,7 +176,7 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 
 		result, err := service.AdminUpdateUserStatus(buildAdminSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -195,7 +196,7 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 
 		result, err := service.AdminUpdateUserStatus(buildInsufficientPermissionsSessionContextForTest(t), request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 
 		grpcErr, ok := status.FromError(err)
@@ -224,7 +225,7 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 
 		result, err := service.AdminUpdateUserStatus(buildAdminSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})
@@ -250,7 +251,7 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 
 		result, err := service.AdminUpdateUserStatus(buildAdminSessionContextForTest(t), request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.ResponseDetails)
 	})

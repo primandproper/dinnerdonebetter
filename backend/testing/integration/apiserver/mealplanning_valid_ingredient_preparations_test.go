@@ -99,7 +99,7 @@ func TestValidIngredientPreparations_Listing(T *testing.T) {
 		results, err := adminClient.GetValidIngredientPreparations(ctx, &mealplanningsvc.GetValidIngredientPreparationsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidIngredientPreparations))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidIngredientPreparations))
 	})
 
 	T.Run("by Preparation", func(t *testing.T) {
@@ -109,7 +109,7 @@ func TestValidIngredientPreparations_Listing(T *testing.T) {
 		results, err := adminClient.GetValidIngredientPreparationsByPreparation(ctx, &mealplanningsvc.GetValidIngredientPreparationsByPreparationRequest{ValidPreparationId: validPreparation.ID})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= len(createdValidIngredientPreparations))
+		assert.GreaterOrEqual(t, len(results.Results), len(createdValidIngredientPreparations))
 	})
 
 	T.Run("by ingredient", func(t *testing.T) {
@@ -119,7 +119,7 @@ func TestValidIngredientPreparations_Listing(T *testing.T) {
 		results, err := adminClient.GetValidIngredientPreparationsByIngredient(ctx, &mealplanningsvc.GetValidIngredientPreparationsByIngredientRequest{ValidIngredientId: validIngredient.ID})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= 1, "at least one VIP for this ingredient")
+		assert.GreaterOrEqual(t, len(results.Results), 1, "at least one VIP for this ingredient")
 	})
 }
 
@@ -138,7 +138,7 @@ func TestValidIngredientPreparations_SearchByPreparation(T *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, results)
-		assert.True(t, len(results.Results) >= 1, "expected at least one result when searching by preparation")
+		assert.GreaterOrEqual(t, len(results.Results), 1, "expected at least one result when searching by preparation")
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -170,7 +170,7 @@ func TestIntegration_UpdateValidIngredientPreparation(T *testing.T) {
 			ValidIngredientPreparationId: created.ID,
 			Input:                        mealplanningconverters.ConvertValidIngredientPreparationUpdateRequestInputToGRPCValidIngredientPreparationUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		updated := mealplanningconverters.ConvertGRPCValidIngredientPreparationToValidIngredientPreparation(response.Result)
 		require.NotNil(t, updated.LastUpdatedAt)
@@ -208,7 +208,7 @@ func TestIntegration_UpdateValidIngredientPreparation(T *testing.T) {
 			ValidIngredientPreparationId: created.ID,
 			Input:                        mealplanningconverters.ConvertValidIngredientPreparationUpdateRequestInputToGRPCValidIngredientPreparationUpdateRequestInput(updateInput),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -223,7 +223,7 @@ func TestIntegration_ArchiveValidIngredientPreparation(T *testing.T) {
 		_, _, created := createValidIngredientPreparationForTest(t)
 
 		_, err := adminClient.ArchiveValidIngredientPreparation(ctx, &mealplanningsvc.ArchiveValidIngredientPreparationRequest{ValidIngredientPreparationId: created.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		x, err := adminClient.GetValidIngredientPreparation(ctx, &mealplanningsvc.GetValidIngredientPreparationRequest{ValidIngredientPreparationId: created.ID})
 		assert.Nil(t, x)

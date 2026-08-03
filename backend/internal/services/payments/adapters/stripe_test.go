@@ -117,7 +117,7 @@ func TestStripePaymentProcessor_HandleWebhook(T *testing.T) {
 		req.Header.Set("Stripe-Signature", "t=1,v1=deadbeef")
 
 		actual, err := processor.HandleWebhook(req)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -132,7 +132,7 @@ func TestStripePaymentProcessor_HandleWebhook(T *testing.T) {
 		req.Header.Del("Stripe-Signature")
 
 		actual, err := processor.HandleWebhook(req)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -208,7 +208,7 @@ func TestParseStripeEvent(T *testing.T) {
 			Type:    "customer.subscription.updated",
 			Payload: []byte(`{"id":`),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

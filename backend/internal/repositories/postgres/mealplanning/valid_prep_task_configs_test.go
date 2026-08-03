@@ -31,7 +31,7 @@ func createValidPrepTaskConfigForTest(t *testing.T, ctx context.Context, example
 	dbInput := converters.ConvertValidPrepTaskConfigToValidPrepTaskConfigDatabaseCreationInput(exampleValidPrepTaskConfig)
 
 	created, err := dbc.CreateValidPrepTaskConfig(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 	exampleValidPrepTaskConfig.CreatedAt = created.CreatedAt
 	assertValidPrepTaskConfigsEqual(t, exampleValidPrepTaskConfig, created)
@@ -42,7 +42,7 @@ func createValidPrepTaskConfigForTest(t *testing.T, ctx context.Context, example
 	exampleValidPrepTaskConfig.Preparation = validPrepTaskConfig.Preparation
 	exampleValidPrepTaskConfig.Ingredient = validPrepTaskConfig.Ingredient
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assertValidPrepTaskConfigsEqual(t, exampleValidPrepTaskConfig, validPrepTaskConfig)
 
 	return created
@@ -78,7 +78,7 @@ func TestQuerier_Integration_ValidPrepTaskConfigs(t *testing.T) {
 	updatedValidPrepTaskConfig.ID = createdValidPrepTaskConfigs[0].ID
 	updatedValidPrepTaskConfig.Preparation = createdValidPrepTaskConfigs[0].Preparation
 	updatedValidPrepTaskConfig.Ingredient = createdValidPrepTaskConfigs[0].Ingredient
-	assert.NoError(t, dbc.UpdateValidPrepTaskConfig(ctx, updatedValidPrepTaskConfig))
+	require.NoError(t, dbc.UpdateValidPrepTaskConfig(ctx, updatedValidPrepTaskConfig))
 
 	// create more
 	for range exampleQuantity {
@@ -90,35 +90,35 @@ func TestQuerier_Integration_ValidPrepTaskConfigs(t *testing.T) {
 
 	// fetch as list
 	validPrepTaskConfigs, err := dbc.GetValidPrepTaskConfigs(ctx, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, validPrepTaskConfigs.Data)
-	assert.Equal(t, len(createdValidPrepTaskConfigs), len(validPrepTaskConfigs.Data))
+	assert.Len(t, validPrepTaskConfigs.Data, len(createdValidPrepTaskConfigs))
 
 	forIngredient, err := dbc.GetValidPrepTaskConfigsForIngredient(ctx, createdValidPrepTaskConfigs[0].Ingredient.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, forIngredient.Data)
 
 	forPreparation, err := dbc.GetValidPrepTaskConfigsForPreparation(ctx, createdValidPrepTaskConfigs[0].Preparation.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, forPreparation.Data)
 
 	forIngredientAndPreparation, err := dbc.GetValidPrepTaskConfigsForIngredientAndPreparation(ctx, createdValidPrepTaskConfigs[0].Ingredient.ID, createdValidPrepTaskConfigs[0].Preparation.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, forIngredientAndPreparation.Data)
 
 	// delete
 	for _, validPrepTaskConfig := range createdValidPrepTaskConfigs {
-		assert.NoError(t, dbc.ArchiveValidPrepTaskConfig(ctx, validPrepTaskConfig.ID))
+		require.NoError(t, dbc.ArchiveValidPrepTaskConfig(ctx, validPrepTaskConfig.ID))
 
 		var exists bool
 		exists, err = dbc.ValidPrepTaskConfigExists(ctx, validPrepTaskConfig.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 
 		var y *types.ValidPrepTaskConfig
 		y, err = dbc.GetValidPrepTaskConfig(ctx, validPrepTaskConfig.ID)
 		assert.Nil(t, y)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 	}
 }
@@ -134,7 +134,7 @@ func TestQuerier_ValidPrepTaskConfigExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.ValidPrepTaskConfigExists(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -149,7 +149,7 @@ func TestQuerier_GetValidPrepTaskConfig(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidPrepTaskConfig(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -164,7 +164,7 @@ func TestQuerier_GetValidPrepTaskConfigsForIngredient(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidPrepTaskConfigsForIngredient(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -179,7 +179,7 @@ func TestQuerier_GetValidPrepTaskConfigsForPreparation(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidPrepTaskConfigsForPreparation(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -194,7 +194,7 @@ func TestQuerier_GetValidPrepTaskConfigsForIngredientAndPreparation(T *testing.T
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidPrepTaskConfigsForIngredientAndPreparation(ctx, "", "valid-preparation-id", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -205,7 +205,7 @@ func TestQuerier_GetValidPrepTaskConfigsForIngredientAndPreparation(T *testing.T
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetValidPrepTaskConfigsForIngredientAndPreparation(ctx, "valid-ingredient-id", "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -220,7 +220,7 @@ func TestQuerier_CreateValidPrepTaskConfig(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateValidPrepTaskConfig(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

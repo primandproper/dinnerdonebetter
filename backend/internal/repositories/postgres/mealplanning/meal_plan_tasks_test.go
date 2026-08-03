@@ -22,7 +22,7 @@ func createMealPlanTaskForTest(t *testing.T, ctx context.Context, exampleMealPla
 	dbInput := converters.ConvertMealPlanTaskToMealPlanTaskDatabaseCreationInput(exampleMealPlanTask)
 
 	created, err := dbc.CreateMealPlanTask(ctx, dbInput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, created)
 
 	exampleMealPlanTask.CreatedAt = created.CreatedAt
@@ -72,9 +72,9 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 
 	// fetch as list
 	mealPlanTasks, err := dbc.GetMealPlanTasksForMealPlan(ctx, mealPlan.ID, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, mealPlanTasks)
-	assert.Equal(t, len(createdMealPlanTasks), len(mealPlanTasks.Data))
+	assert.Len(t, mealPlanTasks.Data, len(createdMealPlanTasks))
 
 	// create an ad-hoc thaw task: no backing recipe prep task, so
 	// belongs_to_recipe_prep_task is persisted as NULL.
@@ -97,8 +97,8 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 	assert.Equal(t, "frozen ingredient might need to be thawed", fetchedThawTask.CreationExplanation)
 
 	mealPlanTasks, err = dbc.GetMealPlanTasksForMealPlan(ctx, mealPlan.ID, nil)
-	assert.NoError(t, err)
-	assert.Equal(t, len(createdMealPlanTasks), len(mealPlanTasks.Data))
+	require.NoError(t, err)
+	assert.Len(t, mealPlanTasks.Data, len(createdMealPlanTasks))
 
 	// a batch that fails partway through commits nothing, and leaves the plan unmarked. The task
 	// creator re-selects unmarked plans and regenerates every task, so anything left behind by a
@@ -117,12 +117,12 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 	doomedTask.MealPlanOptionID = fakes.BuildFakeID()
 
 	batched, err := dbc.CreateMealPlanTasksForMealPlan(ctx, mealPlan.ID, []*types.MealPlanTaskDatabaseCreationInput{goodTaskInput(), doomedTask})
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, batched)
 
 	mealPlanTasks, err = dbc.GetMealPlanTasksForMealPlan(ctx, mealPlan.ID, nil)
-	assert.NoError(t, err)
-	assert.Equal(t, len(createdMealPlanTasks), len(mealPlanTasks.Data), "the task preceding the failure must have rolled back with it")
+	require.NoError(t, err)
+	assert.Len(t, mealPlanTasks.Data, len(createdMealPlanTasks), "the task preceding the failure must have rolled back with it")
 
 	unmarkedMealPlan, err := dbc.GetMealPlan(ctx, mealPlan.ID, account.ID)
 	require.NoError(t, err)
@@ -136,8 +136,8 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 	createdMealPlanTasks = append(createdMealPlanTasks, batched...)
 
 	mealPlanTasks, err = dbc.GetMealPlanTasksForMealPlan(ctx, mealPlan.ID, nil)
-	assert.NoError(t, err)
-	assert.Equal(t, len(createdMealPlanTasks), len(mealPlanTasks.Data))
+	require.NoError(t, err)
+	assert.Len(t, mealPlanTasks.Data, len(createdMealPlanTasks))
 
 	markedMealPlan, err := dbc.GetMealPlan(ctx, mealPlan.ID, account.ID)
 	require.NoError(t, err)
@@ -145,7 +145,7 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 
 	// delete
 	for _, mealPlanTask := range createdMealPlanTasks {
-		assert.NoError(t, dbc.ChangeMealPlanTaskStatus(ctx, &types.MealPlanTaskStatusChangeRequestInput{
+		require.NoError(t, dbc.ChangeMealPlanTaskStatus(ctx, &types.MealPlanTaskStatusChangeRequestInput{
 			Status:            pointer.To(types.MealPlanTaskStatusFinished),
 			StatusExplanation: t.Name(),
 			AssignedToUser:    &user.ID,
@@ -154,7 +154,7 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 
 		var exists bool
 		exists, err = dbc.MealPlanTaskExists(ctx, mealPlanTask.ID, account.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, exists)
 	}
 }
@@ -172,7 +172,7 @@ func TestQuerier_MealPlanTaskExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealPlanTaskExists(ctx, "", exampleMealPlanTaskID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 
@@ -186,7 +186,7 @@ func TestQuerier_MealPlanTaskExists(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealPlanTaskExists(ctx, exampleMealPlanID, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, actual)
 	})
 }
@@ -201,7 +201,7 @@ func TestQuerier_GetMealPlanTask(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlanTask(ctx, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -216,7 +216,7 @@ func TestQuerier_CreateMealPlanTask(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateMealPlanTask(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -231,7 +231,7 @@ func TestQuerier_GetMealPlanTasksForMealPlan(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetMealPlanTasksForMealPlan(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -246,7 +246,7 @@ func TestQuerier_CreateMealPlanTasksForMealPlan(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreateMealPlanTasksForMealPlan(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }

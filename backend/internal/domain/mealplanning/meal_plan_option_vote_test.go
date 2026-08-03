@@ -6,6 +6,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMealPlanOptionVote_Update(T *testing.T) {
@@ -17,7 +18,7 @@ func TestMealPlanOptionVote_Update(T *testing.T) {
 		x := &MealPlanOptionVote{}
 		input := &MealPlanOptionVoteUpdateRequestInput{}
 
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 		input.Abstain = new(true)
 
 		x.Update(input)

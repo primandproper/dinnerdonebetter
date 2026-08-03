@@ -17,7 +17,7 @@ import (
 func checkMealPlanEventEquality(t *testing.T, expected, actual *mealplanning.MealPlanEvent) {
 	t.Helper()
 
-	assert.NotZero(t, actual.ID)
+	assert.NotEmpty(t, actual.ID)
 	assert.Equal(t, expected.Notes, actual.Notes, "expected StatusExplanation for meal plan event %s to be %v, but it was %v", expected.ID, expected.Notes, actual.Notes)
 	assert.Equal(t, expected.StartsAt, actual.StartsAt, "expected StartsAt for meal plan event %s to be %v, but it was %v", expected.ID, expected.StartsAt, actual.StartsAt)
 	assert.Equal(t, expected.EndsAt, actual.EndsAt, "expected EndsAt for meal plan event %s to be %v, but it was %v", expected.ID, expected.EndsAt, actual.EndsAt)
@@ -52,7 +52,7 @@ func TestMealPlanEvents_CompleteLifecycle(T *testing.T) {
 			MealPlanEventId: createdMealPlanEvent.ID,
 			Input:           converters.ConvertMealPlanEventUpdateRequestInputToGRPCMealPlanEventUpdateRequestInput(updateInput),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		actualRes, err := userClient.GetMealPlanEvent(ctx, &mealplanninggrpc.GetMealPlanEventRequest{
 			MealPlanId:      createdMealPlan.ID,
@@ -69,7 +69,7 @@ func TestMealPlanEvents_CompleteLifecycle(T *testing.T) {
 			MealPlanId:      createdMealPlan.ID,
 			MealPlanEventId: createdMealPlanEvent.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = userClient.ArchiveMealPlan(ctx, &mealplanninggrpc.ArchiveMealPlanRequest{MealPlanId: createdMealPlan.ID})
 		assert.NoError(t, err)
@@ -95,7 +95,7 @@ func TestMealPlanEvents_CompleteLifecycle(T *testing.T) {
 			MealPlanEventIdA: eventA.ID,
 			MealPlanEventIdB: eventB.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		actualA, err := userClient.GetMealPlanEvent(ctx, &mealplanninggrpc.GetMealPlanEventRequest{
 			MealPlanId:      createdMealPlan.ID,
@@ -157,9 +157,9 @@ func TestMealPlanEvents_Listing(T *testing.T) {
 		// assert meal plan event list equality
 		actual, err := userClient.GetMealPlanEvents(ctx, &mealplanninggrpc.GetMealPlanEventsRequest{MealPlanId: createdMealPlan.ID})
 		require.NoError(t, err)
-		assert.True(
+		assert.LessOrEqual(
 			t,
-			len(expected) <= len(actual.Results),
+			len(expected), len(actual.Results),
 			"expected %d to be <= %d",
 			len(expected),
 			len(actual.Results),
@@ -170,7 +170,7 @@ func TestMealPlanEvents_Listing(T *testing.T) {
 				MealPlanId:      createdMealPlan.ID,
 				MealPlanEventId: createdMealPlanEvent.ID,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 
 		_, err = userClient.ArchiveMealPlan(ctx, &mealplanninggrpc.ArchiveMealPlanRequest{MealPlanId: createdMealPlan.ID})

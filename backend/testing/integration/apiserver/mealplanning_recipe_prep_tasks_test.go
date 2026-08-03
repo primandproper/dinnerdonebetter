@@ -15,7 +15,7 @@ import (
 
 func checkRecipePrepTaskStepSliceEquality(t *testing.T, taskIndex int, expected, actual []*mealplanning.RecipePrepTaskStep) {
 	t.Helper()
-	require.Equal(t, len(expected), len(actual), "expected prep task %d steps length", taskIndex)
+	require.Len(t, actual, len(expected), "expected prep task %d steps length", taskIndex)
 	for i := range expected {
 		checkRecipePrepTaskStepEquality(t, taskIndex, i, expected[i], actual[i])
 	}
@@ -32,7 +32,7 @@ func checkRecipePrepTaskStepEquality(t *testing.T, taskIndex, stepIndex int, exp
 func checkRecipePrepTaskSliceEquality(t *testing.T, expected, actual []*mealplanning.RecipePrepTask) {
 	t.Helper()
 
-	require.Equal(t, len(expected), len(actual), "expected recipe prep tasks length")
+	require.Len(t, actual, len(expected), "expected recipe prep tasks length")
 	for i := range expected {
 		checkRecipePrepTaskEquality(t, i, expected[i], actual[i])
 	}
@@ -141,7 +141,7 @@ func TestRecipePrepTasks_CompleteLifecycle(T *testing.T) {
 			RecipeId:         createdRecipe.ID,
 			RecipePrepTaskId: actual.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})
 		assert.NoError(t, err)
@@ -208,9 +208,9 @@ func TestRecipePrepTasks_Listing(T *testing.T) {
 		// assert recipe prep task list equality
 		actual, err := adminClient.GetRecipePrepTasks(ctx, &mealplanninggrpc.GetRecipePrepTasksRequest{RecipeId: createdRecipe.ID})
 		require.NoError(t, err)
-		assert.True(
+		assert.LessOrEqual(
 			t,
-			len(expected) <= len(actual.Results),
+			len(expected), len(actual.Results),
 			"expected %d to be <= %d",
 			len(expected),
 			len(actual.Results),
@@ -221,7 +221,7 @@ func TestRecipePrepTasks_Listing(T *testing.T) {
 				RecipeId:         createdRecipe.ID,
 				RecipePrepTaskId: createdRecipePrepTask.ID,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: createdRecipe.ID})

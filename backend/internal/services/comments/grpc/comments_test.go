@@ -15,6 +15,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -79,7 +80,7 @@ func TestServiceImpl_CreateComment(T *testing.T) {
 				ReferencedId: recipeID,
 			},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.Equal(t, fakeComment.ID, res.Comment.Id)
 
@@ -93,7 +94,7 @@ func TestServiceImpl_CreateComment(T *testing.T) {
 		s := buildCommentsServiceImplForTest(t, nil)
 
 		res, err := s.CreateComment(ctx, &commentssvc.CreateCommentRequest{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		st, ok := status.FromError(err)
 		assert.True(t, ok)
@@ -112,7 +113,7 @@ func TestServiceImpl_CreateComment(T *testing.T) {
 				ReferencedId: commentsfakes.BuildFakeID(),
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		st, ok := status.FromError(err)
 		assert.True(t, ok)
@@ -146,7 +147,7 @@ func TestServiceImpl_GetCommentsForReference(T *testing.T) {
 			TargetType:   "recipes",
 			ReferencedId: recipeID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.Len(t, res.Data, len(expected.Data))
 
@@ -188,7 +189,7 @@ func TestServiceImpl_UpdateComment(T *testing.T) {
 			CommentId: commentID,
 			Input:     &commentssvc.CommentUpdateRequestInput{Content: newContent},
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.Equal(t, commentID, res.Comment.Id)
 
@@ -221,7 +222,7 @@ func TestServiceImpl_UpdateComment(T *testing.T) {
 			CommentId: commentID,
 			Input:     &commentssvc.CommentUpdateRequestInput{Content: "updated"},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		st, ok := status.FromError(err)
 		assert.True(t, ok)
@@ -263,7 +264,7 @@ func TestServiceImpl_ArchiveComment(T *testing.T) {
 		res, err := s.ArchiveComment(ctx, &commentssvc.ArchiveCommentRequest{
 			CommentId: commentID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 
 		assert.Len(t, mcm.GetCommentCalls(), 1)
@@ -294,7 +295,7 @@ func TestServiceImpl_ArchiveComment(T *testing.T) {
 		res, err := s.ArchiveComment(ctx, &commentssvc.ArchiveCommentRequest{
 			CommentId: commentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, res)
 		st, ok := status.FromError(err)
 		assert.True(t, ok)

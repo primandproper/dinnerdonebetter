@@ -19,6 +19,7 @@ import (
 	"github.com/primandproper/platform-go/v9/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -81,7 +82,7 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 
 		response, err := service.CreateWebhook(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Created)
 		assert.NotNil(t, response.ResponseDetails)
@@ -113,7 +114,7 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 
 		response, err := service.CreateWebhook(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -138,7 +139,7 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 
 		response, err := service.CreateWebhook(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
@@ -164,7 +165,7 @@ func TestServiceImpl_CreateWebhook(t *testing.T) {
 
 		response, err := service.CreateWebhook(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -201,7 +202,7 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 
 		response, err := service.AddWebhookTriggerConfig(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Created)
 		assert.NotNil(t, response.ResponseDetails)
@@ -229,7 +230,7 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 
 		response, err := service.AddWebhookTriggerConfig(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -257,7 +258,7 @@ func TestServiceImpl_AddWebhookTriggerConfig(t *testing.T) {
 
 		response, err := service.AddWebhookTriggerConfig(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -290,7 +291,7 @@ func TestServiceImpl_GetWebhook(t *testing.T) {
 
 		response, err := service.GetWebhook(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Result)
 		assert.NotNil(t, response.ResponseDetails)
@@ -313,7 +314,7 @@ func TestServiceImpl_GetWebhook(t *testing.T) {
 
 		response, err := service.GetWebhook(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -339,7 +340,7 @@ func TestServiceImpl_GetWebhook(t *testing.T) {
 
 		response, err := service.GetWebhook(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -372,7 +373,7 @@ func TestServiceImpl_GetWebhooks(t *testing.T) {
 
 		response, err := service.GetWebhooks(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 		assert.Len(t, response.Results, len(fakeWebhooks.Data))
@@ -393,7 +394,7 @@ func TestServiceImpl_GetWebhooks(t *testing.T) {
 
 		response, err := service.GetWebhooks(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -416,7 +417,7 @@ func TestServiceImpl_GetWebhooks(t *testing.T) {
 
 		response, err := service.GetWebhooks(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -448,7 +449,7 @@ func TestServiceImpl_ArchiveWebhook(t *testing.T) {
 
 		response, err := service.ArchiveWebhook(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 
@@ -468,7 +469,7 @@ func TestServiceImpl_ArchiveWebhook(t *testing.T) {
 
 		response, err := service.ArchiveWebhook(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
@@ -494,7 +495,7 @@ func TestServiceImpl_ArchiveWebhook(t *testing.T) {
 
 		response, err := service.ArchiveWebhook(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 
@@ -536,7 +537,7 @@ func TestServiceImpl_ArchiveWebhookTriggerConfig(t *testing.T) {
 
 		response, err := service.ArchiveWebhookTriggerConfig(ctx, request)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.ResponseDetails)
 
@@ -575,7 +576,7 @@ func TestServiceImpl_ArchiveWebhookTriggerConfig(t *testing.T) {
 
 		response, err := service.ArchiveWebhookTriggerConfig(ctx, request)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
 

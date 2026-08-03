@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecipeManager_ListRecipePrepTask(T *testing.T) {
@@ -35,7 +36,7 @@ func TestRecipeManager_ListRecipePrepTask(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ListRecipePrepTask(ctx, exampleRecipeID, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRecipePrepTasksCalls(), 1)
@@ -63,7 +64,7 @@ func TestRecipeManager_CreateRecipePrepTask(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.CreateRecipePrepTask(ctx, exampleRecipeID, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateRecipePrepTaskCalls(), 1)
@@ -93,7 +94,7 @@ func TestRecipeManager_ReadRecipePrepTask(T *testing.T) {
 		attachRepositoryToManager(rm, db)
 
 		actual, err := rm.ReadRecipePrepTask(ctx, exampleRecipeID, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetRecipePrepTaskCalls(), 1)
@@ -126,7 +127,7 @@ func TestRecipeManager_UpdateRecipePrepTask(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		assert.NoError(t, rm.UpdateRecipePrepTask(ctx, exampleRecipeID, exampleRecipePrepTask.ID, exampleInput))
+		require.NoError(t, rm.UpdateRecipePrepTask(ctx, exampleRecipeID, exampleRecipePrepTask.ID, exampleInput))
 
 		assert.Len(t, db.GetRecipePrepTaskCalls(), 1)
 		assert.Len(t, db.UpdateRecipePrepTaskCalls(), 1)
@@ -155,7 +156,7 @@ func TestRecipeManager_ArchiveRecipePrepTask(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		assert.NoError(t, rm.ArchiveRecipePrepTask(ctx, exampleRecipeID, expected.ID))
+		require.NoError(t, rm.ArchiveRecipePrepTask(ctx, exampleRecipeID, expected.ID))
 
 		assert.Len(t, db.ArchiveRecipePrepTaskCalls(), 1)
 	})

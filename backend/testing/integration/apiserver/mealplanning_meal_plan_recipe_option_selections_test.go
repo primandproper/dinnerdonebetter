@@ -245,7 +245,7 @@ func TestMealPlans_WithRecipeOptionSelections(T *testing.T) {
 		_, err = accountAdminUserClient.ArchiveMealPlan(ctx, &mealplanninggrpc.ArchiveMealPlanRequest{
 			MealPlanId: createdMealPlan.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Cleanup meals and recipes using adminClient (created by adminClient)
 		_, _ = adminClient.ArchiveMeal(ctx, &mealplanninggrpc.ArchiveMealRequest{MealId: meal1.ID})
@@ -641,7 +641,7 @@ func TestMealPlanRecipeOptionSelections_Creating(T *testing.T) {
 				SelectionType:       mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 }
@@ -701,7 +701,7 @@ func TestMealPlanRecipeOptionSelections_Reading(T *testing.T) {
 			IngredientIndex:  0,
 			SelectionType:    mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 
@@ -717,7 +717,7 @@ func TestMealPlanRecipeOptionSelections_Reading(T *testing.T) {
 			IngredientIndex:  0,
 			SelectionType:    mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 }
@@ -773,7 +773,7 @@ func TestMealPlanRecipeOptionSelections_Listing(T *testing.T) {
 		_, err := c.GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx, &mealplanninggrpc.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRequest{
 			MealPlanOptionId: fakes.BuildFakeID(),
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 }
@@ -843,7 +843,7 @@ func TestMealPlanRecipeOptionSelections_Updating(T *testing.T) {
 				SelectedOptionIndex: 0,
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 
@@ -862,7 +862,7 @@ func TestMealPlanRecipeOptionSelections_Updating(T *testing.T) {
 				SelectedOptionIndex: 0,
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 }
@@ -912,7 +912,7 @@ func TestMealPlanRecipeOptionSelections_Archiving(T *testing.T) {
 			IngredientIndex:  0,
 			SelectionType:    mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 
@@ -928,7 +928,7 @@ func TestMealPlanRecipeOptionSelections_Archiving(T *testing.T) {
 			IngredientIndex:  0,
 			SelectionType:    mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 }

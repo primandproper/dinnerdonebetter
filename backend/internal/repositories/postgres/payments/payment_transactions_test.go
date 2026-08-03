@@ -25,7 +25,7 @@ func TestCreatePaymentTransaction(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.CreatePaymentTransaction(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assert.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
 	})
@@ -40,7 +40,7 @@ func TestGetPaymentTransactionsForAccount(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetPaymentTransactionsForAccount(ctx, "", nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, actual)
 		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 	})

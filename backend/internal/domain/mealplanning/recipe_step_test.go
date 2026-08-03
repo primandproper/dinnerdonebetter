@@ -5,6 +5,7 @@ import (
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func buildValidRecipeStepCreationRequestInput() *RecipeStepCreationRequestInput {
@@ -54,7 +55,7 @@ func TestRecipeStep_Update(T *testing.T) {
 		}
 
 		input := &RecipeStepUpdateRequestInput{}
-		assert.NoError(t, fake.Struct(&input))
+		require.NoError(t, fake.Struct(&input))
 		input.Optional = new(true)
 		input.StartTimerAutomatically = new(true)
 		input.MinTemperatureInCelsius = new(float32(543.21))

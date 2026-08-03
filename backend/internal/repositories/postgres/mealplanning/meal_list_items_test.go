@@ -49,7 +49,7 @@ func TestIntegration_MealListItems(t *testing.T) {
 
 	afterArchive, err := dbc.GetMealListItems(ctx, createdList.ID, user.ID, nil)
 	require.NoError(t, err)
-	assert.Len(t, afterArchive.Data, 0)
+	assert.Empty(t, afterArchive.Data)
 
 	err = dbc.ArchiveMealListItem(ctx, createdItem.ID, createdList.ID)
 	require.ErrorIs(t, err, sql.ErrNoRows)

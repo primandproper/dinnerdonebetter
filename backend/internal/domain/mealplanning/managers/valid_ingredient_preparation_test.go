@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v9/filtering"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidEnumerationManager_ListValidIngredientPreparations(T *testing.T) {
@@ -32,7 +33,7 @@ func TestValidEnumerationManager_ListValidIngredientPreparations(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ListValidIngredientPreparations(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidIngredientPreparationsCalls(), 1)
@@ -59,7 +60,7 @@ func TestValidEnumerationManager_CreateValidIngredientPreparation(T *testing.T) 
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.CreateValidIngredientPreparation(ctx, fakeInput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateValidIngredientPreparationCalls(), 1)
@@ -87,7 +88,7 @@ func TestValidEnumerationManager_ReadValidIngredientPreparation(T *testing.T) {
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.ReadValidIngredientPreparation(ctx, expected.ID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidIngredientPreparationCalls(), 1)
@@ -120,7 +121,7 @@ func TestValidEnumerationManager_UpdateValidIngredientPreparation(T *testing.T) 
 
 		result, err := mpm.UpdateValidIngredientPreparation(ctx, exampleValidIngredientPreparation.ID, exampleInput)
 		assert.NotNil(t, result)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Len(t, db.GetValidIngredientPreparationCalls(), 2) // the manager re-reads the record after updating it
 		assert.Len(t, db.UpdateValidIngredientPreparationCalls(), 1)
@@ -147,7 +148,7 @@ func TestValidEnumerationManager_ArchiveValidIngredientPreparation(T *testing.T)
 		}
 		attachRepositoryToManager(vem, db)
 
-		assert.NoError(t, vem.ArchiveValidIngredientPreparation(ctx, expected.ID))
+		require.NoError(t, vem.ArchiveValidIngredientPreparation(ctx, expected.ID))
 
 		assert.Len(t, db.ArchiveValidIngredientPreparationCalls(), 1)
 	})
@@ -175,7 +176,7 @@ func TestValidEnumerationManager_SearchValidIngredientPreparationsByIngredient(T
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidIngredientPreparationsByIngredient(ctx, exampleQuery, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidIngredientPreparationsForIngredientCalls(), 1)
@@ -204,7 +205,7 @@ func TestValidEnumerationManager_SearchValidIngredientPreparationsByPreparation(
 		attachRepositoryToManager(vem, db)
 
 		actual, err := vem.SearchValidIngredientPreparationsByPreparation(ctx, exampleQuery, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.GetValidIngredientPreparationsForPreparationCalls(), 1)
