@@ -13,6 +13,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// quantityEpsilon is the relative tolerance for asserting on generated grocery list
+// quantities. Those quantities are aggregated across recipes and scaled by portion
+// count before being rounded to a tenth, so the arithmetic can land a few ULPs off an
+// exactly-representable expectation. Because the final value is quantized to a tenth,
+// any genuinely wrong quantity differs by at least 0.1 — several orders of magnitude
+// more than this epsilon — so a tolerance this tight still catches real regressions
+// while ignoring float32 drift (~1.2e-7 relative).
+const quantityEpsilon = 1e-6
+
 func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 	T.Parallel()
 
@@ -545,8 +554,8 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, actual, 1)
 		// effectiveScale = 2.0 * 0.5 = 1.0, so 100 * 1.0 = 100
-		assert.Equal(t, float32(100), actual[0].MinQuantityNeeded)
-		assert.Equal(t, float32(100), *actual[0].MaxQuantityNeeded)
+		assert.InEpsilon(t, float32(100), actual[0].MinQuantityNeeded, quantityEpsilon)
+		assert.InEpsilon(t, float32(100), *actual[0].MaxQuantityNeeded, quantityEpsilon)
 	})
 
 	T.Run("with option groups", func(t *testing.T) {
@@ -656,7 +665,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		assert.Equal(t, uint16(0), *spaghettiItem.IngredientIndex)
 		assert.NotNil(t, spaghettiItem.OptionIndex)
 		assert.Equal(t, uint16(0), *spaghettiItem.OptionIndex)
-		assert.Equal(t, float32(100), spaghettiItem.MinQuantityNeeded)
+		assert.InEpsilon(t, float32(100), spaghettiItem.MinQuantityNeeded, quantityEpsilon)
 
 		// Verify angelHair is NOT present (was not selected, and optionIndex=1 is not the default)
 		_, ok = actualMap[angelHair.ID]
@@ -671,7 +680,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		assert.Equal(t, recipeID, *onionItem.RecipeID)
 		assert.NotNil(t, onionItem.RecipeStepID)
 		assert.Equal(t, stepID, *onionItem.RecipeStepID)
-		assert.Equal(t, float32(50), onionItem.MinQuantityNeeded)
+		assert.InEpsilon(t, float32(50), onionItem.MinQuantityNeeded, quantityEpsilon)
 	})
 
 	T.Run("with option groups and aggregation", func(t *testing.T) {
@@ -809,7 +818,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		// Verify spaghetti (option group item - default selection)
 		spaghettiItem, ok := actualMap[spaghetti.ID]
 		assert.True(t, ok, "spaghetti item should exist (default optionIndex=0)")
-		assert.Equal(t, float32(100), spaghettiItem.MinQuantityNeeded)
+		assert.InEpsilon(t, float32(100), spaghettiItem.MinQuantityNeeded, quantityEpsilon)
 		assert.NotNil(t, spaghettiItem.BelongsToMealPlanOption)
 		assert.Equal(t, option1ID, *spaghettiItem.BelongsToMealPlanOption)
 
@@ -820,7 +829,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		// Verify onion (non-option item, should be aggregated)
 		onionItem, ok := actualMap[onion.ID]
 		assert.True(t, ok)
-		assert.Equal(t, float32(100), onionItem.MinQuantityNeeded, "onion should be aggregated (50 + 50)")
+		assert.InEpsilon(t, float32(100), onionItem.MinQuantityNeeded, quantityEpsilon, "onion should be aggregated (50 + 50)")
 		// Consolidated across two options/recipes/steps, so attribution is cleared rather than
 		// misattributed to the first contributor.
 		assert.Nil(t, onionItem.BelongsToMealPlanOption)
@@ -946,7 +955,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		assert.Equal(t, uint16(0), *angelHairItem.IngredientIndex)
 		assert.NotNil(t, angelHairItem.OptionIndex)
 		assert.Equal(t, uint16(1), *angelHairItem.OptionIndex)
-		assert.Equal(t, float32(100), angelHairItem.MinQuantityNeeded)
+		assert.InEpsilon(t, float32(100), angelHairItem.MinQuantityNeeded, quantityEpsilon)
 
 		// Verify onion (non-option item)
 		onionItem, ok := actualMap[onion.ID]
@@ -957,7 +966,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		assert.Equal(t, recipeID, *onionItem.RecipeID)
 		assert.NotNil(t, onionItem.RecipeStepID)
 		assert.Equal(t, stepID, *onionItem.RecipeStepID)
-		assert.Equal(t, float32(50), onionItem.MinQuantityNeeded)
+		assert.InEpsilon(t, float32(50), onionItem.MinQuantityNeeded, quantityEpsilon)
 	})
 
 	T.Run("with associated recipes", func(t *testing.T) {
@@ -1075,7 +1084,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		assert.Equal(t, mainRecipeID, *chickenItem.RecipeID)
 		assert.NotNil(t, chickenItem.RecipeStepID)
 		assert.Equal(t, mainStepID, *chickenItem.RecipeStepID)
-		assert.Equal(t, float32(500), chickenItem.MinQuantityNeeded)
+		assert.InEpsilon(t, float32(500), chickenItem.MinQuantityNeeded, quantityEpsilon)
 
 		// Verify oliveOil (from associated recipe)
 		oliveOilItem, ok := actualMap[oliveOil.ID]
@@ -1084,7 +1093,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		assert.Equal(t, associatedRecipeID, *oliveOilItem.RecipeID)
 		assert.NotNil(t, oliveOilItem.RecipeStepID)
 		assert.Equal(t, associatedStepID, *oliveOilItem.RecipeStepID)
-		assert.Equal(t, float32(100), oliveOilItem.MinQuantityNeeded)
+		assert.InEpsilon(t, float32(100), oliveOilItem.MinQuantityNeeded, quantityEpsilon)
 
 		// Verify lemon (from associated recipe)
 		lemonItem, ok := actualMap[lemon.ID]
@@ -1093,7 +1102,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		assert.Equal(t, associatedRecipeID, *lemonItem.RecipeID)
 		assert.NotNil(t, lemonItem.RecipeStepID)
 		assert.Equal(t, associatedStepID, *lemonItem.RecipeStepID)
-		assert.Equal(t, float32(50), lemonItem.MinQuantityNeeded)
+		assert.InEpsilon(t, float32(50), lemonItem.MinQuantityNeeded, quantityEpsilon)
 	})
 
 	T.Run("with associated recipes and scaling", func(t *testing.T) {
@@ -1196,12 +1205,12 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		// Verify chicken (from main recipe) - should be scaled: 500 * 1.5 * 2.0 = 1500
 		chickenItem, ok := actualMap[chicken.ID]
 		assert.True(t, ok, "chicken item should exist")
-		assert.Equal(t, float32(1500), chickenItem.MinQuantityNeeded)
+		assert.InEpsilon(t, float32(1500), chickenItem.MinQuantityNeeded, quantityEpsilon)
 
 		// Verify oliveOil (from associated recipe) - should also be scaled: 100 * 1.5 * 2.0 = 300
 		oliveOilItem, ok := actualMap[oliveOil.ID]
 		assert.True(t, ok, "oliveOil item should exist from associated recipe")
-		assert.Equal(t, float32(300), oliveOilItem.MinQuantityNeeded)
+		assert.InEpsilon(t, float32(300), oliveOilItem.MinQuantityNeeded, quantityEpsilon)
 	})
 
 	T.Run("with associated recipes and aggregation", func(t *testing.T) {
@@ -1312,12 +1321,12 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		// Verify chicken
 		chickenItem, ok := actualMap[chicken.ID]
 		assert.True(t, ok, "chicken item should exist")
-		assert.Equal(t, float32(500), chickenItem.MinQuantityNeeded)
+		assert.InEpsilon(t, float32(500), chickenItem.MinQuantityNeeded, quantityEpsilon)
 
 		// Verify salt (should be aggregated: 10 + 5 = 15)
 		saltItem, ok := actualMap[salt.ID]
 		assert.True(t, ok, "salt item should exist and be aggregated")
-		assert.Equal(t, float32(15), saltItem.MinQuantityNeeded, "salt should be aggregated from main recipe (10) and associated recipe (5)")
+		assert.InEpsilon(t, float32(15), saltItem.MinQuantityNeeded, quantityEpsilon, "salt should be aggregated from main recipe (10) and associated recipe (5)")
 		// Same option contributed both amounts, so option attribution survives, but the recipe/step
 		// attribution is cleared because the contributions came from different recipes/steps.
 		assert.NotNil(t, saltItem.BelongsToMealPlanOption)
@@ -1406,15 +1415,15 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		// 3.01 * 1.34 = 4.0334 -> should round to 4.0
 		carrotItem, ok := actualMap[carrot.ID]
 		assert.True(t, ok, "carrot item should exist")
-		assert.Equal(t, float32(4.0), carrotItem.MinQuantityNeeded, "carrot quantity should be rounded to nearest tenth")
+		assert.InEpsilon(t, float32(4.0), carrotItem.MinQuantityNeeded, quantityEpsilon, "carrot quantity should be rounded to nearest tenth")
 		assert.NotNil(t, carrotItem.MaxQuantityNeeded)
-		assert.Equal(t, float32(4.0), *carrotItem.MaxQuantityNeeded)
+		assert.InEpsilon(t, float32(4.0), *carrotItem.MaxQuantityNeeded, quantityEpsilon)
 
 		// 1.5 * 1.34 = 2.01 -> should round to 2.0
 		thymeItem, ok := actualMap[thyme.ID]
 		assert.True(t, ok, "thyme item should exist")
-		assert.Equal(t, float32(2.0), thymeItem.MinQuantityNeeded, "thyme quantity should be rounded to nearest tenth")
+		assert.InEpsilon(t, float32(2.0), thymeItem.MinQuantityNeeded, quantityEpsilon, "thyme quantity should be rounded to nearest tenth")
 		assert.NotNil(t, thymeItem.MaxQuantityNeeded)
-		assert.Equal(t, float32(2.0), *thymeItem.MaxQuantityNeeded)
+		assert.InEpsilon(t, float32(2.0), *thymeItem.MaxQuantityNeeded, quantityEpsilon)
 	})
 }

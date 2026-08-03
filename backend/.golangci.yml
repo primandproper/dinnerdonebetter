@@ -130,13 +130,6 @@ linters:
         - cancelling
     nakedret:
       max-func-lines: 4
-    testifylint:
-      disable:
-        # 62 sites compare float32 quantities with Equal. Some are round-trip
-        # checks where exact equality is correct; others follow real arithmetic
-        # (recipe scaling, unit conversion) and want a tolerance. Picking the
-        # right epsilon is per-site work, not a mechanical fix. Tracked separately.
-        - float-compare
     unparam:
       check-exported: false
     unused:

@@ -21,7 +21,7 @@ func checkRecipeEquality(t *testing.T, expected, actual *mealplanning.Recipe) {
 	assert.NotEmpty(t, actual.ID)
 	assert.Equal(t, expected.Name, actual.Name, "expected Name for recipe %s to be %v, but it was %v", expected.ID, expected.Name, actual.Name)
 	assert.Equal(t, expected.InspiredByRecipeID, actual.InspiredByRecipeID, "expected InspiredByRecipeID for recipe %s to be %v, but it was %v", expected.ID, expected.InspiredByRecipeID, actual.InspiredByRecipeID)
-	assert.Equal(t, expected.MinEstimatedPortions, actual.MinEstimatedPortions, "expected MinEstimatedPortions for recipe %s to be %v, but it was %v", expected.ID, expected.MinEstimatedPortions, actual.MinEstimatedPortions)
+	assert.Equal(t, expected.MinEstimatedPortions, actual.MinEstimatedPortions, "expected MinEstimatedPortions for recipe %s to be %v, but it was %v", expected.ID, expected.MinEstimatedPortions, actual.MinEstimatedPortions) //nolint:testifylint // round-trip value; exact equality is the assertion
 	assert.Equal(t, expected.MaxEstimatedPortions, actual.MaxEstimatedPortions, "expected MaxEstimatedPortions for recipe %s to be %v, but it was %v", expected.ID, expected.MaxEstimatedPortions, actual.MaxEstimatedPortions)
 	assert.Equal(t, expected.PluralPortionName, actual.PluralPortionName, "expected PluralPortionName for recipe %s to be %v, but it was %v", expected.ID, expected.PluralPortionName, actual.PluralPortionName)
 	assert.Equal(t, expected.Description, actual.Description, "expected Description for recipe %s to be %v, but it was %v", expected.ID, expected.Description, actual.Description)
@@ -516,7 +516,7 @@ func TestRecipes_Updating(T *testing.T) {
 		assert.Equal(t, newRecipe.Source, actualRecipe.Source, "recipe source should be updated")
 		assert.Equal(t, newRecipe.Description, actualRecipe.Description, "recipe description should be updated")
 		assert.Equal(t, newRecipe.InspiredByRecipeID, actualRecipe.InspiredByRecipeID, "recipe inspired by recipe ID should be updated")
-		assert.Equal(t, newRecipe.MinEstimatedPortions, actualRecipe.MinEstimatedPortions, "recipe estimated portions should be updated")
+		assert.Equal(t, newRecipe.MinEstimatedPortions, actualRecipe.MinEstimatedPortions, "recipe estimated portions should be updated") //nolint:testifylint // round-trip value; exact equality is the assertion
 		assert.Equal(t, newRecipe.MaxEstimatedPortions, actualRecipe.MaxEstimatedPortions, "recipe estimated portions should be updated")
 		assert.Equal(t, newRecipe.PortionName, actualRecipe.PortionName, "recipe portion name should be updated")
 		assert.Equal(t, newRecipe.PluralPortionName, actualRecipe.PluralPortionName, "recipe plural portion name should be updated")
@@ -1158,8 +1158,8 @@ func TestRecipes_CreationWithDiscreteProducts(T *testing.T) {
 		assert.Equal(t, "beef patties", step0Product.Name)
 		// Verify discrete product fields
 		require.NotNil(t, step0Product.MinItemQuantity, "discrete product should have ItemQuantity.Min set")
-		assert.Equal(t, float32(4), *step0Product.MinItemQuantity, "ItemQuantity should be 4 patties")
-		assert.Equal(t, float32(4), *step0Product.MinMeasurementQuantity, "MeasurementQuantity should be 4 oz per patty")
+		assert.Equal(t, float32(4), *step0Product.MinItemQuantity, "ItemQuantity should be 4 patties")                    //nolint:testifylint // round-trip value; exact equality is the assertion
+		assert.Equal(t, float32(4), *step0Product.MinMeasurementQuantity, "MeasurementQuantity should be 4 oz per patty") //nolint:testifylint // round-trip value; exact equality is the assertion
 
 		// Verify step 1 has continuous product (sauce)
 		require.Len(t, createdRecipe.Steps[1].Products, 1)
@@ -1168,7 +1168,7 @@ func TestRecipes_CreationWithDiscreteProducts(T *testing.T) {
 		// Verify continuous product fields (ItemQuantity should be empty)
 		assert.Nil(t, step1Product.MinItemQuantity, "continuous product should not have ItemQuantity.Min set")
 		assert.Nil(t, step1Product.MaxItemQuantity, "continuous product should not have ItemQuantity.Max set")
-		assert.Equal(t, float32(8), *step1Product.MinMeasurementQuantity, "MeasurementQuantity should be 8 oz total")
+		assert.Equal(t, float32(8), *step1Product.MinMeasurementQuantity, "MeasurementQuantity should be 8 oz total") //nolint:testifylint // round-trip value; exact equality is the assertion
 
 		// Verify we can retrieve the recipe and products are still correct
 		retrieved, err := adminClient.GetRecipe(ctx, &mealplanninggrpc.GetRecipeRequest{
@@ -1183,8 +1183,8 @@ func TestRecipes_CreationWithDiscreteProducts(T *testing.T) {
 		retrievedStep0Product := retrievedRecipe.Steps[0].Products[0]
 		assert.Equal(t, "beef patties", retrievedStep0Product.Name)
 		require.NotNil(t, retrievedStep0Product.MinItemQuantity)
-		assert.Equal(t, float32(4), *retrievedStep0Product.MinItemQuantity)
-		assert.Equal(t, float32(4), *retrievedStep0Product.MinMeasurementQuantity)
+		assert.Equal(t, float32(4), *retrievedStep0Product.MinItemQuantity)        //nolint:testifylint // round-trip value; exact equality is the assertion
+		assert.Equal(t, float32(4), *retrievedStep0Product.MinMeasurementQuantity) //nolint:testifylint // round-trip value; exact equality is the assertion
 
 		// Verify continuous product is still correct after retrieval
 		require.Len(t, retrievedRecipe.Steps[1].Products, 1)
@@ -1192,7 +1192,7 @@ func TestRecipes_CreationWithDiscreteProducts(T *testing.T) {
 		assert.Equal(t, "special sauce", retrievedStep1Product.Name)
 		assert.Nil(t, retrievedStep1Product.MinItemQuantity)
 		assert.Nil(t, retrievedStep1Product.MaxItemQuantity)
-		assert.Equal(t, float32(8), *retrievedStep1Product.MinMeasurementQuantity)
+		assert.Equal(t, float32(8), *retrievedStep1Product.MinMeasurementQuantity) //nolint:testifylint // round-trip value; exact equality is the assertion
 
 		// Cleanup
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{
@@ -1288,9 +1288,9 @@ func TestRecipes_StepProducts_Discrete(T *testing.T) {
 		assert.Equal(t, "cookies", product.Name)
 		// Verify ItemQuantity.Min is set (indicates discrete)
 		require.NotNil(t, product.MinItemQuantity, "discrete product should have ItemQuantity.Min set")
-		assert.Equal(t, float32(12), *product.MinItemQuantity, "ItemQuantity should be 12 cookies")
+		assert.Equal(t, float32(12), *product.MinItemQuantity, "ItemQuantity should be 12 cookies") //nolint:testifylint // round-trip value; exact equality is the assertion
 		// Verify MeasurementQuantity represents per-item measurement
-		assert.Equal(t, float32(2), *product.MinMeasurementQuantity, "MeasurementQuantity should be 2 oz per cookie")
+		assert.Equal(t, float32(2), *product.MinMeasurementQuantity, "MeasurementQuantity should be 2 oz per cookie") //nolint:testifylint // round-trip value; exact equality is the assertion
 
 		// Cleanup
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{
@@ -1384,10 +1384,10 @@ func TestRecipes_StepProducts_Discrete(T *testing.T) {
 		// Verify ItemQuantity.Max is set (indicates discrete with range)
 		require.NotNil(t, product.MinItemQuantity, "discrete product should have ItemQuantity.Min set")
 		require.NotNil(t, product.MaxItemQuantity, "discrete product with range should have ItemQuantity.Max set")
-		assert.Equal(t, float32(8), *product.MinItemQuantity, "ItemQuantity.Min should be 8 slices")
-		assert.Equal(t, float32(10), *product.MaxItemQuantity, "ItemQuantity.Max should be 10 slices")
+		assert.Equal(t, float32(8), *product.MinItemQuantity, "ItemQuantity.Min should be 8 slices")   //nolint:testifylint // round-trip value; exact equality is the assertion
+		assert.Equal(t, float32(10), *product.MaxItemQuantity, "ItemQuantity.Max should be 10 slices") //nolint:testifylint // round-trip value; exact equality is the assertion
 		// Verify MeasurementQuantity represents per-item measurement
-		assert.Equal(t, float32(1), *product.MinMeasurementQuantity, "MeasurementQuantity should be 1 oz per slice")
+		assert.Equal(t, float32(1), *product.MinMeasurementQuantity, "MeasurementQuantity should be 1 oz per slice") //nolint:testifylint // round-trip value; exact equality is the assertion
 
 		// Cleanup
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{
@@ -1485,7 +1485,7 @@ func TestRecipes_StepProducts_Continuous(T *testing.T) {
 		assert.Nil(t, product.MinItemQuantity, "continuous product should not have ItemQuantity.Min set")
 		assert.Nil(t, product.MaxItemQuantity, "continuous product should not have ItemQuantity.Max set")
 		// Verify MeasurementQuantity represents total quantity
-		assert.Equal(t, float32(16), *product.MinMeasurementQuantity, "MeasurementQuantity should be 16 oz total")
+		assert.Equal(t, float32(16), *product.MinMeasurementQuantity, "MeasurementQuantity should be 16 oz total") //nolint:testifylint // round-trip value; exact equality is the assertion
 
 		// Cleanup
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{
@@ -1764,7 +1764,7 @@ func TestRecipes_StepProducts_EdgeCases(T *testing.T) {
 		assert.Nil(t, product.MinItemQuantity, "continuous product should not have ItemQuantity.Min set")
 		assert.Nil(t, product.MaxItemQuantity, "continuous product should not have ItemQuantity.Max set")
 		// Verify MeasurementQuantity represents total quantity
-		assert.Equal(t, float32(32), *product.MinMeasurementQuantity, "MeasurementQuantity should be 32 oz total")
+		assert.Equal(t, float32(32), *product.MinMeasurementQuantity, "MeasurementQuantity should be 32 oz total") //nolint:testifylint // round-trip value; exact equality is the assertion
 
 		// Cleanup
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{

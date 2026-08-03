@@ -42,11 +42,11 @@ func checkRecipeRatingEquality(t *testing.T, expected, actual *types.RecipeRatin
 	assert.NotEmpty(t, actual.ID)
 	assert.Equal(t, expected.Notes, actual.Notes, "expected Notes for recipe rating %s to be %v, but it was %v", expected.ID, expected.Notes, actual.Notes)
 	assert.Equal(t, expected.BelongsToRecipe, actual.BelongsToRecipe, "expected RecipeID for recipe rating %s to be %v, but it was %v", expected.ID, expected.BelongsToRecipe, actual.BelongsToRecipe)
-	assert.Equal(t, expected.Taste, actual.Taste, "expected Taste for recipe rating %s to be %v, but it was %v", expected.ID, expected.Taste, actual.Taste)
-	assert.Equal(t, expected.Instructions, actual.Instructions, "expected Instructions for recipe rating %s to be %v, but it was %v", expected.ID, expected.Instructions, actual.Instructions)
-	assert.Equal(t, expected.Overall, actual.Overall, "expected Overall for recipe rating %s to be %v, but it was %v", expected.ID, expected.Overall, actual.Overall)
-	assert.Equal(t, expected.Cleanup, actual.Cleanup, "expected Cleanup for recipe rating %s to be %v, but it was %v", expected.ID, expected.Cleanup, actual.Cleanup)
-	assert.Equal(t, expected.Difficulty, actual.Difficulty, "expected Difficulty for recipe rating %s to be %v, but it was %v", expected.ID, expected.Difficulty, actual.Difficulty)
+	assert.Equal(t, expected.Taste, actual.Taste, "expected Taste for recipe rating %s to be %v, but it was %v", expected.ID, expected.Taste, actual.Taste)                                    //nolint:testifylint // round-trip value; exact equality is the assertion
+	assert.Equal(t, expected.Instructions, actual.Instructions, "expected Instructions for recipe rating %s to be %v, but it was %v", expected.ID, expected.Instructions, actual.Instructions) //nolint:testifylint // round-trip value; exact equality is the assertion
+	assert.Equal(t, expected.Overall, actual.Overall, "expected Overall for recipe rating %s to be %v, but it was %v", expected.ID, expected.Overall, actual.Overall)                          //nolint:testifylint // round-trip value; exact equality is the assertion
+	assert.Equal(t, expected.Cleanup, actual.Cleanup, "expected Cleanup for recipe rating %s to be %v, but it was %v", expected.ID, expected.Cleanup, actual.Cleanup)                          //nolint:testifylint // round-trip value; exact equality is the assertion
+	assert.Equal(t, expected.Difficulty, actual.Difficulty, "expected Difficulty for recipe rating %s to be %v, but it was %v", expected.ID, expected.Difficulty, actual.Difficulty)           //nolint:testifylint // round-trip value; exact equality is the assertion
 	assert.NotZero(t, actual.CreatedAt)
 }
 

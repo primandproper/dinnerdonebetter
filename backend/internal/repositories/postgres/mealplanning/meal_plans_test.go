@@ -115,7 +115,7 @@ func createMealPlanForTest(t *testing.T, ctx context.Context, exampleMealPlan *t
 			require.Equal(t, exampleMealPlan.Events[i].Options[j].ID, mealPlan.Events[i].Options[j].ID)
 			require.Equal(t, exampleMealPlan.Events[i].Options[j].Votes, mealPlan.Events[i].Options[j].Votes)
 			require.Equal(t, exampleMealPlan.Events[i].Options[j].Meal, mealPlan.Events[i].Options[j].Meal)
-			require.Equal(t, exampleMealPlan.Events[i].Options[j].MealScale, mealPlan.Events[i].Options[j].MealScale)
+			require.Equal(t, exampleMealPlan.Events[i].Options[j].MealScale, mealPlan.Events[i].Options[j].MealScale) //nolint:testifylint // round-trip value; exact equality is the assertion
 			require.Equal(t, exampleMealPlan.Events[i].Options[j].Chosen, mealPlan.Events[i].Options[j].Chosen)
 			require.Equal(t, exampleMealPlan.Events[i].Options[j].TieBroken, mealPlan.Events[i].Options[j].TieBroken)
 		}

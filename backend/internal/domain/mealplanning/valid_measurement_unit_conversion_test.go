@@ -8,6 +8,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// conversionEpsilon is the relative tolerance for asserting on converted measurement
+// quantities. A conversion is a float32 multiply or divide by an arbitrary modifier
+// followed by a rounding pass, so the result can land a few ULPs off an expectation
+// that happens to be exactly representable today. This is looser than the tolerance
+// the grocery list tests use, because a conversion divides by a modifier that is
+// itself inexact, whereas aggregation only adds and scales. It is still far tighter
+// than the rounding granularity of any of these conversions, so a wrong modifier or
+// a wrong direction still fails.
+const conversionEpsilon = 1e-5
+
 func TestValidMeasurementUnitConversion_Update(T *testing.T) {
 	T.Parallel()
 
@@ -146,7 +156,7 @@ func TestValidMeasurementUnitConversion_ConvertFromToTo(T *testing.T) {
 		result := x.ConvertFromToTo(2.0, 0)
 		expected := float32(473.0)
 
-		assert.Equal(t, expected, result)
+		assert.InEpsilon(t, expected, result, conversionEpsilon)
 	})
 
 	T.Run("conversion with high precision", func(t *testing.T) {
@@ -173,7 +183,7 @@ func TestValidMeasurementUnitConversion_ConvertFromToTo(T *testing.T) {
 		result := x.ConvertFromToTo(10.0)
 		expected := float32(10.0)
 
-		assert.Equal(t, expected, result)
+		assert.InEpsilon(t, expected, result, conversionEpsilon)
 	})
 
 	T.Run("conversion with zero value", func(t *testing.T) {
@@ -186,7 +196,7 @@ func TestValidMeasurementUnitConversion_ConvertFromToTo(T *testing.T) {
 		result := x.ConvertFromToTo(0.0)
 		expected := float32(0.0)
 
-		assert.Equal(t, expected, result)
+		assert.InDelta(t, expected, result, conversionEpsilon)
 	})
 
 	T.Run("conversion with fractional modifier", func(t *testing.T) {
@@ -199,7 +209,7 @@ func TestValidMeasurementUnitConversion_ConvertFromToTo(T *testing.T) {
 		result := x.ConvertFromToTo(4.0)
 		expected := float32(2.0)
 
-		assert.Equal(t, expected, result)
+		assert.InEpsilon(t, expected, result, conversionEpsilon)
 	})
 
 	T.Run("conversion with large values", func(t *testing.T) {
@@ -212,7 +222,7 @@ func TestValidMeasurementUnitConversion_ConvertFromToTo(T *testing.T) {
 		result := x.ConvertFromToTo(5.0)
 		expected := float32(5000.0)
 
-		assert.Equal(t, expected, result)
+		assert.InEpsilon(t, expected, result, conversionEpsilon)
 	})
 }
 
@@ -258,7 +268,7 @@ func TestValidMeasurementUnitConversion_ConvertToToFrom(T *testing.T) {
 		result := x.ConvertToToFrom(500.0, 0)
 		expected := float32(2.0)
 
-		assert.Equal(t, expected, result)
+		assert.InEpsilon(t, expected, result, conversionEpsilon)
 	})
 
 	T.Run("conversion with high precision", func(t *testing.T) {
@@ -285,7 +295,7 @@ func TestValidMeasurementUnitConversion_ConvertToToFrom(T *testing.T) {
 		result := x.ConvertToToFrom(10.0)
 		expected := float32(10.0)
 
-		assert.Equal(t, expected, result)
+		assert.InEpsilon(t, expected, result, conversionEpsilon)
 	})
 
 	T.Run("conversion with zero value", func(t *testing.T) {
@@ -298,7 +308,7 @@ func TestValidMeasurementUnitConversion_ConvertToToFrom(T *testing.T) {
 		result := x.ConvertToToFrom(0.0)
 		expected := float32(0.0)
 
-		assert.Equal(t, expected, result)
+		assert.InDelta(t, expected, result, conversionEpsilon)
 	})
 
 	T.Run("conversion with fractional modifier", func(t *testing.T) {
@@ -311,7 +321,7 @@ func TestValidMeasurementUnitConversion_ConvertToToFrom(T *testing.T) {
 		result := x.ConvertToToFrom(2.0)
 		expected := float32(4.0)
 
-		assert.Equal(t, expected, result)
+		assert.InEpsilon(t, expected, result, conversionEpsilon)
 	})
 
 	T.Run("conversion with large values", func(t *testing.T) {
@@ -324,7 +334,7 @@ func TestValidMeasurementUnitConversion_ConvertToToFrom(T *testing.T) {
 		result := x.ConvertToToFrom(5000.0)
 		expected := float32(5.0)
 
-		assert.Equal(t, expected, result)
+		assert.InEpsilon(t, expected, result, conversionEpsilon)
 	})
 }
 
@@ -399,6 +409,6 @@ func TestValidMeasurementUnitConversion_RoundTripConversion(T *testing.T) {
 		converted := x.ConvertFromToTo(original, 0)
 		roundTrip := x.ConvertToToFrom(converted, 0)
 
-		assert.Equal(t, original, roundTrip)
+		assert.InEpsilon(t, original, roundTrip, conversionEpsilon)
 	})
 }
