@@ -10,6 +10,7 @@ import (
 	"time"
 
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
+	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
 	"github.com/primandproper/platform-go/v9/audit"
 	"github.com/primandproper/platform-go/v9/database/dialect"
@@ -99,7 +100,7 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 func defaultAuditSweeperConfig() audit.SweeperConfig {
 	return audit.SweeperConfig{
 		Dialect:       dialect.Postgres,
-		TablePrefix:   audit.DefaultTablePrefix,
+		TablePrefix:   ddbaudit.TablePrefix,
 		Retention:     2 * 365 * 24 * time.Hour,
 		SweepInterval: time.Hour,
 		BatchSize:     audit.DefaultSweepBatchSize,

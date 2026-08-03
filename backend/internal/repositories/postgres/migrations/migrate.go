@@ -5,7 +5,8 @@ import (
 	"io/fs"
 	"strings"
 
-	"github.com/primandproper/platform-go/v9/audit"
+	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+
 	auditmigrations "github.com/primandproper/platform-go/v9/audit/migrations"
 	"github.com/primandproper/platform-go/v9/database/dialect"
 	"github.com/primandproper/platform-go/v9/database/migrate"
@@ -91,12 +92,12 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 // to execute it whole. Getting this wrong fails at construction rather than
 // mid-deploy: the annotator refuses a dollar-quoted body with no fence.
 func renderAuditDDL() (string, error) {
-	schema, err := auditmigrations.SQL(dialect.Postgres, audit.DefaultTablePrefix)
+	schema, err := auditmigrations.SQL(dialect.Postgres, ddbaudit.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering audit migration")
 	}
 
-	appendOnly, err := auditmigrations.AppendOnlyStatements(dialect.Postgres, audit.DefaultTablePrefix)
+	appendOnly, err := auditmigrations.AppendOnlyStatements(dialect.Postgres, ddbaudit.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering audit append-only triggers")
 	}

@@ -142,6 +142,25 @@ type VerificationResult = platformaudit.VerificationResult
 // change than adopting the log — see docs/audit.md.
 const UnattributedActorID = "unattributed"
 
+// TablePrefix namespaces the audit tables, rendering ddb_audit_log_entries and
+// ddb_audit_log_chains.
+//
+// A prefix rather than the platform's empty default, which would render
+// audit_log_entries — the name the hand-rolled log this replaces already holds.
+// That collision is not hypothetical: the platform's DDL says CREATE TABLE IF NOT
+// EXISTS, so against a database that ever applied the old migration the new
+// schema is a silent no-op and the audit code then runs against the wrong
+// columns. goose records the old migration as applied, so deleting its file does
+// not undo it. A prefix makes the two unable to collide, which is worth more than
+// a shorter table name and a paragraph in the release notes.
+//
+// It is declared here, and referenced by the migration that creates the tables,
+// the Recorder that writes them, the Reader that queries them, and the Sweeper
+// that prunes them. All four have to agree, and a prefix that differs between the
+// writer and the reader is the one misconfiguration that stays invisible until
+// somebody asks the log a question and gets an empty answer.
+const TablePrefix = "ddb"
+
 // ScopeFor resolves the hash chain an entry belongs to.
 //
 // The chain is partitioned so that unrelated writers do not serialize against

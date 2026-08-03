@@ -15,15 +15,6 @@ const (
 	o11yName = "audit_log_entries_db_client"
 )
 
-// tablePrefix is the namespace the audit tables carry.
-//
-// Empty, which renders audit_log_entries and audit_log_chains — the names this
-// application already used, and the same choice the outbox makes. A prefix earns
-// its keep when a database is shared between applications; this one is not.
-// Whatever it is, it has to match what the migration rendered and what the
-// sweeper prunes, which is why it is one constant rather than three settings.
-const tablePrefix = platformaudit.DefaultTablePrefix
-
 // repository is the audit log entry repository implementation.
 //
 // It holds no database handle. Writes take the caller's executor, so an entry
@@ -62,7 +53,7 @@ func ProvideAuditLogRepository(
 	}
 
 	recorderOptions := []platformaudit.RecorderOption{
-		platformaudit.WithRecorderTablePrefix(tablePrefix),
+		platformaudit.WithRecorderTablePrefix(audit.TablePrefix),
 		platformaudit.WithRecorderLogger(logging.EnsureLogger(logger)),
 		platformaudit.WithRecorderTracerProvider(tracerProvider),
 		platformaudit.WithRecorderMetricsProvider(metricsProvider),
@@ -78,7 +69,7 @@ func ProvideAuditLogRepository(
 
 	reader, err := platformaudit.NewReader(
 		client,
-		platformaudit.WithReaderTablePrefix(tablePrefix),
+		platformaudit.WithReaderTablePrefix(audit.TablePrefix),
 		platformaudit.WithReaderLogger(logging.EnsureLogger(logger)),
 		platformaudit.WithReaderTracerProvider(tracerProvider),
 		platformaudit.WithReaderMetricsProvider(metricsProvider),
