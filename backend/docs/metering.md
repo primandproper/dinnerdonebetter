@@ -13,9 +13,9 @@ document is only about the decisions that are ours.
 
 ## What is counted
 
-| Meter | Unit | Aggregation | Period | Recorded at |
-|---|---|---|---|---|
-| `uploaded_media_bytes` | bytes | sum | calendar month | `uploadedmedia/grpc.Upload` |
+| Meter                  | Unit  | Aggregation | Period         | Recorded at                 |
+|------------------------|-------|-------------|----------------|-----------------------------|
+| `uploaded_media_bytes` | bytes | sum         | calendar month | `uploadedmedia/grpc.Upload` |
 
 One meter, on purpose. It is the one that maps most directly onto a bill we actually receive —
 object storage charges for what is held, and the upload endpoint is the only place anything gets
@@ -61,7 +61,7 @@ meters records against each of them.
 ## Where each piece runs
 
 | Component | Process | Wired in |
-|---|---|---|
+| --- | --- | --- |
 | `Recorder` | API server | `internal/build/services/api/grpc/build.go` |
 | `Enforcer` | API server | registered, consulted by nothing yet |
 | `Flusher` | scheduler | `internal/build/jobs/scheduler/metering.go`, job `metering_flusher` |
@@ -70,7 +70,7 @@ The flusher is in the scheduler because a flush is a scheduled pass over a backl
 lease, and because the credentials it posts usage with are not credentials a request path should
 hold. It runs every five minutes.
 
-The tables come from the platform's DDL, rendered at migration version 23 in
+The tables come from the platform's DDL, rendered at migration version 30 in
 `internal/repositories/postgres/migrations/migrate.go` rather than copied into a numbered file —
 same arrangement as outbox, saga, webhooks, and audit. They are therefore invisible to `sqlc`;
 do not reference them from generated queries.

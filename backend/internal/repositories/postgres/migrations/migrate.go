@@ -47,7 +47,7 @@ const (
 	webhooksMigrationVersion    = 25
 	auditMigrationVersion       = 27
 	dataPrivacyMigrationVersion = 28
-	meteringMigrationVersion    = 29
+	meteringMigrationVersion    = 30
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
