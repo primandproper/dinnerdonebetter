@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -382,7 +382,7 @@ func (q *repository) createRecipeStepVessel(ctx context.Context, querier databas
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	logger := q.logger.WithValue(mealplanningkeys.RecipeStepVesselIDKey, input.ID).WithValue(mealplanningkeys.RecipeStepIDKey, input.BelongsToRecipeStep)
@@ -435,7 +435,7 @@ func (q *repository) createRecipeStepVessel(ctx context.Context, querier databas
 // CreateRecipeStepVessel creates a recipe step vessel in the database.
 func (q *repository) CreateRecipeStepVessel(ctx context.Context, recipeID string, input *mealplanning.RecipeStepVesselDatabaseCreationInput) (*mealplanning.RecipeStepVessel, error) {
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	var created *mealplanning.RecipeStepVessel
@@ -463,7 +463,7 @@ func (q *repository) UpdateRecipeStepVessel(ctx context.Context, recipeID string
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.RecipeStepVesselIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepVesselIDKey, updated.ID)

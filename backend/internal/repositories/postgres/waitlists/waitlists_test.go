@@ -12,8 +12,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -173,7 +173,7 @@ func TestQuerier_CreateWaitlist(T *testing.T) {
 		actual, err := c.CreateWaitlist(ctx, nil)
 		require.Error(t, err)
 		assert.Nil(t, actual)
-		assert.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
+		assert.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
 	})
 }
 
@@ -188,7 +188,7 @@ func TestQuerier_UpdateWaitlist(T *testing.T) {
 
 		err := c.UpdateWaitlist(ctx, nil)
 		require.Error(t, err)
-		assert.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
+		assert.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
 	})
 }
 
@@ -282,7 +282,7 @@ func TestQuerier_CreateWaitlistSignup(T *testing.T) {
 		actual, err := c.CreateWaitlistSignup(ctx, nil)
 		require.Error(t, err)
 		assert.Nil(t, actual)
-		assert.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
+		assert.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
 	})
 }
 
@@ -297,7 +297,7 @@ func TestQuerier_UpdateWaitlistSignup(T *testing.T) {
 
 		err := c.UpdateWaitlistSignup(ctx, nil)
 		require.Error(t, err)
-		assert.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
+		assert.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
 	})
 }
 

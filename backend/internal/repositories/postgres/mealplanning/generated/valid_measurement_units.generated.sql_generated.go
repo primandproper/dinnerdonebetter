@@ -596,6 +596,43 @@ func (q *Queries) GetValidMeasurementUnitsWithIDs(ctx context.Context, db DBTX, 
 	return items, nil
 }
 
+const scanValidMeasurementUnitIDsForReindex = `-- name: ScanValidMeasurementUnitIDsForReindex :many
+SELECT valid_measurement_units.id
+FROM valid_measurement_units
+WHERE valid_measurement_units.archived_at IS NULL
+	AND valid_measurement_units.id COLLATE "C" > $1
+ORDER BY valid_measurement_units.id COLLATE "C"
+LIMIT COALESCE($2, 50)
+`
+
+type ScanValidMeasurementUnitIDsForReindexParams struct {
+	Cursor      string
+	ResultLimit interface{}
+}
+
+func (q *Queries) ScanValidMeasurementUnitIDsForReindex(ctx context.Context, db DBTX, arg *ScanValidMeasurementUnitIDsForReindexParams) ([]string, error) {
+	rows, err := db.QueryContext(ctx, scanValidMeasurementUnitIDsForReindex, arg.Cursor, arg.ResultLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchForValidMeasurementUnits = `-- name: SearchForValidMeasurementUnits :many
 SELECT
 	valid_measurement_units.id,

@@ -13,21 +13,22 @@ import (
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
-	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	emailcfg "github.com/primandproper/platform-go/v9/email/config"
-	"github.com/primandproper/platform-go/v9/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v9/featureflags/config"
-	httpclientcfg "github.com/primandproper/platform-go/v9/httpclient"
-	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
-	meteringcfg "github.com/primandproper/platform-go/v9/metering/config"
-	"github.com/primandproper/platform-go/v9/observability"
-	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
-	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
-	"github.com/primandproper/platform-go/v9/server/grpc"
-	"github.com/primandproper/platform-go/v9/server/http"
-	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
+	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
+	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	emailcfg "github.com/primandproper/platform-go/v10/email/config"
+	"github.com/primandproper/platform-go/v10/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v10/featureflags/config"
+	httpclientcfg "github.com/primandproper/platform-go/v10/httpclient"
+	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
+	meteringcfg "github.com/primandproper/platform-go/v10/metering/config"
+	"github.com/primandproper/platform-go/v10/observability"
+	operationscfg "github.com/primandproper/platform-go/v10/operations/config"
+	routingcfg "github.com/primandproper/platform-go/v10/routing/config"
+	textsearchcfg "github.com/primandproper/platform-go/v10/search/text/config"
+	"github.com/primandproper/platform-go/v10/server/grpc"
+	"github.com/primandproper/platform-go/v10/server/http"
+	webhookscfg "github.com/primandproper/platform-go/v10/webhooks/config"
 
 	"github.com/samber/do/v2"
 )
@@ -62,6 +63,10 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*meteringcfg.Config](i, func(i do.Injector) (*meteringcfg.Config, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)
 		return &cfg.Metering, nil
+	})
+	do.Provide[*operationscfg.Config](i, func(i do.Injector) (*operationscfg.Config, error) {
+		cfg := do.MustInvoke[*config.APIServiceConfig](i)
+		return &cfg.Operations, nil
 	})
 	do.Provide[*featureflagscfg.Config](i, func(i do.Injector) (*featureflagscfg.Config, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)

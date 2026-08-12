@@ -4,8 +4,8 @@ import (
 	settingsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/manager"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -19,7 +19,7 @@ func RegisterSettingsService(i do.Injector) {
 	do.Provide[settingssvc.SettingsServiceServer](i, func(i do.Injector) (settingssvc.SettingsServiceServer, error) {
 		return NewService(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[settingsmanager.SettingsDataManager](i),
 		), nil
 	})

@@ -10,12 +10,12 @@ import (
 	oauthmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/mock"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	mockpublishers "github.com/primandproper/platform-go/v9/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v9/random"
-	randommock "github.com/primandproper/platform-go/v9/random/mock"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	mockpublishers "github.com/primandproper/platform-go/v10/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v10/random"
+	randommock "github.com/primandproper/platform-go/v10/random/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -64,7 +64,7 @@ func attachMocksToOAuthManager(manager *manager, repo *oauthmock.RepositoryMock,
 	manager.secretGenerator = secretGenerator
 
 	manager.dataChangesPublisher = &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
+		PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 	}
 }
 

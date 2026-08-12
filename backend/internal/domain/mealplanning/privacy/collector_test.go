@@ -10,11 +10,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -45,15 +45,15 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/primandproper/platform-go/v9/clock"
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/webhooks"
+	"github.com/primandproper/platform-go/v10/clock"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/webhooks"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -153,7 +153,7 @@ func NewDispatcher(
 	store webhooks.Store,
 	catalog webhooks.Catalog,
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	metricsProvider metrics.Provider,
 	opts ...Option,
 ) (*Dispatcher, error) {
@@ -233,7 +233,7 @@ func (d *Dispatcher) Register(ctx context.Context, registration *Registration) (
 	defer span.End()
 
 	if registration == nil {
-		return "", platformerrors.ErrNilInputProvided
+		return "", platformerrors.ErrNilInputParameter
 	}
 
 	logger := d.logger.WithValue("webhook_id", registration.ID)

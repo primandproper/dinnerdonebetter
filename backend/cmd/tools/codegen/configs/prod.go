@@ -18,39 +18,41 @@ import (
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
-	analyticsposthog "github.com/primandproper/platform-go/v9/analytics/posthog"
-	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
-	capitalismcfg "github.com/primandproper/platform-go/v9/capitalism/config"
-	circuitbreakingcfg "github.com/primandproper/platform-go/v9/circuitbreaking/config"
-	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	emailcfg "github.com/primandproper/platform-go/v9/email/config"
-	"github.com/primandproper/platform-go/v9/email/resend"
-	"github.com/primandproper/platform-go/v9/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v9/featureflags/config"
-	"github.com/primandproper/platform-go/v9/featureflags/posthog"
-	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
-	"github.com/primandproper/platform-go/v9/messagequeue/pubsub"
-	notificationscfg "github.com/primandproper/platform-go/v9/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v9/observability/logging/config"
-	logotelgrpc "github.com/primandproper/platform-go/v9/observability/logging/otelgrpc"
-	metricscfg "github.com/primandproper/platform-go/v9/observability/metrics/config"
-	"github.com/primandproper/platform-go/v9/observability/metrics/otelgrpc"
-	profilingcfg "github.com/primandproper/platform-go/v9/observability/profiling/config"
-	"github.com/primandproper/platform-go/v9/observability/profiling/pyroscope"
-	tracingcfg "github.com/primandproper/platform-go/v9/observability/tracing/config"
-	"github.com/primandproper/platform-go/v9/observability/tracing/oteltrace"
-	"github.com/primandproper/platform-go/v9/routing/backends/chi"
-	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
-	"github.com/primandproper/platform-go/v9/search/text/algolia"
-	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
-	"github.com/primandproper/platform-go/v9/server/grpc"
-	"github.com/primandproper/platform-go/v9/server/http"
-	uploadscfg "github.com/primandproper/platform-go/v9/uploads/config"
-	"github.com/primandproper/platform-go/v9/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
+	analyticsposthog "github.com/primandproper/platform-go/v10/analytics/posthog"
+	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
+	capitalismcfg "github.com/primandproper/platform-go/v10/capitalism/config"
+	circuitbreakingcfg "github.com/primandproper/platform-go/v10/circuitbreaking/config"
+	encryptioncfg "github.com/primandproper/platform-go/v10/cryptography/encryption/config"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	emailcfg "github.com/primandproper/platform-go/v10/email/config"
+	"github.com/primandproper/platform-go/v10/email/resend"
+	"github.com/primandproper/platform-go/v10/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v10/featureflags/config"
+	"github.com/primandproper/platform-go/v10/featureflags/posthog"
+	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
+	"github.com/primandproper/platform-go/v10/messagequeue/pubsub"
+	"github.com/primandproper/platform-go/v10/notifications/mobile/apns"
+	notificationscfg "github.com/primandproper/platform-go/v10/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v10/notifications/mobile/fcm"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	loggingcfg "github.com/primandproper/platform-go/v10/observability/logging/config"
+	logotelgrpc "github.com/primandproper/platform-go/v10/observability/logging/otelgrpc"
+	metricscfg "github.com/primandproper/platform-go/v10/observability/metrics/config"
+	"github.com/primandproper/platform-go/v10/observability/metrics/otelgrpc"
+	profilingcfg "github.com/primandproper/platform-go/v10/observability/profiling/config"
+	"github.com/primandproper/platform-go/v10/observability/profiling/pyroscope"
+	tracingcfg "github.com/primandproper/platform-go/v10/observability/tracing/config"
+	"github.com/primandproper/platform-go/v10/observability/tracing/oteltrace"
+	"github.com/primandproper/platform-go/v10/routing/backends/chi"
+	routingcfg "github.com/primandproper/platform-go/v10/routing/config"
+	"github.com/primandproper/platform-go/v10/search/text/algolia"
+	textsearchcfg "github.com/primandproper/platform-go/v10/search/text/config"
+	"github.com/primandproper/platform-go/v10/server/grpc"
+	"github.com/primandproper/platform-go/v10/server/http"
+	uploadscfg "github.com/primandproper/platform-go/v10/uploads/config"
+	"github.com/primandproper/platform-go/v10/uploads/objectstorage"
 )
 
 const (
@@ -126,8 +128,9 @@ func buildProdConfig() *config.APIServiceConfig {
 	}
 
 	return &config.APIServiceConfig{
-		Webhooks: buildWebhooksConfig(),
-		Metering: config.DefaultMeteringConfig(),
+		Webhooks:   buildWebhooksConfig(),
+		Metering:   config.DefaultMeteringConfig(),
+		Operations: config.DefaultOperationsConfig(),
 		Routing: routingcfg.Config{
 			Provider: routingcfg.ProviderChi,
 			Chi: &chi.Config{
@@ -201,7 +204,7 @@ func buildProdConfig() *config.APIServiceConfig {
 					DisableSSL: false,
 				},
 			},
-			Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
+			Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 			OAuth2TokenEncryptionKey: "",
 		},
 		Observability: prodObservabilityConfig,
@@ -261,7 +264,12 @@ func buildProdConfig() *config.APIServiceConfig {
 		},
 		FeatureFlags: featureflagscfg.Config{
 			Provider: featureflagscfg.ProviderPostHog,
-			PostHog:  &posthog.Config{ProjectAPIKey: "placeholder"}, // overridden by env from CSI secret
+			// Both keys are placeholders, overridden by env from the CSI secret. v10 made
+			// PersonalAPIKey required, having found that the SDK refuses every flag
+			// evaluation without one — so a config naming only the project key used to
+			// validate clean and then fail to serve a single flag. It is a real secret this
+			// deployment now has to supply.
+			PostHog: &posthog.Config{ProjectAPIKey: "placeholder", PersonalAPIKey: "placeholder"},
 			CircuitBreaker: circuitbreakingcfg.Config{
 				Name:                   "feature_flagger",
 				ErrorRate:              .5,
@@ -322,7 +330,7 @@ func buildProdConfig() *config.APIServiceConfig {
 					Storage: gcpUserDataStorage,
 					Debug:   false,
 				},
-				Encryption: encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
+				Encryption: encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 				// Supplied from the environment, like every other secret in this file.
 				ArtifactEncryptionKey: "",
 			},
@@ -348,13 +356,13 @@ func buildProdConfig() *config.APIServiceConfig {
 		},
 		PushNotifications: notificationscfg.Config{
 			Provider: notificationscfg.ProviderAPNsFCM,
-			APNs: &notificationscfg.APNsConfig{
+			APNs: &apns.Config{
 				AuthKeyPath: "/mnt/apns/apns-auth-key.p8", // mounted from K8s secret apns-credentials
 				TeamID:      iosTeamID,
 				BundleID:    iosBundleID,
 				Production:  true,
 			},
-			FCM: &notificationscfg.FCMConfig{
+			FCM: &fcm.Config{
 				// CredentialsPath empty: uses Application Default Credentials (GCP workload identity)
 			},
 		},

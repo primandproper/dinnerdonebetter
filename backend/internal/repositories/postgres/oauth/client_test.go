@@ -13,13 +13,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v9/database"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	mockdatabase "github.com/primandproper/platform-go/v9/database/mock"
-	"github.com/primandproper/platform-go/v9/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	encryptioncfg "github.com/primandproper/platform-go/v10/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v10/database"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	mockdatabase "github.com/primandproper/platform-go/v10/database/mock"
+	"github.com/primandproper/platform-go/v10/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
 
 	"github.com/stretchr/testify/require"
 )
@@ -77,7 +77,7 @@ func buildInertClientForTest(t *testing.T) *repository {
 			MaxPingAttempts: 10,
 			PingWaitPeriod:  time.Second,
 		},
-		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
+		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 		OAuth2TokenEncryptionKey: "blahblahblahblahblahblahblahblah",
 	}
 

@@ -14,12 +14,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	"github.com/primandproper/platform-go/v9/database/postgres"
-	"github.com/primandproper/platform-go/v9/observability"
-	loggingcfg "github.com/primandproper/platform-go/v9/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v9/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v9/observability/tracing/config"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	"github.com/primandproper/platform-go/v10/database/postgres"
+	"github.com/primandproper/platform-go/v10/observability"
+	loggingcfg "github.com/primandproper/platform-go/v10/observability/logging/config"
+	metricscfg "github.com/primandproper/platform-go/v10/observability/metrics/config"
+	tracingcfg "github.com/primandproper/platform-go/v10/observability/tracing/config"
 
 	"github.com/samber/do/v2"
 )

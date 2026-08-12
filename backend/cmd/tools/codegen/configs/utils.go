@@ -6,10 +6,10 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
-	circuitbreakingcfg "github.com/primandproper/platform-go/v9/circuitbreaking/config"
-	retrycfg "github.com/primandproper/platform-go/v9/retry/config"
-	"github.com/primandproper/platform-go/v9/webhooks"
-	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
+	circuitbreakingcfg "github.com/primandproper/platform-go/v10/circuitbreaking/config"
+	retrycfg "github.com/primandproper/platform-go/v10/retry/config"
+	"github.com/primandproper/platform-go/v10/webhooks"
+	webhookscfg "github.com/primandproper/platform-go/v10/webhooks/config"
 )
 
 func internalKubernetesEndpoint(serviceName, namespace string, port int) string {

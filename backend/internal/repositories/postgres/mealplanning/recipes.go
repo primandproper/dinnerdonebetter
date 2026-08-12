@@ -13,13 +13,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/pointer"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/pointer"
 )
 
 var (
@@ -668,14 +668,23 @@ func (q *repository) GetRecipesWithIDs(ctx context.Context, ids []string) ([]*me
 	return out, nil
 }
 
-// GetRecipeIDsThatNeedSearchIndexing fetches a list of recipe IDs from the database that meet a particular filter.
-func (q *repository) GetRecipeIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
+// ScanRecipeIDsForReindex returns up to limit IDs sorting strictly after `after`, in ascending byte order.
+//
+// It is the source half of a search reindex: searchsync.Reindexer walks this to find every
+// document that should exist, and prunes the index of anything it does not name. It replaces
+// the "IDs that need indexing" sampler platform-go v10 removed, which asked a different and
+// weaker question — which rows look stale — and could only ever be probabilistically right,
+// because a row the sampler had not reached was a row the index was wrong about.
+func (q *repository) ScanRecipeIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	results, err := q.generatedQuerier.GetRecipesNeedingIndexing(ctx, q.readDB)
+	results, err := q.generatedQuerier.ScanRecipeIDsForReindex(ctx, q.readDB, &generated.ScanRecipeIDsForReindexParams{
+		Cursor:      after,
+		ResultLimit: limit,
+	})
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "executing recipes list retrieval query")
+		return nil, observability.PrepareError(err, span, "executing recipes reindex scan query")
 	}
 
 	return results, nil
@@ -942,7 +951,7 @@ func (q *repository) CreateRecipe(ctx context.Context, input *mealplanning.Recip
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.RecipeIDKey, input.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, input.ID)
@@ -1211,7 +1220,7 @@ func (q *repository) UpdateRecipe(ctx context.Context, updated *mealplanning.Rec
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 
 	logger := q.logger.WithValue(mealplanningkeys.RecipeIDKey, updated.ID)

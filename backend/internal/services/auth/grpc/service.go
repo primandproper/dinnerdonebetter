@@ -7,10 +7,10 @@ import (
 	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
-	"github.com/primandproper/platform-go/v9/encoding"
-	"github.com/primandproper/platform-go/v9/featureflags"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/encoding"
+	"github.com/primandproper/platform-go/v10/featureflags"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -35,7 +35,7 @@ type (
 
 func NewAuthService(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	identityDataManager identitymanager.IdentityDataManager,
 	authManager managers.AuthManagerInterface,
 	authenticationManager authentication2.Manager,

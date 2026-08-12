@@ -8,12 +8,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -315,14 +315,23 @@ func (q *repository) GetValidPreparationsWithIDs(ctx context.Context, ids []stri
 	return preparations, nil
 }
 
-// GetValidPreparationIDsThatNeedSearchIndexing fetches a list of valid preparations from the database that meet a particular filter.
-func (q *repository) GetValidPreparationIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
+// ScanValidPreparationIDsForReindex returns up to limit IDs sorting strictly after `after`, in ascending byte order.
+//
+// It is the source half of a search reindex: searchsync.Reindexer walks this to find every
+// document that should exist, and prunes the index of anything it does not name. It replaces
+// the "IDs that need indexing" sampler platform-go v10 removed, which asked a different and
+// weaker question — which rows look stale — and could only ever be probabilistically right,
+// because a row the sampler had not reached was a row the index was wrong about.
+func (q *repository) ScanValidPreparationIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	results, err := q.generatedQuerier.GetValidPreparationsNeedingIndexing(ctx, q.readDB)
+	results, err := q.generatedQuerier.ScanValidPreparationIDsForReindex(ctx, q.readDB, &generated.ScanValidPreparationIDsForReindexParams{
+		Cursor:      after,
+		ResultLimit: limit,
+	})
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "executing valid preparations list retrieval query")
+		return nil, observability.PrepareError(err, span, "executing valid preparations reindex scan query")
 	}
 
 	return results, nil
@@ -334,7 +343,7 @@ func (q *repository) CreateValidPreparation(ctx context.Context, input *mealplan
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.ValidPreparationIDKey, input.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, input.ID)
@@ -402,7 +411,7 @@ func (q *repository) UpdateValidPreparation(ctx context.Context, updated *mealpl
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.ValidPreparationIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, updated.ID)

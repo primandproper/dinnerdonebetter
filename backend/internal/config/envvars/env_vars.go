@@ -28,20 +28,8 @@ const (
 	// AnalyticsSegmentAPITokenEnvVarKey is the environment variable name to set to override `APIServiceConfig.Analytics.Segment.APIToken`.
 	AnalyticsSegmentAPITokenEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_SEGMENT_API_TOKEN"
 
-	// AuditBatchSizeEnvVarKey is the environment variable name to set to override `SchedulerConfig.Audit.BatchSize`.
-	AuditBatchSizeEnvVarKey = "DINNER_DONE_BETTER_AUDIT_BATCH_SIZE"
-
 	// AuditDialectEnvVarKey is the environment variable name to set to override `SchedulerConfig.Audit.Dialect`.
 	AuditDialectEnvVarKey = "DINNER_DONE_BETTER_AUDIT_DIALECT"
-
-	// AuditRetentionEnvVarKey is the environment variable name to set to override `SchedulerConfig.Audit.Retention`.
-	AuditRetentionEnvVarKey = "DINNER_DONE_BETTER_AUDIT_RETENTION"
-
-	// AuditScopeLimitEnvVarKey is the environment variable name to set to override `SchedulerConfig.Audit.ScopeLimit`.
-	AuditScopeLimitEnvVarKey = "DINNER_DONE_BETTER_AUDIT_SCOPE_LIMIT"
-
-	// AuditSweepIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Audit.SweepInterval`.
-	AuditSweepIntervalEnvVarKey = "DINNER_DONE_BETTER_AUDIT_SWEEP_INTERVAL"
 
 	// AuditTablePrefixEnvVarKey is the environment variable name to set to override `SchedulerConfig.Audit.TablePrefix`.
 	AuditTablePrefixEnvVarKey = "DINNER_DONE_BETTER_AUDIT_TABLE_PREFIX"
@@ -103,6 +91,9 @@ const (
 	// DataPrivacyArtifactEncryptionKeyEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.ArtifactEncryptionKey`.
 	DataPrivacyArtifactEncryptionKeyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACT_ENCRYPTION_KEY"
 
+	// DataPrivacyEncryptionCurrentKeyIDEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Encryption.CurrentKeyID`.
+	DataPrivacyEncryptionCurrentKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ENCRYPTION_CURRENT_KEY_ID"
+
 	// DataPrivacyEncryptionProviderEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Encryption.Provider`.
 	DataPrivacyEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ENCRYPTION_PROVIDER"
 
@@ -117,6 +108,27 @@ const (
 
 	// DataPrivacyRequestsDialectEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Dialect`.
 	DataPrivacyRequestsDialectEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_DIALECT"
+
+	// DataPrivacyRequestsFulfillerArtifactPathPrefixEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Fulfiller.ArtifactPathPrefix`.
+	DataPrivacyRequestsFulfillerArtifactPathPrefixEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_FULFILLER_ARTIFACT_PATH_PREFIX"
+
+	// DataPrivacyRequestsFulfillerArtifactTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Fulfiller.ArtifactTTL`.
+	DataPrivacyRequestsFulfillerArtifactTTLEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_FULFILLER_ARTIFACT_TTL"
+
+	// DataPrivacyRequestsFulfillerCollectorConcurrencyEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Fulfiller.CollectorConcurrency`.
+	DataPrivacyRequestsFulfillerCollectorConcurrencyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_FULFILLER_COLLECTOR_CONCURRENCY"
+
+	// DataPrivacyRequestsFulfillerCollectorTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Fulfiller.CollectorTimeout`.
+	DataPrivacyRequestsFulfillerCollectorTimeoutEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_FULFILLER_COLLECTOR_TIMEOUT"
+
+	// DataPrivacyRequestsFulfillerFulfillmentTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Fulfiller.FulfillmentTimeout`.
+	DataPrivacyRequestsFulfillerFulfillmentTimeoutEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_FULFILLER_FULFILLMENT_TIMEOUT"
+
+	// DataPrivacyRequestsFulfillerMaxAttemptsEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Fulfiller.MaxAttempts`.
+	DataPrivacyRequestsFulfillerMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_FULFILLER_MAX_ATTEMPTS"
+
+	// DataPrivacyRequestsFulfillerMaxDocumentBytesEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Fulfiller.MaxDocumentBytes`.
+	DataPrivacyRequestsFulfillerMaxDocumentBytesEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_FULFILLER_MAX_DOCUMENT_BYTES"
 
 	// DataPrivacyRequestsServiceConfirmationWindowEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Service.ConfirmationWindow`.
 	DataPrivacyRequestsServiceConfirmationWindowEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_SERVICE_CONFIRMATION_WINDOW"
@@ -141,54 +153,6 @@ const (
 
 	// DataPrivacyRequestsTablePrefixEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.TablePrefix`.
 	DataPrivacyRequestsTablePrefixEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_TABLE_PREFIX"
-
-	// DataPrivacyRequestsWorkerArtifactPathPrefixEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.ArtifactPathPrefix`.
-	DataPrivacyRequestsWorkerArtifactPathPrefixEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_ARTIFACT_PATH_PREFIX"
-
-	// DataPrivacyRequestsWorkerArtifactTTLEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.ArtifactTTL`.
-	DataPrivacyRequestsWorkerArtifactTTLEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_ARTIFACT_TTL"
-
-	// DataPrivacyRequestsWorkerBackoffInitialDelayEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.Backoff.InitialDelay`.
-	DataPrivacyRequestsWorkerBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_BACKOFF_INITIAL_DELAY"
-
-	// DataPrivacyRequestsWorkerBackoffMaxAttemptsEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.Backoff.MaxAttempts`.
-	DataPrivacyRequestsWorkerBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_BACKOFF_MAX_ATTEMPTS"
-
-	// DataPrivacyRequestsWorkerBackoffMaxDelayEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.Backoff.MaxDelay`.
-	DataPrivacyRequestsWorkerBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_BACKOFF_MAX_DELAY"
-
-	// DataPrivacyRequestsWorkerBackoffMultiplierEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.Backoff.Multiplier`.
-	DataPrivacyRequestsWorkerBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_BACKOFF_MULTIPLIER"
-
-	// DataPrivacyRequestsWorkerBackoffProviderEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.Backoff.Provider`.
-	DataPrivacyRequestsWorkerBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_BACKOFF_PROVIDER"
-
-	// DataPrivacyRequestsWorkerBackoffUseJitterEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.Backoff.UseJitter`.
-	DataPrivacyRequestsWorkerBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_BACKOFF_USE_JITTER"
-
-	// DataPrivacyRequestsWorkerBatchSizeEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.BatchSize`.
-	DataPrivacyRequestsWorkerBatchSizeEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_BATCH_SIZE"
-
-	// DataPrivacyRequestsWorkerCollectorConcurrencyEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.CollectorConcurrency`.
-	DataPrivacyRequestsWorkerCollectorConcurrencyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_COLLECTOR_CONCURRENCY"
-
-	// DataPrivacyRequestsWorkerCollectorTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.CollectorTimeout`.
-	DataPrivacyRequestsWorkerCollectorTimeoutEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_COLLECTOR_TIMEOUT"
-
-	// DataPrivacyRequestsWorkerConcurrencyEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.Concurrency`.
-	DataPrivacyRequestsWorkerConcurrencyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_CONCURRENCY"
-
-	// DataPrivacyRequestsWorkerFulfillmentTimeoutEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.FulfillmentTimeout`.
-	DataPrivacyRequestsWorkerFulfillmentTimeoutEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_FULFILLMENT_TIMEOUT"
-
-	// DataPrivacyRequestsWorkerLeaseDurationEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.LeaseDuration`.
-	DataPrivacyRequestsWorkerLeaseDurationEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_LEASE_DURATION"
-
-	// DataPrivacyRequestsWorkerMaxDocumentBytesEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.MaxDocumentBytes`.
-	DataPrivacyRequestsWorkerMaxDocumentBytesEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_MAX_DOCUMENT_BYTES"
-
-	// DataPrivacyRequestsWorkerPollIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Requests.Worker.PollInterval`.
-	DataPrivacyRequestsWorkerPollIntervalEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_WORKER_POLL_INTERVAL"
 
 	// DataPrivacyUploadsDebugEnvVarKey is the environment variable name to set to override `SchedulerConfig.DataPrivacy.Uploads.Debug`.
 	DataPrivacyUploadsDebugEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_DEBUG"
@@ -243,6 +207,9 @@ const (
 
 	// DatabaseEnableDatabaseMetricsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Database.EnableDatabaseMetrics`.
 	DatabaseEnableDatabaseMetricsEnvVarKey = "DINNER_DONE_BETTER_DATABASE_ENABLE_DATABASE_METRICS"
+
+	// DatabaseEncryptionCurrentKeyIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.Database.Encryption.CurrentKeyID`.
+	DatabaseEncryptionCurrentKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATABASE_ENCRYPTION_CURRENT_KEY_ID"
 
 	// DatabaseEncryptionProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Database.Encryption.Provider`.
 	DatabaseEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_DATABASE_ENCRYPTION_PROVIDER"
@@ -315,6 +282,9 @@ const (
 
 	// EmailCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Email.CircuitBreaker.Name`.
 	EmailCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_EMAIL_CIRCUIT_BREAKING_NAME"
+
+	// EmailMailgunBaseURLEnvVarKey is the environment variable name to set to override `APIServiceConfig.Email.Mailgun.BaseURL`.
+	EmailMailgunBaseURLEnvVarKey = "DINNER_DONE_BETTER_EMAIL_MAILGUN_BASE_URL"
 
 	// EmailMailgunDomainEnvVarKey is the environment variable name to set to override `APIServiceConfig.Email.Mailgun.Domain`.
 	EmailMailgunDomainEnvVarKey = "DINNER_DONE_BETTER_EMAIL_MAILGUN_DOMAIN"
@@ -490,11 +460,17 @@ const (
 	// IdempotencyManagerCacheCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.CircuitBreaker.Name`.
 	IdempotencyManagerCacheCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_CIRCUIT_BREAKING_NAME"
 
+	// IdempotencyManagerCacheEvictionPolicyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.EvictionPolicy`.
+	IdempotencyManagerCacheEvictionPolicyEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_EVICTION_POLICY"
+
 	// IdempotencyManagerCacheExpiryEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Expiry`.
 	IdempotencyManagerCacheExpiryEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_EXPIRY"
 
 	// IdempotencyManagerCacheJanitorIntervalEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.JanitorInterval`.
 	IdempotencyManagerCacheJanitorIntervalEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_JANITOR_INTERVAL"
+
+	// IdempotencyManagerCacheMaxEntriesEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.MaxEntries`.
+	IdempotencyManagerCacheMaxEntriesEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_MAX_ENTRIES"
 
 	// IdempotencyManagerCacheProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Idempotency.Manager.Cache.Provider`.
 	IdempotencyManagerCacheProviderEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_CACHE_PROVIDER"
@@ -892,6 +868,63 @@ const (
 	// ObservabilityTracingSpanCollectionProbabilityEnvVarKey is the environment variable name to set to override `APIServiceConfig.Observability.Tracing.SpanCollectionProbability`.
 	ObservabilityTracingSpanCollectionProbabilityEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_SPAN_COLLECTION_PROBABILITY"
 
+	// OperationsQueueMaxAttemptsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Queue.MaxAttempts`.
+	OperationsQueueMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_MAX_ATTEMPTS"
+
+	// OperationsQueueMaxClaimBatchEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Queue.MaxClaimBatch`.
+	OperationsQueueMaxClaimBatchEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_MAX_CLAIM_BATCH"
+
+	// OperationsQueueMinWakeIntervalEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Queue.MinWakeInterval`.
+	OperationsQueueMinWakeIntervalEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_MIN_WAKE_INTERVAL"
+
+	// OperationsQueueNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Queue.Name`.
+	OperationsQueueNameEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_NAME"
+
+	// OperationsQueueNotifyChannelEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Queue.NotifyChannel`.
+	OperationsQueueNotifyChannelEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_NOTIFY_CHANNEL"
+
+	// OperationsQueueReapBatchSizeEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Queue.ReapBatchSize`.
+	OperationsQueueReapBatchSizeEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_REAP_BATCH_SIZE"
+
+	// OperationsQueueRetentionEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Queue.Retention`.
+	OperationsQueueRetentionEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_RETENTION"
+
+	// OperationsQueueTablePrefixEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Queue.TablePrefix`.
+	OperationsQueueTablePrefixEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_TABLE_PREFIX"
+
+	// OperationsQueueWriteAttemptsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Queue.WriteAttempts`.
+	OperationsQueueWriteAttemptsEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_WRITE_ATTEMPTS"
+
+	// OperationsWatcherMaxSubscriptionsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Watcher.MaxSubscriptions`.
+	OperationsWatcherMaxSubscriptionsEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WATCHER_MAX_SUBSCRIPTIONS"
+
+	// OperationsWatcherMinReadIntervalEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Watcher.MinReadInterval`.
+	OperationsWatcherMinReadIntervalEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WATCHER_MIN_READ_INTERVAL"
+
+	// OperationsWatcherPollEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Watcher.Poll`.
+	OperationsWatcherPollEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WATCHER_POLL"
+
+	// OperationsWorkerBatchEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Worker.Batch`.
+	OperationsWorkerBatchEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WORKER_BATCH"
+
+	// OperationsWorkerConcurrencyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Worker.Concurrency`.
+	OperationsWorkerConcurrencyEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WORKER_CONCURRENCY"
+
+	// OperationsWorkerLeaseEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Worker.Lease`.
+	OperationsWorkerLeaseEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WORKER_LEASE"
+
+	// OperationsWorkerMaxAttemptsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Worker.MaxAttempts`.
+	OperationsWorkerMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WORKER_MAX_ATTEMPTS"
+
+	// OperationsWorkerPollEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Worker.Poll`.
+	OperationsWorkerPollEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WORKER_POLL"
+
+	// OperationsWorkerProgressIntervalEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Worker.ProgressInterval`.
+	OperationsWorkerProgressIntervalEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WORKER_PROGRESS_INTERVAL"
+
+	// OperationsWorkerRetryDelayEnvVarKey is the environment variable name to set to override `APIServiceConfig.Operations.Worker.RetryDelay`.
+	OperationsWorkerRetryDelayEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WORKER_RETRY_DELAY"
+
 	// OutboxBackoffInitialDelayEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.Backoff.InitialDelay`.
 	OutboxBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_INITIAL_DELAY"
 
@@ -918,6 +951,12 @@ const (
 
 	// OutboxLeaseDurationEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.LeaseDuration`.
 	OutboxLeaseDurationEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_LEASE_DURATION"
+
+	// OutboxMinWakeIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.MinWakeInterval`.
+	OutboxMinWakeIntervalEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_MIN_WAKE_INTERVAL"
+
+	// OutboxNotifyChannelEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.NotifyChannel`.
+	OutboxNotifyChannelEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_NOTIFY_CHANNEL"
 
 	// OutboxPollIntervalEnvVarKey is the environment variable name to set to override `SchedulerConfig.Outbox.PollInterval`.
 	OutboxPollIntervalEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_POLL_INTERVAL"
@@ -1080,6 +1119,18 @@ const (
 
 	// RecipientEmailAddressEnvVarKey is the environment variable name to set to override `EmailDeliverabilityTestConfigRecipientEmailAddress`.
 	RecipientEmailAddressEnvVarKey = "DINNER_DONE_BETTER_RECIPIENT_EMAIL_ADDRESS"
+
+	// RetentionBacklogCeilingEnvVarKey is the environment variable name to set to override `SchedulerConfig.Retention.BacklogCeiling`.
+	RetentionBacklogCeilingEnvVarKey = "DINNER_DONE_BETTER_RETENTION_BACKLOG_CEILING"
+
+	// RetentionBatchPauseEnvVarKey is the environment variable name to set to override `SchedulerConfig.Retention.BatchPause`.
+	RetentionBatchPauseEnvVarKey = "DINNER_DONE_BETTER_RETENTION_BATCH_PAUSE"
+
+	// RetentionBatchSizeEnvVarKey is the environment variable name to set to override `SchedulerConfig.Retention.BatchSize`.
+	RetentionBatchSizeEnvVarKey = "DINNER_DONE_BETTER_RETENTION_BATCH_SIZE"
+
+	// RetentionMaxBatchesEnvVarKey is the environment variable name to set to override `SchedulerConfig.Retention.MaxBatches`.
+	RetentionMaxBatchesEnvVarKey = "DINNER_DONE_BETTER_RETENTION_MAX_BATCHES"
 
 	// RoutingChiEnableCorsForLocalhostEnvVarKey is the environment variable name to set to override `APIServiceConfig.Routing.Chi.EnableCORSForLocalhost`.
 	RoutingChiEnableCorsForLocalhostEnvVarKey = "DINNER_DONE_BETTER_ROUTING_CHI_ENABLE_CORS_FOR_LOCALHOST"
@@ -1279,6 +1330,9 @@ const (
 	// ServiceDataPrivacyArtifactEncryptionKeyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.ArtifactEncryptionKey`.
 	ServiceDataPrivacyArtifactEncryptionKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_ARTIFACT_ENCRYPTION_KEY"
 
+	// ServiceDataPrivacyEncryptionCurrentKeyIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Encryption.CurrentKeyID`.
+	ServiceDataPrivacyEncryptionCurrentKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_ENCRYPTION_CURRENT_KEY_ID"
+
 	// ServiceDataPrivacyEncryptionProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Encryption.Provider`.
 	ServiceDataPrivacyEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_ENCRYPTION_PROVIDER"
 
@@ -1293,6 +1347,27 @@ const (
 
 	// ServiceDataPrivacyRequestsDialectEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Dialect`.
 	ServiceDataPrivacyRequestsDialectEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_DIALECT"
+
+	// ServiceDataPrivacyRequestsFulfillerArtifactPathPrefixEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Fulfiller.ArtifactPathPrefix`.
+	ServiceDataPrivacyRequestsFulfillerArtifactPathPrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_FULFILLER_ARTIFACT_PATH_PREFIX"
+
+	// ServiceDataPrivacyRequestsFulfillerArtifactTTLEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Fulfiller.ArtifactTTL`.
+	ServiceDataPrivacyRequestsFulfillerArtifactTTLEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_FULFILLER_ARTIFACT_TTL"
+
+	// ServiceDataPrivacyRequestsFulfillerCollectorConcurrencyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Fulfiller.CollectorConcurrency`.
+	ServiceDataPrivacyRequestsFulfillerCollectorConcurrencyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_FULFILLER_COLLECTOR_CONCURRENCY"
+
+	// ServiceDataPrivacyRequestsFulfillerCollectorTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Fulfiller.CollectorTimeout`.
+	ServiceDataPrivacyRequestsFulfillerCollectorTimeoutEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_FULFILLER_COLLECTOR_TIMEOUT"
+
+	// ServiceDataPrivacyRequestsFulfillerFulfillmentTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Fulfiller.FulfillmentTimeout`.
+	ServiceDataPrivacyRequestsFulfillerFulfillmentTimeoutEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_FULFILLER_FULFILLMENT_TIMEOUT"
+
+	// ServiceDataPrivacyRequestsFulfillerMaxAttemptsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Fulfiller.MaxAttempts`.
+	ServiceDataPrivacyRequestsFulfillerMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_FULFILLER_MAX_ATTEMPTS"
+
+	// ServiceDataPrivacyRequestsFulfillerMaxDocumentBytesEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Fulfiller.MaxDocumentBytes`.
+	ServiceDataPrivacyRequestsFulfillerMaxDocumentBytesEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_FULFILLER_MAX_DOCUMENT_BYTES"
 
 	// ServiceDataPrivacyRequestsServiceConfirmationWindowEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Service.ConfirmationWindow`.
 	ServiceDataPrivacyRequestsServiceConfirmationWindowEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_SERVICE_CONFIRMATION_WINDOW"
@@ -1317,54 +1392,6 @@ const (
 
 	// ServiceDataPrivacyRequestsTablePrefixEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.TablePrefix`.
 	ServiceDataPrivacyRequestsTablePrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_TABLE_PREFIX"
-
-	// ServiceDataPrivacyRequestsWorkerArtifactPathPrefixEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.ArtifactPathPrefix`.
-	ServiceDataPrivacyRequestsWorkerArtifactPathPrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_ARTIFACT_PATH_PREFIX"
-
-	// ServiceDataPrivacyRequestsWorkerArtifactTTLEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.ArtifactTTL`.
-	ServiceDataPrivacyRequestsWorkerArtifactTTLEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_ARTIFACT_TTL"
-
-	// ServiceDataPrivacyRequestsWorkerBackoffInitialDelayEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.Backoff.InitialDelay`.
-	ServiceDataPrivacyRequestsWorkerBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_BACKOFF_INITIAL_DELAY"
-
-	// ServiceDataPrivacyRequestsWorkerBackoffMaxAttemptsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.Backoff.MaxAttempts`.
-	ServiceDataPrivacyRequestsWorkerBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_BACKOFF_MAX_ATTEMPTS"
-
-	// ServiceDataPrivacyRequestsWorkerBackoffMaxDelayEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.Backoff.MaxDelay`.
-	ServiceDataPrivacyRequestsWorkerBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_BACKOFF_MAX_DELAY"
-
-	// ServiceDataPrivacyRequestsWorkerBackoffMultiplierEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.Backoff.Multiplier`.
-	ServiceDataPrivacyRequestsWorkerBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_BACKOFF_MULTIPLIER"
-
-	// ServiceDataPrivacyRequestsWorkerBackoffProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.Backoff.Provider`.
-	ServiceDataPrivacyRequestsWorkerBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_BACKOFF_PROVIDER"
-
-	// ServiceDataPrivacyRequestsWorkerBackoffUseJitterEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.Backoff.UseJitter`.
-	ServiceDataPrivacyRequestsWorkerBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_BACKOFF_USE_JITTER"
-
-	// ServiceDataPrivacyRequestsWorkerBatchSizeEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.BatchSize`.
-	ServiceDataPrivacyRequestsWorkerBatchSizeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_BATCH_SIZE"
-
-	// ServiceDataPrivacyRequestsWorkerCollectorConcurrencyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.CollectorConcurrency`.
-	ServiceDataPrivacyRequestsWorkerCollectorConcurrencyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_COLLECTOR_CONCURRENCY"
-
-	// ServiceDataPrivacyRequestsWorkerCollectorTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.CollectorTimeout`.
-	ServiceDataPrivacyRequestsWorkerCollectorTimeoutEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_COLLECTOR_TIMEOUT"
-
-	// ServiceDataPrivacyRequestsWorkerConcurrencyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.Concurrency`.
-	ServiceDataPrivacyRequestsWorkerConcurrencyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_CONCURRENCY"
-
-	// ServiceDataPrivacyRequestsWorkerFulfillmentTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.FulfillmentTimeout`.
-	ServiceDataPrivacyRequestsWorkerFulfillmentTimeoutEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_FULFILLMENT_TIMEOUT"
-
-	// ServiceDataPrivacyRequestsWorkerLeaseDurationEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.LeaseDuration`.
-	ServiceDataPrivacyRequestsWorkerLeaseDurationEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_LEASE_DURATION"
-
-	// ServiceDataPrivacyRequestsWorkerMaxDocumentBytesEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.MaxDocumentBytes`.
-	ServiceDataPrivacyRequestsWorkerMaxDocumentBytesEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_MAX_DOCUMENT_BYTES"
-
-	// ServiceDataPrivacyRequestsWorkerPollIntervalEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Requests.Worker.PollInterval`.
-	ServiceDataPrivacyRequestsWorkerPollIntervalEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_WORKER_POLL_INTERVAL"
 
 	// ServiceDataPrivacyUploadsDebugEnvVarKey is the environment variable name to set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Debug`.
 	ServiceDataPrivacyUploadsDebugEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_DEBUG"

@@ -11,10 +11,10 @@ import (
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/platform-go/v9/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
-	mockuploads "github.com/primandproper/platform-go/v9/uploads/mock"
+	"github.com/primandproper/platform-go/v10/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
+	mockuploads "github.com/primandproper/platform-go/v10/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 )

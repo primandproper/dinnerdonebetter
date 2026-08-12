@@ -7,10 +7,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/qrcodes"
-	"github.com/primandproper/platform-go/v9/random"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/qrcodes"
+	"github.com/primandproper/platform-go/v10/random"
 
 	"github.com/samber/do/v2"
 )
@@ -20,7 +20,7 @@ func RegisterIdentityDataManager(i do.Injector) {
 	do.Provide[IdentityDataManager](i, func(i do.Injector) (IdentityDataManager, error) {
 		return NewIdentityDataManager(
 			do.MustInvoke[context.Context](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[identity.Repository](i),
 			do.MustInvoke[random.Generator](i),

@@ -4,11 +4,11 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 
-	"github.com/primandproper/platform-go/v9/database/dialect"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/outbox"
+	"github.com/primandproper/platform-go/v10/database/dialect"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/outbox"
 
 	"github.com/samber/do/v2"
 )
@@ -22,7 +22,7 @@ func RegisterOutboxEmitter(i do.Injector) {
 		return outbox.NewWriter(
 			dialect.Postgres,
 			outbox.WithWriterLogger(do.MustInvoke[logging.Logger](i)),
-			outbox.WithWriterTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			outbox.WithWriterTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			outbox.WithWriterMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 	})

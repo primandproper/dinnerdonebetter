@@ -141,6 +141,13 @@ GROUP BY %s.%s
 			},
 			{
 				Annotation: QueryAnnotation{
+					Name: "ScanValidVesselIDsForReindex",
+					Type: ManyType,
+				},
+				Content: buildReindexScanQuery(validVesselsTableName),
+			},
+			{
+				Annotation: QueryAnnotation{
 					Name: "GetValidVesselIDsNeedingIndexing",
 					Type: ManyType,
 				},

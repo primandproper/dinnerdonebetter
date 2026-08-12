@@ -11,14 +11,15 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 
-	"github.com/primandproper/platform-go/v9/authentication/tokens"
-	mocktokens "github.com/primandproper/platform-go/v9/authentication/tokens/mock"
-	"github.com/primandproper/platform-go/v9/authentication/totp"
-	mocktotp "github.com/primandproper/platform-go/v9/authentication/totp/mock"
-	mockpublishers "github.com/primandproper/platform-go/v9/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v10/authentication/tokens"
+	mocktokens "github.com/primandproper/platform-go/v10/authentication/tokens/mock"
+	"github.com/primandproper/platform-go/v10/authentication/totp"
+	mocktotp "github.com/primandproper/platform-go/v10/authentication/totp/mock"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	mockpublishers "github.com/primandproper/platform-go/v10/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -65,8 +66,8 @@ func buildTestManager(t *testing.T) (*manager, *managerTestMocks) {
 		userAuthDataManager: &identitymock.RepositoryMock{},
 		sessionDataManager:  &authmock.UserSessionDataManagerMock{},
 		publisher: &mockpublishers.PublisherMock{
-			PublishFunc:      func(_ context.Context, _ any) error { return nil },
-			PublishAsyncFunc: func(_ context.Context, _ any) {},
+			PublishFunc:      func(_ context.Context, _ any, _ ...messagequeue.PublishOption) error { return nil },
+			PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 		},
 	}
 

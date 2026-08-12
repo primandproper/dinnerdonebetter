@@ -3,7 +3,7 @@ package converters
 import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v10/identifiers"
 )
 
 // ConvertAccountCreationInputToAccountDatabaseCreationInput creates a AccountDatabaseCreationInput from a AccountCreationRequestInput.

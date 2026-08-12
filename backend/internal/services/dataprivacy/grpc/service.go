@@ -13,12 +13,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc/converters"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	errorsgrpc "github.com/primandproper/platform-go/v10/errors/grpc"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )
@@ -44,7 +44,7 @@ type serviceImpl struct {
 // notion of a session.
 func NewDataPrivacyService(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	requests platformdataprivacy.Service,
 ) dataprivacysvc.DataPrivacyServiceServer {
 	return &serviceImpl{

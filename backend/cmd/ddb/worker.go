@@ -15,11 +15,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
-	"github.com/primandproper/platform-go/v9/jobs"
-	"github.com/primandproper/platform-go/v9/outbox"
-	"github.com/primandproper/platform-go/v9/saga"
-	"github.com/primandproper/platform-go/v9/webhooks"
+	"github.com/primandproper/platform-go/v10/jobs"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/operations"
+	"github.com/primandproper/platform-go/v10/outbox"
+	"github.com/primandproper/platform-go/v10/saga"
+	"github.com/primandproper/platform-go/v10/webhooks"
 
 	"github.com/samber/do/v2"
 	"github.com/spf13/cobra"
@@ -137,40 +138,61 @@ func runScheduler(ctx context.Context, cfg *config.SchedulerConfig) error {
 	relay := do.MustInvoke[*outbox.Relay](i)
 	sagaWorker := do.MustInvoke[*saga.Worker](i)
 	webhookWorker := do.MustInvoke[*webhooks.Worker](i)
-	dataPrivacyWorker := do.MustInvoke[*platformdataprivacy.Worker](i)
+	operationsWorker := do.MustInvoke[*operations.Worker](i)
 
 	signalChan := notifyShutdown()
 
-	// None of these Runs takes a context, on purpose: tied to a server context they would stop
-	// mid-job, mid-publish, mid-saga, mid-delivery, and mid-erasure the instant that context
-	// was canceled, which is the worst moment to stop. Close is the stop signal, and it lets
+	// The operations worker is the exception to the paragraph below, because it has no Close:
+	// cancelling this context is its stop signal. It is a context of its own rather than the
+	// process one so that cancelling it stops only this loop, at the same point in shutdown
+	// the others are asked to drain.
+	operationsCtx, stopOperations := context.WithCancel(ctx)
+	defer stopOperations()
+
+	// None of the other Runs takes a context, on purpose: tied to a server context they would
+	// stop mid-job, mid-publish, mid-saga and mid-delivery the instant that context was
+	// canceled, which is the worst moment to stop. Close is the stop signal, and it lets
 	// in-flight work finish.
 	go scheduler.Run()
 	go relay.Run()
 	go sagaWorker.Run()
 	go webhookWorker.Run()
-	go dataPrivacyWorker.Run()
+
+	go func() {
+		// Run only ever returns because the context was cancelled, which is how this loop is
+		// asked to stop rather than a failure — every other error it meets is logged and
+		// slept off inside. Logged at debug so a shutdown still leaves a trace.
+		if runErr := operationsWorker.Run(operationsCtx); runErr != nil {
+			do.MustInvoke[logging.Logger](i).WithValue("error", runErr).Debug("operations worker stopped")
+		}
+	}()
 
 	<-signalChan
+
+	// Asked to stop first, so the claim loop is not taking on new operations while the rest
+	// drain. Work already claimed runs to completion or loses its lease and is recovered.
+	stopOperations()
 
 	closeCtx, cancel := context.WithTimeout(ctx, schedulerDrainTimeout)
 	defer cancel()
 
-	// All five are closed even if an earlier one fails, so a scheduler that will not drain
+	// All four are closed even if an earlier one fails, so a scheduler that will not drain
 	// cannot leave the relay holding claims it is never going to publish, the saga worker
-	// holding leases on instances it is never going to advance, the webhook worker holding
-	// leases on dispatches it is never going to deliver, or the data privacy worker holding
-	// a lease on an erasure it is never going to run.
+	// holding leases on instances it is never going to advance, or the webhook worker holding
+	// leases on dispatches it is never going to deliver.
 	//
-	// The audit sweeper and the data privacy sweep are not among them: both run as scheduled
-	// jobs rather than loops of their own, so the scheduler's own drain is what waits for a
-	// sweep in flight.
+	// The operations worker is not among them — it was stopped by cancellation above, and an
+	// operation whose lease lapses mid-run is picked up again by the recovery sweep, which is
+	// the mechanism it relies on for a process that dies without warning anyway.
+	//
+	// The audit sweeper and the data privacy sweep are not among them either: both run as
+	// scheduled jobs rather than loops of their own, so the scheduler's own drain is what
+	// waits for a sweep in flight.
 	return errors.Join(
 		wrapClose("scheduler", scheduler.Close(closeCtx)),
 		wrapClose("saga worker", sagaWorker.Close(closeCtx)),
 		wrapClose("outbox relay", relay.Close(closeCtx)),
 		wrapClose("webhook worker", webhookWorker.Close(closeCtx)),
-		wrapClose("data privacy worker", dataPrivacyWorker.Close(closeCtx)),
 	)
 }
 

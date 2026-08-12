@@ -5,6 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
@@ -54,21 +55,22 @@ import (
 	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc"
 	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
 
-	"github.com/primandproper/platform-go/v9/analytics/multisource"
-	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	featureflagscfg "github.com/primandproper/platform-go/v9/featureflags/config"
-	"github.com/primandproper/platform-go/v9/httpclient"
-	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
-	"github.com/primandproper/platform-go/v9/observability"
-	loggingcfg "github.com/primandproper/platform-go/v9/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v9/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v9/observability/tracing/config"
-	"github.com/primandproper/platform-go/v9/qrcodes"
-	"github.com/primandproper/platform-go/v9/random"
-	"github.com/primandproper/platform-go/v9/server/grpc"
-	uploadscfg "github.com/primandproper/platform-go/v9/uploads/config"
-	"github.com/primandproper/platform-go/v9/uploads/objectstorage"
+	"github.com/primandproper/platform-go/v10/analytics/multisource"
+	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	featureflagscfg "github.com/primandproper/platform-go/v10/featureflags/config"
+	"github.com/primandproper/platform-go/v10/httpclient"
+	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
+	"github.com/primandproper/platform-go/v10/observability"
+	loggingcfg "github.com/primandproper/platform-go/v10/observability/logging/config"
+	metricscfg "github.com/primandproper/platform-go/v10/observability/metrics/config"
+	tracingcfg "github.com/primandproper/platform-go/v10/observability/tracing/config"
+	operationscfg "github.com/primandproper/platform-go/v10/operations/config"
+	"github.com/primandproper/platform-go/v10/qrcodes"
+	"github.com/primandproper/platform-go/v10/random"
+	"github.com/primandproper/platform-go/v10/server/grpc"
+	uploadscfg "github.com/primandproper/platform-go/v10/uploads/config"
+	"github.com/primandproper/platform-go/v10/uploads/objectstorage"
 
 	"github.com/samber/do/v2"
 )
@@ -105,6 +107,18 @@ func BuildInjector(
 	// rather than the media bucket the ambient one above serves, plus the request store the
 	// Service reads and writes.
 	dataprivacycfg.RegisterArtifactStorage(i)
+
+	// The operations tier a privacy request is submitted as. Only the enqueue-and-read half
+	// runs here — the worker that claims and runs operations is in the scheduler — but the
+	// registry is not optional on this side: Start looks a kind up in the registry of the
+	// process calling it, so an API server without the privacy kinds registered would refuse
+	// every request with ErrUnknownKind.
+	dataprivacybuild.RegisterRegistry(i)
+	dataprivacybuild.RegisterOperationsRegistry(i)
+	operationscfg.RegisterStore(i)
+	operationscfg.RegisterQueue(i)
+	operationscfg.RegisterService(i)
+
 	dataprivacycfg.RegisterRequestService(i)
 	featureflagscfg.RegisterFeatureFlagManager(i)
 	multisource.RegisterMultiSourceEventReporter(i)

@@ -7,11 +7,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -31,7 +31,7 @@ type auditManager struct {
 
 // NewAuditDataManager returns a new AuditDataManager that wraps the audit repository.
 func NewAuditDataManager(
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	logger logging.Logger,
 	repo audit.Repository,
 ) AuditDataManager {

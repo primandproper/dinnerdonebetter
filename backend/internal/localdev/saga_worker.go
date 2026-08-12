@@ -11,14 +11,14 @@ import (
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/database/dialect"
-	pglock "github.com/primandproper/platform-go/v9/distributedlock/postgres"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/outbox"
-	"github.com/primandproper/platform-go/v9/saga"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/database/dialect"
+	pglock "github.com/primandproper/platform-go/v10/distributedlock/postgres"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	metricsnoop "github.com/primandproper/platform-go/v10/observability/metrics/noop"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/outbox"
+	"github.com/primandproper/platform-go/v10/saga"
 )
 
 // StartSagaWorker builds a saga worker over the given database and runs it until the returned
@@ -36,7 +36,7 @@ import (
 func StartSagaWorker(
 	ctx context.Context,
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	databaseClient database.Client,
 ) (stop func(context.Context) error, err error) {
 	outboxWriter, err := outbox.NewWriter(dialect.Postgres, outbox.WithWriterLogger(logger))

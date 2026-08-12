@@ -58,6 +58,14 @@ WHERE meals.archived_at IS NULL
 	AND meals.name = sqlc.arg(name)
 ORDER BY meals.id ASC, meal_components.id ASC;
 
+-- name: ScanMealIDsForReindex :many
+SELECT meals.id
+FROM meals
+WHERE meals.archived_at IS NULL
+	AND meals.id COLLATE "C" > sqlc.arg(cursor)
+ORDER BY meals.id COLLATE "C"
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
+
 -- name: GetMealsNeedingIndexing :many
 SELECT meals.id
 	FROM meals

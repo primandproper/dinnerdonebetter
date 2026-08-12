@@ -8,12 +8,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v9/authentication/argon2"
-	"github.com/primandproper/platform-go/v9/authentication/tokens"
-	"github.com/primandproper/platform-go/v9/authentication/totp"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/authentication/argon2"
+	"github.com/primandproper/platform-go/v10/authentication/tokens"
+	"github.com/primandproper/platform-go/v10/authentication/totp"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -23,7 +23,7 @@ func RegisterAuth(i do.Injector) {
 	do.Provide[Authenticator](i, func(i do.Injector) (Authenticator, error) {
 		return NewArgon2Authenticator(
 			argon2.WithLogger(do.MustInvoke[logging.Logger](i)),
-			argon2.WithTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			argon2.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 		), nil
 	})
 
@@ -32,7 +32,7 @@ func RegisterAuth(i do.Injector) {
 	})
 
 	do.Provide[totp.Verifier](i, func(i do.Injector) (totp.Verifier, error) {
-		return totp.NewVerifier(totp.WithTracerProvider(do.MustInvoke[tracing.TracerProvider](i))), nil
+		return totp.NewVerifier(totp.WithTracerProvider(do.MustInvoke[tracing.Provider](i))), nil
 	})
 
 	do.Provide[Manager](i, func(i do.Injector) (Manager, error) {
@@ -42,7 +42,7 @@ func RegisterAuth(i do.Injector) {
 			do.MustInvoke[tokens.Issuer](i),
 			do.MustInvoke[Authenticator](i),
 			do.MustInvoke[totp.Verifier](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),
 			do.MustInvoke[identity.Repository](i),

@@ -83,6 +83,7 @@ type Querier interface {
 	MarkTwoFactorSecretAsUnverified(ctx context.Context, db DBTX, arg *MarkTwoFactorSecretAsUnverifiedParams) error
 	MarkTwoFactorSecretAsVerified(ctx context.Context, db DBTX, id string) error
 	RemoveUserFromAccount(ctx context.Context, db DBTX, arg *RemoveUserFromAccountParams) error
+	ScanUserIDsForReindex(ctx context.Context, db DBTX, arg *ScanUserIDsForReindexParams) ([]string, error)
 	SearchUsersByUsername(ctx context.Context, db DBTX, arg *SearchUsersByUsernameParams) ([]*SearchUsersByUsernameRow, error)
 	SetAccountInvitationStatus(ctx context.Context, db DBTX, arg *SetAccountInvitationStatusParams) error
 	SetUserAccountStatus(ctx context.Context, db DBTX, arg *SetUserAccountStatusParams) (int64, error)

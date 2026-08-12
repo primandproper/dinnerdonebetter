@@ -3,9 +3,9 @@ package errors
 import (
 	"errors"
 
-	"github.com/primandproper/platform-go/v9/errors/grpc"
-	textsearch "github.com/primandproper/platform-go/v9/search/text"
-	"github.com/primandproper/platform-go/v9/search/text/elasticsearch"
+	"github.com/primandproper/platform-go/v10/errors/grpc"
+	textsearch "github.com/primandproper/platform-go/v10/search/text"
+	"github.com/primandproper/platform-go/v10/search/text/elasticsearch"
 
 	"google.golang.org/grpc/codes"
 )

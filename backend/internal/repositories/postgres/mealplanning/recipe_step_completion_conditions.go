@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -309,7 +309,7 @@ func (q *repository) createRecipeStepCompletionCondition(ctx context.Context, db
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	// create the recipe step completion condition.
@@ -355,7 +355,7 @@ func (q *repository) createRecipeStepCompletionConditionIngredient(ctx context.C
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	// create the recipe step completion condition.
@@ -382,7 +382,7 @@ func (q *repository) createRecipeStepCompletionConditionIngredient(ctx context.C
 // CreateRecipeStepCompletionCondition creates a recipe step completion condition in the database.
 func (q *repository) CreateRecipeStepCompletionCondition(ctx context.Context, recipeID string, input *types.RecipeStepCompletionConditionDatabaseCreationInput) (*types.RecipeStepCompletionCondition, error) {
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	var created *types.RecipeStepCompletionCondition
@@ -410,7 +410,7 @@ func (q *repository) UpdateRecipeStepCompletionCondition(ctx context.Context, re
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.RecipeStepCompletionConditionIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepCompletionConditionIDKey, updated.ID)

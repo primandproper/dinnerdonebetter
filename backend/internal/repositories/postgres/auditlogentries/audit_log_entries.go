@@ -8,12 +8,12 @@ import (
 	auditkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/keys"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	platformaudit "github.com/primandproper/platform-go/v9/audit"
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	platformaudit "github.com/primandproper/platform-go/v10/audit"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -162,7 +162,7 @@ func (q *repository) Record(ctx context.Context, querier database.SQLQueryExecut
 	converted := make([]*platformaudit.Entry, 0, len(entries))
 	for _, entry := range entries {
 		if entry == nil {
-			return observability.PrepareAndLogError(platformerrors.ErrNilInputProvided, logger, span, "recording audit log entries")
+			return observability.PrepareAndLogError(platformerrors.ErrNilInputParameter, logger, span, "recording audit log entries")
 		}
 
 		converted = append(converted, toPlatformEntry(entry))

@@ -9,11 +9,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v9/authentication/tokens"
-	"github.com/primandproper/platform-go/v9/authentication/totp"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/authentication/tokens"
+	"github.com/primandproper/platform-go/v10/authentication/totp"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/go-oauth2/oauth2/v4/manage"
 	"github.com/go-oauth2/oauth2/v4/server"
@@ -25,7 +25,7 @@ func RegisterAuthHTTPService(i do.Injector) {
 	do.Provide[*manage.Manager](i, func(i do.Injector) (*manage.Manager, error) {
 		return ProvideOAuth2ClientManager(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[*OAuth2Config](i),
 			do.MustInvoke[oauth.Repository](i),
 		), nil
@@ -34,7 +34,7 @@ func RegisterAuthHTTPService(i do.Injector) {
 	do.Provide[*server.Server](i, func(i do.Injector) (*server.Server, error) {
 		return ProvideOAuth2ServerImplementation(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[identitymanager.IdentityDataManager](i),
 			do.MustInvoke[authn.Authenticator](i),
 			do.MustInvoke[tokens.Issuer](i),
@@ -51,7 +51,7 @@ func RegisterAuthHTTPService(i do.Injector) {
 			do.MustInvoke[totp.Verifier](i),
 			do.MustInvoke[oauth.Repository](i),
 			do.MustInvoke[identitymanager.IdentityDataManager](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),
 			do.MustInvoke[*queuescfg.Config](i),
 		)

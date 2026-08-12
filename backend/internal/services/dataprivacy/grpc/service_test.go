@@ -9,14 +9,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
-	dataprivacymock "github.com/primandproper/platform-go/v9/dataprivacy/mock"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
+	dataprivacymock "github.com/primandproper/platform-go/v10/dataprivacy/mock"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -78,7 +78,7 @@ func TestServiceImpl_AggregateUserDataReport(T *testing.T) {
 					ID:      requestID,
 					Subject: subject,
 					Type:    requestType,
-					Status:  platformdataprivacy.StatusPending,
+					Status:  platformdataprivacy.StatusInProgress,
 				}, nil
 			},
 		}
@@ -90,7 +90,7 @@ func TestServiceImpl_AggregateUserDataReport(T *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, requestID, res.GetRequest().GetId())
-		assert.Equal(t, "pending", res.GetRequest().GetStatus())
+		assert.Equal(t, string(platformdataprivacy.StatusInProgress), res.GetRequest().GetStatus())
 	})
 
 	T.Run("without a session", func(t *testing.T) {
@@ -122,7 +122,7 @@ func TestServiceImpl_DestroyAllUserData(T *testing.T) {
 					ID:      identifiers.New(),
 					Subject: subject,
 					Type:    requestType,
-					Status:  platformdataprivacy.StatusPending,
+					Status:  platformdataprivacy.StatusInProgress,
 				}, nil
 			},
 		}
@@ -135,7 +135,7 @@ func TestServiceImpl_DestroyAllUserData(T *testing.T) {
 		require.NoError(t, err)
 		// Pending, not completed. The deletion happens in the fulfillment worker, inside
 		// one transaction shared by every domain's eraser.
-		assert.Equal(t, "pending", res.GetRequest().GetStatus())
+		assert.Equal(t, string(platformdataprivacy.StatusInProgress), res.GetRequest().GetStatus())
 		assert.Equal(t, "erasure", res.GetRequest().GetRequestType())
 	})
 }
@@ -225,7 +225,12 @@ func TestServiceImpl_FetchUserDataReport(T *testing.T) {
 		)
 
 		assert.Nil(t, res)
-		assert.Equal(t, codes.NotFound, status.Code(err))
+		// FailedPrecondition, not the NotFound this service asks for. platform-go v10 maps its
+		// own sentinels to gRPC codes centrally, and that mapping wins over the code a caller
+		// passes — ErrArtifactUnavailable is FailedPrecondition there. This is a client-visible
+		// change from v9 and worth revisiting: "your export expired" reads more like NotFound
+		// than like a precondition the client can fix and retry.
+		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
 	})
 }
 

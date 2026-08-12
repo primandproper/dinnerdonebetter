@@ -10,18 +10,20 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
-	"github.com/primandproper/platform-go/v9/audit"
-	capitalismcfg "github.com/primandproper/platform-go/v9/capitalism/config"
-	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
-	"github.com/primandproper/platform-go/v9/jobs"
-	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
-	meteringcfg "github.com/primandproper/platform-go/v9/metering/config"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/outbox"
-	"github.com/primandproper/platform-go/v9/saga"
-	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
-	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
+	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
+	auditcfg "github.com/primandproper/platform-go/v10/audit/config"
+	capitalismcfg "github.com/primandproper/platform-go/v10/capitalism/config"
+	distributedlockcfg "github.com/primandproper/platform-go/v10/distributedlock/config"
+	"github.com/primandproper/platform-go/v10/jobs"
+	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
+	meteringcfg "github.com/primandproper/platform-go/v10/metering/config"
+	"github.com/primandproper/platform-go/v10/observability"
+	operationscfg "github.com/primandproper/platform-go/v10/operations/config"
+	"github.com/primandproper/platform-go/v10/outbox"
+	"github.com/primandproper/platform-go/v10/retention"
+	"github.com/primandproper/platform-go/v10/saga"
+	textsearchcfg "github.com/primandproper/platform-go/v10/search/text/config"
+	webhookscfg "github.com/primandproper/platform-go/v10/webhooks/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -51,20 +53,15 @@ type (
 		Analytics     analyticscfg.Config  `envPrefix:"ANALYTICS_"     json:"analytics,omitzero"`
 		Search        textsearchcfg.Config `envPrefix:"SEARCH_"        json:"search,omitzero"`
 
-		Jobs ScheduledJobsConfig `envPrefix:"JOBS_" json:"jobs,omitzero"`
-
 		// Audit carries the retention window for the audit log. It lives here for the
 		// same reason the outbox does — the sweeper is a background loop over the
 		// database — and it runs in exactly one process, unlike the Recorder, which runs
 		// wherever a mutation does.
-		Audit    audit.SweeperConfig `envPrefix:"AUDIT_"    json:"audit,omitzero"`
-		Database dbcfg.Config        `envPrefix:"DATABASE_" json:"database,omitzero"`
+		Audit auditcfg.Config `envPrefix:"AUDIT_" json:"audit,omitzero"`
 
-		// Outbox moves events written inside a caller's transaction onto the broker. It
-		// lives here because it is a background loop, which is what this process is for,
-		// and because it needs exactly what this process already has: the database and a
-		// publisher provider.
-		Outbox outbox.RelayConfig `envPrefix:"OUTBOX_" json:"outbox,omitzero"`
+		Jobs ScheduledJobsConfig `envPrefix:"JOBS_" json:"jobs,omitzero"`
+
+		Database dbcfg.Config `envPrefix:"DATABASE_" json:"database,omitzero"`
 
 		// Sagas advances every durable saga instance this build knows how to run. It is the
 		// other half of the scheduled jobs that start them: a job writes an instance, this
@@ -72,19 +69,11 @@ type (
 		// poll interval is the floor on how long a step's delay costs.
 		Sagas saga.WorkerConfig `envPrefix:"SAGAS_" json:"sagas,omitzero"`
 
-		// Metering is the same struct the API server carries, because the flusher has to
-		// read the tables the API server's recorder wrote. Only the flusher half is used
-		// here; the recorder and enforcer knobs are carried anyway so the table prefix
-		// cannot drift between the process that counts and the process that bills.
-		Metering meteringcfg.Config `envPrefix:"METERING_" json:"metering,omitzero"`
-
-		// Webhooks configures the outbound webhook delivery worker, which lives here for
-		// the same reasons the outbox relay does: it is a polling loop that must not be
-		// tied to a request, and it needs exactly what this process already has.
-		//
-		// Its own tick also reaps delivered dispatches and their attempts past the
-		// retention window, so retention needs no separate scheduled job.
-		Webhooks webhookscfg.Config `envPrefix:"WEBHOOKS_" json:"webhooks,omitzero"`
+		// Outbox moves events written inside a caller's transaction onto the broker. It
+		// lives here because it is a background loop, which is what this process is for,
+		// and because it needs exactly what this process already has: the database and a
+		// publisher provider.
+		Outbox outbox.RelayConfig `envPrefix:"OUTBOX_" json:"outbox,omitzero"`
 
 		// DataPrivacy configures the fulfillment worker and the expiry sweep, both of
 		// which run here: the request table, the artifact bucket, and the cipher. It is
@@ -96,6 +85,35 @@ type (
 		// when aggregation moved off the queue, and a process holding an encryption key it
 		// has no use for is exposure with nothing on the other side of it.
 		DataPrivacy dataprivacycfg.Config `envPrefix:"DATA_PRIVACY_" json:"dataPrivacy,omitzero"`
+
+		// Metering is the same struct the API server carries, because the flusher has to
+		// read the tables the API server's recorder wrote. Only the flusher half is used
+		// here; the recorder and enforcer knobs are carried anyway so the table prefix
+		// cannot drift between the process that counts and the process that bills.
+		Metering meteringcfg.Config `envPrefix:"METERING_" json:"metering,omitzero"`
+
+		// Operations is the durable record of tracked work, and the loop that runs it.
+		// platform-go v10 fulfills data privacy requests as operations rather than through a
+		// worker of their own, so this process runs the operations worker over a registry the
+		// data privacy fulfiller registers its kinds into.
+		//
+		// The API server carries the same struct: it enqueues operations and reads their
+		// progress, so the two have to agree on the table and the queue name or a request
+		// submitted there is one nothing here ever claims.
+		Operations operationscfg.Config `envPrefix:"OPERATIONS_" json:"operations,omitzero"`
+
+		// Webhooks configures the outbound webhook delivery worker, which lives here for
+		// the same reasons the outbox relay does: it is a polling loop that must not be
+		// tied to a request, and it needs exactly what this process already has.
+		//
+		// Its own tick also reaps delivered dispatches and their attempts past the
+		// retention window, so retention needs no separate scheduled job.
+		Webhooks webhookscfg.Config `envPrefix:"WEBHOOKS_" json:"webhooks,omitzero"`
+
+		// Retention bounds the sweep that enforces the policies above. v10 moved the sweep
+		// loop out of the audit package into a generic one, so the bounds are configured once
+		// here rather than per policy.
+		Retention retention.SweeperConfig `envPrefix:"RETENTION_" json:"retention,omitzero"`
 	}
 
 	// ScheduledJobsConfig carries the scheduler's own knobs, the lock backend that serializes
@@ -281,11 +299,13 @@ func (cfg *SchedulerConfig) ValidateWithContext(ctx context.Context) error {
 		"Database":      cfg.Database.ValidateWithContext,
 		"Search":        cfg.Search.ValidateWithContext,
 		"DataPrivacy":   cfg.DataPrivacy.ValidateWithContext,
+		"Operations":    cfg.Operations.ValidateWithContext,
 		"Jobs":          cfg.Jobs.ValidateWithContext,
 		"Outbox":        cfg.Outbox.ValidateWithContext,
 		"Audit":         cfg.Audit.ValidateWithContext,
 		"Webhooks":      cfg.Webhooks.ValidateWithContext,
 		"Sagas":         cfg.Sagas.ValidateWithContext,
+		"Retention":     cfg.Retention.ValidateWithContext,
 		"Metering":      cfg.Metering.ValidateWithContext,
 		"Capitalism":    cfg.Capitalism.ValidateWithContext,
 	}

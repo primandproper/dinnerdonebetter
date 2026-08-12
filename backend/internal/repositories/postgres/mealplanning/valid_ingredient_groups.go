@@ -8,12 +8,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -363,7 +363,7 @@ func (q *repository) CreateValidIngredientGroup(ctx context.Context, input *meal
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientGroupIDKey, input.ID)
 	logger := q.logger.WithValue(mealplanningkeys.ValidIngredientGroupIDKey, input.ID)
@@ -414,7 +414,7 @@ func (q *repository) CreateValidIngredientGroupMember(ctx context.Context, db da
 	logger := q.logger.Clone()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	logger = logger.WithValue(mealplanningkeys.ValidIngredientGroupIDKey, input.ID).WithValue(mealplanningkeys.ValidIngredientIDKey, input.ValidIngredientID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientGroupIDKey, input.ID)
@@ -447,7 +447,7 @@ func (q *repository) UpdateValidIngredientGroup(ctx context.Context, updated *me
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.ValidIngredientGroupIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientGroupIDKey, updated.ID)

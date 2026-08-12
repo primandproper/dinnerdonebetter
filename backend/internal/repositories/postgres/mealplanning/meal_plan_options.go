@@ -11,11 +11,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"resenje.org/schulze"
 )
@@ -383,7 +383,7 @@ func (q *repository) createMealPlanOption(ctx context.Context, db database.SQLQu
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, input.ID)
 	logger := q.logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, input.ID)
@@ -421,7 +421,7 @@ func (q *repository) createMealPlanOption(ctx context.Context, db database.SQLQu
 // CreateMealPlanOption creates a meal plan option in the database.
 func (q *repository) CreateMealPlanOption(ctx context.Context, input *mealplanning.MealPlanOptionDatabaseCreationInput) (*mealplanning.MealPlanOption, error) {
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	var created *mealplanning.MealPlanOption
@@ -447,7 +447,7 @@ func (q *repository) UpdateMealPlanOption(ctx context.Context, updated *mealplan
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, updated.ID)

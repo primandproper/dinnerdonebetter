@@ -9,8 +9,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
@@ -196,7 +196,7 @@ type (
 		GetUserByEmailAddressVerificationToken(ctx context.Context, token string) (*User, error)
 		MarkUserEmailAddressAsVerified(ctx context.Context, userID, token string) error
 		MarkUserEmailAddressAsUnverified(ctx context.Context, userID string) error
-		GetUserIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error)
+		ScanUserIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		MarkUserAsIndexed(ctx context.Context, userID string) error
 	}
 )

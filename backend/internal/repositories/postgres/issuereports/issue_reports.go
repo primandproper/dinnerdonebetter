@@ -10,11 +10,11 @@ import (
 	issuereportkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -196,7 +196,7 @@ func (r *repository) CreateIssueReport(ctx context.Context, input *types.IssueRe
 	logger := r.logger.Clone()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, input.BelongsToAccount)
 	logger = logger.WithValue(identitykeys.AccountIDKey, input.BelongsToAccount)
@@ -265,7 +265,7 @@ func (r *repository) UpdateIssueReport(ctx context.Context, issueReport *types.I
 	logger := r.logger.Clone()
 
 	if issueReport == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger = logger.WithValue(issuereportkeys.IssueReportIDKey, issueReport.ID)
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, issueReport.ID)

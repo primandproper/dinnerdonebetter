@@ -3,9 +3,9 @@ package grpc
 import (
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -20,7 +20,7 @@ func RegisterDataPrivacyService(i do.Injector) {
 	do.Provide(i, func(i do.Injector) (dataprivacysvc.DataPrivacyServiceServer, error) {
 		return NewDataPrivacyService(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[platformdataprivacy.Service](i),
 		), nil
 	})

@@ -1290,6 +1290,43 @@ func (q *Queries) RecipeSearch(ctx context.Context, db DBTX, arg *RecipeSearchPa
 	return items, nil
 }
 
+const scanRecipeIDsForReindex = `-- name: ScanRecipeIDsForReindex :many
+SELECT recipes.id
+FROM recipes
+WHERE recipes.archived_at IS NULL
+	AND recipes.id COLLATE "C" > $1
+ORDER BY recipes.id COLLATE "C"
+LIMIT COALESCE($2, 50)
+`
+
+type ScanRecipeIDsForReindexParams struct {
+	Cursor      string
+	ResultLimit interface{}
+}
+
+func (q *Queries) ScanRecipeIDsForReindex(ctx context.Context, db DBTX, arg *ScanRecipeIDsForReindexParams) ([]string, error) {
+	rows, err := db.QueryContext(ctx, scanRecipeIDsForReindex, arg.Cursor, arg.ResultLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchForMealEligibleRecipes = `-- name: SearchForMealEligibleRecipes :many
 SELECT
 	recipes.id,

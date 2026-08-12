@@ -361,6 +361,43 @@ func (q *Queries) GetValidIngredientStatesWithIDs(ctx context.Context, db DBTX, 
 	return items, nil
 }
 
+const scanValidIngredientStateIDsForReindex = `-- name: ScanValidIngredientStateIDsForReindex :many
+SELECT valid_ingredient_states.id
+FROM valid_ingredient_states
+WHERE valid_ingredient_states.archived_at IS NULL
+	AND valid_ingredient_states.id COLLATE "C" > $1
+ORDER BY valid_ingredient_states.id COLLATE "C"
+LIMIT COALESCE($2, 50)
+`
+
+type ScanValidIngredientStateIDsForReindexParams struct {
+	Cursor      string
+	ResultLimit interface{}
+}
+
+func (q *Queries) ScanValidIngredientStateIDsForReindex(ctx context.Context, db DBTX, arg *ScanValidIngredientStateIDsForReindexParams) ([]string, error) {
+	rows, err := db.QueryContext(ctx, scanValidIngredientStateIDsForReindex, arg.Cursor, arg.ResultLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchForValidIngredientStates = `-- name: SearchForValidIngredientStates :many
 SELECT
 	valid_ingredient_states.id,

@@ -3,9 +3,9 @@ package errors
 import (
 	"testing"
 
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	textsearch "github.com/primandproper/platform-go/v9/search/text"
-	"github.com/primandproper/platform-go/v9/search/text/elasticsearch"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	textsearch "github.com/primandproper/platform-go/v10/search/text"
+	"github.com/primandproper/platform-go/v10/search/text/elasticsearch"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"

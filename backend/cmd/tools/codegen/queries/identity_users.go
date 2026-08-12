@@ -437,6 +437,13 @@ WHERE %s.%s IS NULL
 			},
 			{
 				Annotation: QueryAnnotation{
+					Name: "ScanUserIDsForReindex",
+					Type: ManyType,
+				},
+				Content: buildReindexScanQuery(usersTableName),
+			},
+			{
+				Annotation: QueryAnnotation{
 					Name: "GetUserIDsNeedingIndexing",
 					Type: ManyType,
 				},

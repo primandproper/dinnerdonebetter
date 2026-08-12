@@ -3,9 +3,9 @@ package grpc
 import (
 	analyticspb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
 
-	"github.com/primandproper/platform-go/v9/analytics/multisource"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/analytics/multisource"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -19,7 +19,7 @@ func RegisterAnalyticsService(i do.Injector) {
 	do.Provide[analyticspb.AnalyticsServiceServer](i, func(i do.Injector) (analyticspb.AnalyticsServiceServer, error) {
 		return NewService(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[*multisource.MultiSourceEventReporter](i),
 		), nil
 	})

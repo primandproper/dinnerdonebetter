@@ -8,12 +8,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -323,14 +323,23 @@ func (q *repository) GetValidInstrumentsWithIDs(ctx context.Context, ids []strin
 	return instruments, nil
 }
 
-// GetValidInstrumentIDsThatNeedSearchIndexing fetches a list of valid instruments from the database that meet a particular filter.
-func (q *repository) GetValidInstrumentIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
+// ScanValidInstrumentIDsForReindex returns up to limit IDs sorting strictly after `after`, in ascending byte order.
+//
+// It is the source half of a search reindex: searchsync.Reindexer walks this to find every
+// document that should exist, and prunes the index of anything it does not name. It replaces
+// the "IDs that need indexing" sampler platform-go v10 removed, which asked a different and
+// weaker question — which rows look stale — and could only ever be probabilistically right,
+// because a row the sampler had not reached was a row the index was wrong about.
+func (q *repository) ScanValidInstrumentIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	results, err := q.generatedQuerier.GetValidInstrumentsNeedingIndexing(ctx, q.readDB)
+	results, err := q.generatedQuerier.ScanValidInstrumentIDsForReindex(ctx, q.readDB, &generated.ScanValidInstrumentIDsForReindexParams{
+		Cursor:      after,
+		ResultLimit: limit,
+	})
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "executing valid instruments list retrieval query")
+		return nil, observability.PrepareError(err, span, "executing valid instruments reindex scan query")
 	}
 
 	return results, nil
@@ -342,7 +351,7 @@ func (q *repository) CreateValidInstrument(ctx context.Context, input *types.Val
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, mealplanningkeys.ValidInstrumentIDKey, input.ID)
 	logger := q.logger.WithValue(mealplanningkeys.ValidInstrumentIDKey, input.ID)
@@ -390,7 +399,7 @@ func (q *repository) UpdateValidInstrument(ctx context.Context, updated *types.V
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.ValidInstrumentIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidInstrumentIDKey, updated.ID)

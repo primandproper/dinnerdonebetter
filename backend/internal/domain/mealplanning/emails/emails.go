@@ -9,7 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	"github.com/primandproper/platform-go/v9/email"
+	"github.com/primandproper/platform-go/v10/email"
 
 	"github.com/matcornic/hermes/v2"
 )

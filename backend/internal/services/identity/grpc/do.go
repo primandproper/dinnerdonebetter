@@ -5,9 +5,9 @@ import (
 	uploadedmediamanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/manager"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/uploads"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/uploads"
 
 	"github.com/samber/do/v2"
 )
@@ -21,7 +21,7 @@ func RegisterIdentityService(i do.Injector) {
 	do.Provide[identitysvc.IdentityServiceServer](i, func(i do.Injector) (identitysvc.IdentityServiceServer, error) {
 		return NewService(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[manager.IdentityDataManager](i),
 			do.MustInvoke[uploadedmediamanager.UploadedMediaManager](i),
 			do.MustInvoke[uploads.UploadManager](i),

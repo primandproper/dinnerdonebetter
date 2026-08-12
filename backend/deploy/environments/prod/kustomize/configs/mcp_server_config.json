@@ -1,7 +1,8 @@
 {
 	"database": {
 		"encryption": {
-			"provider": "salsa20"
+			"provider": "aes",
+			"currentKeyID": "v1"
 		},
 		"provider": "postgres",
 		"readConnection": {

@@ -15,18 +15,16 @@ import (
 	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
-	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v9/analytics"
-	"github.com/primandproper/platform-go/v9/email"
-	"github.com/primandproper/platform-go/v9/encoding"
-	"github.com/primandproper/platform-go/v9/jobs"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	platformnotifications "github.com/primandproper/platform-go/v9/notifications/mobile"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/analytics"
+	"github.com/primandproper/platform-go/v10/email"
+	"github.com/primandproper/platform-go/v10/encoding"
+	"github.com/primandproper/platform-go/v10/jobs"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	platformnotifications "github.com/primandproper/platform-go/v10/notifications/mobile"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -75,9 +73,7 @@ type AsyncDataChangeMessageHandler struct {
 	mobileNotificationsPublisher              messagequeue.Publisher
 	emailer                                   email.Emailer
 	identityRepo                              identity.Repository
-	searchDataIndexPublisher                  messagequeue.Publisher
 	consumerProvider                          messagequeue.ConsumerProvider
-	searchIndexRequestsExecutionTimeHistogram metrics.Float64Histogram
 	badDeviceTokensArchivedCounter            metrics.Int64Counter
 	pushNotificationsSentCounter              metrics.Int64Counter
 	mealPlanRepo                              mealplanning.Repository
@@ -90,10 +86,10 @@ type AsyncDataChangeMessageHandler struct {
 	emailsSentCounter                         metrics.Int64Counter
 	emailsFailedCounter                       metrics.Int64Counter
 	mobileNotificationsExecutionTimeHistogram metrics.Float64Histogram
-	tracerProvider                            tracing.TracerProvider
+	tracerProvider                            tracing.Provider
 	metricsProvider                           metrics.Provider
-	mealPlanningDataIndexer                   *mealplanningindexing.MealPlanningDataIndexer
-	userDataIndexer                           *identityindexing.UserDataIndexer
+	searchSyncers                             []SearchSyncer
+	searchIndexPublishers                     map[string]messagequeue.Publisher
 	deadLetter                                jobs.DeadLetterFunc
 	queuesConfig                              queuescfg.Config
 	baseURL                                   string
@@ -114,7 +110,7 @@ func (a *AsyncDataChangeMessageHandler) recordMessagesProcessed(ctx context.Cont
 func NewAsyncDataChangeMessageHandler(
 	ctx context.Context,
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	cfg *config.AsyncMessageHandlerConfig,
 	identityRepo identity.Repository,
 	internalOpsRepo internalops.InternalOpsDataManager,
@@ -124,8 +120,7 @@ func NewAsyncDataChangeMessageHandler(
 	emailer email.Emailer,
 	metricsProvider metrics.Provider,
 	decoder encoding.ServerEncoderDecoder,
-	coreDataIndexer *identityindexing.UserDataIndexer,
-	eatingDataIndexer *mealplanningindexing.MealPlanningDataIndexer,
+	searchSyncers []SearchSyncer,
 	mealPlanRepo mealplanning.Repository,
 	passwordResetTokenDataManager auth.PasswordResetTokenDataManager,
 	notificationsRepo notificationsmanager.NotificationsDataManager,
@@ -139,11 +134,6 @@ func NewAsyncDataChangeMessageHandler(
 	outboundEmailsExecutionTimeHistogram, err := metricsProvider.NewFloat64Histogram("outbound_emails_execution_time")
 	if err != nil {
 		return nil, fmt.Errorf("setting up outboundEmails execution time histogram: %w", err)
-	}
-
-	searchIndexRequestsExecutionTimeHistogram, err := metricsProvider.NewFloat64Histogram("search_index_requests_execution_time")
-	if err != nil {
-		return nil, fmt.Errorf("setting up searchIndexRequests execution time histogram: %w", err)
 	}
 
 	mobileNotificationsExecutionTimeHistogram, err := metricsProvider.NewFloat64Histogram("mobile_notifications_execution_time")
@@ -191,9 +181,16 @@ func NewAsyncDataChangeMessageHandler(
 		return nil, fmt.Errorf("configuring outbound emails publisher: %w", err)
 	}
 
-	searchDataIndexPublisher, err := publisherProvider.NewPublisher(ctx, cfg.Queues.SearchIndexRequestsTopicName)
-	if err != nil {
-		return nil, fmt.Errorf("configuring search indexing publisher: %w", err)
+	// One publisher per index topic. They are built here rather than lazily so that a
+	// misconfigured broker fails startup instead of the first row that changes.
+	searchIndexPublishers := make(map[string]messagequeue.Publisher, len(searchSyncers))
+	for _, syncer := range searchSyncers {
+		publisher, publisherErr := publisherProvider.NewPublisher(ctx, syncer.Topic)
+		if publisherErr != nil {
+			return nil, fmt.Errorf("configuring %s search index publisher: %w", syncer.Topic, publisherErr)
+		}
+
+		searchIndexPublishers[syncer.Topic] = publisher
 	}
 
 	mobileNotificationsPublisher, err := publisherProvider.NewPublisher(ctx, cfg.Queues.MobileNotificationsTopicName)
@@ -224,13 +221,11 @@ func NewAsyncDataChangeMessageHandler(
 		consumerProvider:                     consumerProvider,
 		analyticsEventReporter:               analyticsEventReporter,
 		outboundEmailsPublisher:              outboundEmailsPublisher,
-		searchDataIndexPublisher:             searchDataIndexPublisher,
 		queuesConfig:                         cfg.Queues,
 		mobileNotificationsPublisher:         mobileNotificationsPublisher,
 		emailer:                              emailer,
 		dataChangesExecutionTimeHistogram:    dataChangesExecutionTimeHistogram,
 		outboundEmailsExecutionTimeHistogram: outboundEmailsExecutionTimeHistogram,
-		searchIndexRequestsExecutionTimeHistogram: searchIndexRequestsExecutionTimeHistogram,
 		mobileNotificationsExecutionTimeHistogram: mobileNotificationsExecutionTimeHistogram,
 		messagesProcessedCounter:                  messagesProcessedCounter,
 		messageDecodeErrorsCounter:                messageDecodeErrorsCounter,
@@ -240,8 +235,8 @@ func NewAsyncDataChangeMessageHandler(
 		pushNotificationsSentCounter:              pushNotificationsSentCounter,
 		badDeviceTokensArchivedCounter:            badDeviceTokensArchivedCounter,
 		decoder:                                   decoder,
-		userDataIndexer:                           coreDataIndexer,
-		mealPlanningDataIndexer:                   eatingDataIndexer,
+		searchSyncers:                             searchSyncers,
+		searchIndexPublishers:                     searchIndexPublishers,
 		mealPlanRepo:                              mealPlanRepo,
 		passwordResetTokenDataManager:             passwordResetTokenDataManager,
 		notificationsRepo:                         notificationsRepo,

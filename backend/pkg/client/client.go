@@ -25,8 +25,8 @@ import (
 	waitlistsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 
-	"github.com/primandproper/platform-go/v9/httpclient"
-	"github.com/primandproper/platform-go/v9/random"
+	"github.com/primandproper/platform-go/v10/httpclient"
+	"github.com/primandproper/platform-go/v10/random"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
@@ -187,7 +187,11 @@ func WithOAuth2Credentials(
 
 	req.Header.Set("Authorization", "Bearer "+authToken)
 
-	c := httpclient.NewHTTPClient(httpclient.WithTracing(true))
+	c, err := httpclient.NewHTTPClient(httpclient.WithTracing(true))
+	if err != nil {
+		return nil, fmt.Errorf("failed to build oauth2 code retrieval client: %w", err)
+	}
+
 	c.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}

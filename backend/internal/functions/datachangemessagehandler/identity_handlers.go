@@ -14,10 +14,9 @@ import (
 	coreemails "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/emails"
 	coreindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	"github.com/primandproper/platform-go/v9/filtering"
-	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"
-	"github.com/primandproper/platform-go/v9/observability"
-	textsearch "github.com/primandproper/platform-go/v9/search/text"
+	"github.com/primandproper/platform-go/v10/filtering"
+	notifications "github.com/primandproper/platform-go/v10/notifications/mobile"
+	"github.com/primandproper/platform-go/v10/observability"
 )
 
 // handleIdentitySearchIndexUpdate handles search index updates for identity domain events.
@@ -41,11 +40,7 @@ func (a *AsyncDataChangeMessageHandler) handleIdentitySearchIndexUpdate(
 			observability.AcknowledgeError(errRequiredDataIsNil, logger, span, "updating search index for User")
 		}
 
-		if err := a.searchDataIndexPublisher.Publish(ctx, &textsearch.IndexRequest{
-			RowID:     changeMessage.UserID,
-			IndexType: coreindexing.IndexTypeUsers,
-			Delete:    changeMessage.EventType == identity.UserArchivedServiceEventType,
-		}); err != nil {
+		if err := a.publishIndexEvent(ctx, coreindexing.IndexTypeUsers, changeMessage.UserID, changeMessage.EventType == identity.UserArchivedServiceEventType); err != nil {
 			return true, observability.PrepareAndLogError(err, logger, span, "publishing search index update")
 		}
 

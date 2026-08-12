@@ -3,7 +3,7 @@ package converters
 import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 
-	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v10/identifiers"
 )
 
 // ConvertWaitlistToWaitlistUpdateRequestInput creates a WaitlistUpdateRequestInput from a Waitlist.

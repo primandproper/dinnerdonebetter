@@ -5,7 +5,7 @@ import (
 	"encoding/gob"
 	"time"
 
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -117,7 +117,7 @@ type (
 		UpdateValidInstrument(ctx context.Context, updated *ValidInstrument) error
 		MarkValidInstrumentAsIndexed(ctx context.Context, validInstrumentID string) error
 		ArchiveValidInstrument(ctx context.Context, validInstrumentID string) error
-		GetValidInstrumentIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error)
+		ScanValidInstrumentIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetValidInstrumentsWithIDs(ctx context.Context, ids []string) ([]*ValidInstrument, error)
 	}
 )

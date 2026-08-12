@@ -9,7 +9,7 @@ set -euo pipefail
 
 # Must track the platform-go major version the binary actually links, or every -X below silently
 # stamps a package that is not in the build and `ddb version` reports "unknown" forever.
-VERSION_PKG="github.com/primandproper/platform-go/v9/version"
+VERSION_PKG="github.com/primandproper/platform-go/v10/version"
 
 if [[ "${1:-}" == "-o" ]]; then
 	OUT="${2:?missing output path after -o}"

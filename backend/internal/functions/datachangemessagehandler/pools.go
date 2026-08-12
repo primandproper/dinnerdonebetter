@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/primandproper/platform-go/v9/jobs"
-	"github.com/primandproper/platform-go/v9/observability"
+	"github.com/primandproper/platform-go/v10/jobs"
+	"github.com/primandproper/platform-go/v10/observability"
 )
 
 // partialStartDrainTimeout bounds the teardown of pools that did start when a later one failed
@@ -49,11 +49,6 @@ func (a *AsyncDataChangeMessageHandler) Start(ctx context.Context) error {
 			cfg:     &a.poolsConfig.OutboundEmails,
 			handler: a.OutboundEmailsEventHandler(a.queuesConfig.OutboundEmailsTopicName),
 		},
-		{
-			topic:   a.queuesConfig.SearchIndexRequestsTopicName,
-			cfg:     &a.poolsConfig.SearchIndexRequests,
-			handler: a.SearchIndexRequestsEventHandler(a.queuesConfig.SearchIndexRequestsTopicName),
-		},
 		// There is no webhook execution pool and no user data aggregation pool. A webhook
 		// delivery is a dispatch row the delivery worker claims, and an export is a request
 		// row the data privacy worker claims — neither is a message on a topic. That is what
@@ -64,6 +59,24 @@ func (a *AsyncDataChangeMessageHandler) Start(ctx context.Context) error {
 			cfg:     &a.poolsConfig.MobileNotifications,
 			handler: a.MobileNotificationsEventHandler(a.queuesConfig.MobileNotificationsTopicName),
 		},
+	}
+
+	// One pool per search index, rather than one pool over one topic that switched on an
+	// index-type field. platform-go v10 keys an index event by its topic, so the fan-out that
+	// used to happen inside a handler happens here instead — which also means one index's
+	// backlog no longer sits behind another's, and a poison message dead-letters for its own
+	// index alone.
+	//
+	// Each gets a copy of the search pool config rather than a share of it: the loop below
+	// writes the topic onto the config it is given, and nine specs pointing at one struct
+	// would leave all nine consuming whichever topic was assigned last.
+	for _, syncer := range a.searchSyncers {
+		poolCfg := a.poolsConfig.SearchIndexRequests
+		specs = append(specs, poolSpec{
+			topic:   syncer.Topic,
+			cfg:     &poolCfg,
+			handler: syncer.Handle,
+		})
 	}
 
 	for i := range specs {

@@ -131,6 +131,13 @@ GROUP BY %s.%s
 			},
 			{
 				Annotation: QueryAnnotation{
+					Name: "ScanValidPreparationIDsForReindex",
+					Type: ManyType,
+				},
+				Content: buildReindexScanQuery(validPreparationsTableName),
+			},
+			{
+				Annotation: QueryAnnotation{
 					Name: "GetValidPreparationsNeedingIndexing",
 					Type: ManyType,
 				},

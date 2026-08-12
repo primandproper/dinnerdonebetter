@@ -16,7 +16,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
-	reflast "github.com/primandproper/platform-go/v9/reflection/ast"
+	reflast "github.com/primandproper/platform-go/v10/reflection/ast"
 
 	"github.com/codemodus/kace"
 )

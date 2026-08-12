@@ -8,12 +8,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -341,14 +341,23 @@ func (q *repository) GetValidMeasurementUnitsWithIDs(ctx context.Context, ids []
 	return x, nil
 }
 
-// GetValidMeasurementUnitIDsThatNeedSearchIndexing fetches a list of valid measurement units from the database that meet a particular filter.
-func (q *repository) GetValidMeasurementUnitIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
+// ScanValidMeasurementUnitIDsForReindex returns up to limit IDs sorting strictly after `after`, in ascending byte order.
+//
+// It is the source half of a search reindex: searchsync.Reindexer walks this to find every
+// document that should exist, and prunes the index of anything it does not name. It replaces
+// the "IDs that need indexing" sampler platform-go v10 removed, which asked a different and
+// weaker question — which rows look stale — and could only ever be probabilistically right,
+// because a row the sampler had not reached was a row the index was wrong about.
+func (q *repository) ScanValidMeasurementUnitIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	results, err := q.generatedQuerier.GetValidMeasurementUnitsNeedingIndexing(ctx, q.readDB)
+	results, err := q.generatedQuerier.ScanValidMeasurementUnitIDsForReindex(ctx, q.readDB, &generated.ScanValidMeasurementUnitIDsForReindexParams{
+		Cursor:      after,
+		ResultLimit: limit,
+	})
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "executing valid measurement units list retrieval query")
+		return nil, observability.PrepareError(err, span, "executing valid measurement units reindex scan query")
 	}
 
 	return results, nil
@@ -360,7 +369,7 @@ func (q *repository) CreateValidMeasurementUnit(ctx context.Context, input *type
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, input.ID)
 	logger := q.logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, input.ID)
@@ -410,7 +419,7 @@ func (q *repository) UpdateValidMeasurementUnit(ctx context.Context, updated *ty
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, updated.ID)

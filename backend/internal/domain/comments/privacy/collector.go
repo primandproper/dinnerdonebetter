@@ -8,11 +8,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const o11yName = "comments_privacy_collector"
@@ -27,7 +27,7 @@ type Collector struct {
 var _ platformdataprivacy.Collector = (*Collector)(nil)
 
 // NewCollector builds the comments collector.
-func NewCollector(repo comments.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) *Collector {
+func NewCollector(repo comments.Repository, logger logging.Logger, tracerProvider tracing.Provider) *Collector {
 	return &Collector{
 		repo:   repo,
 		tracer: tracing.NewNamedTracer(tracerProvider, o11yName),

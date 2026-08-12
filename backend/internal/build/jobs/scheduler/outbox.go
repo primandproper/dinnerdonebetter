@@ -5,12 +5,12 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/outbox"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/outbox"
 
 	"github.com/samber/do/v2"
 )
@@ -29,7 +29,7 @@ func RegisterOutboxRelay(i do.Injector) {
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),
 			outbox.WithRelayLogger(do.MustInvoke[logging.Logger](i)),
-			outbox.WithRelayTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			outbox.WithRelayTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			outbox.WithRelayMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 	})

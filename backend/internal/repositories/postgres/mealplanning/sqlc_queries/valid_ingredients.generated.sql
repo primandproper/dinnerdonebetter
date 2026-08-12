@@ -166,6 +166,14 @@ GROUP BY valid_ingredients.id
 ORDER BY valid_ingredients.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
+-- name: ScanValidIngredientIDsForReindex :many
+SELECT valid_ingredients.id
+FROM valid_ingredients
+WHERE valid_ingredients.archived_at IS NULL
+	AND valid_ingredients.id COLLATE "C" > sqlc.arg(cursor)
+ORDER BY valid_ingredients.id COLLATE "C"
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
+
 -- name: GetValidIngredientsNeedingIndexing :many
 SELECT valid_ingredients.id
 FROM valid_ingredients

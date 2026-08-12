@@ -156,6 +156,13 @@ GROUP BY %s.%s
 			},
 			{
 				Annotation: QueryAnnotation{
+					Name: "ScanValidIngredientIDsForReindex",
+					Type: ManyType,
+				},
+				Content: buildReindexScanQuery(validIngredientsTableName),
+			},
+			{
+				Annotation: QueryAnnotation{
 					Name: "GetValidIngredientsNeedingIndexing",
 					Type: ManyType,
 				},

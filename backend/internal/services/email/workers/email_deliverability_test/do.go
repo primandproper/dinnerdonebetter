@@ -1,9 +1,9 @@
 package emaildeliverabilitytest
 
 import (
-	"github.com/primandproper/platform-go/v9/email"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/email"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -14,7 +14,7 @@ func RegisterEmailDeliverabilityTest(i do.Injector) {
 		return NewJob(
 			do.MustInvoke[email.Emailer](i),
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[*JobParams](i),
 		)
 	})

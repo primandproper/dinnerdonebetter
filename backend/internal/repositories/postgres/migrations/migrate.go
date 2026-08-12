@@ -8,20 +8,22 @@ import (
 	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
-	auditmigrations "github.com/primandproper/platform-go/v9/audit/migrations"
-	"github.com/primandproper/platform-go/v9/database/dialect"
-	"github.com/primandproper/platform-go/v9/database/migrate"
-	dataprivacymigrations "github.com/primandproper/platform-go/v9/dataprivacy/migrations"
-	"github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/metering"
-	meteringmigrations "github.com/primandproper/platform-go/v9/metering/migrations"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/outbox"
-	outboxmigrations "github.com/primandproper/platform-go/v9/outbox/migrations"
-	"github.com/primandproper/platform-go/v9/saga"
-	sagamigrations "github.com/primandproper/platform-go/v9/saga/migrations"
-	"github.com/primandproper/platform-go/v9/webhooks"
-	webhooksmigrations "github.com/primandproper/platform-go/v9/webhooks/migrations"
+	auditmigrations "github.com/primandproper/platform-go/v10/audit/migrations"
+	"github.com/primandproper/platform-go/v10/database/dialect"
+	"github.com/primandproper/platform-go/v10/database/migrate"
+	dataprivacymigrations "github.com/primandproper/platform-go/v10/dataprivacy/migrations"
+	"github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/metering"
+	meteringmigrations "github.com/primandproper/platform-go/v10/metering/migrations"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/operations"
+	operationsmigrations "github.com/primandproper/platform-go/v10/operations/migrations"
+	"github.com/primandproper/platform-go/v10/outbox"
+	outboxmigrations "github.com/primandproper/platform-go/v10/outbox/migrations"
+	"github.com/primandproper/platform-go/v10/saga"
+	sagamigrations "github.com/primandproper/platform-go/v10/saga/migrations"
+	"github.com/primandproper/platform-go/v10/webhooks"
+	webhooksmigrations "github.com/primandproper/platform-go/v10/webhooks/migrations"
 )
 
 var (
@@ -48,6 +50,7 @@ const (
 	auditMigrationVersion       = 27
 	dataPrivacyMigrationVersion = 28
 	meteringMigrationVersion    = 30
+	operationsMigrationVersion  = 31
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -106,6 +109,14 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, errors.Wrap(err, "rendering data privacy migration")
 	}
 
+	// And the operations table. v10 fulfills data privacy requests as operations, so the
+	// tier that used to be internal to the dataprivacy service is now a durable record of
+	// its own: one row per unit of tracked work, claimed by a worker and polled by clients.
+	operationsDDL, err := operationsmigrations.SQL(dialect.Postgres, operations.DefaultTablePrefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "rendering operations migration")
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -117,6 +128,7 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithGeneratedMigration(auditMigrationVersion, "create_audit_tables", auditDDL),
 		migrate.WithGeneratedMigration(dataPrivacyMigrationVersion, "create_dataprivacy_requests", dataPrivacyDDL),
 		migrate.WithGeneratedMigration(meteringMigrationVersion, "create_metering_tables", meteringDDL),
+		migrate.WithGeneratedMigration(operationsMigrationVersion, "create_operations_table", operationsDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")

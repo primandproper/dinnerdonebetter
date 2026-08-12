@@ -6,12 +6,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	paymentswebhook "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
 
-	"github.com/primandproper/platform-go/v9/healthcheck"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/routing"
-	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
+	"github.com/primandproper/platform-go/v10/healthcheck"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/routing"
+	routingcfg "github.com/primandproper/platform-go/v10/routing/config"
 
 	"github.com/samber/do/v2"
 )
@@ -23,7 +23,7 @@ func RegisterAPIRouter(i do.Injector) {
 			do.MustInvoke[context.Context](i),
 			*do.MustInvoke[*routingcfg.Config](i),
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[metrics.Provider](i),
 			do.MustInvoke[auth.AuthDataService](i),
 			do.MustInvoke[*paymentswebhook.WebhookHandler](i),

@@ -88,6 +88,14 @@ GROUP BY valid_instruments.id
 ORDER BY valid_instruments.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
+-- name: ScanValidInstrumentIDsForReindex :many
+SELECT valid_instruments.id
+FROM valid_instruments
+WHERE valid_instruments.archived_at IS NULL
+	AND valid_instruments.id COLLATE "C" > sqlc.arg(cursor)
+ORDER BY valid_instruments.id COLLATE "C"
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
+
 -- name: GetValidInstrumentsNeedingIndexing :many
 SELECT valid_instruments.id
 FROM valid_instruments

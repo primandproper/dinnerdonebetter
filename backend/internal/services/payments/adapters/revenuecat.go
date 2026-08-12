@@ -7,10 +7,10 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v9/encoding"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/encoding"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -37,7 +37,7 @@ type RevenueCatPaymentProcessor struct {
 // NewRevenueCatPaymentProcessor returns a new RevenueCat payment processor.
 func NewRevenueCatPaymentProcessor(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	cfg *RevenueCatConfig,
 ) *RevenueCatPaymentProcessor {
 	if cfg == nil {

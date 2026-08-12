@@ -46,6 +46,24 @@
 		"provider": "noop"
 	},
 	"analytics": {
+		"proxySources": {
+			"ios": {
+				"provider": "noop",
+				"circuitBreaker": {
+					"name": "ios_analytics",
+					"circuitBreakerErrorPercentage": 0.5,
+					"circuitBreakerMinimumOccurrenceThreshold": 100
+				}
+			},
+			"web": {
+				"provider": "noop",
+				"circuitBreaker": {
+					"name": "web_analytics",
+					"circuitBreakerErrorPercentage": 0.5,
+					"circuitBreakerMinimumOccurrenceThreshold": 100
+				}
+			}
+		},
 		"provider": "noop",
 		"circuitBreaker": {
 			"name": "feature_flagger",
@@ -63,7 +81,8 @@
 	},
 	"database": {
 		"encryption": {
-			"provider": "salsa20"
+			"provider": "aes",
+			"currentKeyID": "v1"
 		},
 		"oauth2TokenEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
 		"provider": "postgres",

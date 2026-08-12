@@ -14,23 +14,24 @@ import (
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
-	platformconfig "github.com/primandproper/platform-go/v9/config"
-	emailcfg "github.com/primandproper/platform-go/v9/email/config"
-	"github.com/primandproper/platform-go/v9/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v9/featureflags/config"
-	httpclientcfg "github.com/primandproper/platform-go/v9/httpclient"
-	idempotencycfg "github.com/primandproper/platform-go/v9/idempotency/config"
-	"github.com/primandproper/platform-go/v9/jobs"
-	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
-	meteringcfg "github.com/primandproper/platform-go/v9/metering/config"
-	notificationscfg "github.com/primandproper/platform-go/v9/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v9/observability"
-	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
-	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
-	"github.com/primandproper/platform-go/v9/server/grpc"
-	"github.com/primandproper/platform-go/v9/server/http"
-	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
+	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
+	platformconfig "github.com/primandproper/platform-go/v10/config"
+	emailcfg "github.com/primandproper/platform-go/v10/email/config"
+	"github.com/primandproper/platform-go/v10/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v10/featureflags/config"
+	httpclientcfg "github.com/primandproper/platform-go/v10/httpclient"
+	idempotencycfg "github.com/primandproper/platform-go/v10/idempotency/config"
+	"github.com/primandproper/platform-go/v10/jobs"
+	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
+	meteringcfg "github.com/primandproper/platform-go/v10/metering/config"
+	notificationscfg "github.com/primandproper/platform-go/v10/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v10/observability"
+	operationscfg "github.com/primandproper/platform-go/v10/operations/config"
+	routingcfg "github.com/primandproper/platform-go/v10/routing/config"
+	textsearchcfg "github.com/primandproper/platform-go/v10/search/text/config"
+	"github.com/primandproper/platform-go/v10/server/grpc"
+	"github.com/primandproper/platform-go/v10/server/http"
+	webhookscfg "github.com/primandproper/platform-go/v10/webhooks/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -102,18 +103,25 @@ type (
 		// the Enabled comment above exists to prevent.
 		Idempotency IdempotencyConfig `envPrefix:"IDEMPOTENCY_" json:"idempotency"`
 
+		Services ServicesConfig `envPrefix:"SERVICE_" json:"services,omitzero"`
+
 		// Metering counts what an account consumes. The API server holds only the ingest
 		// half of it — the flusher that posts usage to a billing provider runs in the
 		// scheduler — but both read this same struct, so the tables one writes are by
 		// construction the tables the other flushes.
 		Metering meteringcfg.Config `envPrefix:"METERING_" json:"metering,omitzero"`
 
+		// Operations is the durable record of tracked work. The API server holds the
+		// enqueue-and-read half of it — data privacy requests are submitted as operations
+		// here and polled for progress — while the worker that runs them lives in the
+		// scheduler. Both read this same struct, so the table one writes is by construction
+		// the table the other claims from.
+		Operations operationscfg.Config `envPrefix:"OPERATIONS_" json:"operations,omitzero"`
+
 		// Webhooks configures the outbound webhook tables this service writes into. Only the
 		// write side lives here: dispatch rows are written inside the transactions that
 		// caused them, and the worker that delivers them runs in the scheduler.
 		Webhooks webhookscfg.Config `envPrefix:"WEBHOOKS_" json:"webhooks,omitzero"`
-
-		Services ServicesConfig `envPrefix:"SERVICE_" json:"services,omitzero"`
 
 		validateServices bool
 	}
@@ -250,6 +258,7 @@ func (cfg *APIServiceConfig) ValidateWithContext(ctx context.Context) error {
 		"Idempotency":   cfg.Idempotency.ValidateWithContext,
 		"Webhooks":      cfg.Webhooks.ValidateWithContext,
 		"Metering":      cfg.Metering.ValidateWithContext,
+		"Operations":    cfg.Operations.ValidateWithContext,
 		// no "Events" here, that's a collection of publisher/subscriber configs that can each optionally be setup
 	}
 
@@ -427,7 +436,11 @@ func LoadConfigFromEnvironment[T configurations]() (*T, error) {
 
 	configFilepath := os.Getenv(ConfigurationFilePathEnvVarKey)
 
-	cfg, err := platformconfig.LoadFromJSONFile[T](configFilepath, envVarOptions()...)
+	// Background, not a caller's context. v10's loader takes one so that config validation
+	// can be cancelled, but this runs once at process startup before there is a request or a
+	// server context to cancel against, and a config load that gave up halfway would leave
+	// the process with no configuration rather than with less of it.
+	cfg, err := platformconfig.LoadFromJSONFile[T](context.Background(), configFilepath, envVarOptions()...)
 	if err != nil {
 		return nil, fmt.Errorf("loading config from environment: %w", err)
 	}
@@ -445,7 +458,11 @@ func LoadConfigFromPath[T configurations](configurationFilepath string) (*T, err
 		}
 	}
 
-	cfg, err := platformconfig.LoadFromJSONFile[T](configurationFilepath, envVarOptions()...)
+	// Background, not a caller's context. v10's loader takes one so that config validation
+	// can be cancelled, but this runs once at process startup before there is a request or a
+	// server context to cancel against, and a config load that gave up halfway would leave
+	// the process with no configuration rather than with less of it.
+	cfg, err := platformconfig.LoadFromJSONFile[T](context.Background(), configurationFilepath, envVarOptions()...)
 	if err != nil {
 		return nil, fmt.Errorf("loading config from path: %w", err)
 	}

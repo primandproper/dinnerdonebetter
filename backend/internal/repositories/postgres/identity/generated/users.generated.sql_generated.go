@@ -1470,6 +1470,43 @@ func (q *Queries) MarkTwoFactorSecretAsVerified(ctx context.Context, db DBTX, id
 	return err
 }
 
+const scanUserIDsForReindex = `-- name: ScanUserIDsForReindex :many
+SELECT users.id
+FROM users
+WHERE users.archived_at IS NULL
+	AND users.id COLLATE "C" > $1
+ORDER BY users.id COLLATE "C"
+LIMIT COALESCE($2, 50)
+`
+
+type ScanUserIDsForReindexParams struct {
+	Cursor      string
+	ResultLimit interface{}
+}
+
+func (q *Queries) ScanUserIDsForReindex(ctx context.Context, db DBTX, arg *ScanUserIDsForReindexParams) ([]string, error) {
+	rows, err := db.QueryContext(ctx, scanUserIDsForReindex, arg.Cursor, arg.ResultLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchUsersByUsername = `-- name: SearchUsersByUsername :many
 SELECT
 	users.id,

@@ -11,11 +11,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -207,7 +207,7 @@ func (r *repository) CreateWebhook(ctx context.Context, input *types.WebhookData
 	logger := r.logger.Clone()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, input.BelongsToAccount)
 	logger = logger.WithValue(identitykeys.AccountIDKey, input.BelongsToAccount)
@@ -297,7 +297,7 @@ func (r *repository) createWebhookTriggerConfig(ctx context.Context, querier dat
 	logger := r.logger.Clone()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, input.BelongsToWebhook)
 
@@ -423,7 +423,7 @@ func (r *repository) AddWebhookTriggerConfig(ctx context.Context, accountID stri
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, input.BelongsToWebhook)
 

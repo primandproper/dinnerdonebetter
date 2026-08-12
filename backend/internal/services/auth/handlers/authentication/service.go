@@ -10,12 +10,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
-	"github.com/primandproper/platform-go/v9/authentication/totp"
-	perrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
+	"github.com/primandproper/platform-go/v10/authentication/totp"
+	perrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/go-oauth2/oauth2/v4/server"
 )
@@ -46,12 +46,12 @@ func ProvideService(
 	totpVerifier totp.Verifier,
 	oauthRepo oauth.Repository,
 	identityDataManager identitymanager.IdentityDataManager,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	publisherProvider messagequeue.PublisherProvider,
 	queuesConfig *queuescfg.Config,
 ) (auth.AuthDataService, error) {
 	if queuesConfig == nil {
-		return nil, perrors.ErrNilInputProvided
+		return nil, perrors.ErrNilInputParameter
 	}
 
 	dataChangesPublisher, publisherProviderErr := publisherProvider.NewPublisher(ctx, queuesConfig.DataChangesTopicName)
@@ -59,7 +59,7 @@ func ProvideService(
 		return nil, fmt.Errorf("setting up %s data changes publisher: %w", serviceName, publisherProviderErr)
 	}
 
-	signer, err := cfg.Tokens.NewTokenIssuer(tokenscfg.WithLogger(logger), tokenscfg.WithTracerProvider(tracerProvider))
+	signer, err := cfg.Tokens.NewTokenIssuer(ctx, tokenscfg.WithLogger(logger), tokenscfg.WithTracerProvider(tracerProvider))
 	if err != nil {
 		return nil, fmt.Errorf("creating json web token signer: %w", err)
 	}

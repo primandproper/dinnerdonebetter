@@ -1,8 +1,8 @@
 package recipeanalysis
 
 import (
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -12,7 +12,7 @@ func RegisterRecipeAnalyzer(i do.Injector) {
 	do.Provide[RecipeAnalyzer](i, func(i do.Injector) (RecipeAnalyzer, error) {
 		return NewRecipeAnalyzer(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 		), nil
 	})
 }

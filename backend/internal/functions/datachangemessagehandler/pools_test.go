@@ -10,13 +10,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v9/jobs"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	msgqueuemock "github.com/primandproper/platform-go/v9/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v10/jobs"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	msgqueuemock "github.com/primandproper/platform-go/v10/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v10/observability/metrics/noop"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,6 +56,14 @@ func buildTestPoolsHandler(t *testing.T, consumerProvider messagequeue.ConsumerP
 			DeadLetterTopicName: "dead-letter",
 		},
 		deadLetter: func(context.Context, jobs.DeadLetter) error { return nil },
+		// One search index, not nine: the point of the assertions below is that a pool is
+		// built per registered Syncer, and one is enough to show the fan-out happens.
+		searchSyncers: []SearchSyncer{
+			{
+				Topic:  "search-users",
+				Handle: func(context.Context, []byte) error { return nil },
+			},
+		},
 	}
 }
 
@@ -98,7 +106,7 @@ func TestAsyncDataChangeMessageHandler_Start(T *testing.T) {
 		assert.ElementsMatch(t, []string{
 			"data-changes",
 			"outbound-emails",
-			"search-index-requests",
+			"search-users",
 			"mobile-notifications",
 		}, topics)
 	})

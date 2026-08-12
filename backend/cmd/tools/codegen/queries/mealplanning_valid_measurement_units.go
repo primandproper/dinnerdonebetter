@@ -157,6 +157,13 @@ GROUP BY %s.%s
 			},
 			{
 				Annotation: QueryAnnotation{
+					Name: "ScanValidMeasurementUnitIDsForReindex",
+					Type: ManyType,
+				},
+				Content: buildReindexScanQuery(validMeasurementUnitsTableName),
+			},
+			{
+				Annotation: QueryAnnotation{
 					Name: "GetValidMeasurementUnitsNeedingIndexing",
 					Type: ManyType,
 				},

@@ -13,9 +13,8 @@ import (
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"
-	"github.com/primandproper/platform-go/v9/observability"
-	textsearch "github.com/primandproper/platform-go/v9/search/text"
+	notifications "github.com/primandproper/platform-go/v10/notifications/mobile"
+	"github.com/primandproper/platform-go/v10/observability"
 )
 
 // handleMealPlanTaskNotification processes a meal plan task reminder notification.
@@ -86,11 +85,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanningSearchIndexUpdate(
 		if rowID == "" {
 			return true, observability.PrepareAndLogError(errRequiredDataIsNil, logger, span, "updating search index for Recipe")
 		}
-		if err := a.searchDataIndexPublisher.Publish(ctx, &textsearch.IndexRequest{
-			RowID:     rowID,
-			IndexType: eatingindexing.IndexTypeRecipes,
-			Delete:    changeMessage.EventType == mealplanning.RecipeArchivedServiceEventType,
-		}); err != nil {
+		if err := a.publishIndexEvent(ctx, eatingindexing.IndexTypeRecipes, rowID, changeMessage.EventType == mealplanning.RecipeArchivedServiceEventType); err != nil {
 			return true, observability.PrepareAndLogError(err, logger, span, "publishing search index update")
 		}
 
@@ -102,11 +97,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanningSearchIndexUpdate(
 		if rowID == "" {
 			return true, observability.PrepareAndLogError(errRequiredDataIsNil, logger, span, "updating search index for Meal")
 		}
-		if err := a.searchDataIndexPublisher.Publish(ctx, &textsearch.IndexRequest{
-			RowID:     rowID,
-			IndexType: eatingindexing.IndexTypeMeals,
-			Delete:    changeMessage.EventType == mealplanning.MealArchivedServiceEventType,
-		}); err != nil {
+		if err := a.publishIndexEvent(ctx, eatingindexing.IndexTypeMeals, rowID, changeMessage.EventType == mealplanning.MealArchivedServiceEventType); err != nil {
 			return true, observability.PrepareAndLogError(err, logger, span, "publishing search index update")
 		}
 
@@ -118,11 +109,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanningSearchIndexUpdate(
 		if rowID == "" {
 			return true, observability.PrepareAndLogError(errRequiredDataIsNil, logger, span, "updating search index for ValidIngredient")
 		}
-		if err := a.searchDataIndexPublisher.Publish(ctx, &textsearch.IndexRequest{
-			RowID:     rowID,
-			IndexType: eatingindexing.IndexTypeValidIngredients,
-			Delete:    changeMessage.EventType == mealplanning.ValidIngredientArchivedServiceEventType,
-		}); err != nil {
+		if err := a.publishIndexEvent(ctx, eatingindexing.IndexTypeValidIngredients, rowID, changeMessage.EventType == mealplanning.ValidIngredientArchivedServiceEventType); err != nil {
 			return true, observability.PrepareAndLogError(err, logger, span, "publishing search index update")
 		}
 
@@ -134,11 +121,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanningSearchIndexUpdate(
 		if rowID == "" {
 			return true, observability.PrepareAndLogError(errRequiredDataIsNil, logger, span, "updating search index for ValidInstrument")
 		}
-		if err := a.searchDataIndexPublisher.Publish(ctx, &textsearch.IndexRequest{
-			RowID:     rowID,
-			IndexType: eatingindexing.IndexTypeValidInstruments,
-			Delete:    changeMessage.EventType == mealplanning.ValidInstrumentArchivedServiceEventType,
-		}); err != nil {
+		if err := a.publishIndexEvent(ctx, eatingindexing.IndexTypeValidInstruments, rowID, changeMessage.EventType == mealplanning.ValidInstrumentArchivedServiceEventType); err != nil {
 			return true, observability.PrepareAndLogError(err, logger, span, "publishing search index update")
 		}
 
@@ -150,11 +133,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanningSearchIndexUpdate(
 		if rowID == "" {
 			return true, observability.PrepareAndLogError(errRequiredDataIsNil, logger, span, "updating search index for ValidMeasurementUnit")
 		}
-		if err := a.searchDataIndexPublisher.Publish(ctx, &textsearch.IndexRequest{
-			RowID:     rowID,
-			IndexType: eatingindexing.IndexTypeValidMeasurementUnits,
-			Delete:    changeMessage.EventType == mealplanning.ValidMeasurementUnitArchivedServiceEventType,
-		}); err != nil {
+		if err := a.publishIndexEvent(ctx, eatingindexing.IndexTypeValidMeasurementUnits, rowID, changeMessage.EventType == mealplanning.ValidMeasurementUnitArchivedServiceEventType); err != nil {
 			return true, observability.PrepareAndLogError(err, logger, span, "publishing search index update")
 		}
 
@@ -166,11 +145,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanningSearchIndexUpdate(
 		if rowID == "" {
 			return true, observability.PrepareAndLogError(errRequiredDataIsNil, logger, span, "updating search index for ValidPreparation")
 		}
-		if err := a.searchDataIndexPublisher.Publish(ctx, &textsearch.IndexRequest{
-			RowID:     rowID,
-			IndexType: eatingindexing.IndexTypeValidPreparations,
-			Delete:    changeMessage.EventType == mealplanning.ValidPreparationArchivedServiceEventType,
-		}); err != nil {
+		if err := a.publishIndexEvent(ctx, eatingindexing.IndexTypeValidPreparations, rowID, changeMessage.EventType == mealplanning.ValidPreparationArchivedServiceEventType); err != nil {
 			return true, observability.PrepareAndLogError(err, logger, span, "publishing search index update")
 		}
 
@@ -182,11 +157,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanningSearchIndexUpdate(
 		if rowID == "" {
 			return true, observability.PrepareAndLogError(errRequiredDataIsNil, logger, span, "updating search index for ValidIngredientState")
 		}
-		if err := a.searchDataIndexPublisher.Publish(ctx, &textsearch.IndexRequest{
-			RowID:     rowID,
-			IndexType: eatingindexing.IndexTypeValidIngredientStates,
-			Delete:    changeMessage.EventType == mealplanning.ValidIngredientStateArchivedServiceEventType,
-		}); err != nil {
+		if err := a.publishIndexEvent(ctx, eatingindexing.IndexTypeValidIngredientStates, rowID, changeMessage.EventType == mealplanning.ValidIngredientStateArchivedServiceEventType); err != nil {
 			return true, observability.PrepareAndLogError(err, logger, span, "publishing search index update")
 		}
 
@@ -198,11 +169,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanningSearchIndexUpdate(
 		if rowID == "" {
 			return true, observability.PrepareAndLogError(errRequiredDataIsNil, logger, span, "updating search index for ValidIngredientMeasurementUnit")
 		}
-		if err := a.searchDataIndexPublisher.Publish(ctx, &textsearch.IndexRequest{
-			RowID:     rowID,
-			IndexType: eatingindexing.IndexTypeRecipes,
-			Delete:    changeMessage.EventType == mealplanning.ValidIngredientMeasurementUnitArchivedServiceEventType,
-		}); err != nil {
+		if err := a.publishIndexEvent(ctx, eatingindexing.IndexTypeRecipes, rowID, changeMessage.EventType == mealplanning.ValidIngredientMeasurementUnitArchivedServiceEventType); err != nil {
 			return true, observability.PrepareAndLogError(err, logger, span, "publishing search index update")
 		}
 
@@ -214,11 +181,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanningSearchIndexUpdate(
 		if rowID == "" {
 			return true, observability.PrepareAndLogError(errRequiredDataIsNil, logger, span, "updating search index for ValidPreparationInstrument")
 		}
-		if err := a.searchDataIndexPublisher.Publish(ctx, &textsearch.IndexRequest{
-			RowID:     rowID,
-			IndexType: eatingindexing.IndexTypeRecipes,
-			Delete:    changeMessage.EventType == mealplanning.ValidPreparationInstrumentArchivedServiceEventType,
-		}); err != nil {
+		if err := a.publishIndexEvent(ctx, eatingindexing.IndexTypeRecipes, rowID, changeMessage.EventType == mealplanning.ValidPreparationInstrumentArchivedServiceEventType); err != nil {
 			return true, observability.PrepareAndLogError(err, logger, span, "publishing search index update")
 		}
 
@@ -230,11 +193,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanningSearchIndexUpdate(
 		if rowID == "" {
 			return true, observability.PrepareAndLogError(errRequiredDataIsNil, logger, span, "updating search index for ValidIngredientPreparation")
 		}
-		if err := a.searchDataIndexPublisher.Publish(ctx, &textsearch.IndexRequest{
-			RowID:     rowID,
-			IndexType: eatingindexing.IndexTypeRecipes,
-			Delete:    changeMessage.EventType == mealplanning.ValidIngredientPreparationArchivedServiceEventType,
-		}); err != nil {
+		if err := a.publishIndexEvent(ctx, eatingindexing.IndexTypeRecipes, rowID, changeMessage.EventType == mealplanning.ValidIngredientPreparationArchivedServiceEventType); err != nil {
 			return true, observability.PrepareAndLogError(err, logger, span, "publishing search index update")
 		}
 

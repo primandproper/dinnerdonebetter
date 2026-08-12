@@ -6,8 +6,8 @@ import (
 	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -17,7 +17,7 @@ func RegisterPaymentsDataManager(i do.Injector) {
 	do.Provide[PaymentsDataManager](i, func(i do.Injector) (PaymentsDataManager, error) {
 		return NewPaymentsDataManager(
 			do.MustInvoke[context.Context](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[payments.Repository](i),
 			do.MustInvoke[identitymanager.IdentityDataManager](i),

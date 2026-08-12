@@ -8,7 +8,7 @@ import (
 	httpapi "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api/http"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
-	"github.com/primandproper/platform-go/v9/server/http"
+	"github.com/primandproper/platform-go/v10/server/http"
 
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"

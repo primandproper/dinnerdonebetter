@@ -7,7 +7,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -140,7 +140,7 @@ type (
 		UpdateValidPreparation(ctx context.Context, updated *ValidPreparation) error
 		MarkValidPreparationAsIndexed(ctx context.Context, validPreparationID string) error
 		ArchiveValidPreparation(ctx context.Context, validPreparationID string) error
-		GetValidPreparationIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error)
+		ScanValidPreparationIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetValidPreparationsWithIDs(ctx context.Context, ids []string) ([]*ValidPreparation, error)
 	}
 )

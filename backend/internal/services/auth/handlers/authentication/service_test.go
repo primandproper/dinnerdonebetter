@@ -12,12 +12,12 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
-	mocktotp "github.com/primandproper/platform-go/v9/authentication/totp/mock"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	mockpublishers "github.com/primandproper/platform-go/v9/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
+	mocktotp "github.com/primandproper/platform-go/v10/authentication/totp/mock"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	mockpublishers "github.com/primandproper/platform-go/v10/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,8 +32,11 @@ func buildTestService(t *testing.T) *service {
 	cfg := &Config{
 		Tokens: authcfg.TokensConfig{
 			Config: tokenscfg.Config{
-				Provider:                tokenscfg.ProviderJWT,
-				Audience:                "",
+				Provider: tokenscfg.ProviderJWT,
+				// Non-empty: v10 has the constructor validate the config it is given, and
+				// both of these are required there.
+				Audience:                "dinnerdonebetter.test",
+				Issuer:                  "dinnerdonebetter.test",
 				Base64EncodedSigningKey: base64.URLEncoding.EncodeToString([]byte(testutils.Example32ByteKey)),
 			},
 		},
@@ -43,8 +46,8 @@ func buildTestService(t *testing.T) *service {
 	pp := &mockpublishers.PublisherProviderMock{
 		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
 			return &mockpublishers.PublisherMock{
-				PublishFunc:      func(_ context.Context, _ any) error { return nil },
-				PublishAsyncFunc: func(_ context.Context, _ any) {},
+				PublishFunc:      func(_ context.Context, _ any, _ ...messagequeue.PublishOption) error { return nil },
+				PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 				StopFunc:         func() {},
 			}, nil
 		},
@@ -80,7 +83,8 @@ func TestProvideService(T *testing.T) {
 			Tokens: authcfg.TokensConfig{
 				Config: tokenscfg.Config{
 					Provider:                tokenscfg.ProviderJWT,
-					Audience:                "",
+					Audience:                "dinnerdonebetter.test",
+					Issuer:                  "dinnerdonebetter.test",
 					Base64EncodedSigningKey: base64.URLEncoding.EncodeToString([]byte(testutils.Example32ByteKey)),
 				},
 			},
@@ -90,8 +94,8 @@ func TestProvideService(T *testing.T) {
 		pp := &mockpublishers.PublisherProviderMock{
 			NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
 				return &mockpublishers.PublisherMock{
-					PublishFunc:      func(_ context.Context, _ any) error { return nil },
-					PublishAsyncFunc: func(_ context.Context, _ any) {},
+					PublishFunc:      func(_ context.Context, _ any, _ ...messagequeue.PublishOption) error { return nil },
+					PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 					StopFunc:         func() {},
 				}, nil
 			},

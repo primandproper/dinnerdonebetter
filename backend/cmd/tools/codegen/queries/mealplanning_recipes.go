@@ -334,6 +334,13 @@ WHERE %s.%s IS NULL
 			},
 			{
 				Annotation: QueryAnnotation{
+					Name: "ScanRecipeIDsForReindex",
+					Type: ManyType,
+				},
+				Content: buildReindexScanQuery(recipesTableName),
+			},
+			{
+				Annotation: QueryAnnotation{
 					Name: "GetRecipesNeedingIndexing",
 					Type: ManyType,
 				},

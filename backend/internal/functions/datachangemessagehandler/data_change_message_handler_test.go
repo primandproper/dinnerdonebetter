@@ -14,18 +14,18 @@ import (
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	analyticsmock "github.com/primandproper/platform-go/v9/analytics/mock"
-	emailmock "github.com/primandproper/platform-go/v9/email/mock"
-	encodingmock "github.com/primandproper/platform-go/v9/encoding/mock"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	msgqueuemock "github.com/primandproper/platform-go/v9/messagequeue/mock"
-	noopnotifications "github.com/primandproper/platform-go/v9/notifications/mobile/noop"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	mockmetrics "github.com/primandproper/platform-go/v9/observability/metrics/mock"
-	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	analyticsmock "github.com/primandproper/platform-go/v10/analytics/mock"
+	emailmock "github.com/primandproper/platform-go/v10/email/mock"
+	encodingmock "github.com/primandproper/platform-go/v10/encoding/mock"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	msgqueuemock "github.com/primandproper/platform-go/v10/messagequeue/mock"
+	noopnotifications "github.com/primandproper/platform-go/v10/notifications/mobile/noop"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	mockmetrics "github.com/primandproper/platform-go/v10/observability/metrics/mock"
+	metricsnoop "github.com/primandproper/platform-go/v10/observability/metrics/noop"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,13 +63,12 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 	metricsProvider := &mockmetrics.ProviderMock{}
 	decoder := &encodingmock.ServerEncoderDecoderMock{}
 	// Create mock indexers with noop implementations for testing
-	userDataIndexer := &identityindexing.UserDataIndexer{}
-	mealPlanningDataIndexer := &mealplanningindexing.MealPlanningDataIndexer{}
+	searchSyncers := []SearchSyncer{}
 
 	// Set up mock publishers for the indexers to prevent nil pointer dereferences
 	mockPublisher := &msgqueuemock.PublisherMock{
-		PublishFunc:      func(_ context.Context, _ any) error { return nil },
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
+		PublishFunc:      func(_ context.Context, _ any, _ ...messagequeue.PublishOption) error { return nil },
+		PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 		StopFunc:         func() {},
 	}
 	publisherProvider.NewPublisherFunc = func(_ context.Context, _ string) (messagequeue.Publisher, error) {
@@ -93,19 +92,30 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 	pushNotificationSender := noopnotifications.NewPushNotificationSender()
 
 	handler := &AsyncDataChangeMessageHandler{
-		identityRepo:                         identityRepo,
-		internalOpsRepo:                      internalOpsRepo,
-		consumerProvider:                     consumerProvider,
-		analyticsEventReporter:               analyticsEventReporter,
-		emailer:                              emailer,
-		decoder:                              decoder,
-		userDataIndexer:                      userDataIndexer,
-		mealPlanningDataIndexer:              mealPlanningDataIndexer,
+		identityRepo:           identityRepo,
+		internalOpsRepo:        internalOpsRepo,
+		consumerProvider:       consumerProvider,
+		analyticsEventReporter: analyticsEventReporter,
+		emailer:                emailer,
+		decoder:                decoder,
+		searchSyncers:          searchSyncers,
+		// Every index topic gets the same mock publisher: the tests here care that an event
+		// was published for the right document with the right op, not which broker it went to.
+		searchIndexPublishers: map[string]messagequeue.Publisher{
+			identityindexing.IndexTypeUsers:                     mockPublisher,
+			mealplanningindexing.IndexTypeMeals:                 mockPublisher,
+			mealplanningindexing.IndexTypeRecipes:               mockPublisher,
+			mealplanningindexing.IndexTypeValidIngredients:      mockPublisher,
+			mealplanningindexing.IndexTypeValidInstruments:      mockPublisher,
+			mealplanningindexing.IndexTypeValidMeasurementUnits: mockPublisher,
+			mealplanningindexing.IndexTypeValidPreparations:     mockPublisher,
+			mealplanningindexing.IndexTypeValidIngredientStates: mockPublisher,
+			mealplanningindexing.IndexTypeValidVessels:          mockPublisher,
+		},
 		logger:                               logger,
 		tracer:                               tracer,
 		dataChangesExecutionTimeHistogram:    noopHistogram,
 		outboundEmailsExecutionTimeHistogram: noopHistogram,
-		searchIndexRequestsExecutionTimeHistogram: noopHistogram,
 		mobileNotificationsExecutionTimeHistogram: noopHistogram,
 		messagesProcessedCounter:                  noopCounter,
 		messageDecodeErrorsCounter:                noopCounter,
@@ -117,7 +127,6 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		queuesConfig: queuescfg.Config{
 			SearchIndexRequestsTopicName: "search-index-requests",
 		},
-		searchDataIndexPublisher:      mockPublisher,
 		outboundEmailsPublisher:       mockPublisher,
 		mobileNotificationsPublisher:  mockPublisher,
 		mealPlanRepo:                  mealPlanRepo,
@@ -164,8 +173,10 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		emailer := &emailmock.EmailerMock{}
 		metricsProvider := &mockmetrics.ProviderMock{}
 		decoder := &encodingmock.ServerEncoderDecoderMock{}
-		coreDataIndexer := &identityindexing.UserDataIndexer{}
-		eatingDataIndexer := &mealplanningindexing.MealPlanningDataIndexer{}
+		// Empty rather than populated: this asserts the handler carries what it was given,
+		// and a Syncer needs a live index to construct. What each Syncer does with an event
+		// is covered where the Source is, in internal/search/syncsource.
+		searchSyncers := []SearchSyncer{}
 
 		// Set up metrics expectations
 		noopProvider := metricsnoop.NewMetricsProvider()
@@ -180,8 +191,8 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 
 		// Set up publisher expectations
 		mockPublisher := &msgqueuemock.PublisherMock{
-			PublishFunc:      func(_ context.Context, _ any) error { return nil },
-			PublishAsyncFunc: func(_ context.Context, _ any) {},
+			PublishFunc:      func(_ context.Context, _ any, _ ...messagequeue.PublishOption) error { return nil },
+			PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 			StopFunc:         func() {},
 		}
 		publisherProvider.NewPublisherFunc = func(_ context.Context, _ string) (messagequeue.Publisher, error) {
@@ -207,8 +218,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 			emailer,
 			metricsProvider,
 			decoder,
-			coreDataIndexer,
-			eatingDataIndexer,
+			searchSyncers,
 			mealPlanRepo,
 			prtManager,
 			notificationsRepo,
@@ -222,8 +232,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		assert.Equal(t, analyticsEventReporter, handler.analyticsEventReporter)
 		assert.Equal(t, emailer, handler.emailer)
 		assert.Equal(t, decoder, handler.decoder)
-		assert.Equal(t, coreDataIndexer, handler.userDataIndexer)
-		assert.Equal(t, eatingDataIndexer, handler.mealPlanningDataIndexer)
+		assert.Equal(t, searchSyncers, handler.searchSyncers)
 
 		// metricsProvider and publisherProvider are moq mocks - no testify assertion needed
 	})

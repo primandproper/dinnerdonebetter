@@ -6,11 +6,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const eraserO11yName = "identity_privacy_eraser"
@@ -45,7 +45,7 @@ type Eraser struct {
 var _ platformdataprivacy.Eraser = (*Eraser)(nil)
 
 // NewEraser builds the identity eraser.
-func NewEraser(repo identity.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) *Eraser {
+func NewEraser(repo identity.Repository, logger logging.Logger, tracerProvider tracing.Provider) *Eraser {
 	return &Eraser{
 		repo:   repo,
 		tracer: tracing.NewNamedTracer(tracerProvider, eraserO11yName),

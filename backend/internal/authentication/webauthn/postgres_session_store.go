@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/encoding"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/encoding"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 )
@@ -29,7 +29,7 @@ type PostgresSessionStore struct {
 }
 
 // NewPostgresSessionStore creates a new PostgreSQL-backed session store.
-func NewPostgresSessionStore(client database.Client, logger logging.Logger, tracerProvider tracing.TracerProvider) *PostgresSessionStore {
+func NewPostgresSessionStore(client database.Client, logger logging.Logger, tracerProvider tracing.Provider) *PostgresSessionStore {
 	encoder := encoding.NewServerEncoderDecoder(encoding.ContentTypeJSON, encoding.WithLogger(logger), encoding.WithTracerProvider(tracerProvider))
 	s := &PostgresSessionStore{
 		client:  client,

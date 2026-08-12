@@ -8,11 +8,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth/generated"
 
-	"github.com/primandproper/platform-go/v9/cryptography/encryption"
-	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/cryptography/encryption"
+	encryptioncfg "github.com/primandproper/platform-go/v10/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -36,15 +36,20 @@ type repository struct {
 func ProvideOAuthRepository(
 	ctx context.Context,
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	auditLogEntryRepo audit.Repository,
 	cfg *dbcfg.Config,
 	client database.Client,
 ) oauth.Repository {
-	encDec, err := encryptioncfg.NewEncryptorDecryptor(
+	// One key, named by the configured current key ID. v10's keyring decrypts under whichever
+	// key a ciphertext names, so rotating means adding the new key here and pointing
+	// CurrentKeyID at it — the old ciphertexts keep opening under the key they name.
+	encDec, err := encryptioncfg.NewKeyring(
 		ctx,
 		&cfg.Encryption,
-		[]byte(cfg.OAuth2TokenEncryptionKey),
+		encryption.Keyset{
+			encryption.KeyID(cfg.Encryption.CurrentKeyID): encryption.MasterKey(cfg.OAuth2TokenEncryptionKey),
+		},
 		encryptioncfg.WithLogger(logger),
 		encryptioncfg.WithTracerProvider(tracerProvider),
 	)

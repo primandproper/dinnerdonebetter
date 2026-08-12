@@ -569,6 +569,14 @@ WHERE recipes.archived_at IS NULL
 ORDER BY recipes.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
+-- name: ScanRecipeIDsForReindex :many
+SELECT recipes.id
+FROM recipes
+WHERE recipes.archived_at IS NULL
+	AND recipes.id COLLATE "C" > sqlc.arg(cursor)
+ORDER BY recipes.id COLLATE "C"
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
+
 -- name: GetRecipesNeedingIndexing :many
 SELECT recipes.id
 FROM recipes

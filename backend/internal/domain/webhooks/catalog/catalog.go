@@ -13,7 +13,7 @@
 package catalog
 
 import (
-	"github.com/primandproper/platform-go/v9/webhooks"
+	"github.com/primandproper/platform-go/v10/webhooks"
 )
 
 // definitions is the generated catalog.

@@ -42,15 +42,15 @@ import (
 	waitlistsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc"
 	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
 
-	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
-	authzgrpc "github.com/primandproper/platform-go/v9/authorization/grpc"
-	"github.com/primandproper/platform-go/v9/database"
-	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
-	platformgrpc "github.com/primandproper/platform-go/v9/server/grpc"
+	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
+	authzgrpc "github.com/primandproper/platform-go/v10/authorization/grpc"
+	"github.com/primandproper/platform-go/v10/database"
+	errorsgrpc "github.com/primandproper/platform-go/v10/errors/grpc"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	textsearchcfg "github.com/primandproper/platform-go/v10/search/text/config"
+	platformgrpc "github.com/primandproper/platform-go/v10/server/grpc"
 
 	"github.com/samber/do/v2"
 	grpc "google.golang.org/grpc"
@@ -68,7 +68,7 @@ func RegisterExtras(i do.Injector) {
 	do.Provide(i, func(i do.Injector) (identityindexing.UserTextSearcher, error) {
 		ctx := do.MustInvoke[context.Context](i)
 		logger := do.MustInvoke[logging.Logger](i)
-		tracerProvider := do.MustInvoke[tracing.TracerProvider](i)
+		tracerProvider := do.MustInvoke[tracing.Provider](i)
 		metricsProvider := do.MustInvoke[metrics.Provider](i)
 		cfg := do.MustInvoke[*textsearchcfg.Config](i)
 		return ProvideUserTextSearcher(ctx, logger, tracerProvider, metricsProvider, cfg)
@@ -114,7 +114,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[context.Context](i),
 			do.MustInvoke[*config.APIServiceConfig](i),
 			logger,
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[metrics.Provider](i),
 			do.MustInvoke[database.Client](i),
 		)
@@ -279,7 +279,7 @@ func ProvideAnalyticsProxySources(cfg *config.APIServiceConfig) map[string]*anal
 func ProvideUserTextSearcher(
 	ctx context.Context,
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	metricsProvider metrics.Provider,
 	cfg *textsearchcfg.Config,
 ) (identityindexing.UserTextSearcher, error) {

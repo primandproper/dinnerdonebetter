@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/pointer"
+	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/pointer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,7 +32,6 @@ func TestConvertRequestToGRPCRequest(T *testing.T) {
 			ExpiresAt:     now.Add(7 * 24 * time.Hour),
 			CompletedAt:   pointer.To(now.Add(time.Minute)),
 			ArtifactBytes: 4096,
-			Attempts:      1,
 		}
 
 		actual := ConvertRequestToGRPCRequest(input)
@@ -44,7 +43,9 @@ func TestConvertRequestToGRPCRequest(T *testing.T) {
 		assert.Equal(t, "completed", actual.GetStatus())
 		assert.Equal(t, now, actual.GetRequestedAt().AsTime())
 		assert.Equal(t, int64(4096), actual.GetArtifactBytes())
-		assert.Equal(t, int32(1), actual.GetAttempts())
+		// Attempts is deliberately unset: v10 moved the claim count onto the operation
+		// fulfilling the request, so there is nothing on the request to copy.
+		assert.Zero(t, actual.GetAttempts())
 		assert.NotNil(t, actual.GetExpiresAt())
 		assert.NotNil(t, actual.GetCompletedAt())
 	})
@@ -75,7 +76,7 @@ func TestConvertRequestToGRPCRequest(T *testing.T) {
 		input := &platformdataprivacy.Request{
 			ID:     identifiers.New(),
 			Type:   platformdataprivacy.RequestErasure,
-			Status: platformdataprivacy.StatusPending,
+			Status: platformdataprivacy.StatusInProgress,
 		}
 
 		actual := ConvertRequestToGRPCRequest(input)

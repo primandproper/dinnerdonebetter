@@ -16,8 +16,9 @@ import (
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	msgqueuemock "github.com/primandproper/platform-go/v9/messagequeue/mock"
-	textsearch "github.com/primandproper/platform-go/v9/search/text"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	msgqueuemock "github.com/primandproper/platform-go/v10/messagequeue/mock"
+	searchsync "github.com/primandproper/platform-go/v10/search/sync"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -140,24 +141,27 @@ func TestAsyncDataChangeMessageHandler_handleSearchIndexUpdates(t *testing.T) {
 			Context:   nil,
 		}
 
-		var publishedReq *textsearch.IndexRequest
+		var publishedEvent *searchsync.Event
 		mockPublisher := &msgqueuemock.PublisherMock{
-			PublishFunc: func(_ context.Context, data any) error {
-				if req, ok := data.(*textsearch.IndexRequest); ok {
-					publishedReq = req
+			PublishFunc: func(_ context.Context, data any, _ ...messagequeue.PublishOption) error {
+				if event, ok := data.(searchsync.Event); ok {
+					publishedEvent = &event
 				}
 				return nil
 			},
 		}
-		handler.searchDataIndexPublisher = mockPublisher
+		handler.searchIndexPublishers = map[string]messagequeue.Publisher{
+			identityindexing.IndexTypeUsers: mockPublisher,
+		}
 
 		err := handler.handleSearchIndexUpdates(ctx, dataChangeMessage)
 		require.NoError(t, err)
 
-		assert.NotNil(t, publishedReq)
-		assert.Equal(t, dataChangeMessage.UserID, publishedReq.RowID)
-		assert.Equal(t, identityindexing.IndexTypeUsers, publishedReq.IndexType)
-		assert.False(t, publishedReq.Delete)
+		// The event names the document and the operation; the index it belongs to is the
+		// topic it was published on, which is why there is no index type to assert here.
+		require.NotNil(t, publishedEvent)
+		assert.Equal(t, dataChangeMessage.UserID, publishedEvent.DocumentID)
+		assert.Equal(t, searchsync.OpUpsert, publishedEvent.Op)
 	})
 
 	t.Run("user archived event", func(t *testing.T) {
@@ -174,24 +178,25 @@ func TestAsyncDataChangeMessageHandler_handleSearchIndexUpdates(t *testing.T) {
 			Context:   nil,
 		}
 
-		var publishedReq *textsearch.IndexRequest
+		var publishedEvent *searchsync.Event
 		mockPublisher := &msgqueuemock.PublisherMock{
-			PublishFunc: func(_ context.Context, data any) error {
-				if req, ok := data.(*textsearch.IndexRequest); ok {
-					publishedReq = req
+			PublishFunc: func(_ context.Context, data any, _ ...messagequeue.PublishOption) error {
+				if event, ok := data.(searchsync.Event); ok {
+					publishedEvent = &event
 				}
 				return nil
 			},
 		}
-		handler.searchDataIndexPublisher = mockPublisher
+		handler.searchIndexPublishers = map[string]messagequeue.Publisher{
+			identityindexing.IndexTypeUsers: mockPublisher,
+		}
 
 		err := handler.handleSearchIndexUpdates(ctx, dataChangeMessage)
 		require.NoError(t, err)
 
-		assert.NotNil(t, publishedReq)
-		assert.Equal(t, dataChangeMessage.UserID, publishedReq.RowID)
-		assert.Equal(t, identityindexing.IndexTypeUsers, publishedReq.IndexType)
-		assert.True(t, publishedReq.Delete)
+		require.NotNil(t, publishedEvent)
+		assert.Equal(t, dataChangeMessage.UserID, publishedEvent.DocumentID)
+		assert.Equal(t, searchsync.OpDelete, publishedEvent.Op)
 	})
 
 	t.Run("recipe created event", func(t *testing.T) {
@@ -212,24 +217,25 @@ func TestAsyncDataChangeMessageHandler_handleSearchIndexUpdates(t *testing.T) {
 			},
 		}
 
-		var publishedReq *textsearch.IndexRequest
+		var publishedEvent *searchsync.Event
 		mockPublisher := &msgqueuemock.PublisherMock{
-			PublishFunc: func(_ context.Context, data any) error {
-				if req, ok := data.(*textsearch.IndexRequest); ok {
-					publishedReq = req
+			PublishFunc: func(_ context.Context, data any, _ ...messagequeue.PublishOption) error {
+				if event, ok := data.(searchsync.Event); ok {
+					publishedEvent = &event
 				}
 				return nil
 			},
 		}
-		handler.searchDataIndexPublisher = mockPublisher
+		handler.searchIndexPublishers = map[string]messagequeue.Publisher{
+			mealplanningindexing.IndexTypeRecipes: mockPublisher,
+		}
 
 		err := handler.handleSearchIndexUpdates(ctx, dataChangeMessage)
 		require.NoError(t, err)
 
-		assert.NotNil(t, publishedReq)
-		assert.Equal(t, recipe.ID, publishedReq.RowID)
-		assert.Equal(t, mealplanningindexing.IndexTypeRecipes, publishedReq.IndexType)
-		assert.False(t, publishedReq.Delete)
+		require.NotNil(t, publishedEvent)
+		assert.Equal(t, recipe.ID, publishedEvent.DocumentID)
+		assert.Equal(t, searchsync.OpUpsert, publishedEvent.Op)
 	})
 
 	t.Run("unhandled event type", func(t *testing.T) {

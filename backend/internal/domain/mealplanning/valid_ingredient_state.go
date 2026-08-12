@@ -5,7 +5,7 @@ import (
 	"encoding/gob"
 	"time"
 
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -108,7 +108,7 @@ type (
 		UpdateValidIngredientState(ctx context.Context, updated *ValidIngredientState) error
 		MarkValidIngredientStateAsIndexed(ctx context.Context, validIngredientState string) error
 		ArchiveValidIngredientState(ctx context.Context, validIngredientState string) error
-		GetValidIngredientStateIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error)
+		ScanValidIngredientStateIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetValidIngredientStatesWithIDs(ctx context.Context, ids []string) ([]*ValidIngredientState, error)
 	}
 )

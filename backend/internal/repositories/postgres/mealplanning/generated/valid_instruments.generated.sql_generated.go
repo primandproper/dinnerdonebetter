@@ -444,6 +444,43 @@ func (q *Queries) GetValidInstrumentsWithIDs(ctx context.Context, db DBTX, ids [
 	return items, nil
 }
 
+const scanValidInstrumentIDsForReindex = `-- name: ScanValidInstrumentIDsForReindex :many
+SELECT valid_instruments.id
+FROM valid_instruments
+WHERE valid_instruments.archived_at IS NULL
+	AND valid_instruments.id COLLATE "C" > $1
+ORDER BY valid_instruments.id COLLATE "C"
+LIMIT COALESCE($2, 50)
+`
+
+type ScanValidInstrumentIDsForReindexParams struct {
+	Cursor      string
+	ResultLimit interface{}
+}
+
+func (q *Queries) ScanValidInstrumentIDsForReindex(ctx context.Context, db DBTX, arg *ScanValidInstrumentIDsForReindexParams) ([]string, error) {
+	rows, err := db.QueryContext(ctx, scanValidInstrumentIDsForReindex, arg.Cursor, arg.ResultLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchForValidInstruments = `-- name: SearchForValidInstruments :many
 SELECT
 	valid_instruments.id,

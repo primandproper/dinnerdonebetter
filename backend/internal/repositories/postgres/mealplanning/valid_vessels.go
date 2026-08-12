@@ -9,12 +9,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -361,14 +361,23 @@ func (q *repository) GetValidVesselsWithIDs(ctx context.Context, ids []string) (
 	return validVessels, nil
 }
 
-// GetValidVesselIDsThatNeedSearchIndexing fetches a list of valid vessels from the database that meet a particular filter.
-func (q *repository) GetValidVesselIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
+// ScanValidVesselIDsForReindex returns up to limit IDs sorting strictly after `after`, in ascending byte order.
+//
+// It is the source half of a search reindex: searchsync.Reindexer walks this to find every
+// document that should exist, and prunes the index of anything it does not name. It replaces
+// the "IDs that need indexing" sampler platform-go v10 removed, which asked a different and
+// weaker question — which rows look stale — and could only ever be probabilistically right,
+// because a row the sampler had not reached was a row the index was wrong about.
+func (q *repository) ScanValidVesselIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	results, err := q.generatedQuerier.GetValidVesselIDsNeedingIndexing(ctx, q.readDB)
+	results, err := q.generatedQuerier.ScanValidVesselIDsForReindex(ctx, q.readDB, &generated.ScanValidVesselIDsForReindexParams{
+		Cursor:      after,
+		ResultLimit: limit,
+	})
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "executing valid vessels list retrieval query")
+		return nil, observability.PrepareError(err, span, "executing valid vessels reindex scan query")
 	}
 
 	return results, nil
@@ -380,7 +389,7 @@ func (q *repository) CreateValidVessel(ctx context.Context, input *types.ValidVe
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.ValidVesselIDKey, input.ID)
 
@@ -443,13 +452,13 @@ func (q *repository) UpdateValidVessel(ctx context.Context, updated *types.Valid
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.ValidVesselIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, updated.ID)
 
 	if updated.CapacityUnit == nil {
-		return fmt.Errorf("capacity unit: %w", platformerrors.ErrNilInputProvided)
+		return fmt.Errorf("capacity unit: %w", platformerrors.ErrNilInputParameter)
 	}
 
 	if err := q.withEvent(ctx, logger, types.ValidVesselUpdatedServiceEventType, "", map[string]any{

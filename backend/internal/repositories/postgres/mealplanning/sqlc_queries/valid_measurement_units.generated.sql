@@ -149,6 +149,14 @@ GROUP BY valid_measurement_units.id
 ORDER BY valid_measurement_units.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
+-- name: ScanValidMeasurementUnitIDsForReindex :many
+SELECT valid_measurement_units.id
+FROM valid_measurement_units
+WHERE valid_measurement_units.archived_at IS NULL
+	AND valid_measurement_units.id COLLATE "C" > sqlc.arg(cursor)
+ORDER BY valid_measurement_units.id COLLATE "C"
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
+
 -- name: GetValidMeasurementUnitsNeedingIndexing :many
 SELECT valid_measurement_units.id
 FROM valid_measurement_units

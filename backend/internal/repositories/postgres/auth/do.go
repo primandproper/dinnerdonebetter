@@ -4,9 +4,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	domainauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -16,7 +16,7 @@ func RegisterAuthRepository(i do.Injector) {
 	do.Provide[domainauth.Repository](i, func(i do.Injector) (domainauth.Repository, error) {
 		return ProvideAuthRepository(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[audit.Repository](i),
 			do.MustInvoke[database.Client](i),
 		), nil

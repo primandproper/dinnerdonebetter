@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	platformaudit "github.com/primandproper/platform-go/v9/audit"
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/filtering"
+	platformaudit "github.com/primandproper/platform-go/v10/audit"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/filtering"
 )
 
 const (

@@ -4,9 +4,9 @@ import (
 	domaininternalops "github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 
-	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -20,7 +20,7 @@ func RegisterInternalOpsService(i do.Injector) {
 	do.Provide[settingssvc.InternalOperationsServer](i, func(i do.Injector) (settingssvc.InternalOperationsServer, error) {
 		return NewService(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[*msgconfig.Config](i),
 			do.MustInvoke[domaininternalops.InternalOpsDataManager](i),
 		), nil

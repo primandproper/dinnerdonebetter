@@ -6,16 +6,22 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
-	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/routing"
+	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
+	"github.com/primandproper/platform-go/v10/observability/logging"
 )
 
 func init() {
 	gob.Register(&ContextData{})
 }
 
-const SessionContextDataKey routing.ContextKey = "session_context_data"
+// contextKey is the unexported type of this package's context keys. It is unexported and
+// distinct so a value stored here cannot collide with one stored by any other package, which
+// is what the string-typed key platform-go v10 removed could not promise. The name is on the
+// value rather than in a field so that a key printed in a panic or a dump still says what it is.
+type contextKey string
+
+// SessionContextDataKey keys the session data on a context.
+const SessionContextDataKey contextKey = "session_context_data"
 
 // AttachToContext returns a copy of ctx carrying x as its session data. This is the only supported
 // way to populate the session context key, so that reads and writes stay in one place.

@@ -6,7 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
-	httperrors "github.com/primandproper/platform-go/v9/errors/http"
+	httperrors "github.com/primandproper/platform-go/v10/errors/http"
 )
 
 func init() {

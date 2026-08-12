@@ -7,7 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 
-	"github.com/primandproper/platform-go/v9/errors/grpc"
+	"github.com/primandproper/platform-go/v10/errors/grpc"
 
 	"google.golang.org/grpc/codes"
 )
@@ -31,7 +31,7 @@ func (authSessionIdentityGRPCMapper) Map(err error) (code codes.Code, ok bool) {
 	case errors.Is(err, sessions.ErrAuthenticationNotFound):
 		return codes.Unauthenticated, true
 	case errors.Is(err, identitymanager.ErrInvalidIDProvided),
-		errors.Is(err, identitymanager.ErrNilInputProvided),
+		errors.Is(err, identitymanager.ErrNilInputParameter),
 		errors.Is(err, identitymanager.ErrEmptyInputProvided):
 		return codes.InvalidArgument, true
 	default:

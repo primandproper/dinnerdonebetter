@@ -18,17 +18,17 @@ import (
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	platformtotp "github.com/primandproper/platform-go/v9/authentication/totp"
-	mocktotp "github.com/primandproper/platform-go/v9/authentication/totp/mock"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	mockpublishers "github.com/primandproper/platform-go/v9/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v9/qrcodes"
-	"github.com/primandproper/platform-go/v9/random"
-	randommock "github.com/primandproper/platform-go/v9/random/mock"
+	platformtotp "github.com/primandproper/platform-go/v10/authentication/totp"
+	mocktotp "github.com/primandproper/platform-go/v10/authentication/totp/mock"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	mockpublishers "github.com/primandproper/platform-go/v10/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v10/qrcodes"
+	"github.com/primandproper/platform-go/v10/random"
+	randommock "github.com/primandproper/platform-go/v10/random/mock"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -259,7 +259,7 @@ func TestAuthManager_TOTPSecretVerification_Success(t *testing.T) {
 	}
 
 	publisher := &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
+		PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 	}
 
 	totpVerifier := &mocktotp.VerifierMock{
@@ -349,7 +349,7 @@ func TestAuthManager_RequestUsernameReminder_Success(t *testing.T) {
 	}
 
 	publisher := &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
+		PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 	}
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
@@ -424,7 +424,7 @@ func TestAuthManager_CreatePasswordResetToken_Success(t *testing.T) {
 	}
 
 	publisher := &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
+		PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 	}
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
@@ -485,7 +485,7 @@ func TestAuthManager_RequestEmailVerificationEmail_Success(t *testing.T) {
 	}
 
 	publisher := &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
+		PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 	}
 
 	sessionData := &sessions.ContextData{Requester: sessions.RequesterInfo{UserID: userID}}
@@ -524,7 +524,7 @@ func TestAuthManager_VerifyUserEmailAddress_Success(t *testing.T) {
 	}
 
 	publisher := &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
+		PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 	}
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
@@ -562,7 +562,7 @@ func TestAuthManager_VerifyUserEmailAddressByToken_Success(t *testing.T) {
 	}
 
 	publisher := &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
+		PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 	}
 
 	manager := &AuthManager{
@@ -640,7 +640,7 @@ func TestAuthManager_UpdatePassword_Success(t *testing.T) {
 	}
 
 	publisher := &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
+		PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 	}
 
 	sessionData := &sessions.ContextData{Requester: sessions.RequesterInfo{UserID: user.ID}}
@@ -693,7 +693,7 @@ func TestAuthManager_UpdateUserEmailAddress_Success(t *testing.T) {
 	}
 
 	publisher := &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
+		PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 	}
 
 	sessionData := &sessions.ContextData{Requester: sessions.RequesterInfo{UserID: user.ID}}
@@ -745,7 +745,7 @@ func TestAuthManager_UpdateUserUsername_Success(t *testing.T) {
 	}
 
 	publisher := &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
+		PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 	}
 
 	sessionData := &sessions.ContextData{Requester: sessions.RequesterInfo{UserID: user.ID}}
@@ -810,7 +810,7 @@ func TestAuthManager_PasswordResetTokenRedemption_Success(t *testing.T) {
 	}
 
 	publisher := &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
+		PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 	}
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
@@ -883,7 +883,7 @@ func TestAuthManager_NewTOTPSecret_Success(t *testing.T) {
 	qrBuilder := qrcodes.NewBuilder(qrcodes.Issuer("test"), qrcodes.WithTracerProvider(tracingnoop.NewTracerProvider()), qrcodes.WithLogger(loggingnoop.NewLogger()))
 
 	publisher := &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any) {},
+		PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
 	}
 
 	sessionData := &sessions.ContextData{Requester: sessions.RequesterInfo{UserID: user.ID}}

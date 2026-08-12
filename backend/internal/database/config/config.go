@@ -9,8 +9,8 @@
 package dbcfg
 
 import (
-	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
+	encryptioncfg "github.com/primandproper/platform-go/v10/cryptography/encryption/config"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
 )
 
 // Config is the database configuration.

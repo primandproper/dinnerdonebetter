@@ -10,7 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/filtering"
 )
 
 // Ensure, that RepositoryMock does implement mealplanning.Repository.
@@ -302,9 +302,6 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			GetMealFunc: func(ctx context.Context, mealID string) (*mealplanning.Meal, error) {
 //				panic("mock out the GetMeal method")
 //			},
-//			GetMealIDsThatNeedSearchIndexingFunc: func(ctx context.Context) ([]string, error) {
-//				panic("mock out the GetMealIDsThatNeedSearchIndexing method")
-//			},
 //			GetMealListItemsFunc: func(ctx context.Context, mealListID string, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealListItem], error) {
 //				panic("mock out the GetMealListItems method")
 //			},
@@ -397,9 +394,6 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			},
 //			GetRecipeFunc: func(ctx context.Context, recipeID string) (*mealplanning.Recipe, error) {
 //				panic("mock out the GetRecipe method")
-//			},
-//			GetRecipeIDsThatNeedSearchIndexingFunc: func(ctx context.Context) ([]string, error) {
-//				panic("mock out the GetRecipeIDsThatNeedSearchIndexing method")
 //			},
 //			GetRecipeListItemsFunc: func(ctx context.Context, recipeListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeListItem], error) {
 //				panic("mock out the GetRecipeListItems method")
@@ -497,9 +491,6 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			GetValidIngredientGroupsFunc: func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.ValidIngredientGroup], error) {
 //				panic("mock out the GetValidIngredientGroups method")
 //			},
-//			GetValidIngredientIDsThatNeedSearchIndexingFunc: func(ctx context.Context) ([]string, error) {
-//				panic("mock out the GetValidIngredientIDsThatNeedSearchIndexing method")
-//			},
 //			GetValidIngredientMeasurementUnitFunc: func(ctx context.Context, validIngredientMeasurementUnitID string) (*mealplanning.ValidIngredientMeasurementUnit, error) {
 //				panic("mock out the GetValidIngredientMeasurementUnit method")
 //			},
@@ -533,9 +524,6 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			GetValidIngredientStateFunc: func(ctx context.Context, validIngredientState string) (*mealplanning.ValidIngredientState, error) {
 //				panic("mock out the GetValidIngredientState method")
 //			},
-//			GetValidIngredientStateIDsThatNeedSearchIndexingFunc: func(ctx context.Context) ([]string, error) {
-//				panic("mock out the GetValidIngredientStateIDsThatNeedSearchIndexing method")
-//			},
 //			GetValidIngredientStateIngredientFunc: func(ctx context.Context, validIngredientPreparationID string) (*mealplanning.ValidIngredientStateIngredient, error) {
 //				panic("mock out the GetValidIngredientStateIngredient method")
 //			},
@@ -563,9 +551,6 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			GetValidInstrumentFunc: func(ctx context.Context, validInstrumentID string) (*mealplanning.ValidInstrument, error) {
 //				panic("mock out the GetValidInstrument method")
 //			},
-//			GetValidInstrumentIDsThatNeedSearchIndexingFunc: func(ctx context.Context) ([]string, error) {
-//				panic("mock out the GetValidInstrumentIDsThatNeedSearchIndexing method")
-//			},
 //			GetValidInstrumentsFunc: func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.ValidInstrument], error) {
 //				panic("mock out the GetValidInstruments method")
 //			},
@@ -583,9 +568,6 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			},
 //			GetValidMeasurementUnitConversionsForUnitFunc: func(ctx context.Context, validMeasurementUnitID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.ValidMeasurementUnitConversion], error) {
 //				panic("mock out the GetValidMeasurementUnitConversionsForUnit method")
-//			},
-//			GetValidMeasurementUnitIDsThatNeedSearchIndexingFunc: func(ctx context.Context) ([]string, error) {
-//				panic("mock out the GetValidMeasurementUnitIDsThatNeedSearchIndexing method")
 //			},
 //			GetValidMeasurementUnitsFunc: func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.ValidMeasurementUnit], error) {
 //				panic("mock out the GetValidMeasurementUnits method")
@@ -610,9 +592,6 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			},
 //			GetValidPreparationFunc: func(ctx context.Context, validPreparationID string) (*mealplanning.ValidPreparation, error) {
 //				panic("mock out the GetValidPreparation method")
-//			},
-//			GetValidPreparationIDsThatNeedSearchIndexingFunc: func(ctx context.Context) ([]string, error) {
-//				panic("mock out the GetValidPreparationIDsThatNeedSearchIndexing method")
 //			},
 //			GetValidPreparationInstrumentFunc: func(ctx context.Context, validPreparationInstrumentID string) (*mealplanning.ValidPreparationInstrument, error) {
 //				panic("mock out the GetValidPreparationInstrument method")
@@ -652,9 +631,6 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			},
 //			GetValidVesselFunc: func(ctx context.Context, validVesselID string) (*mealplanning.ValidVessel, error) {
 //				panic("mock out the GetValidVessel method")
-//			},
-//			GetValidVesselIDsThatNeedSearchIndexingFunc: func(ctx context.Context) ([]string, error) {
-//				panic("mock out the GetValidVesselIDsThatNeedSearchIndexing method")
 //			},
 //			GetValidVesselsFunc: func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.ValidVessel], error) {
 //				panic("mock out the GetValidVessels method")
@@ -757,6 +733,30 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			},
 //			RecipeStepVesselExistsFunc: func(ctx context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string) (bool, error) {
 //				panic("mock out the RecipeStepVesselExists method")
+//			},
+//			ScanMealIDsForReindexFunc: func(ctx context.Context, after string, limit int) ([]string, error) {
+//				panic("mock out the ScanMealIDsForReindex method")
+//			},
+//			ScanRecipeIDsForReindexFunc: func(ctx context.Context, after string, limit int) ([]string, error) {
+//				panic("mock out the ScanRecipeIDsForReindex method")
+//			},
+//			ScanValidIngredientIDsForReindexFunc: func(ctx context.Context, after string, limit int) ([]string, error) {
+//				panic("mock out the ScanValidIngredientIDsForReindex method")
+//			},
+//			ScanValidIngredientStateIDsForReindexFunc: func(ctx context.Context, after string, limit int) ([]string, error) {
+//				panic("mock out the ScanValidIngredientStateIDsForReindex method")
+//			},
+//			ScanValidInstrumentIDsForReindexFunc: func(ctx context.Context, after string, limit int) ([]string, error) {
+//				panic("mock out the ScanValidInstrumentIDsForReindex method")
+//			},
+//			ScanValidMeasurementUnitIDsForReindexFunc: func(ctx context.Context, after string, limit int) ([]string, error) {
+//				panic("mock out the ScanValidMeasurementUnitIDsForReindex method")
+//			},
+//			ScanValidPreparationIDsForReindexFunc: func(ctx context.Context, after string, limit int) ([]string, error) {
+//				panic("mock out the ScanValidPreparationIDsForReindex method")
+//			},
+//			ScanValidVesselIDsForReindexFunc: func(ctx context.Context, after string, limit int) ([]string, error) {
+//				panic("mock out the ScanValidVesselIDsForReindex method")
 //			},
 //			SearchForMealEligibleRecipesFunc: func(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error) {
 //				panic("mock out the SearchForMealEligibleRecipes method")
@@ -1251,9 +1251,6 @@ type RepositoryMock struct {
 	// GetMealFunc mocks the GetMeal method.
 	GetMealFunc func(ctx context.Context, mealID string) (*mealplanning.Meal, error)
 
-	// GetMealIDsThatNeedSearchIndexingFunc mocks the GetMealIDsThatNeedSearchIndexing method.
-	GetMealIDsThatNeedSearchIndexingFunc func(ctx context.Context) ([]string, error)
-
 	// GetMealListItemsFunc mocks the GetMealListItems method.
 	GetMealListItemsFunc func(ctx context.Context, mealListID string, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealListItem], error)
 
@@ -1346,9 +1343,6 @@ type RepositoryMock struct {
 
 	// GetRecipeFunc mocks the GetRecipe method.
 	GetRecipeFunc func(ctx context.Context, recipeID string) (*mealplanning.Recipe, error)
-
-	// GetRecipeIDsThatNeedSearchIndexingFunc mocks the GetRecipeIDsThatNeedSearchIndexing method.
-	GetRecipeIDsThatNeedSearchIndexingFunc func(ctx context.Context) ([]string, error)
 
 	// GetRecipeListItemsFunc mocks the GetRecipeListItems method.
 	GetRecipeListItemsFunc func(ctx context.Context, recipeListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeListItem], error)
@@ -1446,9 +1440,6 @@ type RepositoryMock struct {
 	// GetValidIngredientGroupsFunc mocks the GetValidIngredientGroups method.
 	GetValidIngredientGroupsFunc func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.ValidIngredientGroup], error)
 
-	// GetValidIngredientIDsThatNeedSearchIndexingFunc mocks the GetValidIngredientIDsThatNeedSearchIndexing method.
-	GetValidIngredientIDsThatNeedSearchIndexingFunc func(ctx context.Context) ([]string, error)
-
 	// GetValidIngredientMeasurementUnitFunc mocks the GetValidIngredientMeasurementUnit method.
 	GetValidIngredientMeasurementUnitFunc func(ctx context.Context, validIngredientMeasurementUnitID string) (*mealplanning.ValidIngredientMeasurementUnit, error)
 
@@ -1482,9 +1473,6 @@ type RepositoryMock struct {
 	// GetValidIngredientStateFunc mocks the GetValidIngredientState method.
 	GetValidIngredientStateFunc func(ctx context.Context, validIngredientState string) (*mealplanning.ValidIngredientState, error)
 
-	// GetValidIngredientStateIDsThatNeedSearchIndexingFunc mocks the GetValidIngredientStateIDsThatNeedSearchIndexing method.
-	GetValidIngredientStateIDsThatNeedSearchIndexingFunc func(ctx context.Context) ([]string, error)
-
 	// GetValidIngredientStateIngredientFunc mocks the GetValidIngredientStateIngredient method.
 	GetValidIngredientStateIngredientFunc func(ctx context.Context, validIngredientPreparationID string) (*mealplanning.ValidIngredientStateIngredient, error)
 
@@ -1512,9 +1500,6 @@ type RepositoryMock struct {
 	// GetValidInstrumentFunc mocks the GetValidInstrument method.
 	GetValidInstrumentFunc func(ctx context.Context, validInstrumentID string) (*mealplanning.ValidInstrument, error)
 
-	// GetValidInstrumentIDsThatNeedSearchIndexingFunc mocks the GetValidInstrumentIDsThatNeedSearchIndexing method.
-	GetValidInstrumentIDsThatNeedSearchIndexingFunc func(ctx context.Context) ([]string, error)
-
 	// GetValidInstrumentsFunc mocks the GetValidInstruments method.
 	GetValidInstrumentsFunc func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.ValidInstrument], error)
 
@@ -1532,9 +1517,6 @@ type RepositoryMock struct {
 
 	// GetValidMeasurementUnitConversionsForUnitFunc mocks the GetValidMeasurementUnitConversionsForUnit method.
 	GetValidMeasurementUnitConversionsForUnitFunc func(ctx context.Context, validMeasurementUnitID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.ValidMeasurementUnitConversion], error)
-
-	// GetValidMeasurementUnitIDsThatNeedSearchIndexingFunc mocks the GetValidMeasurementUnitIDsThatNeedSearchIndexing method.
-	GetValidMeasurementUnitIDsThatNeedSearchIndexingFunc func(ctx context.Context) ([]string, error)
 
 	// GetValidMeasurementUnitsFunc mocks the GetValidMeasurementUnits method.
 	GetValidMeasurementUnitsFunc func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.ValidMeasurementUnit], error)
@@ -1559,9 +1541,6 @@ type RepositoryMock struct {
 
 	// GetValidPreparationFunc mocks the GetValidPreparation method.
 	GetValidPreparationFunc func(ctx context.Context, validPreparationID string) (*mealplanning.ValidPreparation, error)
-
-	// GetValidPreparationIDsThatNeedSearchIndexingFunc mocks the GetValidPreparationIDsThatNeedSearchIndexing method.
-	GetValidPreparationIDsThatNeedSearchIndexingFunc func(ctx context.Context) ([]string, error)
 
 	// GetValidPreparationInstrumentFunc mocks the GetValidPreparationInstrument method.
 	GetValidPreparationInstrumentFunc func(ctx context.Context, validPreparationInstrumentID string) (*mealplanning.ValidPreparationInstrument, error)
@@ -1601,9 +1580,6 @@ type RepositoryMock struct {
 
 	// GetValidVesselFunc mocks the GetValidVessel method.
 	GetValidVesselFunc func(ctx context.Context, validVesselID string) (*mealplanning.ValidVessel, error)
-
-	// GetValidVesselIDsThatNeedSearchIndexingFunc mocks the GetValidVesselIDsThatNeedSearchIndexing method.
-	GetValidVesselIDsThatNeedSearchIndexingFunc func(ctx context.Context) ([]string, error)
 
 	// GetValidVesselsFunc mocks the GetValidVessels method.
 	GetValidVesselsFunc func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.ValidVessel], error)
@@ -1706,6 +1682,30 @@ type RepositoryMock struct {
 
 	// RecipeStepVesselExistsFunc mocks the RecipeStepVesselExists method.
 	RecipeStepVesselExistsFunc func(ctx context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string) (bool, error)
+
+	// ScanMealIDsForReindexFunc mocks the ScanMealIDsForReindex method.
+	ScanMealIDsForReindexFunc func(ctx context.Context, after string, limit int) ([]string, error)
+
+	// ScanRecipeIDsForReindexFunc mocks the ScanRecipeIDsForReindex method.
+	ScanRecipeIDsForReindexFunc func(ctx context.Context, after string, limit int) ([]string, error)
+
+	// ScanValidIngredientIDsForReindexFunc mocks the ScanValidIngredientIDsForReindex method.
+	ScanValidIngredientIDsForReindexFunc func(ctx context.Context, after string, limit int) ([]string, error)
+
+	// ScanValidIngredientStateIDsForReindexFunc mocks the ScanValidIngredientStateIDsForReindex method.
+	ScanValidIngredientStateIDsForReindexFunc func(ctx context.Context, after string, limit int) ([]string, error)
+
+	// ScanValidInstrumentIDsForReindexFunc mocks the ScanValidInstrumentIDsForReindex method.
+	ScanValidInstrumentIDsForReindexFunc func(ctx context.Context, after string, limit int) ([]string, error)
+
+	// ScanValidMeasurementUnitIDsForReindexFunc mocks the ScanValidMeasurementUnitIDsForReindex method.
+	ScanValidMeasurementUnitIDsForReindexFunc func(ctx context.Context, after string, limit int) ([]string, error)
+
+	// ScanValidPreparationIDsForReindexFunc mocks the ScanValidPreparationIDsForReindex method.
+	ScanValidPreparationIDsForReindexFunc func(ctx context.Context, after string, limit int) ([]string, error)
+
+	// ScanValidVesselIDsForReindexFunc mocks the ScanValidVesselIDsForReindex method.
+	ScanValidVesselIDsForReindexFunc func(ctx context.Context, after string, limit int) ([]string, error)
 
 	// SearchForMealEligibleRecipesFunc mocks the SearchForMealEligibleRecipes method.
 	SearchForMealEligibleRecipesFunc func(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error)
@@ -2681,11 +2681,6 @@ type RepositoryMock struct {
 			// MealID is the mealID argument value.
 			MealID string
 		}
-		// GetMealIDsThatNeedSearchIndexing holds details about calls to the GetMealIDsThatNeedSearchIndexing method.
-		GetMealIDsThatNeedSearchIndexing []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-		}
 		// GetMealListItems holds details about calls to the GetMealListItems method.
 		GetMealListItems []struct {
 			// Ctx is the ctx argument value.
@@ -2944,11 +2939,6 @@ type RepositoryMock struct {
 			Ctx context.Context
 			// RecipeID is the recipeID argument value.
 			RecipeID string
-		}
-		// GetRecipeIDsThatNeedSearchIndexing holds details about calls to the GetRecipeIDsThatNeedSearchIndexing method.
-		GetRecipeIDsThatNeedSearchIndexing []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
 		}
 		// GetRecipeListItems holds details about calls to the GetRecipeListItems method.
 		GetRecipeListItems []struct {
@@ -3240,11 +3230,6 @@ type RepositoryMock struct {
 			// Filter is the filter argument value.
 			Filter *filtering.QueryFilter
 		}
-		// GetValidIngredientIDsThatNeedSearchIndexing holds details about calls to the GetValidIngredientIDsThatNeedSearchIndexing method.
-		GetValidIngredientIDsThatNeedSearchIndexing []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-		}
 		// GetValidIngredientMeasurementUnit holds details about calls to the GetValidIngredientMeasurementUnit method.
 		GetValidIngredientMeasurementUnit []struct {
 			// Ctx is the ctx argument value.
@@ -3330,11 +3315,6 @@ type RepositoryMock struct {
 			// ValidIngredientState is the validIngredientState argument value.
 			ValidIngredientState string
 		}
-		// GetValidIngredientStateIDsThatNeedSearchIndexing holds details about calls to the GetValidIngredientStateIDsThatNeedSearchIndexing method.
-		GetValidIngredientStateIDsThatNeedSearchIndexing []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-		}
 		// GetValidIngredientStateIngredient holds details about calls to the GetValidIngredientStateIngredient method.
 		GetValidIngredientStateIngredient []struct {
 			// Ctx is the ctx argument value.
@@ -3402,11 +3382,6 @@ type RepositoryMock struct {
 			// ValidInstrumentID is the validInstrumentID argument value.
 			ValidInstrumentID string
 		}
-		// GetValidInstrumentIDsThatNeedSearchIndexing holds details about calls to the GetValidInstrumentIDsThatNeedSearchIndexing method.
-		GetValidInstrumentIDsThatNeedSearchIndexing []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-		}
 		// GetValidInstruments holds details about calls to the GetValidInstruments method.
 		GetValidInstruments []struct {
 			// Ctx is the ctx argument value.
@@ -3450,11 +3425,6 @@ type RepositoryMock struct {
 			ValidMeasurementUnitID string
 			// Filter is the filter argument value.
 			Filter *filtering.QueryFilter
-		}
-		// GetValidMeasurementUnitIDsThatNeedSearchIndexing holds details about calls to the GetValidMeasurementUnitIDsThatNeedSearchIndexing method.
-		GetValidMeasurementUnitIDsThatNeedSearchIndexing []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
 		}
 		// GetValidMeasurementUnits holds details about calls to the GetValidMeasurementUnits method.
 		GetValidMeasurementUnits []struct {
@@ -3519,11 +3489,6 @@ type RepositoryMock struct {
 			Ctx context.Context
 			// ValidPreparationID is the validPreparationID argument value.
 			ValidPreparationID string
-		}
-		// GetValidPreparationIDsThatNeedSearchIndexing holds details about calls to the GetValidPreparationIDsThatNeedSearchIndexing method.
-		GetValidPreparationIDsThatNeedSearchIndexing []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
 		}
 		// GetValidPreparationInstrument holds details about calls to the GetValidPreparationInstrument method.
 		GetValidPreparationInstrument []struct {
@@ -3623,11 +3588,6 @@ type RepositoryMock struct {
 			Ctx context.Context
 			// ValidVesselID is the validVesselID argument value.
 			ValidVesselID string
-		}
-		// GetValidVesselIDsThatNeedSearchIndexing holds details about calls to the GetValidVesselIDsThatNeedSearchIndexing method.
-		GetValidVesselIDsThatNeedSearchIndexing []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
 		}
 		// GetValidVessels holds details about calls to the GetValidVessels method.
 		GetValidVessels []struct {
@@ -3922,6 +3882,78 @@ type RepositoryMock struct {
 			RecipeStepID string
 			// RecipeStepInstrumentID is the recipeStepInstrumentID argument value.
 			RecipeStepInstrumentID string
+		}
+		// ScanMealIDsForReindex holds details about calls to the ScanMealIDsForReindex method.
+		ScanMealIDsForReindex []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// After is the after argument value.
+			After string
+			// Limit is the limit argument value.
+			Limit int
+		}
+		// ScanRecipeIDsForReindex holds details about calls to the ScanRecipeIDsForReindex method.
+		ScanRecipeIDsForReindex []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// After is the after argument value.
+			After string
+			// Limit is the limit argument value.
+			Limit int
+		}
+		// ScanValidIngredientIDsForReindex holds details about calls to the ScanValidIngredientIDsForReindex method.
+		ScanValidIngredientIDsForReindex []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// After is the after argument value.
+			After string
+			// Limit is the limit argument value.
+			Limit int
+		}
+		// ScanValidIngredientStateIDsForReindex holds details about calls to the ScanValidIngredientStateIDsForReindex method.
+		ScanValidIngredientStateIDsForReindex []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// After is the after argument value.
+			After string
+			// Limit is the limit argument value.
+			Limit int
+		}
+		// ScanValidInstrumentIDsForReindex holds details about calls to the ScanValidInstrumentIDsForReindex method.
+		ScanValidInstrumentIDsForReindex []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// After is the after argument value.
+			After string
+			// Limit is the limit argument value.
+			Limit int
+		}
+		// ScanValidMeasurementUnitIDsForReindex holds details about calls to the ScanValidMeasurementUnitIDsForReindex method.
+		ScanValidMeasurementUnitIDsForReindex []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// After is the after argument value.
+			After string
+			// Limit is the limit argument value.
+			Limit int
+		}
+		// ScanValidPreparationIDsForReindex holds details about calls to the ScanValidPreparationIDsForReindex method.
+		ScanValidPreparationIDsForReindex []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// After is the after argument value.
+			After string
+			// Limit is the limit argument value.
+			Limit int
+		}
+		// ScanValidVesselIDsForReindex holds details about calls to the ScanValidVesselIDsForReindex method.
+		ScanValidVesselIDsForReindex []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// After is the after argument value.
+			After string
+			// Limit is the limit argument value.
+			Limit int
 		}
 		// SearchForMealEligibleRecipes holds details about calls to the SearchForMealEligibleRecipes method.
 		SearchForMealEligibleRecipes []struct {
@@ -4564,7 +4596,6 @@ type RepositoryMock struct {
 	lockGetFinalizedMealPlanOptionsForMealPlan               sync.RWMutex
 	lockGetIngredientMediaByIngredient                       sync.RWMutex
 	lockGetMeal                                              sync.RWMutex
-	lockGetMealIDsThatNeedSearchIndexing                     sync.RWMutex
 	lockGetMealListItems                                     sync.RWMutex
 	lockGetMealLists                                         sync.RWMutex
 	lockGetMealPlan                                          sync.RWMutex
@@ -4596,7 +4627,6 @@ type RepositoryMock struct {
 	lockGetRandomValidPreparation                            sync.RWMutex
 	lockGetRandomValidVessel                                 sync.RWMutex
 	lockGetRecipe                                            sync.RWMutex
-	lockGetRecipeIDsThatNeedSearchIndexing                   sync.RWMutex
 	lockGetRecipeListItems                                   sync.RWMutex
 	lockGetRecipeLists                                       sync.RWMutex
 	lockGetRecipeMedia                                       sync.RWMutex
@@ -4629,7 +4659,6 @@ type RepositoryMock struct {
 	lockGetValidIngredient                                   sync.RWMutex
 	lockGetValidIngredientGroup                              sync.RWMutex
 	lockGetValidIngredientGroups                             sync.RWMutex
-	lockGetValidIngredientIDsThatNeedSearchIndexing          sync.RWMutex
 	lockGetValidIngredientMeasurementUnit                    sync.RWMutex
 	lockGetValidIngredientMeasurementUnits                   sync.RWMutex
 	lockGetValidIngredientMeasurementUnitsByIDs              sync.RWMutex
@@ -4641,7 +4670,6 @@ type RepositoryMock struct {
 	lockGetValidIngredientPreparationsForIngredient          sync.RWMutex
 	lockGetValidIngredientPreparationsForPreparation         sync.RWMutex
 	lockGetValidIngredientState                              sync.RWMutex
-	lockGetValidIngredientStateIDsThatNeedSearchIndexing     sync.RWMutex
 	lockGetValidIngredientStateIngredient                    sync.RWMutex
 	lockGetValidIngredientStateIngredients                   sync.RWMutex
 	lockGetValidIngredientStateIngredientsForIngredient      sync.RWMutex
@@ -4651,14 +4679,12 @@ type RepositoryMock struct {
 	lockGetValidIngredients                                  sync.RWMutex
 	lockGetValidIngredientsWithIDs                           sync.RWMutex
 	lockGetValidInstrument                                   sync.RWMutex
-	lockGetValidInstrumentIDsThatNeedSearchIndexing          sync.RWMutex
 	lockGetValidInstruments                                  sync.RWMutex
 	lockGetValidInstrumentsWithIDs                           sync.RWMutex
 	lockGetValidMeasurementUnit                              sync.RWMutex
 	lockGetValidMeasurementUnitConversion                    sync.RWMutex
 	lockGetValidMeasurementUnitConversionsForIngredients     sync.RWMutex
 	lockGetValidMeasurementUnitConversionsForUnit            sync.RWMutex
-	lockGetValidMeasurementUnitIDsThatNeedSearchIndexing     sync.RWMutex
 	lockGetValidMeasurementUnits                             sync.RWMutex
 	lockGetValidMeasurementUnitsWithIDs                      sync.RWMutex
 	lockGetValidPrepTaskConfig                               sync.RWMutex
@@ -4667,7 +4693,6 @@ type RepositoryMock struct {
 	lockGetValidPrepTaskConfigsForIngredientAndPreparation   sync.RWMutex
 	lockGetValidPrepTaskConfigsForPreparation                sync.RWMutex
 	lockGetValidPreparation                                  sync.RWMutex
-	lockGetValidPreparationIDsThatNeedSearchIndexing         sync.RWMutex
 	lockGetValidPreparationInstrument                        sync.RWMutex
 	lockGetValidPreparationInstruments                       sync.RWMutex
 	lockGetValidPreparationInstrumentsByIDs                  sync.RWMutex
@@ -4681,7 +4706,6 @@ type RepositoryMock struct {
 	lockGetValidPreparations                                 sync.RWMutex
 	lockGetValidPreparationsWithIDs                          sync.RWMutex
 	lockGetValidVessel                                       sync.RWMutex
-	lockGetValidVesselIDsThatNeedSearchIndexing              sync.RWMutex
 	lockGetValidVessels                                      sync.RWMutex
 	lockGetValidVesselsWithIDs                               sync.RWMutex
 	lockInitializeMealPlanGroceryList                        sync.RWMutex
@@ -4716,6 +4740,14 @@ type RepositoryMock struct {
 	lockRecipeStepInstrumentExists                           sync.RWMutex
 	lockRecipeStepProductExists                              sync.RWMutex
 	lockRecipeStepVesselExists                               sync.RWMutex
+	lockScanMealIDsForReindex                                sync.RWMutex
+	lockScanRecipeIDsForReindex                              sync.RWMutex
+	lockScanValidIngredientIDsForReindex                     sync.RWMutex
+	lockScanValidIngredientStateIDsForReindex                sync.RWMutex
+	lockScanValidInstrumentIDsForReindex                     sync.RWMutex
+	lockScanValidMeasurementUnitIDsForReindex                sync.RWMutex
+	lockScanValidPreparationIDsForReindex                    sync.RWMutex
+	lockScanValidVesselIDsForReindex                         sync.RWMutex
 	lockSearchForMealEligibleRecipes                         sync.RWMutex
 	lockSearchForMeals                                       sync.RWMutex
 	lockSearchForRecipes                                     sync.RWMutex
@@ -8363,38 +8395,6 @@ func (mock *RepositoryMock) GetMealCalls() []struct {
 	return calls
 }
 
-// GetMealIDsThatNeedSearchIndexing calls GetMealIDsThatNeedSearchIndexingFunc.
-func (mock *RepositoryMock) GetMealIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
-	if mock.GetMealIDsThatNeedSearchIndexingFunc == nil {
-		panic("RepositoryMock.GetMealIDsThatNeedSearchIndexingFunc: method is nil but Repository.GetMealIDsThatNeedSearchIndexing was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
-	mock.lockGetMealIDsThatNeedSearchIndexing.Lock()
-	mock.calls.GetMealIDsThatNeedSearchIndexing = append(mock.calls.GetMealIDsThatNeedSearchIndexing, callInfo)
-	mock.lockGetMealIDsThatNeedSearchIndexing.Unlock()
-	return mock.GetMealIDsThatNeedSearchIndexingFunc(ctx)
-}
-
-// GetMealIDsThatNeedSearchIndexingCalls gets all the calls that were made to GetMealIDsThatNeedSearchIndexing.
-// Check the length with:
-//
-//	len(mockedRepository.GetMealIDsThatNeedSearchIndexingCalls())
-func (mock *RepositoryMock) GetMealIDsThatNeedSearchIndexingCalls() []struct {
-	Ctx context.Context
-} {
-	var calls []struct {
-		Ctx context.Context
-	}
-	mock.lockGetMealIDsThatNeedSearchIndexing.RLock()
-	calls = mock.calls.GetMealIDsThatNeedSearchIndexing
-	mock.lockGetMealIDsThatNeedSearchIndexing.RUnlock()
-	return calls
-}
-
 // GetMealListItems calls GetMealListItemsFunc.
 func (mock *RepositoryMock) GetMealListItems(ctx context.Context, mealListID string, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealListItem], error) {
 	if mock.GetMealListItemsFunc == nil {
@@ -9592,38 +9592,6 @@ func (mock *RepositoryMock) GetRecipeCalls() []struct {
 	mock.lockGetRecipe.RLock()
 	calls = mock.calls.GetRecipe
 	mock.lockGetRecipe.RUnlock()
-	return calls
-}
-
-// GetRecipeIDsThatNeedSearchIndexing calls GetRecipeIDsThatNeedSearchIndexingFunc.
-func (mock *RepositoryMock) GetRecipeIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
-	if mock.GetRecipeIDsThatNeedSearchIndexingFunc == nil {
-		panic("RepositoryMock.GetRecipeIDsThatNeedSearchIndexingFunc: method is nil but Repository.GetRecipeIDsThatNeedSearchIndexing was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
-	mock.lockGetRecipeIDsThatNeedSearchIndexing.Lock()
-	mock.calls.GetRecipeIDsThatNeedSearchIndexing = append(mock.calls.GetRecipeIDsThatNeedSearchIndexing, callInfo)
-	mock.lockGetRecipeIDsThatNeedSearchIndexing.Unlock()
-	return mock.GetRecipeIDsThatNeedSearchIndexingFunc(ctx)
-}
-
-// GetRecipeIDsThatNeedSearchIndexingCalls gets all the calls that were made to GetRecipeIDsThatNeedSearchIndexing.
-// Check the length with:
-//
-//	len(mockedRepository.GetRecipeIDsThatNeedSearchIndexingCalls())
-func (mock *RepositoryMock) GetRecipeIDsThatNeedSearchIndexingCalls() []struct {
-	Ctx context.Context
-} {
-	var calls []struct {
-		Ctx context.Context
-	}
-	mock.lockGetRecipeIDsThatNeedSearchIndexing.RLock()
-	calls = mock.calls.GetRecipeIDsThatNeedSearchIndexing
-	mock.lockGetRecipeIDsThatNeedSearchIndexing.RUnlock()
 	return calls
 }
 
@@ -10911,38 +10879,6 @@ func (mock *RepositoryMock) GetValidIngredientGroupsCalls() []struct {
 	return calls
 }
 
-// GetValidIngredientIDsThatNeedSearchIndexing calls GetValidIngredientIDsThatNeedSearchIndexingFunc.
-func (mock *RepositoryMock) GetValidIngredientIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
-	if mock.GetValidIngredientIDsThatNeedSearchIndexingFunc == nil {
-		panic("RepositoryMock.GetValidIngredientIDsThatNeedSearchIndexingFunc: method is nil but Repository.GetValidIngredientIDsThatNeedSearchIndexing was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
-	mock.lockGetValidIngredientIDsThatNeedSearchIndexing.Lock()
-	mock.calls.GetValidIngredientIDsThatNeedSearchIndexing = append(mock.calls.GetValidIngredientIDsThatNeedSearchIndexing, callInfo)
-	mock.lockGetValidIngredientIDsThatNeedSearchIndexing.Unlock()
-	return mock.GetValidIngredientIDsThatNeedSearchIndexingFunc(ctx)
-}
-
-// GetValidIngredientIDsThatNeedSearchIndexingCalls gets all the calls that were made to GetValidIngredientIDsThatNeedSearchIndexing.
-// Check the length with:
-//
-//	len(mockedRepository.GetValidIngredientIDsThatNeedSearchIndexingCalls())
-func (mock *RepositoryMock) GetValidIngredientIDsThatNeedSearchIndexingCalls() []struct {
-	Ctx context.Context
-} {
-	var calls []struct {
-		Ctx context.Context
-	}
-	mock.lockGetValidIngredientIDsThatNeedSearchIndexing.RLock()
-	calls = mock.calls.GetValidIngredientIDsThatNeedSearchIndexing
-	mock.lockGetValidIngredientIDsThatNeedSearchIndexing.RUnlock()
-	return calls
-}
-
 // GetValidIngredientMeasurementUnit calls GetValidIngredientMeasurementUnitFunc.
 func (mock *RepositoryMock) GetValidIngredientMeasurementUnit(ctx context.Context, validIngredientMeasurementUnitID string) (*mealplanning.ValidIngredientMeasurementUnit, error) {
 	if mock.GetValidIngredientMeasurementUnitFunc == nil {
@@ -11355,38 +11291,6 @@ func (mock *RepositoryMock) GetValidIngredientStateCalls() []struct {
 	return calls
 }
 
-// GetValidIngredientStateIDsThatNeedSearchIndexing calls GetValidIngredientStateIDsThatNeedSearchIndexingFunc.
-func (mock *RepositoryMock) GetValidIngredientStateIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
-	if mock.GetValidIngredientStateIDsThatNeedSearchIndexingFunc == nil {
-		panic("RepositoryMock.GetValidIngredientStateIDsThatNeedSearchIndexingFunc: method is nil but Repository.GetValidIngredientStateIDsThatNeedSearchIndexing was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
-	mock.lockGetValidIngredientStateIDsThatNeedSearchIndexing.Lock()
-	mock.calls.GetValidIngredientStateIDsThatNeedSearchIndexing = append(mock.calls.GetValidIngredientStateIDsThatNeedSearchIndexing, callInfo)
-	mock.lockGetValidIngredientStateIDsThatNeedSearchIndexing.Unlock()
-	return mock.GetValidIngredientStateIDsThatNeedSearchIndexingFunc(ctx)
-}
-
-// GetValidIngredientStateIDsThatNeedSearchIndexingCalls gets all the calls that were made to GetValidIngredientStateIDsThatNeedSearchIndexing.
-// Check the length with:
-//
-//	len(mockedRepository.GetValidIngredientStateIDsThatNeedSearchIndexingCalls())
-func (mock *RepositoryMock) GetValidIngredientStateIDsThatNeedSearchIndexingCalls() []struct {
-	Ctx context.Context
-} {
-	var calls []struct {
-		Ctx context.Context
-	}
-	mock.lockGetValidIngredientStateIDsThatNeedSearchIndexing.RLock()
-	calls = mock.calls.GetValidIngredientStateIDsThatNeedSearchIndexing
-	mock.lockGetValidIngredientStateIDsThatNeedSearchIndexing.RUnlock()
-	return calls
-}
-
 // GetValidIngredientStateIngredient calls GetValidIngredientStateIngredientFunc.
 func (mock *RepositoryMock) GetValidIngredientStateIngredient(ctx context.Context, validIngredientPreparationID string) (*mealplanning.ValidIngredientStateIngredient, error) {
 	if mock.GetValidIngredientStateIngredientFunc == nil {
@@ -11719,38 +11623,6 @@ func (mock *RepositoryMock) GetValidInstrumentCalls() []struct {
 	return calls
 }
 
-// GetValidInstrumentIDsThatNeedSearchIndexing calls GetValidInstrumentIDsThatNeedSearchIndexingFunc.
-func (mock *RepositoryMock) GetValidInstrumentIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
-	if mock.GetValidInstrumentIDsThatNeedSearchIndexingFunc == nil {
-		panic("RepositoryMock.GetValidInstrumentIDsThatNeedSearchIndexingFunc: method is nil but Repository.GetValidInstrumentIDsThatNeedSearchIndexing was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
-	mock.lockGetValidInstrumentIDsThatNeedSearchIndexing.Lock()
-	mock.calls.GetValidInstrumentIDsThatNeedSearchIndexing = append(mock.calls.GetValidInstrumentIDsThatNeedSearchIndexing, callInfo)
-	mock.lockGetValidInstrumentIDsThatNeedSearchIndexing.Unlock()
-	return mock.GetValidInstrumentIDsThatNeedSearchIndexingFunc(ctx)
-}
-
-// GetValidInstrumentIDsThatNeedSearchIndexingCalls gets all the calls that were made to GetValidInstrumentIDsThatNeedSearchIndexing.
-// Check the length with:
-//
-//	len(mockedRepository.GetValidInstrumentIDsThatNeedSearchIndexingCalls())
-func (mock *RepositoryMock) GetValidInstrumentIDsThatNeedSearchIndexingCalls() []struct {
-	Ctx context.Context
-} {
-	var calls []struct {
-		Ctx context.Context
-	}
-	mock.lockGetValidInstrumentIDsThatNeedSearchIndexing.RLock()
-	calls = mock.calls.GetValidInstrumentIDsThatNeedSearchIndexing
-	mock.lockGetValidInstrumentIDsThatNeedSearchIndexing.RUnlock()
-	return calls
-}
-
 // GetValidInstruments calls GetValidInstrumentsFunc.
 func (mock *RepositoryMock) GetValidInstruments(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.ValidInstrument], error) {
 	if mock.GetValidInstrumentsFunc == nil {
@@ -11968,38 +11840,6 @@ func (mock *RepositoryMock) GetValidMeasurementUnitConversionsForUnitCalls() []s
 	mock.lockGetValidMeasurementUnitConversionsForUnit.RLock()
 	calls = mock.calls.GetValidMeasurementUnitConversionsForUnit
 	mock.lockGetValidMeasurementUnitConversionsForUnit.RUnlock()
-	return calls
-}
-
-// GetValidMeasurementUnitIDsThatNeedSearchIndexing calls GetValidMeasurementUnitIDsThatNeedSearchIndexingFunc.
-func (mock *RepositoryMock) GetValidMeasurementUnitIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
-	if mock.GetValidMeasurementUnitIDsThatNeedSearchIndexingFunc == nil {
-		panic("RepositoryMock.GetValidMeasurementUnitIDsThatNeedSearchIndexingFunc: method is nil but Repository.GetValidMeasurementUnitIDsThatNeedSearchIndexing was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
-	mock.lockGetValidMeasurementUnitIDsThatNeedSearchIndexing.Lock()
-	mock.calls.GetValidMeasurementUnitIDsThatNeedSearchIndexing = append(mock.calls.GetValidMeasurementUnitIDsThatNeedSearchIndexing, callInfo)
-	mock.lockGetValidMeasurementUnitIDsThatNeedSearchIndexing.Unlock()
-	return mock.GetValidMeasurementUnitIDsThatNeedSearchIndexingFunc(ctx)
-}
-
-// GetValidMeasurementUnitIDsThatNeedSearchIndexingCalls gets all the calls that were made to GetValidMeasurementUnitIDsThatNeedSearchIndexing.
-// Check the length with:
-//
-//	len(mockedRepository.GetValidMeasurementUnitIDsThatNeedSearchIndexingCalls())
-func (mock *RepositoryMock) GetValidMeasurementUnitIDsThatNeedSearchIndexingCalls() []struct {
-	Ctx context.Context
-} {
-	var calls []struct {
-		Ctx context.Context
-	}
-	mock.lockGetValidMeasurementUnitIDsThatNeedSearchIndexing.RLock()
-	calls = mock.calls.GetValidMeasurementUnitIDsThatNeedSearchIndexing
-	mock.lockGetValidMeasurementUnitIDsThatNeedSearchIndexing.RUnlock()
 	return calls
 }
 
@@ -12304,38 +12144,6 @@ func (mock *RepositoryMock) GetValidPreparationCalls() []struct {
 	mock.lockGetValidPreparation.RLock()
 	calls = mock.calls.GetValidPreparation
 	mock.lockGetValidPreparation.RUnlock()
-	return calls
-}
-
-// GetValidPreparationIDsThatNeedSearchIndexing calls GetValidPreparationIDsThatNeedSearchIndexingFunc.
-func (mock *RepositoryMock) GetValidPreparationIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
-	if mock.GetValidPreparationIDsThatNeedSearchIndexingFunc == nil {
-		panic("RepositoryMock.GetValidPreparationIDsThatNeedSearchIndexingFunc: method is nil but Repository.GetValidPreparationIDsThatNeedSearchIndexing was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
-	mock.lockGetValidPreparationIDsThatNeedSearchIndexing.Lock()
-	mock.calls.GetValidPreparationIDsThatNeedSearchIndexing = append(mock.calls.GetValidPreparationIDsThatNeedSearchIndexing, callInfo)
-	mock.lockGetValidPreparationIDsThatNeedSearchIndexing.Unlock()
-	return mock.GetValidPreparationIDsThatNeedSearchIndexingFunc(ctx)
-}
-
-// GetValidPreparationIDsThatNeedSearchIndexingCalls gets all the calls that were made to GetValidPreparationIDsThatNeedSearchIndexing.
-// Check the length with:
-//
-//	len(mockedRepository.GetValidPreparationIDsThatNeedSearchIndexingCalls())
-func (mock *RepositoryMock) GetValidPreparationIDsThatNeedSearchIndexingCalls() []struct {
-	Ctx context.Context
-} {
-	var calls []struct {
-		Ctx context.Context
-	}
-	mock.lockGetValidPreparationIDsThatNeedSearchIndexing.RLock()
-	calls = mock.calls.GetValidPreparationIDsThatNeedSearchIndexing
-	mock.lockGetValidPreparationIDsThatNeedSearchIndexing.RUnlock()
 	return calls
 }
 
@@ -12820,38 +12628,6 @@ func (mock *RepositoryMock) GetValidVesselCalls() []struct {
 	mock.lockGetValidVessel.RLock()
 	calls = mock.calls.GetValidVessel
 	mock.lockGetValidVessel.RUnlock()
-	return calls
-}
-
-// GetValidVesselIDsThatNeedSearchIndexing calls GetValidVesselIDsThatNeedSearchIndexingFunc.
-func (mock *RepositoryMock) GetValidVesselIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
-	if mock.GetValidVesselIDsThatNeedSearchIndexingFunc == nil {
-		panic("RepositoryMock.GetValidVesselIDsThatNeedSearchIndexingFunc: method is nil but Repository.GetValidVesselIDsThatNeedSearchIndexing was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
-	mock.lockGetValidVesselIDsThatNeedSearchIndexing.Lock()
-	mock.calls.GetValidVesselIDsThatNeedSearchIndexing = append(mock.calls.GetValidVesselIDsThatNeedSearchIndexing, callInfo)
-	mock.lockGetValidVesselIDsThatNeedSearchIndexing.Unlock()
-	return mock.GetValidVesselIDsThatNeedSearchIndexingFunc(ctx)
-}
-
-// GetValidVesselIDsThatNeedSearchIndexingCalls gets all the calls that were made to GetValidVesselIDsThatNeedSearchIndexing.
-// Check the length with:
-//
-//	len(mockedRepository.GetValidVesselIDsThatNeedSearchIndexingCalls())
-func (mock *RepositoryMock) GetValidVesselIDsThatNeedSearchIndexingCalls() []struct {
-	Ctx context.Context
-} {
-	var calls []struct {
-		Ctx context.Context
-	}
-	mock.lockGetValidVesselIDsThatNeedSearchIndexing.RLock()
-	calls = mock.calls.GetValidVesselIDsThatNeedSearchIndexing
-	mock.lockGetValidVesselIDsThatNeedSearchIndexing.RUnlock()
 	return calls
 }
 
@@ -14188,6 +13964,326 @@ func (mock *RepositoryMock) RecipeStepVesselExistsCalls() []struct {
 	mock.lockRecipeStepVesselExists.RLock()
 	calls = mock.calls.RecipeStepVesselExists
 	mock.lockRecipeStepVesselExists.RUnlock()
+	return calls
+}
+
+// ScanMealIDsForReindex calls ScanMealIDsForReindexFunc.
+func (mock *RepositoryMock) ScanMealIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
+	if mock.ScanMealIDsForReindexFunc == nil {
+		panic("RepositoryMock.ScanMealIDsForReindexFunc: method is nil but Repository.ScanMealIDsForReindex was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}{
+		Ctx:   ctx,
+		After: after,
+		Limit: limit,
+	}
+	mock.lockScanMealIDsForReindex.Lock()
+	mock.calls.ScanMealIDsForReindex = append(mock.calls.ScanMealIDsForReindex, callInfo)
+	mock.lockScanMealIDsForReindex.Unlock()
+	return mock.ScanMealIDsForReindexFunc(ctx, after, limit)
+}
+
+// ScanMealIDsForReindexCalls gets all the calls that were made to ScanMealIDsForReindex.
+// Check the length with:
+//
+//	len(mockedRepository.ScanMealIDsForReindexCalls())
+func (mock *RepositoryMock) ScanMealIDsForReindexCalls() []struct {
+	Ctx   context.Context
+	After string
+	Limit int
+} {
+	var calls []struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}
+	mock.lockScanMealIDsForReindex.RLock()
+	calls = mock.calls.ScanMealIDsForReindex
+	mock.lockScanMealIDsForReindex.RUnlock()
+	return calls
+}
+
+// ScanRecipeIDsForReindex calls ScanRecipeIDsForReindexFunc.
+func (mock *RepositoryMock) ScanRecipeIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
+	if mock.ScanRecipeIDsForReindexFunc == nil {
+		panic("RepositoryMock.ScanRecipeIDsForReindexFunc: method is nil but Repository.ScanRecipeIDsForReindex was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}{
+		Ctx:   ctx,
+		After: after,
+		Limit: limit,
+	}
+	mock.lockScanRecipeIDsForReindex.Lock()
+	mock.calls.ScanRecipeIDsForReindex = append(mock.calls.ScanRecipeIDsForReindex, callInfo)
+	mock.lockScanRecipeIDsForReindex.Unlock()
+	return mock.ScanRecipeIDsForReindexFunc(ctx, after, limit)
+}
+
+// ScanRecipeIDsForReindexCalls gets all the calls that were made to ScanRecipeIDsForReindex.
+// Check the length with:
+//
+//	len(mockedRepository.ScanRecipeIDsForReindexCalls())
+func (mock *RepositoryMock) ScanRecipeIDsForReindexCalls() []struct {
+	Ctx   context.Context
+	After string
+	Limit int
+} {
+	var calls []struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}
+	mock.lockScanRecipeIDsForReindex.RLock()
+	calls = mock.calls.ScanRecipeIDsForReindex
+	mock.lockScanRecipeIDsForReindex.RUnlock()
+	return calls
+}
+
+// ScanValidIngredientIDsForReindex calls ScanValidIngredientIDsForReindexFunc.
+func (mock *RepositoryMock) ScanValidIngredientIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
+	if mock.ScanValidIngredientIDsForReindexFunc == nil {
+		panic("RepositoryMock.ScanValidIngredientIDsForReindexFunc: method is nil but Repository.ScanValidIngredientIDsForReindex was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}{
+		Ctx:   ctx,
+		After: after,
+		Limit: limit,
+	}
+	mock.lockScanValidIngredientIDsForReindex.Lock()
+	mock.calls.ScanValidIngredientIDsForReindex = append(mock.calls.ScanValidIngredientIDsForReindex, callInfo)
+	mock.lockScanValidIngredientIDsForReindex.Unlock()
+	return mock.ScanValidIngredientIDsForReindexFunc(ctx, after, limit)
+}
+
+// ScanValidIngredientIDsForReindexCalls gets all the calls that were made to ScanValidIngredientIDsForReindex.
+// Check the length with:
+//
+//	len(mockedRepository.ScanValidIngredientIDsForReindexCalls())
+func (mock *RepositoryMock) ScanValidIngredientIDsForReindexCalls() []struct {
+	Ctx   context.Context
+	After string
+	Limit int
+} {
+	var calls []struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}
+	mock.lockScanValidIngredientIDsForReindex.RLock()
+	calls = mock.calls.ScanValidIngredientIDsForReindex
+	mock.lockScanValidIngredientIDsForReindex.RUnlock()
+	return calls
+}
+
+// ScanValidIngredientStateIDsForReindex calls ScanValidIngredientStateIDsForReindexFunc.
+func (mock *RepositoryMock) ScanValidIngredientStateIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
+	if mock.ScanValidIngredientStateIDsForReindexFunc == nil {
+		panic("RepositoryMock.ScanValidIngredientStateIDsForReindexFunc: method is nil but Repository.ScanValidIngredientStateIDsForReindex was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}{
+		Ctx:   ctx,
+		After: after,
+		Limit: limit,
+	}
+	mock.lockScanValidIngredientStateIDsForReindex.Lock()
+	mock.calls.ScanValidIngredientStateIDsForReindex = append(mock.calls.ScanValidIngredientStateIDsForReindex, callInfo)
+	mock.lockScanValidIngredientStateIDsForReindex.Unlock()
+	return mock.ScanValidIngredientStateIDsForReindexFunc(ctx, after, limit)
+}
+
+// ScanValidIngredientStateIDsForReindexCalls gets all the calls that were made to ScanValidIngredientStateIDsForReindex.
+// Check the length with:
+//
+//	len(mockedRepository.ScanValidIngredientStateIDsForReindexCalls())
+func (mock *RepositoryMock) ScanValidIngredientStateIDsForReindexCalls() []struct {
+	Ctx   context.Context
+	After string
+	Limit int
+} {
+	var calls []struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}
+	mock.lockScanValidIngredientStateIDsForReindex.RLock()
+	calls = mock.calls.ScanValidIngredientStateIDsForReindex
+	mock.lockScanValidIngredientStateIDsForReindex.RUnlock()
+	return calls
+}
+
+// ScanValidInstrumentIDsForReindex calls ScanValidInstrumentIDsForReindexFunc.
+func (mock *RepositoryMock) ScanValidInstrumentIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
+	if mock.ScanValidInstrumentIDsForReindexFunc == nil {
+		panic("RepositoryMock.ScanValidInstrumentIDsForReindexFunc: method is nil but Repository.ScanValidInstrumentIDsForReindex was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}{
+		Ctx:   ctx,
+		After: after,
+		Limit: limit,
+	}
+	mock.lockScanValidInstrumentIDsForReindex.Lock()
+	mock.calls.ScanValidInstrumentIDsForReindex = append(mock.calls.ScanValidInstrumentIDsForReindex, callInfo)
+	mock.lockScanValidInstrumentIDsForReindex.Unlock()
+	return mock.ScanValidInstrumentIDsForReindexFunc(ctx, after, limit)
+}
+
+// ScanValidInstrumentIDsForReindexCalls gets all the calls that were made to ScanValidInstrumentIDsForReindex.
+// Check the length with:
+//
+//	len(mockedRepository.ScanValidInstrumentIDsForReindexCalls())
+func (mock *RepositoryMock) ScanValidInstrumentIDsForReindexCalls() []struct {
+	Ctx   context.Context
+	After string
+	Limit int
+} {
+	var calls []struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}
+	mock.lockScanValidInstrumentIDsForReindex.RLock()
+	calls = mock.calls.ScanValidInstrumentIDsForReindex
+	mock.lockScanValidInstrumentIDsForReindex.RUnlock()
+	return calls
+}
+
+// ScanValidMeasurementUnitIDsForReindex calls ScanValidMeasurementUnitIDsForReindexFunc.
+func (mock *RepositoryMock) ScanValidMeasurementUnitIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
+	if mock.ScanValidMeasurementUnitIDsForReindexFunc == nil {
+		panic("RepositoryMock.ScanValidMeasurementUnitIDsForReindexFunc: method is nil but Repository.ScanValidMeasurementUnitIDsForReindex was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}{
+		Ctx:   ctx,
+		After: after,
+		Limit: limit,
+	}
+	mock.lockScanValidMeasurementUnitIDsForReindex.Lock()
+	mock.calls.ScanValidMeasurementUnitIDsForReindex = append(mock.calls.ScanValidMeasurementUnitIDsForReindex, callInfo)
+	mock.lockScanValidMeasurementUnitIDsForReindex.Unlock()
+	return mock.ScanValidMeasurementUnitIDsForReindexFunc(ctx, after, limit)
+}
+
+// ScanValidMeasurementUnitIDsForReindexCalls gets all the calls that were made to ScanValidMeasurementUnitIDsForReindex.
+// Check the length with:
+//
+//	len(mockedRepository.ScanValidMeasurementUnitIDsForReindexCalls())
+func (mock *RepositoryMock) ScanValidMeasurementUnitIDsForReindexCalls() []struct {
+	Ctx   context.Context
+	After string
+	Limit int
+} {
+	var calls []struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}
+	mock.lockScanValidMeasurementUnitIDsForReindex.RLock()
+	calls = mock.calls.ScanValidMeasurementUnitIDsForReindex
+	mock.lockScanValidMeasurementUnitIDsForReindex.RUnlock()
+	return calls
+}
+
+// ScanValidPreparationIDsForReindex calls ScanValidPreparationIDsForReindexFunc.
+func (mock *RepositoryMock) ScanValidPreparationIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
+	if mock.ScanValidPreparationIDsForReindexFunc == nil {
+		panic("RepositoryMock.ScanValidPreparationIDsForReindexFunc: method is nil but Repository.ScanValidPreparationIDsForReindex was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}{
+		Ctx:   ctx,
+		After: after,
+		Limit: limit,
+	}
+	mock.lockScanValidPreparationIDsForReindex.Lock()
+	mock.calls.ScanValidPreparationIDsForReindex = append(mock.calls.ScanValidPreparationIDsForReindex, callInfo)
+	mock.lockScanValidPreparationIDsForReindex.Unlock()
+	return mock.ScanValidPreparationIDsForReindexFunc(ctx, after, limit)
+}
+
+// ScanValidPreparationIDsForReindexCalls gets all the calls that were made to ScanValidPreparationIDsForReindex.
+// Check the length with:
+//
+//	len(mockedRepository.ScanValidPreparationIDsForReindexCalls())
+func (mock *RepositoryMock) ScanValidPreparationIDsForReindexCalls() []struct {
+	Ctx   context.Context
+	After string
+	Limit int
+} {
+	var calls []struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}
+	mock.lockScanValidPreparationIDsForReindex.RLock()
+	calls = mock.calls.ScanValidPreparationIDsForReindex
+	mock.lockScanValidPreparationIDsForReindex.RUnlock()
+	return calls
+}
+
+// ScanValidVesselIDsForReindex calls ScanValidVesselIDsForReindexFunc.
+func (mock *RepositoryMock) ScanValidVesselIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
+	if mock.ScanValidVesselIDsForReindexFunc == nil {
+		panic("RepositoryMock.ScanValidVesselIDsForReindexFunc: method is nil but Repository.ScanValidVesselIDsForReindex was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}{
+		Ctx:   ctx,
+		After: after,
+		Limit: limit,
+	}
+	mock.lockScanValidVesselIDsForReindex.Lock()
+	mock.calls.ScanValidVesselIDsForReindex = append(mock.calls.ScanValidVesselIDsForReindex, callInfo)
+	mock.lockScanValidVesselIDsForReindex.Unlock()
+	return mock.ScanValidVesselIDsForReindexFunc(ctx, after, limit)
+}
+
+// ScanValidVesselIDsForReindexCalls gets all the calls that were made to ScanValidVesselIDsForReindex.
+// Check the length with:
+//
+//	len(mockedRepository.ScanValidVesselIDsForReindexCalls())
+func (mock *RepositoryMock) ScanValidVesselIDsForReindexCalls() []struct {
+	Ctx   context.Context
+	After string
+	Limit int
+} {
+	var calls []struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}
+	mock.lockScanValidVesselIDsForReindex.RLock()
+	calls = mock.calls.ScanValidVesselIDsForReindex
+	mock.lockScanValidVesselIDsForReindex.RUnlock()
 	return calls
 }
 

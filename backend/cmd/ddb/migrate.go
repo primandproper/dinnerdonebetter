@@ -9,11 +9,11 @@ import (
 
 	postgresmigrations "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 
-	"github.com/primandproper/platform-go/v9/database"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	"github.com/primandproper/platform-go/v9/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v10/database"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	"github.com/primandproper/platform-go/v10/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )
@@ -85,12 +85,11 @@ func runMigrate(ctx context.Context, dbHost string, dbPort uint16, dbUser, dbPas
 		}
 	}()
 
-	// Migrations need the concrete *sql.DB, which lives behind the RawAccess capability
-	// rather than the safe Client surface.
-	raw, ok := client.(database.RawAccess)
-	if !ok {
-		return errors.New("database client does not expose raw access required for migrations")
-	}
+	// Migrations need the concrete *sql.DB, which lives behind the RawAccess capability rather
+	// than the safe Client surface. platform-go v10 has the provider constructor return its own
+	// concrete type, so this is a static conversion now and the compiler enforces what the
+	// checked assertion used to.
+	var raw database.RawAccess = client
 
 	migrator, err := postgresmigrations.NewMigrator(logger)
 	if err != nil {
