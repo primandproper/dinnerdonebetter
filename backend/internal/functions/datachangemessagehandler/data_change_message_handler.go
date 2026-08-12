@@ -35,17 +35,12 @@ const (
 
 	topicDataChanges         = "data_changes"
 	topicOutboundEmails      = "outbound_emails"
-	topicSearchIndexRequests = "search_index_requests"
 	topicMobileNotifications = "mobile_notifications"
 
 	statusSuccess = "success"
 	statusFailure = "failure"
 	unknownValue  = "unknown"
 )
-
-// SearchIndexEventHandler handles search index updates for a domain's events.
-// Returns true if the event was handled, false to fall through to other handlers.
-type SearchIndexEventHandler func(ctx context.Context, msg *audit.DataChangeMessage) (handled bool, err error)
 
 // OutboundNotificationHandler handles outbound notifications for a domain's events.
 // Returns true if the event was handled. May return emails to be published by the caller.
@@ -58,9 +53,15 @@ var (
 )
 
 // AsyncDataChangeMessageHandler is a cross-cutting event router that dispatches domain events to
-// search indexing, email, webhooks, and mobile notifications. It necessarily references all domain
-// repositories and event types. Domain-specific handler logic lives in dedicated files
-// (e.g., mealplanning_handlers.go) to keep concerns separable.
+// email and mobile notifications, and runs the Syncer that applies each search index's events.
+// It necessarily references all domain repositories and event types. Domain-specific handler
+// logic lives in dedicated files (e.g., mealplanning_handlers.go) to keep concerns separable.
+//
+// It does not publish index events. It used to: a handler picked a row ID out of a data change
+// message and published an event onto the index's topic, which made indexing a dual write one
+// hop downstream of the write it described. Index events are now enqueued into the outbox by
+// the transaction that changed the row — see internal/repositories/postgres/events — and reach
+// this process the same way every other message does, on the topic its Syncer consumes.
 type AsyncDataChangeMessageHandler struct {
 	tracer                                    tracing.Tracer
 	internalOpsRepo                           internalops.InternalOpsDataManager
@@ -89,11 +90,9 @@ type AsyncDataChangeMessageHandler struct {
 	tracerProvider                            tracing.Provider
 	metricsProvider                           metrics.Provider
 	searchSyncers                             []SearchSyncer
-	searchIndexPublishers                     map[string]messagequeue.Publisher
 	deadLetter                                jobs.DeadLetterFunc
 	queuesConfig                              queuescfg.Config
 	baseURL                                   string
-	searchIndexHandlers                       []SearchIndexEventHandler
 	outboundNotificationHandlers              []OutboundNotificationHandler
 	pools                                     []*jobs.Pool
 	poolsConfig                               config.WorkerPoolsConfig
@@ -181,18 +180,6 @@ func NewAsyncDataChangeMessageHandler(
 		return nil, fmt.Errorf("configuring outbound emails publisher: %w", err)
 	}
 
-	// One publisher per index topic. They are built here rather than lazily so that a
-	// misconfigured broker fails startup instead of the first row that changes.
-	searchIndexPublishers := make(map[string]messagequeue.Publisher, len(searchSyncers))
-	for _, syncer := range searchSyncers {
-		publisher, publisherErr := publisherProvider.NewPublisher(ctx, syncer.Topic)
-		if publisherErr != nil {
-			return nil, fmt.Errorf("configuring %s search index publisher: %w", syncer.Topic, publisherErr)
-		}
-
-		searchIndexPublishers[syncer.Topic] = publisher
-	}
-
 	mobileNotificationsPublisher, err := publisherProvider.NewPublisher(ctx, cfg.Queues.MobileNotificationsTopicName)
 	if err != nil {
 		return nil, fmt.Errorf("configuring mobile notifications publisher: %w", err)
@@ -236,7 +223,6 @@ func NewAsyncDataChangeMessageHandler(
 		badDeviceTokensArchivedCounter:            badDeviceTokensArchivedCounter,
 		decoder:                                   decoder,
 		searchSyncers:                             searchSyncers,
-		searchIndexPublishers:                     searchIndexPublishers,
 		mealPlanRepo:                              mealPlanRepo,
 		passwordResetTokenDataManager:             passwordResetTokenDataManager,
 		notificationsRepo:                         notificationsRepo,
@@ -246,10 +232,6 @@ func NewAsyncDataChangeMessageHandler(
 
 	// Register domain-specific event handlers.
 	// When adding or removing a domain from this template, update these registrations.
-	handler.searchIndexHandlers = []SearchIndexEventHandler{
-		handler.handleMealPlanningSearchIndexUpdate,
-		handler.handleIdentitySearchIndexUpdate,
-	}
 	handler.outboundNotificationHandlers = []OutboundNotificationHandler{
 		handler.handleMealPlanningOutboundNotification,
 		handler.handleIdentityOutboundNotification,

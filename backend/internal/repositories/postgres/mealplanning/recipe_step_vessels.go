@@ -6,7 +6,9 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
+	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v10/database"
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -450,7 +452,7 @@ func (q *repository) CreateRecipeStepVessel(ctx context.Context, recipeID string
 		created, createErr = q.createRecipeStepVessel(ctx, tx, input)
 
 		return createErr
-	}); err != nil {
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, recipeID)); err != nil {
 		return nil, err
 	}
 
@@ -495,7 +497,7 @@ func (q *repository) UpdateRecipeStepVessel(ctx context.Context, recipeID string
 		})
 
 		return updateErr
-	}); err != nil {
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, recipeID)); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step vessel")
 	}
 
@@ -541,7 +543,7 @@ func (q *repository) ArchiveRecipeStepVessel(ctx context.Context, recipeID, reci
 		}
 
 		return nil
-	}); err != nil {
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, recipeID)); err != nil {
 		return err
 	}
 

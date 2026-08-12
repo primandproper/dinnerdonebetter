@@ -3,9 +3,9 @@ package datachangemessagehandler
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
+	analyticsevents "github.com/primandproper/dinnerdonebetter/backend/internal/domain/analytics"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
 	"github.com/primandproper/platform-go/v10/observability"
@@ -80,50 +80,31 @@ func (a *AsyncDataChangeMessageHandler) handleDataChangeMessage(
 		return a.handleQueueTestMessage(ctx, logger, span, testID, topicName)
 	}
 
-	if changeMessage.UserID != "" && changeMessage.EventType != "" {
+	// Only the events someone has a question about, rather than every event carrying a user
+	// ID. See internal/domain/analytics: this consumer used to forward the whole topic, which
+	// meant a third-party vendor received every create, update and archive the application
+	// performed — including the authentication activity the webhook layer refuses to deliver.
+	//
+	// The empty-event-type check is gone because Reportable("") is false, which is the same
+	// answer arrived at from the allowlist rather than from a guard beside it.
+	if changeMessage.UserID != "" && analyticsevents.Reportable(changeMessage.EventType) {
 		if err := a.analyticsEventReporter.EventOccurred(ctx, changeMessage.EventType, changeMessage.UserID, changeMessage.Context); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "notifying customer data platform")
 		}
 	}
 
-	// Webhook fan-out used to happen here, one queue message per subscriber. It does not any
-	// more: deliveries are dispatch rows written inside the transaction that caused the event,
-	// by internal/repositories/postgres/events, and claimed by the delivery worker. That is
-	// what makes a delivery commit with the state change it describes rather than being
-	// published afterwards and lost if the publish fails.
-	var wg sync.WaitGroup
-
-	wg.Go(func() {
-		if err := a.handleOutboundNotifications(ctx, changeMessage); err != nil {
-			observability.AcknowledgeError(err, logger, span, "notifying customer(s)")
-		}
-	})
-
-	wg.Go(func() {
-		if err := a.handleSearchIndexUpdates(ctx, changeMessage); err != nil {
-			observability.AcknowledgeError(err, logger, span, "updating search index)")
-		}
-	})
-
-	wg.Wait()
-
-	return nil
-}
-
-func (a *AsyncDataChangeMessageHandler) handleSearchIndexUpdates(
-	ctx context.Context,
-	changeMessage *audit.DataChangeMessage,
-) error {
-	ctx, span := a.tracer.StartSpan(ctx)
-	defer span.End()
-
-	for _, handler := range a.searchIndexHandlers {
-		if handled, err := handler(ctx, changeMessage); handled || err != nil {
-			return err
-		}
+	// Outbound notifications are the only fan-out left here, so it runs inline.
+	//
+	// Webhook deliveries used to be one of these, one queue message per subscriber; they are
+	// now dispatch rows written inside the transaction that caused the event, by
+	// internal/repositories/postgres/events, and claimed by the delivery worker. Search index
+	// events used to be another; they are now outbox rows written by that same transaction.
+	// Both moved for the same reason: a fan-out performed downstream of a commit can fail on
+	// its own, leaving durable state and everything derived from it disagreeing.
+	if err := a.handleOutboundNotifications(ctx, changeMessage); err != nil {
+		observability.AcknowledgeError(err, logger, span, "notifying customer(s)")
 	}
 
-	a.logger.WithValue("event_type", changeMessage.EventType).Debug("event type not handled for search indexing")
 	return nil
 }
 
@@ -189,10 +170,4 @@ func stringFromEventContext(changeMessage *audit.DataChangeMessage, key string) 
 	default:
 		return ""
 	}
-}
-
-// rowIDFromEventContext returns the row ID string from the data change message context.
-// Producers publish only the ID (e.g. RecipeIDKey -> recipe.ID), not the full entity.
-func rowIDFromEventContext(changeMessage *audit.DataChangeMessage, idKey string) string {
-	return stringFromEventContext(changeMessage, idKey)
 }

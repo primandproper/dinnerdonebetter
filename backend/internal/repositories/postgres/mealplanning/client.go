@@ -65,18 +65,23 @@ func ProvideMealPlanningRepository(
 // accountID is passed explicitly wherever the repository knows it; see events.Emitter.Emit.
 // The enumeration tables (valid ingredients, vessels, preparations, and friends) are global
 // catalog data owned by no account, so they pass "".
+//
+// opts come after the write because Go puts the variadic parameter last. A write to an indexed
+// table passes events.WithIndexUpsert or events.WithIndexDelete here, which is what puts the
+// search index event in the same transaction as the row.
 func (q *repository) withEvent(
 	ctx context.Context,
 	logger logging.Logger,
 	eventType, accountID string,
 	metadata map[string]any,
 	write func(tx database.SQLQueryExecutor) error,
+	opts ...events.EmitOption,
 ) error {
 	return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if err := write(tx); err != nil {
 			return err
 		}
 
-		return q.events.Emit(ctx, tx, logger, eventType, accountID, metadata)
+		return q.events.Emit(ctx, tx, logger, eventType, accountID, metadata, opts...)
 	})
 }

@@ -34,8 +34,6 @@ const (
 
 	// MealCreatedServiceEventType indicates a meal was created.
 	MealCreatedServiceEventType = "meal_created"
-	// MealUpdatedServiceEventType indicates a meal was updated.
-	MealUpdatedServiceEventType = "meal_updated"
 	// MealArchivedServiceEventType indicates a meal was archived.
 	MealArchivedServiceEventType = "meal_archived"
 )

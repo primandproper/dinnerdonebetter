@@ -15,8 +15,6 @@ const (
 	UserNotificationCreatedServiceEventType = "user_notification_created"
 	// UserNotificationUpdatedServiceEventType indicates a user notification was updated.
 	UserNotificationUpdatedServiceEventType = "user_notification_updated"
-	// UserNotificationArchivedServiceEventType indicates a user notification was archived.
-	UserNotificationArchivedServiceEventType = "user_notification_archived"
 
 	// UserNotificationStatusTypeUnread represents the user notification status type for unread.
 	UserNotificationStatusTypeUnread = "unread"

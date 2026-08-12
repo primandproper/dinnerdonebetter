@@ -58,6 +58,9 @@ func ProvideIdentityRepository(
 
 // withEvent runs a write and the data change event describing it in one transaction, so the
 // event cannot survive a write that rolled back — nor be lost after one that committed.
+//
+// The user writes that change the search index do not go through this — they emit inside a
+// larger transaction of their own — so this takes no events.EmitOption. See users.go.
 func (r *repository) withEvent(
 	ctx context.Context,
 	logger logging.Logger,

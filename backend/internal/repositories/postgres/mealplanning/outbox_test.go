@@ -10,9 +10,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
+	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v10/database"
 	"github.com/primandproper/platform-go/v10/identifiers"
+	searchsync "github.com/primandproper/platform-go/v10/search/sync"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -241,4 +243,145 @@ func TestQuerier_Integration_RecipeCloneEmitsBothEvents(t *testing.T) {
 		}
 	}
 	assert.True(t, createdForClone, "the clone should also announce itself as created")
+}
+
+// decodeIndexEvents decodes each row's payload as the index event a searchsync.Syncer consumes.
+func decodeIndexEvents(t *testing.T, rows []outboxRow) []searchsync.Event {
+	t.Helper()
+
+	out := make([]searchsync.Event, 0, len(rows))
+	for i := range rows {
+		var event searchsync.Event
+		require.NoError(t, json.Unmarshal(rows[i].payload, &event))
+		out = append(out, event)
+	}
+
+	return out
+}
+
+func TestQuerier_Integration_IndexEventsCommitWithTheirWrite(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	indexRows := func() []outboxRow {
+		return fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeValidVessels)
+	}
+
+	// create
+	created := createValidVesselForTest(t, ctx, nil, dbc)
+
+	rows := indexRows()
+	require.Len(t, rows, 1, "creating a vessel should enqueue exactly one index event")
+	// The document ID is the partition key, which is what buys per-document ordering: the
+	// relay admits a keyed message only while no older one with that key is pending, so two
+	// edits to one vessel can never be applied out of order.
+	assert.Equal(t, created.ID, rows[0].partitionKey)
+
+	events := decodeIndexEvents(t, rows)
+	assert.Equal(t, created.ID, events[0].DocumentID)
+	assert.Equal(t, searchsync.OpUpsert, events[0].Op)
+
+	// update
+	require.NoError(t, dbc.UpdateValidVessel(ctx, created))
+
+	events = decodeIndexEvents(t, indexRows())
+	require.Len(t, events, 2)
+	assert.Equal(t, created.ID, events[1].DocumentID)
+	assert.Equal(t, searchsync.OpUpsert, events[1].Op)
+
+	// archive — an archived row is one search must stop returning, so it is a delete
+	require.NoError(t, dbc.ArchiveValidVessel(ctx, created.ID))
+
+	events = decodeIndexEvents(t, indexRows())
+	require.Len(t, events, 3)
+	assert.Equal(t, created.ID, events[2].DocumentID)
+	assert.Equal(t, searchsync.OpDelete, events[2].Op)
+}
+
+func TestQuerier_Integration_IndexEventRollsBackWithItsWrite(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	// Archiving a vessel that does not exist affects no rows, so the transaction rolls back.
+	// The index event rolls back with it — which is the whole reason it is enqueued here
+	// rather than published by a consumer reading the data change event downstream, where a
+	// row that never changed could still have been announced to the index.
+	require.Error(t, dbc.ArchiveValidVessel(ctx, "nonexistent"))
+
+	assert.Empty(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeValidVessels))
+}
+
+func TestQuerier_Integration_RecipeCreationEnqueuesOneIndexEvent(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	// Recipes emit inside a larger transaction rather than through withEvent, so this covers
+	// the other of the two shapes a write takes in this package.
+	created := createRecipeForTest(t, ctx, nil, dbc, false)
+
+	events := decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeRecipes))
+	require.Len(t, events, 1)
+	assert.Equal(t, created.ID, events[0].DocumentID)
+	assert.Equal(t, searchsync.OpUpsert, events[0].Op)
+}
+
+func TestQuerier_Integration_RecipeStepWritesReindexTheirRecipe(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	recipe := createRecipeForTest(t, ctx, buildRecipeForTestCreation(t, ctx, user.ID, dbc), dbc, false)
+
+	recipeEvents := func() []searchsync.Event {
+		return decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeRecipes))
+	}
+
+	// The recipe's own creation is one event; every write below is a change to the same
+	// document, because the indexed subset holds each step's preparation name and the names
+	// of its ingredients, instruments and vessels.
+	require.Len(t, recipeEvents(), 1)
+
+	step := createRecipeStepForTest(t, ctx, recipe.ID, buildRecipeStepForTestCreation(t, ctx, recipe.ID, dbc), dbc)
+	require.Len(t, recipeEvents(), 2, "adding a step should reindex the recipe")
+
+	step.Notes = "updated"
+	require.NoError(t, dbc.UpdateRecipeStep(ctx, step))
+	require.Len(t, recipeEvents(), 3, "updating a step should reindex the recipe")
+
+	require.NoError(t, dbc.ArchiveRecipeStep(ctx, recipe.ID, step.ID))
+	events := recipeEvents()
+	require.Len(t, events, 4, "archiving a step should reindex the recipe")
+
+	// Every one of them names the recipe, and every one is an upsert: the step went away, the
+	// recipe did not, so the document is rewritten rather than removed.
+	for _, event := range events {
+		assert.Equal(t, recipe.ID, event.DocumentID)
+		assert.Equal(t, searchsync.OpUpsert, event.Op)
+	}
+}
+
+func TestQuerier_Integration_RecipeStepCreationIsAtomicWithItsIndexEvent(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	recipe := createRecipeForTest(t, ctx, buildRecipeForTestCreation(t, ctx, user.ID, dbc), dbc, false)
+
+	before := len(decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeRecipes)))
+
+	// A step naming a preparation that does not exist fails partway through the write. It used
+	// to run outside a transaction, so the step row survived a failure among its children;
+	// now the whole thing rolls back, and the index event with it.
+	doomed := converters.ConvertRecipeStepToRecipeStepDatabaseCreationInput(
+		buildRecipeStepForTestCreation(t, ctx, recipe.ID, dbc))
+	doomed.PreparationID = identifiers.New()
+
+	_, err := dbc.CreateRecipeStep(ctx, doomed)
+	require.Error(t, err)
+
+	assert.Len(t, decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeRecipes)), before)
+
+	exists, err := dbc.RecipeStepExists(ctx, recipe.ID, doomed.ID)
+	require.NoError(t, err)
+	assert.False(t, exists, "the step row should have rolled back with its index event")
 }

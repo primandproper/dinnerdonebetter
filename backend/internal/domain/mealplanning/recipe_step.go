@@ -17,8 +17,6 @@ import (
 const (
 	maxIngredientsPerStep = 100
 
-	// RecipeStepCreatedServiceEventType indicates a recipe step was created.
-	RecipeStepCreatedServiceEventType = "recipe_step_created"
 	// RecipeStepUpdatedServiceEventType indicates a recipe step was updated.
 	RecipeStepUpdatedServiceEventType = "recipe_step_updated"
 	// RecipeStepArchivedServiceEventType indicates a recipe step was archived.

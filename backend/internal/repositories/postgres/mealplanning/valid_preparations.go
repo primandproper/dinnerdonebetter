@@ -6,7 +6,9 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
+	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v10/database"
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -373,7 +375,7 @@ func (q *repository) CreateValidPreparation(ctx context.Context, input *mealplan
 			PastTense:                   input.PastTense,
 			Slug:                        input.Slug,
 		})
-	}); err != nil {
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeValidPreparations, input.ID)); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid preparation creation query")
 	}
 
@@ -442,7 +444,7 @@ func (q *repository) UpdateValidPreparation(ctx context.Context, updated *mealpl
 		})
 
 		return updateErr
-	}); err != nil {
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeValidPreparations, updated.ID)); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid preparation")
 	}
 
@@ -499,5 +501,5 @@ func (q *repository) ArchiveValidPreparation(ctx context.Context, validPreparati
 		}
 
 		return nil
-	})
+	}, events.WithIndexDelete(mealplanningindexing.IndexTypeValidPreparations, validPreparationID))
 }

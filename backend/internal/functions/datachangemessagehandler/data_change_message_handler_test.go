@@ -11,8 +11,6 @@ import (
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
-	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	analyticsmock "github.com/primandproper/platform-go/v10/analytics/mock"
 	emailmock "github.com/primandproper/platform-go/v10/email/mock"
@@ -92,26 +90,13 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 	pushNotificationSender := noopnotifications.NewPushNotificationSender()
 
 	handler := &AsyncDataChangeMessageHandler{
-		identityRepo:           identityRepo,
-		internalOpsRepo:        internalOpsRepo,
-		consumerProvider:       consumerProvider,
-		analyticsEventReporter: analyticsEventReporter,
-		emailer:                emailer,
-		decoder:                decoder,
-		searchSyncers:          searchSyncers,
-		// Every index topic gets the same mock publisher: the tests here care that an event
-		// was published for the right document with the right op, not which broker it went to.
-		searchIndexPublishers: map[string]messagequeue.Publisher{
-			identityindexing.IndexTypeUsers:                     mockPublisher,
-			mealplanningindexing.IndexTypeMeals:                 mockPublisher,
-			mealplanningindexing.IndexTypeRecipes:               mockPublisher,
-			mealplanningindexing.IndexTypeValidIngredients:      mockPublisher,
-			mealplanningindexing.IndexTypeValidInstruments:      mockPublisher,
-			mealplanningindexing.IndexTypeValidMeasurementUnits: mockPublisher,
-			mealplanningindexing.IndexTypeValidPreparations:     mockPublisher,
-			mealplanningindexing.IndexTypeValidIngredientStates: mockPublisher,
-			mealplanningindexing.IndexTypeValidVessels:          mockPublisher,
-		},
+		identityRepo:                         identityRepo,
+		internalOpsRepo:                      internalOpsRepo,
+		consumerProvider:                     consumerProvider,
+		analyticsEventReporter:               analyticsEventReporter,
+		emailer:                              emailer,
+		decoder:                              decoder,
+		searchSyncers:                        searchSyncers,
 		logger:                               logger,
 		tracer:                               tracer,
 		dataChangesExecutionTimeHistogram:    noopHistogram,
@@ -135,10 +120,6 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		pushNotificationSender:        pushNotificationSender,
 	}
 
-	handler.searchIndexHandlers = []SearchIndexEventHandler{
-		handler.handleMealPlanningSearchIndexUpdate,
-		handler.handleIdentitySearchIndexUpdate,
-	}
 	handler.outboundNotificationHandlers = []OutboundNotificationHandler{
 		handler.handleMealPlanningOutboundNotification,
 		handler.handleIdentityOutboundNotification,

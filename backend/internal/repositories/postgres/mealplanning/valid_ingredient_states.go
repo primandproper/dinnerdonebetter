@@ -6,7 +6,9 @@ import (
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
+	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v10/database"
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -274,7 +276,7 @@ func (q *repository) CreateValidIngredientState(ctx context.Context, input *type
 			Slug:          input.Slug,
 			AttributeType: generated.IngredientAttributeType(input.AttributeType),
 		})
-	}); err != nil {
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeValidIngredientStates, input.ID)); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid ingredient state creation query")
 	}
 
@@ -320,7 +322,7 @@ func (q *repository) UpdateValidIngredientState(ctx context.Context, updated *ty
 		})
 
 		return updateErr
-	}); err != nil {
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeValidIngredientStates, updated.ID)); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid ingredient state")
 	}
 
@@ -377,5 +379,5 @@ func (q *repository) ArchiveValidIngredientState(ctx context.Context, validIngre
 		}
 
 		return nil
-	})
+	}, events.WithIndexDelete(mealplanningindexing.IndexTypeValidIngredientStates, validIngredientStateID))
 }
