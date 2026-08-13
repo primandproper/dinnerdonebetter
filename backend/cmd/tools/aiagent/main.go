@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/primandproper/platform-go/v9/httpclient"
+	"github.com/primandproper/platform-go/v10/httpclient"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/adk/agent"
@@ -328,10 +328,15 @@ func main() {
 		log.Fatalf("Failed to create model: %v", err)
 	}
 
+	mcpHTTPClient, err := httpclient.NewHTTPClient(httpclient.WithTracing(true))
+	if err != nil {
+		log.Fatalf("Failed to create MCP HTTP client: %v", err)
+	}
+
 	mcpToolset, err := mcptoolset.New(mcptoolset.Config{
 		Transport: &mcp.StreamableClientTransport{
 			Endpoint:   "http://localhost:9999",
-			HTTPClient: httpclient.NewHTTPClient(httpclient.WithTracing(true)),
+			HTTPClient: mcpHTTPClient,
 			MaxRetries: 5,
 		},
 	})

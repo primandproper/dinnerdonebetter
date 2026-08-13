@@ -9,9 +9,9 @@ import (
 	_ "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/errors"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/uploads"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/uploads"
 )
 
 var _ mealplanningsvc.MealPlanningServiceServer = (*serviceImpl)(nil)
@@ -39,7 +39,7 @@ type (
 
 func NewService(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	mealPlanningManager managers.MealPlanningManager,
 	mealPlanFinalizationStarter *mealplanfinalization.Starter,
 	commentsManager commentsmanager.CommentsDataManager,

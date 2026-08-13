@@ -9,8 +9,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	mealplanningconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 
-	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	errorsgrpc "github.com/primandproper/platform-go/v10/errors/grpc"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )

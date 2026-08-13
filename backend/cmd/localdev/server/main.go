@@ -18,11 +18,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	identitygenerated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v9/authentication/argon2"
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/authentication/argon2"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -55,7 +55,7 @@ func main() {
 		ctx,
 		apiConfig,
 		// Create admin user and get account
-		localdev.WithIdentityRepository(func(ctx context.Context, repo identity.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider, dbClient database.Client) error {
+		localdev.WithIdentityRepository(func(ctx context.Context, repo identity.Repository, logger logging.Logger, tracerProvider tracing.Provider, dbClient database.Client) error {
 			user, userErr := localdev.CreatePremadeAdminUser(ctx, logger, tracerProvider, repo, dbClient, premadeAdminUser)
 			if userErr != nil {
 				return userErr
@@ -206,7 +206,7 @@ func main() {
 			return nil
 		}),
 		// Create OAuth2 client
-		localdev.WithOAuth2Repository(func(ctx context.Context, repo oauth.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
+		localdev.WithOAuth2Repository(func(ctx context.Context, repo oauth.Repository, logger logging.Logger, tracerProvider tracing.Provider) error {
 			// the plaintext secret stays the well-known localdev value; only its digest is stored.
 			_, err = repo.CreateOAuth2Client(ctx, &oauth.OAuth2ClientDatabaseCreationInput{
 				ID:           strings.Repeat("b", 20),
@@ -218,7 +218,7 @@ func main() {
 			return err
 		}),
 		// Create example service settings
-		localdev.WithSettingsRepository(func(ctx context.Context, repo settings.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
+		localdev.WithSettingsRepository(func(ctx context.Context, repo settings.Repository, logger logging.Logger, tracerProvider tracing.Provider) error {
 			return createExampleServiceSettings(ctx, repo, logger)
 		}),
 	)

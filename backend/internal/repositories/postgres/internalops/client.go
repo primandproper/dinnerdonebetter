@@ -4,9 +4,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -23,7 +23,7 @@ type repository struct {
 }
 
 // ProvideInternalOpsRepository provides a new repository.
-func ProvideInternalOpsRepository(logger logging.Logger, tracerProvider tracing.TracerProvider, client database.Client) internalops.InternalOpsDataManager {
+func ProvideInternalOpsRepository(logger logging.Logger, tracerProvider tracing.Provider, client database.Client) internalops.InternalOpsDataManager {
 	c := &repository{
 		Client:           client,
 		readDB:           client.Reader(),

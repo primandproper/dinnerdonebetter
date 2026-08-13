@@ -6,11 +6,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	settingskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/keys"
 
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -39,7 +39,7 @@ type settingsManager struct {
 // transaction as the write they describe; see internal/repositories/postgres/events.
 func NewSettingsDataManager(
 	ctx context.Context,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	logger logging.Logger,
 	repo settingsRepo,
 ) (SettingsDataManager, error) {

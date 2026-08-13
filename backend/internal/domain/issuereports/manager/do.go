@@ -5,8 +5,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -16,7 +16,7 @@ func RegisterIssueReportsDataManager(i do.Injector) {
 	do.Provide[IssueReportsDataManager](i, func(i do.Injector) (IssueReportsDataManager, error) {
 		return NewIssueReportsDataManager(
 			do.MustInvoke[context.Context](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[issuereports.Repository](i),
 		)

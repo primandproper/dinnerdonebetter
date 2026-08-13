@@ -8,12 +8,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v9/authentication/totp"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/qrcodes"
-	"github.com/primandproper/platform-go/v9/random"
+	"github.com/primandproper/platform-go/v10/authentication/totp"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/qrcodes"
+	"github.com/primandproper/platform-go/v10/random"
 
 	"github.com/samber/do/v2"
 )
@@ -24,7 +24,7 @@ func RegisterAuthManager(i do.Injector) {
 		return ProvideAuthManager(
 			do.MustInvoke[context.Context](i),
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[auth.PasswordResetTokenDataManager](i),
 			do.MustInvoke[auth.UserSessionDataManager](i),
 			do.MustInvoke[identity.UserDataManager](i),

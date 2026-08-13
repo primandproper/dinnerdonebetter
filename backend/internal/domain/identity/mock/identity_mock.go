@@ -11,8 +11,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/filtering"
 )
 
 // Ensure, that RepositoryMock does implement identity.Repository.
@@ -109,9 +109,6 @@ var _ identity.Repository = &RepositoryMock{}
 //			GetUserByUsernameFunc: func(ctx context.Context, username string) (*identity.User, error) {
 //				panic("mock out the GetUserByUsername method")
 //			},
-//			GetUserIDsThatNeedSearchIndexingFunc: func(ctx context.Context) ([]string, error) {
-//				panic("mock out the GetUserIDsThatNeedSearchIndexing method")
-//			},
 //			GetUserWithUnverifiedTwoFactorSecretFunc: func(ctx context.Context, userID string) (*identity.User, error) {
 //				panic("mock out the GetUserWithUnverifiedTwoFactorSecret method")
 //			},
@@ -156,6 +153,9 @@ var _ identity.Repository = &RepositoryMock{}
 //			},
 //			RemoveUserFromAccountFunc: func(ctx context.Context, userID string, accountID string) error {
 //				panic("mock out the RemoveUserFromAccount method")
+//			},
+//			ScanUserIDsForReindexFunc: func(ctx context.Context, after string, limit int) ([]string, error) {
+//				panic("mock out the ScanUserIDsForReindex method")
 //			},
 //			SearchForUsersByUsernameFunc: func(ctx context.Context, usernameQuery string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.User], error) {
 //				panic("mock out the SearchForUsersByUsername method")
@@ -290,9 +290,6 @@ type RepositoryMock struct {
 	// GetUserByUsernameFunc mocks the GetUserByUsername method.
 	GetUserByUsernameFunc func(ctx context.Context, username string) (*identity.User, error)
 
-	// GetUserIDsThatNeedSearchIndexingFunc mocks the GetUserIDsThatNeedSearchIndexing method.
-	GetUserIDsThatNeedSearchIndexingFunc func(ctx context.Context) ([]string, error)
-
 	// GetUserWithUnverifiedTwoFactorSecretFunc mocks the GetUserWithUnverifiedTwoFactorSecret method.
 	GetUserWithUnverifiedTwoFactorSecretFunc func(ctx context.Context, userID string) (*identity.User, error)
 
@@ -337,6 +334,9 @@ type RepositoryMock struct {
 
 	// RemoveUserFromAccountFunc mocks the RemoveUserFromAccount method.
 	RemoveUserFromAccountFunc func(ctx context.Context, userID string, accountID string) error
+
+	// ScanUserIDsForReindexFunc mocks the ScanUserIDsForReindex method.
+	ScanUserIDsForReindexFunc func(ctx context.Context, after string, limit int) ([]string, error)
 
 	// SearchForUsersByUsernameFunc mocks the SearchForUsersByUsername method.
 	SearchForUsersByUsernameFunc func(ctx context.Context, usernameQuery string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.User], error)
@@ -608,11 +608,6 @@ type RepositoryMock struct {
 			// Username is the username argument value.
 			Username string
 		}
-		// GetUserIDsThatNeedSearchIndexing holds details about calls to the GetUserIDsThatNeedSearchIndexing method.
-		GetUserIDsThatNeedSearchIndexing []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-		}
 		// GetUserWithUnverifiedTwoFactorSecret holds details about calls to the GetUserWithUnverifiedTwoFactorSecret method.
 		GetUserWithUnverifiedTwoFactorSecret []struct {
 			// Ctx is the ctx argument value.
@@ -735,6 +730,15 @@ type RepositoryMock struct {
 			UserID string
 			// AccountID is the accountID argument value.
 			AccountID string
+		}
+		// ScanUserIDsForReindex holds details about calls to the ScanUserIDsForReindex method.
+		ScanUserIDsForReindex []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// After is the after argument value.
+			After string
+			// Limit is the limit argument value.
+			Limit int
 		}
 		// SearchForUsersByUsername holds details about calls to the SearchForUsersByUsername method.
 		SearchForUsersByUsername []struct {
@@ -893,7 +897,6 @@ type RepositoryMock struct {
 	lockGetUserByEmail                          sync.RWMutex
 	lockGetUserByEmailAddressVerificationToken  sync.RWMutex
 	lockGetUserByUsername                       sync.RWMutex
-	lockGetUserIDsThatNeedSearchIndexing        sync.RWMutex
 	lockGetUserWithUnverifiedTwoFactorSecret    sync.RWMutex
 	lockGetUsers                                sync.RWMutex
 	lockGetUsersForAccount                      sync.RWMutex
@@ -909,6 +912,7 @@ type RepositoryMock struct {
 	lockModifyUserPermissions                   sync.RWMutex
 	lockRejectAccountInvitation                 sync.RWMutex
 	lockRemoveUserFromAccount                   sync.RWMutex
+	lockScanUserIDsForReindex                   sync.RWMutex
 	lockSearchForUsersByUsername                sync.RWMutex
 	lockSetUserAvatar                           sync.RWMutex
 	lockSetUserRequiresPasswordChange           sync.RWMutex
@@ -1993,38 +1997,6 @@ func (mock *RepositoryMock) GetUserByUsernameCalls() []struct {
 	return calls
 }
 
-// GetUserIDsThatNeedSearchIndexing calls GetUserIDsThatNeedSearchIndexingFunc.
-func (mock *RepositoryMock) GetUserIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
-	if mock.GetUserIDsThatNeedSearchIndexingFunc == nil {
-		panic("RepositoryMock.GetUserIDsThatNeedSearchIndexingFunc: method is nil but Repository.GetUserIDsThatNeedSearchIndexing was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
-	mock.lockGetUserIDsThatNeedSearchIndexing.Lock()
-	mock.calls.GetUserIDsThatNeedSearchIndexing = append(mock.calls.GetUserIDsThatNeedSearchIndexing, callInfo)
-	mock.lockGetUserIDsThatNeedSearchIndexing.Unlock()
-	return mock.GetUserIDsThatNeedSearchIndexingFunc(ctx)
-}
-
-// GetUserIDsThatNeedSearchIndexingCalls gets all the calls that were made to GetUserIDsThatNeedSearchIndexing.
-// Check the length with:
-//
-//	len(mockedRepository.GetUserIDsThatNeedSearchIndexingCalls())
-func (mock *RepositoryMock) GetUserIDsThatNeedSearchIndexingCalls() []struct {
-	Ctx context.Context
-} {
-	var calls []struct {
-		Ctx context.Context
-	}
-	mock.lockGetUserIDsThatNeedSearchIndexing.RLock()
-	calls = mock.calls.GetUserIDsThatNeedSearchIndexing
-	mock.lockGetUserIDsThatNeedSearchIndexing.RUnlock()
-	return calls
-}
-
 // GetUserWithUnverifiedTwoFactorSecret calls GetUserWithUnverifiedTwoFactorSecretFunc.
 func (mock *RepositoryMock) GetUserWithUnverifiedTwoFactorSecret(ctx context.Context, userID string) (*identity.User, error) {
 	if mock.GetUserWithUnverifiedTwoFactorSecretFunc == nil {
@@ -2598,6 +2570,46 @@ func (mock *RepositoryMock) RemoveUserFromAccountCalls() []struct {
 	mock.lockRemoveUserFromAccount.RLock()
 	calls = mock.calls.RemoveUserFromAccount
 	mock.lockRemoveUserFromAccount.RUnlock()
+	return calls
+}
+
+// ScanUserIDsForReindex calls ScanUserIDsForReindexFunc.
+func (mock *RepositoryMock) ScanUserIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
+	if mock.ScanUserIDsForReindexFunc == nil {
+		panic("RepositoryMock.ScanUserIDsForReindexFunc: method is nil but Repository.ScanUserIDsForReindex was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}{
+		Ctx:   ctx,
+		After: after,
+		Limit: limit,
+	}
+	mock.lockScanUserIDsForReindex.Lock()
+	mock.calls.ScanUserIDsForReindex = append(mock.calls.ScanUserIDsForReindex, callInfo)
+	mock.lockScanUserIDsForReindex.Unlock()
+	return mock.ScanUserIDsForReindexFunc(ctx, after, limit)
+}
+
+// ScanUserIDsForReindexCalls gets all the calls that were made to ScanUserIDsForReindex.
+// Check the length with:
+//
+//	len(mockedRepository.ScanUserIDsForReindexCalls())
+func (mock *RepositoryMock) ScanUserIDsForReindexCalls() []struct {
+	Ctx   context.Context
+	After string
+	Limit int
+} {
+	var calls []struct {
+		Ctx   context.Context
+		After string
+		Limit int
+	}
+	mock.lockScanUserIDsForReindex.RLock()
+	calls = mock.calls.ScanUserIDsForReindex
+	mock.lockScanUserIDsForReindex.RUnlock()
 	return calls
 }
 

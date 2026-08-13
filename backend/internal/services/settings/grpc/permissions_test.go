@@ -6,7 +6,7 @@ import (
 
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 
-	"github.com/primandproper/platform-go/v9/reflection"
+	"github.com/primandproper/platform-go/v10/reflection"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

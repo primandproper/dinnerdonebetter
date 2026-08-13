@@ -9,11 +9,11 @@ import (
 	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -25,7 +25,7 @@ func (r *repository) CreatePaymentTransaction(ctx context.Context, input *paymen
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	logger := r.logger.Clone()

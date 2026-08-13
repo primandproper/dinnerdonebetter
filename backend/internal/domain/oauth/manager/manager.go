@@ -11,15 +11,15 @@ import (
 	oauthkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/keys"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	perrors "github.com/primandproper/platform-go/v9/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/random"
+	perrors "github.com/primandproper/platform-go/v10/errors"
+	errorsgrpc "github.com/primandproper/platform-go/v10/errors/grpc"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/random"
 
 	"google.golang.org/grpc/codes"
 )
@@ -49,14 +49,14 @@ type manager struct {
 func NewOAuth2Manager(
 	ctx context.Context,
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	secretGenerator random.Generator,
 	publisherProvider messagequeue.PublisherProvider,
 	oauthRepository oauth.Repository,
 	queuesConfig *queuescfg.Config,
 ) (OAuth2Manager, error) {
 	if queuesConfig == nil {
-		return nil, perrors.ErrNilInputProvided
+		return nil, perrors.ErrNilInputParameter
 	}
 
 	dataChangesPublisher, err := publisherProvider.NewPublisher(ctx, queuesConfig.DataChangesTopicName)

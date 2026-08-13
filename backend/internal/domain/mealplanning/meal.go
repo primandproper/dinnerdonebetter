@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -34,8 +34,6 @@ const (
 
 	// MealCreatedServiceEventType indicates a meal was created.
 	MealCreatedServiceEventType = "meal_created"
-	// MealUpdatedServiceEventType indicates a meal was updated.
-	MealUpdatedServiceEventType = "meal_updated"
 	// MealArchivedServiceEventType indicates a meal was archived.
 	MealArchivedServiceEventType = "meal_archived"
 )
@@ -131,7 +129,7 @@ type (
 		CreateMeal(ctx context.Context, input *MealDatabaseCreationInput) (*Meal, error)
 		MarkMealAsIndexed(ctx context.Context, mealID string) error
 		ArchiveMeal(ctx context.Context, mealID, userID string) error
-		GetMealIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error)
+		ScanMealIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetMealsWithIDs(ctx context.Context, ids []string) ([]*Meal, error)
 		AddMealImage(ctx context.Context, mealID, uploadedMediaID, uploadedByUser string) error
 	}

@@ -3,9 +3,9 @@ package dbcleaner
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -15,7 +15,7 @@ func RegisterDBCleaner(i do.Injector) {
 	do.Provide[*Job](i, func(i do.Injector) (*Job, error) {
 		return NewDBCleaner(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[metrics.Provider](i),
 			do.MustInvoke[internalops.InternalOpsDataManager](i),
 		)

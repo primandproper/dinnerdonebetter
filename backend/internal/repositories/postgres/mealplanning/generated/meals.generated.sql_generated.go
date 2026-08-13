@@ -720,6 +720,43 @@ func (q *Queries) GetMealsWithIDs(ctx context.Context, db DBTX, ids []string) ([
 	return items, nil
 }
 
+const scanMealIDsForReindex = `-- name: ScanMealIDsForReindex :many
+SELECT meals.id
+FROM meals
+WHERE meals.archived_at IS NULL
+	AND meals.id COLLATE "C" > $1
+ORDER BY meals.id COLLATE "C"
+LIMIT COALESCE($2, 50)
+`
+
+type ScanMealIDsForReindexParams struct {
+	Cursor      string
+	ResultLimit interface{}
+}
+
+func (q *Queries) ScanMealIDsForReindex(ctx context.Context, db DBTX, arg *ScanMealIDsForReindexParams) ([]string, error) {
+	rows, err := db.QueryContext(ctx, scanMealIDsForReindex, arg.Cursor, arg.ResultLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchForMeals = `-- name: SearchForMeals :many
 SELECT
 	meals.id,

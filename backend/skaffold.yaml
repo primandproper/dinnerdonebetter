@@ -26,10 +26,10 @@ profiles:
             ldflags:
               - -s -w
               - -extldflags "-static"
-              - -X github.com/primandproper/platform-go/v9/version.CommitHash={{ trim (cmd "bash" "-c" "git rev-parse HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v9/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v9/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v9/version.Version={{ default "dev" .VERSION }}
+              - -X github.com/primandproper/platform-go/v10/version.CommitHash={{ trim (cmd "bash" "-c" "git rev-parse HEAD 2>/dev/null || echo unknown") }}
+              - -X github.com/primandproper/platform-go/v10/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
+              - -X github.com/primandproper/platform-go/v10/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
+              - -X github.com/primandproper/platform-go/v10/version.Version={{ default "dev" .VERSION }}
             main: ./cmd/ddb
             fromImage: golang:1.26-trixie
 
@@ -61,10 +61,10 @@ profiles:
             ldflags:
               - -s -w
               - -extldflags "-static"
-              - -X github.com/primandproper/platform-go/v9/version.CommitHash={{ trim (cmd "bash" "-c" "git rev-parse HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v9/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v9/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
-              - -X github.com/primandproper/platform-go/v9/version.Version={{ default "dev" .VERSION }}
+              - -X github.com/primandproper/platform-go/v10/version.CommitHash={{ trim (cmd "bash" "-c" "git rev-parse HEAD 2>/dev/null || echo unknown") }}
+              - -X github.com/primandproper/platform-go/v10/version.CommitTime={{ trim (cmd "bash" "-c" "git log -1 --format=%cI HEAD 2>/dev/null || echo unknown") }}
+              - -X github.com/primandproper/platform-go/v10/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
+              - -X github.com/primandproper/platform-go/v10/version.Version={{ default "dev" .VERSION }}
             main: ./cmd/ddb
             fromImage: golang:1.26-trixie
 

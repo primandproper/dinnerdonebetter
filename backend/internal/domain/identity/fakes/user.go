@@ -7,7 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/filtering"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )

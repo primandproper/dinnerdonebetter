@@ -6,10 +6,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -28,7 +28,7 @@ type WebhookHandler struct {
 // NewWebhookHandler returns a new WebhookHandler.
 func NewWebhookHandler(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	paymentsManager paymentsmanager.PaymentsDataManager,
 	processorRegistry payments.PaymentProcessorRegistry,
 ) *WebhookHandler {

@@ -11,15 +11,17 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipevalidator"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
+	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/pointer"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/pointer"
 )
 
 var (
@@ -668,14 +670,23 @@ func (q *repository) GetRecipesWithIDs(ctx context.Context, ids []string) ([]*me
 	return out, nil
 }
 
-// GetRecipeIDsThatNeedSearchIndexing fetches a list of recipe IDs from the database that meet a particular filter.
-func (q *repository) GetRecipeIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
+// ScanRecipeIDsForReindex returns up to limit IDs sorting strictly after `after`, in ascending byte order.
+//
+// It is the source half of a search reindex: searchsync.Reindexer walks this to find every
+// document that should exist, and prunes the index of anything it does not name. It replaces
+// the "IDs that need indexing" sampler platform-go v10 removed, which asked a different and
+// weaker question — which rows look stale — and could only ever be probabilistically right,
+// because a row the sampler had not reached was a row the index was wrong about.
+func (q *repository) ScanRecipeIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	results, err := q.generatedQuerier.GetRecipesNeedingIndexing(ctx, q.readDB)
+	results, err := q.generatedQuerier.ScanRecipeIDsForReindex(ctx, q.readDB, &generated.ScanRecipeIDsForReindexParams{
+		Cursor:      after,
+		ResultLimit: limit,
+	})
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "executing recipes list retrieval query")
+		return nil, observability.PrepareError(err, span, "executing recipes reindex scan query")
 	}
 
 	return results, nil
@@ -942,7 +953,7 @@ func (q *repository) CreateRecipe(ctx context.Context, input *mealplanning.Recip
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.RecipeIDKey, input.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, input.ID)
@@ -1063,13 +1074,15 @@ func (q *repository) CreateRecipe(ctx context.Context, input *mealplanning.Recip
 		// rows it describes.
 		if emitErr := q.events.Emit(ctx, tx, logger, mealplanning.RecipeCreatedServiceEventType, "", map[string]any{
 			mealplanningkeys.RecipeIDKey: input.ID,
-		}); emitErr != nil {
+		}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, input.ID)); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
 		// A clone is still a creation, so both events describe this one write and both
 		// belong to this one transaction. The cloned event names the source, which is the
-		// only thing that distinguishes it from an ordinary create.
+		// only thing that distinguishes it from an ordinary create — and is why it carries
+		// no index event: the new recipe was indexed by the create above, and nothing about
+		// the recipe it was cloned from changed.
 		if input.ClonedFromRecipeID != nil {
 			if emitErr := q.events.Emit(ctx, tx, logger, mealplanning.RecipeClonedServiceEventType, "", map[string]any{
 				mealplanningkeys.RecipeIDKey: *input.ClonedFromRecipeID,
@@ -1211,7 +1224,7 @@ func (q *repository) UpdateRecipe(ctx context.Context, updated *mealplanning.Rec
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 
 	logger := q.logger.WithValue(mealplanningkeys.RecipeIDKey, updated.ID)
@@ -1248,7 +1261,7 @@ func (q *repository) UpdateRecipe(ctx context.Context, updated *mealplanning.Rec
 		logger.Info("recipe updated")
 
 		return nil
-	})
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, updated.ID))
 }
 
 // UpdateRecipeStatus updates a particular recipe's status exclusively.
@@ -1280,7 +1293,7 @@ func (q *repository) UpdateRecipeStatus(ctx context.Context, recipeID, newStatus
 		}
 
 		return nil
-	})
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, recipeID))
 }
 
 // MarkRecipeAsIndexed updates a particular recipe's last_indexed_at value.
@@ -1461,7 +1474,7 @@ func (q *repository) ArchiveRecipe(ctx context.Context, recipeID, userID string)
 		}
 
 		return nil
-	})
+	}, events.WithIndexDelete(mealplanningindexing.IndexTypeRecipes, recipeID))
 }
 
 // AddRecipeImage adds an uploaded media image to a recipe.

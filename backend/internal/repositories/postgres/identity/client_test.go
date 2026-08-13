@@ -8,16 +8,19 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v9/database"
-	mockdatabase "github.com/primandproper/platform-go/v9/database/mock"
-	"github.com/primandproper/platform-go/v9/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/database/dialect"
+	mockdatabase "github.com/primandproper/platform-go/v10/database/mock"
+	"github.com/primandproper/platform-go/v10/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v10/outbox"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
@@ -26,6 +29,9 @@ import (
 
 const (
 	exampleQuantity = 3
+
+	// testDataChangesTopic is what the emitter writes onto outbox rows in these tests.
+	testDataChangesTopic = "data_changes"
 )
 
 type sqlmockExpecterWrapper struct {
@@ -84,7 +90,12 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, pgc)
 	require.NoError(t, err)
 
-	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, pgc, nil)
+	// A real emitter, so the tests exercise the same path production does: the data change
+	// event and the search index event are further statements in the repository's transaction.
+	outboxWriter, err := outbox.NewWriter(dialect.Postgres, outbox.WithWriterLogger(loggingnoop.NewLogger()))
+	require.NoError(t, err)
+
+	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, pgc, events.NewEmitter(outboxWriter, testDataChangesTopic, nil))
 	require.NoError(t, err)
 
 	return c.(*repository), auditLogRepo

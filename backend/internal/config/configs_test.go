@@ -12,19 +12,19 @@ import (
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	emailcfg "github.com/primandproper/platform-go/v9/email/config"
-	"github.com/primandproper/platform-go/v9/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v9/featureflags/config"
-	meteringcfg "github.com/primandproper/platform-go/v9/metering/config"
-	"github.com/primandproper/platform-go/v9/observability"
-	loggingcfg "github.com/primandproper/platform-go/v9/observability/logging/config"
-	"github.com/primandproper/platform-go/v9/routing/backends/chi"
-	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
-	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
-	"github.com/primandproper/platform-go/v9/server/http"
-	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
+	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	emailcfg "github.com/primandproper/platform-go/v10/email/config"
+	"github.com/primandproper/platform-go/v10/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v10/featureflags/config"
+	meteringcfg "github.com/primandproper/platform-go/v10/metering/config"
+	"github.com/primandproper/platform-go/v10/observability"
+	loggingcfg "github.com/primandproper/platform-go/v10/observability/logging/config"
+	"github.com/primandproper/platform-go/v10/routing/backends/chi"
+	routingcfg "github.com/primandproper/platform-go/v10/routing/config"
+	textsearchcfg "github.com/primandproper/platform-go/v10/search/text/config"
+	"github.com/primandproper/platform-go/v10/server/http"
+	webhookscfg "github.com/primandproper/platform-go/v10/webhooks/config"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -386,6 +386,7 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 			Email:        emailcfg.Config{Provider: emailcfg.ProviderNoop},
 			Webhooks:     validWebhooksConfigForTest(),
 			Metering:     validMeteringConfigForTest(),
+			Operations:   DefaultOperationsConfig(),
 		}
 
 		err := cfg.ValidateWithContext(ctx)

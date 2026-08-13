@@ -11,10 +11,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/dustin/go-humanize/english"
 	"github.com/hako/durafmt"
@@ -180,7 +180,7 @@ type recipeAnalyzer struct {
 }
 
 // NewRecipeAnalyzer creates a recipeAnalyzer.
-func NewRecipeAnalyzer(logger logging.Logger, tracerProvider tracing.TracerProvider) RecipeAnalyzer {
+func NewRecipeAnalyzer(logger logging.Logger, tracerProvider tracing.Provider) RecipeAnalyzer {
 	return &recipeAnalyzer{
 		logger: logging.NewNamedLogger(logger, "recipe_analyzer"),
 		tracer: tracing.NewNamedTracer(tracerProvider, "recipe_grapher"),

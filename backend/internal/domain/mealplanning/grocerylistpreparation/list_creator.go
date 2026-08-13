@@ -7,10 +7,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/numbers"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/numbers"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/shopspring/decimal"
 )
@@ -31,7 +31,7 @@ type groceryListCreator struct {
 	tracer tracing.Tracer
 }
 
-func NewGroceryListCreator(logger logging.Logger, tracerProvider tracing.TracerProvider) GroceryListCreator {
+func NewGroceryListCreator(logger logging.Logger, tracerProvider tracing.Provider) GroceryListCreator {
 	return &groceryListCreator{
 		logger: logging.NewNamedLogger(logger, "grocery_list_creator"),
 		tracer: tracing.NewNamedTracer(tracerProvider, "grocery_list_creator"),

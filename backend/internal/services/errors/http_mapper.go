@@ -7,7 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 
-	httperrors "github.com/primandproper/platform-go/v9/errors/http"
+	httperrors "github.com/primandproper/platform-go/v10/errors/http"
 )
 
 func init() {
@@ -27,7 +27,7 @@ func (authSessionIdentityHTTPMapper) Map(err error) (code httperrors.ErrorCode, 
 	case errors.Is(err, sessions.ErrAuthenticationNotFound):
 		return httperrors.ErrFetchingSessionContextData, "session not found", true
 	case errors.Is(err, identitymanager.ErrInvalidIDProvided),
-		errors.Is(err, identitymanager.ErrNilInputProvided),
+		errors.Is(err, identitymanager.ErrNilInputParameter),
 		errors.Is(err, identitymanager.ErrEmptyInputProvided):
 		return httperrors.ErrValidatingRequestInput, "invalid input", true
 	default:

@@ -18,9 +18,9 @@ import (
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	notificationsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/random"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/random"
 )
 
 const (

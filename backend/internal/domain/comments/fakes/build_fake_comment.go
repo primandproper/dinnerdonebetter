@@ -3,7 +3,7 @@ package fakes
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/filtering"
 )
 
 // BuildFakeComment builds a faked Comment.

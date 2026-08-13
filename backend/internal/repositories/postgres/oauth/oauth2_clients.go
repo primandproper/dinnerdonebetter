@@ -10,11 +10,11 @@ import (
 	oauthkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -148,7 +148,7 @@ func (q *repository) CreateOAuth2Client(ctx context.Context, input *types.OAuth2
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	logger := q.logger.WithValues(map[string]any{
@@ -201,7 +201,7 @@ func (q *repository) ArchiveOAuth2Client(ctx context.Context, clientID string) e
 	defer span.End()
 
 	if clientID == "" {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, oauthkeys.OAuth2ClientClientIDKey, clientID)
 	logger := q.logger.WithValue(oauthkeys.OAuth2ClientIDKey, clientID)

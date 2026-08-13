@@ -11,11 +11,11 @@ import (
 	settingskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -396,7 +396,7 @@ func (q *Repository) CreateServiceSettingConfiguration(ctx context.Context, inpu
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, settingskeys.ServiceSettingConfigurationIDKey, input.ID)
 	logger := q.logger.WithValue(settingskeys.ServiceSettingConfigurationIDKey, input.ID)
@@ -465,7 +465,7 @@ func (q *Repository) UpdateServiceSettingConfiguration(ctx context.Context, upda
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(settingskeys.ServiceSettingConfigurationIDKey, updated.ID)
 	tracing.AttachToSpan(span, settingskeys.ServiceSettingConfigurationIDKey, updated.ID)

@@ -15,29 +15,29 @@ import (
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
-	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
-	capitalismcfg "github.com/primandproper/platform-go/v9/capitalism/config"
-	circuitbreakingcfg "github.com/primandproper/platform-go/v9/circuitbreaking/config"
-	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	emailcfg "github.com/primandproper/platform-go/v9/email/config"
-	"github.com/primandproper/platform-go/v9/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v9/featureflags/config"
-	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
-	"github.com/primandproper/platform-go/v9/messagequeue/redis"
-	notificationscfg "github.com/primandproper/platform-go/v9/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v9/observability/logging/config"
-	tracingcfg "github.com/primandproper/platform-go/v9/observability/tracing/config"
-	"github.com/primandproper/platform-go/v9/routing/backends/chi"
-	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
-	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
-	"github.com/primandproper/platform-go/v9/server/grpc"
-	"github.com/primandproper/platform-go/v9/server/http"
-	uploadscfg "github.com/primandproper/platform-go/v9/uploads/config"
-	"github.com/primandproper/platform-go/v9/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
+	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
+	capitalismcfg "github.com/primandproper/platform-go/v10/capitalism/config"
+	circuitbreakingcfg "github.com/primandproper/platform-go/v10/circuitbreaking/config"
+	encryptioncfg "github.com/primandproper/platform-go/v10/cryptography/encryption/config"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	emailcfg "github.com/primandproper/platform-go/v10/email/config"
+	"github.com/primandproper/platform-go/v10/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v10/featureflags/config"
+	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
+	"github.com/primandproper/platform-go/v10/messagequeue/redis"
+	notificationscfg "github.com/primandproper/platform-go/v10/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	loggingcfg "github.com/primandproper/platform-go/v10/observability/logging/config"
+	tracingcfg "github.com/primandproper/platform-go/v10/observability/tracing/config"
+	"github.com/primandproper/platform-go/v10/routing/backends/chi"
+	routingcfg "github.com/primandproper/platform-go/v10/routing/config"
+	textsearchcfg "github.com/primandproper/platform-go/v10/search/text/config"
+	"github.com/primandproper/platform-go/v10/server/grpc"
+	"github.com/primandproper/platform-go/v10/server/http"
+	uploadscfg "github.com/primandproper/platform-go/v10/uploads/config"
+	"github.com/primandproper/platform-go/v10/uploads/objectstorage"
 )
 
 func buildIntegrationTestsConfig() *config.APIServiceConfig {
@@ -50,8 +50,9 @@ func buildIntegrationTestsConfig() *config.APIServiceConfig {
 	}
 
 	return &config.APIServiceConfig{
-		Webhooks: buildWebhooksConfig(),
-		Metering: config.DefaultMeteringConfig(),
+		Webhooks:   buildWebhooksConfig(),
+		Metering:   config.DefaultMeteringConfig(),
+		Operations: config.DefaultOperationsConfig(),
 		Routing: routingcfg.Config{
 			Provider: routingcfg.ProviderChi,
 			Chi: &chi.Config{
@@ -108,7 +109,7 @@ func buildIntegrationTestsConfig() *config.APIServiceConfig {
 				ReadConnection:  localdevPostgresDBConnectionDetails,
 				WriteConnection: localdevPostgresDBConnectionDetails,
 			},
-			Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
+			Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 			OAuth2TokenEncryptionKey: localOAuth2TokenEncryptionKey,
 		},
 		Observability: observability.Config{
@@ -146,6 +147,29 @@ func buildIntegrationTestsConfig() *config.APIServiceConfig {
 			Provider: emailcfg.ProviderNoop,
 		},
 		Analytics: analyticscfg.Config{
+			// The multisource reporter resolves a source name to a reporter and refuses one
+			// it does not know, so the sources the clients send have to be declared even
+			// where nothing is actually reported. In v9 an unconfigured source fell through
+			// to the ambient reporter; in v10 it is ErrUnknownSource, which surfaces to the
+			// caller as a failed TrackEvent.
+			ProxySources: analyticscfg.ProxySourcesConfig{
+				"ios": {
+					Provider: analyticscfg.ProviderNoop,
+					CircuitBreaker: circuitbreakingcfg.Config{
+						Name:                   "ios_analytics",
+						ErrorRate:              .5,
+						MinimumSampleThreshold: 100,
+					},
+				},
+				"web": {
+					Provider: analyticscfg.ProviderNoop,
+					CircuitBreaker: circuitbreakingcfg.Config{
+						Name:                   "web_analytics",
+						ErrorRate:              .5,
+						MinimumSampleThreshold: 100,
+					},
+				},
+			},
 			SourceConfig: analyticscfg.SourceConfig{
 				// Analytics are off here, which the provider now says rather than
 				// leaving it to an unset value. The circuit breaker is still built.
@@ -196,7 +220,7 @@ func buildIntegrationTestsConfig() *config.APIServiceConfig {
 					},
 					Debug: false,
 				},
-				Encryption:            encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
+				Encryption:            encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 				ArtifactEncryptionKey: localDisclosureArtifactEncryptionKey,
 			},
 			Users: identitycfg.Config{

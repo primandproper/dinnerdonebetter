@@ -7,7 +7,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -249,7 +249,7 @@ type (
 		UpdateValidIngredient(ctx context.Context, updated *ValidIngredient) error
 		MarkValidIngredientAsIndexed(ctx context.Context, validIngredientID string) error
 		ArchiveValidIngredient(ctx context.Context, validIngredientID string) error
-		GetValidIngredientIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error)
+		ScanValidIngredientIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetValidIngredientsWithIDs(ctx context.Context, ids []string) ([]*ValidIngredient, error)
 	}
 )

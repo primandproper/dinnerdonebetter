@@ -28,10 +28,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/outbox"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/outbox"
 )
 
 // Emitter enqueues data change events into the outbox and fans them out to webhooks.
@@ -62,6 +62,9 @@ type EmitOption func(*emitConfig)
 
 type emitConfig struct {
 	orderingKey string
+	// indexEvents are the search index events this write implies, already rendered as outbox
+	// messages bound for their index's topic. See index_events.go.
+	indexEvents []outbox.Message
 }
 
 // WithOrderingKey sets the webhook ordering key for this event, overriding the default of the
@@ -101,17 +104,39 @@ func (e *Emitter) Emit(ctx context.Context, q database.SQLQueryExecutor, logger 
 		msg.AccountID = accountID
 	}
 
-	if err := e.writer.Enqueue(ctx, q, outbox.Message{
+	cfg := &emitConfig{
+		// Per-account webhook ordering by default, matching the outbox key below: an
+		// account's deliveries to one endpoint arrive in the order they were written, and
+		// different accounts never wait on each other.
+		orderingKey: msg.AccountID,
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(cfg)
+		}
+	}
+
+	// The data change event and every index event the same write implies are enqueued
+	// together, in one statement, inside the caller's transaction. That is what keeps a
+	// search index from diverging from the row the way it could when index events were
+	// published by a consumer downstream of the broker: there, the row committed and the
+	// index event was a second, unrelated write that could fail on its own, and nothing
+	// noticed until the next reindex.
+	msgs := make([]outbox.Message, 0, 1+len(cfg.indexEvents))
+	msgs = append(msgs, outbox.Message{
 		Topic:   e.topic,
 		Payload: msg,
 		// Ordering is per account: two events for the same account publish in the order
 		// they were written, and events for different accounts do not wait on each other.
 		Key: msg.AccountID,
-	}); err != nil {
+	})
+	msgs = append(msgs, cfg.indexEvents...)
+
+	if err := e.writer.Enqueue(ctx, q, msgs...); err != nil {
 		return err
 	}
 
-	return e.dispatchWebhooks(ctx, q, msg, opts)
+	return e.dispatchWebhooks(ctx, q, msg, cfg)
 }
 
 // dispatchWebhooks fans the same message out to the account's webhook subscribers, through the
@@ -127,19 +152,7 @@ func (e *Emitter) Emit(ctx context.Context, q database.SQLQueryExecutor, logger 
 // The cost is on the same ledger: a webhook table failure now fails the business transaction. It
 // is the same trade the outbox already makes one line above, and for the same reason — the
 // alternative is durable state and delivery diverging with nothing able to detect it.
-func (e *Emitter) dispatchWebhooks(ctx context.Context, q database.SQLQueryExecutor, msg *audit.DataChangeMessage, opts []EmitOption) error {
-	cfg := &emitConfig{
-		// Per-account ordering by default, matching the outbox key immediately above: an
-		// account's deliveries to one endpoint arrive in the order they were written, and
-		// different accounts never wait on each other.
-		orderingKey: msg.AccountID,
-	}
-	for _, opt := range opts {
-		if opt != nil {
-			opt(cfg)
-		}
-	}
-
+func (e *Emitter) dispatchWebhooks(ctx context.Context, q database.SQLQueryExecutor, msg *audit.DataChangeMessage, cfg *emitConfig) error {
 	// The payload is the same *audit.DataChangeMessage the broker carries, marshaled once. A
 	// subscriber and a queue consumer therefore see byte-identical bodies, and the bytes signed
 	// are the bytes sent — re-marshaling between dispatch and delivery is exactly how a

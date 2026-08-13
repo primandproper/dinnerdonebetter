@@ -35,14 +35,17 @@ func RegisterForGRPCAPI(i do.Injector) {
 	grocerylistpreparation.RegisterGroceryListCreator(i)
 }
 
-// RegisterForDataChangeHandler registers mealplanning components needed by the async message handler.
+// RegisterForDataChangeHandler registers mealplanning components needed by the async message
+// handler, which consumes the index topics and applies their events through the Syncers.
 func RegisterForDataChangeHandler(i do.Injector) {
 	registerRepository(i)
-	eatingindexing.RegisterMealPlanningDataIndexer(i)
+	eatingindexing.RegisterIndexSyncers(i)
 }
 
-// RegisterForSearchIndexScheduler registers mealplanning components needed by the search index scheduler.
+// RegisterForSearchIndexScheduler registers mealplanning components needed by the scheduler,
+// which drives the Reindexers. They come from the same registration as the Syncers: the two are
+// halves of keeping one index right, and the process resolves whichever half it runs.
 func RegisterForSearchIndexScheduler(i do.Injector) {
 	registerRepository(i)
-	eatingindexing.RegisterMealPlanningDataIndexer(i)
+	eatingindexing.RegisterIndexSyncers(i)
 }

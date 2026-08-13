@@ -10,11 +10,11 @@ import (
 	waitlistkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -209,7 +209,7 @@ func (r *Repository) CreateWaitlist(ctx context.Context, input *types.WaitlistDa
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	logger := r.logger.WithValue(waitlistkeys.WaitlistIDKey, input.ID)
@@ -258,7 +258,7 @@ func (r *Repository) UpdateWaitlist(ctx context.Context, updated *types.Waitlist
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := r.logger.WithValue(waitlistkeys.WaitlistIDKey, updated.ID)
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistIDKey, updated.ID)
@@ -533,7 +533,7 @@ func (r *Repository) CreateWaitlistSignup(ctx context.Context, input *types.Wait
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	logger := r.logger.WithValue(waitlistkeys.WaitlistSignupIDKey, input.ID)
@@ -586,7 +586,7 @@ func (r *Repository) UpdateWaitlistSignup(ctx context.Context, updated *types.Wa
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := r.logger.WithValue(waitlistkeys.WaitlistSignupIDKey, updated.ID)
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistSignupIDKey, updated.ID)

@@ -3,8 +3,8 @@ package manager
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -13,7 +13,7 @@ import (
 func RegisterAuditDataManager(i do.Injector) {
 	do.Provide[AuditDataManager](i, func(i do.Injector) (AuditDataManager, error) {
 		return NewAuditDataManager(
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[audit.Repository](i),
 		), nil

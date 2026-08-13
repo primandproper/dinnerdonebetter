@@ -12,48 +12,11 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 	coreemails "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/emails"
-	coreindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	"github.com/primandproper/platform-go/v9/filtering"
-	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"
-	"github.com/primandproper/platform-go/v9/observability"
-	textsearch "github.com/primandproper/platform-go/v9/search/text"
+	"github.com/primandproper/platform-go/v10/filtering"
+	notifications "github.com/primandproper/platform-go/v10/notifications/mobile"
+	"github.com/primandproper/platform-go/v10/observability"
 )
-
-// handleIdentitySearchIndexUpdate handles search index updates for identity domain events.
-func (a *AsyncDataChangeMessageHandler) handleIdentitySearchIndexUpdate(
-	ctx context.Context,
-	changeMessage *audit.DataChangeMessage,
-) (bool, error) {
-	ctx, span := a.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := a.logger.WithValue("event_type", changeMessage.EventType)
-
-	switch changeMessage.EventType {
-	case identity.UserSignedUpServiceEventType,
-		identity.UserArchivedServiceEventType,
-		identity.EmailAddressChangedEventType,
-		identity.UsernameChangedEventType,
-		identity.UserDetailsChangedEventType,
-		identity.UserEmailAddressVerifiedEventType:
-		if changeMessage.UserID == "" {
-			observability.AcknowledgeError(errRequiredDataIsNil, logger, span, "updating search index for User")
-		}
-
-		if err := a.searchDataIndexPublisher.Publish(ctx, &textsearch.IndexRequest{
-			RowID:     changeMessage.UserID,
-			IndexType: coreindexing.IndexTypeUsers,
-			Delete:    changeMessage.EventType == identity.UserArchivedServiceEventType,
-		}); err != nil {
-			return true, observability.PrepareAndLogError(err, logger, span, "publishing search index update")
-		}
-
-		return true, nil
-	default:
-		return false, nil
-	}
-}
 
 // handleIdentityOutboundNotification handles outbound notifications for identity domain events.
 func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(

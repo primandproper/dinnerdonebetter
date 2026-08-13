@@ -4,8 +4,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/manager"
 	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -25,7 +25,7 @@ type (
 
 func NewService(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	webhookManager manager.WebhookDataManager,
 ) webhookssvc.WebhooksServiceServer {
 	return &serviceImpl{

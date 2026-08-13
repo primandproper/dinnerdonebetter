@@ -20,8 +20,6 @@ const (
 	SubscriptionUpdatedServiceEventType = "subscription_updated"
 	// SubscriptionArchivedServiceEventType indicates a subscription was archived.
 	SubscriptionArchivedServiceEventType = "subscription_archived"
-	// SubscriptionCanceledServiceEventType indicates a subscription was canceled.
-	SubscriptionCanceledServiceEventType = "subscription_canceled"
 )
 
 type (

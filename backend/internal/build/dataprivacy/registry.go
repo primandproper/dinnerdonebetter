@@ -45,14 +45,15 @@ import (
 	webhooksprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/privacy"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
-	"github.com/primandproper/platform-go/v9/dataprivacy/auditerasure"
-	platformdataprivacycfg "github.com/primandproper/platform-go/v9/dataprivacy/config"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
+	"github.com/primandproper/platform-go/v10/dataprivacy/auditerasure"
+	platformdataprivacycfg "github.com/primandproper/platform-go/v10/dataprivacy/config"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/operations"
 
 	"github.com/samber/do/v2"
 )
@@ -71,7 +72,7 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	var (
 		ctx            = do.MustInvoke[context.Context](i)
 		logger         = do.MustInvoke[logging.Logger](i)
-		tracerProvider = do.MustInvoke[tracing.TracerProvider](i)
+		tracerProvider = do.MustInvoke[tracing.Provider](i)
 		identityRepo   = do.MustInvoke[identity.Repository](i)
 		registry       = platformdataprivacy.NewRegistry()
 	)
@@ -150,32 +151,58 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	return registry, nil
 }
 
-// RegisterWorker registers the fulfillment loop with the injector.
+// RegisterOperationsRegistry registers the *operations.Registry this application's operations
+// are looked up in, with the data privacy kinds already registered into it.
+//
+// platform-go v10 fulfills privacy requests as operations: the fulfillment loop is no longer a
+// worker of its own but a set of runners registered under operation kinds, which an
+// operations.Worker claims and runs. Building the Fulfiller is what performs that registration.
+//
+// It happens inside the registry's own provider rather than beside it because the ordering is
+// load-bearing and invisible when wrong. samber/do resolves lazily, so a Registry resolved
+// before anything built the Fulfiller is an empty one — and an empty registry does not fail
+// loudly, it makes Service.Start refuse every privacy request with ErrUnknownKind and
+// Worker.Run reject every claim the same way. Depending on the Fulfiller here makes the
+// registration a precondition of holding the registry at all.
+//
+// Both process roles need this, not just the one that runs the work: Start looks the kind up in
+// the registry of the process calling it, so an API server that only submits requests still has
+// to know the kinds exist.
 //
 // Prerequisites: RegisterRegistry, and dataprivacycfg.RegisterArtifactStorage.
-func RegisterWorker(i do.Injector) {
-	do.Provide(i, func(i do.Injector) (*platformdataprivacy.Worker, error) {
-		workerOpts, _ := platformdataprivacycfg.EnsurePackaging(
+func RegisterOperationsRegistry(i do.Injector) {
+	do.Provide(i, func(i do.Injector) (*operations.Registry, error) {
+		registry := operations.NewRegistry()
+
+		fulfillerOpts, _ := platformdataprivacycfg.EnsurePackaging(
 			do.MustInvoke[dataprivacycfg.ArtifactCompressor](i).Compressor,
 			do.MustInvoke[dataprivacycfg.ArtifactEncryptorDecryptor](i).EncryptorDecryptor,
 		)
 
-		return platformdataprivacycfg.NewWorker(
+		// The Fulfiller is discarded on purpose. Its whole effect here is the registration
+		// it performs into registry; nothing calls it directly afterwards, because the
+		// operations.Worker runs it through the kinds it registered.
+		if _, err := platformdataprivacycfg.NewFulfiller(
 			do.MustInvoke[context.Context](i),
 			prepareConfig(i),
 			do.MustInvoke[platformdataprivacy.Store](i),
 			do.MustInvoke[*platformdataprivacy.Registry](i),
+			registry,
 			do.MustInvoke[dataprivacycfg.ArtifactUploadManager](i).UploadManager,
 			// Artifacts are encrypted, so no signed URL can be minted for one: the
 			// stored object is ciphertext and a subject following that link would get a
-			// file they cannot open. Saying so here is what stops the Worker attaching
-			// a broken download link to a completion notification.
+			// file they cannot open. Saying so here is what stops a completion
+			// notification carrying a broken download link.
 			true,
 			platformdataprivacycfg.WithLogger(do.MustInvoke[logging.Logger](i)),
-			platformdataprivacycfg.WithTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			platformdataprivacycfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			platformdataprivacycfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
-			platformdataprivacycfg.WithWorkerOptions(workerOpts...),
-		)
+			platformdataprivacycfg.WithFulfillerOptions(fulfillerOpts...),
+		); err != nil {
+			return nil, platformerrors.Wrap(err, "registering data privacy operation kinds")
+		}
+
+		return registry, nil
 	})
 }
 
@@ -196,7 +223,7 @@ func RegisterSweeper(i do.Injector) {
 			do.MustInvoke[platformdataprivacy.Store](i),
 			do.MustInvoke[dataprivacycfg.ArtifactUploadManager](i).UploadManager,
 			platformdataprivacycfg.WithLogger(do.MustInvoke[logging.Logger](i)),
-			platformdataprivacycfg.WithTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			platformdataprivacycfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			platformdataprivacycfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 	})

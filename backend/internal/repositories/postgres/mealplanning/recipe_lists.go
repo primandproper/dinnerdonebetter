@@ -9,11 +9,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -105,7 +105,7 @@ func (q *repository) CreateRecipeList(ctx context.Context, input *types.RecipeLi
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeListIDKey, input.ID)
 	logger := q.logger.WithValue(mealplanningkeys.RecipeListIDKey, input.ID)
@@ -138,7 +138,7 @@ func (q *repository) UpdateRecipeList(ctx context.Context, updated *types.Recipe
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.RecipeListIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeListIDKey, updated.ID)

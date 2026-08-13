@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -56,7 +56,7 @@ func (q *repository) fleshOutMealPlanGroceryListItem(ctx context.Context, mealPl
 	logger := q.logger.Clone()
 
 	if mealPlanGroceryListItem == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	logger = logger.WithValue(mealplanningkeys.MealPlanGroceryListItemIDKey, mealPlanGroceryListItem.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanGroceryListItemIDKey, mealPlanGroceryListItem.ID)
@@ -354,7 +354,7 @@ func (q *repository) createMealPlanGroceryListItem(ctx context.Context, querier 
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	logger := q.logger.WithValue(mealplanningkeys.MealPlanGroceryListItemIDKey, input.ID)
@@ -415,7 +415,7 @@ func (q *repository) createMealPlanGroceryListItem(ctx context.Context, querier 
 // CreateMealPlanGroceryListItem creates a meal plan grocery list in the database.
 func (q *repository) CreateMealPlanGroceryListItem(ctx context.Context, input *mealplanning.MealPlanGroceryListItemDatabaseCreationInput) (*mealplanning.MealPlanGroceryListItem, error) {
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	var created *mealplanning.MealPlanGroceryListItem
@@ -540,7 +540,7 @@ func (q *repository) UpdateMealPlanGroceryListItem(ctx context.Context, updated 
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.MealPlanGroceryListItemIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanGroceryListItemIDKey, updated.ID)

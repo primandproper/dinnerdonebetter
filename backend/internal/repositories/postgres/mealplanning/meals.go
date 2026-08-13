@@ -9,14 +9,16 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
+	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -465,14 +467,23 @@ func (q *repository) GetMealsWithIDs(ctx context.Context, ids []string) ([]*meal
 	return meals, nil
 }
 
-// GetMealIDsThatNeedSearchIndexing fetches a list of meal IDs from the database that meet a particular filter.
-func (q *repository) GetMealIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
+// ScanMealIDsForReindex returns up to limit IDs sorting strictly after `after`, in ascending byte order.
+//
+// It is the source half of a search reindex: searchsync.Reindexer walks this to find every
+// document that should exist, and prunes the index of anything it does not name. It replaces
+// the "IDs that need indexing" sampler platform-go v10 removed, which asked a different and
+// weaker question — which rows look stale — and could only ever be probabilistically right,
+// because a row the sampler had not reached was a row the index was wrong about.
+func (q *repository) ScanMealIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	results, err := q.generatedQuerier.GetMealsNeedingIndexing(ctx, q.readDB)
+	results, err := q.generatedQuerier.ScanMealIDsForReindex(ctx, q.readDB, &generated.ScanMealIDsForReindexParams{
+		Cursor:      after,
+		ResultLimit: limit,
+	})
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "executing meals list retrieval query")
+		return nil, observability.PrepareError(err, span, "executing meals reindex scan query")
 	}
 
 	return results, nil
@@ -576,7 +587,7 @@ func (q *repository) createMeal(ctx context.Context, querier database.SQLQueryEx
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.MealIDKey, input.ID).WithValue("meal.name", input.Name)
 
@@ -622,7 +633,7 @@ func (q *repository) CreateMeal(ctx context.Context, input *mealplanning.MealDat
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	var x *mealplanning.Meal
@@ -638,7 +649,7 @@ func (q *repository) CreateMeal(ctx context.Context, input *mealplanning.MealDat
 		// rows it describes.
 		if emitErr := q.events.Emit(ctx, tx, q.logger, mealplanning.MealCreatedServiceEventType, "", map[string]any{
 			mealplanningkeys.MealIDKey: input.ID,
-		}); emitErr != nil {
+		}, events.WithIndexUpsert(mealplanningindexing.IndexTypeMeals, input.ID)); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
@@ -658,7 +669,7 @@ func (q *repository) CreateMealComponent(ctx context.Context, querier database.S
 	logger := q.logger.Clone()
 
 	if input == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 
 	if mealID == "" {
@@ -738,7 +749,7 @@ func (q *repository) ArchiveMeal(ctx context.Context, mealID, userID string) err
 		}
 
 		return nil
-	}); err != nil {
+	}, events.WithIndexDelete(mealplanningindexing.IndexTypeMeals, mealID)); err != nil {
 		return err
 	}
 

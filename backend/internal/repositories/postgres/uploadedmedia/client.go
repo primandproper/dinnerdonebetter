@@ -5,9 +5,9 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -28,7 +28,7 @@ type repository struct {
 // ProvideUploadedMediaRepository provides a new repository.
 func ProvideUploadedMediaRepository(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	auditLogEntryRepo audit.Repository,
 	client database.Client,
 ) types.Repository {

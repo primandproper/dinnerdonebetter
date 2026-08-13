@@ -604,6 +604,43 @@ func (q *Queries) GetValidPreparationsWithIDs(ctx context.Context, db DBTX, ids 
 	return items, nil
 }
 
+const scanValidPreparationIDsForReindex = `-- name: ScanValidPreparationIDsForReindex :many
+SELECT valid_preparations.id
+FROM valid_preparations
+WHERE valid_preparations.archived_at IS NULL
+	AND valid_preparations.id COLLATE "C" > $1
+ORDER BY valid_preparations.id COLLATE "C"
+LIMIT COALESCE($2, 50)
+`
+
+type ScanValidPreparationIDsForReindexParams struct {
+	Cursor      string
+	ResultLimit interface{}
+}
+
+func (q *Queries) ScanValidPreparationIDsForReindex(ctx context.Context, db DBTX, arg *ScanValidPreparationIDsForReindexParams) ([]string, error) {
+	rows, err := db.QueryContext(ctx, scanValidPreparationIDsForReindex, arg.Cursor, arg.ResultLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchForValidPreparations = `-- name: SearchForValidPreparations :many
 SELECT
 	valid_preparations.id,

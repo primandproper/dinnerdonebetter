@@ -265,6 +265,37 @@ func buildCursorLimitClause(tableName string) string {
 	return fmt.Sprintf("ORDER BY %s.%s ASC\nLIMIT COALESCE(sqlc.narg(%s), 50)", tableName, idColumn, limitArg)
 }
 
+// buildReindexScanQuery builds the keyset walk a search reindex reads its source through.
+//
+// It returns IDs rather than rows on purpose. searchsync.Scanner and searchsync.Fetcher both
+// have to produce the same document for the same row, and the cheapest way to guarantee that
+// is to have one of them call the other: the scan names the next page of IDs and the fetch —
+// the same one the change feed uses — turns them into documents. Selecting rows here would be
+// a second row-to-document transform, and two transforms that are supposed to agree are two
+// transforms that can drift.
+//
+// The ordering is a byte comparison, COLLATE "C", not the database's default collation.
+// searchsync requires ascending byte order because the pruning half of a reindex merges this
+// stream against the index's own stream of IDs, and Postgres's en_US.UTF-8 sorts
+// case-insensitively and ignores punctuation — a different order. Two ordered streams merged
+// under disagreeing orders do not fail; they conclude that live documents are absent from the
+// source and delete them. The Reindexer verifies the order it is given for the same reason.
+func buildReindexScanQuery(tableName string) string {
+	return buildRawQuery((&builq.Builder{}).Addf(`SELECT %s.%s
+FROM %s
+WHERE %s.%s IS NULL
+	AND %s.%s COLLATE "C" > sqlc.arg(%s)
+ORDER BY %s.%s COLLATE "C"
+LIMIT COALESCE(sqlc.narg(%s), 50);`,
+		tableName, idColumn,
+		tableName,
+		tableName, archivedAtColumn,
+		tableName, idColumn, cursorArg,
+		tableName, idColumn,
+		limitArg,
+	))
+}
+
 // buildCursorPaginationFragment creates a complete cursor-based pagination fragment
 // for use in queries that don't already have buildFilterConditions.
 func buildCursorPaginationFragment(tableName string) string {

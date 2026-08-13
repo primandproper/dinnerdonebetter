@@ -7,11 +7,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentsfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	platformmetering "github.com/primandproper/platform-go/v9/metering"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	platformmetering "github.com/primandproper/platform-go/v10/metering"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

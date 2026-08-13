@@ -6,10 +6,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/random"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/random"
 
 	"github.com/samber/do/v2"
 )
@@ -20,7 +20,7 @@ func RegisterOAuth2Manager(i do.Injector) {
 		return NewOAuth2Manager(
 			do.MustInvoke[context.Context](i),
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[random.Generator](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),
 			do.MustInvoke[oauth.Repository](i),

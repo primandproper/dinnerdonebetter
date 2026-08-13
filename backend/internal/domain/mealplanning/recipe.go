@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -143,7 +143,7 @@ type (
 		UpdateRecipeStatus(ctx context.Context, recipeID, newStatus string) error
 		MarkRecipeAsIndexed(ctx context.Context, recipeID string) error
 		ArchiveRecipe(ctx context.Context, recipeID, userID string) error
-		GetRecipeIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error)
+		ScanRecipeIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetRecipesWithIDs(ctx context.Context, ids []string) ([]*Recipe, error)
 		AddRecipeImage(ctx context.Context, recipeID, uploadedMediaID, uploadedByUser string) error
 	}

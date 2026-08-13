@@ -5,10 +5,10 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	platformmetering "github.com/primandproper/platform-go/v9/metering"
-	"github.com/primandproper/platform-go/v9/observability/logging"
+	"github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	platformmetering "github.com/primandproper/platform-go/v10/metering"
+	"github.com/primandproper/platform-go/v10/observability/logging"
 )
 
 // quotaSourceO11yName names this component's logger.

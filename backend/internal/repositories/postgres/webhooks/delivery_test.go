@@ -22,15 +22,16 @@ import (
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/database/dialect"
-	"github.com/primandproper/platform-go/v9/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v9/outbox"
-	"github.com/primandproper/platform-go/v9/webhooks"
-	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
+	"github.com/primandproper/platform-go/v10/cryptography/requestsigning"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/database/dialect"
+	"github.com/primandproper/platform-go/v10/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v10/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v10/outbox"
+	"github.com/primandproper/platform-go/v10/webhooks"
+	webhookscfg "github.com/primandproper/platform-go/v10/webhooks/config"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -195,22 +196,22 @@ func TestIntegration_WebhookDelivery(t *testing.T) {
 	// The signature must verify over the exact bytes received. Verifying a re-serialized body
 	// is the classic way a subscriber ends up authenticating something it did not receive, so
 	// the body is passed through untouched.
-	require.NoError(t, webhooks.Verify(
+	require.NoError(t, requestsigning.Verify(
 		webhooks.Secret{Current: secret},
 		delivery.body,
-		delivery.headers.Get(webhooks.SignatureHeader),
+		delivery.headers.Get(requestsigning.SignatureHeader),
 	))
 
 	// A wrong key must not verify, or the assertion above proves nothing.
-	require.Error(t, webhooks.Verify(
+	require.Error(t, requestsigning.Verify(
 		webhooks.Secret{Current: []byte("not the signing secret at all!!!")},
 		delivery.body,
-		delivery.headers.Get(webhooks.SignatureHeader),
+		delivery.headers.Get(requestsigning.SignatureHeader),
 	))
 
 	assert.Equal(t, eventType, delivery.headers.Get(webhooks.EventTypeHeader))
 	assert.NotEmpty(t, delivery.headers.Get(webhooks.DeliveryIDHeader))
-	assert.NotEmpty(t, delivery.headers.Get(webhooks.TimestampHeader))
+	assert.NotEmpty(t, delivery.headers.Get(requestsigning.TimestampHeader))
 	assert.Equal(t, "application/json", delivery.headers.Get("Content-Type"))
 
 	// The payload is the data change message, byte-identical to what the broker carries.

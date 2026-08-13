@@ -4,15 +4,16 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	oauthkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth/generated"
 
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var _ types.OAuth2ClientTokenDataManager = (*repository)(nil)
@@ -24,6 +25,39 @@ func (q *repository) hashToken(value string) string {
 	mac := hmac.New(sha256.New, q.oauth2ClientTokenHashKey)
 	mac.Write([]byte(value))
 	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// encryptToken seals a token value for storage.
+//
+// platform-go v10's keyring works in bytes and returns a raw frame — a key ID header followed
+// by the ciphertext — where v9's cipher returned a base64 string. The columns are TEXT, so the
+// base64 that used to happen inside the cipher happens here instead.
+//
+// The associated data is nil. Binding each token to its client ID would stop a ciphertext being
+// lifted from one row into another, but it changes what decryption requires and so needs the
+// same re-encryption pass as any other change to the stored format; it is worth doing on its own.
+func (q *repository) encryptToken(ctx context.Context, plaintext string) (string, error) {
+	sealed, err := q.oauth2ClientTokenEncDec.Encrypt(ctx, []byte(plaintext), nil)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.URLEncoding.EncodeToString(sealed), nil
+}
+
+// decryptToken reverses encryptToken.
+func (q *repository) decryptToken(ctx context.Context, stored string) (string, error) {
+	raw, err := base64.URLEncoding.DecodeString(stored)
+	if err != nil {
+		return "", err
+	}
+
+	opened, err := q.oauth2ClientTokenEncDec.Decrypt(ctx, raw, nil)
+	if err != nil {
+		return "", err
+	}
+
+	return string(opened), nil
 }
 
 // GetOAuth2ClientTokenByCode fetches an OAuth2 client token from the database.
@@ -66,19 +100,19 @@ func (q *repository) GetOAuth2ClientTokenByCode(ctx context.Context, code string
 	oauth2ClientToken.AccessExpiresAt = result.AccessExpiresAt.Sub(result.AccessCreatedAt)
 	oauth2ClientToken.RefreshExpiresAt = result.RefreshExpiresAt.Sub(result.RefreshCreatedAt)
 
-	decryptedCode, err := q.oauth2ClientTokenEncDec.Decrypt(ctx, result.Code)
+	decryptedCode, err := q.decryptToken(ctx, result.Code)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "decrypting oauth2 token code")
 	}
 	oauth2ClientToken.Code = decryptedCode
 
-	decryptedAccess, err := q.oauth2ClientTokenEncDec.Decrypt(ctx, result.Access)
+	decryptedAccess, err := q.decryptToken(ctx, result.Access)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "decrypting oauth2 token access")
 	}
 	oauth2ClientToken.Access = decryptedAccess
 
-	decryptedRefresh, err := q.oauth2ClientTokenEncDec.Decrypt(ctx, result.Refresh)
+	decryptedRefresh, err := q.decryptToken(ctx, result.Refresh)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "decrypting oauth2 token refresh")
 	}
@@ -127,19 +161,19 @@ func (q *repository) GetOAuth2ClientTokenByAccess(ctx context.Context, access st
 	oauth2ClientToken.AccessExpiresAt = result.AccessExpiresAt.Sub(result.AccessCreatedAt)
 	oauth2ClientToken.RefreshExpiresAt = result.RefreshExpiresAt.Sub(result.RefreshCreatedAt)
 
-	decryptedCode, err := q.oauth2ClientTokenEncDec.Decrypt(ctx, result.Code)
+	decryptedCode, err := q.decryptToken(ctx, result.Code)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "decrypting oauth2 token code")
 	}
 	oauth2ClientToken.Code = decryptedCode
 
-	decryptedAccess, err := q.oauth2ClientTokenEncDec.Decrypt(ctx, result.Access)
+	decryptedAccess, err := q.decryptToken(ctx, result.Access)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "decrypting oauth2 token access")
 	}
 	oauth2ClientToken.Access = decryptedAccess
 
-	decryptedRefresh, err := q.oauth2ClientTokenEncDec.Decrypt(ctx, result.Refresh)
+	decryptedRefresh, err := q.decryptToken(ctx, result.Refresh)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "decrypting oauth2 token refresh")
 	}
@@ -188,19 +222,19 @@ func (q *repository) GetOAuth2ClientTokenByRefresh(ctx context.Context, refresh 
 	oauth2ClientToken.AccessExpiresAt = result.AccessExpiresAt.Sub(result.AccessCreatedAt)
 	oauth2ClientToken.RefreshExpiresAt = result.RefreshExpiresAt.Sub(result.RefreshCreatedAt)
 
-	decryptedCode, err := q.oauth2ClientTokenEncDec.Decrypt(ctx, result.Code)
+	decryptedCode, err := q.decryptToken(ctx, result.Code)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "decrypting oauth2 token code")
 	}
 	oauth2ClientToken.Code = decryptedCode
 
-	decryptedAccess, err := q.oauth2ClientTokenEncDec.Decrypt(ctx, result.Access)
+	decryptedAccess, err := q.decryptToken(ctx, result.Access)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "decrypting oauth2 token access")
 	}
 	oauth2ClientToken.Access = decryptedAccess
 
-	decryptedRefresh, err := q.oauth2ClientTokenEncDec.Decrypt(ctx, result.Refresh)
+	decryptedRefresh, err := q.decryptToken(ctx, result.Refresh)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "decrypting oauth2 token refresh")
 	}
@@ -215,23 +249,23 @@ func (q *repository) CreateOAuth2ClientToken(ctx context.Context, input *types.O
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	logger := q.logger.WithValue(oauthkeys.OAuth2ClientTokenIDKey, input.ID)
 	now := q.CurrentTime()
 
-	encryptedCode, err := q.oauth2ClientTokenEncDec.Encrypt(ctx, input.Code)
+	encryptedCode, err := q.encryptToken(ctx, input.Code)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "encrypting oauth2 token code")
 	}
 
-	encryptedAccess, err := q.oauth2ClientTokenEncDec.Encrypt(ctx, input.Access)
+	encryptedAccess, err := q.encryptToken(ctx, input.Access)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "encrypting oauth2 token access")
 	}
 
-	encryptedRefresh, err := q.oauth2ClientTokenEncDec.Encrypt(ctx, input.Refresh)
+	encryptedRefresh, err := q.encryptToken(ctx, input.Refresh)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "encrypting oauth2 token refresh")
 	}

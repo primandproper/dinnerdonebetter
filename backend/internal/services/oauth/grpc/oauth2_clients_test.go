@@ -11,9 +11,9 @@ import (
 	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 
-	"github.com/primandproper/platform-go/v9/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

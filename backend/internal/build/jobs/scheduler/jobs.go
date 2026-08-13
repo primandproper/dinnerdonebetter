@@ -2,21 +2,24 @@ package scheduler
 
 import (
 	"context"
+	"errors"
 
 	mobilenotificationscheduler "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/mobile_notification_scheduler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
+	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/platform-go/v9/audit"
-	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
-	"github.com/primandproper/platform-go/v9/distributedlock"
-	"github.com/primandproper/platform-go/v9/jobs"
-	"github.com/primandproper/platform-go/v9/metering"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/search/text/indexing"
+	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
+	"github.com/primandproper/platform-go/v10/distributedlock"
+	"github.com/primandproper/platform-go/v10/jobs"
+	"github.com/primandproper/platform-go/v10/metering"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/retention"
+	searchsync "github.com/primandproper/platform-go/v10/search/sync"
 
 	"github.com/samber/do/v2"
 )
@@ -44,7 +47,7 @@ func RegisterScheduler(i do.Injector) {
 			&jobsCfg.Scheduler,
 			do.MustInvoke[distributedlock.Locker](i),
 			jobs.WithSchedulerLogger(do.MustInvoke[logging.Logger](i)),
-			jobs.WithSchedulerTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			jobs.WithSchedulerTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			jobs.WithSchedulerMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 		if err != nil {
@@ -69,7 +72,16 @@ func RegisterScheduler(i do.Injector) {
 			{
 				name: jobSearchDataIndexScheduler,
 				cfg:  &jobsCfg.SearchDataIndexScheduler,
-				run:  do.MustInvoke[*indexing.IndexScheduler](i).IndexTypes,
+				// The reindex backstop. It used to be the only thing keeping the indexes
+				// current — a sampler that published an index request for every row that
+				// looked stale — and it is now the slow half of a pair, behind a change
+				// feed that keeps up in the ordinary case.
+				//
+				// Every index is walked on one tick, sequentially. They are walked rather
+				// than sampled, so this is proportional to the tables rather than to the
+				// change rate; running them concurrently would multiply that load against
+				// the same database for no gain in a job with a whole tick to finish in.
+				run: runReindexers(i),
 			},
 			{
 				name: jobMobileNotificationScheduler,
@@ -103,13 +115,14 @@ func RegisterScheduler(i do.Injector) {
 			{
 				name: jobAuditRetentionSweeper,
 				cfg:  &jobsCfg.AuditRetentionSweeper,
-				// Sweep reports how many entries it pruned and logs its own failures —
-				// there is no caller to return them to, and a scope that fails must not
-				// stop the others. The count is already a metric.
+				// The sweep reports what each policy pruned and records its own failures;
+				// a policy that fails must not stop the others, and the counts are
+				// already metrics. The error is returned so a sweep that could not run
+				// at all shows up as a failed job rather than a silent one.
 				run: func(ctx context.Context) error {
-					do.MustInvoke[*audit.Sweeper](i).Sweep(ctx)
+					_, sweepErr := do.MustInvoke[*retention.Sweeper](i).Sweep(ctx)
 
-					return nil
+					return sweepErr
 				},
 			},
 			{
@@ -146,4 +159,36 @@ func RegisterScheduler(i do.Injector) {
 
 		return scheduler, nil
 	})
+}
+
+// runReindexers walks every search index against its source, one after another.
+//
+// A failure does not stop the others: the indexes are independent, and an Algolia outage on one
+// of them is no reason to leave the other eight un-rebuilt. The errors are joined so the job
+// still reports as failed, with all of what went wrong rather than the first of it.
+func runReindexers(i do.Injector) func(context.Context) error {
+	return func(ctx context.Context) error {
+		reindexers := []interface {
+			Reindex(context.Context) (*searchsync.ReindexResult, error)
+		}{
+			do.MustInvoke[*searchsync.Reindexer[identityindexing.UserSearchSubset]](i),
+			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.MealSearchSubset]](i),
+			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.RecipeSearchSubset]](i),
+			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.ValidIngredientSearchSubset]](i),
+			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.ValidInstrumentSearchSubset]](i),
+			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.ValidMeasurementUnitSearchSubset]](i),
+			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.ValidPreparationSearchSubset]](i),
+			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.ValidIngredientStateSearchSubset]](i),
+			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.ValidVesselSearchSubset]](i),
+		}
+
+		var errs []error
+		for _, reindexer := range reindexers {
+			if _, err := reindexer.Reindex(ctx); err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		return errors.Join(errs...)
+	}
 }

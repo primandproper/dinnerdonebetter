@@ -10,11 +10,11 @@ import (
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v9/cookies"
-	"github.com/primandproper/platform-go/v9/encoding"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/cookies"
+	"github.com/primandproper/platform-go/v10/encoding"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 // AuthOptionsRequest is the request body for passkey authentication options.

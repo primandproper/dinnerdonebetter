@@ -3,11 +3,11 @@ package scheduler
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/webhooks"
-	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/webhooks"
+	webhookscfg "github.com/primandproper/platform-go/v10/webhooks/config"
 
 	"github.com/samber/do/v2"
 )
@@ -31,7 +31,7 @@ func RegisterWebhookWorker(i do.Injector) {
 			do.MustInvoke[*webhookscfg.Config](i),
 			do.MustInvoke[webhooks.Store](i),
 			webhookscfg.WithLogger(do.MustInvoke[logging.Logger](i)),
-			webhookscfg.WithTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			webhookscfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			webhookscfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 	})

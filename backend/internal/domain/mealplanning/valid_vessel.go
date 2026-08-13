@@ -5,7 +5,7 @@ import (
 	"encoding/gob"
 	"time"
 
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -163,7 +163,7 @@ type (
 		UpdateValidVessel(ctx context.Context, updated *ValidVessel) error
 		MarkValidVesselAsIndexed(ctx context.Context, validVesselID string) error
 		ArchiveValidVessel(ctx context.Context, validVesselID string) error
-		GetValidVesselIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error)
+		ScanValidVesselIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetValidVesselsWithIDs(ctx context.Context, ids []string) ([]*ValidVessel, error)
 	}
 )

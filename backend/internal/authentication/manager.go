@@ -14,13 +14,13 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v9/authentication/tokens"
-	"github.com/primandproper/platform-go/v9/authentication/totp"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/authentication/tokens"
+	"github.com/primandproper/platform-go/v10/authentication/totp"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -60,7 +60,7 @@ func NewManager(
 	tokenIssuer tokens.Issuer,
 	authenticator Authenticator,
 	totpVerifier totp.Verifier,
-	tracingProvider tracing.TracerProvider,
+	tracingProvider tracing.Provider,
 	logger logging.Logger,
 	publisherProvider messagequeue.PublisherProvider,
 	userAuthDataManager identity.Repository,

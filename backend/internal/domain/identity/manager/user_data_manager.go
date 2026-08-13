@@ -15,16 +15,16 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/searchpagination"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/observability"
-	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/qrcodes"
-	"github.com/primandproper/platform-go/v9/random"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/observability"
+	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/qrcodes"
+	"github.com/primandproper/platform-go/v10/random"
 
 	passwordvalidator "github.com/wagslane/go-password-validator"
 )
@@ -39,8 +39,8 @@ const (
 var (
 	// ErrInvalidIDProvided indicates a required ID was passed in empty.
 	ErrInvalidIDProvided = platformerrors.New("required ID was empty")
-	// ErrNilInputProvided indicates that a required parameter was nil.
-	ErrNilInputProvided = platformerrors.New("nil input provided")
+	// ErrNilInputParameter indicates that a required parameter was nil.
+	ErrNilInputParameter = platformerrors.New("nil input provided")
 	// ErrEmptyInputProvided indicates that the required input was empty.
 	ErrEmptyInputProvided = platformerrors.New("empty input provided")
 )
@@ -63,7 +63,7 @@ type (
 // transaction as the write they describe; see internal/repositories/postgres/events.
 func NewIdentityDataManager(
 	ctx context.Context,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	logger logging.Logger,
 	identityRepo identity.Repository,
 	secretGenerator random.Generator,
@@ -92,7 +92,7 @@ func (m *manager) AcceptAccountInvitation(ctx context.Context, accountID, accoun
 	}
 
 	if input == nil {
-		return ErrNilInputProvided
+		return ErrNilInputParameter
 	}
 
 	if err := input.ValidateWithContext(ctx); err != nil {
@@ -132,7 +132,7 @@ func (m *manager) RejectAccountInvitation(ctx context.Context, accountID, accoun
 	}
 
 	if input == nil {
-		return ErrNilInputProvided
+		return ErrNilInputParameter
 	}
 
 	logger := observability.ObserveValues(map[string]any{
@@ -242,7 +242,7 @@ func (m *manager) CreateAccount(ctx context.Context, input *identity.AccountCrea
 	defer span.End()
 
 	if input == nil {
-		return nil, ErrNilInputProvided
+		return nil, ErrNilInputParameter
 	}
 
 	if err := input.ValidateWithContext(ctx); err != nil {
@@ -272,7 +272,7 @@ func (m *manager) CreateAccountInvitation(ctx context.Context, userID, accountID
 	}
 
 	if input == nil {
-		return nil, ErrNilInputProvided
+		return nil, ErrNilInputParameter
 	}
 
 	if err := input.ValidateWithContext(ctx); err != nil {
@@ -304,7 +304,7 @@ func (m *manager) CreateUser(ctx context.Context, input *identity.UserRegistrati
 	defer span.End()
 
 	if input == nil {
-		return nil, ErrNilInputProvided
+		return nil, ErrNilInputParameter
 	}
 
 	logger := observability.ObserveValues(map[string]any{
@@ -701,7 +701,7 @@ func (m *manager) TransferAccountOwnership(ctx context.Context, accountID string
 	}
 
 	if input == nil {
-		return ErrNilInputProvided
+		return ErrNilInputParameter
 	}
 
 	logger := observability.ObserveValues(map[string]any{
@@ -729,7 +729,7 @@ func (m *manager) UpdateAccount(ctx context.Context, accountID string, input *id
 	}
 
 	if input == nil {
-		return ErrNilInputProvided
+		return ErrNilInputParameter
 	}
 
 	logger := observability.ObserveValues(map[string]any{
@@ -779,7 +779,7 @@ func (m *manager) UpdateAccountMemberPermissions(ctx context.Context, accountID,
 	}
 
 	if input == nil {
-		return ErrNilInputProvided
+		return ErrNilInputParameter
 	}
 
 	logger := observability.ObserveValues(map[string]any{
@@ -806,7 +806,7 @@ func (m *manager) UpdateUserDetails(ctx context.Context, userID string, input *i
 	}
 
 	if input == nil {
-		return ErrNilInputProvided
+		return ErrNilInputParameter
 	}
 
 	if err := input.ValidateWithContext(ctx); err != nil {
@@ -894,7 +894,7 @@ func (m *manager) AdminUpdateUserStatus(ctx context.Context, input *identity.Use
 	defer span.End()
 
 	if input == nil {
-		return ErrNilInputProvided
+		return ErrNilInputParameter
 	}
 
 	logger := observability.ObserveValues(map[string]any{

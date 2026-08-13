@@ -3,7 +3,7 @@ package scheduler
 import (
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 
-	capitalismcfg "github.com/primandproper/platform-go/v9/capitalism/config"
+	capitalismcfg "github.com/primandproper/platform-go/v10/capitalism/config"
 
 	"github.com/samber/do/v2"
 )

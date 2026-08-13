@@ -10,8 +10,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -233,7 +233,7 @@ func TestQuerier_Integration_Recipes(t *testing.T) {
 	assert.NotEmpty(t, recipes.Data)
 	assert.Len(t, recipes.Data, len(createdRecipes))
 
-	needingIndexing, err := dbc.GetRecipeIDsThatNeedSearchIndexing(ctx)
+	needingIndexing, err := dbc.ScanRecipeIDsForReindex(ctx, "", 100)
 	require.NoError(t, err)
 	assert.NotEmpty(t, needingIndexing)
 

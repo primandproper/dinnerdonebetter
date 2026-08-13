@@ -11,10 +11,10 @@ import (
 	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/featureflags"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/featureflags"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -34,7 +34,7 @@ func RegisterAuthService(i do.Injector) {
 			do.MustInvoke[*webauthncfg.Config](i),
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 		)
 	})
 
@@ -55,7 +55,7 @@ func RegisterAuthService(i do.Injector) {
 	do.Provide[authsvc.AuthServiceServer](i, func(i do.Injector) (authsvc.AuthServiceServer, error) {
 		return NewAuthService(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[identitymanager.IdentityDataManager](i),
 			do.MustInvoke[managers.AuthManagerInterface](i),
 			do.MustInvoke[authentication.Manager](i),

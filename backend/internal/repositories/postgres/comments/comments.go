@@ -9,12 +9,12 @@ import (
 	commentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -71,7 +71,7 @@ func (q *repository) CreateComment(ctx context.Context, input *types.CommentData
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, "comment_id", input.ID)
 	logger := q.logger.WithValue("comment_id", input.ID)

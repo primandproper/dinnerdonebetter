@@ -13,10 +13,10 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	oauthkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/keys"
 
-	"github.com/primandproper/platform-go/v9/authentication/tokens"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/authentication/tokens"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/go-oauth2/oauth2/v4"
 	"github.com/go-oauth2/oauth2/v4/errors"
@@ -27,7 +27,7 @@ import (
 
 func ProvideOAuth2ClientManager(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	cfg *OAuth2Config,
 	dataManager types.Repository,
 ) *manage.Manager {
@@ -51,7 +51,7 @@ func ProvideOAuth2ClientManager(
 
 func ProvideOAuth2ServerImplementation(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	identityDataManager identitymanager.IdentityDataManager,
 	authenticator authentication.Authenticator,
 	tokenIssuer tokens.Issuer,

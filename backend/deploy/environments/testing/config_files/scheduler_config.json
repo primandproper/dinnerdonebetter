@@ -43,6 +43,24 @@
 		}
 	},
 	"analytics": {
+		"proxySources": {
+			"ios": {
+				"provider": "noop",
+				"circuitBreaker": {
+					"name": "ios_analytics",
+					"circuitBreakerErrorPercentage": 0.5,
+					"circuitBreakerMinimumOccurrenceThreshold": 100
+				}
+			},
+			"web": {
+				"provider": "noop",
+				"circuitBreaker": {
+					"name": "web_analytics",
+					"circuitBreakerErrorPercentage": 0.5,
+					"circuitBreakerMinimumOccurrenceThreshold": 100
+				}
+			}
+		},
 		"provider": "noop",
 		"circuitBreaker": {
 			"name": "feature_flagger",
@@ -56,6 +74,15 @@
 			"name": "feature_flagger",
 			"circuitBreakerErrorPercentage": 0.5,
 			"circuitBreakerMinimumOccurrenceThreshold": 100
+		}
+	},
+	"audit": {
+		"dialect": "postgres",
+		"tablePrefix": "ddb",
+		"retention": {
+			"retention": 63072000000000000,
+			"batchSize": 1000,
+			"scopePageSize": 100
 		}
 	},
 	"jobs": {
@@ -118,17 +145,10 @@
 			}
 		}
 	},
-	"audit": {
-		"dialect": "postgres",
-		"tablePrefix": "ddb",
-		"retention": 63072000000000000,
-		"sweepInterval": 3600000000000,
-		"batchSize": 1000,
-		"scopeLimit": 100
-	},
 	"database": {
 		"encryption": {
-			"provider": "salsa20"
+			"provider": "aes",
+			"currentKeyID": "v1"
 		},
 		"oauth2TokenEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
 		"provider": "postgres",
@@ -157,22 +177,6 @@
 		"logQueries": true,
 		"runMigrations": true
 	},
-	"outbox": {
-		"claimMode": "skip_locked",
-		"backoff": {
-			"maxAttempts": 8,
-			"initialDelay": 1000000000,
-			"maxDelay": 60000000000,
-			"multiplier": 2,
-			"useJitter": true
-		},
-		"batchSize": 100,
-		"pollInterval": 1000000000,
-		"leaseDuration": 30000000000,
-		"retention": 604800000000000,
-		"reapInterval": 3600000000000,
-		"reapBatchSize": 1000
-	},
 	"sagas": {
 		"lockKeyPrefix": "saga:instance:",
 		"idempotencyKeyPrefix": "saga:",
@@ -198,6 +202,39 @@
 		"batchSize": 10,
 		"concurrency": 4
 	},
+	"outbox": {
+		"claimMode": "skip_locked",
+		"backoff": {
+			"maxAttempts": 8,
+			"initialDelay": 1000000000,
+			"maxDelay": 60000000000,
+			"multiplier": 2,
+			"useJitter": true
+		},
+		"batchSize": 100,
+		"pollInterval": 1000000000,
+		"leaseDuration": 30000000000,
+		"retention": 604800000000000,
+		"reapInterval": 3600000000000,
+		"reapBatchSize": 1000,
+		"minWakeInterval": 100000000
+	},
+	"dataPrivacy": {
+		"encryption": {
+			"provider": "aes",
+			"currentKeyID": "v1"
+		},
+		"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
+		"uploads": {
+			"storageConfig": {
+				"filesystem": {
+					"rootDirectory": "/tmp"
+				},
+				"bucketName": "userdata",
+				"provider": "filesystem"
+			}
+		}
+	},
 	"metering": {
 		"enforcer": {
 			"cachePrefix": "metering:",
@@ -221,6 +258,37 @@
 		},
 		"recorder": {
 			"batchSize": 100
+		}
+	},
+	"operations": {
+		"operations": {
+			"queueName": "operations",
+			"retention": 2592000000000000,
+			"recoverAfter": 60000000000,
+			"reapBatchSize": 1000,
+			"recoverBatchSize": 200
+		},
+		"queue": {
+			"name": "operations",
+			"retention": 86400000000000,
+			"maxClaimBatch": 500,
+			"reapBatchSize": 1000,
+			"writeAttempts": 3,
+			"minWakeInterval": 100000000
+		},
+		"worker": {
+			"poll": 5000000000,
+			"lease": 120000000000,
+			"retryDelay": 30000000000,
+			"progressInterval": 2000000000,
+			"batch": 4,
+			"concurrency": 2,
+			"maxAttempts": 5
+		},
+		"watcher": {
+			"poll": 2000000000,
+			"minReadInterval": 250000000,
+			"maxSubscriptions": 1024
 		}
 	},
 	"webhooks": {
@@ -254,19 +322,9 @@
 			"maxIdleConnsPerHost": 100
 		}
 	},
-	"dataPrivacy": {
-		"encryption": {
-			"provider": "salsa20"
-		},
-		"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
-		"uploads": {
-			"storageConfig": {
-				"filesystem": {
-					"rootDirectory": "/tmp"
-				},
-				"bucketName": "userdata",
-				"provider": "filesystem"
-			}
-		}
+	"retention": {
+		"batchSize": 1000,
+		"maxBatches": 1000,
+		"backlogCeiling": 100000
 	}
 }

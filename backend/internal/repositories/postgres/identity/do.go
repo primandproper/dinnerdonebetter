@@ -5,9 +5,9 @@ import (
 	domainidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -17,7 +17,7 @@ func RegisterIdentityRepository(i do.Injector) {
 	do.Provide[domainidentity.Repository](i, func(i do.Injector) (domainidentity.Repository, error) {
 		return ProvideIdentityRepository(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[audit.Repository](i),
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[*events.Emitter](i),

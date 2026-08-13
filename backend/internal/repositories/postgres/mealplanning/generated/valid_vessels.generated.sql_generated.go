@@ -663,6 +663,43 @@ func (q *Queries) GetValidVesselsWithIDs(ctx context.Context, db DBTX, ids []str
 	return items, nil
 }
 
+const scanValidVesselIDsForReindex = `-- name: ScanValidVesselIDsForReindex :many
+SELECT valid_vessels.id
+FROM valid_vessels
+WHERE valid_vessels.archived_at IS NULL
+	AND valid_vessels.id COLLATE "C" > $1
+ORDER BY valid_vessels.id COLLATE "C"
+LIMIT COALESCE($2, 50)
+`
+
+type ScanValidVesselIDsForReindexParams struct {
+	Cursor      string
+	ResultLimit interface{}
+}
+
+func (q *Queries) ScanValidVesselIDsForReindex(ctx context.Context, db DBTX, arg *ScanValidVesselIDsForReindexParams) ([]string, error) {
+	rows, err := db.QueryContext(ctx, scanValidVesselIDsForReindex, arg.Cursor, arg.ResultLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchForValidVessels = `-- name: SearchForValidVessels :many
 SELECT
 	valid_vessels.id,

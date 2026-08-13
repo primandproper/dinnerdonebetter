@@ -4,8 +4,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/manager"
 	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -19,7 +19,7 @@ func RegisterOAuthService(i do.Injector) {
 	do.Provide[oauthsvc.OAuthServiceServer](i, func(i do.Injector) (oauthsvc.OAuthServiceServer, error) {
 		return NewService(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[manager.OAuth2Manager](i),
 		), nil
 	})

@@ -8,9 +8,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	"github.com/primandproper/platform-go/v9/email"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/email"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -35,7 +35,7 @@ type Job struct {
 func NewJob(
 	emailer email.Emailer,
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	params *JobParams,
 ) (*Job, error) {
 	recipientEmail := params.RecipientEmailAddress

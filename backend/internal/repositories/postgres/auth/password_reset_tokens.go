@@ -8,10 +8,10 @@ import (
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -82,7 +82,7 @@ func (r *repository) CreatePasswordResetToken(ctx context.Context, input *auth.P
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	logger := r.logger.WithValue(authkeys.PasswordResetTokenIDKey, input.ID)
 	tracing.AttachToSpan(span, authkeys.PasswordResetTokenIDKey, input.ID)

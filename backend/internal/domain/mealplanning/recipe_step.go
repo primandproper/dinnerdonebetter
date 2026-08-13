@@ -8,7 +8,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -17,8 +17,6 @@ import (
 const (
 	maxIngredientsPerStep = 100
 
-	// RecipeStepCreatedServiceEventType indicates a recipe step was created.
-	RecipeStepCreatedServiceEventType = "recipe_step_created"
 	// RecipeStepUpdatedServiceEventType indicates a recipe step was updated.
 	RecipeStepUpdatedServiceEventType = "recipe_step_updated"
 	// RecipeStepArchivedServiceEventType indicates a recipe step was archived.

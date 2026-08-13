@@ -5,7 +5,6 @@ import (
 
 	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
 	mobilenotificationscheduler "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/mobile_notification_scheduler"
-	searchdataindexscheduler "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/search_data_index_scheduler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
@@ -28,25 +27,27 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
+	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
+	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/platform-go/v9/database"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	"github.com/primandproper/platform-go/v9/database/postgres"
-	"github.com/primandproper/platform-go/v9/distributedlock"
-	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
-	"github.com/primandproper/platform-go/v9/jobs"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v9/observability/logging/config"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	metricscfg "github.com/primandproper/platform-go/v9/observability/metrics/config"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	tracingcfg "github.com/primandproper/platform-go/v9/observability/tracing/config"
-	"github.com/primandproper/platform-go/v9/search/text/indexing"
+	"github.com/primandproper/platform-go/v10/database"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	"github.com/primandproper/platform-go/v10/database/postgres"
+	"github.com/primandproper/platform-go/v10/distributedlock"
+	distributedlockcfg "github.com/primandproper/platform-go/v10/distributedlock/config"
+	"github.com/primandproper/platform-go/v10/jobs"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	loggingcfg "github.com/primandproper/platform-go/v10/observability/logging/config"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	metricscfg "github.com/primandproper/platform-go/v10/observability/metrics/config"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	tracingcfg "github.com/primandproper/platform-go/v10/observability/tracing/config"
+	operationscfg "github.com/primandproper/platform-go/v10/operations/config"
 
 	"github.com/samber/do/v2"
 )
@@ -102,8 +103,16 @@ func BuildInjector(
 	// artifacts forever, which is why the sweeper is a registered job rather than a flag.
 	dataprivacycfg.RegisterArtifactStorage(i)
 	dataprivacybuild.RegisterRegistry(i)
-	dataprivacybuild.RegisterWorker(i)
+	dataprivacybuild.RegisterOperationsRegistry(i)
 	dataprivacybuild.RegisterSweeper(i)
+
+	// The operations tier privacy requests are now fulfilled through. This process runs the
+	// whole of it: the store and queue it shares with the API server, and the worker that
+	// claims operations and runs the kinds the registry above holds.
+	operationscfg.RegisterStore(i)
+	operationscfg.RegisterQueue(i)
+	operationscfg.RegisterService(i)
+	operationscfg.RegisterWorker(i)
 
 	// Dispatch happens inside the transaction that causes the event, so this process needs
 	// the webhook write side too — the meal plan finalizer emits events like any request does.
@@ -138,20 +147,17 @@ func BuildInjector(
 
 		return mobilenotificationscheduler.NewScheduler(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[mealplanning.Repository](i),
 			do.MustInvoke[identity.Repository](i),
 			publisher,
 		), nil
 	})
 
-	do.Provide[map[string]indexing.Function](i, func(i do.Injector) (map[string]indexing.Function, error) {
-		return searchdataindexscheduler.ProvideIndexFunctions(
-			do.MustInvoke[identity.Repository](i),
-			do.MustInvoke[mealplanning.Repository](i),
-		), nil
-	})
-	indexing.RegisterIndexScheduler(i, do.MustInvoke[*queuescfg.Config](i).SearchIndexRequestsTopicName)
+	// The Reindexers this process drives on a schedule. They come from the same registration
+	// as the Syncers the consumer runs, because the two are halves of keeping one index right.
+	identityindexing.RegisterUserReindexer(i)
+	mealplanningindexing.RegisterIndexSyncers(i)
 
 	// the lock that decides which replica runs a given tick
 	do.Provide[distributedlock.Locker](i, func(i do.Injector) (distributedlock.Locker, error) {
@@ -160,7 +166,7 @@ func BuildInjector(
 			&do.MustInvoke[*config.ScheduledJobsConfig](i).Lock,
 			do.MustInvoke[database.Client](i),
 			distributedlockcfg.WithLogger(do.MustInvoke[logging.Logger](i)),
-			distributedlockcfg.WithTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			distributedlockcfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			distributedlockcfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 	})
@@ -174,7 +180,7 @@ func BuildInjector(
 
 	RegisterScheduler(i)
 	RegisterOutboxRelay(i)
-	RegisterAuditSweeper(i)
+	RegisterRetentionSweeper(i)
 
 	return i
 }

@@ -6,8 +6,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/identifiers"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,7 +26,7 @@ func TestCreatePurchase(T *testing.T) {
 		actual, err := c.CreatePurchase(ctx, nil)
 		require.Error(t, err)
 		assert.Nil(t, actual)
-		assert.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
+		assert.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
 	})
 }
 

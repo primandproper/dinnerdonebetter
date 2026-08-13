@@ -12,17 +12,20 @@ import (
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	"github.com/primandproper/platform-go/v9/audit"
-	"github.com/primandproper/platform-go/v9/database/dialect"
-	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
-	pglock "github.com/primandproper/platform-go/v9/distributedlock/postgres"
-	"github.com/primandproper/platform-go/v9/jobs"
-	"github.com/primandproper/platform-go/v9/metering"
-	meteringcfg "github.com/primandproper/platform-go/v9/metering/config"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/outbox"
-	retrycfg "github.com/primandproper/platform-go/v9/retry/config"
-	"github.com/primandproper/platform-go/v9/saga"
+	"github.com/primandproper/platform-go/v10/audit"
+	auditcfg "github.com/primandproper/platform-go/v10/audit/config"
+	"github.com/primandproper/platform-go/v10/database/dialect"
+	distributedlockcfg "github.com/primandproper/platform-go/v10/distributedlock/config"
+	pglock "github.com/primandproper/platform-go/v10/distributedlock/postgres"
+	"github.com/primandproper/platform-go/v10/jobs"
+	"github.com/primandproper/platform-go/v10/metering"
+	meteringcfg "github.com/primandproper/platform-go/v10/metering/config"
+	"github.com/primandproper/platform-go/v10/observability"
+	operationscfg "github.com/primandproper/platform-go/v10/operations/config"
+	"github.com/primandproper/platform-go/v10/outbox"
+	"github.com/primandproper/platform-go/v10/retention"
+	retrycfg "github.com/primandproper/platform-go/v10/retry/config"
+	"github.com/primandproper/platform-go/v10/saga"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -179,14 +182,15 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 // The batch and scope limits are the platform defaults: one sweep removes at most a thousand
 // entries from any one scope and visits at most a hundred scopes, so a long-neglected log is
 // trimmed over several passes rather than by one DELETE holding locks for minutes.
-func defaultAuditSweeperConfig() audit.SweeperConfig {
-	return audit.SweeperConfig{
-		Dialect:       dialect.Postgres,
-		TablePrefix:   ddbaudit.TablePrefix,
-		Retention:     2 * 365 * 24 * time.Hour,
-		SweepInterval: time.Hour,
-		BatchSize:     audit.DefaultSweepBatchSize,
-		ScopeLimit:    audit.DefaultSweepScopeLimit,
+func defaultAuditSweeperConfig() auditcfg.Config {
+	return auditcfg.Config{
+		Dialect:     dialect.Postgres,
+		TablePrefix: ddbaudit.TablePrefix,
+		Retention: audit.RetentionConfig{
+			Retention:     2 * 365 * 24 * time.Hour,
+			BatchSize:     audit.DefaultRetentionBatchSize,
+			ScopePageSize: audit.DefaultScopePageSize,
+		},
 	}
 }
 
@@ -195,6 +199,25 @@ func defaultAuditSweeperConfig() audit.SweeperConfig {
 // The values are the platform's own defaults, written out rather than left zero so that a
 // rendered config shows what a deployment is actually running — an empty object in a config file
 // says nothing about whether usage events are kept for a week or a quarter.
+// DefaultOperationsConfig returns the operations tier's knobs, which every process that either
+// starts an operation or runs one shares.
+//
+// They are the platform's own defaults, obtained by asking for them rather than by copying the
+// numbers out: EnsureDefaults is what the constructors call, so a rendered config produced this
+// way cannot disagree with the one a process would have built for itself. The values are then
+// written out in full, so an operator reading the rendered JSON can see what is in force and
+// change one of them without having to know which package supplied it.
+//
+// The queue's Name is deliberately not set here. EnsureDefaults derives it from
+// Operations.QueueName, because two names for one queue is a misconfiguration whose only symptom
+// is a table of pending operations that nothing ever claims.
+func DefaultOperationsConfig() operationscfg.Config {
+	cfg := operationscfg.Config{}
+	cfg.EnsureDefaults()
+
+	return cfg
+}
+
 func DefaultMeteringConfig() meteringcfg.Config {
 	cfg := meteringcfg.Config{
 		Recorder: metering.RecorderConfig{
@@ -268,7 +291,23 @@ func defaultOutboxRelayConfig() outbox.RelayConfig {
 		Retention:     7 * 24 * time.Hour,
 		ReapInterval:  time.Hour,
 		ReapBatchSize: 1000,
+		// New in v10, and required: the floor between two wake-driven cycles. Without it a
+		// busy table can wake the relay faster than it can drain one, which spends the
+		// cycle budget on wakeups rather than on publishing.
+		MinWakeInterval: outbox.DefaultMinWakeInterval,
 	}
+}
+
+// defaultRetentionSweeperConfig returns the bounds the retention sweep runs under.
+//
+// The platform's own defaults, asked for rather than copied, for the same reason
+// DefaultOperationsConfig does it that way: EnsureDefaults is what the constructor calls, so a
+// rendered config produced this way cannot disagree with the one the process would have built.
+func defaultRetentionSweeperConfig() retention.SweeperConfig {
+	cfg := retention.SweeperConfig{}
+	cfg.EnsureDefaults()
+
+	return cfg
 }
 
 // defaultSagaWorkerConfig returns the settings for the loop that advances saga instances.
@@ -469,7 +508,11 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 		Jobs:          defaultScheduledJobsConfig(),
 		Outbox:        defaultOutboxRelayConfig(),
 		Audit:         defaultAuditSweeperConfig(),
+		Retention:     defaultRetentionSweeperConfig(),
 		Sagas:         defaultSagaWorkerConfig(),
+		// This process runs the operations worker, so it carries the whole tier. The API
+		// server carries the same struct for the enqueue-and-read half.
+		Operations: DefaultOperationsConfig(),
 		// The same webhook configuration the API service writes with, so the worker
 		// claims from the tables the dispatch rows are written into.
 		Webhooks: s.RootConfig.Webhooks,

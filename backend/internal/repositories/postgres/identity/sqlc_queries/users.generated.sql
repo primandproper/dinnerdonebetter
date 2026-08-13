@@ -428,6 +428,14 @@ FROM users
 WHERE users.archived_at IS NULL
 	AND users.id = sqlc.arg(id);
 
+-- name: ScanUserIDsForReindex :many
+SELECT users.id
+FROM users
+WHERE users.archived_at IS NULL
+	AND users.id COLLATE "C" > sqlc.arg(cursor)
+ORDER BY users.id COLLATE "C"
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
+
 -- name: GetUserIDsNeedingIndexing :many
 SELECT users.id
 FROM users

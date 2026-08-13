@@ -18,13 +18,13 @@ import (
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v9/errors/grpc"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/metering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/uploads"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	errorsgrpc "github.com/primandproper/platform-go/v10/errors/grpc"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/metering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/uploads"
 
 	"google.golang.org/grpc/codes"
 )

@@ -7,13 +7,15 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
+	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -511,7 +513,7 @@ func (q *repository) createRecipeStep(ctx context.Context, db database.SQLQueryE
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	// create the recipe step.
@@ -611,8 +613,43 @@ func (q *repository) createRecipeStep(ctx context.Context, db database.SQLQueryE
 }
 
 // CreateRecipeStep creates a recipe step in the database.
+//
+// The step and everything hanging off it — ingredients, products, instruments, vessels,
+// completion conditions — are written in one transaction. They used to be written straight to
+// the writer as a dozen independent statements, so a failure partway through left a step whose
+// ingredients were half there and no way to tell.
+//
+// The transaction also carries the recipe's index event, because a new step changes the recipe
+// document: the indexed subset holds each step's preparation name and the names of its
+// ingredients, instruments and vessels.
+//
+// This enqueues the index event alone rather than going through withEvent, because there is no
+// recipe_step_created data change event to attach it to. The constant existed and put the event
+// in the generated webhook catalog, where it was subscribable and could never fire; it was
+// removed rather than made to fire, because a step creation reaches subscribers as the recipe
+// event that accompanies it.
 func (q *repository) CreateRecipeStep(ctx context.Context, input *mealplanning.RecipeStepDatabaseCreationInput) (*mealplanning.RecipeStep, error) {
-	return q.createRecipeStep(ctx, q.writeDB, input)
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	if input == nil {
+		return nil, platformerrors.ErrNilInputParameter
+	}
+	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, input.BelongsToRecipe)
+
+	var created *mealplanning.RecipeStep
+	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+		var createErr error
+		if created, createErr = q.createRecipeStep(ctx, tx, input); createErr != nil {
+			return createErr
+		}
+
+		return q.events.EmitIndex(ctx, tx, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, input.BelongsToRecipe))
+	}); err != nil {
+		return nil, err
+	}
+
+	return created, nil
 }
 
 // UpdateRecipeStep updates a particular recipe step.
@@ -621,7 +658,7 @@ func (q *repository) UpdateRecipeStep(ctx context.Context, updated *mealplanning
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.RecipeStepIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, updated.ID)
@@ -647,7 +684,7 @@ func (q *repository) UpdateRecipeStep(ctx context.Context, updated *mealplanning
 		})
 
 		return updateErr
-	}); err != nil {
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, updated.BelongsToRecipe)); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step")
 	}
 
@@ -690,7 +727,7 @@ func (q *repository) ArchiveRecipeStep(ctx context.Context, recipeID, recipeStep
 		}
 
 		return nil
-	}); err != nil {
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, recipeID)); err != nil {
 		return err
 	}
 

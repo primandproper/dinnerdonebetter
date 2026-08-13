@@ -118,6 +118,14 @@ GROUP BY valid_preparations.id
 ORDER BY valid_preparations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
+-- name: ScanValidPreparationIDsForReindex :many
+SELECT valid_preparations.id
+FROM valid_preparations
+WHERE valid_preparations.archived_at IS NULL
+	AND valid_preparations.id COLLATE "C" > sqlc.arg(cursor)
+ORDER BY valid_preparations.id COLLATE "C"
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
+
 -- name: GetValidPreparationsNeedingIndexing :many
 SELECT valid_preparations.id
 FROM valid_preparations

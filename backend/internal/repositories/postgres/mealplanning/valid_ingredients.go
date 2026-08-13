@@ -6,14 +6,16 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
+	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -491,17 +493,26 @@ func (q *repository) GetValidIngredientsWithIDs(ctx context.Context, ids []strin
 	return ingredients, nil
 }
 
-// GetValidIngredientIDsThatNeedSearchIndexing fetches a list of valid ingredients from the database that meet a particular filter.
-func (q *repository) GetValidIngredientIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
+// ScanValidIngredientIDsForReindex returns up to limit IDs sorting strictly after `after`, in ascending byte order.
+//
+// It is the source half of a search reindex: searchsync.Reindexer walks this to find every
+// document that should exist, and prunes the index of anything it does not name. It replaces
+// the "IDs that need indexing" sampler platform-go v10 removed, which asked a different and
+// weaker question — which rows look stale — and could only ever be probabilistically right,
+// because a row the sampler had not reached was a row the index was wrong about.
+func (q *repository) ScanValidIngredientIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	results, err := q.generatedQuerier.GetValidIngredientsNeedingIndexing(ctx, q.readDB)
+	results, err := q.generatedQuerier.ScanValidIngredientIDsForReindex(ctx, q.readDB, &generated.ScanValidIngredientIDsForReindexParams{
+		Cursor:      after,
+		ResultLimit: limit,
+	})
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "executing valid ingredients list retrieval query")
+		return nil, observability.PrepareError(err, span, "executing valid ingredients reindex scan query")
 	}
 
-	return results, err
+	return results, nil
 }
 
 // CreateValidIngredient creates a valid ingredient in the database.
@@ -510,7 +521,7 @@ func (q *repository) CreateValidIngredient(ctx context.Context, input *mealplann
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, input.ID)
 	logger := q.logger.WithValue(mealplanningkeys.ValidIngredientIDKey, input.ID)
@@ -556,7 +567,7 @@ func (q *repository) CreateValidIngredient(ctx context.Context, input *mealplann
 			IsAcid:                                  input.IsAcid,
 			IsHeat:                                  input.IsHeat,
 		})
-	}); err != nil {
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeValidIngredients, input.ID)); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid ingredient creation query")
 	}
 
@@ -611,7 +622,7 @@ func (q *repository) UpdateValidIngredient(ctx context.Context, updated *mealpla
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.ValidIngredientIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, updated.ID)
@@ -658,7 +669,7 @@ func (q *repository) UpdateValidIngredient(ctx context.Context, updated *mealpla
 		})
 
 		return updateErr
-	}); err != nil {
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeValidIngredients, updated.ID)); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid ingredient")
 	}
 
@@ -715,5 +726,5 @@ func (q *repository) ArchiveValidIngredient(ctx context.Context, validIngredient
 		}
 
 		return nil
-	})
+	}, events.WithIndexDelete(mealplanningindexing.IndexTypeValidIngredients, validIngredientID))
 }

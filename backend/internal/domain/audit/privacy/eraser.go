@@ -6,9 +6,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
-	"github.com/primandproper/platform-go/v9/dataprivacy/auditerasure"
-	"github.com/primandproper/platform-go/v9/filtering"
+	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
+	"github.com/primandproper/platform-go/v10/dataprivacy/auditerasure"
+	"github.com/primandproper/platform-go/v10/filtering"
 )
 
 /*

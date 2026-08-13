@@ -7,12 +7,12 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v9/capitalism"
-	capstripe "github.com/primandproper/platform-go/v9/capitalism/stripe"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/capitalism"
+	capstripe "github.com/primandproper/platform-go/v10/capitalism/stripe"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/stripe/stripe-go/v81"
 )
@@ -64,7 +64,7 @@ func captureStripeEvent(ctx context.Context, event *capstripe.Event) error {
 // Stripe payment manager.
 func NewStripePaymentProcessor(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	cfg *capstripe.Config,
 ) (*StripePaymentProcessor, error) {
 	manager, err := capstripe.NewPaymentManager(

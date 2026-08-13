@@ -7,14 +7,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/idempotency"
-	idempotencycfg "github.com/primandproper/platform-go/v9/idempotency/config"
-	idempotencygrpc "github.com/primandproper/platform-go/v9/idempotency/grpc"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/idempotency"
+	idempotencycfg "github.com/primandproper/platform-go/v10/idempotency/config"
+	idempotencygrpc "github.com/primandproper/platform-go/v10/idempotency/grpc"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"google.golang.org/grpc"
 )
@@ -60,7 +60,7 @@ func ProvideIdempotencyInterceptor(
 	ctx context.Context,
 	cfg *config.APIServiceConfig,
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	metricsProvider metrics.Provider,
 	dbClient database.Client,
 ) (grpc.UnaryServerInterceptor, error) {

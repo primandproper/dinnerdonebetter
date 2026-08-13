@@ -4,7 +4,7 @@
 package adapters
 
 import (
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
 )
 
 // maxWebhookBodyBytes bounds how much of a webhook request body an adapter reads. Provider

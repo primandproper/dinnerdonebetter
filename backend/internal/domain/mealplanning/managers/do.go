@@ -8,11 +8,11 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	textsearchcfg "github.com/primandproper/platform-go/v10/search/text/config"
 
 	"github.com/samber/do/v2"
 )
@@ -27,7 +27,7 @@ func RegisterManagers(i do.Injector) {
 		return NewMealPlanningManager(
 			do.MustInvoke[context.Context](i),
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[mealplanning.Repository](i),
 			do.MustInvoke[*queuescfg.Config](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),

@@ -6,8 +6,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -25,7 +25,7 @@ func RegisterWaitlistDataManager(i do.Injector) {
 	do.Provide[WaitlistsDataManager](i, func(i do.Injector) (WaitlistsDataManager, error) {
 		return NewWaitlistDataManager(
 			do.MustInvoke[context.Context](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[waitlistRepository](i),
 		)

@@ -9,8 +9,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	mockauthn "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/mock"
 
-	"github.com/primandproper/platform-go/v9/authentication/totp"
-	mocktotp "github.com/primandproper/platform-go/v9/authentication/totp/mock"
+	"github.com/primandproper/platform-go/v10/authentication/totp"
+	mocktotp "github.com/primandproper/platform-go/v10/authentication/totp/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

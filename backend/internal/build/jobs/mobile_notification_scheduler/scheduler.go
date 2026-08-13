@@ -8,12 +8,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
 
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	notifications "github.com/primandproper/platform-go/v10/notifications/mobile"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -32,7 +32,7 @@ type Scheduler struct {
 // NewScheduler creates a new mobile notification scheduler.
 func NewScheduler(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	mealPlanningRepo mealplanning.Repository,
 	identityRepo identity.Repository,
 	mobileNotificationsPublisher messagequeue.Publisher,

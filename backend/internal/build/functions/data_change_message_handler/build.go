@@ -21,18 +21,18 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	"github.com/primandproper/platform-go/v9/database/postgres"
-	emailcfg "github.com/primandproper/platform-go/v9/email/config"
-	"github.com/primandproper/platform-go/v9/encoding"
-	"github.com/primandproper/platform-go/v9/httpclient"
-	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
-	notificationscfg "github.com/primandproper/platform-go/v9/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v9/observability"
-	loggingcfg "github.com/primandproper/platform-go/v9/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v9/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v9/observability/tracing/config"
+	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	"github.com/primandproper/platform-go/v10/database/postgres"
+	emailcfg "github.com/primandproper/platform-go/v10/email/config"
+	"github.com/primandproper/platform-go/v10/encoding"
+	"github.com/primandproper/platform-go/v10/httpclient"
+	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
+	notificationscfg "github.com/primandproper/platform-go/v10/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v10/observability"
+	loggingcfg "github.com/primandproper/platform-go/v10/observability/logging/config"
+	metricscfg "github.com/primandproper/platform-go/v10/observability/metrics/config"
+	tracingcfg "github.com/primandproper/platform-go/v10/observability/tracing/config"
 
 	"github.com/samber/do/v2"
 )
@@ -85,7 +85,7 @@ func BuildInjector(
 	waitlistsmanager.RegisterWaitlistDataManager(i)
 
 	// indexing
-	identityindexing.RegisterCoreDataIndexer(i)
+	identityindexing.RegisterUserSyncer(i)
 
 	// searchers
 	RegisterSearchers(i)

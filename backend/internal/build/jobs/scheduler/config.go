@@ -6,15 +6,16 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
-	capitalismcfg "github.com/primandproper/platform-go/v9/capitalism/config"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
-	meteringcfg "github.com/primandproper/platform-go/v9/metering/config"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/saga"
-	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
-	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
+	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
+	capitalismcfg "github.com/primandproper/platform-go/v10/capitalism/config"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
+	meteringcfg "github.com/primandproper/platform-go/v10/metering/config"
+	"github.com/primandproper/platform-go/v10/observability"
+	operationscfg "github.com/primandproper/platform-go/v10/operations/config"
+	"github.com/primandproper/platform-go/v10/saga"
+	textsearchcfg "github.com/primandproper/platform-go/v10/search/text/config"
+	webhookscfg "github.com/primandproper/platform-go/v10/webhooks/config"
 
 	"github.com/samber/do/v2"
 )
@@ -53,6 +54,9 @@ func RegisterConfigs(i do.Injector) {
 	})
 	do.Provide[*capitalismcfg.Config](i, func(i do.Injector) (*capitalismcfg.Config, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Capitalism, nil
+	})
+	do.Provide[*operationscfg.Config](i, func(i do.Injector) (*operationscfg.Config, error) {
+		return &do.MustInvoke[*config.SchedulerConfig](i).Operations, nil
 	})
 	do.Provide[*config.ScheduledJobsConfig](i, func(i do.Injector) (*config.ScheduledJobsConfig, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Jobs, nil

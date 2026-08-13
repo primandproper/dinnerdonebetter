@@ -7,9 +7,9 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/webauthn"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -38,7 +38,7 @@ func (cfg *Config) ValidateWithContext(ctx context.Context) error {
 }
 
 // ProvideSessionStore provides a SessionStore based on the configured provider.
-func ProvideSessionStore(cfg *Config, client database.Client, logger logging.Logger, tracerProvider tracing.TracerProvider) (webauthn.SessionStore, error) {
+func ProvideSessionStore(cfg *Config, client database.Client, logger logging.Logger, tracerProvider tracing.Provider) (webauthn.SessionStore, error) {
 	provider := strings.TrimSpace(strings.ToLower(cfg.Provider))
 	if provider == "" {
 		provider = ProviderMemory

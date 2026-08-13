@@ -15,8 +15,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -155,7 +155,7 @@ func TestQuerier_Integration_Users(t *testing.T) {
 	firstUser.TwoFactorSecret = u.TwoFactorSecret
 	assert.Equal(t, firstUser, u)
 
-	userIDs, err := dbc.GetUserIDsThatNeedSearchIndexing(ctx)
+	userIDs, err := dbc.ScanUserIDsForReindex(ctx, "", 100)
 	assert.NotEmpty(t, userIDs)
 	assert.NoError(t, err)
 

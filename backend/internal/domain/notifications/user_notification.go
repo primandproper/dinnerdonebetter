@@ -5,7 +5,7 @@ import (
 	"encoding/gob"
 	"time"
 
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -15,8 +15,6 @@ const (
 	UserNotificationCreatedServiceEventType = "user_notification_created"
 	// UserNotificationUpdatedServiceEventType indicates a user notification was updated.
 	UserNotificationUpdatedServiceEventType = "user_notification_updated"
-	// UserNotificationArchivedServiceEventType indicates a user notification was archived.
-	UserNotificationArchivedServiceEventType = "user_notification_archived"
 
 	// UserNotificationStatusTypeUnread represents the user notification status type for unread.
 	UserNotificationStatusTypeUnread = "unread"

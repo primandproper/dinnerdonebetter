@@ -4,9 +4,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 
-	"github.com/primandproper/platform-go/v9/authentication/tokens"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/authentication/tokens"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/go-oauth2/oauth2/v4/manage"
 	"github.com/samber/do/v2"
@@ -16,7 +16,7 @@ import (
 func RegisterAuthInterceptor(i do.Injector) {
 	do.Provide[*AuthInterceptor](i, func(i do.Injector) (*AuthInterceptor, error) {
 		return ProvideAuthInterceptor(
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[identitymanager.IdentityDataManager](i),
 			do.MustInvoke[auth.Repository](i),

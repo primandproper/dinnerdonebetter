@@ -11,10 +11,11 @@ import (
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	mealplanningnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
 
-	msgqueuemock "github.com/primandproper/platform-go/v9/messagequeue/mock"
-	notifications "github.com/primandproper/platform-go/v9/notifications/mobile"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	msgqueuemock "github.com/primandproper/platform-go/v10/messagequeue/mock"
+	notifications "github.com/primandproper/platform-go/v10/notifications/mobile"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,7 +62,7 @@ func TestScheduler_ScheduleNotifications_publishesMobileNotificationRequest(t *t
 	// With AssignedToUser set, GetMealPlanTaskAccountID and GetUsersForAccount are not called
 
 	var publishedPayload any
-	publisher.PublishFunc = func(_ context.Context, data any) error {
+	publisher.PublishFunc = func(_ context.Context, data any, _ ...messagequeue.PublishOption) error {
 		publishedPayload = data
 		return nil
 	}

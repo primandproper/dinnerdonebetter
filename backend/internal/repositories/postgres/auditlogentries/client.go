@@ -3,12 +3,12 @@ package auditlogentries
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	platformaudit "github.com/primandproper/platform-go/v9/audit"
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	platformaudit "github.com/primandproper/platform-go/v10/audit"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -44,7 +44,7 @@ type repository struct {
 // count means the log has stopped being evidence.
 func ProvideAuditLogRepository(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	metricsProvider metrics.Provider,
 	client database.Client,
 ) (audit.Repository, error) {

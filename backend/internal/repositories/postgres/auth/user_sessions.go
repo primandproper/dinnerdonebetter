@@ -10,11 +10,11 @@ import (
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -46,7 +46,7 @@ func (r *repository) CreateUserSession(ctx context.Context, input *auth.UserSess
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	logger := r.logger.WithValue(authkeys.UserSessionIDKey, input.ID)
 	tracing.AttachToSpan(span, authkeys.UserSessionIDKey, input.ID)

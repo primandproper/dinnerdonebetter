@@ -127,6 +127,13 @@ ORDER BY %s.%s ASC, %s.%s ASC;`,
 			},
 			{
 				Annotation: QueryAnnotation{
+					Name: "ScanMealIDsForReindex",
+					Type: ManyType,
+				},
+				Content: buildReindexScanQuery(mealsTableName),
+			},
+			{
+				Annotation: QueryAnnotation{
 					Name: "GetMealsNeedingIndexing",
 					Type: ManyType,
 				},

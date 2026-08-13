@@ -36,19 +36,19 @@ import (
 	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v9/authentication/argon2"
-	"github.com/primandproper/platform-go/v9/database"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	"github.com/primandproper/platform-go/v9/httpclient"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
-	"github.com/primandproper/platform-go/v9/messagequeue/redis"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v9/random"
-	"github.com/primandproper/platform-go/v9/testutils/containers/redistest"
-	webhookscfg "github.com/primandproper/platform-go/v9/webhooks/config"
+	"github.com/primandproper/platform-go/v10/authentication/argon2"
+	"github.com/primandproper/platform-go/v10/database"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	"github.com/primandproper/platform-go/v10/httpclient"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
+	"github.com/primandproper/platform-go/v10/messagequeue/redis"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v10/random"
+	"github.com/primandproper/platform-go/v10/testutils/containers/redistest"
+	webhookscfg "github.com/primandproper/platform-go/v10/webhooks/config"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
@@ -86,7 +86,7 @@ func buildContainerBackedRedisConfig(ctx context.Context) (*redis.Config, func(c
 func CreatePremadeAdminUser(
 	ctx context.Context,
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	identityRepo identity.Repository,
 	dbClient database.Client,
 	premadeAdminUser *identity.User,
@@ -197,12 +197,12 @@ func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (se
 
 // DatabaseInitFunc is a function that performs database initialization operations.
 // It receives the database client, config, logger, and tracer to perform arbitrary operations.
-type DatabaseInitFunc func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.TracerProvider) error
+type DatabaseInitFunc func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error
 
 // WithIdentityRepository provides an identity repository for custom operations.
 // The provided function receives a fully configured identity.Repository along with logger, tracer, and database client.
-func WithIdentityRepository(fn func(ctx context.Context, repo identity.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider, dbClient database.Client) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
+func WithIdentityRepository(fn func(ctx context.Context, repo identity.Repository, logger logging.Logger, tracerProvider tracing.Provider, dbClient database.Client) error) DatabaseInitFunc {
+	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
 		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
 		if err != nil {
 			return err
@@ -214,8 +214,8 @@ func WithIdentityRepository(fn func(ctx context.Context, repo identity.Repositor
 
 // WithOAuth2Repository provides an OAuth2 repository for custom operations.
 // The provided function receives a fully configured oauth.Repository along with logger and tracer.
-func WithOAuth2Repository(fn func(ctx context.Context, repo oauth.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
+func WithOAuth2Repository(fn func(ctx context.Context, repo oauth.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
+	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
 		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
 		if err != nil {
 			return err
@@ -227,8 +227,8 @@ func WithOAuth2Repository(fn func(ctx context.Context, repo oauth.Repository, lo
 
 // WithAuthRepository provides an auth repository for custom operations.
 // The provided function receives a fully configured auth.Repository along with logger and tracer.
-func WithAuthRepository(fn func(ctx context.Context, repo auth.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
+func WithAuthRepository(fn func(ctx context.Context, repo auth.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
+	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
 		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
 		if err != nil {
 			return err
@@ -241,8 +241,8 @@ func WithAuthRepository(fn func(ctx context.Context, repo auth.Repository, logge
 // WithMealPlanningRepository provides a meal planning repository for custom operations.
 // The provided function receives a fully configured mealplanning.Repository along with logger and tracer.
 // This repository handles all meal planning entities including recipes, ingredients, preparations, vessels, instruments, etc.
-func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
+func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
+	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
 		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
 		if err != nil {
 			return err
@@ -255,8 +255,8 @@ func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.R
 
 // WithSettingsRepository provides a settings repository for custom operations.
 // The provided function receives a fully configured settings.Repository along with logger and tracer.
-func WithSettingsRepository(fn func(ctx context.Context, repo settings.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
+func WithSettingsRepository(fn func(ctx context.Context, repo settings.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
+	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
 		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
 		if err != nil {
 			return err
@@ -268,8 +268,8 @@ func WithSettingsRepository(fn func(ctx context.Context, repo settings.Repositor
 
 // WithWebhooksRepository provides a webhooks repository for custom operations.
 // The provided function receives a fully configured webhooks.Repository along with logger and tracer.
-func WithWebhooksRepository(fn func(ctx context.Context, repo webhooks.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
+func WithWebhooksRepository(fn func(ctx context.Context, repo webhooks.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
+	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
 		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
 		if err != nil {
 			return err
@@ -294,8 +294,8 @@ func WithWebhooksRepository(fn func(ctx context.Context, repo webhooks.Repositor
 
 // WithNotificationsRepository provides a notifications repository for custom operations.
 // The provided function receives a fully configured notifications.Repository along with logger and tracer.
-func WithNotificationsRepository(fn func(ctx context.Context, repo notifications.Repository, logger logging.Logger, tracerProvider tracing.TracerProvider) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.TracerProvider) error {
+func WithNotificationsRepository(fn func(ctx context.Context, repo notifications.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
+	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
 		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
 		if err != nil {
 			return err
@@ -373,7 +373,11 @@ func BuildInsecureOAuthedGRPCClient(
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Location", "localhost")
 
-	httpClient := httpclient.NewHTTPClient(httpclient.WithTracing(true))
+	httpClient, err := httpclient.NewHTTPClient(httpclient.WithTracing(true))
+	if err != nil {
+		return nil, fmt.Errorf("building http client: %w", err)
+	}
+
 	httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
@@ -504,7 +508,11 @@ func FetchOAuth2TokenForUser(
 	req.Header.Set("Authorization", "Bearer "+jwt)
 	req.Header.Set("Location", "localhost")
 
-	httpClient := httpclient.NewHTTPClient(httpclient.WithTracing(true))
+	httpClient, err := httpclient.NewHTTPClient(httpclient.WithTracing(true))
+	if err != nil {
+		return nil, fmt.Errorf("building http client: %w", err)
+	}
+
 	httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}

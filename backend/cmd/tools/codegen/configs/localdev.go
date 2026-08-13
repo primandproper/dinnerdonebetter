@@ -15,39 +15,39 @@ import (
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
-	tokenscfg "github.com/primandproper/platform-go/v9/authentication/tokens/config"
-	cachecfg "github.com/primandproper/platform-go/v9/cache/config"
-	cacheredis "github.com/primandproper/platform-go/v9/cache/redis"
-	capitalismcfg "github.com/primandproper/platform-go/v9/capitalism/config"
-	circuitbreakingcfg "github.com/primandproper/platform-go/v9/circuitbreaking/config"
-	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	distributedlockcfg "github.com/primandproper/platform-go/v9/distributedlock/config"
-	pglock "github.com/primandproper/platform-go/v9/distributedlock/postgres"
-	emailcfg "github.com/primandproper/platform-go/v9/email/config"
-	"github.com/primandproper/platform-go/v9/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v9/featureflags/config"
-	idempotencycfg "github.com/primandproper/platform-go/v9/idempotency/config"
-	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
-	"github.com/primandproper/platform-go/v9/messagequeue/redis"
-	notificationscfg "github.com/primandproper/platform-go/v9/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v9/observability/logging/config"
-	logotelgrpc "github.com/primandproper/platform-go/v9/observability/logging/otelgrpc"
-	metricscfg "github.com/primandproper/platform-go/v9/observability/metrics/config"
-	"github.com/primandproper/platform-go/v9/observability/metrics/otelgrpc"
-	profilingcfg "github.com/primandproper/platform-go/v9/observability/profiling/config"
-	"github.com/primandproper/platform-go/v9/observability/profiling/pprof"
-	tracingcfg "github.com/primandproper/platform-go/v9/observability/tracing/config"
-	"github.com/primandproper/platform-go/v9/observability/tracing/oteltrace"
-	"github.com/primandproper/platform-go/v9/routing/backends/chi"
-	routingcfg "github.com/primandproper/platform-go/v9/routing/config"
-	textsearchcfg "github.com/primandproper/platform-go/v9/search/text/config"
-	"github.com/primandproper/platform-go/v9/server/http"
-	uploadscfg "github.com/primandproper/platform-go/v9/uploads/config"
-	"github.com/primandproper/platform-go/v9/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
+	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
+	cachecfg "github.com/primandproper/platform-go/v10/cache/config"
+	cacheredis "github.com/primandproper/platform-go/v10/cache/redis"
+	capitalismcfg "github.com/primandproper/platform-go/v10/capitalism/config"
+	circuitbreakingcfg "github.com/primandproper/platform-go/v10/circuitbreaking/config"
+	encryptioncfg "github.com/primandproper/platform-go/v10/cryptography/encryption/config"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	distributedlockcfg "github.com/primandproper/platform-go/v10/distributedlock/config"
+	pglock "github.com/primandproper/platform-go/v10/distributedlock/postgres"
+	emailcfg "github.com/primandproper/platform-go/v10/email/config"
+	"github.com/primandproper/platform-go/v10/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v10/featureflags/config"
+	idempotencycfg "github.com/primandproper/platform-go/v10/idempotency/config"
+	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
+	"github.com/primandproper/platform-go/v10/messagequeue/redis"
+	notificationscfg "github.com/primandproper/platform-go/v10/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	loggingcfg "github.com/primandproper/platform-go/v10/observability/logging/config"
+	logotelgrpc "github.com/primandproper/platform-go/v10/observability/logging/otelgrpc"
+	metricscfg "github.com/primandproper/platform-go/v10/observability/metrics/config"
+	"github.com/primandproper/platform-go/v10/observability/metrics/otelgrpc"
+	profilingcfg "github.com/primandproper/platform-go/v10/observability/profiling/config"
+	"github.com/primandproper/platform-go/v10/observability/profiling/pprof"
+	tracingcfg "github.com/primandproper/platform-go/v10/observability/tracing/config"
+	"github.com/primandproper/platform-go/v10/observability/tracing/oteltrace"
+	"github.com/primandproper/platform-go/v10/routing/backends/chi"
+	routingcfg "github.com/primandproper/platform-go/v10/routing/config"
+	textsearchcfg "github.com/primandproper/platform-go/v10/search/text/config"
+	"github.com/primandproper/platform-go/v10/server/http"
+	uploadscfg "github.com/primandproper/platform-go/v10/uploads/config"
+	"github.com/primandproper/platform-go/v10/uploads/objectstorage"
 )
 
 const (
@@ -131,9 +131,10 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 	}
 
 	return &config.APIServiceConfig{
-		Webhooks: buildWebhooksConfig(),
-		Routing:  localRoutingConfig,
-		Metering: config.DefaultMeteringConfig(),
+		Webhooks:   buildWebhooksConfig(),
+		Routing:    localRoutingConfig,
+		Metering:   config.DefaultMeteringConfig(),
+		Operations: config.DefaultOperationsConfig(),
 		// Localdev has a Redis, so the record store is shared and the interceptor means
 		// something. Prod does not yet; see the prod config.
 		Idempotency: config.IdempotencyConfig{
@@ -196,6 +197,29 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 			Provider: emailcfg.ProviderNoop,
 		},
 		Analytics: analyticscfg.Config{
+			// The multisource reporter resolves a source name to a reporter and refuses one
+			// it does not know, so the sources the clients send have to be declared even
+			// where nothing is actually reported. In v9 an unconfigured source fell through
+			// to the ambient reporter; in v10 it is ErrUnknownSource, which surfaces to the
+			// caller as a failed TrackEvent.
+			ProxySources: analyticscfg.ProxySourcesConfig{
+				"ios": {
+					Provider: analyticscfg.ProviderNoop,
+					CircuitBreaker: circuitbreakingcfg.Config{
+						Name:                   "ios_analytics",
+						ErrorRate:              .5,
+						MinimumSampleThreshold: 100,
+					},
+				},
+				"web": {
+					Provider: analyticscfg.ProviderNoop,
+					CircuitBreaker: circuitbreakingcfg.Config{
+						Name:                   "web_analytics",
+						ErrorRate:              .5,
+						MinimumSampleThreshold: 100,
+					},
+				},
+			},
 			SourceConfig: analyticscfg.SourceConfig{
 				// Analytics are off here, which the provider now says rather than
 				// leaving it to an unset value. The circuit breaker is still built.
@@ -239,7 +263,7 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 				ReadConnection:  localdevPostgresDBConnectionDetails,
 				WriteConnection: localdevPostgresDBConnectionDetails,
 			},
-			Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
+			Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 			OAuth2TokenEncryptionKey: localOAuth2TokenEncryptionKey,
 		},
 		Observability: localObservabilityConfig,
@@ -282,7 +306,7 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 					},
 					Debug: false,
 				},
-				Encryption:            encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
+				Encryption:            encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 				ArtifactEncryptionKey: localDisclosureArtifactEncryptionKey,
 			},
 			Users: identitycfg.Config{

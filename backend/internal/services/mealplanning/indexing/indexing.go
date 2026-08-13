@@ -1,214 +1,105 @@
+/*
+Package indexing keeps the meal planning search indexes in step with the database.
+
+Each of the eight indexed entities contributes the same three things — how to read one row, how
+to page over IDs for a reindex, and how to shape a row into the subset that gets indexed — and
+syncsource.Source turns that triple into both of the read seams platform-go's search sync needs.
+What used to be one 200-line switch over an index-type string is now eight declarations, and the
+compiler checks each one against the index it feeds rather than a map lookup failing at runtime.
+*/
 package indexing
 
 import (
-	"context"
-	"errors"
-	"fmt"
-
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	textsearch "github.com/primandproper/platform-go/v9/search/text"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/search/syncsource"
 )
 
-const (
-	o11yName = "eating_search_indexer"
+type (
+	// MealSource and its siblings read one entity as search documents. Each is both a
+	// searchsync.Fetcher, for the change feed, and a searchsync.Scanner, for a reindex.
+	MealSource = syncsource.Source[mealplanning.Meal, MealSearchSubset]
+	// RecipeSource reads recipes as search documents.
+	RecipeSource = syncsource.Source[mealplanning.Recipe, RecipeSearchSubset]
+	// ValidIngredientSource reads valid ingredients as search documents.
+	ValidIngredientSource = syncsource.Source[mealplanning.ValidIngredient, ValidIngredientSearchSubset]
+	// ValidInstrumentSource reads valid instruments as search documents.
+	ValidInstrumentSource = syncsource.Source[mealplanning.ValidInstrument, ValidInstrumentSearchSubset]
+	// ValidMeasurementUnitSource reads valid measurement units as search documents.
+	ValidMeasurementUnitSource = syncsource.Source[mealplanning.ValidMeasurementUnit, ValidMeasurementUnitSearchSubset]
+	// ValidPreparationSource reads valid preparations as search documents.
+	ValidPreparationSource = syncsource.Source[mealplanning.ValidPreparation, ValidPreparationSearchSubset]
+	// ValidIngredientStateSource reads valid ingredient states as search documents.
+	ValidIngredientStateSource = syncsource.Source[mealplanning.ValidIngredientState, ValidIngredientStateSearchSubset]
+	// ValidVesselSource reads valid vessels as search documents.
+	ValidVesselSource = syncsource.Source[mealplanning.ValidVessel, ValidVesselSearchSubset]
 )
 
-var (
-	ErrNilIndexRequest = errors.New("nil index request")
-)
-
-type MealPlanningDataIndexer struct {
-	logger                          logging.Logger
-	tracer                          tracing.Tracer
-	mealPlanningRepo                mealplanning.Repository
-	recipeSearchIndex               RecipeTextSearcher
-	mealSearchIndex                 MealTextSearcher
-	validIngredientSearchIndex      ValidIngredientTextSearcher
-	validInstrumentSearchIndex      ValidInstrumentTextSearcher
-	validMeasurementUnitSearchIndex ValidMeasurementUnitTextSearcher
-	validPreparationSearchIndex     ValidPreparationTextSearcher
-	validIngredientStateSearchIndex ValidIngredientStateTextSearcher
-	validVesselSearchIndex          ValidVesselTextSearcher
+// NewMealSource builds the meals source.
+func NewMealSource(repo mealplanning.Repository) *MealSource {
+	return syncsource.New(IndexTypeMeals, repo.GetMeal, repo.ScanMealIDsForReindex, ConvertMealToMealSearchSubset)
 }
 
-func NewMealPlanningDataIndexer(
-	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
-	mealPlanningRepo mealplanning.Repository,
-	recipeSearchIndex RecipeTextSearcher,
-	mealSearchIndex MealTextSearcher,
-	validIngredientSearchIndex ValidIngredientTextSearcher,
-	validInstrumentSearchIndex ValidInstrumentTextSearcher,
-	validMeasurementUnitSearchIndex ValidMeasurementUnitTextSearcher,
-	validPreparationSearchIndex ValidPreparationTextSearcher,
-	validIngredientStateSearchIndex ValidIngredientStateTextSearcher,
-	validVesselSearchIndex ValidVesselTextSearcher,
-) *MealPlanningDataIndexer {
-	return &MealPlanningDataIndexer{
-		logger:                          logging.NewNamedLogger(logger, o11yName),
-		tracer:                          tracing.NewNamedTracer(tracerProvider, o11yName),
-		mealPlanningRepo:                mealPlanningRepo,
-		recipeSearchIndex:               recipeSearchIndex,
-		mealSearchIndex:                 mealSearchIndex,
-		validIngredientSearchIndex:      validIngredientSearchIndex,
-		validInstrumentSearchIndex:      validInstrumentSearchIndex,
-		validMeasurementUnitSearchIndex: validMeasurementUnitSearchIndex,
-		validPreparationSearchIndex:     validPreparationSearchIndex,
-		validIngredientStateSearchIndex: validIngredientStateSearchIndex,
-		validVesselSearchIndex:          validVesselSearchIndex,
-	}
+// NewRecipeSource builds the recipes source.
+func NewRecipeSource(repo mealplanning.Repository) *RecipeSource {
+	return syncsource.New(IndexTypeRecipes, repo.GetRecipe, repo.ScanRecipeIDsForReindex, ConvertRecipeToRecipeSearchSubset)
 }
 
-func (i *MealPlanningDataIndexer) Index(indexType string) (textsearch.IndexManager, error) {
-	switch indexType {
-	case IndexTypeRecipes:
-		return i.recipeSearchIndex, nil
-	case IndexTypeMeals:
-		return i.mealSearchIndex, nil
-	case IndexTypeValidIngredients:
-		return i.validIngredientSearchIndex, nil
-	case IndexTypeValidInstruments:
-		return i.validInstrumentSearchIndex, nil
-	case IndexTypeValidMeasurementUnits:
-		return i.validMeasurementUnitSearchIndex, nil
-	case IndexTypeValidPreparations:
-		return i.validPreparationSearchIndex, nil
-	case IndexTypeValidIngredientStates:
-		return i.validIngredientStateSearchIndex, nil
-	case IndexTypeValidVessels:
-		return i.validVesselSearchIndex, nil
-	default:
-		return nil, ErrNilIndexRequest
-	}
-}
-
-func (i *MealPlanningDataIndexer) HandleIndexRequest(
-	ctx context.Context,
-	indexReq *textsearch.IndexRequest,
-) error {
-	ctx, span := i.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if indexReq == nil {
-		return observability.PrepareAndLogError(ErrNilIndexRequest, i.logger, span, "handling index requests")
-	}
-
-	logger := i.logger.WithValue("index_type_requested", indexReq.IndexType)
-
-	im, err := i.Index(indexReq.IndexType)
-	if err != nil {
-		return fmt.Errorf("invalid index type: %s", indexReq.IndexType)
-	}
-
-	var (
-		toBeIndexed       any
-		markAsIndexedFunc func() error
+// NewValidIngredientSource builds the valid ingredients source.
+func NewValidIngredientSource(repo mealplanning.Repository) *ValidIngredientSource {
+	return syncsource.New(
+		IndexTypeValidIngredients,
+		repo.GetValidIngredient,
+		repo.ScanValidIngredientIDsForReindex,
+		ConvertValidIngredientToValidIngredientSearchSubset,
 	)
+}
 
-	switch indexReq.IndexType {
-	case IndexTypeRecipes:
-		var recipe *mealplanning.Recipe
-		recipe, err = i.mealPlanningRepo.GetRecipe(ctx, indexReq.RowID)
-		if err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "getting recipe")
-		}
+// NewValidInstrumentSource builds the valid instruments source.
+func NewValidInstrumentSource(repo mealplanning.Repository) *ValidInstrumentSource {
+	return syncsource.New(
+		IndexTypeValidInstruments,
+		repo.GetValidInstrument,
+		repo.ScanValidInstrumentIDsForReindex,
+		ConvertValidInstrumentToValidInstrumentSearchSubset,
+	)
+}
 
-		toBeIndexed = ConvertRecipeToRecipeSearchSubset(recipe)
-		markAsIndexedFunc = func() error { return i.mealPlanningRepo.MarkRecipeAsIndexed(ctx, indexReq.RowID) }
+// NewValidMeasurementUnitSource builds the valid measurement units source.
+func NewValidMeasurementUnitSource(repo mealplanning.Repository) *ValidMeasurementUnitSource {
+	return syncsource.New(
+		IndexTypeValidMeasurementUnits,
+		repo.GetValidMeasurementUnit,
+		repo.ScanValidMeasurementUnitIDsForReindex,
+		ConvertValidMeasurementUnitToValidMeasurementUnitSearchSubset,
+	)
+}
 
-	case IndexTypeMeals:
-		var meal *mealplanning.Meal
-		meal, err = i.mealPlanningRepo.GetMeal(ctx, indexReq.RowID)
-		if err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "getting meal")
-		}
+// NewValidPreparationSource builds the valid preparations source.
+func NewValidPreparationSource(repo mealplanning.Repository) *ValidPreparationSource {
+	return syncsource.New(
+		IndexTypeValidPreparations,
+		repo.GetValidPreparation,
+		repo.ScanValidPreparationIDsForReindex,
+		ConvertValidPreparationToValidPreparationSearchSubset,
+	)
+}
 
-		toBeIndexed = ConvertMealToMealSearchSubset(meal)
-		markAsIndexedFunc = func() error { return i.mealPlanningRepo.MarkMealAsIndexed(ctx, indexReq.RowID) }
+// NewValidIngredientStateSource builds the valid ingredient states source.
+func NewValidIngredientStateSource(repo mealplanning.Repository) *ValidIngredientStateSource {
+	return syncsource.New(
+		IndexTypeValidIngredientStates,
+		repo.GetValidIngredientState,
+		repo.ScanValidIngredientStateIDsForReindex,
+		ConvertValidIngredientStateToValidIngredientStateSearchSubset,
+	)
+}
 
-	case IndexTypeValidIngredients:
-		var validIngredient *mealplanning.ValidIngredient
-		validIngredient, err = i.mealPlanningRepo.GetValidIngredient(ctx, indexReq.RowID)
-		if err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "getting valid ingredient")
-		}
-
-		toBeIndexed = ConvertValidIngredientToValidIngredientSearchSubset(validIngredient)
-		markAsIndexedFunc = func() error { return i.mealPlanningRepo.MarkValidIngredientAsIndexed(ctx, indexReq.RowID) }
-
-	case IndexTypeValidInstruments:
-		var validInstrument *mealplanning.ValidInstrument
-		validInstrument, err = i.mealPlanningRepo.GetValidInstrument(ctx, indexReq.RowID)
-		if err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "getting valid instrument")
-		}
-
-		toBeIndexed = ConvertValidInstrumentToValidInstrumentSearchSubset(validInstrument)
-		markAsIndexedFunc = func() error { return i.mealPlanningRepo.MarkValidInstrumentAsIndexed(ctx, indexReq.RowID) }
-
-	case IndexTypeValidMeasurementUnits:
-		var validMeasurementUnit *mealplanning.ValidMeasurementUnit
-		validMeasurementUnit, err = i.mealPlanningRepo.GetValidMeasurementUnit(ctx, indexReq.RowID)
-		if err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "getting valid measurement unit")
-		}
-
-		toBeIndexed = ConvertValidMeasurementUnitToValidMeasurementUnitSearchSubset(validMeasurementUnit)
-		markAsIndexedFunc = func() error { return i.mealPlanningRepo.MarkValidMeasurementUnitAsIndexed(ctx, indexReq.RowID) }
-
-	case IndexTypeValidPreparations:
-		var validPreparation *mealplanning.ValidPreparation
-		validPreparation, err = i.mealPlanningRepo.GetValidPreparation(ctx, indexReq.RowID)
-		if err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "getting valid preparation")
-		}
-
-		toBeIndexed = ConvertValidPreparationToValidPreparationSearchSubset(validPreparation)
-		markAsIndexedFunc = func() error { return i.mealPlanningRepo.MarkValidPreparationAsIndexed(ctx, indexReq.RowID) }
-
-	case IndexTypeValidIngredientStates:
-		var validIngredientState *mealplanning.ValidIngredientState
-		validIngredientState, err = i.mealPlanningRepo.GetValidIngredientState(ctx, indexReq.RowID)
-		if err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "getting valid ingredient state")
-		}
-
-		toBeIndexed = ConvertValidIngredientStateToValidIngredientStateSearchSubset(validIngredientState)
-		markAsIndexedFunc = func() error { return i.mealPlanningRepo.MarkValidIngredientStateAsIndexed(ctx, indexReq.RowID) }
-
-	case IndexTypeValidVessels:
-		var validVessel *mealplanning.ValidVessel
-		validVessel, err = i.mealPlanningRepo.GetValidVessel(ctx, indexReq.RowID)
-		if err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "getting valid vessel")
-		}
-
-		toBeIndexed = ConvertValidVesselToValidVesselSearchSubset(validVessel)
-		markAsIndexedFunc = func() error { return i.mealPlanningRepo.MarkValidVesselAsIndexed(ctx, indexReq.RowID) }
-	default:
-		logger.Info("invalid index type specified, exiting")
-		return nil
-	}
-
-	if indexReq.Delete {
-		if err = im.Delete(ctx, indexReq.RowID); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "deleting data")
-		}
-
-		return nil
-	} else {
-		if err = im.Index(ctx, indexReq.RowID, toBeIndexed); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "indexing data")
-		}
-
-		if err = markAsIndexedFunc(); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "marking data as indexed")
-		}
-	}
-
-	return nil
+// NewValidVesselSource builds the valid vessels source.
+func NewValidVesselSource(repo mealplanning.Repository) *ValidVesselSource {
+	return syncsource.New(
+		IndexTypeValidVessels,
+		repo.GetValidVessel,
+		repo.ScanValidVesselIDsForReindex,
+		ConvertValidVesselToValidVesselSearchSubset,
+	)
 }

@@ -8,9 +8,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,7 +54,7 @@ func TestCreateProduct(T *testing.T) {
 		actual, err := c.CreateProduct(ctx, nil)
 		require.Error(t, err)
 		assert.Nil(t, actual)
-		assert.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
+		assert.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
 	})
 }
 
@@ -98,7 +98,7 @@ func TestUpdateProduct(T *testing.T) {
 
 		err := c.UpdateProduct(ctx, nil)
 		require.Error(t, err)
-		assert.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
+		assert.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
 	})
 }
 

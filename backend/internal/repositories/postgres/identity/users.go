@@ -13,15 +13,17 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
+	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/observability"
-	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/observability"
+	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -522,14 +524,23 @@ func (r *repository) GetUsersWithIDs(ctx context.Context, ids []string) (x []*id
 	return x, nil
 }
 
-// GetUserIDsThatNeedSearchIndexing fetches a list of valid vessels from the database that meet a particular filter.
-func (r *repository) GetUserIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error) {
+// ScanUserIDsForReindex returns up to limit IDs sorting strictly after `after`, in ascending byte order.
+//
+// It is the source half of a search reindex: searchsync.Reindexer walks this to find every
+// document that should exist, and prunes the index of anything it does not name. It replaces
+// the "IDs that need indexing" sampler platform-go v10 removed, which asked a different and
+// weaker question — which rows look stale — and could only ever be probabilistically right,
+// because a row the sampler had not reached was a row the index was wrong about.
+func (r *repository) ScanUserIDsForReindex(ctx context.Context, after string, limit int) ([]string, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	results, err := r.generatedQuerier.GetUserIDsNeedingIndexing(ctx, r.readDB)
+	results, err := r.generatedQuerier.ScanUserIDsForReindex(ctx, r.readDB, &generated.ScanUserIDsForReindexParams{
+		Cursor:      after,
+		ResultLimit: limit,
+	})
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "executing users list retrieval query")
+		return nil, observability.PrepareError(err, span, "executing users reindex scan query")
 	}
 
 	return results, nil
@@ -563,7 +574,7 @@ func (r *repository) CreateUser(ctx context.Context, input *identity.UserDatabas
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	tracing.AttachToSpan(span, identitykeys.UsernameKey, input.Username)
@@ -671,7 +682,7 @@ func (r *repository) CreateUser(ctx context.Context, input *identity.UserDatabas
 			identitykeys.AccountIDKey:                  account.ID,
 			identitykeys.UserIDKey:                     input.ID,
 			identitykeys.UserEmailVerificationTokenKey: token,
-		}); emitErr != nil {
+		}, events.WithIndexUpsert(identityindexing.IndexTypeUsers, input.ID)); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
@@ -837,7 +848,7 @@ func (r *repository) UpdateUserUsername(ctx context.Context, userID, newUsername
 		// rows it describes.
 		if emitErr := r.events.Emit(ctx, tx, logger, identity.UsernameChangedEventType, "", map[string]any{
 			identitykeys.UserIDKey: userID,
-		}); emitErr != nil {
+		}, events.WithIndexUpsert(identityindexing.IndexTypeUsers, userID)); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
@@ -899,7 +910,7 @@ func (r *repository) UpdateUserEmailAddress(ctx context.Context, userID, newEmai
 		// rows it describes.
 		if emitErr := r.events.Emit(ctx, tx, logger, identity.EmailAddressChangedEventType, "", map[string]any{
 			identitykeys.UserIDKey: userID,
-		}); emitErr != nil {
+		}, events.WithIndexUpsert(identityindexing.IndexTypeUsers, userID)); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
@@ -970,7 +981,7 @@ func (r *repository) UpdateUserDetails(ctx context.Context, userID string, input
 		// rows it describes.
 		if emitErr := r.events.Emit(ctx, tx, logger, identity.UserDetailsChangedEventType, "", map[string]any{
 			identitykeys.UserIDKey: userID,
-		}); emitErr != nil {
+		}, events.WithIndexUpsert(identityindexing.IndexTypeUsers, userID)); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
@@ -1276,7 +1287,7 @@ func (r *repository) ArchiveUser(ctx context.Context, userID string) error {
 		// rows it describes.
 		if emitErr := r.events.Emit(ctx, tx, logger, identity.UserArchivedServiceEventType, "", map[string]any{
 			identitykeys.UserIDKey: userID,
-		}); emitErr != nil {
+		}, events.WithIndexDelete(identityindexing.IndexTypeUsers, userID)); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 

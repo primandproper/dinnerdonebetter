@@ -18,17 +18,17 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	platformtotp "github.com/primandproper/platform-go/v9/authentication/totp"
-	perrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/messagequeue"
-	"github.com/primandproper/platform-go/v9/observability"
-	platformkeys "github.com/primandproper/platform-go/v9/observability/keys"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/qrcodes"
-	"github.com/primandproper/platform-go/v9/random"
+	platformtotp "github.com/primandproper/platform-go/v10/authentication/totp"
+	perrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/messagequeue"
+	"github.com/primandproper/platform-go/v10/observability"
+	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/qrcodes"
+	"github.com/primandproper/platform-go/v10/random"
 
 	passwordvalidator "github.com/wagslane/go-password-validator"
 )
@@ -80,7 +80,7 @@ type AuthManager struct {
 func ProvideAuthManager(
 	ctx context.Context,
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	passwordResetTokenDataManager auth.PasswordResetTokenDataManager,
 	sessionDataManager auth.UserSessionDataManager,
 	userDataManager identity.UserDataManager,
@@ -92,7 +92,7 @@ func ProvideAuthManager(
 	queueConfig *queuescfg.Config,
 ) (AuthManagerInterface, error) {
 	if queueConfig == nil {
-		return nil, perrors.ErrNilInputProvided
+		return nil, perrors.ErrNilInputParameter
 	}
 
 	dataChangesPublisher, err := publisherProvider.NewPublisher(ctx, queueConfig.DataChangesTopicName)
@@ -147,7 +147,7 @@ func (l *AuthManager) CheckUserPermissions(ctx context.Context, input *auth.User
 	defer span.End()
 
 	if input == nil {
-		return nil, observability.PrepareError(perrors.ErrNilInputProvided, span, "nil input provided")
+		return nil, observability.PrepareError(perrors.ErrNilInputParameter, span, "nil input provided")
 	}
 
 	sessionContextData, err := sessions.RequireFromContext(ctx)

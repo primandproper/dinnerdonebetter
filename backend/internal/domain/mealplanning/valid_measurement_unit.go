@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -131,7 +131,7 @@ type (
 		UpdateValidMeasurementUnit(ctx context.Context, updated *ValidMeasurementUnit) error
 		MarkValidMeasurementUnitAsIndexed(ctx context.Context, validMeasurementUnitID string) error
 		ArchiveValidMeasurementUnit(ctx context.Context, validMeasurementUnitID string) error
-		GetValidMeasurementUnitIDsThatNeedSearchIndexing(ctx context.Context) ([]string, error)
+		ScanValidMeasurementUnitIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetValidMeasurementUnitsWithIDs(ctx context.Context, ids []string) ([]*ValidMeasurementUnit, error)
 	}
 )

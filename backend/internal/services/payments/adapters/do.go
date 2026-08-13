@@ -4,10 +4,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 
-	capitalismcfg "github.com/primandproper/platform-go/v9/capitalism/config"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	capitalismcfg "github.com/primandproper/platform-go/v10/capitalism/config"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -17,7 +17,7 @@ func RegisterPaymentProcessorRegistry(i do.Injector) {
 	do.Provide[*payments.MapProcessorRegistry](i, func(i do.Injector) (*payments.MapProcessorRegistry, error) {
 		return ProvidePaymentProcessorRegistry(
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.TracerProvider](i),
+			do.MustInvoke[tracing.Provider](i),
 			*do.MustInvoke[*paymentscfg.Config](i),
 		)
 	})
@@ -38,7 +38,7 @@ func RegisterPaymentProcessorRegistry(i do.Injector) {
 // RevenueCat has no such selector, and still falls back to the stub when unconfigured.
 func ProvidePaymentProcessorRegistry(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	cfg paymentscfg.Config,
 ) (*payments.MapProcessorRegistry, error) {
 	processors := make(map[string]payments.PaymentProcessor)

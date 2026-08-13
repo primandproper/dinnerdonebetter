@@ -17,14 +17,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v9/database"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	mockdatabase "github.com/primandproper/platform-go/v9/database/mock"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/testutils/containers"
-	"github.com/primandproper/platform-go/v9/testutils/containers/pgtest"
+	encryptioncfg "github.com/primandproper/platform-go/v10/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v10/database"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	mockdatabase "github.com/primandproper/platform-go/v10/database/mock"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/testutils/containers"
+	"github.com/primandproper/platform-go/v10/testutils/containers/pgtest"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"
@@ -173,7 +173,7 @@ func databaseConfigForConnectionString(connectionString string) (*dbcfg.Config, 
 		Config: databasecfg.Config{
 			RunMigrations: false,
 		},
-		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
+		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 		OAuth2TokenEncryptionKey: testOAuth2TokenEncryptionKey,
 	}
 
@@ -254,7 +254,12 @@ func BuildDatabaseContainer(ctx context.Context, dbName string, customizers ...t
 		return nil, nil, nil, err
 	}
 
-	db, err := dbConfig.ConnectToWriteDatabase()
+	// Opened here rather than through the database config, which stopped handing out raw
+	// *sql.DB handles in platform-go v10 — the client is the supported surface now. Tests
+	// want the handle itself, to seed rows and assert against them without going through a
+	// repository, and they want it uninstrumented: a container that lives for one test has
+	// nothing to export spans to.
+	db, err := sql.Open("pgx", dbConfig.GetWriteConnectionString())
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to connect to postgres container: %w", err)
 	}

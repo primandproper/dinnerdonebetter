@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -94,7 +94,7 @@ func TestQuerier_CreateMealPlanRecipeOptionSelection(T *testing.T) {
 
 		actual, err := c.CreateMealPlanRecipeOptionSelection(ctx, nil)
 		require.Error(t, err)
-		require.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
+		require.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
 		assert.Nil(t, actual)
 	})
 }
@@ -110,7 +110,7 @@ func TestQuerier_UpdateMealPlanRecipeOptionSelection(T *testing.T) {
 
 		err := c.UpdateMealPlanRecipeOptionSelection(ctx, "option_id", "step_id", 0, "ingredient", nil)
 		require.Error(t, err)
-		assert.ErrorIs(t, err, platformerrors.ErrNilInputProvided)
+		assert.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
 	})
 
 	T.Run("with invalid meal plan option ID", func(t *testing.T) {

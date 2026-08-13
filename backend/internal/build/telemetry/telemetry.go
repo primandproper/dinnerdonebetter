@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -23,7 +23,7 @@ func Flush(ctx context.Context, i do.Injector) {
 	if shutdownErr := do.MustInvoke[metrics.Provider](i).Shutdown(shutdownCtx); shutdownErr != nil {
 		log.Printf("error shutting down metrics: %v", shutdownErr)
 	}
-	if flushErr := do.MustInvoke[tracing.TracerProvider](i).ForceFlush(shutdownCtx); flushErr != nil {
+	if flushErr := do.MustInvoke[tracing.Provider](i).ForceFlush(shutdownCtx); flushErr != nil {
 		log.Printf("error flushing traces: %v", flushErr)
 	}
 }

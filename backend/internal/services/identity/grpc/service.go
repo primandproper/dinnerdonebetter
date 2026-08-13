@@ -10,9 +10,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	_ "github.com/primandproper/dinnerdonebetter/backend/internal/services/errors"
 
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/uploads"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/uploads"
 )
 
 const (
@@ -34,7 +34,7 @@ type (
 
 func NewService(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	identityDataManager manager.IdentityDataManager,
 	uploadedMediaManager uploadedmediamanager.UploadedMediaManager,
 	uploadManager uploads.UploadManager,

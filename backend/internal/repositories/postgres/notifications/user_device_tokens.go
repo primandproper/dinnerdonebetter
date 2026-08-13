@@ -10,11 +10,11 @@ import (
 	notificationkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -174,7 +174,7 @@ func (q *Repository) UpsertUserDeviceToken(ctx context.Context, input *types.Use
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, notificationkeys.UserDeviceTokenIDKey, input.ID)
 	logger := q.logger.WithValue(notificationkeys.UserDeviceTokenIDKey, input.ID)
@@ -223,7 +223,7 @@ func (q *Repository) UpdateUserDeviceToken(ctx context.Context, updated *types.U
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(notificationkeys.UserDeviceTokenIDKey, updated.ID)
 	tracing.AttachToSpan(span, notificationkeys.UserDeviceTokenIDKey, updated.ID)

@@ -125,6 +125,13 @@ GROUP BY %s.%s
 			},
 			{
 				Annotation: QueryAnnotation{
+					Name: "ScanValidInstrumentIDsForReindex",
+					Type: ManyType,
+				},
+				Content: buildReindexScanQuery(validInstrumentsTableName),
+			},
+			{
+				Annotation: QueryAnnotation{
 					Name: "GetValidInstrumentsNeedingIndexing",
 					Type: ManyType,
 				},

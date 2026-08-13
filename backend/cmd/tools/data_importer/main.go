@@ -15,13 +15,13 @@ import (
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
-	"github.com/primandproper/platform-go/v9/database"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	"github.com/primandproper/platform-go/v9/database/postgres"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v10/database"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	"github.com/primandproper/platform-go/v10/database/postgres"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )
@@ -373,7 +373,7 @@ func importMeals(ctx context.Context, repo mealplanning.Repository, meals []*mea
 	return nil
 }
 
-func connectDB(ctx context.Context, logger logging.Logger, tracerProvider tracing.TracerProvider, dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, dbSSLDisable bool) (database.Client, error) {
+func connectDB(ctx context.Context, logger logging.Logger, tracerProvider tracing.Provider, dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, dbSSLDisable bool) (database.Client, error) {
 	if dbHost == "" || dbUser == "" || dbPassword == "" || dbName == "" {
 		return nil, errors.New("database connection requires --db-host, --db-user, --db-password, --db-name")
 	}

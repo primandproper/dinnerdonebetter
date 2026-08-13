@@ -106,6 +106,14 @@ GROUP BY valid_vessels.id
 ORDER BY valid_vessels.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
+-- name: ScanValidVesselIDsForReindex :many
+SELECT valid_vessels.id
+FROM valid_vessels
+WHERE valid_vessels.archived_at IS NULL
+	AND valid_vessels.id COLLATE "C" > sqlc.arg(cursor)
+ORDER BY valid_vessels.id COLLATE "C"
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
+
 -- name: GetValidVesselIDsNeedingIndexing :many
 SELECT valid_vessels.id
 FROM valid_vessels

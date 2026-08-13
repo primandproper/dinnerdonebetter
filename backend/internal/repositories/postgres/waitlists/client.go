@@ -8,9 +8,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -33,7 +33,7 @@ type Repository struct {
 // Returns concrete *Repository so the manager can wrap it; the manager is the sole provider of waitlists.Repository for services.
 func ProvideWaitlistsRepository(
 	logger logging.Logger,
-	tracerProvider tracing.TracerProvider,
+	tracerProvider tracing.Provider,
 	auditLogEntryRepo audit.Repository,
 	client database.Client,
 	eventEmitter *events.Emitter,

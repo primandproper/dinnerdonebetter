@@ -3,7 +3,7 @@ package converters
 import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v10/identifiers"
 )
 
 // ConvertRecipeMediaToRecipeMediaUpdateRequestInput creates a RecipeMediaUpdateRequestInput from a RecipeMedia.

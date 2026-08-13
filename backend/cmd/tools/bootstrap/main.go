@@ -19,17 +19,17 @@ import (
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 
-	"github.com/primandproper/platform-go/v9/authentication/argon2"
-	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v9/database"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	"github.com/primandproper/platform-go/v9/database/postgres"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v9/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v9/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v9/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v9/random"
-	"github.com/primandproper/platform-go/v9/secrets/kubernetes"
+	"github.com/primandproper/platform-go/v10/authentication/argon2"
+	encryptioncfg "github.com/primandproper/platform-go/v10/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v10/database"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	"github.com/primandproper/platform-go/v10/database/postgres"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v10/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v10/random"
+	"github.com/primandproper/platform-go/v10/secrets/kubernetes"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
@@ -193,7 +193,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 			ReadConnection:  connDetails,
 			WriteConnection: connDetails,
 		},
-		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderSalsa20},
+		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 		OAuth2TokenEncryptionKey: db.oauth2TokenEncryptionKey,
 	}
 
@@ -208,12 +208,11 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 		}
 	}()
 
-	// Pinging is a driver feature off the executor seam, so it needs the concrete pool
-	// behind the RawAccess capability rather than the safe Client surface.
-	raw, hasRawAccess := client.(database.RawAccess)
-	if !hasRawAccess {
-		return fmt.Errorf("database client does not expose raw access required for pinging")
-	}
+	// Pinging is a driver feature off the executor seam, so it needs the concrete pool behind
+	// the RawAccess capability rather than the safe Client surface. platform-go v10 has the
+	// provider constructor return its own concrete type, so this is a static conversion now
+	// rather than a checked assertion — the compiler enforces what the check used to.
+	var raw database.RawAccess = client
 	if err = raw.ReadDB().PingContext(ctx); err != nil {
 		return fmt.Errorf("pinging database client: %w", err)
 	}

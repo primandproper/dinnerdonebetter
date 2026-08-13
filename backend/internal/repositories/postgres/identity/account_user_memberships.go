@@ -12,11 +12,11 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/identifiers"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 const (
@@ -242,7 +242,7 @@ func (r *repository) ModifyUserPermissions(ctx context.Context, accountID, userI
 	}
 
 	if input == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 
 	logger := r.logger.WithValues(map[string]any{
@@ -313,7 +313,7 @@ func (r *repository) TransferAccountOwnership(ctx context.Context, accountID str
 	}
 
 	if input == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 
 	logger := r.logger.WithValues(map[string]any{
@@ -397,7 +397,7 @@ func (r *repository) addUserToAccount(ctx context.Context, querier database.SQLQ
 	defer span.End()
 
 	if input == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 
 	logger := r.logger.WithValues(map[string]any{

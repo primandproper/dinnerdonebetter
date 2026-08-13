@@ -4,15 +4,6 @@ import (
 	"encoding/gob"
 )
 
-const (
-	// RecipePrepTaskStepCreatedServiceEventType indicates a recipe prep task step was created.
-	RecipePrepTaskStepCreatedServiceEventType = "recipe_prep_task_step_created"
-	// RecipePrepTaskStepUpdatedServiceEventType indicates a recipe prep task step was updated.
-	RecipePrepTaskStepUpdatedServiceEventType = "recipe_prep_task_step_updated"
-	// RecipePrepTaskStepArchivedServiceEventType indicates a recipe prep task step was archived.
-	RecipePrepTaskStepArchivedServiceEventType = "recipe_prep_task_step_archived"
-)
-
 func init() {
 	gob.Register(new(RecipePrepTask))
 	gob.Register(new(RecipePrepTaskCreationRequestInput))

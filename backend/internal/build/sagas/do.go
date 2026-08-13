@@ -20,13 +20,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/platform-go/v9/database"
-	"github.com/primandproper/platform-go/v9/distributedlock"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/outbox"
-	"github.com/primandproper/platform-go/v9/saga"
+	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v10/distributedlock"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/outbox"
+	"github.com/primandproper/platform-go/v10/saga"
 
 	"github.com/samber/do/v2"
 )
@@ -55,7 +55,7 @@ func RegisterSagas(i do.Injector) {
 		return saga.NewSQLStore(
 			do.MustInvoke[database.Client](i),
 			saga.WithStoreLogger(do.MustInvoke[logging.Logger](i)),
-			saga.WithStoreTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			saga.WithStoreTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			saga.WithStoreMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 	})
@@ -74,7 +74,7 @@ func RegisterSagas(i do.Injector) {
 			do.MustInvoke[*saga.Registry](i),
 			saga.WithRunnerEventPublisher(do.MustInvoke[saga.EventPublisher](i)),
 			saga.WithRunnerLogger(do.MustInvoke[logging.Logger](i)),
-			saga.WithRunnerTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			saga.WithRunnerTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			saga.WithRunnerMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 	})
@@ -107,7 +107,7 @@ func RegisterSagaWorker(i do.Injector) {
 			locker,
 			saga.WithWorkerEventPublisher(do.MustInvoke[saga.EventPublisher](i)),
 			saga.WithWorkerLogger(do.MustInvoke[logging.Logger](i)),
-			saga.WithWorkerTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			saga.WithWorkerTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			saga.WithWorkerMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 	})

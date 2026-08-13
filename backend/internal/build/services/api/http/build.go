@@ -18,19 +18,19 @@ import (
 	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 	paymentshttp "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
 
-	analyticscfg "github.com/primandproper/platform-go/v9/analytics/config"
-	"github.com/primandproper/platform-go/v9/database"
-	databasecfg "github.com/primandproper/platform-go/v9/database/config"
-	"github.com/primandproper/platform-go/v9/encoding"
-	"github.com/primandproper/platform-go/v9/healthcheck"
-	msgconfig "github.com/primandproper/platform-go/v9/messagequeue/config"
-	"github.com/primandproper/platform-go/v9/observability"
-	loggingcfg "github.com/primandproper/platform-go/v9/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v9/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v9/observability/tracing/config"
-	"github.com/primandproper/platform-go/v9/qrcodes"
-	"github.com/primandproper/platform-go/v9/random"
-	"github.com/primandproper/platform-go/v9/server/http"
+	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
+	"github.com/primandproper/platform-go/v10/database"
+	databasecfg "github.com/primandproper/platform-go/v10/database/config"
+	"github.com/primandproper/platform-go/v10/encoding"
+	"github.com/primandproper/platform-go/v10/healthcheck"
+	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
+	"github.com/primandproper/platform-go/v10/observability"
+	loggingcfg "github.com/primandproper/platform-go/v10/observability/logging/config"
+	metricscfg "github.com/primandproper/platform-go/v10/observability/metrics/config"
+	tracingcfg "github.com/primandproper/platform-go/v10/observability/tracing/config"
+	"github.com/primandproper/platform-go/v10/qrcodes"
+	"github.com/primandproper/platform-go/v10/random"
+	"github.com/primandproper/platform-go/v10/server/http"
 
 	"github.com/samber/do/v2"
 )
@@ -42,7 +42,11 @@ func RegisterHTTPServerServices(i do.Injector) {
 	encoding.RegisterServerEncoderDecoder(i)
 	analyticscfg.RegisterEventReporter(i)
 	do.Provide[healthcheck.Registry](i, func(i do.Injector) (healthcheck.Registry, error) {
-		registry := healthcheck.NewRegistry()
+		registry, err := healthcheck.NewRegistry()
+		if err != nil {
+			return nil, err
+		}
+
 		dbClient := do.MustInvoke[database.Client](i)
 		if checker, ok := dbClient.(healthcheck.DatabaseReadyChecker); ok {
 			registry.Register(healthcheck.NewDatabaseChecker("database", checker))

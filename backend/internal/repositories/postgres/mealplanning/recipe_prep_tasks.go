@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -125,7 +125,7 @@ func (q *repository) createRecipePrepTask(ctx context.Context, querier database.
 	logger := q.logger.Clone()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, input.ID)
 	logger = logger.WithValue(mealplanningkeys.RecipePrepTaskIDKey, input.ID)
@@ -187,7 +187,7 @@ func (q *repository) CreateRecipePrepTask(ctx context.Context, input *mealplanni
 	logger := q.logger.Clone()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	logger = logger.WithValue(mealplanningkeys.RecipePrepTaskIDKey, input.ID)
 
@@ -227,7 +227,7 @@ func (q *repository) createRecipePrepTaskStep(ctx context.Context, querier datab
 	logger := q.logger.Clone()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 	logger = logger.WithValue(mealplanningkeys.RecipePrepTaskIDKey, input.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipePrepTaskIDKey, input.BelongsToRecipePrepTask)
@@ -370,7 +370,7 @@ func (q *repository) UpdateRecipePrepTask(ctx context.Context, updated *mealplan
 
 	logger := q.logger.Clone()
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger = logger.WithValue(mealplanningkeys.RecipePrepTaskIDKey, updated.ID)
 

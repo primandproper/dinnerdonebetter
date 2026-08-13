@@ -20,7 +20,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v9/identifiers"
+	"github.com/primandproper/platform-go/v10/identifiers"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"

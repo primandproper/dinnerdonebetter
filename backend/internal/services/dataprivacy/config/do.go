@@ -6,18 +6,19 @@ import (
 	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
-	"github.com/primandproper/platform-go/v9/compression"
-	"github.com/primandproper/platform-go/v9/cryptography/encryption"
-	encryptioncfg "github.com/primandproper/platform-go/v9/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v9/database"
-	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
-	platformdataprivacycfg "github.com/primandproper/platform-go/v9/dataprivacy/config"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/observability/logging"
-	"github.com/primandproper/platform-go/v9/observability/metrics"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
-	"github.com/primandproper/platform-go/v9/uploads"
-	"github.com/primandproper/platform-go/v9/uploads/objectstorage"
+	"github.com/primandproper/platform-go/v10/compression"
+	"github.com/primandproper/platform-go/v10/cryptography/encryption"
+	encryptioncfg "github.com/primandproper/platform-go/v10/cryptography/encryption/config"
+	"github.com/primandproper/platform-go/v10/database"
+	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
+	platformdataprivacycfg "github.com/primandproper/platform-go/v10/dataprivacy/config"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/metrics"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v10/operations"
+	"github.com/primandproper/platform-go/v10/uploads"
+	"github.com/primandproper/platform-go/v10/uploads/objectstorage"
 
 	"github.com/samber/do/v2"
 )
@@ -51,7 +52,7 @@ func RegisterArtifactStorage(i do.Injector) {
 			do.MustInvoke[context.Context](i),
 			&cfg.Uploads.Storage,
 			objectstorage.WithLogger(do.MustInvoke[logging.Logger](i)),
-			objectstorage.WithTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			objectstorage.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			objectstorage.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 		if err != nil {
@@ -72,12 +73,17 @@ func RegisterArtifactStorage(i do.Injector) {
 			return ArtifactEncryptorDecryptor{}, platformerrors.New("no disclosure artifact encryption key provided")
 		}
 
-		encDec, err := encryptioncfg.NewEncryptorDecryptor(
+		// One key, named by the configured current key ID. Rotating means adding the new key
+		// to this set and pointing CurrentKeyID at it; artifacts already written keep opening
+		// under the key their ciphertext names.
+		encDec, err := encryptioncfg.NewKeyring(
 			do.MustInvoke[context.Context](i),
 			&cfg.Encryption,
-			[]byte(cfg.ArtifactEncryptionKey),
+			encryption.Keyset{
+				encryption.KeyID(cfg.Encryption.CurrentKeyID): encryption.MasterKey(cfg.ArtifactEncryptionKey),
+			},
 			encryptioncfg.WithLogger(do.MustInvoke[logging.Logger](i)),
-			encryptioncfg.WithTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			encryptioncfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 		)
 		if err != nil {
 			return ArtifactEncryptorDecryptor{}, platformerrors.Wrap(err, "initializing disclosure artifact encryptor")
@@ -103,7 +109,7 @@ func RegisterArtifactStorage(i do.Injector) {
 			PlatformConfig(do.MustInvoke[*Config](i), client),
 			client,
 			platformdataprivacycfg.WithLogger(do.MustInvoke[logging.Logger](i)),
-			platformdataprivacycfg.WithTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			platformdataprivacycfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			platformdataprivacycfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 	})
@@ -137,8 +143,12 @@ func RegisterRequestService(i do.Injector) {
 			do.MustInvoke[context.Context](i),
 			PlatformConfig(do.MustInvoke[*Config](i), client),
 			do.MustInvoke[platformdataprivacy.Store](i),
+			// v10 fulfills a privacy request as an operation, so submitting one is starting
+			// one. The kinds it starts have to be registered in this process's registry or
+			// Start refuses them — see dataprivacybuild.RegisterOperationsRegistry.
+			do.MustInvoke[operations.Service](i),
 			platformdataprivacycfg.WithLogger(do.MustInvoke[logging.Logger](i)),
-			platformdataprivacycfg.WithTracerProvider(do.MustInvoke[tracing.TracerProvider](i)),
+			platformdataprivacycfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			platformdataprivacycfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 			platformdataprivacycfg.WithServiceOptions(serviceOpts...),
 		)

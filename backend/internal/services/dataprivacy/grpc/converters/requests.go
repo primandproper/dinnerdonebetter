@@ -3,7 +3,7 @@ package converters
 import (
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v9/dataprivacy"
+	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -32,9 +32,13 @@ func ConvertRequestToGRPCRequest(input *platformdataprivacy.Request) *dataprivac
 		Deleted:       input.Deleted,
 		Anonymized:    input.Anonymized,
 		ArtifactBytes: input.ArtifactBytes,
-		Attempts:      int32(input.Attempts),
 		LastError:     input.LastError,
 	}
+
+	// Attempts is deliberately left unset. platform-go v10 fulfills privacy requests as
+	// operations, and the claim count now belongs to the operation rather than to the
+	// request — the request no longer carries one to copy. The proto field stays for wire
+	// compatibility until clients move to polling the operation by OperationID.
 
 	// Zero rather than absent is the wrong thing to send for either of these: an
 	// erasure has no expiry once confirmed, and an unfulfilled request has no

@@ -11,7 +11,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v9/filtering"
+	"github.com/primandproper/platform-go/v10/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -88,7 +88,7 @@ func TestQuerier_Integration_ValidIngredients(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, random)
 
-	needToIndex, err := dbc.GetValidIngredientIDsThatNeedSearchIndexing(ctx)
+	needToIndex, err := dbc.ScanValidIngredientIDsForReindex(ctx, "", 100)
 	require.NoError(t, err)
 	require.NotEmpty(t, needToIndex)
 

@@ -11,13 +11,6 @@ import (
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	mealplanningfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
-
-	msgqueuemock "github.com/primandproper/platform-go/v9/messagequeue/mock"
-	textsearch "github.com/primandproper/platform-go/v9/search/text"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,6 +54,44 @@ func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(t *testing.T) {
 		}
 
 		assert.NoError(t, handler.DataChangesEventHandler("data_changes")(ctx, rawMsg))
+	})
+
+	t.Run("does not report an event that is not on the analytics allowlist", func(t *testing.T) {
+		t.Parallel()
+
+		handler, identityRepo, _, _, analyticsReporter, _, _, decoder := buildTestAsyncDataChangeMessageHandler(t)
+
+		ctx := t.Context()
+
+		// Catalog table churn carries a user ID like anything else. It used to reach the
+		// analytics platform for exactly that reason, which was never a reason anyone chose.
+		dataChangeMessage := &audit.DataChangeMessage{
+			EventType: mealplanning.ValidIngredientUpdatedServiceEventType,
+			UserID:    "test-user-id",
+			AccountID: "test-account-id",
+		}
+
+		rawMsg, err := json.Marshal(dataChangeMessage)
+		require.NoError(t, err)
+
+		decoder.DecodeBytesFunc = func(_ context.Context, _ []byte, dest any) error {
+			d := dest.(*audit.DataChangeMessage)
+			*d = *dataChangeMessage
+			return nil
+		}
+
+		var reported bool
+		analyticsReporter.EventOccurredFunc = func(_ context.Context, _, _ string, _ map[string]any) error {
+			reported = true
+
+			return nil
+		}
+		identityRepo.GetUserFunc = func(_ context.Context, _ string) (*identity.User, error) {
+			return identityfakes.BuildFakeUser(), nil
+		}
+
+		require.NoError(t, handler.DataChangesEventHandler("data_changes")(ctx, rawMsg))
+		assert.False(t, reported, "an event off the allowlist reached the analytics platform")
 	})
 
 	t.Run("with invalid JSON", func(t *testing.T) {
@@ -120,152 +151,6 @@ func TestAsyncDataChangeMessageHandler_handleDataChangeMessage(t *testing.T) {
 
 		err := handler.handleDataChangeMessage(ctx, dataChangeMessage, "data_changes")
 		assert.NoError(t, err)
-	})
-}
-
-func TestAsyncDataChangeMessageHandler_handleSearchIndexUpdates(t *testing.T) {
-	t.Parallel()
-
-	t.Run("user signed up event", func(t *testing.T) {
-		t.Parallel()
-
-		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-
-		ctx := t.Context()
-
-		dataChangeMessage := &audit.DataChangeMessage{
-			EventType: identity.UserSignedUpServiceEventType,
-			UserID:    "test-user-id",
-			AccountID: "test-account-id",
-			Context:   nil,
-		}
-
-		var publishedReq *textsearch.IndexRequest
-		mockPublisher := &msgqueuemock.PublisherMock{
-			PublishFunc: func(_ context.Context, data any) error {
-				if req, ok := data.(*textsearch.IndexRequest); ok {
-					publishedReq = req
-				}
-				return nil
-			},
-		}
-		handler.searchDataIndexPublisher = mockPublisher
-
-		err := handler.handleSearchIndexUpdates(ctx, dataChangeMessage)
-		require.NoError(t, err)
-
-		assert.NotNil(t, publishedReq)
-		assert.Equal(t, dataChangeMessage.UserID, publishedReq.RowID)
-		assert.Equal(t, identityindexing.IndexTypeUsers, publishedReq.IndexType)
-		assert.False(t, publishedReq.Delete)
-	})
-
-	t.Run("user archived event", func(t *testing.T) {
-		t.Parallel()
-
-		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-
-		ctx := t.Context()
-
-		dataChangeMessage := &audit.DataChangeMessage{
-			EventType: identity.UserArchivedServiceEventType,
-			UserID:    "test-user-id",
-			AccountID: "test-account-id",
-			Context:   nil,
-		}
-
-		var publishedReq *textsearch.IndexRequest
-		mockPublisher := &msgqueuemock.PublisherMock{
-			PublishFunc: func(_ context.Context, data any) error {
-				if req, ok := data.(*textsearch.IndexRequest); ok {
-					publishedReq = req
-				}
-				return nil
-			},
-		}
-		handler.searchDataIndexPublisher = mockPublisher
-
-		err := handler.handleSearchIndexUpdates(ctx, dataChangeMessage)
-		require.NoError(t, err)
-
-		assert.NotNil(t, publishedReq)
-		assert.Equal(t, dataChangeMessage.UserID, publishedReq.RowID)
-		assert.Equal(t, identityindexing.IndexTypeUsers, publishedReq.IndexType)
-		assert.True(t, publishedReq.Delete)
-	})
-
-	t.Run("recipe created event", func(t *testing.T) {
-		t.Parallel()
-
-		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-
-		ctx := t.Context()
-
-		recipe := mealplanningfakes.BuildFakeRecipe()
-		// Producers send only the recipe ID in context, not the full recipe.
-		dataChangeMessage := &audit.DataChangeMessage{
-			EventType: mealplanning.RecipeCreatedServiceEventType,
-			UserID:    "test-user-id",
-			AccountID: "test-account-id",
-			Context: map[string]any{
-				mealplanningkeys.RecipeIDKey: recipe.ID,
-			},
-		}
-
-		var publishedReq *textsearch.IndexRequest
-		mockPublisher := &msgqueuemock.PublisherMock{
-			PublishFunc: func(_ context.Context, data any) error {
-				if req, ok := data.(*textsearch.IndexRequest); ok {
-					publishedReq = req
-				}
-				return nil
-			},
-		}
-		handler.searchDataIndexPublisher = mockPublisher
-
-		err := handler.handleSearchIndexUpdates(ctx, dataChangeMessage)
-		require.NoError(t, err)
-
-		assert.NotNil(t, publishedReq)
-		assert.Equal(t, recipe.ID, publishedReq.RowID)
-		assert.Equal(t, mealplanningindexing.IndexTypeRecipes, publishedReq.IndexType)
-		assert.False(t, publishedReq.Delete)
-	})
-
-	t.Run("unhandled event type", func(t *testing.T) {
-		t.Parallel()
-
-		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-
-		ctx := t.Context()
-
-		dataChangeMessage := &audit.DataChangeMessage{
-			EventType: "unhandled.event.type",
-			UserID:    "test-user-id",
-			AccountID: "test-account-id",
-			Context:   nil,
-		}
-
-		err := handler.handleSearchIndexUpdates(ctx, dataChangeMessage)
-		assert.NoError(t, err) // Should not error for unhandled event types
-	})
-
-	t.Run("with missing user ID", func(t *testing.T) {
-		t.Parallel()
-
-		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-
-		ctx := t.Context()
-
-		dataChangeMessage := &audit.DataChangeMessage{
-			EventType: identity.UserSignedUpServiceEventType,
-			UserID:    "", // Missing user ID
-			AccountID: "test-account-id",
-			Context:   nil,
-		}
-
-		err := handler.handleSearchIndexUpdates(ctx, dataChangeMessage)
-		assert.NoError(t, err) // Should handle gracefully but log error
 	})
 }
 

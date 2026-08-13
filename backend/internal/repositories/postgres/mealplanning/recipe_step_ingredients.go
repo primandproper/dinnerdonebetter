@@ -6,13 +6,15 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
+	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v9/database"
-	platformerrors "github.com/primandproper/platform-go/v9/errors"
-	"github.com/primandproper/platform-go/v9/filtering"
-	"github.com/primandproper/platform-go/v9/observability"
-	"github.com/primandproper/platform-go/v9/observability/tracing"
+	"github.com/primandproper/platform-go/v10/database"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
+	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 )
 
 var (
@@ -437,7 +439,7 @@ func (q *repository) createRecipeStepIngredient(ctx context.Context, db database
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	// create the recipe step ingredient.
@@ -510,7 +512,7 @@ func (q *repository) CreateRecipeStepIngredient(ctx context.Context, recipeID st
 	defer span.End()
 
 	if input == nil {
-		return nil, platformerrors.ErrNilInputProvided
+		return nil, platformerrors.ErrNilInputParameter
 	}
 
 	// Get the recipe ID from the step
@@ -536,7 +538,7 @@ func (q *repository) CreateRecipeStepIngredient(ctx context.Context, recipeID st
 		created, createErr = q.createRecipeStepIngredient(ctx, tx, input)
 
 		return createErr
-	}); err != nil {
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, recipeID)); err != nil {
 		return nil, err
 	}
 
@@ -549,7 +551,7 @@ func (q *repository) UpdateRecipeStepIngredient(ctx context.Context, recipeID st
 	defer span.End()
 
 	if updated == nil {
-		return platformerrors.ErrNilInputProvided
+		return platformerrors.ErrNilInputParameter
 	}
 	logger := q.logger.WithValue(mealplanningkeys.RecipeStepIngredientIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIngredientIDKey, updated.ID)
@@ -597,7 +599,7 @@ func (q *repository) UpdateRecipeStepIngredient(ctx context.Context, recipeID st
 		})
 
 		return updateErr
-	}); err != nil {
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, recipeID)); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step ingredient")
 	}
 
@@ -643,7 +645,7 @@ func (q *repository) ArchiveRecipeStepIngredient(ctx context.Context, recipeID, 
 		}
 
 		return nil
-	}); err != nil {
+	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, recipeID)); err != nil {
 		return err
 	}
 
