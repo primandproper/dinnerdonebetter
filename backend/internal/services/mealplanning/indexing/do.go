@@ -2,16 +2,21 @@ package indexing
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/search/syncsource"
 
 	"github.com/primandproper/platform-go/v10/observability/logging"
 	"github.com/primandproper/platform-go/v10/observability/metrics"
 	"github.com/primandproper/platform-go/v10/observability/tracing"
 	searchsync "github.com/primandproper/platform-go/v10/search/sync"
+	syncsource "github.com/primandproper/platform-go/v10/search/sync/source"
 	textsearch "github.com/primandproper/platform-go/v10/search/text"
 
 	"github.com/samber/do/v2"
 )
+
+// o11yName names the loggers, spans and metrics of the search sync sources built here. It
+// keeps the name the deleted internal/search/syncsource used, so nothing downstream of a log
+// query has to change.
+const o11yName = "search_sync_source"
 
 // registerPair registers the Syncer and Reindexer for one entity over one index.
 //
@@ -25,28 +30,36 @@ import (
 // because do is lazy and nothing is constructed until something asks for it.
 func registerPair[E, T any](
 	i do.Injector,
-	source func(mealplanning.Repository) *syncsource.Source[E, T],
+	source func(mealplanning.Repository) (*syncsource.Source[E, T], error),
 	index func(do.Injector) textsearch.IndexManager,
 ) {
 	do.Provide(i, func(i do.Injector) (*searchsync.Syncer[T], error) {
-		return syncsource.NewSyncer(
-			source(do.MustInvoke[mealplanning.Repository](i)),
-			index(i),
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[metrics.Provider](i),
-		)
+		src, err := source(do.MustInvoke[mealplanning.Repository](i))
+		if err != nil {
+			return nil, err
+		}
+
+		return syncsource.NewSyncer(src, index(i), o11yOptions(i)...)
 	})
 
 	do.Provide(i, func(i do.Injector) (*searchsync.Reindexer[T], error) {
-		return syncsource.NewReindexer(
-			source(do.MustInvoke[mealplanning.Repository](i)),
-			index(i),
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[metrics.Provider](i),
-		)
+		src, err := source(do.MustInvoke[mealplanning.Repository](i))
+		if err != nil {
+			return nil, err
+		}
+
+		return syncsource.NewReindexer(src, index(i), o11yOptions(i)...)
 	})
+}
+
+// o11yOptions is the three pillars as syncsource options. They are resolved individually
+// rather than as an observability.Pillars because that is how the container holds them.
+func o11yOptions(i do.Injector) []syncsource.Option {
+	return []syncsource.Option{
+		syncsource.WithLogger(logging.NewNamedLogger(do.MustInvoke[logging.Logger](i), o11yName)),
+		syncsource.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
+		syncsource.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
+	}
 }
 
 // RegisterIndexSyncers registers the Syncer and Reindexer for all eight meal planning indexes.

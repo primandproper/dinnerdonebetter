@@ -11,7 +11,8 @@ package indexing
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/search/syncsource"
+
+	syncsource "github.com/primandproper/platform-go/v10/search/sync/source"
 )
 
 type (
@@ -35,17 +36,17 @@ type (
 )
 
 // NewMealSource builds the meals source.
-func NewMealSource(repo mealplanning.Repository) *MealSource {
+func NewMealSource(repo mealplanning.Repository) (*MealSource, error) {
 	return syncsource.New(IndexTypeMeals, repo.GetMeal, repo.ScanMealIDsForReindex, ConvertMealToMealSearchSubset)
 }
 
 // NewRecipeSource builds the recipes source.
-func NewRecipeSource(repo mealplanning.Repository) *RecipeSource {
+func NewRecipeSource(repo mealplanning.Repository) (*RecipeSource, error) {
 	return syncsource.New(IndexTypeRecipes, repo.GetRecipe, repo.ScanRecipeIDsForReindex, ConvertRecipeToRecipeSearchSubset)
 }
 
 // NewValidIngredientSource builds the valid ingredients source.
-func NewValidIngredientSource(repo mealplanning.Repository) *ValidIngredientSource {
+func NewValidIngredientSource(repo mealplanning.Repository) (*ValidIngredientSource, error) {
 	return syncsource.New(
 		IndexTypeValidIngredients,
 		repo.GetValidIngredient,
@@ -55,7 +56,7 @@ func NewValidIngredientSource(repo mealplanning.Repository) *ValidIngredientSour
 }
 
 // NewValidInstrumentSource builds the valid instruments source.
-func NewValidInstrumentSource(repo mealplanning.Repository) *ValidInstrumentSource {
+func NewValidInstrumentSource(repo mealplanning.Repository) (*ValidInstrumentSource, error) {
 	return syncsource.New(
 		IndexTypeValidInstruments,
 		repo.GetValidInstrument,
@@ -65,7 +66,7 @@ func NewValidInstrumentSource(repo mealplanning.Repository) *ValidInstrumentSour
 }
 
 // NewValidMeasurementUnitSource builds the valid measurement units source.
-func NewValidMeasurementUnitSource(repo mealplanning.Repository) *ValidMeasurementUnitSource {
+func NewValidMeasurementUnitSource(repo mealplanning.Repository) (*ValidMeasurementUnitSource, error) {
 	return syncsource.New(
 		IndexTypeValidMeasurementUnits,
 		repo.GetValidMeasurementUnit,
@@ -75,7 +76,7 @@ func NewValidMeasurementUnitSource(repo mealplanning.Repository) *ValidMeasureme
 }
 
 // NewValidPreparationSource builds the valid preparations source.
-func NewValidPreparationSource(repo mealplanning.Repository) *ValidPreparationSource {
+func NewValidPreparationSource(repo mealplanning.Repository) (*ValidPreparationSource, error) {
 	return syncsource.New(
 		IndexTypeValidPreparations,
 		repo.GetValidPreparation,
@@ -85,7 +86,7 @@ func NewValidPreparationSource(repo mealplanning.Repository) *ValidPreparationSo
 }
 
 // NewValidIngredientStateSource builds the valid ingredient states source.
-func NewValidIngredientStateSource(repo mealplanning.Repository) *ValidIngredientStateSource {
+func NewValidIngredientStateSource(repo mealplanning.Repository) (*ValidIngredientStateSource, error) {
 	return syncsource.New(
 		IndexTypeValidIngredientStates,
 		repo.GetValidIngredientState,
@@ -95,7 +96,7 @@ func NewValidIngredientStateSource(repo mealplanning.Repository) *ValidIngredien
 }
 
 // NewValidVesselSource builds the valid vessels source.
-func NewValidVesselSource(repo mealplanning.Repository) *ValidVesselSource {
+func NewValidVesselSource(repo mealplanning.Repository) (*ValidVesselSource, error) {
 	return syncsource.New(
 		IndexTypeValidVessels,
 		repo.GetValidVessel,

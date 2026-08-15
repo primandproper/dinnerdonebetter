@@ -102,10 +102,11 @@ event-ledger rows past their ninety-day retention.
 
 ## What has to change before the first limit goes on
 
-1. **Put the limit in `planLimits`** (`internal/metering/quotas.go`), keyed by meter and by
+1. **Put the limit in `planLimits`** (`internal/metering/plans.go`), keyed by meter and by
    product ID. The quota source short-circuits to unlimited for any meter absent from that map,
    without reading anything — so an entry appearing there is also what turns the subscription
-   lookup on.
+   lookup on. `Behavior` is required: platform's `NewPlanLimitSource` refuses a zero one at
+   construction rather than picking a default, and it refuses a meter the registry does not know.
 2. **Attach a cache to the enforcer.** It is built with a nil `cache.Cache[metering.CachedTotal]`
    today, so `Check` reads the durable total on every call. That is a durable read on a request
    path, which is the thing `Check` exists not to be.

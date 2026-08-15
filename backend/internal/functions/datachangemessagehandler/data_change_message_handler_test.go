@@ -156,7 +156,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		decoder := &encodingmock.ServerEncoderDecoderMock{}
 		// Empty rather than populated: this asserts the handler carries what it was given,
 		// and a Syncer needs a live index to construct. What each Syncer does with an event
-		// is covered where the Source is, in internal/search/syncsource.
+		// is covered where the Source is, in platform-go's search/sync/source.
 		searchSyncers := []SearchSyncer{}
 
 		// Set up metrics expectations
