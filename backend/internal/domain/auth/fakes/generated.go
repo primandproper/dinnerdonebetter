@@ -12,6 +12,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
 	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/pointer"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )
@@ -57,7 +58,7 @@ func buildFakeTOTPToken() string {
 // BuildFakeChangeActiveAccountInput builds a faked ChangeActiveAccountInput.
 func BuildFakeChangeActiveAccountInput() *types.ChangeActiveAccountInput {
 	return &types.ChangeActiveAccountInput{
-		AccountID: fake.UUID(),
+		AccountID: BuildFakeID(),
 	}
 }
 
@@ -66,20 +67,20 @@ func BuildFakeUserStatusResponse() *types.UserStatusResponse {
 	return &types.UserStatusResponse{
 		UserID:                   BuildFakeID(),
 		AccountStatus:            identity.GoodStandingUserAccountStatus.String(),
-		AccountStatusExplanation: "",
+		AccountStatusExplanation: buildUniqueString(),
 		ActiveAccount:            BuildFakeID(),
-		UserIsAuthenticated:      true,
+		UserIsAuthenticated:      fake.Bool(),
 	}
 }
 
 // BuildFakeTokenResponse builds a faked TokenResponse.
 func BuildFakeTokenResponse() *types.TokenResponse {
 	return &types.TokenResponse{
-		ExpiresUTC:   time.Time{},
+		ExpiresUTC:   BuildFakeTime(),
 		UserID:       BuildFakeID(),
 		AccountID:    BuildFakeID(),
 		AccessToken:  fake.UUID(),
-		RefreshToken: "",
+		RefreshToken: buildUniqueString(),
 	}
 }
 
@@ -89,7 +90,7 @@ func BuildFakeUserLoginInput() *types.UserLoginInput {
 		Username:         BuildFakeID(),
 		Password:         buildFakePassword(),
 		TOTPToken:        buildFakeTOTPToken(),
-		DesiredAccountID: "",
+		DesiredAccountID: BuildFakeID(),
 	}
 }
 
@@ -136,8 +137,8 @@ func BuildFakePasswordResetToken() *types.PasswordResetToken {
 	return &types.PasswordResetToken{
 		CreatedAt:     fakeDate,
 		ExpiresAt:     fakeDate.Add(30 * time.Minute),
-		RedeemedAt:    nil,
-		LastUpdatedAt: nil,
+		RedeemedAt:    pointer.To(BuildFakeTime()),
+		LastUpdatedAt: pointer.To(BuildFakeTime()),
 		ID:            BuildFakeID(),
 		Token:         fake.UUID(),
 		BelongsToUser: BuildFakeID(),
@@ -197,7 +198,7 @@ func BuildFakeUserEmailAddressUpdateInput() *types.UserEmailAddressUpdateInput {
 // BuildFakePasswordResetResponse builds a faked PasswordResetResponse.
 func BuildFakePasswordResetResponse() *types.PasswordResetResponse {
 	return &types.PasswordResetResponse{
-		Successful: true,
+		Successful: fake.Bool(),
 	}
 }
 

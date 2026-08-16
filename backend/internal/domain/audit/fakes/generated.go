@@ -10,6 +10,7 @@ import (
 
 	"github.com/primandproper/platform-go/v10/filtering"
 	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/pointer"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )
@@ -40,23 +41,28 @@ func buildFakeNumber() float64 {
 	return math.Round(float64((fake.Number(101, math.MaxInt8-1) * 100) / 100))
 }
 
+// buildUniqueString builds a fake string.
+func buildUniqueString() string {
+	return fake.LoremIpsumSentence(7)
+}
+
 // BuildFakeAuditLogEntry builds a faked AuditLogEntry.
 func BuildFakeAuditLogEntry() *types.AuditLogEntry {
 	return &types.AuditLogEntry{
 		CreatedAt:        BuildFakeTime(),
 		Changes:          nil,
-		BelongsToAccount: nil,
+		BelongsToAccount: pointer.To(BuildFakeID()),
 		ID:               BuildFakeID(),
 		ResourceType:     "example",
 		RelevantID:       BuildFakeID(),
 		EventType:        types.AuditLogEventTypeOther,
 		BelongsToUser:    BuildFakeID(),
-		ActorType:        "",
-		ActorIP:          "",
-		Scope:            "",
-		PrevHash:         "",
-		Hash:             "",
-		Seq:              0,
+		ActorType:        buildUniqueString(),
+		ActorIP:          buildUniqueString(),
+		Scope:            buildUniqueString(),
+		PrevHash:         buildUniqueString(),
+		Hash:             buildUniqueString(),
+		Seq:              int64(buildFakeNumber()),
 	}
 }
 

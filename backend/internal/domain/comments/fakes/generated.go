@@ -8,6 +8,7 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 
 	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/pointer"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )
@@ -37,8 +38,8 @@ func buildUniqueString() string {
 func BuildFakeComment() *types.Comment {
 	return &types.Comment{
 		CreatedAt:       BuildFakeTime(),
-		ParentCommentID: nil,
-		LastUpdatedAt:   nil,
+		ParentCommentID: pointer.To(BuildFakeID()),
+		LastUpdatedAt:   pointer.To(BuildFakeTime()),
 		ArchivedAt:      nil,
 		ID:              BuildFakeID(),
 		Content:         buildUniqueString(),
@@ -54,7 +55,7 @@ func BuildFakeCommentCreationRequestInput() *types.CommentCreationRequestInput {
 		Content:         buildUniqueString(),
 		TargetType:      "recipes",
 		ReferencedID:    BuildFakeID(),
-		ParentCommentID: nil,
+		ParentCommentID: pointer.To(BuildFakeID()),
 		BelongsToUser:   BuildFakeID(),
 	}
 }
@@ -66,7 +67,7 @@ func BuildFakeCommentDatabaseCreationInput() *types.CommentDatabaseCreationInput
 		Content:         buildUniqueString(),
 		TargetType:      "recipes",
 		ReferencedID:    BuildFakeID(),
-		ParentCommentID: nil,
+		ParentCommentID: pointer.To(BuildFakeID()),
 		BelongsToUser:   BuildFakeID(),
 	}
 }

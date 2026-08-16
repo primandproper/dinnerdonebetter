@@ -11,6 +11,7 @@ import (
 
 	"github.com/primandproper/platform-go/v10/filtering"
 	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/pointer"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )
@@ -52,15 +53,15 @@ func BuildFakeServiceSetting() *types.ServiceSetting {
 
 	return &types.ServiceSetting{
 		CreatedAt:     BuildFakeTime(),
-		DefaultValue:  new(defaultValue),
-		LastUpdatedAt: nil,
+		DefaultValue:  pointer.To(buildUniqueString()),
+		LastUpdatedAt: pointer.To(BuildFakeTime()),
 		ArchivedAt:    nil,
 		ID:            BuildFakeID(),
 		Name:          buildUniqueString(),
 		Type:          "user",
 		Description:   buildUniqueString(),
 		Enumeration:   []string{defaultValue},
-		AdminsOnly:    true,
+		AdminsOnly:    fake.Bool(),
 	}
 }
 
@@ -91,13 +92,13 @@ func BuildFakeServiceSettingCreationRequestInput() *types.ServiceSettingCreation
 func BuildFakeServiceSettingConfiguration() *types.ServiceSettingConfiguration {
 	return &types.ServiceSettingConfiguration{
 		CreatedAt:        BuildFakeTime(),
-		LastUpdatedAt:    nil,
+		LastUpdatedAt:    pointer.To(BuildFakeTime()),
 		ArchivedAt:       nil,
 		ID:               BuildFakeID(),
 		Value:            buildUniqueString(),
 		Notes:            buildUniqueString(),
-		BelongsToUser:    buildUniqueString(),
-		BelongsToAccount: buildUniqueString(),
+		BelongsToUser:    BuildFakeID(),
+		BelongsToAccount: BuildFakeID(),
 		ServiceSetting:   *BuildFakeServiceSetting(),
 	}
 }

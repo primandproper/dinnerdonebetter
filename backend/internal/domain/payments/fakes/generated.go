@@ -9,6 +9,7 @@ import (
 
 	"github.com/primandproper/platform-go/v10/filtering"
 	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/pointer"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )
@@ -32,6 +33,14 @@ func BuildFakeTime() time.Time {
 	return fake.Date().Add(0).Truncate(time.Second).UTC()
 }
 
+// pickOne returns one of the options at random.
+//
+// Enumerated fields are faked as a random member rather than a fixed one, so that code which
+// only handles the member somebody happened to pick first fails here rather than in production.
+func pickOne[T any](options ...T) T {
+	return options[fake.Number(0, len(options)-1)]
+}
+
 // buildUniqueString builds a fake string.
 func buildUniqueString() string {
 	return fake.LoremIpsumSentence(7)
@@ -44,14 +53,14 @@ func BuildFakeProduct() *types.Product {
 	return &types.Product{
 		CreatedAt:             BuildFakeTime(),
 		BillingIntervalMonths: &interval,
-		LastUpdatedAt:         nil,
+		LastUpdatedAt:         pointer.To(BuildFakeTime()),
 		ArchivedAt:            nil,
 		ID:                    BuildFakeID(),
 		Name:                  buildUniqueString(),
 		Description:           buildUniqueString(),
-		Kind:                  types.ProductKindRecurring,
+		Kind:                  pickOne(types.ProductKindRecurring, types.ProductKindOneTime),
 		Currency:              "usd",
-		ExternalProductID:     buildUniqueString(),
+		ExternalProductID:     BuildFakeID(),
 		AmountCents:           int32(fake.Number(100, 10000)),
 	}
 }

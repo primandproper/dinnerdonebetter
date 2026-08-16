@@ -13,6 +13,7 @@ import (
 
 	"github.com/primandproper/platform-go/v10/filtering"
 	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/pointer"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )
@@ -56,22 +57,22 @@ func buildFakePassword() string {
 // BuildFakeAccount builds a faked Account.
 func BuildFakeAccount() *types.Account {
 	accountID := BuildFakeID()
-	var memberships []*types.AccountUserMembershipWithUser
+	var members []*types.AccountUserMembershipWithUser
 	for range exampleQuantity {
-		membership := BuildFakeAccountUserMembershipWithUser()
-		membership.BelongsToAccount = accountID
-		memberships = append(memberships, membership)
+		accountUserMembershipWithUser := BuildFakeAccountUserMembershipWithUser()
+		accountUserMembershipWithUser.BelongsToAccount = accountID
+		members = append(members, accountUserMembershipWithUser)
 	}
 	fakeAddress := fake.Address()
 	key := fake.BitcoinPrivateKey()
 
 	return &types.Account{
 		CreatedAt:                  BuildFakeTime(),
-		SubscriptionPlanID:         nil,
-		LastUpdatedAt:              nil,
+		SubscriptionPlanID:         pointer.To(BuildFakeID()),
+		LastUpdatedAt:              pointer.To(BuildFakeTime()),
 		ArchivedAt:                 nil,
-		Longitude:                  new(buildFakeNumber()),
-		Latitude:                   new(buildFakeNumber()),
+		Longitude:                  pointer.To(buildFakeNumber()),
+		Latitude:                   pointer.To(buildFakeNumber()),
 		State:                      fakeAddress.State,
 		ContactPhone:               fake.PhoneFormatted(),
 		City:                       fakeAddress.City,
@@ -79,13 +80,13 @@ func BuildFakeAccount() *types.Account {
 		ZipCode:                    fakeAddress.Zip,
 		Country:                    fakeAddress.Country,
 		BillingStatus:              types.UnpaidAccountBillingStatus,
-		AddressLine2:               "",
-		PaymentProcessorCustomerID: fake.UUID(),
-		BelongsToUser:              fake.UUID(),
+		AddressLine2:               buildUniqueString(),
+		PaymentProcessorCustomerID: BuildFakeID(),
+		BelongsToUser:              BuildFakeID(),
 		ID:                         accountID,
 		Name:                       fake.UUID(),
 		WebhookEncryptionKey:       key,
-		Members:                    memberships,
+		Members:                    members,
 	}
 }
 
@@ -131,7 +132,7 @@ func BuildFakeAccountInvitation() *types.AccountInvitation {
 	return &types.AccountInvitation{
 		ExpiresAt:          BuildFakeTime(),
 		CreatedAt:          BuildFakeTime(),
-		LastUpdatedAt:      nil,
+		LastUpdatedAt:      pointer.To(BuildFakeTime()),
 		ArchivedAt:         nil,
 		ToUser:             func(s string) *string { return &s }(buildUniqueString()),
 		FromUser:           *BuildFakeUser(),
@@ -182,12 +183,12 @@ func BuildFakeAccountInvitationUpdateRequestInput() *types.AccountInvitationUpda
 func BuildFakeAccountUserMembership() *types.AccountUserMembership {
 	return &types.AccountUserMembership{
 		CreatedAt:        BuildFakeTime(),
-		LastUpdatedAt:    nil,
+		LastUpdatedAt:    pointer.To(BuildFakeTime()),
 		ArchivedAt:       nil,
 		ID:               BuildFakeID(),
 		BelongsToUser:    BuildFakeID(),
-		BelongsToAccount: fake.UUID(),
-		DefaultAccount:   false,
+		BelongsToAccount: BuildFakeID(),
+		DefaultAccount:   fake.Bool(),
 	}
 }
 
@@ -198,12 +199,12 @@ func BuildFakeAccountUserMembershipWithUser() *types.AccountUserMembershipWithUs
 
 	return &types.AccountUserMembershipWithUser{
 		CreatedAt:        BuildFakeTime(),
-		LastUpdatedAt:    nil,
+		LastUpdatedAt:    pointer.To(BuildFakeTime()),
 		BelongsToUser:    u,
 		ArchivedAt:       nil,
 		ID:               BuildFakeID(),
-		BelongsToAccount: fake.UUID(),
-		DefaultAccount:   false,
+		BelongsToAccount: BuildFakeID(),
+		DefaultAccount:   fake.Bool(),
 	}
 }
 
@@ -212,18 +213,21 @@ func BuildFakeUser() *types.User {
 	fakeDate := BuildFakeTime()
 
 	return &types.User{
-		CreatedAt:                  BuildFakeTime(),
+		CreatedAt: BuildFakeTime(),
+		// A user who has not verified their email address yet, which is what a user looks like for the
+		// whole of signup. Verified is the later state, and the handler that sends the verification
+		// email refuses to send one to a user who already has this set.
 		EmailAddressVerifiedAt:     nil,
-		PasswordLastChangedAt:      nil,
-		LastUpdatedAt:              nil,
-		LastAcceptedTermsOfService: nil,
-		LastAcceptedPrivacyPolicy:  nil,
+		PasswordLastChangedAt:      pointer.To(BuildFakeTime()),
+		LastUpdatedAt:              pointer.To(BuildFakeTime()),
+		LastAcceptedTermsOfService: pointer.To(BuildFakeTime()),
+		LastAcceptedPrivacyPolicy:  pointer.To(BuildFakeTime()),
 		TwoFactorSecretVerifiedAt:  &fakeDate,
 		Avatar:                     nil,
-		Birthday:                   new(BuildFakeTime()),
+		Birthday:                   pointer.To(BuildFakeTime()),
 		ArchivedAt:                 nil,
-		AccountStatusExplanation:   "",
-		HashedPassword:             "",
+		AccountStatusExplanation:   buildUniqueString(),
+		HashedPassword:             buildUniqueString(),
 		ID:                         BuildFakeID(),
 		AccountStatus:              string(types.UnverifiedAccountStatus),
 		Username:                   fmt.Sprintf("%s_%d_%s", fake.Username(), fake.Uint8(), fake.Username()),
@@ -231,7 +235,7 @@ func BuildFakeUser() *types.User {
 		LastName:                   fake.LastName(),
 		EmailAddress:               fake.Email(),
 		TwoFactorSecret:            base32.StdEncoding.EncodeToString([]byte(fake.Password(false, true, true, false, false, 32))),
-		RequiresPasswordChange:     false,
+		RequiresPasswordChange:     fake.Bool(),
 	}
 }
 
@@ -258,17 +262,21 @@ func BuildFakeUserRegistrationInput() *types.UserRegistrationInput {
 	user := BuildFakeUser()
 
 	return &types.UserRegistrationInput{
-		Birthday:              user.Birthday,
-		Password:              buildFakePassword(),
-		EmailAddress:          user.EmailAddress,
-		InvitationToken:       "",
+		Birthday:     user.Birthday,
+		Password:     buildFakePassword(),
+		EmailAddress: user.EmailAddress,
+		// See InvitationID.
+		InvitationToken: "",
+		// An ordinary signup, not an invited one. The two invitation fields are read together: both set
+		// sends CreateUser looking for the invitation they name, and a faked pair names one that was
+		// never issued.
 		InvitationID:          "",
 		Username:              user.Username,
 		FirstName:             user.FirstName,
 		LastName:              user.LastName,
-		AccountName:           "",
-		AcceptedTOS:           false,
-		AcceptedPrivacyPolicy: false,
+		AccountName:           buildUniqueString(),
+		AcceptedTOS:           fake.Bool(),
+		AcceptedPrivacyPolicy: fake.Bool(),
 	}
 }
 

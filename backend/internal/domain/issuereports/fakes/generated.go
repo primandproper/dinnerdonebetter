@@ -8,6 +8,7 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
 	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/pointer"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )
@@ -32,7 +33,7 @@ func BuildFakeTime() time.Time {
 func BuildFakeIssueReport() *types.IssueReport {
 	return &types.IssueReport{
 		CreatedAt:        BuildFakeTime(),
-		LastUpdatedAt:    nil,
+		LastUpdatedAt:    pointer.To(BuildFakeTime()),
 		ArchivedAt:       nil,
 		ID:               BuildFakeID(),
 		IssueType:        fake.RandomString([]string{"bug", "feature_request", "data_quality", "performance", "other"}),

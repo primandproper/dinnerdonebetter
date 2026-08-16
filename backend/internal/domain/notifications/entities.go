@@ -10,7 +10,6 @@ var Entities = entitydecl.Domain{
 			Fake: entitydecl.Fake{
 				Fields: []entitydecl.Field{
 					{Name: "DeviceToken", Expr: `"a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456"`},
-					{Name: "Platform", Expr: `types.UserDeviceTokenPlatformIOS`},
 				},
 				List: &entitydecl.List{},
 			},
@@ -32,9 +31,6 @@ var Entities = entitydecl.Domain{
 		{
 			Type: UserNotification{},
 			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "Status", Expr: `types.UserNotificationStatusTypeUnread`},
-				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
 					{Type: UserNotificationUpdateRequestInput{}, Converter: "ConvertUserNotificationToUserNotificationUpdateRequestInput"},

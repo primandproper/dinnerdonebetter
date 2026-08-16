@@ -11,6 +11,7 @@ import (
 
 	"github.com/primandproper/platform-go/v10/filtering"
 	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/pointer"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )
@@ -41,6 +42,14 @@ func buildFakeNumber() float64 {
 	return math.Round(float64((fake.Number(101, math.MaxInt8-1) * 100) / 100))
 }
 
+// pickOne returns one of the options at random.
+//
+// Enumerated fields are faked as a random member rather than a fixed one, so that code which
+// only handles the member somebody happened to pick first fails here rather than in production.
+func pickOne[T any](options ...T) T {
+	return options[fake.Number(0, len(options)-1)]
+}
+
 // buildUniqueString builds a fake string.
 func buildUniqueString() string {
 	return fake.LoremIpsumSentence(7)
@@ -50,11 +59,11 @@ func buildUniqueString() string {
 func BuildFakeUserDeviceToken() *types.UserDeviceToken {
 	return &types.UserDeviceToken{
 		CreatedAt:     BuildFakeTime(),
-		LastUpdatedAt: nil,
+		LastUpdatedAt: pointer.To(BuildFakeTime()),
 		ArchivedAt:    nil,
 		ID:            BuildFakeID(),
 		DeviceToken:   "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
-		Platform:      types.UserDeviceTokenPlatformIOS,
+		Platform:      pickOne(types.UserDeviceTokenPlatformIOS, types.UserDeviceTokenPlatformAndroid),
 		BelongsToUser: BuildFakeID(),
 	}
 }
@@ -94,10 +103,10 @@ func BuildFakeUserDeviceTokenDatabaseCreationInput() *types.UserDeviceTokenDatab
 func BuildFakeUserNotification() *types.UserNotification {
 	return &types.UserNotification{
 		CreatedAt:     BuildFakeTime(),
-		LastUpdatedAt: nil,
+		LastUpdatedAt: pointer.To(BuildFakeTime()),
 		ID:            BuildFakeID(),
 		Content:       buildUniqueString(),
-		Status:        types.UserNotificationStatusTypeUnread,
+		Status:        pickOne(types.UserNotificationStatusTypeUnread, types.UserNotificationStatusTypeRead, types.UserNotificationStatusTypeDismissed),
 		BelongsToUser: BuildFakeID(),
 	}
 }

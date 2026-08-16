@@ -60,6 +60,16 @@ func buildFakeNumber() float64 {
 }`,
 	},
 	{
+		name: "pickOne",
+		source: `// pickOne returns one of the options at random.
+//
+// Enumerated fields are faked as a random member rather than a fixed one, so that code which
+// only handles the member somebody happened to pick first fails here rather than in production.
+func pickOne[T any](options ...T) T {
+	return options[fake.Number(0, len(options)-1)]
+}`,
+	},
+	{
 		name: "buildUniqueString",
 		source: `// buildUniqueString builds a fake string.
 func buildUniqueString() string {

@@ -75,11 +75,21 @@ type Fake struct {
 	// Locals are statements emitted above the composite literal, in order, verbatim.
 	//
 	// They exist for fields that cannot be independent: a min/max pair where the max must
-	// exceed the min, a parent ID that several children have to agree on.
+	// exceed the min, a flag that has to be the negation of another.
+	//
+	// Not for child collections. A field holding entities the domain declares is filled by
+	// the generator, which builds exampleQuantity of them and gives each one the parent's ID
+	// if it has somewhere to put it — the loop that used to be written here, once per parent.
 	Locals []Local
 
 	// Fields overrides the mechanical default for named fields. A field not named here gets
 	// the default for its name and type; see cmd/tools/codegen/fakes.
+	//
+	// Reach for one only after checking what the default already does, which is more than it
+	// looks: it reads the values a field's own validation admits, fills optional fields, and
+	// builds child collections. An override that restates the default is rejected by the
+	// generator rather than kept, because the ones nobody rejected are how this file grew to
+	// twice the size it needed to be the first time around.
 	Fields []Field
 
 	// Inputs are the request/database input builders derived from this entity's fake by a

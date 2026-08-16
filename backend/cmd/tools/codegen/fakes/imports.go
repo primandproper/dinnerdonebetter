@@ -24,12 +24,12 @@ func knownImports(domainName string) map[string]string {
 	domainPath := domainImportPath(domainName)
 
 	imports := map[string]string{
-		"base32": "encoding/base32",
-		"fmt":    "fmt",
-		"http":   "net/http",
-		"log":    "log",
-		"math":   "math",
-		"time":   "time",
+		"base32":    "encoding/base32",
+		"fmt":       "fmt",
+		"http":      "net/http",
+		"log":       "log",
+		"math":      "math",
+		packageTime: packageTime,
 
 		"authorization": backendPrefix + "/internal/authorization",
 		"sessions":      backendPrefix + "/internal/authentication/sessions",

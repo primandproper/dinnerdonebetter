@@ -11,6 +11,7 @@ import (
 
 	"github.com/primandproper/platform-go/v10/filtering"
 	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/pointer"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )
@@ -44,13 +45,17 @@ func buildFakeNumber() float64 {
 // BuildFakeWebhook builds a faked Webhook.
 func BuildFakeWebhook() *types.Webhook {
 	webhookID := BuildFakeID()
-	cfg := BuildFakeWebhookTriggerConfig()
-	cfg.BelongsToWebhook = webhookID
+	var triggerConfigs []*types.WebhookTriggerConfig
+	for range exampleQuantity {
+		webhookTriggerConfig := BuildFakeWebhookTriggerConfig()
+		webhookTriggerConfig.BelongsToWebhook = webhookID
+		triggerConfigs = append(triggerConfigs, webhookTriggerConfig)
+	}
 
 	return &types.Webhook{
 		CreatedAt:     BuildFakeTime(),
 		ArchivedAt:    nil,
-		LastUpdatedAt: nil,
+		LastUpdatedAt: pointer.To(BuildFakeTime()),
 		Name:          fake.UUID(),
 		// A literal address from RFC 5737's TEST-NET-1, the range IANA reserves for exactly this.
 		// Registration runs webhooks.CheckEndpointURL, which requires https and refuses any host that is
@@ -62,12 +67,12 @@ func BuildFakeWebhook() *types.Webhook {
 		// than spelled so the fake follows the constant if it ever moves.
 		Method:           types.DeliveryMethod,
 		ID:               webhookID,
-		BelongsToAccount: fake.UUID(),
-		CreatedByUser:    fake.UUID(),
+		BelongsToAccount: BuildFakeID(),
+		CreatedByUser:    BuildFakeID(),
 		// Validation pins this to encoding.ContentTypeJSON; the delivery worker no longer varies it, so
 		// anything else is rejected at registration.
 		ContentType:    "application/json",
-		TriggerConfigs: []*types.WebhookTriggerConfig{cfg},
+		TriggerConfigs: triggerConfigs,
 	}
 }
 

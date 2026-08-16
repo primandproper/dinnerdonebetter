@@ -12,11 +12,9 @@ var Entities = entitydecl.Domain{
 					{Code: `interval := int32(fake.Number(1, 12))`},
 				},
 				Fields: []entitydecl.Field{
-					{Name: "Kind", Expr: `types.ProductKindRecurring`},
 					{Name: "AmountCents", Expr: `int32(fake.Number(100, 10000))`},
 					{Name: "Currency", Expr: `"usd"`},
 					{Name: "BillingIntervalMonths", Expr: `&interval`},
-					{Name: "ExternalProductID", Expr: `buildUniqueString()`},
 				},
 				List: &entitydecl.List{Name: "BuildFakeProductList"},
 			},

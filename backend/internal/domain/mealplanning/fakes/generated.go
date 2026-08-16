@@ -43,6 +43,14 @@ func buildFakeNumber() float64 {
 	return math.Round(float64((fake.Number(101, math.MaxInt8-1) * 100) / 100))
 }
 
+// pickOne returns one of the options at random.
+//
+// Enumerated fields are faked as a random member rather than a fixed one, so that code which
+// only handles the member somebody happened to pick first fails here rather than in production.
+func pickOne[T any](options ...T) T {
+	return options[fake.Number(0, len(options)-1)]
+}
+
 // buildUniqueString builds a fake string.
 func buildUniqueString() string {
 	return fake.LoremIpsumSentence(7)
@@ -106,10 +114,10 @@ func BuildFakeAccountInstrumentOwnership() *types.AccountInstrumentOwnership {
 	return &types.AccountInstrumentOwnership{
 		CreatedAt:        BuildFakeTime(),
 		ArchivedAt:       nil,
-		LastUpdatedAt:    nil,
+		LastUpdatedAt:    pointer.To(BuildFakeTime()),
 		ID:               BuildFakeID(),
 		Notes:            buildUniqueString(),
-		BelongsToAccount: buildUniqueString(),
+		BelongsToAccount: BuildFakeID(),
 		Instrument:       *BuildFakeValidInstrument(),
 		Quantity:         uint16(buildFakeNumber()),
 	}
@@ -147,23 +155,23 @@ func BuildFakeAccountInstrumentOwnershipCreationRequestInput() *types.AccountIns
 
 // BuildFakeMeal builds a faked Meal.
 func BuildFakeMeal() *types.Meal {
-	recipes := []*types.MealComponent{}
+	var components []*types.MealComponent
 	for range exampleQuantity {
-		recipes = append(recipes, BuildFakeMealComponent())
+		components = append(components, BuildFakeMealComponent())
 	}
 
 	return &types.Meal{
 		CreatedAt:            BuildFakeTime(),
 		ArchivedAt:           nil,
-		LastUpdatedAt:        nil,
-		MaxEstimatedPortions: nil,
+		LastUpdatedAt:        pointer.To(BuildFakeTime()),
+		MaxEstimatedPortions: pointer.To(float32(buildFakeNumber())),
 		ID:                   BuildFakeID(),
 		Description:          buildUniqueString(),
 		CreatedByUser:        BuildFakeID(),
 		Name:                 buildUniqueString(),
-		Components:           recipes,
+		Components:           components,
 		MinEstimatedPortions: float32(buildFakeNumber()),
-		EligibleForMealPlans: true,
+		EligibleForMealPlans: fake.Bool(),
 	}
 }
 
@@ -193,9 +201,11 @@ func BuildFakeMealCreationRequestInput() *types.MealCreationRequestInput {
 // BuildFakeMealComponent builds a faked MealComponent.
 func BuildFakeMealComponent() *types.MealComponent {
 	return &types.MealComponent{
+		// A meal is rejected unless one of its components is the main, and a meal's components are faked
+		// independently — so a random type per component leaves a meal with no main most of the time.
 		ComponentType: types.MealComponentTypesMain,
 		Recipe:        *BuildFakeRecipe(),
-		RecipeScale:   float32(1.0),
+		RecipeScale:   float32(buildFakeNumber()),
 	}
 }
 
@@ -204,9 +214,13 @@ func BuildFakeMealPlan() *types.MealPlan {
 	mealPlanID := BuildFakeID()
 	var events []*types.MealPlanEvent
 	for range exampleQuantity {
-		event := BuildFakeMealPlanEvent()
-		event.BelongsToMealPlan = mealPlanID
-		events = append(events, event)
+		mealPlanEvent := BuildFakeMealPlanEvent()
+		mealPlanEvent.BelongsToMealPlan = mealPlanID
+		events = append(events, mealPlanEvent)
+	}
+	var selections []*types.MealPlanRecipeOptionSelection
+	for range exampleQuantity {
+		selections = append(selections, BuildFakeMealPlanRecipeOptionSelection())
 	}
 	// The voting deadline must be in the future but before every event's start time (events start in
 	// ten minutes, see BuildFakeMealPlanEvent), so the meal plan passes MealPlanCreationRequestInput
@@ -217,17 +231,17 @@ func BuildFakeMealPlan() *types.MealPlan {
 		CreatedAt:              BuildFakeTime(),
 		VotingDeadline:         votingDeadline,
 		ArchivedAt:             nil,
-		LastUpdatedAt:          nil,
+		LastUpdatedAt:          pointer.To(BuildFakeTime()),
 		Status:                 string(types.MealPlanStatusAwaitingVotes),
 		ID:                     mealPlanID,
 		Notes:                  buildUniqueString(),
-		ElectionMethod:         types.MealPlanElectionMethodSchulze,
-		BelongsToAccount:       fake.UUID(),
+		ElectionMethod:         pickOne(types.MealPlanElectionMethodSchulze, types.MealPlanElectionMethodInstantRunoff),
+		BelongsToAccount:       BuildFakeID(),
 		CreatedByUser:          BuildFakeID(),
 		Events:                 events,
-		Selections:             nil,
-		GroceryListInitialized: false,
-		TasksCreated:           false,
+		Selections:             selections,
+		GroceryListInitialized: fake.Bool(),
+		TasksCreated:           fake.Bool(),
 	}
 }
 
@@ -262,21 +276,22 @@ func BuildFakeMealPlanCreationRequestInput() *types.MealPlanCreationRequestInput
 // BuildFakeMealPlanEvent builds a faked MealPlanEvent.
 func BuildFakeMealPlanEvent() *types.MealPlanEvent {
 	mealPlanEventID := BuildFakeID()
+	var options []*types.MealPlanOption
+	for range exampleQuantity {
+		mealPlanOption := BuildFakeMealPlanOption()
+		mealPlanOption.BelongsToMealPlanEvent = mealPlanEventID
+		options = append(options, mealPlanOption)
+	}
 	now := time.Now().Add(0).Truncate(time.Second).UTC()
 	inTenMinutes := now.Add(time.Minute * 10).Add(0).Truncate(time.Second).UTC()
 	inOneWeek := now.Add((time.Hour * 24) * 7).Add(0).Truncate(time.Second).UTC()
-	options := []*types.MealPlanOption{}
-	for _, opt := range BuildFakeMealPlanOptionsList().Data {
-		opt.BelongsToMealPlanEvent = mealPlanEventID
-		options = append(options, opt)
-	}
 
 	return &types.MealPlanEvent{
 		CreatedAt:     BuildFakeTime(),
 		StartsAt:      inTenMinutes,
 		EndsAt:        inOneWeek,
 		ArchivedAt:    nil,
-		LastUpdatedAt: nil,
+		LastUpdatedAt: pointer.To(BuildFakeTime()),
 		MealName: fake.RandomString([]string{
 			types.BreakfastMealName,
 			types.SecondBreakfastMealName,
@@ -337,19 +352,19 @@ func BuildFakeMealPlanGroceryListItem() *types.MealPlanGroceryListItem {
 		MaxQuantityNeeded: maxQty,
 		// Recipe context fields (optional - only set when item is part of a choice group)
 		BelongsToMealPlanOption:  nil,
-		RecipeID:                 nil,
+		RecipeID:                 pointer.To(BuildFakeID()),
 		ArchivedAt:               nil,
-		LastUpdatedAt:            nil,
-		PurchasedMeasurementUnit: nil,
-		OptionIndex:              nil,
-		IngredientIndex:          nil,
-		RecipeStepID:             nil,
-		PurchasedUPC:             nil,
-		PurchasePrice:            nil,
-		QuantityPurchased:        nil,
+		LastUpdatedAt:            pointer.To(BuildFakeTime()),
+		PurchasedMeasurementUnit: BuildFakeValidMeasurementUnit(),
+		OptionIndex:              pointer.To(uint16(buildFakeNumber())),
+		IngredientIndex:          pointer.To(uint16(buildFakeNumber())),
+		RecipeStepID:             pointer.To(BuildFakeID()),
+		PurchasedUPC:             pointer.To(buildUniqueString()),
+		PurchasePrice:            pointer.To(float32(buildFakeNumber())),
+		QuantityPurchased:        pointer.To(float32(buildFakeNumber())),
 		ID:                       BuildFakeID(),
 		StatusExplanation:        buildUniqueString(),
-		Status:                   types.MealPlanGroceryListItemStatusUnknown,
+		Status:                   pickOne(types.MealPlanGroceryListItemStatusUnknown, types.MealPlanGroceryListItemStatusAlreadyOwned, types.MealPlanGroceryListItemStatusNeeds, types.MealPlanGroceryListItemStatusUnavailable, types.MealPlanGroceryListItemStatusAcquired),
 		BelongsToMealPlan:        BuildFakeID(),
 		MeasurementUnit:          *BuildFakeValidMeasurementUnit(),
 		Ingredient:               *BuildFakeValidIngredient(),
@@ -389,27 +404,30 @@ func BuildFakeMealPlanGroceryListItemUpdateRequestInput() *types.MealPlanGrocery
 
 // BuildFakeMealPlanOption builds a faked MealPlanOption.
 func BuildFakeMealPlanOption() *types.MealPlanOption {
-	var examples []*types.MealPlanOptionVote
+	mealPlanOptionID := BuildFakeID()
+	var votes []*types.MealPlanOptionVote
 	for range exampleQuantity {
-		examples = append(examples, BuildFakeMealPlanOptionVote())
+		mealPlanOptionVote := BuildFakeMealPlanOptionVote()
+		mealPlanOptionVote.BelongsToMealPlanOption = mealPlanOptionID
+		votes = append(votes, mealPlanOptionVote)
 	}
 	meal := BuildFakeMeal()
 	meal.Components = nil
 
 	return &types.MealPlanOption{
 		CreatedAt:              BuildFakeTime(),
-		LastUpdatedAt:          nil,
+		LastUpdatedAt:          pointer.To(BuildFakeTime()),
 		AssignedCook:           func(s string) *string { return &s }(BuildFakeID()),
 		ArchivedAt:             nil,
-		AssignedDishwasher:     nil,
+		AssignedDishwasher:     pointer.To(buildUniqueString()),
 		Notes:                  buildUniqueString(),
-		BelongsToMealPlanEvent: fake.UUID(),
-		ID:                     BuildFakeID(),
-		Votes:                  examples,
+		BelongsToMealPlanEvent: BuildFakeID(),
+		ID:                     mealPlanOptionID,
+		Votes:                  votes,
 		Meal:                   *meal,
-		MealScale:              0,
-		Chosen:                 false,
-		TieBroken:              false,
+		MealScale:              float32(buildFakeNumber()),
+		Chosen:                 fake.Bool(),
+		TieBroken:              fake.Bool(),
 	}
 }
 
@@ -446,11 +464,11 @@ func BuildFakeMealPlanOptionVote() *types.MealPlanOptionVote {
 	return &types.MealPlanOptionVote{
 		CreatedAt:               BuildFakeTime(),
 		ArchivedAt:              nil,
-		LastUpdatedAt:           nil,
+		LastUpdatedAt:           pointer.To(BuildFakeTime()),
 		ID:                      BuildFakeID(),
 		Notes:                   buildUniqueString(),
-		BelongsToMealPlanOption: fake.UUID(),
-		ByUser:                  "",
+		BelongsToMealPlanOption: BuildFakeID(),
+		ByUser:                  BuildFakeID(),
 		Rank:                    uint8(fake.Number(1, math.MaxUint8)),
 		Abstain:                 fake.Bool(),
 	}
@@ -503,15 +521,15 @@ func BuildFakeMealPlanOptionVoteUpdateRequestInput() *types.MealPlanOptionVoteUp
 func BuildFakeMealPlanRecipeOptionSelection() *types.MealPlanRecipeOptionSelection {
 	return &types.MealPlanRecipeOptionSelection{
 		CreatedAt:               BuildFakeTime(),
-		LastUpdatedAt:           nil,
+		LastUpdatedAt:           pointer.To(BuildFakeTime()),
 		ArchivedAt:              nil,
 		ID:                      BuildFakeID(),
 		BelongsToMealPlanOption: BuildFakeID(),
 		RecipeID:                BuildFakeID(),
 		RecipeStepID:            BuildFakeID(),
-		SelectionType:           types.MealPlanRecipeOptionSelectionTypeIngredient,
-		IngredientIndex:         fake.Uint16(),
-		SelectedOptionIndex:     fake.Uint16(),
+		SelectionType:           pickOne(types.MealPlanRecipeOptionSelectionTypeIngredient, types.MealPlanRecipeOptionSelectionTypeInstrument, types.MealPlanRecipeOptionSelectionTypeVessel),
+		IngredientIndex:         uint16(buildFakeNumber()),
+		SelectedOptionIndex:     uint16(buildFakeNumber()),
 	}
 }
 
@@ -555,9 +573,9 @@ func BuildFakeMealPlanRecipeOptionSelectionCreationRequestInput() *types.MealPla
 	return &types.MealPlanRecipeOptionSelectionCreationRequestInput{
 		RecipeID:            BuildFakeID(),
 		RecipeStepID:        BuildFakeID(),
-		SelectionType:       types.MealPlanRecipeOptionSelectionTypeIngredient,
-		IngredientIndex:     0,
-		SelectedOptionIndex: 0,
+		SelectionType:       pickOne(types.MealPlanRecipeOptionSelectionTypeIngredient, types.MealPlanRecipeOptionSelectionTypeInstrument, types.MealPlanRecipeOptionSelectionTypeVessel),
+		IngredientIndex:     uint16(buildFakeNumber()),
+		SelectedOptionIndex: uint16(buildFakeNumber()),
 	}
 }
 
@@ -566,12 +584,12 @@ func BuildFakeMealPlanTask() *types.MealPlanTask {
 	return &types.MealPlanTask{
 		RecipePrepTask:      *BuildFakeRecipePrepTask(),
 		CreatedAt:           BuildFakeTime(),
-		LastUpdatedAt:       nil,
-		CompletedAt:         nil,
-		NotificationSentAt:  nil,
-		AssignedToUser:      nil,
+		LastUpdatedAt:       pointer.To(BuildFakeTime()),
+		CompletedAt:         pointer.To(BuildFakeTime()),
+		NotificationSentAt:  pointer.To(BuildFakeTime()),
+		AssignedToUser:      pointer.To(BuildFakeID()),
 		ID:                  BuildFakeID(),
-		Status:              "unfinished",
+		Status:              pickOne(types.MealPlanTaskStatusUnfinished, types.MealPlanTaskStatusPostponed, types.MealPlanTaskStatusIgnored, types.MealPlanTaskStatusCanceled, types.MealPlanTaskStatusFinished),
 		CreationExplanation: buildUniqueString(),
 		StatusExplanation:   buildUniqueString(),
 		MealPlanOption:      *BuildFakeMealPlanOption(),
@@ -605,9 +623,9 @@ func BuildFakeMealPlanTaskCreationRequestInput() *types.MealPlanTaskCreationRequ
 // MealPlanTaskStatusChangeRequestInput.
 func BuildFakeMealPlanTaskStatusChangeRequestInput() *types.MealPlanTaskStatusChangeRequestInput {
 	return &types.MealPlanTaskStatusChangeRequestInput{
-		Status:            new("unfinished"),
+		Status:            pointer.To(pickOne(types.MealPlanTaskStatusUnfinished, types.MealPlanTaskStatusPostponed, types.MealPlanTaskStatusIgnored, types.MealPlanTaskStatusCanceled, types.MealPlanTaskStatusFinished)),
 		StatusExplanation: buildUniqueString(),
-		AssignedToUser:    nil,
+		AssignedToUser:    pointer.To(BuildFakeID()),
 		MealPlanTaskID:    BuildFakeID(),
 	}
 }
@@ -616,7 +634,7 @@ func BuildFakeMealPlanTaskStatusChangeRequestInput() *types.MealPlanTaskStatusCh
 func BuildFakeRecipeRating() *types.RecipeRating {
 	return &types.RecipeRating{
 		CreatedAt:       BuildFakeTime(),
-		LastUpdatedAt:   nil,
+		LastUpdatedAt:   pointer.To(BuildFakeTime()),
 		ArchivedAt:      nil,
 		Notes:           buildUniqueString(),
 		ID:              BuildFakeID(),
@@ -662,45 +680,46 @@ func BuildFakeRecipeRatingCreationRequestInput() *types.RecipeRatingCreationRequ
 func BuildFakeRecipe() *types.Recipe {
 	recipeID := BuildFakeID()
 	var steps []*types.RecipeStep
-	for i := range exampleQuantity {
-		step := BuildFakeRecipeStep()
-		step.Index = uint32(i)
-		step.BelongsToRecipe = recipeID
-		steps = append(steps, step)
+	for range exampleQuantity {
+		recipeStep := BuildFakeRecipeStep()
+		recipeStep.BelongsToRecipe = recipeID
+		steps = append(steps, recipeStep)
 	}
-	prepTasks := BuildFakeRecipePrepTasksList().Data
-	for i := range prepTasks {
-		prepTasks[i].BelongsToRecipe = recipeID
+	var media []*types.RecipeMedia
+	for range exampleQuantity {
+		media = append(media, BuildFakeRecipeMedia())
 	}
-	recipeMedia := BuildFakeRecipeMediaList().Data
-	for i := range recipeMedia {
-		recipeMedia[i].BelongsToRecipe = &recipeID
+	var prepTasks []*types.RecipePrepTask
+	for range exampleQuantity {
+		recipePrepTask := BuildFakeRecipePrepTask()
+		recipePrepTask.BelongsToRecipe = recipeID
+		prepTasks = append(prepTasks, recipePrepTask)
 	}
 
 	return &types.Recipe{
 		CreatedAt:            BuildFakeTime(),
-		MaxEstimatedPortions: new(float32(buildFakeNumber())),
-		InspiredByRecipeID:   nil,
-		LastUpdatedAt:        nil,
+		MaxEstimatedPortions: pointer.To(float32(buildFakeNumber())),
+		InspiredByRecipeID:   pointer.To(BuildFakeID()),
+		LastUpdatedAt:        pointer.To(BuildFakeTime()),
 		ArchivedAt:           nil,
 		ID:                   recipeID,
 		Slug:                 buildUniqueString(),
 		Name:                 buildUniqueString(),
 		PortionName:          buildUniqueString(),
 		Source:               buildUniqueString(),
-		SourceISBN:           "",
+		SourceISBN:           buildUniqueString(),
 		CreatedByUser:        BuildFakeID(),
 		PluralPortionName:    buildUniqueString(),
 		Description:          buildUniqueString(),
-		YieldsComponentType:  "main",
+		YieldsComponentType:  pickOne(types.MealComponentTypesUnspecified, types.MealComponentTypesAmuseBouche, types.MealComponentTypesAppetizer, types.MealComponentTypesSoup, types.MealComponentTypesMain, types.MealComponentTypesSalad, types.MealComponentTypesBeverage, types.MealComponentTypesSide, types.MealComponentTypesDessert),
 		Status:               types.RecipeStatusSubmitted,
 		Steps:                steps,
-		Media:                recipeMedia,
+		Media:                media,
 		PrepTasks:            prepTasks,
 		AssociatedRecipes:    nil,
 		MinEstimatedPortions: float32(buildFakeNumber()),
-		SealOfApproval:       false,
-		EligibleForMeals:     true,
+		SealOfApproval:       fake.Bool(),
+		EligibleForMeals:     fake.Bool(),
 	}
 }
 
@@ -732,14 +751,14 @@ func BuildFakeRecipeMedia() *types.RecipeMedia {
 	return &types.RecipeMedia{
 		CreatedAt:           BuildFakeTime(),
 		ArchivedAt:          nil,
-		LastUpdatedAt:       nil,
+		LastUpdatedAt:       pointer.To(BuildFakeTime()),
 		ID:                  BuildFakeID(),
-		BelongsToRecipe:     nil,
-		BelongsToRecipeStep: nil,
+		BelongsToRecipe:     pointer.To(BuildFakeID()),
+		BelongsToRecipeStep: pointer.To(BuildFakeID()),
 		MimeType:            fake.FileMimeType(),
 		InternalPath:        fmt.Sprintf("%s.%s", buildFakePassword(), fake.FileExtension()),
-		ExternalPath:        "",
-		Index:               0,
+		ExternalPath:        buildUniqueString(),
+		Index:               uint16(buildFakeNumber()),
 	}
 }
 
@@ -776,15 +795,18 @@ func BuildFakeRecipeMediaUpdateRequestInput() *types.RecipeMediaUpdateRequestInp
 		MimeType:            &validPreparation.MimeType,
 		InternalPath:        &validPreparation.InternalPath,
 		ExternalPath:        &validPreparation.ExternalPath,
-		Index:               nil,
+		Index:               pointer.To(uint16(buildFakeNumber())),
 	}
 }
 
 // BuildFakeRecipePrepTask builds a faked RecipePrepTask.
 func BuildFakeRecipePrepTask() *types.RecipePrepTask {
-	recipePrepTaskSteps := []*types.RecipePrepTaskStep{}
+	recipePrepTaskID := BuildFakeID()
+	var taskSteps []*types.RecipePrepTaskStep
 	for range exampleQuantity {
-		recipePrepTaskSteps = append(recipePrepTaskSteps, BuildFakeRecipePrepTaskStep())
+		recipePrepTaskStep := BuildFakeRecipePrepTaskStep()
+		recipePrepTaskStep.BelongsToRecipePrepTask = recipePrepTaskID
+		taskSteps = append(taskSteps, recipePrepTaskStep)
 	}
 	minTemp, maxTemp := BuildFakeOptionalFloat32MinMax()
 	minBuf, maxBuf := BuildFakeUint32WithOptionalMax()
@@ -795,8 +817,8 @@ func BuildFakeRecipePrepTask() *types.RecipePrepTask {
 		MaxStorageTemperatureInCelsius:     maxTemp,
 		MaxTimeBufferBeforeRecipeInSeconds: maxBuf,
 		ArchivedAt:                         nil,
-		LastUpdatedAt:                      nil,
-		ID:                                 BuildFakeID(),
+		LastUpdatedAt:                      pointer.To(BuildFakeTime()),
+		ID:                                 recipePrepTaskID,
 		StorageType: fake.RandomString([]string{
 			types.RecipePrepTaskStorageTypeUncovered,
 			types.RecipePrepTaskStorageTypeCovered,
@@ -808,7 +830,7 @@ func BuildFakeRecipePrepTask() *types.RecipePrepTask {
 		Notes:                              buildUniqueString(),
 		Name:                               buildUniqueString(),
 		Description:                        buildUniqueString(),
-		TaskSteps:                          recipePrepTaskSteps,
+		TaskSteps:                          taskSteps,
 		MinTimeBufferBeforeRecipeInSeconds: minBuf,
 		Optional:                           fake.Bool(),
 	}
@@ -837,17 +859,17 @@ func BuildFakeRecipePrepTaskStepCreationRequestInput() *types.RecipePrepTaskStep
 // RecipePrepTaskStepUpdateRequestInput.
 func BuildFakeRecipePrepTaskStepUpdateRequestInput() *types.RecipePrepTaskStepUpdateRequestInput {
 	return &types.RecipePrepTaskStepUpdateRequestInput{
-		SatisfiesRecipeStep:     new(fake.Bool()),
-		BelongsToRecipeStep:     new(BuildFakeID()),
-		BelongsToRecipePrepTask: new(BuildFakeID()),
+		SatisfiesRecipeStep:     pointer.To(fake.Bool()),
+		BelongsToRecipeStep:     pointer.To(BuildFakeID()),
+		BelongsToRecipePrepTask: pointer.To(BuildFakeID()),
 	}
 }
 
 // BuildFakeRecipePrepTaskCreationRequestInput builds a faked RecipePrepTaskCreationRequestInput.
 func BuildFakeRecipePrepTaskCreationRequestInput() *types.RecipePrepTaskCreationRequestInput {
-	taskSteps := []*types.RecipePrepTaskStepCreationRequestInput{}
+	var recipeSteps []*types.RecipePrepTaskStepCreationRequestInput
 	for range exampleQuantity {
-		taskSteps = append(taskSteps, BuildFakeRecipePrepTaskStepCreationRequestInput())
+		recipeSteps = append(recipeSteps, BuildFakeRecipePrepTaskStepCreationRequestInput())
 	}
 	minTemp, maxTemp := BuildFakeOptionalFloat32MinMax()
 	minBuf, maxBuf := BuildFakeUint32WithOptionalMax()
@@ -862,7 +884,7 @@ func BuildFakeRecipePrepTaskCreationRequestInput() *types.RecipePrepTaskCreation
 		Name:                               buildUniqueString(),
 		Description:                        buildUniqueString(),
 		BelongsToRecipe:                    BuildFakeID(),
-		RecipeSteps:                        taskSteps,
+		RecipeSteps:                        recipeSteps,
 		MinTimeBufferBeforeRecipeInSeconds: minBuf,
 		Optional:                           fake.Bool(),
 	}
@@ -870,7 +892,7 @@ func BuildFakeRecipePrepTaskCreationRequestInput() *types.RecipePrepTaskCreation
 
 // BuildFakeRecipePrepTaskUpdateRequestInput builds a faked RecipePrepTaskUpdateRequestInput.
 func BuildFakeRecipePrepTaskUpdateRequestInput() *types.RecipePrepTaskUpdateRequestInput {
-	taskSteps := []*types.RecipePrepTaskStepUpdateRequestInput{}
+	var taskSteps []*types.RecipePrepTaskStepUpdateRequestInput
 	for range exampleQuantity {
 		taskSteps = append(taskSteps, BuildFakeRecipePrepTaskStepUpdateRequestInput())
 	}
@@ -878,17 +900,17 @@ func BuildFakeRecipePrepTaskUpdateRequestInput() *types.RecipePrepTaskUpdateRequ
 	minBuf, maxBuf := BuildFakeOptionalUint32MinMax()
 
 	return &types.RecipePrepTaskUpdateRequestInput{
-		Notes:                              new(buildUniqueString()),
-		ExplicitStorageInstructions:        new(buildUniqueString()),
+		Notes:                              pointer.To(buildUniqueString()),
+		ExplicitStorageInstructions:        pointer.To(buildUniqueString()),
 		StorageType:                        pointer.To(types.RecipePrepTaskStorageTypeUncovered),
-		Name:                               new(buildUniqueString()),
-		Optional:                           new(fake.Bool()),
-		Description:                        new(buildUniqueString()),
+		Name:                               pointer.To(buildUniqueString()),
+		Optional:                           pointer.To(fake.Bool()),
+		Description:                        pointer.To(buildUniqueString()),
 		MinStorageTemperatureInCelsius:     minTemp,
 		MaxStorageTemperatureInCelsius:     maxTemp,
 		MinTimeBufferBeforeRecipeInSeconds: minBuf,
 		MaxTimeBufferBeforeRecipeInSeconds: maxBuf,
-		BelongsToRecipe:                    new(BuildFakeID()),
+		BelongsToRecipe:                    pointer.To(BuildFakeID()),
 		TaskSteps:                          taskSteps,
 	}
 }
@@ -896,49 +918,39 @@ func BuildFakeRecipePrepTaskUpdateRequestInput() *types.RecipePrepTaskUpdateRequ
 // BuildFakeRecipeStep builds a faked RecipeStep.
 func BuildFakeRecipeStep() *types.RecipeStep {
 	recipeStepID := BuildFakeID()
-	var ingredients []*types.RecipeStepIngredient
+	var products []*types.RecipeStepProduct
 	for range exampleQuantity {
-		ing := BuildFakeRecipeStepIngredient()
-		ing.BelongsToRecipeStep = recipeStepID
-
-		ingredients = append(ingredients, ing)
+		recipeStepProduct := BuildFakeRecipeStepProduct()
+		recipeStepProduct.BelongsToRecipeStep = recipeStepID
+		products = append(products, recipeStepProduct)
 	}
 	var instruments []*types.RecipeStepInstrument
 	for range exampleQuantity {
-		ing := BuildFakeRecipeStepInstrument()
-		ing.BelongsToRecipeStep = recipeStepID
-
-		instruments = append(instruments, ing)
+		recipeStepInstrument := BuildFakeRecipeStepInstrument()
+		recipeStepInstrument.BelongsToRecipeStep = recipeStepID
+		instruments = append(instruments, recipeStepInstrument)
 	}
 	var vessels []*types.RecipeStepVessel
 	for range exampleQuantity {
-		ing := BuildFakeRecipeStepVessel()
-		ing.BelongsToRecipeStep = recipeStepID
-
-		vessels = append(vessels, ing)
+		recipeStepVessel := BuildFakeRecipeStepVessel()
+		recipeStepVessel.BelongsToRecipeStep = recipeStepID
+		vessels = append(vessels, recipeStepVessel)
 	}
-	var products []*types.RecipeStepProduct
+	var completionConditions []*types.RecipeStepCompletionCondition
 	for range exampleQuantity {
-		p := BuildFakeRecipeStepProduct()
-		p.BelongsToRecipeStep = recipeStepID
-		products = append(products, p)
+		recipeStepCompletionCondition := BuildFakeRecipeStepCompletionCondition()
+		recipeStepCompletionCondition.BelongsToRecipeStep = recipeStepID
+		completionConditions = append(completionConditions, recipeStepCompletionCondition)
 	}
-	completionConditionID := BuildFakeID()
-	completionConditions := []*types.RecipeStepCompletionCondition{
-		{
-			ID:                  completionConditionID,
-			BelongsToRecipeStep: recipeStepID,
-			IngredientState:     types.ValidIngredientState{},
-			Notes:               buildUniqueString(),
-			Ingredients: []*types.RecipeStepCompletionConditionIngredient{
-				{
-					ID:                                     BuildFakeID(),
-					BelongsToRecipeStepCompletionCondition: completionConditionID,
-					RecipeStepIngredient:                   ingredients[0].ID,
-				},
-			},
-			Optional: false,
-		},
+	var ingredients []*types.RecipeStepIngredient
+	for range exampleQuantity {
+		recipeStepIngredient := BuildFakeRecipeStepIngredient()
+		recipeStepIngredient.BelongsToRecipeStep = recipeStepID
+		ingredients = append(ingredients, recipeStepIngredient)
+	}
+	var media []*types.RecipeMedia
+	for range exampleQuantity {
+		media = append(media, BuildFakeRecipeMedia())
 	}
 	minEstimatedTime := uint32(buildFakeNumber())
 	maxEstimatedTime := uint32(buildFakeNumber()) + minEstimatedTime
@@ -948,7 +960,7 @@ func BuildFakeRecipeStep() *types.RecipeStep {
 	return &types.RecipeStep{
 		CreatedAt:                 BuildFakeTime(),
 		ArchivedAt:                nil,
-		LastUpdatedAt:             nil,
+		LastUpdatedAt:             pointer.To(BuildFakeTime()),
 		MinEstimatedTimeInSeconds: &minEstimatedTime,
 		MaxEstimatedTimeInSeconds: &maxEstimatedTime,
 		MinTemperatureInCelsius:   &minTemperature,
@@ -963,11 +975,11 @@ func BuildFakeRecipeStep() *types.RecipeStep {
 		Vessels:                   vessels,
 		CompletionConditions:      completionConditions,
 		Ingredients:               ingredients,
-		Media:                     nil,
+		Media:                     media,
 		StepImages:                nil,
 		Preparation:               *BuildFakeValidPreparation(),
-		Index:                     fake.Uint32(),
-		Optional:                  false,
+		Index:                     uint32(buildFakeNumber()),
+		Optional:                  fake.Bool(),
 		StartTimerAutomatically:   fake.Bool(),
 	}
 }
@@ -1002,20 +1014,20 @@ func BuildFakeRecipeStepCreationRequestInput() *types.RecipeStepCreationRequestI
 
 // BuildFakeRecipeStepCompletionCondition builds a faked RecipeStepCompletionCondition.
 func BuildFakeRecipeStepCompletionCondition() *types.RecipeStepCompletionCondition {
-	id := BuildFakeID()
+	recipeStepCompletionConditionID := BuildFakeID()
 	var ingredients []*types.RecipeStepCompletionConditionIngredient
 	for range exampleQuantity {
-		ingredient := BuildFakeRecipeStepCompletionConditionIngredient()
-		ingredient.BelongsToRecipeStepCompletionCondition = id
-		ingredients = append(ingredients, ingredient)
+		recipeStepCompletionConditionIngredient := BuildFakeRecipeStepCompletionConditionIngredient()
+		recipeStepCompletionConditionIngredient.BelongsToRecipeStepCompletionCondition = recipeStepCompletionConditionID
+		ingredients = append(ingredients, recipeStepCompletionConditionIngredient)
 	}
 
 	return &types.RecipeStepCompletionCondition{
-		CreatedAt:           time.Time{},
+		CreatedAt:           BuildFakeTime(),
 		ArchivedAt:          nil,
-		LastUpdatedAt:       nil,
+		LastUpdatedAt:       pointer.To(BuildFakeTime()),
 		IngredientState:     *BuildFakeValidIngredientState(),
-		ID:                  id,
+		ID:                  recipeStepCompletionConditionID,
 		BelongsToRecipeStep: BuildFakeID(),
 		Notes:               buildUniqueString(),
 		Ingredients:         ingredients,
@@ -1051,9 +1063,9 @@ func BuildFakeRecipeStepCompletionConditionForExistingRecipeCreationRequestInput
 // RecipeStepCompletionConditionIngredient.
 func BuildFakeRecipeStepCompletionConditionIngredient() *types.RecipeStepCompletionConditionIngredient {
 	return &types.RecipeStepCompletionConditionIngredient{
-		CreatedAt:                              time.Time{},
+		CreatedAt:                              BuildFakeTime(),
 		ArchivedAt:                             nil,
-		LastUpdatedAt:                          nil,
+		LastUpdatedAt:                          pointer.To(BuildFakeTime()),
 		ID:                                     BuildFakeID(),
 		BelongsToRecipeStepCompletionCondition: BuildFakeID(),
 		RecipeStepIngredient:                   BuildFakeID(),
@@ -1079,13 +1091,13 @@ func BuildFakeRecipeStepIngredient() *types.RecipeStepIngredient {
 
 	return &types.RecipeStepIngredient{
 		CreatedAt:                 BuildFakeTime(),
-		RecipeStepProductRecipeID: nil,
+		RecipeStepProductRecipeID: pointer.To(BuildFakeID()),
 		ArchivedAt:                nil,
 		Ingredient:                BuildFakeValidIngredient(),
-		LastUpdatedAt:             nil,
-		VesselIndex:               new(fake.Uint16()),
-		ProductPercentageToUse:    new(float32(buildFakeNumber())),
-		RecipeStepProductID:       nil,
+		LastUpdatedAt:             pointer.To(BuildFakeTime()),
+		VesselIndex:               pointer.To(uint16(buildFakeNumber())),
+		ProductPercentageToUse:    pointer.To(float32(buildFakeNumber())),
+		RecipeStepProductID:       pointer.To(BuildFakeID()),
 		MaxQuantity:               maxQty,
 		BelongsToRecipeStep:       BuildFakeID(),
 		ID:                        BuildFakeID(),
@@ -1094,13 +1106,11 @@ func BuildFakeRecipeStepIngredient() *types.RecipeStepIngredient {
 		Name:                      buildUniqueString(),
 		MeasurementUnit:           *BuildFakeValidMeasurementUnit(),
 		MinQuantity:               minQty,
-		ScaleFactor:               1.0,
-		// Will be set from array index during recipe creation (via converter)
-		Index: 0,
-		// Default to 0 for single-option items
-		OptionIndex: 0,
-		Optional:    fake.Bool(),
-		ToTaste:     fake.Bool(),
+		ScaleFactor:               float32(buildFakeNumber()),
+		Index:                     uint16(buildFakeNumber()),
+		OptionIndex:               uint16(buildFakeNumber()),
+		Optional:                  fake.Bool(),
+		ToTaste:                   fake.Bool(),
 	}
 }
 
@@ -1136,19 +1146,19 @@ func BuildFakeRecipeStepInstrument() *types.RecipeStepInstrument {
 		CreatedAt:           BuildFakeTime(),
 		MaxQuantity:         maxQty,
 		Instrument:          BuildFakeValidInstrument(),
-		LastUpdatedAt:       nil,
-		RecipeStepProductID: nil,
+		LastUpdatedAt:       pointer.To(BuildFakeTime()),
+		RecipeStepProductID: pointer.To(BuildFakeID()),
 		ArchivedAt:          nil,
 		Notes:               buildUniqueString(),
-		BelongsToRecipeStep: fake.UUID(),
+		BelongsToRecipeStep: BuildFakeID(),
 		ID:                  BuildFakeID(),
 		Name:                buildUniqueString(),
 		MinQuantity:         minQty,
-		Index:               0,
-		OptionIndex:         0,
-		PreferenceRank:      fake.Uint8(),
+		Index:               uint16(buildFakeNumber()),
+		OptionIndex:         uint16(buildFakeNumber()),
+		PreferenceRank:      uint8(buildFakeNumber()),
 		Optional:            fake.Bool(),
-		ScaleFactor:         1.0,
+		ScaleFactor:         float32(buildFakeNumber()),
 	}
 }
 
@@ -1192,23 +1202,23 @@ func BuildFakeRecipeStepProduct() *types.RecipeStepProduct {
 		CreatedAt:                      BuildFakeTime(),
 		MinStorageTemperatureInCelsius: &storageTempMin,
 		MaxStorageTemperatureInCelsius: &storageTempMax,
-		MinStorageDurationInSeconds:    nil,
+		MinStorageDurationInSeconds:    pointer.To(uint32(buildFakeNumber())),
 		MaxStorageDurationInSeconds:    &storageDurationMax,
 		MinMeasurementQuantity:         &measurementMin,
 		MaxMeasurementQuantity:         &measurementMax,
 		MinItemQuantity:                &itemMin,
 		MaxItemQuantity:                &itemMax,
 		ArchivedAt:                     nil,
-		LastUpdatedAt:                  nil,
+		LastUpdatedAt:                  pointer.To(BuildFakeTime()),
 		MeasurementUnit:                BuildFakeValidMeasurementUnit(),
-		ContainedInVesselIndex:         new(fake.Uint16()),
+		ContainedInVesselIndex:         pointer.To(uint16(buildFakeNumber())),
 		Name:                           buildUniqueString(),
-		BelongsToRecipeStep:            fake.UUID(),
-		Type:                           types.RecipeStepProductIngredientType,
+		BelongsToRecipeStep:            BuildFakeID(),
+		Type:                           pickOne(types.RecipeStepProductIngredientType, types.RecipeStepProductInstrumentType, types.RecipeStepProductVesselType),
 		ID:                             BuildFakeID(),
 		StorageInstructions:            buildUniqueString(),
 		QuantityNotes:                  buildUniqueString(),
-		Index:                          fake.Uint16(),
+		Index:                          uint16(buildFakeNumber()),
 		IsWaste:                        fake.Bool(),
 		IsLiquid:                       fake.Bool(),
 		Compostable:                    fake.Bool(),
@@ -1249,24 +1259,22 @@ func BuildFakeRecipeStepVessel() *types.RecipeStepVessel {
 	minQty, maxQty := BuildFakeUint16WithOptionalMax()
 
 	return &types.RecipeStepVessel{
-		CreatedAt:           BuildFakeTime(),
-		MaxQuantity:         maxQty,
-		LastUpdatedAt:       nil,
-		ArchivedAt:          nil,
-		RecipeStepProductID: nil,
-		Vessel:              BuildFakeValidVessel(),
-		ID:                  BuildFakeID(),
-		Notes:               buildUniqueString(),
-		BelongsToRecipeStep: fake.UUID(),
-		VesselPreposition:   buildUniqueString(),
-		Name:                buildUniqueString(),
-		MinQuantity:         minQty,
-		// Will be set from array index during recipe creation
-		Index: 0,
-		// Default to 0 for single-option items
-		OptionIndex:          0,
+		CreatedAt:            BuildFakeTime(),
+		MaxQuantity:          maxQty,
+		LastUpdatedAt:        pointer.To(BuildFakeTime()),
+		ArchivedAt:           nil,
+		RecipeStepProductID:  pointer.To(BuildFakeID()),
+		Vessel:               BuildFakeValidVessel(),
+		ID:                   BuildFakeID(),
+		Notes:                buildUniqueString(),
+		BelongsToRecipeStep:  BuildFakeID(),
+		VesselPreposition:    buildUniqueString(),
+		Name:                 buildUniqueString(),
+		MinQuantity:          minQty,
+		Index:                uint16(buildFakeNumber()),
+		OptionIndex:          uint16(buildFakeNumber()),
 		UnavailableAfterStep: fake.Bool(),
-		ScaleFactor:          1.0,
+		ScaleFactor:          float32(buildFakeNumber()),
 	}
 }
 
@@ -1297,11 +1305,11 @@ func BuildFakeRecipeStepVesselUpdateRequestInput() *types.RecipeStepVesselUpdate
 func BuildFakeUserIngredientPreference() *types.UserIngredientPreference {
 	return &types.UserIngredientPreference{
 		CreatedAt:     BuildFakeTime(),
-		LastUpdatedAt: nil,
+		LastUpdatedAt: pointer.To(BuildFakeTime()),
 		ArchivedAt:    nil,
 		ID:            BuildFakeID(),
 		Notes:         buildUniqueString(),
-		CreatedByUser: "",
+		CreatedByUser: BuildFakeID(),
 		Ingredient:    *BuildFakeValidIngredient(),
 		Rating:        1,
 		Allergy:       fake.Bool(),
@@ -1346,7 +1354,7 @@ func BuildFakeValidIngredient() *types.ValidIngredient {
 		CreatedAt:                      BuildFakeTime(),
 		MinStorageTemperatureInCelsius: minST,
 		MaxStorageTemperatureInCelsius: maxST,
-		LastUpdatedAt:                  nil,
+		LastUpdatedAt:                  pointer.To(BuildFakeTime()),
 		ArchivedAt:                     nil,
 		Warning:                        buildUniqueString(),
 		IconPath:                       buildUniqueString(),
@@ -1366,7 +1374,7 @@ func BuildFakeValidIngredient() *types.ValidIngredient {
 		ContainsSoy:                    fake.Bool(),
 		AnimalDerived:                  fake.Bool(),
 		RestrictToPreparations:         fake.Bool(),
-		ContaminatesEquipment:          false,
+		ContaminatesEquipment:          fake.Bool(),
 		ContainsSesame:                 fake.Bool(),
 		ContainsFish:                   fake.Bool(),
 		ContainsPeanut:                 fake.Bool(),
@@ -1415,19 +1423,16 @@ func BuildFakeValidIngredientCreationRequestInput() *types.ValidIngredientCreati
 
 // BuildFakeValidIngredientGroup builds a faked ValidIngredientGroup.
 func BuildFakeValidIngredientGroup() *types.ValidIngredientGroup {
-	groupID := BuildFakeID()
 	var members []*types.ValidIngredientGroupMember
 	for range exampleQuantity {
-		newMember := BuildFakeValidIngredientGroupMember()
-		newMember.BelongsToGroup = groupID
-		members = append(members, newMember)
+		members = append(members, BuildFakeValidIngredientGroupMember())
 	}
 
 	return &types.ValidIngredientGroup{
 		CreatedAt:     BuildFakeTime(),
-		LastUpdatedAt: nil,
+		LastUpdatedAt: pointer.To(BuildFakeTime()),
 		ArchivedAt:    nil,
-		ID:            groupID,
+		ID:            BuildFakeID(),
 		Name:          buildUniqueString(),
 		Slug:          buildUniqueString(),
 		Description:   buildUniqueString(),
@@ -1482,7 +1487,7 @@ func BuildFakeValidIngredientMeasurementUnit() *types.ValidIngredientMeasurement
 
 	return &types.ValidIngredientMeasurementUnit{
 		CreatedAt:            BuildFakeTime(),
-		LastUpdatedAt:        nil,
+		LastUpdatedAt:        pointer.To(BuildFakeTime()),
 		ArchivedAt:           nil,
 		MaxAllowableQuantity: maxQty,
 		Notes:                buildUniqueString(),
@@ -1535,7 +1540,7 @@ func BuildFakeValidIngredientMeasurementUnitUpdateRequestInput() *types.ValidIng
 func BuildFakeValidIngredientPreparation() *types.ValidIngredientPreparation {
 	return &types.ValidIngredientPreparation{
 		CreatedAt:     BuildFakeTime(),
-		LastUpdatedAt: nil,
+		LastUpdatedAt: pointer.To(BuildFakeTime()),
 		ArchivedAt:    nil,
 		Notes:         buildUniqueString(),
 		ID:            BuildFakeID(),
@@ -1585,13 +1590,13 @@ func BuildFakeValidIngredientState() *types.ValidIngredientState {
 	return &types.ValidIngredientState{
 		CreatedAt:     BuildFakeTime(),
 		ArchivedAt:    nil,
-		LastUpdatedAt: nil,
+		LastUpdatedAt: pointer.To(BuildFakeTime()),
 		PastTense:     buildUniqueString(),
 		Description:   buildUniqueString(),
 		IconPath:      buildUniqueString(),
 		ID:            BuildFakeID(),
 		Name:          buildUniqueString(),
-		AttributeType: types.ValidIngredientStateAttributeTypeOther,
+		AttributeType: pickOne(types.ValidIngredientStateAttributeTypeTexture, types.ValidIngredientStateAttributeTypeConsistency, types.ValidIngredientStateAttributeTypeTemperature, types.ValidIngredientStateAttributeTypeColor, types.ValidIngredientStateAttributeTypeAppearance, types.ValidIngredientStateAttributeTypeOdor, types.ValidIngredientStateAttributeTypeTaste, types.ValidIngredientStateAttributeTypeSound, types.ValidIngredientStateAttributeTypeOther),
 		Slug:          buildUniqueString(),
 	}
 }
@@ -1630,7 +1635,7 @@ func BuildFakeValidIngredientStateCreationRequestInput() *types.ValidIngredientS
 func BuildFakeValidIngredientStateIngredient() *types.ValidIngredientStateIngredient {
 	return &types.ValidIngredientStateIngredient{
 		CreatedAt:       BuildFakeTime(),
-		LastUpdatedAt:   nil,
+		LastUpdatedAt:   pointer.To(BuildFakeTime()),
 		ArchivedAt:      nil,
 		Notes:           buildUniqueString(),
 		ID:              BuildFakeID(),
@@ -1679,7 +1684,7 @@ func BuildFakeValidIngredientStateIngredientUpdateRequestInput() *types.ValidIng
 func BuildFakeValidInstrument() *types.ValidInstrument {
 	return &types.ValidInstrument{
 		CreatedAt:                      BuildFakeTime(),
-		LastUpdatedAt:                  nil,
+		LastUpdatedAt:                  pointer.To(BuildFakeTime()),
 		ArchivedAt:                     nil,
 		IconPath:                       buildUniqueString(),
 		ID:                             BuildFakeID(),
@@ -1725,9 +1730,9 @@ func BuildFakeValidInstrumentCreationRequestInput() *types.ValidInstrumentCreati
 func BuildFakeValidMeasurementUnitConversion() *types.ValidMeasurementUnitConversion {
 	return &types.ValidMeasurementUnitConversion{
 		CreatedAt:         BuildFakeTime(),
-		LastUpdatedAt:     nil,
+		LastUpdatedAt:     pointer.To(BuildFakeTime()),
 		ArchivedAt:        nil,
-		OnlyForIngredient: nil,
+		OnlyForIngredient: BuildFakeValidIngredient(),
 		Notes:             buildUniqueString(),
 		ID:                BuildFakeID(),
 		From:              *BuildFakeValidMeasurementUnit(),
@@ -1764,19 +1769,23 @@ func BuildFakeValidMeasurementUnitConversionCreationRequestInput() *types.ValidM
 // ValidMeasurementUnitConversionUpdateRequestInput.
 func BuildFakeValidMeasurementUnitConversionUpdateRequestInput() *types.ValidMeasurementUnitConversionUpdateRequestInput {
 	return &types.ValidMeasurementUnitConversionUpdateRequestInput{
-		From:              new(BuildFakeID()),
-		To:                new(BuildFakeID()),
-		OnlyForIngredient: new(BuildFakeID()),
-		Modifier:          new(float32(buildFakeNumber())),
-		Notes:             new(BuildFakeID()),
+		From:              pointer.To(buildUniqueString()),
+		To:                pointer.To(buildUniqueString()),
+		OnlyForIngredient: pointer.To(buildUniqueString()),
+		Modifier:          pointer.To(float32(buildFakeNumber())),
+		Notes:             pointer.To(buildUniqueString()),
 	}
 }
 
 // BuildFakeValidMeasurementUnit builds a faked ValidMeasurementUnit.
 func BuildFakeValidMeasurementUnit() *types.ValidMeasurementUnit {
+	// A unit is metric or imperial. Validation rejects one claiming to be both, which two independent
+	// fakes produce a quarter of the time.
+	metric := fake.Bool()
+
 	return &types.ValidMeasurementUnit{
 		CreatedAt:     BuildFakeTime(),
-		LastUpdatedAt: nil,
+		LastUpdatedAt: pointer.To(BuildFakeTime()),
 		ArchivedAt:    nil,
 		Name:          buildUniqueString(),
 		IconPath:      buildUniqueString(),
@@ -1786,8 +1795,8 @@ func BuildFakeValidMeasurementUnit() *types.ValidMeasurementUnit {
 		Slug:          buildUniqueString(),
 		Volumetric:    fake.Bool(),
 		Universal:     fake.Bool(),
-		Metric:        true,
-		Imperial:      false,
+		Metric:        metric,
+		Imperial:      !metric,
 	}
 }
 
@@ -1832,7 +1841,7 @@ func BuildFakeValidPrepTaskConfig() *types.ValidPrepTaskConfig {
 		ArchivedAt:                     nil,
 		MaxStorageDurationInSeconds:    maxSD,
 		MinStorageTemperatureInCelsius: minST,
-		LastUpdatedAt:                  nil,
+		LastUpdatedAt:                  pointer.To(BuildFakeTime()),
 		ID:                             BuildFakeID(),
 		StorageType: fake.RandomString([]string{
 			types.RecipePrepTaskStorageTypeUncovered,
@@ -1888,7 +1897,7 @@ func BuildFakeValidPreparation() *types.ValidPreparation {
 	return &types.ValidPreparation{
 		CreatedAt:                   BuildFakeTime(),
 		ArchivedAt:                  nil,
-		LastUpdatedAt:               nil,
+		LastUpdatedAt:               pointer.To(BuildFakeTime()),
 		MaxInstrumentCount:          maxInstrumentCount,
 		MaxIngredientCount:          maxIngredientCount,
 		MaxVesselCount:              maxVesselCount,
@@ -1945,7 +1954,7 @@ func BuildFakeValidPreparationCreationRequestInput() *types.ValidPreparationCrea
 func BuildFakeValidPreparationInstrument() *types.ValidPreparationInstrument {
 	return &types.ValidPreparationInstrument{
 		CreatedAt:     BuildFakeTime(),
-		LastUpdatedAt: nil,
+		LastUpdatedAt: pointer.To(BuildFakeTime()),
 		ArchivedAt:    nil,
 		ID:            BuildFakeID(),
 		Notes:         buildUniqueString(),
@@ -1994,7 +2003,7 @@ func BuildFakeValidPreparationInstrumentUpdateRequestInput() *types.ValidPrepara
 func BuildFakeValidPreparationVessel() *types.ValidPreparationVessel {
 	return &types.ValidPreparationVessel{
 		CreatedAt:     BuildFakeTime(),
-		LastUpdatedAt: nil,
+		LastUpdatedAt: pointer.To(BuildFakeTime()),
 		ArchivedAt:    nil,
 		ID:            BuildFakeID(),
 		Notes:         buildUniqueString(),
@@ -2044,14 +2053,14 @@ func BuildFakeValidVessel() *types.ValidVessel {
 	return &types.ValidVessel{
 		CreatedAt:                      BuildFakeTime(),
 		ArchivedAt:                     nil,
-		LastUpdatedAt:                  nil,
+		LastUpdatedAt:                  pointer.To(BuildFakeTime()),
 		CapacityUnit:                   BuildFakeValidMeasurementUnit(),
 		IconPath:                       buildUniqueString(),
 		PluralName:                     buildUniqueString(),
 		Description:                    buildUniqueString(),
 		Name:                           buildUniqueString(),
 		Slug:                           buildUniqueString(),
-		Shape:                          types.VesselShapeOther,
+		Shape:                          pickOne(types.VesselShapeHemisphere, types.VesselShapeRectangle, types.VesselShapeCone, types.VesselShapePyramid, types.VesselShapeCylinder, types.VesselShapeSphere, types.VesselShapeCube, types.VesselShapeOther),
 		ID:                             BuildFakeID(),
 		WidthInMillimeters:             float32(buildFakeNumber()),
 		LengthInMillimeters:            float32(buildFakeNumber()),
@@ -2115,7 +2124,7 @@ func BuildFakeCreateMealPlanTasksRequest() *types.CreateMealPlanTasksRequest {
 // BuildFakeCreateMealPlanTasksResponse builds a faked CreateMealPlanTasksResponse.
 func BuildFakeCreateMealPlanTasksResponse() *types.CreateMealPlanTasksResponse {
 	return &types.CreateMealPlanTasksResponse{
-		Success: true,
+		Success: fake.Bool(),
 	}
 }
 
@@ -2131,6 +2140,6 @@ func BuildFakeInitializeMealPlanGroceryListRequest() *types.InitializeMealPlanGr
 // InitializeMealPlanGroceryListResponse.
 func BuildFakeInitializeMealPlanGroceryListResponse() *types.InitializeMealPlanGroceryListResponse {
 	return &types.InitializeMealPlanGroceryListResponse{
-		Success: true,
+		Success: fake.Bool(),
 	}
 }

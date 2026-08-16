@@ -8,13 +8,7 @@ var Entities = entitydecl.Domain{
 		{
 			Type: Webhook{},
 			Fake: entitydecl.Fake{
-				Locals: []entitydecl.Local{
-					{Code: `webhookID := BuildFakeID()`},
-					{Code: `cfg := BuildFakeWebhookTriggerConfig()`},
-					{Code: `cfg.BelongsToWebhook = webhookID`},
-				},
 				Fields: []entitydecl.Field{
-					{Name: "ID", Expr: `webhookID`},
 					{Name: "Name", Expr: `fake.UUID()`},
 					{
 						Name: "ContentType",
@@ -31,9 +25,6 @@ var Entities = entitydecl.Domain{
 						Expr: `types.DeliveryMethod`,
 						Why:  "The only method a webhook is delivered with, and the only one validation accepts. Named rather than spelled so the fake follows the constant if it ever moves.",
 					},
-					{Name: "TriggerConfigs", Expr: `[]*types.WebhookTriggerConfig{cfg}`},
-					{Name: "BelongsToAccount", Expr: `fake.UUID()`},
-					{Name: "CreatedByUser", Expr: `fake.UUID()`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{

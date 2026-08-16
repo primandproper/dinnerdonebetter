@@ -7,20 +7,14 @@ var Entities = entitydecl.Domain{
 	Entities: []entitydecl.Entity{
 		{
 			Type: ChangeActiveAccountInput{},
-			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "AccountID", Expr: `fake.UUID()`},
-				},
-			},
+			Fake: entitydecl.Fake{},
 		},
 		{
 			Type: UserStatusResponse{},
 			Fake: entitydecl.Fake{
 				Fields: []entitydecl.Field{
 					{Name: "AccountStatus", Expr: `identity.GoodStandingUserAccountStatus.String()`},
-					{Name: "AccountStatusExplanation", Expr: `""`},
 					{Name: "ActiveAccount", Expr: `BuildFakeID()`},
-					{Name: "UserIsAuthenticated", Expr: `true`},
 				},
 			},
 		},
@@ -29,8 +23,6 @@ var Entities = entitydecl.Domain{
 			Fake: entitydecl.Fake{
 				Fields: []entitydecl.Field{
 					{Name: "AccessToken", Expr: `fake.UUID()`},
-					{Name: "ExpiresUTC", Expr: `time.Time{}`},
-					{Name: "RefreshToken", Expr: `""`},
 				},
 			},
 		},
@@ -41,7 +33,6 @@ var Entities = entitydecl.Domain{
 					{Name: "Username", Expr: `BuildFakeID()`},
 					{Name: "Password", Expr: `buildFakePassword()`},
 					{Name: "TOTPToken", Expr: `buildFakeTOTPToken()`},
-					{Name: "DesiredAccountID", Expr: `""`},
 				},
 			},
 		},
@@ -147,11 +138,7 @@ var Entities = entitydecl.Domain{
 		},
 		{
 			Type: PasswordResetResponse{},
-			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "Successful", Expr: `true`},
-				},
-			},
+			Fake: entitydecl.Fake{},
 		},
 		{
 			Type: UserPermissionsResponse{},

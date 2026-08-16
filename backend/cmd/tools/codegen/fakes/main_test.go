@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/entitydecl"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,7 +32,7 @@ func TestFakesAreUpToDate(T *testing.T) {
 		for _, d := range domains {
 			dir := filepath.Join(backendRoot, packageDir(d.name))
 
-			rendered, err := renderDomain(d, dir)
+			rendered, err := renderDomain(d, dir, newEnumIndex(backendRoot))
 			require.NoError(t, err, d.name)
 
 			onDisk, err := os.ReadFile(filepath.Join(dir, outputName))
@@ -133,7 +134,8 @@ func TestDefaults(T *testing.T) {
 		_ struct{}
 
 		CreatedAt        any
-		ArchivedAt       *string
+		ArchivedAt       *time.Time
+		Nickname         *string
 		ID               string
 		BelongsToAccount string
 		CreatedByUser    string
@@ -144,7 +146,11 @@ func TestDefaults(T *testing.T) {
 		Optional         bool
 	}
 
-	d := &defaulter{builders: map[reflect.Type]string{}, domainPath: "example.com/domain"}
+	d := &defaulter{
+		builders:   map[reflect.Type]string{},
+		domainPath: "example.com/domain",
+		enums:      newEnumIndex(backendRoot),
+	}
 	typ := reflect.TypeFor[example]()
 
 	for _, tc := range []struct {
@@ -160,7 +166,13 @@ func TestDefaults(T *testing.T) {
 		{field: "Optional", want: "fake.Bool()"},
 		{field: "Quantity", want: "uint16(buildFakeNumber())"},
 		{field: "Ratio", want: "buildFakeNumber()"},
+		// An optional field is filled, not left nil: a nil optional makes every
+		// assertion about it pass whether or not the code under test copies it.
+		{field: "Nickname", want: "pointer.To(buildUniqueString())"},
+		// Except a tombstone, whose nil is the field's meaning and not the absence of one.
 		{field: "ArchivedAt", want: "nil"},
+		// A collection of something the domain does not declare has no faithful shape
+		// to invent. A collection of entities is filled; see TestDeriveChildren.
 		{field: "Children", want: "nil"},
 	} {
 		T.Run(tc.field, func(t *testing.T) {
@@ -169,7 +181,8 @@ func TestDefaults(T *testing.T) {
 			field, found := typ.FieldByName(tc.field)
 			require.True(t, found)
 
-			expression, ok := d.expr(&field)
+			expression, ok, err := d.expr(typ, &field)
+			require.NoError(t, err)
 			require.True(t, ok)
 			assert.Equal(t, tc.want, expression)
 		})
@@ -186,17 +199,42 @@ func TestDefaults(T *testing.T) {
 		field, found := reflect.TypeFor[withTime]().FieldByName("CreatedAt")
 		require.True(t, found)
 
-		expression, ok := d.expr(&field)
+		expression, ok, err := d.expr(typ, &field)
+		require.NoError(t, err)
 		require.True(t, ok)
 		assert.Equal(t, "BuildFakeTime()", expression)
 	})
 
-	T.Run("a named string has no default", func(t *testing.T) {
+	T.Run("an enumerated field offers every member", func(t *testing.T) {
 		t.Parallel()
 
-		// A status, a kind, a shape: the valid values are constants, and a random string
-		// is not one of them. Refusing here is what forces the declaration to say which
-		// constant, instead of producing a fake that only exercises the rejection path.
+		// A status, a kind, a shape: the valid values are constants, so they are read
+		// out of the domain's source rather than guessed. Offering all of them is what
+		// stops a switch that handles one member from passing every test.
+		type withStatus struct {
+			_      struct{}
+			Status mealplanning.MealPlanStatus
+		}
+
+		field, found := reflect.TypeFor[withStatus]().FieldByName("Status")
+		require.True(t, found)
+
+		enumerated := &defaulter{
+			builders:   map[reflect.Type]string{},
+			domainPath: domainImportPath("mealplanning"),
+			enums:      newEnumIndex(backendRoot),
+		}
+
+		expression, ok, err := enumerated.expr(reflect.TypeFor[withStatus](), &field)
+		require.NoError(t, err)
+		require.True(t, ok)
+		assert.Equal(t, "pickOne(types.MealPlanStatusAwaitingVotes, types.MealPlanStatusFinalized)", expression)
+	})
+
+	T.Run("a named string with no constants has no default", func(t *testing.T) {
+		t.Parallel()
+
+		// Nothing says what this type is allowed to hold, so the declaration has to.
 		type status string
 
 		type withStatus struct {
@@ -207,7 +245,8 @@ func TestDefaults(T *testing.T) {
 		field, found := reflect.TypeFor[withStatus]().FieldByName("Status")
 		require.True(t, found)
 
-		_, ok := d.expr(&field)
+		_, ok, err := d.expr(reflect.TypeFor[withStatus](), &field)
+		require.NoError(t, err)
 		assert.False(t, ok)
 	})
 
@@ -226,12 +265,14 @@ func TestDefaults(T *testing.T) {
 		withBuilder := &defaulter{
 			builders:   map[reflect.Type]string{reflect.TypeFor[child](): "BuildFakeChild"},
 			domainPath: "example.com/domain",
+			enums:      newEnumIndex(backendRoot),
 		}
 
 		field, found := reflect.TypeFor[parent]().FieldByName("Child")
 		require.True(t, found)
 
-		expression, ok := withBuilder.expr(&field)
+		expression, ok, err := withBuilder.expr(reflect.TypeFor[parent](), &field)
+		require.NoError(t, err)
 		require.True(t, ok)
 		assert.Equal(t, "*BuildFakeChild()", expression)
 	})
@@ -251,7 +292,8 @@ func TestDefaults(T *testing.T) {
 		field, found := reflect.TypeFor[parent]().FieldByName("Child")
 		require.True(t, found)
 
-		_, ok := d.expr(&field)
+		_, ok, err := d.expr(reflect.TypeFor[parent](), &field)
+		require.NoError(t, err)
 		assert.False(t, ok)
 	})
 }
@@ -348,5 +390,135 @@ func TestPlan(T *testing.T) {
 
 		_, err := plan(entitydecl.Domain{Entities: []entitydecl.Entity{{}}})
 		assert.Error(t, err)
+	})
+}
+
+func TestDeriveChildren(T *testing.T) {
+	T.Parallel()
+
+	type Child struct {
+		_             struct{}
+		ID            string
+		BelongsToItem string
+	}
+
+	type Item struct {
+		_        struct{}
+		ID       string
+		Children []*Child
+	}
+
+	defaults := &defaulter{
+		builders: map[reflect.Type]string{
+			reflect.TypeFor[Item]():  "BuildFakeItem",
+			reflect.TypeFor[Child](): "BuildFakeChild",
+		},
+		domainPath: "example.com/domain",
+		enums:      newEnumIndex(backendRoot),
+	}
+
+	T.Run("a collection of entities is filled and wired to its parent", func(t *testing.T) {
+		t.Parallel()
+
+		// This is the whole reason the declarations had a Locals section: the same loop,
+		// written once per parent, differing only in the type names the generator can see.
+		p := &entityPlan{typ: reflect.TypeFor[Item](), builderName: "BuildFakeItem"}
+
+		children, err := planChildren([]entityPlan{*p}, defaults)
+		require.NoError(t, err)
+
+		derived, err := derive(p, defaults, children, map[string]struct{}{})
+		require.NoError(t, err)
+
+		assert.Equal(t, "children", derived.exprs["Children"])
+		assert.Equal(t, "itemID", derived.exprs["ID"], "the parent has to name its own ID for the children to carry it")
+		require.Len(t, derived.locals, 2)
+		assert.Equal(t, "itemID := BuildFakeID()", derived.locals[0])
+		assert.Contains(t, derived.locals[1], "child.BelongsToItem = itemID")
+	})
+
+	T.Run("an override wins over derivation", func(t *testing.T) {
+		t.Parallel()
+
+		p := &entityPlan{typ: reflect.TypeFor[Item](), builderName: "BuildFakeItem"}
+
+		children, err := planChildren([]entityPlan{*p}, defaults)
+		require.NoError(t, err)
+
+		derived, err := derive(p, defaults, children, map[string]struct{}{"Children": {}})
+		require.NoError(t, err)
+
+		assert.Empty(t, derived.locals, "nothing to build once the declaration says what the collection holds")
+		assert.NotContains(t, derived.exprs, "Children")
+	})
+
+	T.Run("a self-referential collection is left nil", func(t *testing.T) {
+		t.Parallel()
+
+		// Recipe.AssociatedRecipes is the real one. Filling it would build recipes until
+		// the stack ran out, so nil — a shape the field genuinely has — is what it gets.
+		type Recursive struct {
+			_       struct{}
+			ID      string
+			Related []*Recursive
+		}
+
+		recursiveDefaults := &defaulter{
+			builders:   map[reflect.Type]string{reflect.TypeFor[Recursive](): "BuildFakeRecursive"},
+			domainPath: "example.com/domain",
+			enums:      newEnumIndex(backendRoot),
+		}
+
+		p := &entityPlan{typ: reflect.TypeFor[Recursive](), builderName: "BuildFakeRecursive"}
+
+		children, err := planChildren([]entityPlan{*p}, recursiveDefaults)
+		require.NoError(t, err)
+
+		derived, err := derive(p, recursiveDefaults, children, map[string]struct{}{})
+		require.NoError(t, err)
+
+		assert.NotContains(t, derived.exprs, "Related")
+	})
+}
+
+func TestValidationDerivedEnums(T *testing.T) {
+	T.Parallel()
+
+	// Almost every enumerated field in this repository is a plain `string`, so the only thing
+	// that says which strings it may hold is the rule the type declares about itself. Reading
+	// that rule is what keeps a generated fake from being one the domain rejects.
+	T.Run("a field is faked as a value its own validation admits", func(t *testing.T) {
+		t.Parallel()
+
+		index := newEnumIndex(backendRoot)
+
+		values, err := index.permitted(domainImportPath("mealplanning"), "ValidVesselCreationRequestInput", "Shape")
+		require.NoError(t, err)
+
+		assert.Contains(t, values, "VesselShapeCone")
+		assert.Contains(t, values, "VesselShapeOther")
+	})
+
+	T.Run("an entity borrows the rule from its creation input", func(t *testing.T) {
+		t.Parallel()
+
+		// A ValidVessel declares no validation about itself — it is what comes back out
+		// of the database. The input that put it there is where the rule lives.
+		index := newEnumIndex(backendRoot)
+
+		values, err := index.permitted(domainImportPath("mealplanning"), "ValidVessel", "Shape")
+		require.NoError(t, err)
+
+		assert.Contains(t, values, "VesselShapeCone")
+	})
+
+	T.Run("a type with no rule for a field says nothing", func(t *testing.T) {
+		t.Parallel()
+
+		index := newEnumIndex(backendRoot)
+
+		values, err := index.permitted(domainImportPath("mealplanning"), "ValidVessel", "Name")
+		require.NoError(t, err)
+		assert.Empty(t, values)
 	})
 }

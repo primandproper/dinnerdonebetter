@@ -24,7 +24,7 @@ type entityPlan struct {
 //
 // dir is the fakes package on disk. It is read, not written: the helpers a package gets depend on
 // what its hand-written builders call, and the only way to know that is to look at them.
-func renderDomain(d domain, dir string) ([]byte, error) {
+func renderDomain(d domain, dir string, enums *enumIndex) ([]byte, error) {
 	plans, err := plan(d.decl)
 	if err != nil {
 		return nil, err
@@ -33,9 +33,15 @@ func renderDomain(d domain, dir string) ([]byte, error) {
 	defaults := &defaulter{
 		builders:   buildersByType(plans),
 		domainPath: domainImportPath(d.name),
+		enums:      enums,
 	}
 
-	body, err := renderBuilders(plans, defaults)
+	children, err := planChildren(plans, defaults)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := renderBuilders(plans, defaults, children)
 	if err != nil {
 		return nil, err
 	}
@@ -100,12 +106,15 @@ func buildersByType(plans []entityPlan) map[reflect.Type]string {
 }
 
 // renderBuilders emits every generated function for a domain.
-func renderBuilders(plans []entityPlan, defaults *defaulter) (string, error) {
-	var sb strings.Builder
+func renderBuilders(plans []entityPlan, defaults *defaulter, children *childPlanner) (string, error) {
+	var (
+		sb    strings.Builder
+		noise []string
+	)
 
 	for _, p := range plans {
 		if !p.fake.Bespoke {
-			entity, err := renderEntity(&p, defaults)
+			entity, err := renderEntity(&p, defaults, children, &noise)
 			if err != nil {
 				return "", err
 			}
@@ -127,11 +136,18 @@ func renderBuilders(plans []entityPlan, defaults *defaulter) (string, error) {
 		}
 	}
 
+	if len(noise) > 0 {
+		return "", fmt.Errorf(
+			"these overrides restate exactly what the generator produces by default; delete them from the declaration:\n\t%s",
+			strings.Join(noise, "\n\t"),
+		)
+	}
+
 	return sb.String(), nil
 }
 
 // renderEntity emits one entity's builder.
-func renderEntity(p *entityPlan, defaults *defaulter) (string, error) {
+func renderEntity(p *entityPlan, defaults *defaulter, children *childPlanner, noise *[]string) (string, error) {
 	overrides := map[string]entitydecl.Field{}
 	for _, f := range p.fake.Fields {
 		if _, found := p.typ.FieldByName(f.Name); !found {
@@ -145,17 +161,38 @@ func renderEntity(p *entityPlan, defaults *defaulter) (string, error) {
 		overrides[f.Name] = f
 	}
 
+	overridden := map[string]struct{}{}
+	for name := range overrides {
+		overridden[name] = struct{}{}
+	}
+
+	derived, err := derive(p, defaults, children, overridden)
+	if err != nil {
+		return "", err
+	}
+
+	redundant, err := findRedundant(p, defaults, derived, overrides)
+	if err != nil {
+		return "", err
+	}
+
+	*noise = append(*noise, redundant...)
+
 	var sb strings.Builder
 
 	sb.WriteString(doc(p.builderName, p.fake.Doc, fmt.Sprintf("builds a faked %s.", p.typ.Name())))
 	fmt.Fprintf(&sb, "func %s() *%s.%s {\n", p.builderName, domainAlias, p.typ.Name())
+
+	for _, local := range derived.locals {
+		fmt.Fprintf(&sb, "\t%s\n", local)
+	}
 
 	for _, local := range p.fake.Locals {
 		sb.WriteString(comment(local.Why, "\t"))
 		fmt.Fprintf(&sb, "\t%s\n", local.Code)
 	}
 
-	if len(p.fake.Locals) > 0 {
+	if len(p.fake.Locals) > 0 || len(derived.locals) > 0 {
 		sb.WriteString("\n")
 	}
 
@@ -176,7 +213,17 @@ func renderEntity(p *entityPlan, defaults *defaulter) (string, error) {
 			continue
 		}
 
-		expression, ok := defaults.expr(&field)
+		if expression, found := derived.exprs[field.Name]; found {
+			fmt.Fprintf(&sb, "\t\t%s: %s,\n", field.Name, expression)
+
+			continue
+		}
+
+		expression, ok, defaultErr := defaults.expr(p.typ, &field)
+		if defaultErr != nil {
+			return "", defaultErr
+		}
+
 		if !ok {
 			return "", fmt.Errorf(
 				"%s: no default for %s.%s of type %s; declare an override for it in the domain's entities.go",
@@ -401,4 +448,38 @@ func defaultAlias(path string) string {
 	}
 
 	return last
+}
+
+// findRedundant reports overrides that restate what the generator would have produced anyway.
+//
+// An override is a claim that the mechanical default is wrong for this field. One that matches the
+// default word for word is not that claim: it is a line somebody has to read, decide is
+// load-bearing, and leave alone. They accumulate — a default improves, and the overrides it made
+// unnecessary stay where they are, until the declaration is as long as the hand-written fakes it
+// replaced. Failing on them is what keeps that from happening quietly.
+func findRedundant(p *entityPlan, defaults *defaulter, derived *derivation, overrides map[string]entitydecl.Field) ([]string, error) {
+	var redundant []string
+
+	for field := range p.typ.Fields() {
+		override, found := overrides[field.Name]
+		if !found || !field.IsExported() {
+			continue
+		}
+
+		mechanical, ok := derived.exprs[field.Name]
+		if !ok {
+			var defaultErr error
+
+			mechanical, ok, defaultErr = defaults.expr(p.typ, &field)
+			if defaultErr != nil {
+				return nil, defaultErr
+			}
+		}
+
+		if ok && mechanical == override.Expr {
+			redundant = append(redundant, fmt.Sprintf("%s.%s", p.typ.Name(), field.Name))
+		}
+	}
+
+	return redundant, nil
 }

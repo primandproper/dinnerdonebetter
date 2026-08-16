@@ -8,11 +8,28 @@
 //
 // The lines that are not mechanical are the reason this is a generator over a declaration rather
 // than a call to a reflective faker. A webhook's URL cannot be random, because registration
-// resolves it; a webhook's event type cannot be random, because the catalog rejects anything it
-// does not know. Those are per-field overrides in internal/domain/*/entities.go, each carrying the
+// resolves it. Those are per-field overrides in internal/domain/*/entities.go, each carrying the
 // sentence explaining it, and both the expression and the sentence are emitted into the generated
 // source. A generator that only did the mechanical part would produce fakes that fail validation
 // everywhere, which is a worse outcome than the duplication it removed.
+//
+// # What counts as mechanical
+//
+// More than the name suggests, and deliberately: every field the generator cannot answer becomes a
+// line somebody writes by hand, and enough of those and the declarations cost what the fakes did.
+// Four rules do most of the work, and each one was a category of hand-written override before it:
+//
+//   - Enumerated fields. Almost none of them are typed — `MealPlan.Status` is a `string` — so the
+//     type says nothing about which strings it may hold. The rule the type declares about itself
+//     does: `validation.Field(&x.Shape, validation.In(...))` is the list, it is authoritative
+//     because it is what rejects a bad value at runtime, and enums.go reads it out of the source.
+//     All of its members are offered, at random, rather than the one somebody picked.
+//   - Optional fields, which are filled rather than left nil. A nil optional makes every assertion
+//     about it vacuous. `ArchivedAt` is excepted: there, nil is the field's meaning.
+//   - Child collections, which are built and wired to their parent's ID by children.go. This was
+//     the same loop written once per parent, nineteen times in mealplanning alone.
+//   - Overrides that restate any of the above, which are rejected rather than emitted, so that an
+//     improvement here actually shrinks the declarations instead of being shadowed by them.
 //
 // Run with `make fakes`.
 package main
@@ -81,10 +98,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	enums := newEnumIndex(root)
+
 	for _, d := range domains {
 		dir := filepath.Join(root, packageDir(d.name))
 
-		rendered, renderErr := renderDomain(d, dir)
+		rendered, renderErr := renderDomain(d, dir, enums)
 		if renderErr != nil {
 			log.Fatalf("generating fakes for %s: %v", d.name, renderErr)
 		}

@@ -161,10 +161,24 @@ make querier   # Runs: queries (codegen) + queries_lint + sqlc generate
 - Used in integration tests and unit tests
 
 Declare the domain's entities in `backend/internal/domain/<domain>/entities.go` and run
-`make fakes`. Most fields need nothing: the generator picks an expression from the field's name
-and type. Declare a `Fields` override for a field the domain constrains — a status the type
-enumerates, a URL that has to resolve — and put the constraint in its `Why`, which is emitted as
-a comment beside the generated line. See
+`make fakes`. Most entities need nothing but their type. The generator reflects over the fields
+and works out the rest:
+
+- a name and a type pick the expression — `ID`/`BelongsTo…` get an identifier, a string gets a
+  string, a number gets one comfortably clear of zero;
+- an enumerated field is faked as a value the type's own `validation.In(…)` rule admits, chosen
+  at random from all of them, so code that only handles one member fails here rather than in
+  production;
+- an optional field is filled rather than left nil, because a nil optional makes every assertion
+  about it pass whether or not the code copies it. `ArchivedAt` is the exception: its nil means
+  "not deleted";
+- a field holding entities the domain declares is filled with `exampleQuantity` of them, each
+  given the parent's ID where it has a `BelongsTo<Parent>` to put it in.
+
+Declare a `Fields` override only for what is left — a URL that has to resolve, two fields that
+have to disagree — and put the constraint in its `Why`, which is emitted as a comment beside the
+generated line. An override that restates what the generator would have produced is rejected, so
+check the generated file before adding one. See
 [backend/internal/domain/entitydecl/](backend/internal/domain/entitydecl/) for the vocabulary and
 `internal/domain/webhooks/entities.go` for a worked example.
 

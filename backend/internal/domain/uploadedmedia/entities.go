@@ -10,8 +10,6 @@ var Entities = entitydecl.Domain{
 			Fake: entitydecl.Fake{
 				Fields: []entitydecl.Field{
 					{Name: "StoragePath", Expr: `fake.URL()`},
-					{Name: "MimeType", Expr: `types.MimeTypeImagePNG`},
-					{Name: "CreatedAt", Expr: `time.Time{}`},
 				},
 			},
 		},
@@ -20,7 +18,6 @@ var Entities = entitydecl.Domain{
 			Fake: entitydecl.Fake{
 				Fields: []entitydecl.Field{
 					{Name: "StoragePath", Expr: `fake.URL()`},
-					{Name: "MimeType", Expr: `types.MimeTypeImagePNG`},
 				},
 			},
 		},
@@ -29,7 +26,6 @@ var Entities = entitydecl.Domain{
 			Fake: entitydecl.Fake{
 				Fields: []entitydecl.Field{
 					{Name: "StoragePath", Expr: `fake.URL()`},
-					{Name: "MimeType", Expr: `types.MimeTypeImagePNG`},
 				},
 			},
 		},

@@ -11,7 +11,6 @@ var Entities = entitydecl.Domain{
 				Fields: []entitydecl.Field{
 					{Name: "Name", Expr: `fake.Password(true, true, true, false, false, 32)`},
 					{Name: "ClientSecret", Expr: `buildFakePassword()`},
-					{Name: "Description", Expr: `""`},
 				},
 				List: &entitydecl.List{},
 			},
@@ -22,9 +21,6 @@ var Entities = entitydecl.Domain{
 				Fields: []entitydecl.Field{
 					{Name: "RedirectURI", Expr: `fake.URL()`},
 					{Name: "CodeChallengeMethod", Expr: `"S256"`},
-					{Name: "CodeExpiresAt", Expr: `time.Hour`},
-					{Name: "AccessExpiresAt", Expr: `time.Hour`},
-					{Name: "RefreshExpiresAt", Expr: `time.Hour`},
 				},
 			},
 		},
@@ -38,8 +34,6 @@ var Entities = entitydecl.Domain{
 					{Name: "ID", Expr: `client.ID`},
 					{Name: "ClientID", Expr: `client.ClientID`},
 					{Name: "ClientSecret", Expr: `client.ClientSecret`},
-					{Name: "Name", Expr: `""`},
-					{Name: "Description", Expr: `""`},
 				},
 			},
 		},

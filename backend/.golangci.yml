@@ -156,6 +156,13 @@ linters:
           - errcheck
           - forcetypeassert
         path: mock_?.*\.go
+      # An entity declaration is data, not code: a fake expression repeated across three
+      # domains is three domains that happen to want the same value, and hoisting it into a
+      # shared constant would put the expression somewhere other than beside the field it
+      # describes, which is the entire point of declaring it there.
+      - linters:
+          - goconst
+        path: internal/domain/.*/entities\.go
       - linters:
           - unused
         path: cmd/tools/codegen/queries

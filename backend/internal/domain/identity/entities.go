@@ -9,32 +9,18 @@ var Entities = entitydecl.Domain{
 			Type: Account{},
 			Fake: entitydecl.Fake{
 				Locals: []entitydecl.Local{
-					{Code: `accountID := BuildFakeID()`},
-					{Code: `var memberships []*types.AccountUserMembershipWithUser`},
-					{Code: `for range exampleQuantity {
-	membership := BuildFakeAccountUserMembershipWithUser()
-	membership.BelongsToAccount = accountID
-	memberships = append(memberships, membership)
-}`},
 					{Code: `fakeAddress := fake.Address()`},
 					{Code: `key := fake.BitcoinPrivateKey()`},
 				},
 				Fields: []entitydecl.Field{
-					{Name: "ID", Expr: `accountID`},
 					{Name: "Name", Expr: `fake.UUID()`},
 					{Name: "BillingStatus", Expr: `types.UnpaidAccountBillingStatus`},
 					{Name: "ContactPhone", Expr: `fake.PhoneFormatted()`},
-					{Name: "PaymentProcessorCustomerID", Expr: `fake.UUID()`},
-					{Name: "BelongsToUser", Expr: `fake.UUID()`},
-					{Name: "Members", Expr: `memberships`},
 					{Name: "AddressLine1", Expr: `fakeAddress.Address`},
-					{Name: "AddressLine2", Expr: `""`},
 					{Name: "City", Expr: `fakeAddress.City`},
 					{Name: "State", Expr: `fakeAddress.State`},
 					{Name: "ZipCode", Expr: `fakeAddress.Zip`},
 					{Name: "Country", Expr: `fakeAddress.Country`},
-					{Name: "Latitude", Expr: `new(buildFakeNumber())`},
-					{Name: "Longitude", Expr: `new(buildFakeNumber())`},
 					{Name: "WebhookEncryptionKey", Expr: `key`},
 				},
 				List: &entitydecl.List{},
@@ -80,12 +66,7 @@ var Entities = entitydecl.Domain{
 		},
 		{
 			Type: AccountUserMembership{},
-			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "BelongsToAccount", Expr: `fake.UUID()`},
-					{Name: "DefaultAccount", Expr: `false`},
-				},
-			},
+			Fake: entitydecl.Fake{},
 		},
 		{
 			Type: AccountUserMembershipWithUser{},
@@ -96,8 +77,6 @@ var Entities = entitydecl.Domain{
 				},
 				Fields: []entitydecl.Field{
 					{Name: "BelongsToUser", Expr: `u`},
-					{Name: "BelongsToAccount", Expr: `fake.UUID()`},
-					{Name: "DefaultAccount", Expr: `false`},
 				},
 			},
 		},
@@ -112,13 +91,17 @@ var Entities = entitydecl.Domain{
 					{Name: "LastName", Expr: `fake.LastName()`},
 					{Name: "EmailAddress", Expr: `fake.Email()`},
 					{Name: "Username", Expr: `fmt.Sprintf("%s_%d_%s", fake.Username(), fake.Uint8(), fake.Username())`},
-					{Name: "Birthday", Expr: `new(BuildFakeTime())`},
 					{Name: "AccountStatus", Expr: `string(types.UnverifiedAccountStatus)`},
 					{Name: "TwoFactorSecret", Expr: `base32.StdEncoding.EncodeToString([]byte(fake.Password(false, true, true, false, false, 32)))`},
 					{Name: "TwoFactorSecretVerifiedAt", Expr: `&fakeDate`},
-					{Name: "AccountStatusExplanation", Expr: `""`},
-					{Name: "HashedPassword", Expr: `""`},
-					{Name: "RequiresPasswordChange", Expr: `false`},
+					{
+						Name: "EmailAddressVerifiedAt",
+						Expr: `nil`,
+						Why: "A user who has not verified their email address yet, which is what a user " +
+							"looks like for the whole of signup. Verified is the later state, and the " +
+							"handler that sends the verification email refuses to send one to a user who " +
+							"already has this set.",
+					},
 				},
 				List: &entitydecl.List{},
 			},
@@ -136,11 +119,14 @@ var Entities = entitydecl.Domain{
 					{Name: "EmailAddress", Expr: `user.EmailAddress`},
 					{Name: "Password", Expr: `buildFakePassword()`},
 					{Name: "Birthday", Expr: `user.Birthday`},
-					{Name: "InvitationToken", Expr: `""`},
-					{Name: "InvitationID", Expr: `""`},
-					{Name: "AccountName", Expr: `""`},
-					{Name: "AcceptedTOS", Expr: `false`},
-					{Name: "AcceptedPrivacyPolicy", Expr: `false`},
+					{
+						Name: "InvitationID",
+						Expr: `""`,
+						Why: "An ordinary signup, not an invited one. The two invitation fields are read " +
+							"together: both set sends CreateUser looking for the invitation they name, " +
+							"and a faked pair names one that was never issued.",
+					},
+					{Name: "InvitationToken", Expr: `""`, Why: "See InvitationID."},
 				},
 			},
 		},

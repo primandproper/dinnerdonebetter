@@ -8,9 +8,6 @@ var Entities = entitydecl.Domain{
 		{
 			Type: AccountInstrumentOwnership{},
 			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "BelongsToAccount", Expr: `buildUniqueString()`},
-				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
 					{Type: AccountInstrumentOwnershipUpdateRequestInput{}, Converter: "ConvertAccountInstrumentOwnershipToAccountInstrumentOwnershipUpdateRequestInput"},
@@ -21,16 +18,6 @@ var Entities = entitydecl.Domain{
 		{
 			Type: Meal{},
 			Fake: entitydecl.Fake{
-				Locals: []entitydecl.Local{
-					{Code: `recipes := []*types.MealComponent{}`},
-					{Code: `for range exampleQuantity {
-	recipes = append(recipes, BuildFakeMealComponent())
-}`},
-				},
-				Fields: []entitydecl.Field{
-					{Name: "Components", Expr: `recipes`},
-					{Name: "EligibleForMealPlans", Expr: `true`},
-				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
 					{Type: MealCreationRequestInput{}, Converter: "ConvertMealToMealCreationRequestInput"},
@@ -41,8 +28,13 @@ var Entities = entitydecl.Domain{
 			Type: MealComponent{},
 			Fake: entitydecl.Fake{
 				Fields: []entitydecl.Field{
-					{Name: "RecipeScale", Expr: `float32(1.0)`},
-					{Name: "ComponentType", Expr: `types.MealComponentTypesMain`},
+					{
+						Name: "ComponentType",
+						Expr: `types.MealComponentTypesMain`,
+						Why: "A meal is rejected unless one of its components is the main, and a meal's " +
+							"components are faked independently — so a random type per component leaves " +
+							"a meal with no main most of the time.",
+					},
 				},
 			},
 		},
@@ -50,27 +42,14 @@ var Entities = entitydecl.Domain{
 			Type: MealPlan{},
 			Fake: entitydecl.Fake{
 				Locals: []entitydecl.Local{
-					{Code: `mealPlanID := BuildFakeID()`},
-					{Code: `var events []*types.MealPlanEvent`},
-					{Code: `for range exampleQuantity {
-	event := BuildFakeMealPlanEvent()
-	event.BelongsToMealPlan = mealPlanID
-	events = append(events, event)
-}`},
 					{
 						Code: `votingDeadline := time.Now().Add(5 * time.Minute).Truncate(time.Second).UTC()`,
 						Why:  "The voting deadline must be in the future but before every event's start time (events start in ten minutes, see BuildFakeMealPlanEvent), so the meal plan passes MealPlanCreationRequestInput validation.",
 					},
 				},
 				Fields: []entitydecl.Field{
-					{Name: "ID", Expr: `mealPlanID`},
 					{Name: "Status", Expr: `string(types.MealPlanStatusAwaitingVotes)`},
 					{Name: "VotingDeadline", Expr: `votingDeadline`},
-					{Name: "BelongsToAccount", Expr: `fake.UUID()`},
-					{Name: "TasksCreated", Expr: `false`},
-					{Name: "GroceryListInitialized", Expr: `false`},
-					{Name: "ElectionMethod", Expr: `types.MealPlanElectionMethodSchulze`},
-					{Name: "Events", Expr: `events`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
@@ -83,18 +62,11 @@ var Entities = entitydecl.Domain{
 			Type: MealPlanEvent{},
 			Fake: entitydecl.Fake{
 				Locals: []entitydecl.Local{
-					{Code: `mealPlanEventID := BuildFakeID()`},
 					{Code: `now := time.Now().Add(0).Truncate(time.Second).UTC()`},
 					{Code: `inTenMinutes := now.Add(time.Minute * 10).Add(0).Truncate(time.Second).UTC()`},
 					{Code: `inOneWeek := now.Add((time.Hour * 24) * 7).Add(0).Truncate(time.Second).UTC()`},
-					{Code: `options := []*types.MealPlanOption{}`},
-					{Code: `for _, opt := range BuildFakeMealPlanOptionsList().Data {
-	opt.BelongsToMealPlanEvent = mealPlanEventID
-	options = append(options, opt)
-}`},
 				},
 				Fields: []entitydecl.Field{
-					{Name: "ID", Expr: `mealPlanEventID`},
 					{Name: "StartsAt", Expr: `inTenMinutes`},
 					{Name: "EndsAt", Expr: `inOneWeek`},
 					{Name: "MealName", Expr: `fake.RandomString([]string{
@@ -105,7 +77,6 @@ var Entities = entitydecl.Domain{
 	types.SupperMealName,
 	types.DinnerMealName,
 })`},
-					{Name: "Options", Expr: `options`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
@@ -137,7 +108,6 @@ var Entities = entitydecl.Domain{
 				Fields: []entitydecl.Field{
 					{Name: "MinQuantityNeeded", Expr: `minQty`},
 					{Name: "MaxQuantityNeeded", Expr: `maxQty`},
-					{Name: "Status", Expr: `types.MealPlanGroceryListItemStatusUnknown`},
 					{
 						Name: "BelongsToMealPlanOption",
 						Expr: `nil`,
@@ -155,21 +125,12 @@ var Entities = entitydecl.Domain{
 			Type: MealPlanOption{},
 			Fake: entitydecl.Fake{
 				Locals: []entitydecl.Local{
-					{Code: `var examples []*types.MealPlanOptionVote`},
-					{Code: `for range exampleQuantity {
-	examples = append(examples, BuildFakeMealPlanOptionVote())
-}`},
 					{Code: `meal := BuildFakeMeal()`},
 					{Code: `meal.Components = nil`},
 				},
 				Fields: []entitydecl.Field{
 					{Name: "AssignedCook", Expr: `func(s string) *string { return &s }(BuildFakeID())`},
 					{Name: "Meal", Expr: `*meal`},
-					{Name: "Votes", Expr: `examples`},
-					{Name: "Chosen", Expr: `false`},
-					{Name: "BelongsToMealPlanEvent", Expr: `fake.UUID()`},
-					{Name: "MealScale", Expr: `0`},
-					{Name: "TieBroken", Expr: `false`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
@@ -183,8 +144,6 @@ var Entities = entitydecl.Domain{
 			Fake: entitydecl.Fake{
 				Fields: []entitydecl.Field{
 					{Name: "Rank", Expr: `uint8(fake.Number(1, math.MaxUint8))`},
-					{Name: "BelongsToMealPlanOption", Expr: `fake.UUID()`},
-					{Name: "ByUser", Expr: `""`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
@@ -210,11 +169,6 @@ var Entities = entitydecl.Domain{
 		{
 			Type: MealPlanRecipeOptionSelection{},
 			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "IngredientIndex", Expr: `fake.Uint16()`},
-					{Name: "SelectedOptionIndex", Expr: `fake.Uint16()`},
-					{Name: "SelectionType", Expr: `types.MealPlanRecipeOptionSelectionTypeIngredient`},
-				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
 					{Type: MealPlanRecipeOptionSelectionDatabaseCreationInput{}, Converter: "ConvertMealPlanRecipeOptionSelectionToMealPlanRecipeOptionSelectionDatabaseCreationInput"},
@@ -234,20 +188,11 @@ var Entities = entitydecl.Domain{
 		},
 		{
 			Type: MealPlanRecipeOptionSelectionCreationRequestInput{},
-			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "SelectionType", Expr: `types.MealPlanRecipeOptionSelectionTypeIngredient`},
-					{Name: "IngredientIndex", Expr: `0`},
-					{Name: "SelectedOptionIndex", Expr: `0`},
-				},
-			},
+			Fake: entitydecl.Fake{},
 		},
 		{
 			Type: MealPlanTask{},
 			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "Status", Expr: `"unfinished"`},
-				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
 					{Type: MealPlanTaskCreationRequestInput{}, Converter: "ConvertMealPlanTaskToMealPlanTaskCreationRequestInput"},
@@ -256,11 +201,7 @@ var Entities = entitydecl.Domain{
 		},
 		{
 			Type: MealPlanTaskStatusChangeRequestInput{},
-			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "Status", Expr: `new("unfinished")`},
-				},
-			},
+			Fake: entitydecl.Fake{},
 		},
 		{
 			Type: RecipeRating{},
@@ -275,35 +216,8 @@ var Entities = entitydecl.Domain{
 		{
 			Type: Recipe{},
 			Fake: entitydecl.Fake{
-				Locals: []entitydecl.Local{
-					{Code: `recipeID := BuildFakeID()`},
-					{Code: `var steps []*types.RecipeStep`},
-					{Code: `for i := range exampleQuantity {
-	step := BuildFakeRecipeStep()
-	step.Index = uint32(i)
-	step.BelongsToRecipe = recipeID
-	steps = append(steps, step)
-}`},
-					{Code: `prepTasks := BuildFakeRecipePrepTasksList().Data`},
-					{Code: `for i := range prepTasks {
-	prepTasks[i].BelongsToRecipe = recipeID
-}`},
-					{Code: `recipeMedia := BuildFakeRecipeMediaList().Data`},
-					{Code: `for i := range recipeMedia {
-	recipeMedia[i].BelongsToRecipe = &recipeID
-}`},
-				},
 				Fields: []entitydecl.Field{
-					{Name: "ID", Expr: `recipeID`},
-					{Name: "Steps", Expr: `steps`},
-					{Name: "PrepTasks", Expr: `prepTasks`},
 					{Name: "Status", Expr: `types.RecipeStatusSubmitted`},
-					{Name: "Media", Expr: `recipeMedia`},
-					{Name: "MaxEstimatedPortions", Expr: `new(float32(buildFakeNumber()))`},
-					{Name: "EligibleForMeals", Expr: `true`},
-					{Name: "YieldsComponentType", Expr: `"main"`},
-					{Name: "SourceISBN", Expr: `""`},
-					{Name: "SealOfApproval", Expr: `false`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
@@ -317,8 +231,6 @@ var Entities = entitydecl.Domain{
 				Fields: []entitydecl.Field{
 					{Name: "MimeType", Expr: `fake.FileMimeType()`},
 					{Name: "InternalPath", Expr: `fmt.Sprintf("%s.%s", buildFakePassword(), fake.FileExtension())`},
-					{Name: "ExternalPath", Expr: `""`},
-					{Name: "Index", Expr: `0`},
 				},
 				List: &entitydecl.List{Name: "BuildFakeRecipeMediaList"},
 				Inputs: []entitydecl.Input{
@@ -345,10 +257,6 @@ var Entities = entitydecl.Domain{
 			Type: RecipePrepTask{},
 			Fake: entitydecl.Fake{
 				Locals: []entitydecl.Local{
-					{Code: `recipePrepTaskSteps := []*types.RecipePrepTaskStep{}`},
-					{Code: `for range exampleQuantity {
-	recipePrepTaskSteps = append(recipePrepTaskSteps, BuildFakeRecipePrepTaskStep())
-}`},
 					{Code: `minTemp, maxTemp := BuildFakeOptionalFloat32MinMax()`},
 					{Code: `minBuf, maxBuf := BuildFakeUint32WithOptionalMax()`},
 				},
@@ -359,7 +267,6 @@ var Entities = entitydecl.Domain{
 	types.RecipePrepTaskStorageTypeAirtightContainer,
 	types.RecipePrepTaskStorageTypeWireRack,
 })`},
-					{Name: "TaskSteps", Expr: `recipePrepTaskSteps`},
 					{Name: "MinStorageTemperatureInCelsius", Expr: `minTemp`},
 					{Name: "MaxStorageTemperatureInCelsius", Expr: `maxTemp`},
 					{Name: "MinTimeBufferBeforeRecipeInSeconds", Expr: `minBuf`},
@@ -377,28 +284,17 @@ var Entities = entitydecl.Domain{
 		},
 		{
 			Type: RecipePrepTaskStepUpdateRequestInput{},
-			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "BelongsToRecipeStep", Expr: `new(BuildFakeID())`},
-					{Name: "BelongsToRecipePrepTask", Expr: `new(BuildFakeID())`},
-					{Name: "SatisfiesRecipeStep", Expr: `new(fake.Bool())`},
-				},
-			},
+			Fake: entitydecl.Fake{},
 		},
 		{
 			Type: RecipePrepTaskCreationRequestInput{},
 			Fake: entitydecl.Fake{
 				Locals: []entitydecl.Local{
-					{Code: `taskSteps := []*types.RecipePrepTaskStepCreationRequestInput{}`},
-					{Code: `for range exampleQuantity {
-	taskSteps = append(taskSteps, BuildFakeRecipePrepTaskStepCreationRequestInput())
-}`},
 					{Code: `minTemp, maxTemp := BuildFakeOptionalFloat32MinMax()`},
 					{Code: `minBuf, maxBuf := BuildFakeUint32WithOptionalMax()`},
 				},
 				Fields: []entitydecl.Field{
 					{Name: "StorageType", Expr: `types.RecipePrepTaskStorageTypeUncovered`},
-					{Name: "RecipeSteps", Expr: `taskSteps`},
 					{Name: "MinTimeBufferBeforeRecipeInSeconds", Expr: `minBuf`},
 					{Name: "MaxTimeBufferBeforeRecipeInSeconds", Expr: `maxBuf`},
 					{Name: "MinStorageTemperatureInCelsius", Expr: `minTemp`},
@@ -410,26 +306,15 @@ var Entities = entitydecl.Domain{
 			Type: RecipePrepTaskUpdateRequestInput{},
 			Fake: entitydecl.Fake{
 				Locals: []entitydecl.Local{
-					{Code: `taskSteps := []*types.RecipePrepTaskStepUpdateRequestInput{}`},
-					{Code: `for range exampleQuantity {
-	taskSteps = append(taskSteps, BuildFakeRecipePrepTaskStepUpdateRequestInput())
-}`},
 					{Code: `minTemp, maxTemp := BuildFakeOptionalFloat32MinMax()`},
 					{Code: `minBuf, maxBuf := BuildFakeOptionalUint32MinMax()`},
 				},
 				Fields: []entitydecl.Field{
-					{Name: "Notes", Expr: `new(buildUniqueString())`},
-					{Name: "ExplicitStorageInstructions", Expr: `new(buildUniqueString())`},
-					{Name: "Name", Expr: `new(buildUniqueString())`},
-					{Name: "Description", Expr: `new(buildUniqueString())`},
-					{Name: "Optional", Expr: `new(fake.Bool())`},
 					{Name: "StorageType", Expr: `pointer.To(types.RecipePrepTaskStorageTypeUncovered)`},
-					{Name: "BelongsToRecipe", Expr: `new(BuildFakeID())`},
 					{Name: "MinTimeBufferBeforeRecipeInSeconds", Expr: `minBuf`},
 					{Name: "MaxTimeBufferBeforeRecipeInSeconds", Expr: `maxBuf`},
 					{Name: "MinStorageTemperatureInCelsius", Expr: `minTemp`},
 					{Name: "MaxStorageTemperatureInCelsius", Expr: `maxTemp`},
-					{Name: "TaskSteps", Expr: `taskSteps`},
 				},
 			},
 		},
@@ -437,69 +322,16 @@ var Entities = entitydecl.Domain{
 			Type: RecipeStep{},
 			Fake: entitydecl.Fake{
 				Locals: []entitydecl.Local{
-					{Code: `recipeStepID := BuildFakeID()`},
-					{Code: `var ingredients []*types.RecipeStepIngredient`},
-					{Code: `for range exampleQuantity {
-	ing := BuildFakeRecipeStepIngredient()
-	ing.BelongsToRecipeStep = recipeStepID
-
-	ingredients = append(ingredients, ing)
-}`},
-					{Code: `var instruments []*types.RecipeStepInstrument`},
-					{Code: `for range exampleQuantity {
-	ing := BuildFakeRecipeStepInstrument()
-	ing.BelongsToRecipeStep = recipeStepID
-
-	instruments = append(instruments, ing)
-}`},
-					{Code: `var vessels []*types.RecipeStepVessel`},
-					{Code: `for range exampleQuantity {
-	ing := BuildFakeRecipeStepVessel()
-	ing.BelongsToRecipeStep = recipeStepID
-
-	vessels = append(vessels, ing)
-}`},
-					{Code: `var products []*types.RecipeStepProduct`},
-					{Code: `for range exampleQuantity {
-	p := BuildFakeRecipeStepProduct()
-	p.BelongsToRecipeStep = recipeStepID
-	products = append(products, p)
-}`},
-					{Code: `completionConditionID := BuildFakeID()`},
-					{Code: `completionConditions := []*types.RecipeStepCompletionCondition{
-	{
-		ID:			completionConditionID,
-		BelongsToRecipeStep:	recipeStepID,
-		IngredientState:	types.ValidIngredientState{},
-		Notes:			buildUniqueString(),
-		Ingredients: []*types.RecipeStepCompletionConditionIngredient{
-			{
-				ID:					BuildFakeID(),
-				BelongsToRecipeStepCompletionCondition:	completionConditionID,
-				RecipeStepIngredient:			ingredients[0].ID,
-			},
-		},
-		Optional:	false,
-	},
-}`},
 					{Code: `minEstimatedTime := uint32(buildFakeNumber())`},
 					{Code: `maxEstimatedTime := uint32(buildFakeNumber()) + minEstimatedTime`},
 					{Code: `minTemperature := float32(buildFakeNumber())`},
 					{Code: `maxTemperature := float32(buildFakeNumber()) + minTemperature`},
 				},
 				Fields: []entitydecl.Field{
-					{Name: "ID", Expr: `recipeStepID`},
-					{Name: "Index", Expr: `fake.Uint32()`},
 					{Name: "MinEstimatedTimeInSeconds", Expr: `&minEstimatedTime`},
 					{Name: "MaxEstimatedTimeInSeconds", Expr: `&maxEstimatedTime`},
 					{Name: "MinTemperatureInCelsius", Expr: `&minTemperature`},
 					{Name: "MaxTemperatureInCelsius", Expr: `&maxTemperature`},
-					{Name: "Products", Expr: `products`},
-					{Name: "Optional", Expr: `false`},
-					{Name: "Ingredients", Expr: `ingredients`},
-					{Name: "Instruments", Expr: `instruments`},
-					{Name: "Vessels", Expr: `vessels`},
-					{Name: "CompletionConditions", Expr: `completionConditions`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
@@ -511,20 +343,6 @@ var Entities = entitydecl.Domain{
 		{
 			Type: RecipeStepCompletionCondition{},
 			Fake: entitydecl.Fake{
-				Locals: []entitydecl.Local{
-					{Code: `id := BuildFakeID()`},
-					{Code: `var ingredients []*types.RecipeStepCompletionConditionIngredient`},
-					{Code: `for range exampleQuantity {
-	ingredient := BuildFakeRecipeStepCompletionConditionIngredient()
-	ingredient.BelongsToRecipeStepCompletionCondition = id
-	ingredients = append(ingredients, ingredient)
-}`},
-				},
-				Fields: []entitydecl.Field{
-					{Name: "ID", Expr: `id`},
-					{Name: "Ingredients", Expr: `ingredients`},
-					{Name: "CreatedAt", Expr: `time.Time{}`},
-				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
 					{Type: RecipeStepCompletionConditionForExistingRecipeCreationRequestInput{}, Converter: "ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionForExistingRecipeCreationRequestInput"},
@@ -536,7 +354,6 @@ var Entities = entitydecl.Domain{
 			Fake: entitydecl.Fake{
 				Fields: []entitydecl.Field{
 					{Name: "RecipeStepIngredient", Expr: `BuildFakeID()`},
-					{Name: "CreatedAt", Expr: `time.Time{}`},
 				},
 			},
 		},
@@ -561,22 +378,8 @@ var Entities = entitydecl.Domain{
 					{Code: `minQty, maxQty := BuildFakeFloat32WithOptionalMax()`},
 				},
 				Fields: []entitydecl.Field{
-					{Name: "Ingredient", Expr: `BuildFakeValidIngredient()`},
 					{Name: "MinQuantity", Expr: `minQty`},
 					{Name: "MaxQuantity", Expr: `maxQty`},
-					{
-						Name: "Index",
-						Expr: `0`,
-						Why:  "Will be set from array index during recipe creation (via converter)",
-					},
-					{
-						Name: "OptionIndex",
-						Expr: `0`,
-						Why:  "Default to 0 for single-option items",
-					},
-					{Name: "VesselIndex", Expr: `new(fake.Uint16())`},
-					{Name: "ProductPercentageToUse", Expr: `new(float32(buildFakeNumber()))`},
-					{Name: "ScaleFactor", Expr: `1.0`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
@@ -591,14 +394,8 @@ var Entities = entitydecl.Domain{
 					{Code: `minQty, maxQty := BuildFakeUint32WithOptionalMax()`},
 				},
 				Fields: []entitydecl.Field{
-					{Name: "Instrument", Expr: `BuildFakeValidInstrument()`},
-					{Name: "PreferenceRank", Expr: `fake.Uint8()`},
-					{Name: "BelongsToRecipeStep", Expr: `fake.UUID()`},
-					{Name: "Index", Expr: `0`},
-					{Name: "OptionIndex", Expr: `0`},
 					{Name: "MinQuantity", Expr: `minQty`},
 					{Name: "MaxQuantity", Expr: `maxQty`},
-					{Name: "ScaleFactor", Expr: `1.0`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
@@ -629,11 +426,6 @@ var Entities = entitydecl.Domain{
 					{Name: "MaxMeasurementQuantity", Expr: `&measurementMax`},
 					{Name: "MinItemQuantity", Expr: `&itemMin`},
 					{Name: "MaxItemQuantity", Expr: `&itemMax`},
-					{Name: "MeasurementUnit", Expr: `BuildFakeValidMeasurementUnit()`},
-					{Name: "ContainedInVesselIndex", Expr: `new(fake.Uint16())`},
-					{Name: "BelongsToRecipeStep", Expr: `fake.UUID()`},
-					{Name: "Type", Expr: `types.RecipeStepProductIngredientType`},
-					{Name: "Index", Expr: `fake.Uint16()`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
@@ -649,21 +441,8 @@ var Entities = entitydecl.Domain{
 					{Code: `minQty, maxQty := BuildFakeUint16WithOptionalMax()`},
 				},
 				Fields: []entitydecl.Field{
-					{Name: "Vessel", Expr: `BuildFakeValidVessel()`},
-					{Name: "BelongsToRecipeStep", Expr: `fake.UUID()`},
-					{
-						Name: "Index",
-						Expr: `0`,
-						Why:  "Will be set from array index during recipe creation",
-					},
-					{
-						Name: "OptionIndex",
-						Expr: `0`,
-						Why:  "Default to 0 for single-option items",
-					},
 					{Name: "MinQuantity", Expr: `minQty`},
 					{Name: "MaxQuantity", Expr: `maxQty`},
-					{Name: "ScaleFactor", Expr: `1.0`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
@@ -676,7 +455,6 @@ var Entities = entitydecl.Domain{
 			Fake: entitydecl.Fake{
 				Fields: []entitydecl.Field{
 					{Name: "Rating", Expr: `1`},
-					{Name: "CreatedByUser", Expr: `""`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
@@ -694,7 +472,6 @@ var Entities = entitydecl.Domain{
 				Fields: []entitydecl.Field{
 					{Name: "MinStorageTemperatureInCelsius", Expr: `minST`},
 					{Name: "MaxStorageTemperatureInCelsius", Expr: `maxST`},
-					{Name: "ContaminatesEquipment", Expr: `false`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
@@ -706,19 +483,6 @@ var Entities = entitydecl.Domain{
 		{
 			Type: ValidIngredientGroup{},
 			Fake: entitydecl.Fake{
-				Locals: []entitydecl.Local{
-					{Code: `groupID := BuildFakeID()`},
-					{Code: `var members []*types.ValidIngredientGroupMember`},
-					{Code: `for range exampleQuantity {
-	newMember := BuildFakeValidIngredientGroupMember()
-	newMember.BelongsToGroup = groupID
-	members = append(members, newMember)
-}`},
-				},
-				Fields: []entitydecl.Field{
-					{Name: "ID", Expr: `groupID`},
-					{Name: "Members", Expr: `members`},
-				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
 					{Type: ValidIngredientGroupUpdateRequestInput{}, Converter: "ConvertValidIngredientGroupToValidIngredientGroupUpdateRequestInput"},
@@ -786,9 +550,6 @@ var Entities = entitydecl.Domain{
 		{
 			Type: ValidIngredientState{},
 			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "AttributeType", Expr: `types.ValidIngredientStateAttributeTypeOther`},
-				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
 					{Type: ValidIngredientStateUpdateRequestInput{}, Converter: "ConvertValidIngredientStateToValidIngredientStateUpdateRequestInput"},
@@ -839,22 +600,20 @@ var Entities = entitydecl.Domain{
 		},
 		{
 			Type: ValidMeasurementUnitConversionUpdateRequestInput{},
-			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "From", Expr: `new(BuildFakeID())`},
-					{Name: "To", Expr: `new(BuildFakeID())`},
-					{Name: "OnlyForIngredient", Expr: `new(BuildFakeID())`},
-					{Name: "Modifier", Expr: `new(float32(buildFakeNumber()))`},
-					{Name: "Notes", Expr: `new(BuildFakeID())`},
-				},
-			},
+			Fake: entitydecl.Fake{},
 		},
 		{
 			Type: ValidMeasurementUnit{},
 			Fake: entitydecl.Fake{
+				Locals: []entitydecl.Local{
+					{
+						Code: `metric := fake.Bool()`,
+						Why:  "A unit is metric or imperial. Validation rejects one claiming to be both, which two independent fakes produce a quarter of the time.",
+					},
+				},
 				Fields: []entitydecl.Field{
-					{Name: "Metric", Expr: `true`},
-					{Name: "Imperial", Expr: `false`},
+					{Name: "Metric", Expr: `metric`},
+					{Name: "Imperial", Expr: `!metric`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
@@ -959,10 +718,6 @@ var Entities = entitydecl.Domain{
 		{
 			Type: ValidVessel{},
 			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "CapacityUnit", Expr: `BuildFakeValidMeasurementUnit()`},
-					{Name: "Shape", Expr: `types.VesselShapeOther`},
-				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
 					{Type: ValidVesselUpdateRequestInput{}, Converter: "ConvertValidVesselToValidVesselUpdateRequestInput"},
@@ -984,11 +739,7 @@ var Entities = entitydecl.Domain{
 		},
 		{
 			Type: CreateMealPlanTasksResponse{},
-			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "Success", Expr: `true`},
-				},
-			},
+			Fake: entitydecl.Fake{},
 		},
 		{
 			Type: InitializeMealPlanGroceryListRequest{},
@@ -996,11 +747,7 @@ var Entities = entitydecl.Domain{
 		},
 		{
 			Type: InitializeMealPlanGroceryListResponse{},
-			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "Success", Expr: `true`},
-				},
-			},
+			Fake: entitydecl.Fake{},
 		},
 	},
 }

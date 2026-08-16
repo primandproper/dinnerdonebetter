@@ -56,7 +56,7 @@ func BuildFakeOAuth2Client() *types.OAuth2Client {
 		CreatedAt:    BuildFakeTime(),
 		ArchivedAt:   nil,
 		Name:         fake.Password(true, true, true, false, false, 32),
-		Description:  "",
+		Description:  buildUniqueString(),
 		ClientID:     BuildFakeID(),
 		ID:           BuildFakeID(),
 		ClientSecret: buildFakePassword(),
@@ -96,9 +96,9 @@ func BuildFakeOAuth2ClientToken() *types.OAuth2ClientToken {
 		ClientID:            BuildFakeID(),
 		Refresh:             buildUniqueString(),
 		ID:                  BuildFakeID(),
-		CodeExpiresAt:       time.Hour,
-		AccessExpiresAt:     time.Hour,
-		RefreshExpiresAt:    time.Hour,
+		CodeExpiresAt:       time.Duration(buildFakeNumber()) * time.Minute,
+		AccessExpiresAt:     time.Duration(buildFakeNumber()) * time.Minute,
+		RefreshExpiresAt:    time.Duration(buildFakeNumber()) * time.Minute,
 	}
 }
 
@@ -109,8 +109,8 @@ func BuildFakeOAuth2ClientCreationResponse() *types.OAuth2ClientCreationResponse
 	return &types.OAuth2ClientCreationResponse{
 		ClientID:     client.ClientID,
 		ClientSecret: client.ClientSecret,
-		Name:         "",
-		Description:  "",
+		Name:         buildUniqueString(),
+		Description:  buildUniqueString(),
 		ID:           client.ID,
 	}
 }

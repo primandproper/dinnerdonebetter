@@ -14,8 +14,6 @@ var Entities = entitydecl.Domain{
 				Fields: []entitydecl.Field{
 					{Name: "Type", Expr: `"user"`},
 					{Name: "Enumeration", Expr: `[]string{defaultValue}`},
-					{Name: "DefaultValue", Expr: `new(defaultValue)`},
-					{Name: "AdminsOnly", Expr: `true`},
 				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
@@ -26,10 +24,6 @@ var Entities = entitydecl.Domain{
 		{
 			Type: ServiceSettingConfiguration{},
 			Fake: entitydecl.Fake{
-				Fields: []entitydecl.Field{
-					{Name: "BelongsToUser", Expr: `buildUniqueString()`},
-					{Name: "BelongsToAccount", Expr: `buildUniqueString()`},
-				},
 				List: &entitydecl.List{},
 				Inputs: []entitydecl.Input{
 					{Type: ServiceSettingConfigurationUpdateRequestInput{}, Converter: "ConvertServiceSettingConfigurationToServiceSettingConfigurationUpdateRequestInput"},

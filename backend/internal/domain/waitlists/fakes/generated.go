@@ -10,6 +10,7 @@ import (
 
 	"github.com/primandproper/platform-go/v10/filtering"
 	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/pointer"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )
@@ -43,7 +44,7 @@ func BuildFakeWaitlist() *types.Waitlist {
 	return &types.Waitlist{
 		CreatedAt:     BuildFakeTime(),
 		ValidUntil:    time.Now().Add(24 * time.Hour).UTC().Truncate(time.Second),
-		LastUpdatedAt: nil,
+		LastUpdatedAt: pointer.To(BuildFakeTime()),
 		ArchivedAt:    nil,
 		ID:            BuildFakeID(),
 		Name:          buildUniqueString(),
@@ -83,7 +84,7 @@ func BuildFakeWaitlistUpdateRequestInput() *types.WaitlistUpdateRequestInput {
 func BuildFakeWaitlistSignup() *types.WaitlistSignup {
 	return &types.WaitlistSignup{
 		CreatedAt:         BuildFakeTime(),
-		LastUpdatedAt:     nil,
+		LastUpdatedAt:     pointer.To(BuildFakeTime()),
 		ArchivedAt:        nil,
 		ID:                BuildFakeID(),
 		Notes:             buildUniqueString(),
