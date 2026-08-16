@@ -21,6 +21,7 @@ require (
 	github.com/codemodus/kace v0.5.1
 	github.com/cristalhq/builq v0.15.0
 	github.com/dustin/go-humanize v1.0.1
+	github.com/fxamacker/cbor/v2 v2.9.2
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/go-oauth2/oauth2/v4 v4.5.4
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
@@ -99,7 +100,6 @@ require (
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.9.2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/getsentry/sentry-go v0.47.0 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect

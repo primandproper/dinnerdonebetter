@@ -156,6 +156,12 @@
 		}
 	},
 	"auth": {
+		"tokens": {
+			"provider": "paseto",
+			"issuer": "dinner-done-better",
+			"audience": "https://http-api.dinnerdonebetter.com",
+			"base64EncodedSigningKey": "SEVSRUlTQTMyQ0hBUlNFQ1JFVFdISUNISVNNQURFVVA="
+		},
 		"passkey": {
 			"provider": "database",
 			"relyingParty": {
@@ -168,12 +174,6 @@
 				],
 				"ceremonyTimeout": 120000000000
 			}
-		},
-		"tokens": {
-			"provider": "paseto",
-			"issuer": "dinner-done-better",
-			"audience": "https://http-api.dinnerdonebetter.com",
-			"base64EncodedSigningKey": "SEVSRUlTQTMyQ0hBUlNFQ1JFVFdISUNISVNNQURFVVA="
 		},
 		"enableUserSignup": true,
 		"minimumUsernameLength": 3,

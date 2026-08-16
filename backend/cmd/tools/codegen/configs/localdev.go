@@ -279,9 +279,12 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 			Passkey: webauthncfg.Config{
 				Provider: webauthncfg.ProviderDatabase,
 				RelyingParty: platformwebauthn.Config{
-					RPID:            "localhost",
-					RPDisplayName:   branding.CompanyName,
-					RPOrigins:       []string{"https://localhost:8080", "http://localhost:8080"},
+					RPID:          branding.LocalDevRPID,
+					RPDisplayName: branding.CompanyName,
+					// The ports skaffold forwards the two web apps to, not the :8080 the old
+					// fallback named — nothing has ever served either app there, so a local
+					// passkey ceremony would have failed verification on arrival.
+					RPOrigins:       branding.LocalDevWebAppOrigins(),
 					CeremonyTimeout: passkeyCeremonyTimeout,
 				},
 			},

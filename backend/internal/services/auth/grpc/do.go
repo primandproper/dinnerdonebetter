@@ -79,8 +79,8 @@ func ProvidePasskeyConfig(cfg *config.APIServiceConfig) *webauthncfg.Config {
 	passkey := cfg.Auth.Passkey
 
 	if passkey.RelyingParty.RPID == "" {
-		passkey.RelyingParty.RPID = "localhost"
-		passkey.RelyingParty.RPOrigins = []string{"https://localhost:8080", "http://localhost:8080"}
+		passkey.RelyingParty.RPID = branding.LocalDevRPID
+		passkey.RelyingParty.RPOrigins = branding.LocalDevWebAppOrigins()
 	}
 
 	if passkey.RelyingParty.RPDisplayName == "" {

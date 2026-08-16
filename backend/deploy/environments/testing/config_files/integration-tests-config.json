@@ -103,6 +103,20 @@
 			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
 	},
+	"auth": {
+		"passkey": {
+			"provider": "database",
+			"relyingParty": {
+				"rpID": "localhost",
+				"rpDisplayName": "Dinner Done Better",
+				"rpOrigins": [
+					"http://localhost",
+					"http://localhost:8888"
+				],
+				"ceremonyTimeout": 120000000000
+			}
+		}
+	},
 	"database": {
 		"encryption": {
 			"provider": "aes",

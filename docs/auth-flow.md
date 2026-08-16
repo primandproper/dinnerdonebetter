@@ -90,6 +90,15 @@ back after a login. Two things about it are worth knowing:
   browser is asked to honor, the deadline go-webauthn enforces when the response comes back, and
   the TTL the row is stored under. It is 2 minutes, chosen to cover a cross-device prompt (scan the
   QR code, approve on the phone) rather than only a local touch.
+- **The origins come from `internal/branding`.** `RPOrigins` is
+  `branding.WebAppOrigins()` in prod and `branding.LocalDevWebAppOrigins()` locally, so a
+  rebrand or a moved port changes them in one place. An origin the config does not name is
+  every passkey ceremony on that host failing verification.
+
+Both ceremonies are covered end to end by `testing/integration/apiserver/auth_passkey_test.go`,
+which drives a virtual ES256 authenticator (`auth_passkey_authenticator.go`) against a real
+Postgres: registration, username login, usernameless login, replay of both an attestation and an
+assertion, and the sign count advancing between logins.
 
 ## Web App Auth Flow (Consumer / Admin)
 
