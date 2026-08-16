@@ -21,6 +21,8 @@ import (
 	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
 	analyticsposthog "github.com/primandproper/platform-go/v10/analytics/posthog"
 	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
+	platformwebauthn "github.com/primandproper/platform-go/v10/authentication/webauthn"
+	webauthncfg "github.com/primandproper/platform-go/v10/authentication/webauthn/config"
 	capitalismcfg "github.com/primandproper/platform-go/v10/capitalism/config"
 	circuitbreakingcfg "github.com/primandproper/platform-go/v10/circuitbreaking/config"
 	encryptioncfg "github.com/primandproper/platform-go/v10/cryptography/encryption/config"
@@ -60,7 +62,7 @@ const (
 	prodMediaBucket           = "media.dinnerdonebetter.com"
 	prodUserDataBucket        = "userdata.dinnerdonebetter.com"
 	prodOtelCollectorEndpoint = "otel-collector-svc.prod.svc.cluster.local:4317"
-	prodOAuth2Domain          = "https://dinnerdonebetter.com"
+	prodOAuth2Domain          = branding.ConsumerWebAppURL
 	prodTokensAudience        = "https://http-api.dinnerdonebetter.com" //nolint:gosec // G101: audience URL, not a credential
 	iosTeamID                 = "K8R2Q5UWQS"
 	iosBundleID               = "com.dinnerdonebetter.ios"
@@ -277,10 +279,24 @@ func buildProdConfig() *config.APIServiceConfig {
 			},
 		},
 		Auth: authcfg.Config{
-			Passkey: authcfg.PasskeyConfig{
-				RPID:          "dinnerdonebetter.com",
-				RPDisplayName: branding.CompanyName,
-				RPOrigins:     []string{"https://dinnerdonebetter.com", "https://www.dinnerdonebetter.com", "https://admin.dinnerdonebetter.com"},
+			Passkey: webauthncfg.Config{
+				// The table, named rather than left to the default. Ceremony state has to
+				// outlive the replica that issued the challenge, and a passkey login that
+				// lands on a second pod is the normal case here, not the edge one.
+				Provider: webauthncfg.ProviderDatabase,
+				RelyingParty: platformwebauthn.Config{
+					// The bare effective domain, which covers every subdomain a web app is
+					// served from. It is also the scope of every passkey registered under it:
+					// changing it invalidates all of them, because an authenticator will not
+					// answer for a domain it did not register against.
+					RPID:          branding.PublicDomain,
+					RPDisplayName: branding.CompanyName,
+					RPOrigins:     branding.WebAppOrigins(),
+					// One number, in the three places the ceremony's deadline used to be
+					// configured separately: what the browser is asked for, what the library
+					// enforces when the response comes back, and how long the row lives.
+					CeremonyTimeout: passkeyCeremonyTimeout,
+				},
 			},
 			Tokens: authcfg.TokensConfig{
 				Config: tokenscfg.Config{

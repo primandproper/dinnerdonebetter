@@ -12,6 +12,17 @@ import (
 	webhookscfg "github.com/primandproper/platform-go/v10/webhooks/config"
 )
 
+// passkeyCeremonyTimeout bounds a WebAuthn ceremony everywhere it is bounded: the timeout the
+// browser is asked to honor, the deadline go-webauthn enforces when the response comes back, and
+// the TTL the ceremony's row is stored under. It used to be three numbers that could disagree.
+//
+// Two minutes rather than the platform's one. The specification's suggestion assumes a local
+// authenticator — touch the key, done — and the slowest case here is cross-device: scan the QR
+// code, unlock the phone, approve there. One minute is enough to fail that on a bad network, and
+// now that the deadline is enforced server-side rather than merely requested of the browser, a
+// ceremony that runs over is a login that fails rather than one that merely should have.
+const passkeyCeremonyTimeout = 2 * time.Minute
+
 func internalKubernetesEndpoint(serviceName, namespace string, port int) string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local:%d", serviceName, namespace, port)
 }

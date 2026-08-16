@@ -5,6 +5,7 @@ import (
 	"time"
 
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
@@ -17,6 +18,8 @@ import (
 
 	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
 	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
+	platformwebauthn "github.com/primandproper/platform-go/v10/authentication/webauthn"
+	webauthncfg "github.com/primandproper/platform-go/v10/authentication/webauthn/config"
 	cachecfg "github.com/primandproper/platform-go/v10/cache/config"
 	cacheredis "github.com/primandproper/platform-go/v10/cache/redis"
 	capitalismcfg "github.com/primandproper/platform-go/v10/capitalism/config"
@@ -267,6 +270,25 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 			OAuth2TokenEncryptionKey: localOAuth2TokenEncryptionKey,
 		},
 		Observability: localObservabilityConfig,
+		// Written out rather than left to the fallback in ProvidePasskeyConfig, so that a
+		// developer reading this file can see what a passkey ceremony is configured with —
+		// including that the ceremony store is the table here too. The in-memory store this
+		// environment used to get by omitting a provider is gone; a local run and a deployed
+		// one now fail the same way when something is wrong with it.
+		Auth: authcfg.Config{
+			Passkey: webauthncfg.Config{
+				Provider: webauthncfg.ProviderDatabase,
+				RelyingParty: platformwebauthn.Config{
+					RPID:          branding.LocalDevRPID,
+					RPDisplayName: branding.CompanyName,
+					// The ports skaffold forwards the two web apps to, not the :8080 the old
+					// fallback named — nothing has ever served either app there, so a local
+					// passkey ceremony would have failed verification on arrival.
+					RPOrigins:       branding.LocalDevWebAppOrigins(),
+					CeremonyTimeout: passkeyCeremonyTimeout,
+				},
+			},
+		},
 		Services: config.ServicesConfig{
 			// The capitalism provider is named rather than left empty: platform-go treats an
 			// unset provider as an error precisely so that "we forgot to configure billing"

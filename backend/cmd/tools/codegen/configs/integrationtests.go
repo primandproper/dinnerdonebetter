@@ -5,6 +5,7 @@ import (
 	"time"
 
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
@@ -17,6 +18,8 @@ import (
 
 	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
 	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
+	platformwebauthn "github.com/primandproper/platform-go/v10/authentication/webauthn"
+	webauthncfg "github.com/primandproper/platform-go/v10/authentication/webauthn/config"
 	capitalismcfg "github.com/primandproper/platform-go/v10/capitalism/config"
 	circuitbreakingcfg "github.com/primandproper/platform-go/v10/circuitbreaking/config"
 	encryptioncfg "github.com/primandproper/platform-go/v10/cryptography/encryption/config"
@@ -178,6 +181,21 @@ func buildIntegrationTestsConfig() *config.APIServiceConfig {
 					Name:                   "feature_flagger",
 					ErrorRate:              .5,
 					MinimumSampleThreshold: 100,
+				},
+			},
+		},
+		// The suite runs a real passkey ceremony against a virtual authenticator, so the
+		// relying party has to be named here: the authenticator signs for this RPID and
+		// claims this origin, and either one disagreeing is a ceremony that fails
+		// verification. The store is the table, which is what the suite is checking.
+		Auth: authcfg.Config{
+			Passkey: webauthncfg.Config{
+				Provider: webauthncfg.ProviderDatabase,
+				RelyingParty: platformwebauthn.Config{
+					RPID:            branding.LocalDevRPID,
+					RPDisplayName:   branding.CompanyName,
+					RPOrigins:       branding.LocalDevWebAppOrigins(),
+					CeremonyTimeout: passkeyCeremonyTimeout,
 				},
 			},
 		},

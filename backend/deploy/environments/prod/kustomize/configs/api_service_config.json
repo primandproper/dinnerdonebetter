@@ -156,20 +156,24 @@
 		}
 	},
 	"auth": {
-		"passkey": {
-			"rpID": "dinnerdonebetter.com",
-			"rpDisplayName": "Dinner Done Better",
-			"rpOrigins": [
-				"https://dinnerdonebetter.com",
-				"https://www.dinnerdonebetter.com",
-				"https://admin.dinnerdonebetter.com"
-			]
-		},
 		"tokens": {
 			"provider": "paseto",
 			"issuer": "dinner-done-better",
 			"audience": "https://http-api.dinnerdonebetter.com",
 			"base64EncodedSigningKey": "SEVSRUlTQTMyQ0hBUlNFQ1JFVFdISUNISVNNQURFVVA="
+		},
+		"passkey": {
+			"provider": "database",
+			"relyingParty": {
+				"rpID": "dinnerdonebetter.com",
+				"rpDisplayName": "Dinner Done Better",
+				"rpOrigins": [
+					"https://dinnerdonebetter.com",
+					"https://www.dinnerdonebetter.com",
+					"https://admin.dinnerdonebetter.com"
+				],
+				"ceremonyTimeout": 120000000000
+			}
 		},
 		"enableUserSignup": true,
 		"minimumUsernameLength": 3,

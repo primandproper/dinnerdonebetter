@@ -46,17 +46,68 @@ const (
 	// AuthMinimumUsernameLengthEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.MinimumUsernameLength`.
 	AuthMinimumUsernameLengthEnvVarKey = "DINNER_DONE_BETTER_AUTH_MINIMUM_USERNAME_LENGTH"
 
-	// AuthPasskeyRpDisplayNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.RPDisplayName`.
+	// AuthPasskeyCacheCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Cache.CircuitBreaker.ErrorRate`.
+	AuthPasskeyCacheCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// AuthPasskeyCacheCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Cache.CircuitBreaker.MinimumSampleThreshold`.
+	AuthPasskeyCacheCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// AuthPasskeyCacheCircuitBreakingNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Cache.CircuitBreaker.Name`.
+	AuthPasskeyCacheCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_CIRCUIT_BREAKING_NAME"
+
+	// AuthPasskeyCacheEvictionPolicyEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Cache.EvictionPolicy`.
+	AuthPasskeyCacheEvictionPolicyEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_EVICTION_POLICY"
+
+	// AuthPasskeyCacheExpiryEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Cache.Expiry`.
+	AuthPasskeyCacheExpiryEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_EXPIRY"
+
+	// AuthPasskeyCacheJanitorIntervalEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Cache.JanitorInterval`.
+	AuthPasskeyCacheJanitorIntervalEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_JANITOR_INTERVAL"
+
+	// AuthPasskeyCacheMaxEntriesEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Cache.MaxEntries`.
+	AuthPasskeyCacheMaxEntriesEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_MAX_ENTRIES"
+
+	// AuthPasskeyCacheProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Cache.Provider`.
+	AuthPasskeyCacheProviderEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_PROVIDER"
+
+	// AuthPasskeyCacheRedisAddressesEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Cache.Redis.Addresses`.
+	AuthPasskeyCacheRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_REDIS_ADDRESSES"
+
+	// AuthPasskeyCacheRedisClusterEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Cache.Redis.Cluster`.
+	AuthPasskeyCacheRedisClusterEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_REDIS_CLUSTER"
+
+	// AuthPasskeyCacheRedisNamespaceEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Cache.Redis.Namespace`.
+	AuthPasskeyCacheRedisNamespaceEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_REDIS_NAMESPACE"
+
+	// AuthPasskeyCacheRedisPasswordEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Cache.Redis.Password`.
+	AuthPasskeyCacheRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_REDIS_PASSWORD"
+
+	// AuthPasskeyCacheRedisUsernameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Cache.Redis.Username`.
+	AuthPasskeyCacheRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_REDIS_USERNAME"
+
+	// AuthPasskeyDatabaseTablePrefixEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Database.TablePrefix`.
+	AuthPasskeyDatabaseTablePrefixEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_DATABASE_TABLE_PREFIX"
+
+	// AuthPasskeyProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.Provider`.
+	AuthPasskeyProviderEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_PROVIDER"
+
+	// AuthPasskeyRpCeremonyTimeoutEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.RelyingParty.CeremonyTimeout`.
+	AuthPasskeyRpCeremonyTimeoutEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_RP_CEREMONY_TIMEOUT"
+
+	// AuthPasskeyRpDisplayNameEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.RelyingParty.RPDisplayName`.
 	AuthPasskeyRpDisplayNameEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_RP_DISPLAY_NAME"
 
-	// AuthPasskeyRpIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.RPID`.
+	// AuthPasskeyRpIDEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.RelyingParty.RPID`.
 	AuthPasskeyRpIDEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_RP_ID"
 
-	// AuthPasskeyRpOriginsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.RPOrigins`.
+	// AuthPasskeyRpOriginsEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.RelyingParty.RPOrigins`.
 	AuthPasskeyRpOriginsEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_RP_ORIGINS"
 
-	// AuthSessionStoreProviderEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.SessionStore.Provider`.
-	AuthSessionStoreProviderEnvVarKey = "DINNER_DONE_BETTER_AUTH_SESSION_STORE_PROVIDER"
+	// AuthPasskeyRpUserVerificationEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.RelyingParty.UserVerification`.
+	AuthPasskeyRpUserVerificationEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_RP_USER_VERIFICATION"
+
+	// AuthPasskeySweepIntervalEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Passkey.SweepInterval`.
+	AuthPasskeySweepIntervalEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_SWEEP_INTERVAL"
 
 	// AuthTokensAudienceEnvVarKey is the environment variable name to set to override `APIServiceConfig.Auth.Tokens.Audience`.
 	AuthTokensAudienceEnvVarKey = "DINNER_DONE_BETTER_AUTH_TOKENS_AUDIENCE"

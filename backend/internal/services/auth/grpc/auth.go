@@ -499,7 +499,7 @@ func (s *serviceImpl) BeginPasskeyRegistration(ctx context.Context, _ *authsvc.B
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	creation, session, err := s.passkeyService.BeginRegistrationOptions(ctx, sessionContextData.GetUserID())
+	creation, challenge, err := s.passkeyService.BeginRegistrationOptions(ctx, sessionContextData.GetUserID())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to begin passkey registration")
 	}
@@ -511,7 +511,7 @@ func (s *serviceImpl) BeginPasskeyRegistration(ctx context.Context, _ *authsvc.B
 			TraceId: span.SpanContext().TraceID().String(),
 		},
 		PublicKeyCredentialCreationOptions: optionsJSON,
-		Challenge:                          session.Challenge,
+		Challenge:                          challenge,
 	}, nil
 }
 
@@ -533,7 +533,7 @@ func (s *serviceImpl) FinishPasskeyRegistration(ctx context.Context, request *au
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("challenge is required"), logger, span, codes.InvalidArgument, "challenge is required")
 	}
 
-	if err = s.passkeyService.FinishRegistrationFromBytes(ctx, sessionContextData.GetUserID(), request.AttestationResponse, request.Challenge); err != nil {
+	if err = s.passkeyService.FinishRegistration(ctx, sessionContextData.GetUserID(), request.AttestationResponse, request.Challenge); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to finish passkey registration")
 	}
 
@@ -552,7 +552,7 @@ func (s *serviceImpl) BeginPasskeyAuthentication(ctx context.Context, request *a
 
 	username := strings.TrimSpace(request.GetUsername())
 
-	assertion, session, err := s.passkeyService.BeginAuthenticationOptions(ctx, username)
+	assertion, challenge, err := s.passkeyService.BeginAuthenticationOptions(ctx, username)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to begin passkey authentication")
 	}
@@ -564,7 +564,7 @@ func (s *serviceImpl) BeginPasskeyAuthentication(ctx context.Context, request *a
 			TraceId: span.SpanContext().TraceID().String(),
 		},
 		PublicKeyCredentialRequestOptions: optionsJSON,
-		Challenge:                         session.Challenge,
+		Challenge:                         challenge,
 	}, nil
 }
 
@@ -583,7 +583,7 @@ func (s *serviceImpl) FinishPasskeyAuthentication(ctx context.Context, request *
 
 	username := strings.TrimSpace(request.GetUsername())
 
-	result, err := s.passkeyService.FinishAuthenticationFromBytes(ctx, username, request.AssertionResponse, request.Challenge)
+	result, err := s.passkeyService.FinishAuthentication(ctx, username, request.AssertionResponse, request.Challenge)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "failed to finish passkey authentication")
 	}
