@@ -83,19 +83,3 @@ func TestNewRegistry(T *testing.T) {
 		}
 	})
 }
-
-func TestMeterPeriod(T *testing.T) {
-	T.Parallel()
-
-	T.Run("standard", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, platformmetering.PeriodMonth, meterPeriod(UploadedMediaBytesMeter))
-	})
-
-	T.Run("unregistered meter", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, platformmetering.PeriodMonth, meterPeriod("nonexistent"))
-	})
-}

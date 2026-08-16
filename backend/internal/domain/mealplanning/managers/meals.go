@@ -8,13 +8,14 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/searchpagination"
+	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
 	"github.com/primandproper/platform-go/v10/filtering"
 	"github.com/primandproper/platform-go/v10/observability"
 	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
 	"github.com/primandproper/platform-go/v10/observability/tracing"
+	searchpagination "github.com/primandproper/platform-go/v10/search/pagination"
 )
 
 func (m *mealPlanningManager) ListMeals(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Meal], error) {
@@ -117,36 +118,23 @@ func (m *mealPlanningManager) SearchMeals(ctx context.Context, query string, use
 
 // searchMealsViaIndex searches meals via the external search index. Returns (nil, err) on search failure or GetMealsWithIDs failure, and (nil, errIndexHadNothing) on an empty first page.
 func (m *mealPlanningManager) searchMealsViaIndex(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Meal], error) {
-	indexHits, err := searchpagination.Search(ctx, m.mealsSearchIndex, query, filter)
+	results, err := searchpagination.Hydrated(ctx, m.mealsSearchIndex, query, filter,
+		func(subset *eatingindexing.MealSearchSubset) string { return subset.ID },
+		m.db.GetMealsWithIDs,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	mealSubsets := indexHits.Hits
-
-	if len(mealSubsets) == 0 {
-		// An empty first page falls through to the database, in case the index is
-		// behind or was never populated. An empty page part-way through a cursor walk
-		// is just the end of the results, and restarting the database from the top
-		// would serve them all over again.
-		if !searchpagination.Resuming(filter) {
-			return nil, errIndexHadNothing
-		}
-
-		return searchpagination.NewResult([]*types.Meal{}, indexHits.NextCursor, filter), nil
+	// An empty first page falls through to the database, in case the index is behind
+	// or was never populated. An empty page part-way through a cursor walk is just the
+	// end of the results, and restarting the database from the top would serve them
+	// all over again. Hydrated leaves this decision here for exactly that reason.
+	if len(results.Data) == 0 && !searchpagination.Resuming(filter) {
+		return nil, errIndexHadNothing
 	}
 
-	ids := make([]string, 0, len(mealSubsets))
-	for _, mealSubset := range mealSubsets {
-		ids = append(ids, mealSubset.ID)
-	}
-
-	idResults, err := m.db.GetMealsWithIDs(ctx, ids)
-	if err != nil {
-		return nil, err
-	}
-
-	return searchpagination.NewResult(idResults, indexHits.NextCursor, filter), nil
+	return results, nil
 }
 
 func (m *mealPlanningManager) ArchiveMeal(ctx context.Context, mealID, ownerID string) error {

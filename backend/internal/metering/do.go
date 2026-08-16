@@ -103,16 +103,26 @@ func RegisterEnforcer(i do.Injector) {
 			return nil, err
 		}
 
+		registry := do.MustInvoke[*platformmetering.Registry](i)
+
+		quotas, err := NewSubscriptionQuotaSource(
+			registry,
+			do.MustInvoke[paymentsmanager.PaymentsDataManager](i),
+			platformmetering.WithPlanLimitLogger(logging.NewNamedLogger(pillars.Logger, quotaSourceO11yName)),
+			platformmetering.WithPlanLimitTracerProvider(pillars.TracerProvider),
+			platformmetering.WithPlanLimitMetricsProvider(pillars.MetricsProvider),
+		)
+		if err != nil {
+			return nil, err
+		}
+
 		return meteringcfg.NewEnforcer(
 			ctx,
 			do.MustInvoke[*meteringcfg.Config](i),
 			do.MustInvoke[platformmetering.Store](i),
-			do.MustInvoke[*platformmetering.Registry](i),
+			registry,
 			nil,
-			NewSubscriptionQuotaSource(
-				do.MustInvoke[logging.Logger](i),
-				do.MustInvoke[paymentsmanager.PaymentsDataManager](i),
-			),
+			quotas,
 			// No cache — see above.
 			nil,
 			meteringcfg.WithPillars(pillars),

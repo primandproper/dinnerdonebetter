@@ -6,7 +6,6 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/searchpagination"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -14,7 +13,7 @@ import (
 	"github.com/primandproper/platform-go/v10/observability"
 	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
 	"github.com/primandproper/platform-go/v10/observability/tracing"
-	textsearch "github.com/primandproper/platform-go/v10/search/text"
+	searchpagination "github.com/primandproper/platform-go/v10/search/pagination"
 )
 
 func (m *mealPlanningManager) SearchValidMeasurementUnits(ctx context.Context, query string, useSearchService bool, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidMeasurementUnit], error) {
@@ -37,25 +36,10 @@ func (m *mealPlanningManager) SearchValidMeasurementUnits(ctx context.Context, q
 	if !useSearchService {
 		results, err = m.db.SearchForValidMeasurementUnits(ctx, query, filter)
 	} else {
-		var indexHits *textsearch.SearchResults[eatingindexing.ValidMeasurementUnitSearchSubset]
-		indexHits, err = searchpagination.Search(ctx, m.validMeasurementUnitSearchIndex, query, filter)
-		if err != nil {
-			return nil, observability.PrepareAndLogError(err, logger, span, "searching for valid measurement units")
-		}
-
-		validMeasurementUnitSubsets := indexHits.Hits
-
-		ids := []string{}
-		for _, validMeasurementUnitSubset := range validMeasurementUnitSubsets {
-			ids = append(ids, validMeasurementUnitSubset.ID)
-		}
-
-		searchResults, searchErr := m.db.GetValidMeasurementUnitsWithIDs(ctx, ids)
-		if searchErr != nil {
-			return nil, observability.PrepareAndLogError(searchErr, logger, span, "fetching valid measurement units")
-		}
-
-		results = searchpagination.NewResult(searchResults, indexHits.NextCursor, filter)
+		results, err = searchpagination.Hydrated(ctx, m.validMeasurementUnitSearchIndex, query, filter,
+			func(subset *eatingindexing.ValidMeasurementUnitSearchSubset) string { return subset.ID },
+			m.db.GetValidMeasurementUnitsWithIDs,
+		)
 	}
 
 	if err != nil {

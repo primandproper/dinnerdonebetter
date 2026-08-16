@@ -12,7 +12,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/searchpagination"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
 	"github.com/primandproper/platform-go/v10/database"
@@ -25,6 +24,7 @@ import (
 	"github.com/primandproper/platform-go/v10/observability/tracing"
 	"github.com/primandproper/platform-go/v10/qrcodes"
 	"github.com/primandproper/platform-go/v10/random"
+	searchpagination "github.com/primandproper/platform-go/v10/search/pagination"
 
 	passwordvalidator "github.com/wagslane/go-password-validator"
 )
@@ -652,22 +652,15 @@ func (m *manager) SearchForUsers(ctx context.Context, query string, useSearchSer
 
 		return users, nil
 	} else {
-		searchResults, err := searchpagination.Search(ctx, m.userSearchIndex, query, filter)
+		users, err := searchpagination.Hydrated(ctx, m.userSearchIndex, query, filter,
+			func(subset *indexing.UserSearchSubset) string { return subset.ID },
+			m.identityRepo.GetUsersWithIDs,
+		)
 		if err != nil {
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching for users")
 		}
 
-		userIDs := []string{}
-		for _, us := range searchResults.Hits {
-			userIDs = append(userIDs, us.ID)
-		}
-
-		users, err := m.identityRepo.GetUsersWithIDs(ctx, userIDs)
-		if err != nil {
-			return nil, observability.PrepareAndLogError(err, logger, span, "searching for users")
-		}
-
-		return searchpagination.NewResult(users, searchResults.NextCursor, filter), nil
+		return users, nil
 	}
 }
 

@@ -6,7 +6,6 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/searchpagination"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -14,7 +13,7 @@ import (
 	"github.com/primandproper/platform-go/v10/observability"
 	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
 	"github.com/primandproper/platform-go/v10/observability/tracing"
-	textsearch "github.com/primandproper/platform-go/v10/search/text"
+	searchpagination "github.com/primandproper/platform-go/v10/search/pagination"
 )
 
 func (m *mealPlanningManager) SearchValidVessels(ctx context.Context, query string, useSearchService bool, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidVessel], error) {
@@ -37,25 +36,10 @@ func (m *mealPlanningManager) SearchValidVessels(ctx context.Context, query stri
 	if !useSearchService {
 		validVessels, err = m.db.SearchForValidVessels(ctx, query, filter)
 	} else {
-		var indexHits *textsearch.SearchResults[eatingindexing.ValidVesselSearchSubset]
-		indexHits, err = searchpagination.Search(ctx, m.validVesselsSearchIndex, query, filter)
-		if err != nil {
-			return nil, observability.PrepareAndLogError(err, logger, span, "searching index for valid vessels")
-		}
-
-		validVesselSubsets := indexHits.Hits
-
-		ids := []string{}
-		for _, validVesselSubset := range validVesselSubsets {
-			ids = append(ids, validVesselSubset.ID)
-		}
-
-		searchResults, searchErr := m.db.GetValidVesselsWithIDs(ctx, ids)
-		if searchErr != nil {
-			return nil, observability.PrepareAndLogError(searchErr, logger, span, "searching database for valid vessels")
-		}
-
-		validVessels = searchpagination.NewResult(searchResults, indexHits.NextCursor, filter)
+		validVessels, err = searchpagination.Hydrated(ctx, m.validVesselsSearchIndex, query, filter,
+			func(subset *eatingindexing.ValidVesselSearchSubset) string { return subset.ID },
+			m.db.GetValidVesselsWithIDs,
+		)
 	}
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "searching valid vessels")

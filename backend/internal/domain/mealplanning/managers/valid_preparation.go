@@ -7,7 +7,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/searchpagination"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -15,7 +14,7 @@ import (
 	"github.com/primandproper/platform-go/v10/observability"
 	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
 	"github.com/primandproper/platform-go/v10/observability/tracing"
-	textsearch "github.com/primandproper/platform-go/v10/search/text"
+	searchpagination "github.com/primandproper/platform-go/v10/search/pagination"
 )
 
 func (m *mealPlanningManager) SearchValidPreparations(ctx context.Context, query string, useSearchService bool, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPreparation], error) {
@@ -38,25 +37,10 @@ func (m *mealPlanningManager) SearchValidPreparations(ctx context.Context, query
 	if !useSearchService {
 		results, err = m.db.SearchForValidPreparations(ctx, query, filter)
 	} else {
-		var indexHits *textsearch.SearchResults[eatingindexing.ValidPreparationSearchSubset]
-		indexHits, err = searchpagination.Search(ctx, m.validPreparationsSearchIndex, query, filter)
-		if err != nil {
-			return nil, observability.PrepareAndLogError(err, logger, span, "searching valid preparations")
-		}
-
-		validPreparationSubsets := indexHits.Hits
-
-		ids := []string{}
-		for _, validPreparationSubset := range validPreparationSubsets {
-			ids = append(ids, validPreparationSubset.ID)
-		}
-
-		searchResults, searchErr := m.db.GetValidPreparationsWithIDs(ctx, ids)
-		if searchErr != nil {
-			return nil, observability.PrepareAndLogError(searchErr, logger, span, "fetching valid preparations from database")
-		}
-
-		results = searchpagination.NewResult(searchResults, indexHits.NextCursor, filter)
+		results, err = searchpagination.Hydrated(ctx, m.validPreparationsSearchIndex, query, filter,
+			func(subset *eatingindexing.ValidPreparationSearchSubset) string { return subset.ID },
+			m.db.GetValidPreparationsWithIDs,
+		)
 	}
 
 	if err != nil {

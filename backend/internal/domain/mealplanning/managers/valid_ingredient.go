@@ -8,7 +8,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/searchpagination"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -16,7 +15,7 @@ import (
 	"github.com/primandproper/platform-go/v10/observability"
 	platformkeys "github.com/primandproper/platform-go/v10/observability/keys"
 	"github.com/primandproper/platform-go/v10/observability/tracing"
-	textsearch "github.com/primandproper/platform-go/v10/search/text"
+	searchpagination "github.com/primandproper/platform-go/v10/search/pagination"
 )
 
 func (m *mealPlanningManager) SearchValidIngredients(ctx context.Context, query string, useSearchService bool, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidIngredient], error) {
@@ -45,26 +44,13 @@ func (m *mealPlanningManager) SearchValidIngredients(ctx context.Context, query 
 
 		results = rawResults
 	} else {
-		var indexHits *textsearch.SearchResults[eatingindexing.ValidIngredientSearchSubset]
-		indexHits, err = searchpagination.Search(ctx, m.validIngredientSearchIndex, query, filter)
+		results, err = searchpagination.Hydrated(ctx, m.validIngredientSearchIndex, query, filter,
+			func(subset *eatingindexing.ValidIngredientSearchSubset) string { return subset.ID },
+			m.db.GetValidIngredientsWithIDs,
+		)
 		if err != nil {
 			return nil, observability.PrepareAndLogError(err, logger, span, "searching valid ingredient search index for valid ingredients")
 		}
-
-		validIngredientSubsets := indexHits.Hits
-
-		ids := []string{}
-		for _, validIngredientSubset := range validIngredientSubsets {
-			ids = append(ids, validIngredientSubset.ID)
-		}
-
-		var dbResults []*types.ValidIngredient
-		dbResults, err = m.db.GetValidIngredientsWithIDs(ctx, ids)
-		if err != nil {
-			return nil, observability.PrepareAndLogError(err, logger, span, "fetching valid ingredients from database")
-		}
-
-		results = searchpagination.NewResult(dbResults, indexHits.NextCursor, filter)
 	}
 	for _, ing := range results.Data {
 		if err = m.enrichValidIngredientWithMedia(ctx, ing); err != nil {

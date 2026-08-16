@@ -11,7 +11,6 @@ import (
 
 	"github.com/primandproper/platform-go/v10/filtering"
 	textsearch "github.com/primandproper/platform-go/v10/search/text"
-	"github.com/primandproper/platform-go/v10/search/text/elasticsearch"
 	mocksearch "github.com/primandproper/platform-go/v10/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
@@ -126,7 +125,7 @@ func TestValidEnumerationManager_SearchValidIngredients(T *testing.T) {
 
 		index := &mocksearch.IndexMock[eatingindexing.ValidIngredientSearchSubset]{
 			SearchFunc: func(_ context.Context, _ textsearch.SearchRequest) (*textsearch.SearchResults[eatingindexing.ValidIngredientSearchSubset], error) {
-				return nil, elasticsearch.ErrResultWindowExceeded
+				return nil, textsearch.ErrResultWindowExceeded
 			},
 		}
 		attachValidIngredientSearchIndexToManager(vem, index)
@@ -135,7 +134,7 @@ func TestValidEnumerationManager_SearchValidIngredients(T *testing.T) {
 		assert.Nil(t, actual)
 		// The refusal survives wrapping so the service layer can turn it into a status
 		// the client can act on, rather than a generic internal error.
-		assert.ErrorIs(t, err, elasticsearch.ErrResultWindowExceeded)
+		assert.ErrorIs(t, err, textsearch.ErrResultWindowExceeded)
 	})
 }
 

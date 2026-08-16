@@ -2,7 +2,7 @@
 
 Search endpoints are cursor-paginated. A request carries the query, a `useSearchService` flag, and a
 query filter; the response carries one page of results and a `pagination` block whose `cursor`
-resumes the search. `internal/searchpagination` sits between the text search index and the
+resumes the search. platform-go's `search/pagination` sits between the text search index and the
 `filtering.QueryFilter` pagination the managers hand back, so both search paths page the same way.
 
 ## Overview
@@ -61,8 +61,8 @@ computed by the search query itself. Page with the cursor, not with a count.
 | `OutOfRange`      | Paged past Elasticsearch's `index.max_result_window` (10,000 by default) | Stop and narrow the query; paging further will not work. |
 | `InvalidArgument` | A cursor the index did not issue                                         | Start over from the first page.                          |
 
-`internal/services/errors/search_grpc_mapper.go` registers both mappings, and any service package
-that blank-imports it picks them up. A registered mapping wins over the handler's default code, so
+platform-go maps both sentinels centrally, in `errors/grpc` and `errors/http`, so no application
+mapper registers them. `MapToGRPC` consults the platform mapper ahead of every domain mapper, so
 these reach the client rather than `Internal`. `OutOfRange` is deliberately not reported as an empty
 last page: "there are no more results" and "we will not serve results this deep" are different facts,
 and only the second is worth telling a user about.
@@ -88,11 +88,12 @@ ingredient groups always search the database, whatever `useSearchService` says.
 
 ## Helpers
 
-`internal/searchpagination` is the only place that builds a search request or wraps search hits, so
-no call site can forget the limit or the cursor:
+platform-go's `search/pagination` is the only place that builds a search request or wraps search
+hits, so no call site can forget the limit or the cursor:
 
 | Helper                      | Role                                                                              |
 |-----------------------------|-----------------------------------------------------------------------------------|
+| `Hydrated`                  | Runs the index-then-hydrate loop end to end and wraps the page                    |
 | `Search`                    | Runs one page against the index, taking size and resumption point from the filter |
 | `RequestFromFilter`         | Builds the `textsearch.SearchRequest` a `QueryFilter` describes                   |
 | `Resuming`                  | Reports whether a filter carries a cursor                                         |
@@ -100,10 +101,15 @@ no call site can forget the limit or the cursor:
 | `FilterForDatabaseFallback` | Returns the filter with any index cursor dropped                                  |
 | `CursorRejected`            | Reports whether an error is the index declining the cursor it was given           |
 
+Every index-backed search goes through `Hydrated`. The two with a database fallback assemble the
+page from it and then decide for themselves what an empty first page means; the other seven hand it
+the store's read-many and return what it gives back. An empty page of hits never reaches the store,
+so no `GetXWithIDs` is ever asked to read zero IDs.
+
 ## Related
 
-- `internal/searchpagination/searchpagination.go` — the adapter described above
-- `internal/services/errors/search_grpc_mapper.go` — `OutOfRange` and `InvalidArgument` mappings
+- `search/pagination` in platform-go — the adapter described above
+- `errors/grpc` and `errors/http` in platform-go — `OutOfRange` and `InvalidArgument` mappings
 - `internal/domain/mealplanning/managers/` — index-backed searches with a database fallback
 - `internal/domain/identity/manager/user_data_manager.go` — `SearchForUsers`
 - `internal/grpc/converters/query_filter.go` — filter and pagination conversion at the gRPC boundary

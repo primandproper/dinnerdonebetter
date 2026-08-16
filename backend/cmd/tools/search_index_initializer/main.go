@@ -26,7 +26,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/search/syncsource"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
@@ -39,6 +38,7 @@ import (
 	"github.com/primandproper/platform-go/v10/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
 	searchsync "github.com/primandproper/platform-go/v10/search/sync"
+	syncsource "github.com/primandproper/platform-go/v10/search/sync/source"
 	"github.com/primandproper/platform-go/v10/search/text/algolia"
 	textsearchcfg "github.com/primandproper/platform-go/v10/search/text/config"
 
@@ -204,25 +204,73 @@ func reindexOne(
 	wipe bool,
 	batchSize int,
 ) error {
+	// Each arm names its constructor and then builds, rather than nesting the two, because
+	// syncsource.New returns an error and Go will only expand a multi-valued call into a call
+	// that takes nothing else.
 	switch indexType {
 	case identityindexing.IndexTypeUsers:
-		return build(ctx, searchCfg, identityindexing.UserSource(identityRepo), o11y, wipe, batchSize)
+		source, err := identityindexing.UserSource(identityRepo)
+		if err != nil {
+			return err
+		}
+
+		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
 	case mealplanningindexing.IndexTypeMeals:
-		return build(ctx, searchCfg, mealplanningindexing.NewMealSource(mealPlanningRepo), o11y, wipe, batchSize)
+		source, err := mealplanningindexing.NewMealSource(mealPlanningRepo)
+		if err != nil {
+			return err
+		}
+
+		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
 	case mealplanningindexing.IndexTypeRecipes:
-		return build(ctx, searchCfg, mealplanningindexing.NewRecipeSource(mealPlanningRepo), o11y, wipe, batchSize)
+		source, err := mealplanningindexing.NewRecipeSource(mealPlanningRepo)
+		if err != nil {
+			return err
+		}
+
+		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
 	case mealplanningindexing.IndexTypeValidIngredients:
-		return build(ctx, searchCfg, mealplanningindexing.NewValidIngredientSource(mealPlanningRepo), o11y, wipe, batchSize)
+		source, err := mealplanningindexing.NewValidIngredientSource(mealPlanningRepo)
+		if err != nil {
+			return err
+		}
+
+		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
 	case mealplanningindexing.IndexTypeValidInstruments:
-		return build(ctx, searchCfg, mealplanningindexing.NewValidInstrumentSource(mealPlanningRepo), o11y, wipe, batchSize)
+		source, err := mealplanningindexing.NewValidInstrumentSource(mealPlanningRepo)
+		if err != nil {
+			return err
+		}
+
+		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
 	case mealplanningindexing.IndexTypeValidMeasurementUnits:
-		return build(ctx, searchCfg, mealplanningindexing.NewValidMeasurementUnitSource(mealPlanningRepo), o11y, wipe, batchSize)
+		source, err := mealplanningindexing.NewValidMeasurementUnitSource(mealPlanningRepo)
+		if err != nil {
+			return err
+		}
+
+		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
 	case mealplanningindexing.IndexTypeValidPreparations:
-		return build(ctx, searchCfg, mealplanningindexing.NewValidPreparationSource(mealPlanningRepo), o11y, wipe, batchSize)
+		source, err := mealplanningindexing.NewValidPreparationSource(mealPlanningRepo)
+		if err != nil {
+			return err
+		}
+
+		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
 	case mealplanningindexing.IndexTypeValidIngredientStates:
-		return build(ctx, searchCfg, mealplanningindexing.NewValidIngredientStateSource(mealPlanningRepo), o11y, wipe, batchSize)
+		source, err := mealplanningindexing.NewValidIngredientStateSource(mealPlanningRepo)
+		if err != nil {
+			return err
+		}
+
+		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
 	case mealplanningindexing.IndexTypeValidVessels:
-		return build(ctx, searchCfg, mealplanningindexing.NewValidVesselSource(mealPlanningRepo), o11y, wipe, batchSize)
+		source, err := mealplanningindexing.NewValidVesselSource(mealPlanningRepo)
+		if err != nil {
+			return err
+		}
+
+		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
 	default:
 		return fmt.Errorf("unknown index type %q, expected one of %s", indexType, strings.Join(knownIndexTypes(), ", "))
 	}
@@ -257,9 +305,11 @@ func build[E, T any](
 		}
 	}
 
-	reindexer, err := syncsource.NewReindexer(
-		source, index, o11y.logger, o11y.tracerProvider, o11y.metricsProvider,
-		searchsync.WithReindexBatchSize(batchSize),
+	reindexer, err := syncsource.NewReindexer(source, index,
+		syncsource.WithLogger(o11y.logger),
+		syncsource.WithTracerProvider(o11y.tracerProvider),
+		syncsource.WithMetricsProvider(o11y.metricsProvider),
+		syncsource.WithReindexOptions(searchsync.WithReindexBatchSize(batchSize)),
 	)
 	if err != nil {
 		return err
