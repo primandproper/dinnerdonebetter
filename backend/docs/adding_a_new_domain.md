@@ -155,10 +155,21 @@ make querier   # Runs: queries (codegen) + queries_lint + sqlc generate
 
 ### Fakes
 
-**Location**: `backend/internal/domain/<domain>/fakes/`
+**Location**: `backend/internal/domain/<domain>/fakes/generated.go` — generated, do not edit.
 
 - `BuildFakeXxx()` functions returning realistic test data
 - Used in integration tests and unit tests
+
+Declare the domain's entities in `backend/internal/domain/<domain>/entities.go` and run
+`make fakes`. Most fields need nothing: the generator picks an expression from the field's name
+and type. Declare a `Fields` override for a field the domain constrains — a status the type
+enumerates, a URL that has to resolve — and put the constraint in its `Why`, which is emitted as
+a comment beside the generated line. See
+[backend/internal/domain/entitydecl/](backend/internal/domain/entitydecl/) for the vocabulary and
+`internal/domain/webhooks/entities.go` for a worked example.
+
+Add the domain to the `domains` list in `backend/cmd/tools/codegen/fakes/main.go`; a fakes package
+with no entry there fails `TestDomainsAreComplete`.
 
 Converters:
 

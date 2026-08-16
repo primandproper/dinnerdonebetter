@@ -19,10 +19,13 @@ make integration_tests  # Run integration tests against Postgres
 make querier    # Regenerate SQL query code (codegen + sqlc via Docker — NOT `sqlc generate`)
 make configs    # Regenerate config structs per environment
 make env_vars   # Regenerate valid environment variable constants
+make fakes      # Regenerate domain fake builders from internal/domain/*/entities.go
 make proto      # Generate proto (run from repo root, not backend/)
 ```
 
-Never edit files in `*/generated/` directories. Modify the generators in `cmd/tools/codegen/` instead.
+Never edit files in `*/generated/` directories, or any file whose first line says it is generated
+(`internal/domain/*/fakes/generated.go`, `internal/domain/webhooks/catalog/catalog.go`). Modify the
+generators in `cmd/tools/codegen/`, or the declarations they read, instead.
 
 ## Architecture
 

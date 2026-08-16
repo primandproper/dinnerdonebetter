@@ -147,13 +147,17 @@ env_vars:
 webhook_catalog:
 	$(SCRIPTS_DIR)/webhook_catalog.sh $(THIS)
 
+.PHONY: fakes
+fakes:
+	$(SCRIPTS_DIR)/fakes.sh $(THIS)
+
 .PHONY: mocks
 mocks:
 	go generate ./...
 	$(MAKE) format_golang
 
 .PHONY: generated_files
-generated_files: configs queries env_vars webhook_catalog mocks format_golang
+generated_files: configs queries env_vars webhook_catalog fakes mocks format_golang
 
 ## INTEGRATION TESTING
 

@@ -6,18 +6,6 @@ import (
 	"github.com/primandproper/platform-go/v10/filtering"
 )
 
-// BuildFakeComment builds a faked Comment.
-func BuildFakeComment() *comments.Comment {
-	return &comments.Comment{
-		ID:            BuildFakeID(),
-		Content:       buildUniqueString(),
-		TargetType:    "recipes",
-		ReferencedID:  BuildFakeID(),
-		BelongsToUser: BuildFakeID(),
-		CreatedAt:     BuildFakeTime(),
-	}
-}
-
 // BuildFakeCommentWithParent builds a faked Comment that is a reply.
 func BuildFakeCommentWithParent(parentID string) *comments.Comment {
 	c := BuildFakeComment()
@@ -40,26 +28,5 @@ func BuildFakeCommentList(targetType, referencedID string) *filtering.QueryFilte
 			TotalCount:      3,
 		},
 		Data: examples,
-	}
-}
-
-// BuildFakeCommentCreationRequestInput builds a faked CommentCreationRequestInput.
-func BuildFakeCommentCreationRequestInput() *comments.CommentCreationRequestInput {
-	return &comments.CommentCreationRequestInput{
-		Content:       buildUniqueString(),
-		TargetType:    "recipes",
-		ReferencedID:  BuildFakeID(),
-		BelongsToUser: BuildFakeID(),
-	}
-}
-
-// BuildFakeCommentDatabaseCreationInput builds a faked CommentDatabaseCreationInput.
-func BuildFakeCommentDatabaseCreationInput() *comments.CommentDatabaseCreationInput {
-	return &comments.CommentDatabaseCreationInput{
-		ID:            BuildFakeID(),
-		Content:       buildUniqueString(),
-		TargetType:    "recipes",
-		ReferencedID:  BuildFakeID(),
-		BelongsToUser: BuildFakeID(),
 	}
 }
