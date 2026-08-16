@@ -93,7 +93,7 @@ hits, so no call site can forget the limit or the cursor:
 
 | Helper                      | Role                                                                              |
 |-----------------------------|-----------------------------------------------------------------------------------|
-| `Hydrated`                  | The whole loop: query the index, read those IDs back from the store, wrap the page |
+| `Hydrated`                  | Runs the index-then-hydrate loop end to end and wraps the page                    |
 | `Search`                    | Runs one page against the index, taking size and resumption point from the filter |
 | `RequestFromFilter`         | Builds the `textsearch.SearchRequest` a `QueryFilter` describes                   |
 | `Resuming`                  | Reports whether a filter carries a cursor                                         |
