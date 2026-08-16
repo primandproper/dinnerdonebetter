@@ -9,6 +9,8 @@ import (
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
 	auditmigrations "github.com/primandproper/platform-go/v10/audit/migrations"
+	webauthndatabase "github.com/primandproper/platform-go/v10/authentication/webauthn/database"
+	webauthnmigrations "github.com/primandproper/platform-go/v10/authentication/webauthn/database/migrations"
 	"github.com/primandproper/platform-go/v10/database/dialect"
 	"github.com/primandproper/platform-go/v10/database/migrate"
 	dataprivacymigrations "github.com/primandproper/platform-go/v10/dataprivacy/migrations"
@@ -51,6 +53,7 @@ const (
 	dataPrivacyMigrationVersion = 28
 	meteringMigrationVersion    = 30
 	operationsMigrationVersion  = 31
+	webauthnMigrationVersion    = 32
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -117,6 +120,11 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, errors.Wrap(err, "rendering operations migration")
 	}
 
+	webauthnDDL, err := renderWebAuthnDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -129,12 +137,30 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithGeneratedMigration(dataPrivacyMigrationVersion, "create_dataprivacy_requests", dataPrivacyDDL),
 		migrate.WithGeneratedMigration(meteringMigrationVersion, "create_metering_tables", meteringDDL),
 		migrate.WithGeneratedMigration(operationsMigrationVersion, "create_operations_table", operationsDDL),
+		migrate.WithGeneratedMigration(webauthnMigrationVersion, "create_webauthn_sessions_table", webauthnDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
 	}
 
 	return migrator, nil
+}
+
+// renderWebAuthnDDL renders the passkey ceremony session table, dropping the one this
+// repository used to hand-write first.
+//
+// The drop is not a migration of the old table: 00017 created it with a JSONB session_data
+// column and the platform's schema stores BYTEA, so a CREATE TABLE IF NOT EXISTS over the
+// old one would silently keep a table the store cannot write to. Nothing is lost by dropping
+// it. A row is one passkey ceremony in flight, a ceremony lasts a minute, and the worst case
+// at deploy is a handful of users pressing the passkey prompt again.
+func renderWebAuthnDDL() (string, error) {
+	schema, err := webauthnmigrations.SQL(dialect.Postgres, webauthndatabase.DefaultTablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering webauthn session migration")
+	}
+
+	return "DROP TABLE IF EXISTS webauthn_sessions;\n\n" + schema, nil
 }
 
 // renderAuditDDL renders the audit tables and the triggers that make them

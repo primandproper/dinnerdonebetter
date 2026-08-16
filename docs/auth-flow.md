@@ -74,6 +74,23 @@ Authentication in this app is **convoluted by design**: there are several ways t
 
 **Implementation**: [`internal/authentication/webauthn/service.go`](backend/internal/authentication/webauthn/service.go), [`internal/services/auth/handlers/passkey/handlers.go`](backend/internal/services/auth/handlers/passkey/handlers.go)
 
+**Where the ceremony lives**: the ceremony itself — issuing the challenge, storing it between the
+two requests, verifying the response against it — is platform's
+`authentication/webauthn.RelyingParty`, configured under `auth.passkey`. What this repository owns
+is the `webauthn.User` adapter, where a registered credential is stored, and the sign count written
+back after a login. Two things about it are worth knowing:
+
+- **The ceremony store is a table, in every environment.** A ceremony spans two requests and
+  nothing pins them to a pod, so a per-process store fails a fraction of passkey logins on a
+  multi-replica deployment in a way that reads as a browser bug. `auth.passkey.provider` defaults
+  to `database`; there is no in-memory option to fall into by leaving it blank. Rows are swept
+  every `auth.passkey.sweepInterval` (5 minutes by default) and the challenge is *consumed* — read
+  and removed in one operation — so an assertion replayed inside its TTL finds nothing.
+- **One timeout, not three.** `auth.passkey.relyingParty.ceremonyTimeout` is the timeout the
+  browser is asked to honor, the deadline go-webauthn enforces when the response comes back, and
+  the TTL the row is stored under. It is 2 minutes, chosen to cover a cross-device prompt (scan the
+  QR code, approve on the phone) rather than only a local touch.
+
 ## Web App Auth Flow (Consumer / Admin)
 
 The consumer and admin frontends use the same pattern:
@@ -179,7 +196,9 @@ Tokens issued before session management (without a `sid` claim) continue to work
 |-----------------------------------------------|-------------------------------------------------------------------------------------|
 | Auth manager (login, passkey, token exchange) | `internal/authentication/manager.go`                                                |
 | JWT issuance/parsing                          | `internal/authentication/tokens/jwt/jwt.go`                                         |
-| WebAuthn service                              | `internal/authentication/webauthn/service.go`                                       |
+| WebAuthn service (credentials, sign count)    | `internal/authentication/webauthn/service.go`                                       |
+| WebAuthn user adapter                         | `internal/authentication/webauthn/user_adapter.go`                                  |
+| Passkey ceremony config + wiring              | `internal/services/auth/grpc/do.go`                                                 |
 | gRPC auth service                             | `internal/services/auth/grpc/auth.go`                                               |
 | Auth interceptor                              | `internal/services/auth/grpc/interceptors/authn_interceptor.go`                     |
 | OAuth2 server                                 | `internal/services/auth/handlers/authentication/oauth2.go`                          |

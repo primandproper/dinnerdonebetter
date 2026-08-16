@@ -157,13 +157,17 @@
 	},
 	"auth": {
 		"passkey": {
-			"rpID": "dinnerdonebetter.com",
-			"rpDisplayName": "Dinner Done Better",
-			"rpOrigins": [
-				"https://dinnerdonebetter.com",
-				"https://www.dinnerdonebetter.com",
-				"https://admin.dinnerdonebetter.com"
-			]
+			"provider": "database",
+			"relyingParty": {
+				"rpID": "dinnerdonebetter.com",
+				"rpDisplayName": "Dinner Done Better",
+				"rpOrigins": [
+					"https://dinnerdonebetter.com",
+					"https://www.dinnerdonebetter.com",
+					"https://admin.dinnerdonebetter.com"
+				],
+				"ceremonyTimeout": 120000000000
+			}
 		},
 		"tokens": {
 			"provider": "paseto",

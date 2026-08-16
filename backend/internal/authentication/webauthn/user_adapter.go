@@ -7,11 +7,13 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
+	platformwebauthn "github.com/primandproper/platform-go/v10/authentication/webauthn"
+
 	"github.com/go-webauthn/webauthn/protocol"
-	"github.com/go-webauthn/webauthn/webauthn"
+	gowebauthn "github.com/go-webauthn/webauthn/webauthn"
 )
 
-// WebAuthnUser adapts identity.User and credentials to the webauthn.User interface.
+// WebAuthnUser adapts identity.User and credentials to the platformwebauthn.User interface.
 type WebAuthnUser struct {
 	User        *identity.User
 	Credentials []*identity.WebAuthnCredential
@@ -22,8 +24,8 @@ type WebAuthnUser struct {
 	AssertionFlags  protocol.AuthenticatorFlags
 }
 
-// Ensure WebAuthnUser implements webauthn.User.
-var _ webauthn.User = (*WebAuthnUser)(nil)
+// Ensure WebAuthnUser implements platformwebauthn.User.
+var _ platformwebauthn.User = (*WebAuthnUser)(nil)
 
 // WebAuthnID returns the user handle (opaque byte sequence, max 64 bytes).
 func (u *WebAuthnUser) WebAuthnID() []byte {
@@ -43,38 +45,38 @@ func (u *WebAuthnUser) WebAuthnDisplayName() string {
 	return u.User.Username
 }
 
-// WebAuthnCredentials returns credentials in webauthn.Credential format.
-func (u *WebAuthnUser) WebAuthnCredentials() []webauthn.Credential {
-	creds := make([]webauthn.Credential, 0, len(u.Credentials))
+// WebAuthnCredentials returns credentials in platformwebauthn.Credential format.
+func (u *WebAuthnUser) WebAuthnCredentials() []platformwebauthn.Credential {
+	creds := make([]platformwebauthn.Credential, 0, len(u.Credentials))
 	for _, c := range u.Credentials {
 		creds = append(creds, domainCredentialToWebAuthnWithAssertionFlags(c, u.AssertionCredID, u.AssertionFlags))
 	}
 	return creds
 }
 
-// domainCredentialToWebAuthnWithAssertionFlags converts a domain credential to webauthn.Credential.
+// domainCredentialToWebAuthnWithAssertionFlags converts a domain credential to platformwebauthn.Credential.
 // When assertionCredID and flags are provided and the credential matches, uses the assertion's
 // BackupEligible/BackupState to satisfy go-webauthn's consistency check (avoids "Backup Eligible
 // flag inconsistency" for passkeys that report different flags than our stored default, e.g. iCloud-synced).
-func domainCredentialToWebAuthnWithAssertionFlags(c *identity.WebAuthnCredential, assertionCredID []byte, flags protocol.AuthenticatorFlags) webauthn.Credential {
+func domainCredentialToWebAuthnWithAssertionFlags(c *identity.WebAuthnCredential, assertionCredID []byte, flags protocol.AuthenticatorFlags) platformwebauthn.Credential {
 	transports := parseTransports(c.Transports)
 	backupEligible, backupState := false, false
 	if len(assertionCredID) > 0 && bytes.Equal(c.CredentialID, assertionCredID) {
 		backupEligible = flags.HasBackupEligible()
 		backupState = flags.HasBackupState()
 	}
-	return webauthn.Credential{
+	return platformwebauthn.Credential{
 		ID:              c.CredentialID,
 		PublicKey:       c.PublicKey,
 		AttestationType: "none",
 		Transport:       transports,
-		Flags: webauthn.CredentialFlags{
+		Flags: gowebauthn.CredentialFlags{
 			UserPresent:    true,
 			UserVerified:   true,
 			BackupEligible: backupEligible,
 			BackupState:    backupState,
 		},
-		Authenticator: webauthn.Authenticator{
+		Authenticator: gowebauthn.Authenticator{
 			SignCount:    c.SignCount,
 			CloneWarning: false,
 		},

@@ -4,9 +4,8 @@ import (
 	"context"
 	"time"
 
-	webauthncfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/webauthn/config"
-
 	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
+	webauthncfg "github.com/primandproper/platform-go/v10/authentication/webauthn/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -26,24 +25,26 @@ type (
 		MaxRefreshTokenLifetime time.Duration `env:"MAX_REFRESH_TOKEN_LIFETIME" json:"maxRefreshTokenLifetime,omitempty"`
 	}
 
-	// PasskeyConfig holds WebAuthn Relying Party configuration for passkey registration and authentication.
-	PasskeyConfig struct {
-		_             struct{} `json:"-"`
-		RPID          string   `env:"RP_ID"           json:"rpID,omitempty"`
-		RPDisplayName string   `env:"RP_DISPLAY_NAME" json:"rpDisplayName,omitempty"`
-		RPOrigins     []string `env:"RP_ORIGINS"      json:"rpOrigins,omitempty"`
-	}
-
 	// Config is our configuration.
 	Config struct {
-		_                     struct{}           `json:"-"`
-		SessionStore          webauthncfg.Config `envPrefix:"SESSION_STORE_"    json:"sessionStore,omitzero"`
-		Passkey               PasskeyConfig      `envPrefix:"PASSKEY_"          json:"passkey,omitzero"`
-		Tokens                TokensConfig       `envPrefix:"TOKENS_"           json:"tokens,omitzero"`
-		Debug                 bool               `env:"DEBUG"                   json:"debug,omitempty"`
-		EnableUserSignup      bool               `env:"ENABLE_USER_SIGNUP"      json:"enableUserSignup,omitempty"`
-		MinimumUsernameLength uint8              `env:"MINIMUM_USERNAME_LENGTH" json:"minimumUsernameLength,omitempty"`
-		MinimumPasswordLength uint8              `env:"MINIMUM_PASSWORD_LENGTH" json:"minimumPasswordLength,omitempty"`
+		_ struct{} `json:"-"`
+
+		Tokens TokensConfig `envPrefix:"TOKENS_" json:"tokens,omitzero"`
+
+		// Passkey is the WebAuthn relying party and the ceremony store beneath it. Both
+		// halves are the platform's, which is what collapses the three timeouts this
+		// application used to keep separately — the row's TTL, the timeout asked of the
+		// browser, and the deadline the library enforces — into RelyingParty.CeremonyTimeout.
+		//
+		// Its Provider defaults to the database rather than to memory. A ceremony spans two
+		// requests and nothing pins them to a replica, so a per-process store fails a
+		// fraction of passkey logins in a way that reads as a browser bug.
+		Passkey webauthncfg.Config `envPrefix:"PASSKEY_" json:"passkey,omitzero"`
+
+		Debug                 bool  `env:"DEBUG"                   json:"debug,omitempty"`
+		EnableUserSignup      bool  `env:"ENABLE_USER_SIGNUP"      json:"enableUserSignup,omitempty"`
+		MinimumUsernameLength uint8 `env:"MINIMUM_USERNAME_LENGTH" json:"minimumUsernameLength,omitempty"`
+		MinimumPasswordLength uint8 `env:"MINIMUM_PASSWORD_LENGTH" json:"minimumPasswordLength,omitempty"`
 	}
 )
 
@@ -55,11 +56,8 @@ func (cfg *Config) ValidateWithContext(ctx context.Context) error {
 		validation.Field(&cfg.MinimumUsernameLength, validation.Required),
 		validation.Field(&cfg.MinimumPasswordLength, validation.Required),
 		validation.Field(&cfg.Tokens, validation.Required),
-		validation.Field(&cfg.SessionStore, validation.By(func(value any) error {
-			if c, ok := value.(webauthncfg.Config); ok {
-				return (&c).ValidateWithContext(ctx)
-			}
-			return nil
+		validation.Field(&cfg.Passkey, validation.By(func(any) error {
+			return cfg.Passkey.ValidateWithContext(ctx)
 		})),
 	)
 }

@@ -4,357 +4,280 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
-	"net/http"
-	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
+	platformwebauthn "github.com/primandproper/platform-go/v10/authentication/webauthn"
+	platformerrors "github.com/primandproper/platform-go/v10/errors"
 	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v10/observability"
 	"github.com/primandproper/platform-go/v10/observability/logging"
+	"github.com/primandproper/platform-go/v10/observability/tracing"
 
 	"github.com/go-webauthn/webauthn/protocol"
-	"github.com/go-webauthn/webauthn/webauthn"
 )
 
-const (
-	serviceO11yName = "webauthn_service"
+const o11yName = "webauthn_service"
 
-	defaultSessionTTL = 5 * time.Minute
+var (
+	// ErrNilRelyingParty indicates NewService was called without a relying party.
+	ErrNilRelyingParty = platformerrors.Wrap(platformerrors.ErrNilInputParameter, "nil webauthn relying party")
+
+	// ErrUserNotFound indicates a ceremony named a user this service has no record of.
+	ErrUserNotFound = platformerrors.New("webauthn user not found")
+
+	// ErrCredentialNotFound indicates an assertion verified against a credential that is
+	// no longer stored. The sign count has nowhere to be written back to, and a login that
+	// cannot record the count it was answered with is a login clone detection cannot see.
+	ErrCredentialNotFound = platformerrors.New("webauthn credential not found")
 )
 
-// Config holds WebAuthn configuration.
-type Config struct {
-	RPID          string   // Relying Party ID (e.g. "dinnerdonebetter.com" or "localhost")
-	RPDisplayName string   // Display name for the RP
-	RPOrigins     []string // Allowed origins (e.g. "https://dinnerdonebetter.com", "https://localhost:8080")
-}
-
-// Service provides passkey registration and authentication.
-type Service struct {
-	logger       logging.Logger
-	webauthn     *webauthn.WebAuthn
-	credStore    identity.WebAuthnCredentialDataManager
-	userStore    UserStore
-	sessionStore SessionStore
-}
-
-// UserStore provides user lookup for WebAuthn.
-type UserStore interface {
-	GetUserByID(ctx context.Context, userID string) (*identity.User, error)
-	GetUserByUsername(ctx context.Context, username string) (*identity.User, error)
-}
-
-// NewService creates a new WebAuthn service.
-func NewService(logger logging.Logger, cfg Config, credStore identity.WebAuthnCredentialDataManager, userStore UserStore, sessionStore SessionStore) (*Service, error) {
-	w, err := webauthn.New(&webauthn.Config{
-		RPID:          cfg.RPID,
-		RPDisplayName: cfg.RPDisplayName,
-		RPOrigins:     cfg.RPOrigins,
-		Timeouts: webauthn.TimeoutsConfig{
-			Login:        webauthn.TimeoutConfig{Timeout: 60000},
-			Registration: webauthn.TimeoutConfig{Timeout: 60000},
-		},
-	})
-	if err != nil {
-		return nil, err
+type (
+	// UserStore provides user lookup for WebAuthn.
+	UserStore interface {
+		GetUserByID(ctx context.Context, userID string) (*identity.User, error)
+		GetUserByUsername(ctx context.Context, username string) (*identity.User, error)
 	}
+
+	// Service is passkey registration and login for this application's users.
+	//
+	// The ceremony belongs to platform's RelyingParty: the challenge, the durable one-shot
+	// store it lives in, and the single deadline that bounds it. What is here is the half
+	// that package deliberately does not name — which user a ceremony is for, where the
+	// credential it produces is stored, and the sign count written back afterwards.
+	Service struct {
+		_ struct{} `json:"-"`
+
+		logger       logging.Logger
+		tracer       tracing.Tracer
+		relyingParty *platformwebauthn.RelyingParty
+		credStore    identity.WebAuthnCredentialDataManager
+		userStore    UserStore
+	}
+
+	// FinishAuthenticationResult holds the result of a successful passkey authentication.
+	FinishAuthenticationResult struct {
+		_ struct{} `json:"-"`
+
+		UserID       string
+		CredentialID string
+		SignCount    uint32
+	}
+)
+
+// NewService creates a new WebAuthn service over an already-built relying party.
+func NewService(
+	logger logging.Logger,
+	tracerProvider tracing.Provider,
+	relyingParty *platformwebauthn.RelyingParty,
+	credStore identity.WebAuthnCredentialDataManager,
+	userStore UserStore,
+) (*Service, error) {
+	if relyingParty == nil {
+		return nil, ErrNilRelyingParty
+	}
+
 	return &Service{
-		logger:       logging.NewNamedLogger(logger, serviceO11yName),
-		webauthn:     w,
+		logger:       logging.NewNamedLogger(logger, o11yName),
+		tracer:       tracing.NewNamedTracer(tracerProvider, o11yName),
+		relyingParty: relyingParty,
 		credStore:    credStore,
 		userStore:    userStore,
-		sessionStore: sessionStore,
 	}, nil
 }
 
-// BeginRegistrationOptions returns PublicKeyCredentialCreationOptions for the given user.
-func (s *Service) BeginRegistrationOptions(ctx context.Context, userID string) (*protocol.CredentialCreation, *webauthn.SessionData, error) {
-	user, err := s.userStore.GetUserByID(ctx, userID)
-	if err != nil || user == nil {
-		return nil, nil, err
-	}
-	creds, err := s.credStore.GetWebAuthnCredentialsForUser(ctx, userID)
+// BeginRegistrationOptions returns PublicKeyCredentialCreationOptions for the given user,
+// alongside the challenge the client echoes back to FinishRegistration.
+//
+// The challenge is read off the options rather than out of the ceremony state, which is not
+// returned and is not the caller's to hold: the relying party stored it, and FinishRegistration
+// reads it back from the challenge the client answers with.
+func (s *Service) BeginRegistrationOptions(ctx context.Context, userID string) (*protocol.CredentialCreation, string, error) {
+	ctx, span := s.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := s.logger.WithSpan(span).WithValue(identitykeys.UserIDKey, userID)
+
+	user, err := s.webAuthnUserByID(ctx, userID)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", observability.PrepareAndLogError(err, logger, span, "assembling webauthn user")
 	}
-	waUser := &WebAuthnUser{
-		User:        user,
-		Credentials: creds,
-		UserID:      []byte(user.ID),
-	}
-	creation, session, err := s.webauthn.BeginRegistration(waUser)
+
+	creation, err := s.relyingParty.BeginRegistration(ctx, user)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", observability.PrepareAndLogError(err, logger, span, "beginning passkey registration")
 	}
-	ttl := defaultSessionTTL
-	if session.Expires.After(time.Now()) {
-		ttl = time.Until(session.Expires)
-	}
-	if saveErr := s.sessionStore.SaveSession(ctx, session.Challenge, session, ttl); saveErr != nil {
-		return nil, nil, saveErr
-	}
-	return creation, session, nil
+
+	return creation, creation.Response.Challenge.String(), nil
 }
 
-// FinishRegistration validates the attestation and stores the credential.
-func (s *Service) FinishRegistration(ctx context.Context, userID string, req *http.Request) error {
-	user, err := s.userStore.GetUserByID(ctx, userID)
-	if err != nil || user == nil {
-		return err
-	}
-	parsed, err := protocol.ParseCredentialCreationResponse(req)
+// FinishRegistration validates an attestation response and stores the credential it produced.
+func (s *Service) FinishRegistration(ctx context.Context, userID string, attestationResponse []byte, challenge string) error {
+	ctx, span := s.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := s.logger.WithSpan(span).WithValue(identitykeys.UserIDKey, userID)
+
+	// Parsed here only to check the challenge the caller passed against the one the client
+	// actually answered. The ceremony state is looked up by the latter inside the relying
+	// party, so a mismatch is a client bug rather than an attack — but the request field is
+	// required by the API, and honoring a value we asked for is cheaper than explaining why
+	// we ignore it.
+	parsed, err := protocol.ParseCredentialCreationResponseBytes(attestationResponse)
 	if err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "parsing passkey attestation response")
 	}
-	session, err := s.sessionStore.GetSession(ctx, parsed.Response.CollectedClientData.Challenge)
-	if err != nil || session == nil {
-		return err
+
+	if parsed.Response.CollectedClientData.Challenge != challenge {
+		return observability.PrepareAndLogError(protocol.ErrChallengeMismatch, logger, span, "checking passkey attestation challenge")
 	}
-	creds, err := s.credStore.GetWebAuthnCredentialsForUser(ctx, userID)
+
+	user, err := s.webAuthnUserByID(ctx, userID)
 	if err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "assembling webauthn user")
 	}
-	waUser := &WebAuthnUser{
-		User:        user,
-		Credentials: creds,
-		UserID:      []byte(user.ID),
-	}
-	credential, err := s.webauthn.CreateCredential(waUser, *session, parsed)
+
+	credential, err := s.relyingParty.FinishRegistrationBody(ctx, user, bytes.NewReader(attestationResponse))
 	if err != nil {
-		return err
+		return observability.PrepareAndLogError(err, logger, span, "finishing passkey registration")
 	}
-	transportsJSON := ""
-	if len(credential.Transport) > 0 {
-		t := make([]string, len(credential.Transport))
-		for i, tr := range credential.Transport {
-			t[i] = string(tr)
-		}
-		b, marshalErr := json.Marshal(t)
-		if marshalErr != nil {
-			return marshalErr
-		}
-		transportsJSON = string(b)
+
+	transports, err := encodeTransports(credential.Transport)
+	if err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "encoding passkey transports")
 	}
-	_, err = s.credStore.CreateWebAuthnCredential(ctx, &identity.WebAuthnCredentialCreationInput{
+
+	if _, err = s.credStore.CreateWebAuthnCredential(ctx, &identity.WebAuthnCredentialCreationInput{
 		ID:            identifiers.New(),
 		BelongsToUser: userID,
 		CredentialID:  credential.ID,
 		PublicKey:     credential.PublicKey,
 		SignCount:     credential.Authenticator.SignCount,
-		Transports:    transportsJSON,
+		Transports:    transports,
 		FriendlyName:  "",
-	})
-	return err
+	}); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "storing passkey credential")
+	}
+
+	return nil
 }
 
-// BeginAuthenticationOptions returns PublicKeyCredentialRequestOptions for the given username.
-func (s *Service) BeginAuthenticationOptions(ctx context.Context, username string) (*protocol.CredentialAssertion, *webauthn.SessionData, error) {
-	var waUser *WebAuthnUser
-	if username != "" {
-		user, err := s.userStore.GetUserByUsername(ctx, username)
-		if err != nil || user == nil {
-			return nil, nil, err
-		}
-		creds, err := s.credStore.GetWebAuthnCredentialsForUser(ctx, user.ID)
-		if err != nil {
-			return nil, nil, err
-		}
-		waUser = &WebAuthnUser{
-			User:        user,
-			Credentials: creds,
-			UserID:      []byte(user.ID),
-		}
-	}
-	var assertion *protocol.CredentialAssertion
-	var session *webauthn.SessionData
-	var err error
-	if waUser != nil {
-		assertion, session, err = s.webauthn.BeginLogin(waUser)
+// BeginAuthenticationOptions returns PublicKeyCredentialRequestOptions for the given username,
+// alongside the challenge the client echoes back to FinishAuthentication. An empty username
+// begins a discoverable login, where the passkey names the user.
+func (s *Service) BeginAuthenticationOptions(ctx context.Context, username string) (*protocol.CredentialAssertion, string, error) {
+	ctx, span := s.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := s.logger.WithSpan(span).WithValue(identitykeys.UsernameKey, username)
+
+	var (
+		assertion *protocol.CredentialAssertion
+		err       error
+	)
+
+	if username == "" {
+		assertion, err = s.relyingParty.BeginDiscoverableLogin(ctx)
 	} else {
-		assertion, session, err = s.webauthn.BeginDiscoverableLogin()
+		var user *WebAuthnUser
+		if user, err = s.webAuthnUserByUsername(ctx, username); err != nil {
+			return nil, "", observability.PrepareAndLogError(err, logger, span, "assembling webauthn user")
+		}
+
+		assertion, err = s.relyingParty.BeginLogin(ctx, user)
 	}
+
 	if err != nil {
-		return nil, nil, err
+		return nil, "", observability.PrepareAndLogError(err, logger, span, "beginning passkey authentication")
 	}
-	ttl := defaultSessionTTL
-	if session.Expires.After(time.Now()) {
-		ttl = time.Until(session.Expires)
-	}
-	if saveErr := s.sessionStore.SaveSession(ctx, session.Challenge, session, ttl); saveErr != nil {
-		return nil, nil, saveErr
-	}
-	return assertion, session, nil
+
+	return assertion, assertion.Response.Challenge.String(), nil
 }
 
-// sessionDeleter is optionally implemented by SessionStore backends that support explicit deletion.
-// It lets FinishAuthentication invalidate a challenge immediately after a successful assertion, so the
-// one-time challenge can't be replayed within its TTL (sign-count clone detection doesn't help when an
-// authenticator reports a counter of 0).
-type sessionDeleter interface {
-	DeleteSession(ctx context.Context, challenge string) error
-}
+// FinishAuthentication validates an assertion response and returns the authenticated user.
+//
+// The ceremony state is consumed inside the relying party, in one operation, so an assertion
+// replayed inside its TTL finds nothing the second time. Nothing here needs to remember to
+// delete it, and there is no window between the read and the removal for a second caller to
+// be handed the same challenge.
+func (s *Service) FinishAuthentication(ctx context.Context, username string, assertionResponse []byte, challenge string) (*FinishAuthenticationResult, error) {
+	ctx, span := s.tracer.StartSpan(ctx)
+	defer span.End()
 
-// deleteSessionByChallenge best-effort deletes the ceremony session for a challenge. A failed
-// delete is logged but not surfaced: the session expires via TTL regardless, and a successful
-// authentication shouldn't fail over cleanup.
-func (s *Service) deleteSessionByChallenge(ctx context.Context, challenge string) {
-	if deleter, ok := s.sessionStore.(sessionDeleter); ok {
-		if err := deleter.DeleteSession(ctx, challenge); err != nil {
-			s.logger.Error("deleting webauthn ceremony session", err)
-		}
-	}
-}
+	logger := s.logger.WithSpan(span).WithValue(identitykeys.UsernameKey, username)
 
-// FinishAuthenticationResult holds the result of a successful passkey authentication.
-type FinishAuthenticationResult struct {
-	UserID       string
-	CredentialID string
-	SignCount    uint32
-}
-
-// FinishAuthentication validates the assertion and returns the authenticated user.
-func (s *Service) FinishAuthentication(ctx context.Context, username string, req *http.Request) (*FinishAuthenticationResult, error) {
-	parsed, err := protocol.ParseCredentialRequestResponse(req)
+	// Parsed up front for two reasons: the challenge check below, and the authenticator flags
+	// the user adapter needs to satisfy go-webauthn's BackupEligible consistency rule. The
+	// relying party parses the body again for the verification itself.
+	parsed, err := protocol.ParseCredentialRequestResponseBytes(assertionResponse)
 	if err != nil {
-		return nil, err
+		return nil, observability.PrepareAndLogError(err, logger, span, "parsing passkey assertion response")
 	}
-	session, err := s.sessionStore.GetSession(ctx, parsed.Response.CollectedClientData.Challenge)
-	if err != nil || session == nil {
-		return nil, err
+
+	if parsed.Response.CollectedClientData.Challenge != challenge {
+		return nil, observability.PrepareAndLogError(protocol.ErrChallengeMismatch, logger, span, "checking passkey assertion challenge")
 	}
-	var credential *webauthn.Credential
-	var user *identity.User
-	if username != "" {
-		u, userErr := s.userStore.GetUserByUsername(ctx, username)
-		if userErr != nil || u == nil {
-			return nil, userErr
+
+	var (
+		user       *identity.User
+		credential *platformwebauthn.Credential
+	)
+
+	if username == "" {
+		var resolved platformwebauthn.User
+		if resolved, credential, err = s.relyingParty.FinishDiscoverableLoginBody(
+			ctx,
+			s.discoverableUserHandler(ctx, parsed),
+			bytes.NewReader(assertionResponse),
+		); err != nil {
+			return nil, observability.PrepareAndLogError(err, logger, span, "finishing discoverable passkey authentication")
 		}
 
-		creds, credErr := s.credStore.GetWebAuthnCredentialsForUser(ctx, u.ID)
-		if credErr != nil {
-			return nil, credErr
+		if resolvedUser, ok := resolved.(*WebAuthnUser); ok {
+			user = resolvedUser.User
 		}
-		waUser := &WebAuthnUser{
-			User:            u,
-			Credentials:     creds,
-			UserID:          []byte(u.ID),
-			AssertionCredID: parsed.RawID,
-			AssertionFlags:  parsed.Response.AuthenticatorData.Flags,
-		}
-		credential, err = s.webauthn.ValidateLogin(waUser, *session, parsed)
-		if err != nil {
-			return nil, err
-		}
-
-		user = u
 	} else {
-		handler := s.discoverableUserHandlerWithParsed(ctx, parsed)
-		var waUser webauthn.User
-		waUser, credential, err = s.webauthn.ValidatePasskeyLogin(handler, *session, parsed)
-		if err != nil {
-			return nil, err
+		var waUser *WebAuthnUser
+		if waUser, err = s.webAuthnUserByUsername(ctx, username); err != nil {
+			return nil, observability.PrepareAndLogError(err, logger, span, "assembling webauthn user")
 		}
-		if waUser != nil {
-			if wu, ok := waUser.(*WebAuthnUser); ok {
-				user = wu.User
-			}
+
+		waUser.AssertionCredID = parsed.RawID
+		waUser.AssertionFlags = parsed.Response.AuthenticatorData.Flags
+
+		if credential, err = s.relyingParty.FinishLoginBody(ctx, waUser, bytes.NewReader(assertionResponse)); err != nil {
+			return nil, observability.PrepareAndLogError(err, logger, span, "finishing passkey authentication")
 		}
+
+		user = waUser.User
 	}
+
 	if user == nil || credential == nil {
-		if err != nil {
-			return nil, err
-		}
-		return nil, protocol.ErrBadRequest.WithDetails("authentication failed")
+		return nil, observability.PrepareAndLogError(ErrUserNotFound, logger, span, "resolving passkey owner")
 	}
-
-	// The assertion validated: delete the one-time challenge/session now so it can't be replayed
-	// within its TTL, even if the sign-count bookkeeping below fails.
-	s.deleteSessionByChallenge(ctx, parsed.Response.CollectedClientData.Challenge)
 
 	stored, err := s.credStore.GetWebAuthnCredentialByCredentialID(ctx, credential.ID)
-	if err != nil || stored == nil {
-		return nil, err
+	if err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "fetching passkey credential")
 	}
+
+	if stored == nil {
+		return nil, observability.PrepareAndLogError(ErrCredentialNotFound, logger, span, "fetching passkey credential")
+	}
+
+	// Surfaced rather than swallowed. A sign count that is not written back is a count the
+	// next login compares against a stale value, which is clone detection that reports
+	// nothing — so a login whose bookkeeping failed is a login that did not happen.
 	if err = s.credStore.UpdateWebAuthnCredentialSignCount(ctx, stored.ID, credential.Authenticator.SignCount); err != nil {
-		return nil, err
+		return nil, observability.PrepareAndLogError(err, logger, span, "recording passkey sign count")
 	}
+
 	return &FinishAuthenticationResult{
 		UserID:       user.ID,
 		CredentialID: stored.ID,
 		SignCount:    credential.Authenticator.SignCount,
 	}, nil
-}
-
-// FinishRegistrationFromBytes validates attestation bytes and stores the credential. For gRPC use.
-func (s *Service) FinishRegistrationFromBytes(ctx context.Context, userID string, attestationResponse []byte, challenge string) error {
-	session, err := s.sessionStore.GetSession(ctx, challenge)
-	if err != nil || session == nil {
-		return err
-	}
-	parsed, err := protocol.ParseCredentialCreationResponseBytes(attestationResponse)
-	if err != nil {
-		return err
-	}
-	if parsed.Response.CollectedClientData.Challenge != challenge {
-		return protocol.ErrChallengeMismatch
-	}
-	user, err := s.userStore.GetUserByID(ctx, userID)
-	if err != nil || user == nil {
-		return err
-	}
-	creds, err := s.credStore.GetWebAuthnCredentialsForUser(ctx, userID)
-	if err != nil {
-		return err
-	}
-	waUser := &WebAuthnUser{User: user, Credentials: creds, UserID: []byte(user.ID)}
-	credential, err := s.webauthn.CreateCredential(waUser, *session, parsed)
-	if err != nil {
-		return err
-	}
-	transportsJSON := ""
-	if len(credential.Transport) > 0 {
-		t := make([]string, len(credential.Transport))
-		for i, tr := range credential.Transport {
-			t[i] = string(tr)
-		}
-		b, marshalErr := json.Marshal(t)
-		if marshalErr != nil {
-			return marshalErr
-		}
-		transportsJSON = string(b)
-	}
-	_, err = s.credStore.CreateWebAuthnCredential(ctx, &identity.WebAuthnCredentialCreationInput{
-		ID:            identifiers.New(),
-		BelongsToUser: userID,
-		CredentialID:  credential.ID,
-		PublicKey:     credential.PublicKey,
-		SignCount:     credential.Authenticator.SignCount,
-		Transports:    transportsJSON,
-		FriendlyName:  "",
-	})
-	return err
-}
-
-// FinishAuthenticationFromBytes validates assertion bytes and returns the authenticated user. For gRPC use.
-func (s *Service) FinishAuthenticationFromBytes(ctx context.Context, username string, assertionResponse []byte, challenge string) (*FinishAuthenticationResult, error) {
-	session, err := s.sessionStore.GetSession(ctx, challenge)
-	if err != nil || session == nil {
-		return nil, err
-	}
-	parsed, err := protocol.ParseCredentialRequestResponseBytes(assertionResponse)
-	if err != nil {
-		return nil, err
-	}
-	if parsed.Response.CollectedClientData.Challenge != challenge {
-		return nil, protocol.ErrChallengeMismatch
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "/", io.NopCloser(bytes.NewReader(assertionResponse)))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	return s.FinishAuthentication(ctx, username, req)
 }
 
 // GetCredentialsForUser returns all active passkey credentials for the given user.
@@ -367,36 +290,90 @@ func (s *Service) ArchiveCredentialForUser(ctx context.Context, credentialID, us
 	return s.credStore.ArchiveWebAuthnCredentialForUser(ctx, credentialID, userID)
 }
 
-// DiscoverableUserHandler creates a webauthn.DiscoverableUserHandler for passwordless login.
-func (s *Service) DiscoverableUserHandler(ctx context.Context) webauthn.DiscoverableUserHandler {
-	return s.discoverableUserHandlerWithParsed(ctx, nil)
-}
-
-// discoverableUserHandlerWithParsed creates a handler that returns WebAuthnUser with assertion flags
-// when parsed is non-nil, satisfying go-webauthn's BackupEligible consistency check.
-func (s *Service) discoverableUserHandlerWithParsed(ctx context.Context, parsed *protocol.ParsedCredentialAssertionData) webauthn.DiscoverableUserHandler {
-	return func(rawID, userHandle []byte) (webauthn.User, error) {
+// discoverableUserHandler resolves the user behind a credential during a discoverable login.
+// The parsed assertion supplies the authenticator flags the adapter needs; it is never nil on
+// the path this is called from.
+func (s *Service) discoverableUserHandler(ctx context.Context, parsed *protocol.ParsedCredentialAssertionData) platformwebauthn.DiscoverableUserHandler {
+	return func(rawID, _ []byte) (platformwebauthn.User, error) {
 		stored, err := s.credStore.GetWebAuthnCredentialByCredentialID(ctx, rawID)
-		if err != nil || stored == nil {
-			return nil, err
-		}
-		user, err := s.userStore.GetUserByID(ctx, stored.BelongsToUser)
-		if err != nil || user == nil {
-			return nil, err
-		}
-		creds, err := s.credStore.GetWebAuthnCredentialsForUser(ctx, user.ID)
 		if err != nil {
 			return nil, err
 		}
-		waUser := &WebAuthnUser{
-			User:        user,
-			Credentials: creds,
-			UserID:      []byte(user.ID),
+
+		if stored == nil {
+			return nil, ErrCredentialNotFound
 		}
-		if parsed != nil {
-			waUser.AssertionCredID = parsed.RawID
-			waUser.AssertionFlags = parsed.Response.AuthenticatorData.Flags
+
+		user, err := s.webAuthnUserByID(ctx, stored.BelongsToUser)
+		if err != nil {
+			return nil, err
 		}
-		return waUser, nil
+
+		user.AssertionCredID = parsed.RawID
+		user.AssertionFlags = parsed.Response.AuthenticatorData.Flags
+
+		return user, nil
 	}
+}
+
+// webAuthnUserByID assembles the go-webauthn user for a user ID.
+func (s *Service) webAuthnUserByID(ctx context.Context, userID string) (*WebAuthnUser, error) {
+	user, err := s.userStore.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.webAuthnUser(ctx, user)
+}
+
+// webAuthnUserByUsername assembles the go-webauthn user for a username.
+func (s *Service) webAuthnUserByUsername(ctx context.Context, username string) (*WebAuthnUser, error) {
+	user, err := s.userStore.GetUserByUsername(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.webAuthnUser(ctx, user)
+}
+
+// webAuthnUser hangs a user's registered credentials off the adapter.
+//
+// A missing user is an error rather than a nil user handed onward. The relying party would
+// reject the nil, but it would reject it as "nil webauthn user", which says nothing about
+// the lookup that came up empty.
+func (s *Service) webAuthnUser(ctx context.Context, user *identity.User) (*WebAuthnUser, error) {
+	if user == nil {
+		return nil, ErrUserNotFound
+	}
+
+	credentials, err := s.credStore.GetWebAuthnCredentialsForUser(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &WebAuthnUser{
+		User:        user,
+		Credentials: credentials,
+		UserID:      []byte(user.ID),
+	}, nil
+}
+
+// encodeTransports renders an authenticator's transports as the JSON array the credential
+// table stores. No transports is an empty column rather than a "null" literal.
+func encodeTransports(transports []protocol.AuthenticatorTransport) (string, error) {
+	if len(transports) == 0 {
+		return "", nil
+	}
+
+	names := make([]string, len(transports))
+	for i, transport := range transports {
+		names[i] = string(transport)
+	}
+
+	encoded, err := json.Marshal(names)
+	if err != nil {
+		return "", err
+	}
+
+	return string(encoded), nil
 }

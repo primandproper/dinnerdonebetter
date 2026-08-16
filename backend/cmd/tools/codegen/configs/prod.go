@@ -21,6 +21,8 @@ import (
 	analyticscfg "github.com/primandproper/platform-go/v10/analytics/config"
 	analyticsposthog "github.com/primandproper/platform-go/v10/analytics/posthog"
 	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
+	platformwebauthn "github.com/primandproper/platform-go/v10/authentication/webauthn"
+	webauthncfg "github.com/primandproper/platform-go/v10/authentication/webauthn/config"
 	capitalismcfg "github.com/primandproper/platform-go/v10/capitalism/config"
 	circuitbreakingcfg "github.com/primandproper/platform-go/v10/circuitbreaking/config"
 	encryptioncfg "github.com/primandproper/platform-go/v10/cryptography/encryption/config"
@@ -277,10 +279,20 @@ func buildProdConfig() *config.APIServiceConfig {
 			},
 		},
 		Auth: authcfg.Config{
-			Passkey: authcfg.PasskeyConfig{
-				RPID:          "dinnerdonebetter.com",
-				RPDisplayName: branding.CompanyName,
-				RPOrigins:     []string{"https://dinnerdonebetter.com", "https://www.dinnerdonebetter.com", "https://admin.dinnerdonebetter.com"},
+			Passkey: webauthncfg.Config{
+				// The table, named rather than left to the default. Ceremony state has to
+				// outlive the replica that issued the challenge, and a passkey login that
+				// lands on a second pod is the normal case here, not the edge one.
+				Provider: webauthncfg.ProviderDatabase,
+				RelyingParty: platformwebauthn.Config{
+					RPID:          "dinnerdonebetter.com",
+					RPDisplayName: branding.CompanyName,
+					RPOrigins:     []string{"https://dinnerdonebetter.com", "https://www.dinnerdonebetter.com", "https://admin.dinnerdonebetter.com"},
+					// One number, in the three places the ceremony's deadline used to be
+					// configured separately: what the browser is asked for, what the library
+					// enforces when the response comes back, and how long the row lives.
+					CeremonyTimeout: passkeyCeremonyTimeout,
+				},
 			},
 			Tokens: authcfg.TokensConfig{
 				Config: tokenscfg.Config{
