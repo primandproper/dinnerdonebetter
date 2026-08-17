@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
@@ -46,11 +45,7 @@ const (
 // Returns true if the event was handled. May return emails to be published by the caller.
 type OutboundNotificationHandler func(ctx context.Context, msg *audit.DataChangeMessage, user *identity.User) (handled bool, emailType string, emails []*queuemessages.OutboundEmailMessage, err error)
 
-var (
-	errRequiredDataIsNil = errors.New("required data is nil")
-
-	errPoolsAlreadyStarted = errors.New("job pools already started")
-)
+var errRequiredDataIsNil = errors.New("required data is nil")
 
 // AsyncDataChangeMessageHandler is a cross-cutting event router that dispatches domain events to
 // email and mobile notifications, and runs the Syncer that applies each search index's events.
@@ -91,12 +86,11 @@ type AsyncDataChangeMessageHandler struct {
 	metricsProvider                           metrics.Provider
 	searchSyncers                             []SearchSyncer
 	deadLetter                                jobs.DeadLetterFunc
+	poolGroup                                 *jobs.PoolGroup
 	queuesConfig                              queuescfg.Config
 	baseURL                                   string
 	outboundNotificationHandlers              []OutboundNotificationHandler
-	pools                                     []*jobs.Pool
 	poolsConfig                               config.WorkerPoolsConfig
-	poolsWG                                   sync.WaitGroup
 }
 
 func (a *AsyncDataChangeMessageHandler) recordMessagesProcessed(ctx context.Context, topic, status string) {
@@ -235,6 +229,11 @@ func NewAsyncDataChangeMessageHandler(
 	handler.outboundNotificationHandlers = []OutboundNotificationHandler{
 		handler.handleMealPlanningOutboundNotification,
 		handler.handleIdentityOutboundNotification,
+	}
+
+	// Built last, because the specs read the handler's own event handler factories.
+	if handler.poolGroup, err = newPoolGroup(ctx, handler); err != nil {
+		return nil, fmt.Errorf("configuring job pool group: %w", err)
 	}
 
 	return handler, nil
