@@ -573,10 +573,23 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 
 	mcpRouting := s.RootConfig.Routing
 	if mcpRouting.Chi != nil {
-		mcpRouting.Chi.ServiceName = mcpConfigObservabilityServiceName
+		// Cloned, not shared — the same reason disableWorkerOtelMetrics clones the Otel config.
+		// routingcfg.Config holds a *chi.Config, so assigning the struct above copies the
+		// pointer and both configs address one chi.Config: the two writes below land on the API
+		// server's routing config too, renaming its service and turning on localhost CORS.
+		//
+		// Today that is invisible, for two reasons that are both accidents. The API service's
+		// file is written earlier in this function than the MCP config is built, and this
+		// function re-sets ServiceName from the top on every call — so the one config set that
+		// is rendered twice (localdev, whose RootConfig is shared between config_files and
+		// kustomize/configs) gets its service name repaired on the second pass. Nothing repairs
+		// EnableCORSForLocalhost; it survives only because localdev asks for true anyway.
+		chiConfig := *mcpRouting.Chi
+		chiConfig.ServiceName = mcpConfigObservabilityServiceName
 		// MCP clients (e.g. the MCP inspector) run in browsers on localhost,
 		// so the MCP server must always allow localhost CORS origins.
-		mcpRouting.Chi.EnableCORSForLocalhost = true
+		chiConfig.EnableCORSForLocalhost = true
+		mcpRouting.Chi = &chiConfig
 	}
 
 	mcpHTTPServer := s.RootConfig.HTTPServer

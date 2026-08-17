@@ -18,6 +18,7 @@ import (
 	featureflagscfg "github.com/primandproper/platform-go/v10/featureflags/config"
 	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
 	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v10/routing/backends/chi"
 	routingcfg "github.com/primandproper/platform-go/v10/routing/config"
 	textsearchcfg "github.com/primandproper/platform-go/v10/search/text/config"
 	"github.com/primandproper/platform-go/v10/server/grpc"
@@ -257,6 +258,62 @@ func TestEnvironmentConfigSet_Render(T *testing.T) {
 
 		// Rendering the MCP config must not clear the association on the config it copied.
 		assert.NotNil(t, rootConfig.HTTPServer.AppleAppSiteAssociation)
+	})
+
+	T.Run("rendering the MCP config leaves the API's chi config alone", func(t *testing.T) {
+		t.Parallel()
+
+		tmpDir := t.TempDir()
+
+		rootConfig := &APIServiceConfig{
+			Encoding: encoding.Config{
+				ContentType: "application/json",
+			},
+			Meta: MetaSettings{
+				RunMode: DevelopmentRunMode,
+			},
+			Observability: observability.Config{},
+			Routing: routingcfg.Config{
+				Provider: routingcfg.ProviderChi,
+				// Deliberately false: this is what a production config sets, and it is the
+				// value the MCP server's copy has to not write back.
+				Chi: &chi.Config{ServiceName: "placeholder", EnableCORSForLocalhost: false},
+			},
+			Database: dbcfg.Config{
+				Config: databasecfg.Config{
+					Debug: true,
+					ReadConnection: databasecfg.ConnectionDetails{
+						Username: "user",
+						Password: "pass",
+						Database: "db",
+						Host:     "host",
+					},
+				},
+			},
+			Services: ServicesConfig{
+				DataPrivacy: dataprivacycfg.Config{
+					Uploads: uploadscfg.Config{
+						Storage: objectstorage.Config{},
+					},
+				},
+			},
+		}
+
+		configSet := &EnvironmentConfigSet{RootConfig: rootConfig}
+
+		require.NoError(t, configSet.Render(tmpDir, true, false))
+
+		// routingcfg.Config holds a *chi.Config, so the MCP server's copy of the routing config
+		// addresses the same struct. Without a clone its two writes land here as well, and the
+		// damage outlives the call: the one config set rendered twice shares this RootConfig.
+		assert.Equal(t, apiConfigObservabilityServiceName, rootConfig.Routing.Chi.ServiceName)
+		assert.False(t, rootConfig.Routing.Chi.EnableCORSForLocalhost)
+
+		// ... while the MCP server's own file still gets both.
+		mcpConfig, err := os.ReadFile(filepath.Join(tmpDir, "mcp_server_config.json"))
+		require.NoError(t, err)
+		assert.Contains(t, string(mcpConfig), mcpConfigObservabilityServiceName)
+		assert.Contains(t, string(mcpConfig), "enableCORSForLocalhost")
 	})
 
 	T.Run("with custom file paths", func(t *testing.T) {
