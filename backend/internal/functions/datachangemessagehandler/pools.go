@@ -2,52 +2,28 @@ package datachangemessagehandler
 
 import (
 	"context"
-	"errors"
-	"sync"
-	"time"
 
 	"github.com/primandproper/platform-go/v10/jobs"
-	"github.com/primandproper/platform-go/v10/observability"
 )
 
-// partialStartDrainTimeout bounds the teardown of pools that did start when a later one failed
-// to build. Start is about to return an error and the process is about to exit, so this only
-// needs to be long enough for in-flight handlers to finish, not for a graceful drain.
-const partialStartDrainTimeout = 15 * time.Second
-
-// poolSpec pairs a topic with the pool that drains it. The topic comes from the queues config
-// and the knobs from the pools config, so a topic name is never spelled twice.
-type poolSpec struct {
-	handler jobs.Handler
-	cfg     *jobs.PoolConfig
-	topic   string
-}
-
-// Start builds a jobs.Pool per topic and begins consuming. Each pool owns its own workers,
-// retry policy, and dead-letter path; Close stops them.
+// poolSpecs describes every topic this process drains: what to consume, with which knobs, and
+// which handler. The topic comes from the queues config and the knobs from the pools config, so
+// a topic name is never spelled twice.
 //
-// This replaces the previous arrangement of six bare messagequeue.Consumers sharing a stop
-// channel. The handlers are unchanged — jobs.Handler has the same signature the event handler
-// factories already returned — but a failure is now retried with backoff and a message that
-// exhausts its attempts is dead-lettered rather than logged and forgotten.
-func (a *AsyncDataChangeMessageHandler) Start(ctx context.Context) error {
-	ctx, span := a.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if len(a.pools) > 0 {
-		return errPoolsAlreadyStarted
-	}
-
-	specs := []poolSpec{
+// A spec's Config is copied by the group rather than retained, which is what lets the search
+// specs below share one config value without all of them ending up on whichever topic was
+// written last.
+func (a *AsyncDataChangeMessageHandler) poolSpecs() []jobs.PoolSpec {
+	specs := []jobs.PoolSpec{
 		{
-			topic:   a.queuesConfig.DataChangesTopicName,
-			cfg:     &a.poolsConfig.DataChanges,
-			handler: a.DataChangesEventHandler(a.queuesConfig.DataChangesTopicName),
+			Topic:   a.queuesConfig.DataChangesTopicName,
+			Config:  &a.poolsConfig.DataChanges,
+			Handler: a.DataChangesEventHandler(a.queuesConfig.DataChangesTopicName),
 		},
 		{
-			topic:   a.queuesConfig.OutboundEmailsTopicName,
-			cfg:     &a.poolsConfig.OutboundEmails,
-			handler: a.OutboundEmailsEventHandler(a.queuesConfig.OutboundEmailsTopicName),
+			Topic:   a.queuesConfig.OutboundEmailsTopicName,
+			Config:  &a.poolsConfig.OutboundEmails,
+			Handler: a.OutboundEmailsEventHandler(a.queuesConfig.OutboundEmailsTopicName),
 		},
 		// There is no webhook execution pool and no user data aggregation pool. A webhook
 		// delivery is a dispatch row the delivery worker claims, and an export is a request
@@ -55,106 +31,56 @@ func (a *AsyncDataChangeMessageHandler) Start(ctx context.Context) error {
 		// lets one endpoint's copy of one event, or one subject's export, be the unit of
 		// retry rather than the whole fan-out.
 		{
-			topic:   a.queuesConfig.MobileNotificationsTopicName,
-			cfg:     &a.poolsConfig.MobileNotifications,
-			handler: a.MobileNotificationsEventHandler(a.queuesConfig.MobileNotificationsTopicName),
+			Topic:   a.queuesConfig.MobileNotificationsTopicName,
+			Config:  &a.poolsConfig.MobileNotifications,
+			Handler: a.MobileNotificationsEventHandler(a.queuesConfig.MobileNotificationsTopicName),
 		},
 	}
 
 	// One pool per search index, rather than one pool over one topic that switched on an
-	// index-type field. platform-go v10 keys an index event by its topic, so the fan-out that
-	// used to happen inside a handler happens here instead — which also means one index's
-	// backlog no longer sits behind another's, and a poison message dead-letters for its own
-	// index alone.
-	//
-	// Each gets a copy of the search pool config rather than a share of it: the loop below
-	// writes the topic onto the config it is given, and nine specs pointing at one struct
-	// would leave all nine consuming whichever topic was assigned last.
+	// index-type field. platform-go keys an index event by its topic, so the fan-out that used
+	// to happen inside a handler happens here instead — which also means one index's backlog no
+	// longer sits behind another's, and a poison message dead-letters for its own index alone.
 	for _, syncer := range a.searchSyncers {
-		poolCfg := a.poolsConfig.SearchIndexRequests
-		specs = append(specs, poolSpec{
-			topic:   syncer.Topic,
-			cfg:     &poolCfg,
-			handler: syncer.Handle,
+		specs = append(specs, jobs.PoolSpec{
+			Topic:   syncer.Topic,
+			Config:  &a.poolsConfig.SearchIndexRequests,
+			Handler: syncer.Handle,
 		})
 	}
 
-	for i := range specs {
-		spec := &specs[i]
-
-		// Topic is not part of the pools config; it lives in the queues config, which is
-		// what the publishers on the other side of these topics already read.
-		spec.cfg.Topic = spec.topic
-
-		pool, err := jobs.NewPool(
-			ctx,
-			spec.cfg,
-			a.consumerProvider,
-			spec.handler,
-			jobs.WithPoolDeadLetter(a.deadLetter),
-			jobs.WithPoolLogger(a.logger),
-			jobs.WithPoolTracerProvider(a.tracerProvider),
-			jobs.WithPoolMetricsProvider(a.metricsProvider),
-		)
-		if err != nil {
-			// Close whatever already started, so a failure partway through does not leave
-			// half the topics being consumed by a process that is about to exit. The
-			// deadline is here because this is a teardown on the error path, not the
-			// operator-controlled drain that Close normally performs.
-			closeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), partialStartDrainTimeout)
-			if closeErr := a.Close(closeCtx); closeErr != nil {
-				a.logger.Error("closing partially started job pools", closeErr)
-			}
-			cancel()
-
-			return observability.PrepareAndLogError(err, a.logger, span, "building job pool for topic %q", spec.topic)
-		}
-
-		// Run is started as soon as the pool is built rather than after the whole set is,
-		// because Pool.Close waits on the goroutine Run owns: a pool that was constructed
-		// but never run has nothing to signal that wait, and closing it would block until
-		// its context expired.
-		a.pools = append(a.pools, pool)
-		a.poolsWG.Add(1)
-		go func(p *jobs.Pool) {
-			defer a.poolsWG.Done()
-			// Run takes no context on purpose: tied to a server context it would stop
-			// mid-message the instant that context was canceled. Close is the stop signal.
-			p.Run()
-		}(pool)
-	}
-
-	return nil
+	return specs
 }
 
-// Close stops every pool and waits for in-flight handlers to drain. The context bounds the
-// wait; when it expires the pools cancel their workers and Close reports why.
-func (a *AsyncDataChangeMessageHandler) Close(ctx context.Context) error {
-	var (
-		wg   sync.WaitGroup
-		mu   sync.Mutex
-		errs []error
+// newPoolGroup assembles the group that drains every topic above.
+//
+// It is built at construction rather than at Start so that the reasons a group refuses to exist —
+// a pool config that will not validate, two specs resolving to one topic, a handler that is nil —
+// are reported by the thing that wires this process together, before anything is consuming. What
+// is left for Start is the broker.
+func newPoolGroup(ctx context.Context, a *AsyncDataChangeMessageHandler) (*jobs.PoolGroup, error) {
+	return jobs.NewPoolGroup(
+		ctx,
+		a.poolSpecs(),
+		a.consumerProvider,
+		jobs.WithPoolGroupDeadLetter(a.deadLetter),
+		jobs.WithPoolGroupLogger(a.logger),
+		jobs.WithPoolGroupTracerProvider(a.tracerProvider),
+		jobs.WithPoolGroupMetricsProvider(a.metricsProvider),
 	)
+}
 
-	for _, pool := range a.pools {
-		wg.Add(1)
-		go func(p *jobs.Pool) {
-			defer wg.Done()
-			if err := p.Close(ctx); err != nil {
-				mu.Lock()
-				errs = append(errs, err)
-				mu.Unlock()
-			}
-		}(pool)
-	}
+// Start begins consuming every topic, or none of them.
+//
+// The handlers are unchanged — jobs.Handler has the same signature the event handler factories
+// already returned — but a failure is retried with backoff and a message that exhausts its
+// attempts is dead-lettered rather than logged and forgotten.
+func (a *AsyncDataChangeMessageHandler) Start(ctx context.Context) error {
+	return a.poolGroup.Start(ctx)
+}
 
-	wg.Wait()
-	a.poolsWG.Wait()
-	a.pools = nil
-
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+// Close stops every pool and waits for in-flight handlers to drain. The context bounds the wait;
+// when it expires the pools cancel their workers and Close reports why.
+func (a *AsyncDataChangeMessageHandler) Close(ctx context.Context) error {
+	return a.poolGroup.Close(ctx)
 }

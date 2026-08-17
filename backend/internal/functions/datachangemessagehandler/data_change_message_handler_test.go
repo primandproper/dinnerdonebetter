@@ -139,6 +139,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		tracerProvider := tracingnoop.NewTracerProvider()
 		cfg := &config.AsyncMessageHandlerConfig{
 			Queues: queuescfg.Config{
+				DataChangesTopicName:         "data-changes",
 				OutboundEmailsTopicName:      "outbound-emails",
 				SearchIndexRequestsTopicName: "search-index-requests",
 				MobileNotificationsTopicName: "mobile-notifications",
