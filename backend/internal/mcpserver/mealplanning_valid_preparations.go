@@ -80,7 +80,7 @@ var searchForValidPreparationsTool = &mcp.Tool{
 	Name:        "SearchForValidPreparations",
 	Description: "Search for valid preparations with optional filtering and query string",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 		"Query": map[string]any{
 			"type":        strType,
 			"description": "The preparation name query",

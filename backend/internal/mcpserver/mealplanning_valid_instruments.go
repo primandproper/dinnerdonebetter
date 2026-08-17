@@ -70,7 +70,7 @@ var searchForValidInstrumentsTool = &mcp.Tool{
 	Name:        "SearchForValidInstruments",
 	Description: "Search for valid instruments with optional filtering and query string",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 		"Query": map[string]any{
 			"type":        strType,
 			"description": "The instrument name query",

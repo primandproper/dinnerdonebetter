@@ -84,7 +84,7 @@ var getRecipeStepIngredientsTool = &mcp.Tool{
 	InputSchema: schemaObject(map[string]any{
 		"RecipeID":     stringField("The ID of the recipe"),
 		"RecipeStepID": stringField("The ID of the recipe step"),
-		"Filter":       queryFilterSchema(),
+		"Filter":       filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(recipeStepIngredientsSchema)),

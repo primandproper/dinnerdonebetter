@@ -71,7 +71,7 @@ var searchForValidMeasurementUnitsTool = &mcp.Tool{
 	Name:        "SearchForValidMeasurementUnits",
 	Description: "Search for valid measurement units with optional filtering and query string",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 		"Query": map[string]any{
 			"type":        strType,
 			"description": "The measurement unit name query",

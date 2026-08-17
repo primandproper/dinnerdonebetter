@@ -50,7 +50,7 @@ var getIssueReportsTool = &mcp.Tool{
 	Name:        "GetIssueReports",
 	Description: "Get issue reports with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(issueReportSchema)),
@@ -82,7 +82,7 @@ var getIssueReportsForAccountTool = &mcp.Tool{
 	Name:        "GetIssueReportsForAccount",
 	Description: "Get issue reports belonging to a specific account",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(issueReportSchema)),
