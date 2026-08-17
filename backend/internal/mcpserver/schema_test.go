@@ -26,11 +26,11 @@ func TestFilterSchemaMatchesQueryFilter(t *testing.T) {
 	properties, ok := schema["properties"].(map[string]any)
 	require.True(t, ok, "schema has no properties object")
 
-	filterType := reflect.TypeOf(filtering.QueryFilter{})
+	filterType := reflect.TypeFor[filtering.QueryFilter]()
 
 	expected := make([]string, 0, filterType.NumField())
-	for i := range filterType.NumField() {
-		name, _, _ := strings.Cut(filterType.Field(i).Tag.Get("json"), ",")
+	for field := range filterType.Fields() {
+		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
 		if name == "" || name == "-" {
 			continue
 		}
