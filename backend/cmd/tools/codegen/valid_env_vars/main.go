@@ -1,121 +1,83 @@
+// Command valid_env_vars regenerates the constants naming every environment variable that can
+// override a configuration field, plus the .env.example that lists them for an operator.
+//
+// The walk itself lives in platform's config/envvars. What is left here is the three things that
+// are ours: which constraint names the loadable config structs, which module's source has to be
+// read alongside our own, and the .env example, which platform does not emit.
 package main
 
 import (
 	"context"
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"log"
-	"maps"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
-	reflast "github.com/primandproper/platform-go/v10/reflection/ast"
-
-	"github.com/codemodus/kace"
+	"github.com/primandproper/platform-go/v10/config/envvars"
 )
 
-type structEntry struct {
-	typeSpec *ast.TypeSpec
-	imports  map[string]string
-	relDir   string
-}
+const (
+	// unionKey names the generic constraint the Load* functions require of a loadable config
+	// struct. Deriving the struct list from it is what makes the output complete by
+	// construction: a new config struct cannot become loadable without appearing here.
+	unionKey = "internal/config.configurations"
 
-// configurationsUnionKey identifies the generic type constraint that every loadable
-// config struct must be a member of; it drives which structs this tool evaluates.
-const configurationsUnionKey = "internal/config.configurations"
+	// platformModulePrefix bounds which dependency modules get parsed alongside this one. Most
+	// generated constants come from platform config structs embedded in ours, and parsing the
+	// rest of the module graph would cost time without contributing a key.
+	platformModulePrefix = "github.com/primandproper/platform-go"
 
-// envVarInfo holds the metadata collected for a single environment variable.
-type envVarInfo struct {
-	// fieldPath is the dot-separated struct path (e.g. ".Database.ReadConnection.Host"),
-	// used to generate the Go constant comment.
-	fieldPath string
-	// defaultValue is the value from the envDefault struct tag, if any.
-	defaultValue string
-}
+	outputPath  = "internal/config/envvars/env_vars.go"
+	dotEnvPath  = ".env.example"
+	rootTypeEnv = "APIServiceConfig"
+)
 
 func main() {
+	ctx := context.Background()
+
 	dir, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	modulePath, err := reflast.GetModulePath(dir)
+	opts := envvars.Options{
+		Dir:          dir,
+		Prefix:       config.EnvVarPrefix,
+		UnionKey:     unionKey,
+		OutputPath:   outputPath,
+		Package:      "envvars",
+		Dependencies: []string{platformModulePrefix},
+	}
+
+	if err = envvars.Generate(ctx, opts); err != nil {
+		log.Fatalf("generating env var constants: %v", err)
+	}
+
+	// Collected a second time rather than threaded out of Generate: Collect is the exported
+	// half precisely so a caller can build something else out of the same set, and the walk is
+	// cached behind it.
+	variables, err := envvars.Collect(ctx, opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("collecting env vars for %s: %v", dotEnvPath, err)
 	}
 
-	structs, unions := parseGoFiles(dir, modulePath)
-
-	outputLines := []string{}
-
-	// Every loadable config struct must be a member of the internal/config.configurations
-	// generic constraint (the Load* functions require it), so that union is the source of
-	// truth for which structs to evaluate.
-	members, found := unions[configurationsUnionKey]
-	if !found || len(members) == 0 {
-		log.Fatalf("could not find the %s type union to derive the config struct list", configurationsUnionKey)
+	if err = writeDotEnvExample(dir, variables); err != nil {
+		log.Fatalf("writing %s: %v", dotEnvPath, err)
 	}
-
-	structsToEvaluate := make([]string, 0, len(members))
-	for _, member := range members {
-		structsToEvaluate = append(structsToEvaluate, fmt.Sprintf("internal/config.%s", member))
-	}
-	generatedEnvVars := []string{}
-
-	for _, structName := range structsToEvaluate {
-		entry, foundStruct := structs[structName]
-		if !foundStruct {
-			log.Fatalf("config struct %s is in the %s union but was not found by the parser", structName, configurationsUnionKey)
-		}
-
-		visited := make(map[string]bool)
-		extractedEnvVars := extractEnvVars(entry, structs, "", "", visited)
-		for envVar, info := range extractedEnvVars {
-			if slices.Contains(generatedEnvVars, kace.Pascal(envVar)) {
-				continue
-			}
-			sn := strings.ReplaceAll(structName, "internal/config.", "")
-			outputLines = append(outputLines, fmt.Sprintf(`	// %sEnvVarKey is the environment variable name to set to override `+"`"+`%s%s`+"`"+`.
-	%sEnvVarKey = "%s%s"
-
-`, kace.Pascal(envVar), sn, info.fieldPath, kace.Pascal(envVar), config.EnvVarPrefix, envVar))
-			generatedEnvVars = append(generatedEnvVars, kace.Pascal(envVar))
-		}
-	}
-	slices.Sort(outputLines)
-
-	out := fmt.Sprintf(`// Code generated by cmd/valid_env_vars. DO NOT EDIT.
-
-package envvars
-
-/* 
-This file contains a reference of all valid service environment variables.
-*/
-
-const (
-%s
-)
-`, strings.Join(outputLines, ""))
-
-	if err = os.WriteFile(filepath.Join(dir, "internal", "config", "envvars", "env_vars.go"), []byte(out), 0o0600); err != nil {
-		log.Fatal(err)
-	}
-
-	writeDotEnvExample(dir, structs)
 }
 
-// writeDotEnvExample generates a .env.example file in the backend root listing every
-// overridable environment variable for the APIServiceConfig.
-func writeDotEnvExample(dir string, structs map[string]*structEntry) {
-	exampleLines := []string{
-		"# .env.example — generated by cmd/valid_env_vars. DO NOT EDIT.",
+// writeDotEnvExample lists every variable that overrides an APIServiceConfig field, with the
+// envDefault it falls back to as the value.
+//
+// Only that config's variables are listed. The other services' configs are assembled out of the
+// same platform structs, so their variables are the same names wherever the fields overlap, and
+// listing all of them would be a longer file saying the same thing.
+func writeDotEnvExample(dir string, variables []envvars.Variable) error {
+	lines := []string{
+		"# .env.example — generated by cmd/tools/codegen/valid_env_vars. DO NOT EDIT.",
 		"#",
 		"# Copy this file to .env and fill in the values relevant to your environment.",
 		"# Set DOTENV_FILEPATH to the path of your .env file so the service loads it.",
@@ -127,338 +89,29 @@ func writeDotEnvExample(dir string, structs map[string]*structEntry) {
 		"",
 	}
 
-	if entry, found := structs["internal/config.APIServiceConfig"]; found {
-		visited := make(map[string]bool)
-		envVars := extractEnvVars(entry, structs, "", "", visited)
-
-		keys := slices.Sorted(maps.Keys(envVars))
-		for _, envVar := range keys {
-			exampleLines = append(exampleLines, fmt.Sprintf("%s%s=%s", config.EnvVarPrefix, envVar, envVars[envVar].defaultValue))
-		}
-	}
-
-	exampleLines = append(exampleLines, "")
-	dotEnvExample := strings.Join(exampleLines, "\n")
-
-	if err := os.WriteFile(filepath.Join(dir, ".env.example"), []byte(dotEnvExample), 0o0600); err != nil {
-		log.Fatal(err)
-	}
-}
-
-// platformModulePrefix bounds which dependency modules get parsed alongside this one.
-// Most generated constants come from platform config structs embedded in ours, and
-// parsing the rest of the module graph would cost time without contributing a key.
-const platformModulePrefix = "github.com/primandproper/platform-go"
-
-// parseGoFiles parses all Go files in this module, plus those of every platform dependency
-// module, and returns a map of struct entries keyed by "packageDir.TypeName" to avoid
-// collisions between packages with the same name, plus a map of interface type unions
-// (e.g. `A | B | C`) flattened to their member names under the same key scheme.
-//
-// Keys for this module's packages are module-relative directories ("internal/config"),
-// and keys for dependency packages are full import paths — the two can never collide
-// because a module-relative directory never starts with a domain name.
-func parseGoFiles(dir, modulePath string) (structs map[string]*structEntry, unions map[string][]string) {
-	structs = make(map[string]*structEntry)
-	unions = make(map[string][]string)
-
-	// This module parses with an empty root import path so its packages key on their
-	// module-relative directory, which is the form the configurations union lookup and
-	// same-package type references use.
-	parseModule(dir, "", modulePath, structs, unions)
-
-	for moduleDir, importPath := range platformModuleDirs() {
-		parseModule(moduleDir, importPath, modulePath, structs, unions)
-	}
-
-	return structs, unions
-}
-
-// platformModuleDirs maps the source directory of every platform dependency module to its
-// import path. The directories live in the module cache, which is why this tool no longer
-// needs a vendor directory to see the platform's config structs.
-func platformModuleDirs() map[string]string {
-	output, err := exec.CommandContext(context.Background(), "go", "list", "-m", "-f", "{{.Path}}\t{{.Dir}}", "all").Output()
-	if err != nil {
-		log.Fatalf("listing dependency modules: %v", err)
-	}
-
-	dirs := map[string]string{}
-	for line := range strings.SplitSeq(strings.TrimSpace(string(output)), "\n") {
-		importPath, moduleDir, found := strings.Cut(line, "\t")
-		if !found || moduleDir == "" || !strings.HasPrefix(importPath, platformModulePrefix) {
+	// Collect returns variables sorted by name, so the file is stable without sorting again.
+	for i := range variables {
+		if !overridesAPIServiceConfig(&variables[i]) {
 			continue
 		}
 
-		dirs[moduleDir] = importPath
+		lines = append(lines, fmt.Sprintf("%s=%s", variables[i].Name, variables[i].Default))
 	}
 
-	if len(dirs) == 0 {
-		log.Fatalf("no %s module found in the module graph", platformModulePrefix)
-	}
+	lines = append(lines, "")
 
-	return dirs
+	return os.WriteFile(filepath.Join(dir, dotEnvPath), []byte(strings.Join(lines, "\n")), 0o0600)
 }
 
-// parseModule walks one module rooted at dir, whose module path is rootImportPath, and adds
-// every struct and type union it declares to structs and unions. modulePath is this module's
-// own path, used to decide whether an import resolves to a module-relative key or an
-// import-path key.
-func parseModule(dir, rootImportPath, modulePath string, structs map[string]*structEntry, unions map[string][]string) {
-	if err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			// vendor/ is gitignored and no longer produced by any make target, but a
-			// leftover one would otherwise get parsed as if it were first-party code.
-			if info.Name() == "vendor" || info.Name() == "testdata" {
-				return filepath.SkipDir
-			}
-
-			return nil
-		}
-
-		if !strings.HasSuffix(info.Name(), ".go") {
-			return nil
-		}
-
-		// Dependency sources come from the module cache, which — unlike a vendor directory —
-		// keeps test files. An external test file (`package foo_test`) lives in the same
-		// directory as the package it tests, so a test-only type would otherwise share a key
-		// with, and clobber, the real type of that name.
-		if rootImportPath != "" && strings.HasSuffix(info.Name(), "_test.go") {
-			return nil
-		}
-
-		node, err := parser.ParseFile(token.NewFileSet(), path, nil, parser.AllErrors)
-		if err != nil {
-			fmt.Printf("Error parsing file %s: %v\n", path, err)
-			return nil
-		}
-
-		pkgDir := packageKeyPrefix(rootImportPath, mustRel(dir, filepath.Dir(path)))
-		rawImports := reflast.BuildImportMap(node)
-		fileImports := reflast.FilterModuleImports(rawImports, modulePath)
-		for localName, importPath := range rawImports {
-			if !strings.HasPrefix(importPath, modulePath+"/") {
-				fileImports[localName] = importPath
-			}
-		}
-
-		for _, decl := range node.Decls {
-			genDecl, ok := decl.(*ast.GenDecl)
-			if !ok {
-				continue
-			}
-
-			for _, spec := range genDecl.Specs {
-				typeSpec, isTypeSpec := spec.(*ast.TypeSpec)
-				if !isTypeSpec {
-					continue
-				}
-
-				key := fmt.Sprintf("%s.%s", pkgDir, typeSpec.Name.Name)
-				switch t := typeSpec.Type.(type) {
-				case *ast.StructType:
-					structs[key] = &structEntry{
-						typeSpec: typeSpec,
-						relDir:   pkgDir,
-						imports:  fileImports,
-					}
-				case *ast.InterfaceType:
-					if members := flattenInterfaceUnion(t); len(members) > 0 {
-						unions[key] = members
-					}
-				}
-			}
-		}
-		return nil
-	}); err != nil {
-		fmt.Printf("Error walking directory: %v\n", err)
-	}
-}
-
-// packageKeyPrefix builds the struct-map key prefix for a package. This module's own
-// packages key on their module-relative directory, which is what the configurations union
-// lookup and same-package type references expect; dependency packages key on their full
-// import path, so that a qualified reference resolves through the importing file's imports.
-func packageKeyPrefix(rootImportPath, relDir string) string {
-	relDir = filepath.ToSlash(relDir)
-	if rootImportPath == "" {
-		return relDir
-	}
-
-	if relDir == "." {
-		return rootImportPath
-	}
-
-	return rootImportPath + "/" + relDir
-}
-
-// flattenInterfaceUnion returns the member type names of an interface that is a pure type
-// union of same-package identifiers (e.g. `interface{ A | B | C }`), in declaration order.
-// It returns nil for method-bearing or otherwise non-union interfaces.
-func flattenInterfaceUnion(iface *ast.InterfaceType) []string {
-	var members []string
-	for _, field := range iface.Methods.List {
-		flattened := flattenUnionExpr(field.Type)
-		if flattened == nil {
-			return nil
-		}
-		members = append(members, flattened...)
-	}
-	return members
-}
-
-// flattenUnionExpr flattens a `A | B | C` constraint expression into its identifier names.
-func flattenUnionExpr(expr ast.Expr) []string {
-	switch t := expr.(type) {
-	case *ast.BinaryExpr:
-		if t.Op != token.OR {
-			return nil
-		}
-		left := flattenUnionExpr(t.X)
-		right := flattenUnionExpr(t.Y)
-		if left == nil || right == nil {
-			return nil
-		}
-		return append(left, right...)
-	case *ast.Ident:
-		return []string{t.Name}
-	default:
-		return nil
-	}
-}
-
-func mustRel(basePath, targetPath string) string {
-	rel, err := filepath.Rel(basePath, targetPath)
-	if err != nil {
-		log.Fatalf("failed to compute relative path from %s to %s: %v", basePath, targetPath, err)
-	}
-	return rel
-}
-
-// handleIdent resolves an unqualified type name (same-package reference).
-func handleIdent(currentEntry *structEntry, structs map[string]*structEntry, fieldType *ast.Ident, envVars map[string]envVarInfo, prefixValue, fieldNamePrefix, fieldName string, visited map[string]bool) {
-	key := fmt.Sprintf("%s.%s", currentEntry.relDir, fieldType.Name)
-	if nestedEntry, found := structs[key]; found {
-		maps.Copy(envVars, extractEnvVars(nestedEntry, structs, prefixValue, fmt.Sprintf("%s.%s", fieldNamePrefix, fieldName), visited))
-	}
-}
-
-// handleSelectorExpr resolves a qualified type name (cross-package reference like pkg.Type)
-// using the current struct's file-level imports.
-func handleSelectorExpr(currentEntry *structEntry, structs map[string]*structEntry, fieldType *ast.SelectorExpr, envVars map[string]envVarInfo, prefixValue, fieldNamePrefix, fieldName string, visited map[string]bool) {
-	pkgIdent, isIdentifier := fieldType.X.(*ast.Ident)
-	if !isIdentifier {
-		return
-	}
-
-	importRelDir, found := currentEntry.imports[pkgIdent.Name]
-	if !found {
-		return
-	}
-
-	key := fmt.Sprintf("%s.%s", importRelDir, fieldType.Sel.Name)
-	if nestedEntry, alsoFound := structs[key]; alsoFound {
-		maps.Copy(envVars, extractEnvVars(nestedEntry, structs, prefixValue, fmt.Sprintf("%s.%s", fieldNamePrefix, fieldName), visited))
-	}
-}
-
-// handleEmbedded merges an embedded struct's environment variables into the outer struct's,
-// carrying the outer struct's prefixes unchanged because the fields are promoted.
-func handleEmbedded(structs map[string]*structEntry, relDir, typeName string, envVars map[string]envVarInfo, envVarPrefix, fieldNamePrefix string, visited map[string]bool) {
-	if nestedEntry, found := structs[fmt.Sprintf("%s.%s", relDir, typeName)]; found {
-		maps.Copy(envVars, extractEnvVars(nestedEntry, structs, envVarPrefix, fieldNamePrefix, visited))
-	}
-}
-
-// extractEnvVars traverses a struct definition and collects environment variables, resolving nested structs.
-// visited keys by (typeKey, prefix) so the same type can be processed when reached via different paths (e.g. IOS vs Web).
-func extractEnvVars(entry *structEntry, structs map[string]*structEntry, envVarPrefix, fieldNamePrefix string, visited map[string]bool) map[string]envVarInfo {
-	envVars := map[string]envVarInfo{}
-
-	typeKey := fmt.Sprintf("%s.%s", entry.relDir, entry.typeSpec.Name.Name)
-	visitedKey := typeKey + "|" + envVarPrefix
-	if visited[visitedKey] {
-		return envVars
-	}
-	visited[visitedKey] = true
-
-	structType, ok := entry.typeSpec.Type.(*ast.StructType)
-	if !ok {
-		return envVars
-	}
-
-	for _, field := range structType.Fields.List {
-		// An embedded field has no name. Both env parsing and encoding/json promote its
-		// fields into the outer struct, so it is traversed with the outer struct's own
-		// prefixes rather than a nested one — otherwise a config that embeds another
-		// (dbcfg.Config embedding databasecfg.Config) silently loses every key it
-		// inherits.
-		if len(field.Names) == 0 {
-			switch fieldType := field.Type.(type) {
-			case *ast.Ident:
-				handleEmbedded(structs, entry.relDir, fieldType.Name, envVars, envVarPrefix, fieldNamePrefix, visited)
-			case *ast.SelectorExpr:
-				if pkgIdent, isIdentifier := fieldType.X.(*ast.Ident); isIdentifier {
-					if importRelDir, found := entry.imports[pkgIdent.Name]; found {
-						handleEmbedded(structs, importRelDir, fieldType.Sel.Name, envVars, envVarPrefix, fieldNamePrefix, visited)
-					}
-				}
-			}
-
-			continue
-		}
-
-		if field.Tag == nil {
-			continue
-		}
-
-		tag := strings.Trim(field.Tag.Value, "`")
-		if tag == `json:"-"` || tag == "" {
-			continue
-		}
-
-		fn := field.Names[0].Name
-		if envValue := reflast.GetTagValue(tag, "env"); envValue != "" && envValue != "init" {
-			if envVarPrefix != "" {
-				envValue = envVarPrefix + envValue
-			}
-
-			info := envVarInfo{
-				defaultValue: reflast.GetTagValue(tag, "envDefault"),
-			}
-			if fieldNamePrefix == "" {
-				info.fieldPath = fn
-			} else {
-				info.fieldPath = fmt.Sprintf("%s.%s", fieldNamePrefix, fn)
-			}
-			envVars[envValue] = info
-		}
-
-		if prefixValue := reflast.GetTagValue(tag, "envPrefix"); prefixValue != "" {
-			if envVarPrefix != "" {
-				prefixValue = envVarPrefix + prefixValue
-			}
-
-			switch fieldType := field.Type.(type) {
-			case *ast.Ident:
-				handleIdent(entry, structs, fieldType, envVars, prefixValue, fieldNamePrefix, fn, visited)
-			case *ast.SelectorExpr:
-				handleSelectorExpr(entry, structs, fieldType, envVars, prefixValue, fieldNamePrefix, fn, visited)
-			case *ast.StarExpr:
-				switch ft := fieldType.X.(type) {
-				case *ast.Ident:
-					handleIdent(entry, structs, ft, envVars, prefixValue, fieldNamePrefix, fn, visited)
-				case *ast.SelectorExpr:
-					handleSelectorExpr(entry, structs, ft, envVars, prefixValue, fieldNamePrefix, fn, visited)
-				}
-			}
+// overridesAPIServiceConfig reports whether any of a variable's field paths is rooted at the API
+// service's config. A variable reachable from several configuration structs carries one path per
+// struct, so this is a search rather than a look at the first one.
+func overridesAPIServiceConfig(variable *envvars.Variable) bool {
+	for _, fieldPath := range variable.FieldPaths {
+		if root, _, _ := strings.Cut(fieldPath, "."); root == rootTypeEnv {
+			return true
 		}
 	}
 
-	return envVars
+	return false
 }
