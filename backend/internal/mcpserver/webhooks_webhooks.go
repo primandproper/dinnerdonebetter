@@ -69,7 +69,7 @@ var getWebhooksTool = &mcp.Tool{
 	Name:        "GetWebhooks",
 	Description: "Get webhooks with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(webhookSchema)),

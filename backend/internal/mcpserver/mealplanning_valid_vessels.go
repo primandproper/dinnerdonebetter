@@ -76,7 +76,7 @@ var searchForValidVesselsTool = &mcp.Tool{
 	Name:        "SearchForValidVessels",
 	Description: "Search for valid vessels with optional filtering and query string",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 		"Query": map[string]any{
 			"type":        strType,
 			"description": "The vessel name query",

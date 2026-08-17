@@ -84,7 +84,7 @@ var getRecipePrepTasksTool = &mcp.Tool{
 	Description: "Get recipe prep tasks with optional filtering",
 	InputSchema: schemaObject(map[string]any{
 		"RecipeID": stringField("The ID of the recipe"),
-		"Filter":   queryFilterSchema(),
+		"Filter":   filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(recipePrepTasksSchema)),

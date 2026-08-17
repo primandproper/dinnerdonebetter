@@ -78,7 +78,7 @@ var getRecipesTool = &mcp.Tool{
 	Name:        "GetRecipes",
 	Description: "Get recipes with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(recipesSchema)),
@@ -118,7 +118,7 @@ var searchForRecipesTool = &mcp.Tool{
 	Description: "Search for recipes with optional filtering",
 	InputSchema: schemaObject(map[string]any{
 		"Query":  stringField("The search query string"),
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(recipesSchema)),

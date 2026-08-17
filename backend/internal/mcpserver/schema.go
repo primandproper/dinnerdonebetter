@@ -13,19 +13,18 @@ const (
 	dtFmt = "date-time"
 )
 
-// queryFilterSchema returns the JSON schema for a QueryFilter object.
-func queryFilterSchema() map[string]any {
-	return objectType(map[string]any{
-		"SortBy":          stringField("Field to sort by"),
-		"CreatedAfter":    timestampField("Filter results created after this timestamp (ISO 8601)"),
-		"CreatedBefore":   timestampField("Filter results created before this timestamp (ISO 8601)"),
-		"UpdatedAfter":    timestampField("Filter results updated after this timestamp (ISO 8601)"),
-		"UpdatedBefore":   timestampField("Filter results updated before this timestamp (ISO 8601)"),
-		"MaxResponseSize": intField("Maximum number of results to return"),
-		"IncludeArchived": boolField("Whether to include archived items"),
-		"Cursor":          stringField("Pagination cursor for fetching next page"),
-	})
-}
+// The schema for a QueryFilter is not here. filtering.QueryFilterSchema reflects it off the
+// struct, and the hand-written mirror that used to live here is why: it described SortBy as the
+// field to sort by rather than the direction to sort in and carried no enum, declared
+// MaxResponseSize as an unbounded integer, and — because the invocation structs below hand the
+// decoded object straight to encoding/json — keyed every property on the Go field name against
+// camelCase json tags, so a filter a model supplied was dropped in full and the list came back
+// unfiltered and plausible.
+//
+// The rest of this file has the same exposure. Every domain type's schema below is written out
+// by hand beside a struct that can move without it, and the drift would look the same. Replacing
+// those is a larger job than this one — the types are ours rather than platform's, so it means
+// deciding where their descriptions live — and it is not done here.
 
 func schemaObject(properties map[string]any) map[string]any {
 	return map[string]any{
@@ -67,13 +66,6 @@ func uintField(description string) map[string]any {
 		"type":        intType,
 		"description": description,
 		"minimum":     0,
-	}
-}
-
-func intField(description string) map[string]any {
-	return map[string]any{
-		"type":        intType,
-		"description": description,
 	}
 }
 

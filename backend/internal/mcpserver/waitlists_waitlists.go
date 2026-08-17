@@ -58,7 +58,7 @@ var getWaitlistsTool = &mcp.Tool{
 	Name:        "GetWaitlists",
 	Description: "Get waitlists with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(waitlistSchema)),
@@ -90,7 +90,7 @@ var getActiveWaitlistsTool = &mcp.Tool{
 	Name:        "GetActiveWaitlists",
 	Description: "Get waitlists that are currently active (not expired)",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(waitlistSchema)),
@@ -148,7 +148,7 @@ var getWaitlistSignupsForWaitlistTool = &mcp.Tool{
 	Description: "Get all signups for a specific waitlist",
 	InputSchema: schemaObject(map[string]any{
 		"WaitlistID": stringField("The ID of the waitlist"),
-		"Filter":     queryFilterSchema(),
+		"Filter":     filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(waitlistSignupSchema)),

@@ -64,7 +64,7 @@ var getValidIngredientStateIngredientsTool = &mcp.Tool{
 	Name:        "GetValidIngredientStateIngredients",
 	Description: "Get valid ingredient state ingredients with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(validIngredientStateIngredientsSchema)),

@@ -67,7 +67,7 @@ var getValidMeasurementUnitConversionsForUnitTool = &mcp.Tool{
 	Name:        "GetValidMeasurementUnitConversionsForUnit",
 	Description: "Get valid measurement unit conversions for a specific measurement unit with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter":                 queryFilterSchema(),
+		"Filter":                 filtering.QueryFilterSchema(),
 		"ValidMeasurementUnitID": stringField("The ID of the valid measurement unit"),
 	}),
 	OutputSchema: schemaObject(map[string]any{

@@ -71,7 +71,7 @@ var getValidPrepTaskConfigsTool = &mcp.Tool{
 	Name:        "GetValidPrepTaskConfigs",
 	Description: "Get valid prep task configs with optional filtering. Prep task configs define how long prepped ingredients can be stored.",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(validPrepTaskConfigsSchema)),
@@ -107,7 +107,7 @@ var getValidPrepTaskConfigsByIngredientTool = &mcp.Tool{
 	Description: "Get valid prep task configs for a specific ingredient. Use this to find storage information for a particular ingredient.",
 	InputSchema: schemaObject(map[string]any{
 		"ValidIngredientID": stringField("The ID of the ingredient to get prep task configs for"),
-		"Filter":            queryFilterSchema(),
+		"Filter":            filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(validPrepTaskConfigsSchema)),
@@ -143,7 +143,7 @@ var getValidPrepTaskConfigsByPreparationTool = &mcp.Tool{
 	Description: "Get valid prep task configs for a specific preparation method. Use this to find storage information for ingredients prepared a certain way.",
 	InputSchema: schemaObject(map[string]any{
 		"ValidPreparationID": stringField("The ID of the preparation to get prep task configs for"),
-		"Filter":             queryFilterSchema(),
+		"Filter":             filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(validPrepTaskConfigsSchema)),
@@ -181,7 +181,7 @@ var getValidPrepTaskConfigsByIngredientAndPreparationTool = &mcp.Tool{
 	InputSchema: schemaObject(map[string]any{
 		"ValidIngredientID":  stringField("The ID of the ingredient"),
 		"ValidPreparationID": stringField("The ID of the preparation"),
-		"Filter":             queryFilterSchema(),
+		"Filter":             filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(validPrepTaskConfigsSchema)),

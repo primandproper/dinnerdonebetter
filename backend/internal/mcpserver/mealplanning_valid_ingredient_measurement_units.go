@@ -66,7 +66,7 @@ var getValidIngredientMeasurementUnitsTool = &mcp.Tool{
 	Name:        "GetValidIngredientMeasurementUnits",
 	Description: "Get valid ingredient measurement units with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(validIngredientMeasurementUnitsSchema)),

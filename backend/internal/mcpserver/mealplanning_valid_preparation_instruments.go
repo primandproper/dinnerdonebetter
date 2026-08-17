@@ -64,7 +64,7 @@ var getValidPreparationInstrumentsTool = &mcp.Tool{
 	Name:        "GetValidPreparationInstruments",
 	Description: "Get valid preparation instruments with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
 		"Results": arrayType(schemaObject(validPreparationInstrumentsSchema)),

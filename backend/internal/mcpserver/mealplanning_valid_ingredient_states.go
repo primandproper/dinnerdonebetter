@@ -68,7 +68,7 @@ var searchForValidIngredientStatesTool = &mcp.Tool{
 	Name:        "SearchForValidIngredientStates",
 	Description: "Search for valid ingredient states with optional filtering and query string",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": queryFilterSchema(),
+		"Filter": filtering.QueryFilterSchema(),
 		"Query": map[string]any{
 			"type":        strType,
 			"description": "The ingredient state name query",
