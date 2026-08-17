@@ -18,7 +18,6 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/brianvoe/gofakeit/v7 v7.15.0
 	github.com/ccoveille/go-safecast v1.8.2
-	github.com/codemodus/kace v0.5.1
 	github.com/cristalhq/builq v0.15.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fxamacker/cbor/v2 v2.9.2
@@ -91,6 +90,7 @@ require (
 	github.com/cockroachdb/errors v1.14.0 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20241215232642-bb51bb14a506 // indirect
 	github.com/cockroachdb/redact v1.1.8 // indirect
+	github.com/codemodus/kace v0.5.1 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/daixiang0/gci v0.14.0 // indirect
