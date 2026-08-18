@@ -3,19 +3,18 @@ package testing
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"flag"
 	"fmt"
-	"net/url"
 	"os"
-	"strings"
-	"sync/atomic"
 	"testing"
 
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 
 	"github.com/primandproper/platform-go/v11/testutils/containers"
+	"github.com/primandproper/platform-go/v11/testutils/containers/pgtest"
 
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
 )
 
 // The share-one-container model.
@@ -34,48 +33,40 @@ import (
 // migrates one template database into it, and hands each test its own clone. Tests
 // keep t.Parallel(), keep a private database nothing else writes to, and the
 // container count per package drops to one.
+//
+// All of that now lives in platform's testutils/containers/pgtest, which is this
+// file generalized — pgtest.Start is the container, Instance.NewTemplate is the
+// migrated template, and Template.Clone is the per-test database. What remains here
+// is the part pgtest cannot know: this repo's image and credentials, its wait
+// strategy, its connection budget, and the *dbcfg.Config the repositories are
+// configured from.
 const (
-	// templateDatabase is migrated once per test binary and cloned per test. Nothing
-	// connects to it after prepareTemplate returns: CREATE DATABASE ... TEMPLATE
-	// refuses to run while any session is attached to the template.
-	templateDatabase = "ddb_template"
+	// sharedContainerName seeds the container's provisioning credentials and names
+	// the template database in a `\l` listing. It is not the name of any database a
+	// test connects to: pgtest mints those, each with a random suffix, because
+	// postgres truncates identifiers at 63 bytes and two long test names can
+	// otherwise collide onto one database with nothing saying so.
+	sharedContainerName = "ddb_shared"
 
 	// maxConnections has to cover every parallel test's pools at once now that they
-	// share a server. Each test opens a read and a write pool of maxOpenConnsPerTest,
-	// where per-test containers used to give each its own connection budget. Postgres
-	// defaults to 100, which a wide -parallel run blows through and reports as
-	// "too many clients already" from whichever test happens to connect last.
+	// share a server. Each test opens a read and a write pool of
+	// pgtest.DefaultIsolatedMaxOpenConns, where per-test containers used to give each
+	// its own connection budget. Postgres defaults to 100 and pgtest to 200, either
+	// of which a wide -parallel run blows through and reports as "too many clients
+	// already" from whichever test happens to connect last.
 	maxConnections = 500
 
-	// maxOpenConnsPerTest caps each pool a test opens. The platform default is 7 per
-	// pool, which is sized for a service that owns its database rather than for a few
-	// dozen suites sharing one.
-	maxOpenConnsPerTest = 4
-	maxIdleConnsPerTest = 2
-
-	// maxSanitizedNameLen bounds the test-name portion of a cloned database's name.
-	// Postgres truncates identifiers at 63 bytes, and a silent truncation could
-	// collide two long test names onto one database.
-	maxSanitizedNameLen = 40
+	// adminMaxOpenConns caps the pool pgtest runs CREATE/DROP DATABASE through. It is
+	// one pool for the whole binary, so it is sized like a test's rather than like a
+	// server's: the DDL is brief and the budget above belongs to the tests.
+	adminMaxOpenConns = pgtest.DefaultIsolatedMaxOpenConns
 )
 
-// sharedDatabase owns the one container a test binary starts and mints isolated
-// databases inside it.
-type sharedDatabase struct {
-	// admin is connected to the container's provisioning database, never to the
-	// template, so it is always free to issue CREATE/DROP DATABASE.
-	admin *sql.DB
-
-	// baseDSN addresses the container; dsnForDatabase swaps the database in it.
-	baseDSN string
-
-	counter atomic.Uint64
-}
-
-// shared is set by RunTestsWithSharedDatabase and read by NewIsolatedDatabaseForTest.
-// It is written once before m.Run and only read afterwards, so parallel tests need no
-// synchronization to reach it.
-var shared *sharedDatabase
+// sharedTemplate is the migrated database every test's is cloned from. It is set by
+// RunTestsWithSharedDatabase and read by NewIsolatedDatabaseForTest — written once
+// before m.Run and only read afterwards, so parallel tests need no synchronization
+// to reach it.
+var sharedTemplate *pgtest.Template
 
 // RunTestsWithSharedDatabase starts one postgres container for the calling test
 // binary, migrates the template database every test will be cloned from, runs the
@@ -94,8 +85,15 @@ var shared *sharedDatabase
 //
 // Without RUN_CONTAINER_TESTS=true this starts nothing and just runs the tests, which
 // then skip themselves through NewIsolatedDatabaseForTest.
-func RunTestsWithSharedDatabase(m *testing.M, migrate func(ctx context.Context, db *sql.DB) error) int {
-	if !containers.RunningTests {
+func RunTestsWithSharedDatabase(m *testing.M, migrate pgtest.MigrateFunc) int {
+	// testing.Short() panics ("Short called before Parse") rather than reporting
+	// false until flags are parsed, which is why this parses first and why pgtest.Start
+	// refuses to consult -short on a caller's behalf. The gate is worth the line: a
+	// -short run would otherwise pay for a container and then skip every test that
+	// would have queried it.
+	flag.Parse()
+
+	if testing.Short() {
 		return m.Run()
 	}
 
@@ -105,10 +103,17 @@ func RunTestsWithSharedDatabase(m *testing.M, migrate func(ctx context.Context, 
 	}
 
 	cleanup, err := startSharedDatabase(migrate)
-	if err != nil {
+
+	switch {
+	case errors.Is(err, pgtest.ErrNoPostgres):
+		// The RUN_CONTAINER_TESTS gate is closed, so nothing was started. The tests
+		// skip themselves through NewIsolatedDatabaseForTest.
+		return m.Run()
+	case err != nil:
 		fmt.Fprintf(os.Stderr, "postgres testing: %v\n", err)
 		return 1
 	}
+
 	defer cleanup()
 
 	return m.Run()
@@ -118,80 +123,49 @@ func RunTestsWithSharedDatabase(m *testing.M, migrate func(ctx context.Context, 
 // for the caller to defer. Teardown is returned rather than deferred internally
 // because it has to outlive this call and still run before TestMain reaches os.Exit,
 // which would skip any defer registered above it.
-func startSharedDatabase(migrate func(ctx context.Context, db *sql.DB) error) (func(), error) {
+func startSharedDatabase(migrate pgtest.MigrateFunc) (func(), error) {
 	ctx := context.Background()
 
-	container, admin, _, err := BuildDatabaseContainer(ctx, templateDatabase, connectionLimitCustomizer())
+	dbName, username, password := credentialsFor(sharedContainerName)
+
+	instance, stopInstance, err := pgtest.Start(ctx,
+		pgtest.WithImage(defaultPostgresImage),
+		pgtest.WithCredentials(dbName, username, password),
+		pgtest.WithCustomizers(waitStrategy()),
+		pgtest.WithMaxConnections(maxConnections),
+		pgtest.WithMaxOpenConns(adminMaxOpenConns),
+	)
 	if err != nil {
-		return nil, fmt.Errorf("starting shared postgres container: %w", err)
-	}
-
-	cleanup := func() {
-		if closeErr := admin.Close(); closeErr != nil {
-			fmt.Fprintf(os.Stderr, "postgres testing: closing admin pool: %v\n", closeErr)
-		}
-
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), containers.DefaultShutdownTimeout)
-		defer cancel()
-
-		if terminateErr := container.Terminate(shutdownCtx); terminateErr != nil {
-			fmt.Fprintf(os.Stderr, "postgres testing: terminating shared container: %v\n", terminateErr)
-		}
-	}
-
-	admin.SetMaxOpenConns(maxOpenConnsPerTest)
-
-	baseDSN, err := container.ConnectionString(ctx, "sslmode=disable")
-	if err != nil {
-		cleanup()
-		return nil, fmt.Errorf("resolving shared container DSN: %w", err)
-	}
-
-	if err = prepareTemplate(ctx, admin, baseDSN, migrate); err != nil {
-		cleanup()
 		return nil, err
 	}
 
-	shared = &sharedDatabase{admin: admin, baseDSN: baseDSN}
+	template, dropTemplate, err := instance.NewTemplate(ctx,
+		pgtest.WithMigration(migrate),
+		pgtest.WithLabel(sharedContainerName),
+	)
+	if err != nil {
+		return nil, errors.Join(fmt.Errorf("preparing the template database: %w", err), stopInstance())
+	}
 
-	return cleanup, nil
+	sharedTemplate = template
+
+	return func() {
+		sharedTemplate = nil
+
+		// The template first: dropping it needs the server still up.
+		reportTeardown(dropTemplate)
+		reportTeardown(stopInstance)
+	}, nil
 }
 
-// prepareTemplate creates the template database and runs the caller's migrations
-// against it exactly once. The pool it migrates through is closed before returning,
-// which is load-bearing rather than tidiness: a lingering session on the template
-// makes every subsequent clone fail with "source database is being accessed by
-// other users".
-func prepareTemplate(ctx context.Context, admin *sql.DB, baseDSN string, migrate func(ctx context.Context, db *sql.DB) error) error {
-	if _, err := admin.ExecContext(ctx, "CREATE DATABASE "+quoteIdentifier(templateDatabase)); err != nil {
-		return fmt.Errorf("creating template database: %w", err)
+// reportTeardown runs a teardown and reports what it could not do. There is no
+// testing.TB to fail by the time these run, and a leftover object on a container
+// about to be reaped is not worth an exit code — but a teardown that silently gave
+// up is how a leaked container gets discovered by the Docker daemon instead.
+func reportTeardown(teardown func() error) {
+	if err := teardown(); err != nil {
+		fmt.Fprintf(os.Stderr, "postgres testing: %v\n", err)
 	}
-
-	dsn, err := dsnForDatabase(baseDSN, templateDatabase)
-	if err != nil {
-		return err
-	}
-
-	db, err := sql.Open(driverName, dsn)
-	if err != nil {
-		return fmt.Errorf("opening template database: %w", err)
-	}
-
-	defer func() {
-		if closeErr := db.Close(); closeErr != nil {
-			fmt.Fprintf(os.Stderr, "postgres testing: closing template pool: %v\n", closeErr)
-		}
-	}()
-
-	if err = db.PingContext(ctx); err != nil {
-		return fmt.Errorf("connecting to template database: %w", err)
-	}
-
-	if err = migrate(ctx, db); err != nil {
-		return fmt.Errorf("migrating template database: %w", err)
-	}
-
-	return nil
 }
 
 // NewIsolatedDatabaseForTest gives the calling test its own freshly migrated database
@@ -207,108 +181,18 @@ func NewIsolatedDatabaseForTest(t *testing.T) (*sql.DB, *dbcfg.Config) {
 
 	containers.SkipIfNotRunning(t)
 
-	require.NotNil(t, shared, "postgres testing: no shared database; this package's TestMain must call RunTestsWithSharedDatabase")
+	require.NotNil(t, sharedTemplate, "postgres testing: no shared database; this package's TestMain must call RunTestsWithSharedDatabase")
 
-	return shared.clone(t)
-}
+	isolated := sharedTemplate.Clone(t)
 
-// clone mints one database for a test and registers its teardown.
-func (s *sharedDatabase) clone(t *testing.T) (*sql.DB, *dbcfg.Config) {
-	t.Helper()
-
-	ctx := t.Context()
-	name := s.nameFor(t)
-
-	_, err := s.admin.ExecContext(ctx, fmt.Sprintf(
-		"CREATE DATABASE %s TEMPLATE %s",
-		quoteIdentifier(name), quoteIdentifier(templateDatabase),
-	))
-	require.NoError(t, err, "cloning template database")
-
-	// Registered before the pool's own cleanup so it runs after it: t.Cleanup is LIFO,
-	// and the drop wants the test's connections already gone. FORCE covers whatever the
-	// test leaked.
-	t.Cleanup(func() {
-		dropCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), containers.DefaultShutdownTimeout)
-		defer cancel()
-
-		if _, dropErr := s.admin.ExecContext(dropCtx, "DROP DATABASE IF EXISTS "+quoteIdentifier(name)+" WITH (FORCE)"); dropErr != nil {
-			t.Logf("postgres testing: dropping %s: %v", name, dropErr)
-		}
-	})
-
-	dsn, err := dsnForDatabase(s.baseDSN, name)
+	config, err := databaseConfigForConnectionString(isolated.ConnectionString)
 	require.NoError(t, err)
 
-	config, err := databaseConfigForConnectionString(dsn)
-	require.NoError(t, err)
+	// The pools a repository opens from this config draw on one server's connection
+	// budget rather than on a container of their own, so they are sized to share —
+	// matching the pool Clone just handed back, which pgtest sizes the same way.
+	config.MaxOpenConns = pgtest.DefaultIsolatedMaxOpenConns
+	config.MaxIdleConns = pgtest.DefaultIsolatedMaxIdleConns
 
-	// Every test's pools now draw on one server's connection budget rather than on a
-	// container of their own, so they are sized to share.
-	config.MaxOpenConns = maxOpenConnsPerTest
-	config.MaxIdleConns = maxIdleConnsPerTest
-
-	db, err := sql.Open(driverName, dsn)
-	require.NoError(t, err)
-	db.SetMaxOpenConns(maxOpenConnsPerTest)
-	db.SetMaxIdleConns(maxIdleConnsPerTest)
-
-	t.Cleanup(func() {
-		if closeErr := db.Close(); closeErr != nil {
-			t.Logf("postgres testing: closing pool for %s: %v", name, closeErr)
-		}
-	})
-
-	containers.PingUntilReady(t, ctx, db.PingContext)
-
-	return db, config
-}
-
-// nameFor builds a unique, valid database name for a test. The counter guarantees
-// uniqueness; the sanitized test name is there so that a stray database or a log line
-// points back at the test that made it.
-func (s *sharedDatabase) nameFor(t *testing.T) string {
-	t.Helper()
-
-	sanitized := strings.Map(func(r rune) rune {
-		switch {
-		case r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '_':
-			return r
-		case r >= 'A' && r <= 'Z':
-			return r + ('a' - 'A')
-		default:
-			return '_'
-		}
-	}, t.Name())
-
-	if len(sanitized) > maxSanitizedNameLen {
-		sanitized = sanitized[:maxSanitizedNameLen]
-	}
-
-	return fmt.Sprintf("ddb_%d_%s", s.counter.Add(1), sanitized)
-}
-
-// connectionLimitCustomizer raises the server's connection ceiling to cover every
-// parallel test's pools. See maxConnections.
-func connectionLimitCustomizer() testcontainers.ContainerCustomizer {
-	return testcontainers.WithCmdArgs("-c", fmt.Sprintf("max_connections=%d", maxConnections))
-}
-
-// dsnForDatabase re-points a container's DSN at a different database on the same server.
-func dsnForDatabase(baseDSN, database string) (string, error) {
-	parsed, err := url.Parse(baseDSN)
-	if err != nil {
-		return "", fmt.Errorf("parsing container DSN: %w", err)
-	}
-
-	parsed.Path = "/" + database
-
-	return parsed.String(), nil
-}
-
-// quoteIdentifier renders name as a quoted SQL identifier. Database names here are
-// generated rather than user-supplied, but they are interpolated into DDL that cannot
-// take placeholders, so they are quoted rather than trusted.
-func quoteIdentifier(name string) string {
-	return `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
+	return isolated.DB, config
 }

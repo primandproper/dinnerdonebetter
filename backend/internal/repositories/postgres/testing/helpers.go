@@ -259,7 +259,7 @@ func BuildDatabaseContainer(ctx context.Context, dbName string, customizers ...t
 	// want the handle itself, to seed rows and assert against them without going through a
 	// repository, and they want it uninstrumented: a container that lives for one test has
 	// nothing to export spans to.
-	db, err := sql.Open("pgx", dbConfig.GetWriteConnectionString())
+	db, err := sql.Open(driverName, dbConfig.GetWriteConnectionString())
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to connect to postgres container: %w", err)
 	}
