@@ -24,6 +24,10 @@ func BuildFakeAccountInvitation() *types.AccountInvitation {
 	invitation.Token = fake.BuildFakeString()
 	invitation.Status = string(types.PendingAccountInvitationStatus)
 
+	// The note explains a status the invitation does not have yet, and the creation input
+	// carries neither — both are written when someone accepts or rejects.
+	invitation.StatusNote = ""
+
 	// The two whole records an invitation carries: who sent it, and what they are
 	// inviting someone into. BuildFakeRecord fills a nested struct too, but with one
 	// whose own constrained fields are random.

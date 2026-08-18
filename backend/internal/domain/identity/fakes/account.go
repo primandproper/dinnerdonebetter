@@ -15,8 +15,11 @@ import (
 func BuildFakeAccount() *types.Account {
 	account := fake.BuildFakeRecord[types.Account]()
 
-	// An account that has not paid, which is the state a new one is in.
+	// An account that has not paid, which is the state a new one is in. The processor's
+	// customer identifier is empty for the same reason: AccountDatabaseCreationInput has no
+	// field for either, so both are written by the billing sync rather than at creation.
 	account.BillingStatus = types.UnpaidAccountBillingStatus
+	account.PaymentProcessorCustomerID = ""
 
 	// An address that holds together — a city in its own state, a zip in its own city —
 	// because the fields are read as one address by anything that formats or geocodes.

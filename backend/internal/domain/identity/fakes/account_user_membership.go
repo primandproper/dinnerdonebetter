@@ -8,7 +8,14 @@ import (
 
 // BuildFakeAccountUserMembership builds a faked AccountUserMembership.
 func BuildFakeAccountUserMembership() *types.AccountUserMembership {
-	return fake.BuildFakeRecord[types.AccountUserMembership]()
+	membership := fake.BuildFakeRecord[types.AccountUserMembership]()
+
+	// Which account a user defaults to is decided by MarkAccountUserMembershipAsUserDefault,
+	// not at creation — the creation input has no field for it, so a new membership is
+	// never the default one.
+	membership.DefaultAccount = false
+
+	return membership
 }
 
 // BuildFakeAccountUserMembershipWithUser builds a faked AccountUserMembershipWithUser.

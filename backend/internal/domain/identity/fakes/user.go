@@ -24,8 +24,16 @@ func BuildFakeUser() *identity.User {
 	user.Username = fmt.Sprintf("%s_%d_%s", gofakeit.Username(), gofakeit.Uint8(), gofakeit.Username())
 
 	// A user who has not verified their email yet, which is what a user who just
-	// registered is.
+	// registered is. The explanation goes with it: UserDatabaseCreationInput has no
+	// field for one, so registration always writes the empty string and only an admin
+	// setting a status later fills it in. A generated value here disagrees with every
+	// user read back out of the store.
 	user.AccountStatus = string(identity.UnverifiedAccountStatus)
+	user.AccountStatusExplanation = ""
+
+	// Registration never demands a password change; that flag is raised later, and the
+	// creation input has no field for it either.
+	user.RequiresPasswordChange = false
 
 	// The TOTP secret is decoded as base32 by everything that checks a code against it,
 	// so a random string is one every login test fails on.
