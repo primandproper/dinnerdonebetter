@@ -14,7 +14,10 @@ import (
 )
 
 const archiveValidPreparation = `-- name: ArchiveValidPreparation :execrows
-UPDATE valid_preparations SET archived_at = NOW() WHERE archived_at IS NULL AND id = $1
+UPDATE valid_preparations SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
 `
 
 func (q *Queries) ArchiveValidPreparation(ctx context.Context, db DBTX, id string) (int64, error) {

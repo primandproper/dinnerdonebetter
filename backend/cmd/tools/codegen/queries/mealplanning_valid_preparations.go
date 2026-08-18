@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/primandproper/platform-go/v11/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -48,63 +51,18 @@ func buildValidPreparationsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		insertColumns := filterForInsert(validPreparationsColumns)
-
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "ArchiveValidPreparation",
-					Type: ExecRowsType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s IS NULL AND %s = sqlc.arg(%s);`,
-					validPreparationsTableName,
-					archivedAtColumn,
-					currentTimeExpression,
-					archivedAtColumn,
-					idColumn,
-					idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateValidPreparation",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					validPreparationsTableName,
-					strings.Join(insertColumns, ",\n\t"),
-					strings.Join(applyToEach(insertColumns, func(i int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CheckValidPreparationExistence",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS (
-	SELECT %s.%s
-	FROM %s
-	WHERE %s.%s IS NULL
-		AND %s.%s = sqlc.arg(%s)
-);`,
-					validPreparationsTableName, idColumn,
-					validPreparationsTableName,
-					validPreparationsTableName, archivedAtColumn,
-					validPreparationsTableName, idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetValidPreparations",
-					Type: ManyType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+		return slices.Concat(
+			querygen.StandardCRUD(validPreparationsTableName, validPreparationsColumns,
+				querygen.WithEntity("ValidPreparation", "ValidPreparations"),
+				querygen.WithOmitted(querygen.ListQuery),
+			),
+			[]*Query{
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetValidPreparations",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -114,106 +72,81 @@ WHERE
 	%s
 GROUP BY %s.%s
 %s;`,
-					strings.Join(applyToEach(validPreparationsColumns, func(i int, s string) string {
-						return fmt.Sprintf("%s.%s", validPreparationsTableName, s)
-					}), ",\n\t"),
-					buildFilterCountSelect(validPreparationsTableName, true, true, []string{}),
-					buildTotalCountSelect(validPreparationsTableName, true, []string{}),
-					validPreparationsTableName,
-					validPreparationsTableName, archivedAtColumn,
-					buildFilterConditions(
+						strings.Join(applyToEach(validPreparationsColumns, func(i int, s string) string {
+							return fmt.Sprintf("%s.%s", validPreparationsTableName, s)
+						}), ",\n\t"),
+						buildFilterCountSelect(validPreparationsTableName, true, true, []string{}),
+						buildTotalCountSelect(validPreparationsTableName, true, []string{}),
 						validPreparationsTableName,
-						true,
-						true,
-					),
-					validPreparationsTableName, idColumn, buildCursorLimitClause(validPreparationsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "ScanValidPreparationIDsForReindex",
-					Type: ManyType,
+						validPreparationsTableName, archivedAtColumn,
+						buildFilterConditions(
+							validPreparationsTableName,
+							true,
+							true,
+						),
+						validPreparationsTableName, idColumn, buildCursorLimitClause(validPreparationsTableName),
+					)),
 				},
-				Content: buildReindexScanQuery(validPreparationsTableName),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetValidPreparationsNeedingIndexing",
-					Type: ManyType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT %s.%s
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetValidPreparationsNeedingIndexing",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT %s.%s
 FROM %s
 WHERE %s.%s IS NULL
 	AND (
 	%s.%s IS NULL
 	OR %s.%s < %s - '24 hours'::INTERVAL
 );`,
-					validPreparationsTableName, idColumn,
-					validPreparationsTableName,
-					validPreparationsTableName, archivedAtColumn,
-					validPreparationsTableName, lastIndexedAtColumn,
-					validPreparationsTableName, lastIndexedAtColumn, currentTimeExpression,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetValidPreparation",
-					Type: OneType,
+						validPreparationsTableName, idColumn,
+						validPreparationsTableName,
+						validPreparationsTableName, archivedAtColumn,
+						validPreparationsTableName, lastIndexedAtColumn,
+						validPreparationsTableName, lastIndexedAtColumn, currentTimeExpression,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
-	%s
-FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(applyToEach(validPreparationsColumns, func(i int, s string) string {
-						return fmt.Sprintf("%s.%s", validPreparationsTableName, s)
-					}), ",\n\t"),
-					validPreparationsTableName,
-					validPreparationsTableName, archivedAtColumn,
-					validPreparationsTableName, idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetRandomValidPreparation",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetRandomValidPreparation",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 WHERE %s.%s IS NULL
 ORDER BY RANDOM() LIMIT 1;`,
-					strings.Join(applyToEach(validPreparationsColumns, func(i int, s string) string {
-						return fmt.Sprintf("%s.%s", validPreparationsTableName, s)
-					}), ",\n\t"),
-					validPreparationsTableName,
-					validPreparationsTableName, archivedAtColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetValidPreparationsWithIDs",
-					Type: ManyType,
+						strings.Join(applyToEach(validPreparationsColumns, func(i int, s string) string {
+							return fmt.Sprintf("%s.%s", validPreparationsTableName, s)
+						}), ",\n\t"),
+						validPreparationsTableName,
+						validPreparationsTableName, archivedAtColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetValidPreparationsWithIDs",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 WHERE %s.%s IS NULL
 	AND %s.%s = ANY(sqlc.arg(ids)::text[]);`,
-					strings.Join(applyToEach(validPreparationsColumns, func(i int, s string) string {
-						return fmt.Sprintf("%s.%s", validPreparationsTableName, s)
-					}), ",\n\t"),
-					validPreparationsTableName,
-					validPreparationsTableName, archivedAtColumn,
-					validPreparationsTableName, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "SearchForValidPreparations",
-					Type: ManyType,
+						strings.Join(applyToEach(validPreparationsColumns, func(i int, s string) string {
+							return fmt.Sprintf("%s.%s", validPreparationsTableName, s)
+						}), ",\n\t"),
+						validPreparationsTableName,
+						validPreparationsTableName, archivedAtColumn,
+						validPreparationsTableName, idColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "SearchForValidPreparations",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -222,59 +155,41 @@ WHERE %s.%s IS NULL
 	AND %s.%s %s
 	%s
 %s;`,
-					strings.Join(applyToEach(validPreparationsColumns, func(i int, s string) string {
-						return fmt.Sprintf("%s.%s", validPreparationsTableName, s)
-					}), ",\n\t"),
-					buildFilterCountSelect(validPreparationsTableName, true, true, []string{}),
-					buildTotalCountSelect(validPreparationsTableName, true, []string{}),
-					validPreparationsTableName,
-					validPreparationsTableName,
-					archivedAtColumn,
-					validPreparationsTableName,
-					nameColumn,
-					buildILIKEForArgument("name_query"),
-					buildFilterConditions(
+						strings.Join(applyToEach(validPreparationsColumns, func(i int, s string) string {
+							return fmt.Sprintf("%s.%s", validPreparationsTableName, s)
+						}), ",\n\t"),
+						buildFilterCountSelect(validPreparationsTableName, true, true, []string{}),
+						buildTotalCountSelect(validPreparationsTableName, true, []string{}),
 						validPreparationsTableName,
-						true,
-						true,
-					),
-					buildCursorLimitClause(validPreparationsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "UpdateValidPreparation",
-					Type: ExecRowsType,
+						validPreparationsTableName,
+						archivedAtColumn,
+						validPreparationsTableName,
+						nameColumn,
+						buildILIKEForArgument("name_query"),
+						buildFilterConditions(
+							validPreparationsTableName,
+							true,
+							true,
+						),
+						buildCursorLimitClause(validPreparationsTableName),
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
-	%s,
-	%s = %s
-WHERE %s IS NULL
-	AND %s = sqlc.arg(%s);`,
-					validPreparationsTableName,
-					strings.Join(applyToEach(filterForUpdate(validPreparationsColumns), func(i int, s string) string {
-						return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
-					}), ",\n\t"),
-					lastUpdatedAtColumn, currentTimeExpression,
-					archivedAtColumn,
-					idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "UpdateValidPreparationLastIndexedAt",
-					Type: ExecRowsType,
+				{
+					Annotation: QueryAnnotation{
+						Name: "UpdateValidPreparationLastIndexedAt",
+						Type: ExecRowsType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s = sqlc.arg(%s) AND %s IS NULL;`,
+						validPreparationsTableName,
+						lastIndexedAtColumn,
+						currentTimeExpression,
+						idColumn,
+						idColumn,
+						archivedAtColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s = sqlc.arg(%s) AND %s IS NULL;`,
-					validPreparationsTableName,
-					lastIndexedAtColumn,
-					currentTimeExpression,
-					idColumn,
-					idColumn,
-					archivedAtColumn,
-				)),
 			},
-		}
+		)
 	default:
 		return nil
 	}

@@ -1,34 +1,24 @@
 package main
 
 import (
-	"fmt"
-	"strings"
+	"github.com/primandproper/platform-go/v11/database/querygen"
 )
 
-type QueryType string
+// The sqlc input types live in platform's querygen, which emits the standard
+// queries as values of them. Aliasing rather than converting is what lets a
+// table's bespoke queries and its StandardCRUD call go into the same slice.
+type (
+	// QueryType is the sqlc annotation suffix declaring what a query returns.
+	QueryType = querygen.QueryType
+	// QueryAnnotation is the `-- name: X :one` line sqlc reads above a query.
+	QueryAnnotation = querygen.QueryAnnotation
+	// Query is one annotated statement.
+	Query = querygen.Query
+)
 
 const (
-	ExecType     QueryType = ":exec"
-	ExecRowsType QueryType = ":execrows"
-	ManyType     QueryType = ":many"
-	OneType      QueryType = ":one"
+	ExecType     = querygen.ExecType
+	ExecRowsType = querygen.ExecRowsType
+	ManyType     = querygen.ManyType
+	OneType      = querygen.OneType
 )
-
-type QueryAnnotation struct {
-	Name string
-	Type QueryType
-}
-
-type Query struct {
-	Content    string
-	Annotation QueryAnnotation
-}
-
-func (q *Query) Render() string {
-	content := q.Content
-	if !strings.HasSuffix(content, ";") {
-		content += ";"
-	}
-
-	return fmt.Sprintf("-- name: %s %s\n%s\n", q.Annotation.Name, q.Annotation.Type, content)
-}

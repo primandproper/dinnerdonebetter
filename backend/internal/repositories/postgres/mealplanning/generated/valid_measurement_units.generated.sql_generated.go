@@ -14,7 +14,10 @@ import (
 )
 
 const archiveValidMeasurementUnit = `-- name: ArchiveValidMeasurementUnit :execrows
-UPDATE valid_measurement_units SET archived_at = NOW() WHERE archived_at IS NULL AND id = $1
+UPDATE valid_measurement_units SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
 `
 
 func (q *Queries) ArchiveValidMeasurementUnit(ctx context.Context, db DBTX, id string) (int64, error) {
@@ -310,7 +313,7 @@ SELECT
 	valid_measurement_units.archived_at
 FROM valid_measurement_units
 WHERE valid_measurement_units.archived_at IS NULL
-AND valid_measurement_units.id = $1
+	AND valid_measurement_units.id = $1
 `
 
 type GetValidMeasurementUnitRow struct {
