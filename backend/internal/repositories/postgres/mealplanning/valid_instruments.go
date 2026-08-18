@@ -6,9 +6,7 @@ import (
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v10/database"
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -373,7 +371,7 @@ func (q *repository) CreateValidInstrument(ctx context.Context, input *types.Val
 			DisplayInSummaryLists:          input.DisplayInSummaryLists,
 			IncludeInGeneratedInstructions: input.IncludeInGeneratedInstructions,
 		})
-	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeValidInstruments, input.ID)); err != nil {
+	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid instrument creation query")
 	}
 
@@ -422,7 +420,7 @@ func (q *repository) UpdateValidInstrument(ctx context.Context, updated *types.V
 		})
 
 		return updateErr
-	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeValidInstruments, updated.ID)); err != nil {
+	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid instrument")
 	}
 
@@ -479,5 +477,5 @@ func (q *repository) ArchiveValidInstrument(ctx context.Context, validInstrument
 		}
 
 		return nil
-	}, events.WithIndexDelete(mealplanningindexing.IndexTypeValidInstruments, validInstrumentID))
+	})
 }

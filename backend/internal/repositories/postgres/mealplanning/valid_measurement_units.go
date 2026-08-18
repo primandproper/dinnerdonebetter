@@ -6,9 +6,7 @@ import (
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v10/database"
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -392,7 +390,7 @@ func (q *repository) CreateValidMeasurementUnit(ctx context.Context, input *type
 			Metric:      input.Metric,
 			Imperial:    input.Imperial,
 		})
-	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeValidMeasurementUnits, input.ID)); err != nil {
+	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid measurement unit creation query")
 	}
 
@@ -443,7 +441,7 @@ func (q *repository) UpdateValidMeasurementUnit(ctx context.Context, updated *ty
 		})
 
 		return updateErr
-	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeValidMeasurementUnits, updated.ID)); err != nil {
+	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid measurement unit")
 	}
 
@@ -500,5 +498,5 @@ func (q *repository) ArchiveValidMeasurementUnit(ctx context.Context, validMeasu
 		}
 
 		return nil
-	}, events.WithIndexDelete(mealplanningindexing.IndexTypeValidMeasurementUnits, validMeasurementUnitID))
+	})
 }

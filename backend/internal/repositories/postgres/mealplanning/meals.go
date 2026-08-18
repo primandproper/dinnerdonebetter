@@ -9,9 +9,7 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v10/database"
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -649,7 +647,7 @@ func (q *repository) CreateMeal(ctx context.Context, input *mealplanning.MealDat
 		// rows it describes.
 		if emitErr := q.events.Emit(ctx, tx, q.logger, mealplanning.MealCreatedServiceEventType, "", map[string]any{
 			mealplanningkeys.MealIDKey: input.ID,
-		}, events.WithIndexUpsert(mealplanningindexing.IndexTypeMeals, input.ID)); emitErr != nil {
+		}); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
@@ -749,7 +747,7 @@ func (q *repository) ArchiveMeal(ctx context.Context, mealID, userID string) err
 		}
 
 		return nil
-	}, events.WithIndexDelete(mealplanningindexing.IndexTypeMeals, mealID)); err != nil {
+	}); err != nil {
 		return err
 	}
 

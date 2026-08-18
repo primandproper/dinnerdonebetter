@@ -38,6 +38,9 @@ import (
 type Emitter struct {
 	writer     *outbox.Writer
 	dispatcher *webhookdispatch.Dispatcher
+	// sideEffect is the same effect registered on the writer, kept so EmitIndex can run it
+	// over a message it never enqueues. See index_events.go.
+	sideEffect outbox.SideEffect
 	topic      string
 }
 
@@ -49,12 +52,12 @@ type Emitter struct {
 //
 // The dispatcher is separately optional and separately nil-safe, for the same reason at a
 // different granularity: a process with an outbox but no webhook tables still emits events.
-func NewEmitter(writer *outbox.Writer, topic string, dispatcher *webhookdispatch.Dispatcher) *Emitter {
+func NewEmitter(writer *outbox.Writer, topic string, dispatcher *webhookdispatch.Dispatcher, sideEffect outbox.SideEffect) *Emitter {
 	if writer == nil || topic == "" {
 		return nil
 	}
 
-	return &Emitter{writer: writer, topic: topic, dispatcher: dispatcher}
+	return &Emitter{writer: writer, topic: topic, dispatcher: dispatcher, sideEffect: sideEffect}
 }
 
 // EmitOption customizes one Emit.
@@ -62,9 +65,6 @@ type EmitOption func(*emitConfig)
 
 type emitConfig struct {
 	orderingKey string
-	// indexEvents are the search index events this write implies, already rendered as outbox
-	// messages bound for their index's topic. See index_events.go.
-	indexEvents []outbox.Message
 }
 
 // WithOrderingKey sets the webhook ordering key for this event, overriding the default of the
@@ -116,23 +116,21 @@ func (e *Emitter) Emit(ctx context.Context, q database.SQLQueryExecutor, logger 
 		}
 	}
 
-	// The data change event and every index event the same write implies are enqueued
-	// together, in one statement, inside the caller's transaction. That is what keeps a
-	// search index from diverging from the row the way it could when index events were
-	// published by a consumer downstream of the broker: there, the row committed and the
-	// index event was a second, unrelated write that could fail on its own, and nothing
-	// noticed until the next reindex.
-	msgs := make([]outbox.Message, 0, 1+len(cfg.indexEvents))
-	msgs = append(msgs, outbox.Message{
+	// The data change event is enqueued inside the caller's transaction, and the registered
+	// side effect derives this write's index events from it in the same statement. That is what
+	// keeps a search index from diverging from the row the way it could when index events were
+	// published by a consumer downstream of the broker: there, the row committed and the index
+	// event was a second, unrelated write that could fail on its own, and nothing noticed until
+	// the next reindex.
+	msg2 := outbox.Message{
 		Topic:   e.topic,
 		Payload: msg,
 		// Ordering is per account: two events for the same account publish in the order
 		// they were written, and events for different accounts do not wait on each other.
 		Key: msg.AccountID,
-	})
-	msgs = append(msgs, cfg.indexEvents...)
+	}
 
-	if err := e.writer.Enqueue(ctx, q, msgs...); err != nil {
+	if err := e.writer.Enqueue(ctx, q, msg2); err != nil {
 		return err
 	}
 

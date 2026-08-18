@@ -3,8 +3,10 @@ package events
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+
 	"github.com/primandproper/platform-go/v10/database"
-	searchsync "github.com/primandproper/platform-go/v10/search/sync"
+	"github.com/primandproper/platform-go/v10/outbox"
 )
 
 /*
@@ -26,55 +28,41 @@ The topic is the index: platform-go says which index an event belongs to by wher
 because a searchsync.Event carries a document ID and an operation and nothing else. The
 document ID becomes the outbox key, which is what buys per-document ordering — at most one
 event per document is ever in flight, however many relays are running.
+
+# Where the events come from
+
+Nothing here decides which write feeds which index. That is a registered outbox side effect,
+supplied at construction, and it derives the index events from the data change messages this
+Emitter already sends. It used to be an EmitOption every call site passed by hand, which made a
+thing every write owes into a thing a call site could forget.
 */
 
-// WithIndexUpsert says this write left a row that the index named by topic should hold.
-//
-// topic is the index's name, which the indexing packages declare as their IndexType constants;
-// documentID is the row's ID, which must be the ID the index holds the document under.
-func WithIndexUpsert(topic, documentID string) EmitOption {
-	return withIndexEvent(topic, documentID, searchsync.OpUpsert)
-}
-
-// WithIndexDelete says this write removed the row, so the index should stop holding it.
-//
-// Archival counts as removal: an archived row is one the search index must not return, and the
-// Syncer applies a delete without reading anything back.
-func WithIndexDelete(topic, documentID string) EmitOption {
-	return withIndexEvent(topic, documentID, searchsync.OpDelete)
-}
-
-func withIndexEvent(topic, documentID string, op searchsync.Op) EmitOption {
-	return func(c *emitConfig) {
-		c.indexEvents = append(c.indexEvents, searchsync.NewEvent(op, documentID).Message(topic))
-	}
-}
-
-// EmitIndex enqueues index events for a write that emits no data change event of its own.
+// EmitIndex enqueues the index events a trigger implies, without announcing anything.
 //
 // Emit is the usual path, because a write worth indexing is nearly always a write worth
-// announcing, and passing the index event as an option to it keeps the two from being written
-// apart. This exists for the writes where that is not true — where announcing the change would
-// put an event on the wire that nothing puts there today, which is a decision about the public
-// event stream rather than about the index.
+// announcing, and the side effect derives the index event from the announcement. This exists for
+// the writes where that is not true — where putting the event on the wire would be a decision
+// about the public event stream rather than about the index.
 //
-// It takes the same EmitOptions as Emit and reads only the index ones, so a call site does not
-// have to know which of the two it is using.
-func (e *Emitter) EmitIndex(ctx context.Context, q database.SQLQueryExecutor, opts ...EmitOption) error {
-	if e == nil {
+// It runs the same side effect over the same shape of message, so such a write reads out of the
+// same table as every other. The message itself is never enqueued; only what the effect derives
+// from it is.
+func (e *Emitter) EmitIndex(ctx context.Context, q database.SQLQueryExecutor, trigger string, metadata map[string]any) error {
+	if e == nil || e.sideEffect == nil {
 		return nil
 	}
 
-	cfg := &emitConfig{}
-	for _, opt := range opts {
-		if opt != nil {
-			opt(cfg)
-		}
+	derived, err := e.sideEffect(ctx, q, []outbox.Message{{
+		Topic:   e.topic,
+		Payload: &audit.DataChangeMessage{EventType: trigger, Context: metadata},
+	}})
+	if err != nil {
+		return err
 	}
 
-	if len(cfg.indexEvents) == 0 {
+	if len(derived) == 0 {
 		return nil
 	}
 
-	return e.writer.Enqueue(ctx, q, cfg.indexEvents...)
+	return e.writer.Enqueue(ctx, q, derived...)
 }

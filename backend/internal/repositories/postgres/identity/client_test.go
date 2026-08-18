@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
@@ -92,10 +93,10 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 
 	// A real emitter, so the tests exercise the same path production does: the data change
 	// event and the search index event are further statements in the repository's transaction.
-	outboxWriter, err := outbox.NewWriter(dialect.Postgres, outbox.WithWriterLogger(loggingnoop.NewLogger()))
+	outboxWriter, err := outbox.NewWriter(dialect.Postgres, outbox.WithWriterLogger(loggingnoop.NewLogger()), outbox.WithWriterSideEffect(indexevents.SideEffectName, indexevents.SideEffect))
 	require.NoError(t, err)
 
-	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, pgc, events.NewEmitter(outboxWriter, testDataChangesTopic, nil))
+	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, pgc, events.NewEmitter(outboxWriter, testDataChangesTopic, nil, indexevents.SideEffect))
 	require.NoError(t, err)
 
 	return c.(*repository), auditLogRepo

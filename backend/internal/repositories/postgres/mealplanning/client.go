@@ -66,22 +66,21 @@ func ProvideMealPlanningRepository(
 // The enumeration tables (valid ingredients, vessels, preparations, and friends) are global
 // catalog data owned by no account, so they pass "".
 //
-// opts come after the write because Go puts the variadic parameter last. A write to an indexed
-// table passes events.WithIndexUpsert or events.WithIndexDelete here, which is what puts the
-// search index event in the same transaction as the row.
+// It takes no EmitOptions. It used to, so that a write to an indexed table could pass the search
+// index event as one — which made a thing every such write owes into a thing a call site could
+// forget. That obligation is registered on the outbox writer now; see internal/indexevents.
 func (q *repository) withEvent(
 	ctx context.Context,
 	logger logging.Logger,
 	eventType, accountID string,
 	metadata map[string]any,
 	write func(tx database.SQLQueryExecutor) error,
-	opts ...events.EmitOption,
 ) error {
 	return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 		if err := write(tx); err != nil {
 			return err
 		}
 
-		return q.events.Emit(ctx, tx, logger, eventType, accountID, metadata, opts...)
+		return q.events.Emit(ctx, tx, logger, eventType, accountID, metadata)
 	})
 }

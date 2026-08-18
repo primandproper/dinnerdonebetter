@@ -7,9 +7,7 @@ import (
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v10/database"
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -416,7 +414,7 @@ func (q *repository) CreateValidVessel(ctx context.Context, input *types.ValidVe
 			DisplayInSummaryLists:          input.DisplayInSummaryLists,
 			UsableForStorage:               input.UsableForStorage,
 		})
-	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeValidVessels, input.ID)); err != nil {
+	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid vessel creation query")
 	}
 
@@ -485,7 +483,7 @@ func (q *repository) UpdateValidVessel(ctx context.Context, updated *types.Valid
 		})
 
 		return updateErr
-	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeValidVessels, updated.ID)); err != nil {
+	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating valid vessel")
 	}
 
@@ -542,5 +540,5 @@ func (q *repository) ArchiveValidVessel(ctx context.Context, validVesselID strin
 		}
 
 		return nil
-	}, events.WithIndexDelete(mealplanningindexing.IndexTypeValidVessels, validVesselID))
+	})
 }
