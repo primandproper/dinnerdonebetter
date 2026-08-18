@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -164,7 +165,7 @@ func TestValidEnumerationManager_SearchValidPreparationInstrumentsByPreparation(
 		vem := buildValidEnumerationsManagerForTest(t)
 
 		expected := fakes.BuildFakeValidPreparationInstrumentsList()
-		exampleQuery := fakes.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetValidPreparationInstrumentsForPreparationFunc: func(_ context.Context, preparationID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPreparationInstrument], error) {
@@ -193,7 +194,7 @@ func TestValidEnumerationManager_SearchValidPreparationInstrumentsByInstrument(T
 		vem := buildValidEnumerationsManagerForTest(t)
 
 		expected := fakes.BuildFakeValidPreparationInstrumentsList()
-		exampleQuery := fakes.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetValidPreparationInstrumentsForInstrumentFunc: func(_ context.Context, instrumentID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPreparationInstrument], error) {

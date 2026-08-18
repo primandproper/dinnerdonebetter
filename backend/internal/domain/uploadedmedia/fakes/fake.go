@@ -3,46 +3,51 @@ package fakes
 import (
 	uploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
-	"github.com/primandproper/platform-go/v11/identifiers"
+	"github.com/primandproper/platform-go/v11/fake"
+	"github.com/primandproper/platform-go/v11/pointer"
 
-	fake "github.com/brianvoe/gofakeit/v7"
+	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
 
 // BuildFakeUploadedMedia builds a fake UploadedMedia.
 func BuildFakeUploadedMedia() *uploadedmedia.UploadedMedia {
-	return &uploadedmedia.UploadedMedia{
-		ID:            identifiers.New(),
-		StoragePath:   fake.URL(),
-		MimeType:      uploadedmedia.MimeTypeImagePNG,
-		CreatedByUser: identifiers.New(),
-	}
+	media := fake.BuildFakeRecord[uploadedmedia.UploadedMedia]()
+
+	// A MIME type is a value the uploads path matches against a list of the ones it
+	// accepts, and a storage path is a URL something later fetches.
+	media.MimeType = uploadedmedia.MimeTypeImagePNG
+	media.StoragePath = gofakeit.URL()
+
+	return media
 }
 
 // BuildFakeUploadedMediaCreationRequestInput builds a fake UploadedMediaCreationRequestInput.
 func BuildFakeUploadedMediaCreationRequestInput() *uploadedmedia.UploadedMediaCreationRequestInput {
-	return &uploadedmedia.UploadedMediaCreationRequestInput{
-		StoragePath: fake.URL(),
-		MimeType:    uploadedmedia.MimeTypeImagePNG,
-	}
+	input := fake.BuildFakeRecord[uploadedmedia.UploadedMediaCreationRequestInput]()
+	input.MimeType = uploadedmedia.MimeTypeImagePNG
+	input.StoragePath = gofakeit.URL()
+
+	return input
 }
 
 // BuildFakeUploadedMediaDatabaseCreationInput builds a fake UploadedMediaDatabaseCreationInput.
 func BuildFakeUploadedMediaDatabaseCreationInput() *uploadedmedia.UploadedMediaDatabaseCreationInput {
-	return &uploadedmedia.UploadedMediaDatabaseCreationInput{
-		ID:            identifiers.New(),
-		StoragePath:   fake.URL(),
-		MimeType:      uploadedmedia.MimeTypeImagePNG,
-		CreatedByUser: identifiers.New(),
-	}
+	input := fake.BuildFakeRecord[uploadedmedia.UploadedMediaDatabaseCreationInput]()
+	input.MimeType = uploadedmedia.MimeTypeImagePNG
+	input.StoragePath = gofakeit.URL()
+
+	return input
 }
 
 // BuildFakeUploadedMediaUpdateRequestInput builds a fake UploadedMediaUpdateRequestInput.
+//
+// Both fields are optional, and an update input whose fields are all absent updates
+// nothing, so they are filled here rather than left to BuildFakeRecord. The JPEG is
+// deliberately not the PNG the builders above use: an update that changes nothing is
+// an update whose effect no assertion can see.
 func BuildFakeUploadedMediaUpdateRequestInput() *uploadedmedia.UploadedMediaUpdateRequestInput {
-	storagePath := fake.URL()
-	mimeType := uploadedmedia.MimeTypeImageJPEG
-
 	return &uploadedmedia.UploadedMediaUpdateRequestInput{
-		StoragePath: &storagePath,
-		MimeType:    &mimeType,
+		StoragePath: pointer.To(gofakeit.URL()),
+		MimeType:    pointer.To(uploadedmedia.MimeTypeImageJPEG),
 	}
 }

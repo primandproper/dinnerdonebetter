@@ -10,6 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -107,7 +108,7 @@ func TestQuerier_UserIngredientPreferenceExists(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUserID := fakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		c := buildInertClientForTest(t)
 
@@ -120,7 +121,7 @@ func TestQuerier_UserIngredientPreferenceExists(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUserIngredientPreferenceID := fakes.BuildFakeID()
+		exampleUserIngredientPreferenceID := fake.BuildFakeID()
 
 		c := buildInertClientForTest(t)
 
@@ -137,7 +138,7 @@ func TestQuerier_GetUserIngredientPreference(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUserID := fakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetUserIngredientPreference(ctx, "", exampleUserID)
@@ -181,7 +182,7 @@ func TestQuerier_ArchiveUserIngredientPreference(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUserID := fakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 		c := buildInertClientForTest(t)
 
 		assert.Error(t, c.ArchiveUserIngredientPreference(ctx, "", exampleUserID))

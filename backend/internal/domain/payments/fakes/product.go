@@ -3,56 +3,46 @@ package fakes
 import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v11/pointer"
 
-	fake "github.com/brianvoe/gofakeit/v7"
+	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
 
 // BuildFakeProduct builds a faked product.
 func BuildFakeProduct() *types.Product {
-	interval := int32(fake.Number(1, 12))
-	return &types.Product{
-		ID:                    BuildFakeID(),
-		Name:                  buildUniqueString(),
-		Description:           buildUniqueString(),
-		Kind:                  types.ProductKindRecurring,
-		AmountCents:           int32(fake.Number(100, 10000)),
-		Currency:              "usd",
-		BillingIntervalMonths: &interval,
-		ExternalProductID:     buildUniqueString(),
-		CreatedAt:             BuildFakeTime(),
-	}
+	product := fake.BuildFakeRecord[types.Product]()
+
+	// A recurring product is the one with the extra rule — its billing interval is
+	// required and has to be at least a month — so it is the kind worth defaulting to.
+	product.Kind = types.ProductKindRecurring
+	product.BillingIntervalMonths = pointer.To(int32(gofakeit.Number(1, 12)))
+
+	// A currency code, which is three letters from a list rather than any string.
+	product.Currency = "usd"
+
+	product.AmountCents = int32(gofakeit.Number(100, 10000))
+
+	return product
 }
 
 // BuildFakeProductList builds a faked Product list.
 func BuildFakeProductList() *filtering.QueryFilteredResult[types.Product] {
-	var examples []*types.Product
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeProduct())
-	}
-
-	return &filtering.QueryFilteredResult[types.Product]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeProduct)
 }
 
 // BuildFakeProductCreationRequestInput builds a faked ProductCreationRequestInput.
 func BuildFakeProductCreationRequestInput() *types.ProductCreationRequestInput {
 	product := BuildFakeProduct()
-	interval := int32(1)
+
 	return &types.ProductCreationRequestInput{
 		Name:                  product.Name,
 		Description:           product.Description,
 		Kind:                  product.Kind,
 		AmountCents:           product.AmountCents,
 		Currency:              product.Currency,
-		BillingIntervalMonths: &interval,
+		BillingIntervalMonths: product.BillingIntervalMonths,
 		ExternalProductID:     product.ExternalProductID,
 	}
 }

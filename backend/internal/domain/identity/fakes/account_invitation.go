@@ -4,56 +4,51 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v11/pointer"
 
-	fake "github.com/brianvoe/gofakeit/v7"
+	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
 
 // BuildFakeAccountInvitation builds a faked AccountInvitation.
 func BuildFakeAccountInvitation() *types.AccountInvitation {
-	return &types.AccountInvitation{
-		FromUser:           *BuildFakeUser(),
-		ToEmail:            fake.Email(),
-		ToName:             buildUniqueString(),
-		ToUser:             func(s string) *string { return &s }(buildUniqueString()),
-		Note:               buildUniqueString(),
-		StatusNote:         buildUniqueString(),
-		Token:              fake.UUID(),
-		DestinationAccount: *BuildFakeAccount(),
-		ID:                 BuildFakeID(),
-		ExpiresAt:          BuildFakeTime(),
-		Status:             string(types.PendingAccountInvitationStatus),
-		CreatedAt:          BuildFakeTime(),
-	}
+	invitation := fake.BuildFakeRecord[types.AccountInvitation]()
+
+	// The invitation is delivered by email, and it is addressed to someone who may not
+	// have an account yet — so the address is validated as one and the user is optional.
+	invitation.ToEmail = gofakeit.Email()
+	invitation.ToUser = pointer.To(fake.BuildFakeID())
+
+	// A token the accept path looks up by, and the status every invitation starts in.
+	invitation.Token = fake.BuildFakeString()
+	invitation.Status = string(types.PendingAccountInvitationStatus)
+
+	// The two whole records an invitation carries: who sent it, and what they are
+	// inviting someone into. BuildFakeRecord fills a nested struct too, but with one
+	// whose own constrained fields are random.
+	invitation.FromUser = *BuildFakeUser()
+	invitation.DestinationAccount = *BuildFakeAccount()
+
+	return invitation
 }
 
 // BuildFakeAccountInvitationsList builds a faked AccountInvitationList.
 func BuildFakeAccountInvitationsList() *filtering.QueryFilteredResult[types.AccountInvitation] {
-	var examples []*types.AccountInvitation
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeAccountInvitation())
-	}
-
-	return &filtering.QueryFilteredResult[types.AccountInvitation]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeAccountInvitation)
 }
 
+// BuildFakeAccountInvitationUpdateRequestInput builds a faked AccountInvitationUpdateRequestInput.
 func BuildFakeAccountInvitationUpdateRequestInput() *types.AccountInvitationUpdateRequestInput {
-	return &types.AccountInvitationUpdateRequestInput{
-		Token: BuildFakeID(),
-		Note:  fake.Sentence(3),
-	}
+	input := fake.BuildFakeRecord[types.AccountInvitationUpdateRequestInput]()
+	input.Token = fake.BuildFakeID()
+
+	return input
 }
 
-// BuildFakeAccountInvitationCreationRequestInput builds a faked AccountInvitationCreationRequestInput from a webhook.
+// BuildFakeAccountInvitationCreationRequestInput builds a faked AccountInvitationCreationRequestInput.
 func BuildFakeAccountInvitationCreationRequestInput() *types.AccountInvitationCreationRequestInput {
 	invitation := BuildFakeAccountInvitation()
+
 	return converters.ConvertAccountInvitationToAccountInvitationCreationInput(invitation)
 }

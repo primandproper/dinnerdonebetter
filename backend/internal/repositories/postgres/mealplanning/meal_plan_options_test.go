@@ -10,6 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -167,8 +168,8 @@ func TestQuerier_MealPlanOptionExists(T *testing.T) {
 
 		ctx := t.Context()
 
-		exampleMealPlanID := fakes.BuildFakeID()
-		exampleMealPlanEventID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
 
 		c := buildInertClientForTest(t)
 
@@ -197,8 +198,8 @@ func TestQuerier_GetMealPlanOption(T *testing.T) {
 	T.Run("with invalid meal plan option MealPlanTaskID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleMealPlanID := fakes.BuildFakeID()
-		exampleMealPlanEventID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -286,8 +287,8 @@ func TestQuerier_ArchiveMealPlanOption(T *testing.T) {
 	T.Run("with invalid meal plan option MealPlanTaskID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleMealPlanID := fakes.BuildFakeID()
-		exampleMealPlanEventID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -359,10 +360,10 @@ func Test_decideOptionWinner(T *testing.T) {
 	optionA := "eggs benedict"
 	optionB := "scrambled eggs"
 	optionC := "buttered toast"
-	userID1 := fakes.BuildFakeID()
-	userID2 := fakes.BuildFakeID()
-	userID3 := fakes.BuildFakeID()
-	userID4 := fakes.BuildFakeID()
+	userID1 := fake.BuildFakeID()
+	userID2 := fake.BuildFakeID()
+	userID3 := fake.BuildFakeID()
+	userID4 := fake.BuildFakeID()
 
 	T.Run("with clear winner", func(t *testing.T) {
 		t.Parallel()
@@ -525,12 +526,12 @@ func TestQuerier_Integration_MealPlanOptions_CursorBasedPagination(t *testing.T)
 	mealPlan.BelongsToAccount = account.ID
 
 	// Create event without any options
-	now := fakes.BuildFakeTime()
+	now := fake.BuildFakeTime()
 	inTenMinutes := now.Add(10 * time.Minute)
 	inOneWeek := now.Add(7 * 24 * time.Hour)
 	mealPlanEvent := &types.MealPlanEvent{
-		ID:                fakes.BuildFakeID(),
-		Notes:             fakes.BuildFakeID(),
+		ID:                fake.BuildFakeID(),
+		Notes:             fake.BuildFakeID(),
 		StartsAt:          inTenMinutes,
 		EndsAt:            inOneWeek,
 		MealName:          types.BreakfastMealName,

@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,8 +25,8 @@ func TestRecipeManager_ListRecipeStepVessels(T *testing.T) {
 		rm := buildRecipeManagerForTest(t)
 
 		expected := fakes.BuildFakeRecipeStepVesselsList()
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetRecipeStepVesselsFunc: func(_ context.Context, recipeID string, recipeStepID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeStepVessel], error) {
@@ -54,8 +55,8 @@ func TestRecipeManager_CreateRecipeStepVessel(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepVessel()
 		fakeInput := fakes.BuildFakeRecipeStepVesselCreationRequestInput()
 		fakeInput.Index = new(uint16(0))
@@ -92,8 +93,8 @@ func TestRecipeManager_ReadRecipeStepVessel(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepVessel()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -124,8 +125,8 @@ func TestRecipeManager_UpdateRecipeStepVessel(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		exampleRecipeStepVessel := fakes.BuildFakeRecipeStepVessel()
 		exampleInput := fakes.BuildFakeRecipeStepVesselUpdateRequestInput()
 
@@ -159,8 +160,8 @@ func TestRecipeManager_ArchiveRecipeStepVessel(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepVessel()
 
 		db := &mealplanningmock.RepositoryMock{

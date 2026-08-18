@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/pointer"
 
 	"github.com/stretchr/testify/assert"
@@ -79,7 +80,7 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 	// create an ad-hoc thaw task: no backing recipe prep task, so
 	// belongs_to_recipe_prep_task is persisted as NULL.
 	thawTaskInput := &types.MealPlanTaskDatabaseCreationInput{
-		ID:                  fakes.BuildFakeID(),
+		ID:                  fake.BuildFakeID(),
 		MealPlanOptionID:    mealPlan.Events[0].Options[0].ID,
 		CreationExplanation: "frozen ingredient might need to be thawed",
 		RecipePrepTaskID:    "",
@@ -105,7 +106,7 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 	// partial failure would be created a second time on the next run.
 	goodTaskInput := func() *types.MealPlanTaskDatabaseCreationInput {
 		return &types.MealPlanTaskDatabaseCreationInput{
-			ID:                  fakes.BuildFakeID(),
+			ID:                  fake.BuildFakeID(),
 			MealPlanOptionID:    mealPlan.Events[0].Options[0].ID,
 			CreationExplanation: t.Name(),
 		}
@@ -114,7 +115,7 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 	doomedTask := goodTaskInput()
 	// a nonexistent meal plan option trips the foreign key, so this input fails after the one
 	// before it has already been inserted.
-	doomedTask.MealPlanOptionID = fakes.BuildFakeID()
+	doomedTask.MealPlanOptionID = fake.BuildFakeID()
 
 	batched, err := dbc.CreateMealPlanTasksForMealPlan(ctx, mealPlan.ID, []*types.MealPlanTaskDatabaseCreationInput{goodTaskInput(), doomedTask})
 	require.Error(t, err)
@@ -167,7 +168,7 @@ func TestQuerier_MealPlanTaskExists(T *testing.T) {
 
 		ctx := t.Context()
 
-		exampleMealPlanTaskID := fakes.BuildFakeID()
+		exampleMealPlanTaskID := fake.BuildFakeID()
 
 		c := buildInertClientForTest(t)
 
@@ -181,7 +182,7 @@ func TestQuerier_MealPlanTaskExists(T *testing.T) {
 
 		ctx := t.Context()
 
-		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 
 		c := buildInertClientForTest(t)
 

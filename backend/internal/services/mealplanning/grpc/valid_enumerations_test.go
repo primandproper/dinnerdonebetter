@@ -36,7 +36,7 @@ func TestServiceImpl_ArchiveValidIngredient(T *testing.T) {
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
 
-		exampleValidIngredientID := mealplanningfakes.BuildFakeID()
+		exampleValidIngredientID := fake.BuildFakeID()
 
 		mvem := &mockmanagers.MealPlanningManagerMock{
 			ArchiveValidIngredientFunc: func(_ context.Context, validIngredientID string) error {
@@ -64,7 +64,7 @@ func TestServiceImpl_ArchiveValidIngredientGroup(T *testing.T) {
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
 
-		exampleValidIngredientGroupID := mealplanningfakes.BuildFakeID()
+		exampleValidIngredientGroupID := fake.BuildFakeID()
 
 		mvem := &mockmanagers.MealPlanningManagerMock{
 			ArchiveValidIngredientGroupFunc: func(_ context.Context, validIngredientGroupID string) error {
@@ -92,7 +92,7 @@ func TestServiceImpl_ArchiveValidIngredientMeasurementUnit(T *testing.T) {
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
 
-		exampleValidIngredientMeasurementUnitID := mealplanningfakes.BuildFakeID()
+		exampleValidIngredientMeasurementUnitID := fake.BuildFakeID()
 
 		mvem := &mockmanagers.MealPlanningManagerMock{
 			ArchiveValidIngredientMeasurementUnitFunc: func(_ context.Context, validIngredientMeasurementUnitID string) error {
@@ -120,7 +120,7 @@ func TestServiceImpl_ArchiveValidIngredientPreparation(T *testing.T) {
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
 
-		exampleValidIngredientPreparationID := mealplanningfakes.BuildFakeID()
+		exampleValidIngredientPreparationID := fake.BuildFakeID()
 
 		mvem := &mockmanagers.MealPlanningManagerMock{
 			ArchiveValidIngredientPreparationFunc: func(_ context.Context, validIngredientPreparationID string) error {
@@ -148,7 +148,7 @@ func TestServiceImpl_ArchiveValidPrepTaskConfig(T *testing.T) {
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
 
-		exampleValidPrepTaskConfigID := mealplanningfakes.BuildFakeID()
+		exampleValidPrepTaskConfigID := fake.BuildFakeID()
 
 		mvem := &mockmanagers.MealPlanningManagerMock{
 			ArchiveValidPrepTaskConfigFunc: func(_ context.Context, validPrepTaskConfigID string) error {
@@ -176,7 +176,7 @@ func TestServiceImpl_ArchiveValidIngredientState(T *testing.T) {
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
 
-		exampleValidIngredientStateID := mealplanningfakes.BuildFakeID()
+		exampleValidIngredientStateID := fake.BuildFakeID()
 
 		mvem := &mockmanagers.MealPlanningManagerMock{
 			ArchiveValidIngredientStateFunc: func(_ context.Context, validIngredientStateID string) error {
@@ -204,7 +204,7 @@ func TestServiceImpl_ArchiveValidIngredientStateIngredient(T *testing.T) {
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
 
-		exampleValidIngredientStateIngredientID := mealplanningfakes.BuildFakeID()
+		exampleValidIngredientStateIngredientID := fake.BuildFakeID()
 
 		mvem := &mockmanagers.MealPlanningManagerMock{
 			ArchiveValidIngredientStateIngredientFunc: func(_ context.Context, validIngredientStateIngredientID string) error {
@@ -232,7 +232,7 @@ func TestServiceImpl_ArchiveValidInstrument(T *testing.T) {
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
 
-		exampleValidInstrumentID := mealplanningfakes.BuildFakeID()
+		exampleValidInstrumentID := fake.BuildFakeID()
 
 		mvem := &mockmanagers.MealPlanningManagerMock{
 			ArchiveValidInstrumentFunc: func(_ context.Context, validInstrumentID string) error {
@@ -260,7 +260,7 @@ func TestServiceImpl_ArchiveValidMeasurementUnit(T *testing.T) {
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
 
-		exampleValidMeasurementUnitID := mealplanningfakes.BuildFakeID()
+		exampleValidMeasurementUnitID := fake.BuildFakeID()
 
 		mvem := &mockmanagers.MealPlanningManagerMock{
 			ArchiveValidMeasurementUnitFunc: func(_ context.Context, validMeasurementUnitID string) error {
@@ -288,7 +288,7 @@ func TestServiceImpl_ArchiveValidMeasurementUnitConversion(T *testing.T) {
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
 
-		exampleValidMeasurementUnitConversionID := mealplanningfakes.BuildFakeID()
+		exampleValidMeasurementUnitConversionID := fake.BuildFakeID()
 
 		mvem := &mockmanagers.MealPlanningManagerMock{
 			ArchiveValidMeasurementUnitConversionFunc: func(_ context.Context, validMeasurementUnitConversionID string) error {
@@ -316,7 +316,7 @@ func TestServiceImpl_ArchiveValidPreparation(T *testing.T) {
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
 
-		exampleValidPreparationID := mealplanningfakes.BuildFakeID()
+		exampleValidPreparationID := fake.BuildFakeID()
 
 		mvem := &mockmanagers.MealPlanningManagerMock{
 			ArchiveValidPreparationFunc: func(_ context.Context, validPreparationID string) error {
@@ -344,7 +344,7 @@ func TestServiceImpl_ArchiveValidPreparationInstrument(T *testing.T) {
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
 
-		exampleValidPreparationInstrumentID := mealplanningfakes.BuildFakeID()
+		exampleValidPreparationInstrumentID := fake.BuildFakeID()
 
 		mvem := &mockmanagers.MealPlanningManagerMock{
 			ArchiveValidPreparationInstrumentFunc: func(_ context.Context, validPreparationInstrumentID string) error {
@@ -372,7 +372,7 @@ func TestServiceImpl_ArchiveValidPreparationVessel(T *testing.T) {
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
 
-		exampleValidPreparationVesselID := mealplanningfakes.BuildFakeID()
+		exampleValidPreparationVesselID := fake.BuildFakeID()
 
 		mvem := &mockmanagers.MealPlanningManagerMock{
 			ArchiveValidPreparationVesselFunc: func(_ context.Context, validPreparationVesselID string) error {
@@ -400,7 +400,7 @@ func TestServiceImpl_ArchiveValidVessel(T *testing.T) {
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
 
-		exampleValidVesselID := mealplanningfakes.BuildFakeID()
+		exampleValidVesselID := fake.BuildFakeID()
 
 		mvem := &mockmanagers.MealPlanningManagerMock{
 			ArchiveValidVesselFunc: func(_ context.Context, validVesselID string) error {
@@ -1056,7 +1056,7 @@ func TestServiceImpl_GetValidIngredientMeasurementUnitsByIngredient(T *testing.T
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleID := mealplanningfakes.BuildFakeID()
+		exampleID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidIngredientMeasurementUnitsList()
 
 		ctx := t.Context()
@@ -1088,7 +1088,7 @@ func TestServiceImpl_GetValidIngredientMeasurementUnitsByMeasurementUnit(T *test
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleID := mealplanningfakes.BuildFakeID()
+		exampleID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidIngredientMeasurementUnitsList()
 
 		ctx := t.Context()
@@ -1175,7 +1175,7 @@ func TestServiceImpl_GetValidIngredientPreparationsByIngredient(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleID := mealplanningfakes.BuildFakeID()
+		exampleID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidIngredientPreparationsList()
 
 		ctx := t.Context()
@@ -1207,7 +1207,7 @@ func TestServiceImpl_GetValidIngredientPreparationsByPreparation(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleID := mealplanningfakes.BuildFakeID()
+		exampleID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidIngredientPreparationsList()
 
 		ctx := t.Context()
@@ -1294,7 +1294,7 @@ func TestServiceImpl_GetValidPrepTaskConfigsByIngredient(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleID := mealplanningfakes.BuildFakeID()
+		exampleID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidPrepTaskConfigsList()
 
 		ctx := t.Context()
@@ -1326,7 +1326,7 @@ func TestServiceImpl_GetValidPrepTaskConfigsByPreparation(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleID := mealplanningfakes.BuildFakeID()
+		exampleID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidPrepTaskConfigsList()
 
 		ctx := t.Context()
@@ -1358,8 +1358,8 @@ func TestServiceImpl_GetValidPrepTaskConfigsByIngredientAndPreparation(T *testin
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleIngredientID := mealplanningfakes.BuildFakeID()
-		examplePreparationID := mealplanningfakes.BuildFakeID()
+		exampleIngredientID := fake.BuildFakeID()
+		examplePreparationID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidPrepTaskConfigsList()
 
 		ctx := t.Context()
@@ -1476,7 +1476,7 @@ func TestServiceImpl_GetValidIngredientStateIngredientsByIngredient(T *testing.T
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleID := mealplanningfakes.BuildFakeID()
+		exampleID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidIngredientStateIngredientsList()
 
 		ctx := t.Context()
@@ -1508,7 +1508,7 @@ func TestServiceImpl_GetValidIngredientStateIngredientsByIngredientState(T *test
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleID := mealplanningfakes.BuildFakeID()
+		exampleID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidIngredientStateIngredientsList()
 
 		ctx := t.Context()
@@ -1705,7 +1705,7 @@ func TestServiceImpl_GetValidMeasurementUnitConversionsFromUnit(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleID := mealplanningfakes.BuildFakeID()
+		exampleID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidMeasurementUnitConversionsList()
 
 		ctx := t.Context()
@@ -1847,7 +1847,7 @@ func TestServiceImpl_GetValidPreparationInstrumentsByInstrument(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleID := mealplanningfakes.BuildFakeID()
+		exampleID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidPreparationInstrumentsList()
 
 		ctx := t.Context()
@@ -1879,7 +1879,7 @@ func TestServiceImpl_GetValidPreparationInstrumentsByPreparation(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleID := mealplanningfakes.BuildFakeID()
+		exampleID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidPreparationInstrumentsList()
 
 		ctx := t.Context()
@@ -1966,7 +1966,7 @@ func TestServiceImpl_GetValidPreparationVesselsByPreparation(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleID := mealplanningfakes.BuildFakeID()
+		exampleID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidPreparationVesselsList()
 
 		ctx := t.Context()
@@ -1998,7 +1998,7 @@ func TestServiceImpl_GetValidPreparationVesselsByVessel(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleID := mealplanningfakes.BuildFakeID()
+		exampleID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidPreparationVesselsList()
 
 		ctx := t.Context()

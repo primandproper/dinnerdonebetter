@@ -4,121 +4,94 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
-
-	fake "github.com/brianvoe/gofakeit/v7"
+	"github.com/primandproper/platform-go/v11/pointer"
 )
 
 // BuildFakeRecipeStep builds a faked recipe step.
 func BuildFakeRecipeStep() *types.RecipeStep {
-	recipeStepID := BuildFakeID()
+	step := fake.BuildFakeRecord[types.RecipeStep]()
 
-	var ingredients []*types.RecipeStepIngredient
+	step.Preparation = *BuildFakeValidPreparation()
+
+	// Two ranges rather than four independent numbers: a step that ends before it
+	// starts, or cools as it heats, is one no timer or thermometer check can satisfy.
+	minEstimatedTime := uint32(fake.BuildFakeNumber())
+	step.MinEstimatedTimeInSeconds = &minEstimatedTime
+	step.MaxEstimatedTimeInSeconds = pointer.To(minEstimatedTime + uint32(fake.BuildFakeNumber()))
+
+	minTemperature := float32(fake.BuildFakeNumber())
+	step.MinTemperatureInCelsius = &minTemperature
+	step.MaxTemperatureInCelsius = pointer.To(minTemperature + float32(fake.BuildFakeNumber()))
+
+	// A step every test has to account for, rather than one half of them may skip.
+	step.Optional = false
+
+	// Everything below belongs to this step. Their indices are assigned from their
+	// position by the converter during recipe creation, so they are left alone here.
+	ingredients := make([]*types.RecipeStepIngredient, 0, exampleQuantity)
 	for range exampleQuantity {
-		ing := BuildFakeRecipeStepIngredient()
-		ing.BelongsToRecipeStep = recipeStepID
-		// Index will be set from array index during recipe creation (via converter)
-		// OptionIndex is already 0 from the fake builder
-		ingredients = append(ingredients, ing)
+		ingredient := BuildFakeRecipeStepIngredient()
+		ingredient.BelongsToRecipeStep = step.ID
+		ingredients = append(ingredients, ingredient)
 	}
+	step.Ingredients = ingredients
 
-	var instruments []*types.RecipeStepInstrument
+	instruments := make([]*types.RecipeStepInstrument, 0, exampleQuantity)
 	for range exampleQuantity {
-		ing := BuildFakeRecipeStepInstrument()
-		ing.BelongsToRecipeStep = recipeStepID
-		// Index will be set from array index during recipe creation (via converter)
-		// OptionIndex is already 0 from the fake builder
-		instruments = append(instruments, ing)
+		instrument := BuildFakeRecipeStepInstrument()
+		instrument.BelongsToRecipeStep = step.ID
+		instruments = append(instruments, instrument)
 	}
+	step.Instruments = instruments
 
-	var vessels []*types.RecipeStepVessel
+	vessels := make([]*types.RecipeStepVessel, 0, exampleQuantity)
 	for range exampleQuantity {
-		ing := BuildFakeRecipeStepVessel()
-		ing.BelongsToRecipeStep = recipeStepID
-		// Index will be set from array index during recipe creation (via converter)
-		// OptionIndex is already 0 from the fake builder
-		vessels = append(vessels, ing)
+		vessel := BuildFakeRecipeStepVessel()
+		vessel.BelongsToRecipeStep = step.ID
+		vessels = append(vessels, vessel)
 	}
+	step.Vessels = vessels
 
-	var products []*types.RecipeStepProduct
+	products := make([]*types.RecipeStepProduct, 0, exampleQuantity)
 	for range exampleQuantity {
-		p := BuildFakeRecipeStepProduct()
-		p.BelongsToRecipeStep = recipeStepID
-		products = append(products, p)
+		product := BuildFakeRecipeStepProduct()
+		product.BelongsToRecipeStep = step.ID
+		products = append(products, product)
 	}
+	step.Products = products
 
-	completionConditionID := BuildFakeID()
-	completionConditions := []*types.RecipeStepCompletionCondition{
-		{
-			ID:                  completionConditionID,
-			BelongsToRecipeStep: recipeStepID,
-			IngredientState:     types.ValidIngredientState{},
-			Notes:               buildUniqueString(),
-			Ingredients: []*types.RecipeStepCompletionConditionIngredient{
-				{
-					ID:                                     BuildFakeID(),
-					BelongsToRecipeStepCompletionCondition: completionConditionID,
-					RecipeStepIngredient:                   ingredients[0].ID,
-				},
-			},
-			Optional: false,
-		},
-	}
+	// A condition naming one of the step's own ingredients, since a condition about an
+	// ingredient the step does not have is one that can never be met.
+	completionCondition := fake.BuildFakeRecord[types.RecipeStepCompletionCondition]()
+	completionCondition.BelongsToRecipeStep = step.ID
+	completionCondition.IngredientState = types.ValidIngredientState{}
+	completionCondition.Optional = false
+	conditionIngredient := fake.BuildFakeRecord[types.RecipeStepCompletionConditionIngredient]()
+	conditionIngredient.BelongsToRecipeStepCompletionCondition = completionCondition.ID
+	conditionIngredient.RecipeStepIngredient = ingredients[0].ID
+	completionCondition.Ingredients = []*types.RecipeStepCompletionConditionIngredient{conditionIngredient}
+	step.CompletionConditions = []*types.RecipeStepCompletionCondition{completionCondition}
 
-	minEstimatedTime := uint32(buildFakeNumber())
-	maxEstimatedTime := uint32(buildFakeNumber()) + minEstimatedTime
-	minTemperature := float32(buildFakeNumber())
-	maxTemperature := float32(buildFakeNumber()) + minTemperature
-
-	return &types.RecipeStep{
-		ID:                        recipeStepID,
-		Index:                     fake.Uint32(),
-		Preparation:               *BuildFakeValidPreparation(),
-		MinEstimatedTimeInSeconds: &minEstimatedTime,
-		MaxEstimatedTimeInSeconds: &maxEstimatedTime,
-		MinTemperatureInCelsius:   &minTemperature,
-		MaxTemperatureInCelsius:   &maxTemperature,
-		Notes:                     buildUniqueString(),
-		Products:                  products,
-		Optional:                  false,
-		CreatedAt:                 BuildFakeTime(),
-		BelongsToRecipe:           BuildFakeID(),
-		Ingredients:               ingredients,
-		ExplicitInstructions:      buildUniqueString(),
-		ConditionExpression:       buildUniqueString(),
-		Instruments:               instruments,
-		Vessels:                   vessels,
-		CompletionConditions:      completionConditions,
-		StartTimerAutomatically:   fake.Bool(),
-	}
+	return step
 }
 
 // BuildFakeRecipeStepsList builds a faked RecipeStepList.
 func BuildFakeRecipeStepsList() *filtering.QueryFilteredResult[types.RecipeStep] {
-	var examples []*types.RecipeStep
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeRecipeStep())
-	}
-
-	return &filtering.QueryFilteredResult[types.RecipeStep]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeRecipeStep)
 }
 
 // BuildFakeRecipeStepUpdateRequestInput builds a faked RecipeStepUpdateRequestInput from a recipe step.
 func BuildFakeRecipeStepUpdateRequestInput() *types.RecipeStepUpdateRequestInput {
 	recipeStep := BuildFakeRecipeStep()
+
 	return converters.ConvertRecipeStepToRecipeStepUpdateRequestInput(recipeStep)
 }
 
 // BuildFakeRecipeStepCreationRequestInput builds a faked RecipeStepCreationRequestInput.
 func BuildFakeRecipeStepCreationRequestInput() *types.RecipeStepCreationRequestInput {
 	recipeStep := BuildFakeRecipeStep()
+
 	return converters.ConvertRecipeStepToRecipeStepCreationRequestInput(recipeStep)
 }

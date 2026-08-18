@@ -11,6 +11,7 @@ import (
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
@@ -89,8 +90,8 @@ func TestIdentityDataManager_AcceptAccountInvitation(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		accountID := fakes.BuildFakeID()
-		accountInvitationID := fakes.BuildFakeID()
+		accountID := fake.BuildFakeID()
+		accountInvitationID := fake.BuildFakeID()
 		input := fakes.BuildFakeAccountInvitationUpdateRequestInput()
 		invitation := fakes.BuildFakeAccountInvitation()
 		invitation.ID = accountInvitationID
@@ -129,8 +130,8 @@ func TestIdentityDataManager_RejectAccountInvitation(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		accountID := fakes.BuildFakeID()
-		accountInvitationID := fakes.BuildFakeID()
+		accountID := fake.BuildFakeID()
+		accountInvitationID := fake.BuildFakeID()
 		input := fakes.BuildFakeAccountInvitationUpdateRequestInput()
 		invitation := fakes.BuildFakeAccountInvitation()
 		invitation.ID = accountInvitationID
@@ -168,8 +169,8 @@ func TestIdentityDataManager_CancelAccountInvitation(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		accountID := fakes.BuildFakeID()
-		accountInvitationID := fakes.BuildFakeID()
+		accountID := fake.BuildFakeID()
+		accountInvitationID := fake.BuildFakeID()
 		note := "test note"
 
 		db := &identitymock.RepositoryMock{
@@ -198,8 +199,8 @@ func TestIdentityDataManager_ArchiveAccount(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		accountID := fakes.BuildFakeID()
-		ownerID := fakes.BuildFakeID()
+		accountID := fake.BuildFakeID()
+		ownerID := fake.BuildFakeID()
 
 		db := &identitymock.RepositoryMock{
 			ArchiveAccountFunc: func(_ context.Context, actualAccountID, userID string) error {
@@ -226,8 +227,8 @@ func TestIdentityDataManager_ArchiveUserMembership(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
-		accountID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
+		accountID := fake.BuildFakeID()
 
 		db := &identitymock.RepositoryMock{
 			RemoveUserFromAccountFunc: func(_ context.Context, actualUserID, actualAccountID string) error {
@@ -254,7 +255,7 @@ func TestIdentityDataManager_ArchiveUser(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 
 		db := &identitymock.RepositoryMock{
 			ArchiveUserFunc: func(_ context.Context, actualUserID string) error {
@@ -308,11 +309,11 @@ func TestIdentityDataManager_CreateAccountInvitation(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
-		accountID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
+		accountID := fake.BuildFakeID()
 		input := fakes.BuildFakeAccountInvitationCreationRequestInput()
 		expected := fakes.BuildFakeAccountInvitation()
-		token := fakes.BuildFakeID()
+		token := fake.BuildFakeID()
 
 		db := &identitymock.RepositoryMock{
 			CreateAccountInvitationFunc: func(_ context.Context, dbInput *identity.AccountInvitationDatabaseCreationInput) (*identity.AccountInvitation, error) {
@@ -349,8 +350,8 @@ func TestIdentityDataManager_CreateUser(T *testing.T) {
 		expected := fakes.BuildFakeUser()
 		hashedPassword := "hashed-password"
 		twoFactorSecret := "two-factor-secret"
-		defaultAccountID := fakes.BuildFakeID()
-		emailVerificationToken := fakes.BuildFakeID()
+		defaultAccountID := fake.BuildFakeID()
+		emailVerificationToken := fake.BuildFakeID()
 
 		db := &identitymock.RepositoryMock{
 			CreateUserFunc: func(_ context.Context, dbInput *identity.UserDatabaseCreationInput) (*identity.User, error) {
@@ -405,7 +406,7 @@ func TestIdentityDataManager_GetAccount(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		accountID := fakes.BuildFakeID()
+		accountID := fake.BuildFakeID()
 		expected := fakes.BuildFakeAccount()
 
 		db := &identitymock.RepositoryMock{
@@ -433,8 +434,8 @@ func TestIdentityDataManager_GetAccountInvitation(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		accountID := fakes.BuildFakeID()
-		accountInvitationID := fakes.BuildFakeID()
+		accountID := fake.BuildFakeID()
+		accountInvitationID := fake.BuildFakeID()
 		expected := fakes.BuildFakeAccountInvitation()
 
 		db := &identitymock.RepositoryMock{
@@ -463,7 +464,7 @@ func TestIdentityDataManager_GetAccounts(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		expected := fakes.BuildFakeAccountsList()
 
 		db := &identitymock.RepositoryMock{
@@ -492,7 +493,7 @@ func TestIdentityDataManager_GetReceivedAccountInvitations(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		expected := fakes.BuildFakeAccountInvitationsList()
 
 		db := &identitymock.RepositoryMock{
@@ -521,7 +522,7 @@ func TestIdentityDataManager_GetSentAccountInvitations(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		expected := fakes.BuildFakeAccountInvitationsList()
 
 		db := &identitymock.RepositoryMock{
@@ -550,7 +551,7 @@ func TestIdentityDataManager_GetUser(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		expected := fakes.BuildFakeUser()
 
 		db := &identitymock.RepositoryMock{
@@ -605,7 +606,7 @@ func TestIdentityDataManager_GetUsersForAccount(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		accountID := fakes.BuildFakeID()
+		accountID := fake.BuildFakeID()
 		expected := fakes.BuildFakeUsersList()
 
 		db := &identitymock.RepositoryMock{
@@ -661,8 +662,8 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 
 		query := "test-query"
 		searchResults := []*identityindexing.UserSearchSubset{
-			{ID: fakes.BuildFakeID()},
-			{ID: fakes.BuildFakeID()},
+			{ID: fake.BuildFakeID()},
+			{ID: fake.BuildFakeID()},
 		}
 		users := []*identity.User{
 			fakes.BuildFakeUser(),
@@ -702,8 +703,8 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 
 		query := "test-query"
 		searchResults := []*identityindexing.UserSearchSubset{
-			{ID: fakes.BuildFakeID()},
-			{ID: fakes.BuildFakeID()},
+			{ID: fake.BuildFakeID()},
+			{ID: fake.BuildFakeID()},
 		}
 		users := []*identity.User{
 			fakes.BuildFakeUser(),
@@ -756,7 +757,7 @@ func TestIdentityDataManager_SearchForUsers(T *testing.T) {
 
 		query := "test-query"
 		searchResults := []*identityindexing.UserSearchSubset{
-			{ID: fakes.BuildFakeID()},
+			{ID: fake.BuildFakeID()},
 		}
 		users := []*identity.User{fakes.BuildFakeUser()}
 		users[0].ID = searchResults[0].ID
@@ -792,8 +793,8 @@ func TestIdentityDataManager_SetDefaultAccount(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
-		accountID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
+		accountID := fake.BuildFakeID()
 
 		db := &identitymock.RepositoryMock{
 			MarkAccountAsUserDefaultFunc: func(_ context.Context, actualUserID, actualAccountID string) error {
@@ -820,7 +821,7 @@ func TestIdentityDataManager_TransferAccountOwnership(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		accountID := fakes.BuildFakeID()
+		accountID := fake.BuildFakeID()
 		input := fakes.BuildFakeAccountOwnershipTransferInput()
 
 		db := &identitymock.RepositoryMock{
@@ -848,7 +849,7 @@ func TestIdentityDataManager_UpdateAccount(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		accountID := fakes.BuildFakeID()
+		accountID := fake.BuildFakeID()
 		input := fakes.BuildFakeAccountUpdateRequestInput()
 		account := fakes.BuildFakeAccount()
 		account.ID = accountID
@@ -882,8 +883,8 @@ func TestIdentityDataManager_UpdateAccountMemberPermissions(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
-		accountID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
+		accountID := fake.BuildFakeID()
 		input := fakes.BuildFakeUserPermissionModificationInput()
 
 		db := &identitymock.RepositoryMock{
@@ -912,7 +913,7 @@ func TestIdentityDataManager_UpdateUserDetails(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		input := fakes.BuildFakeUserDetailsUpdateRequestInput()
 
 		db := &identitymock.RepositoryMock{
@@ -940,7 +941,7 @@ func TestIdentityDataManager_UpdateUserEmailAddress(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		newEmail := "newemail@example.com"
 
 		db := &identitymock.RepositoryMock{
@@ -968,7 +969,7 @@ func TestIdentityDataManager_UpdateUserUsername(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		newUsername := "newusername"
 
 		db := &identitymock.RepositoryMock{
@@ -996,8 +997,8 @@ func TestIdentityDataManager_SetUserAvatar(T *testing.T) {
 		ctx := t.Context()
 		m := buildIdentityDataManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
-		uploadedMediaID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
+		uploadedMediaID := fake.BuildFakeID()
 
 		db := &identitymock.RepositoryMock{
 			SetUserAvatarFunc: func(_ context.Context, actualUserID, actualUploadedMediaID string) error {
@@ -1025,7 +1026,7 @@ func TestIdentityDataManager_AdminUpdateUserStatus(T *testing.T) {
 		m := buildIdentityDataManagerForTest(t)
 
 		input := &identity.UserAccountStatusUpdateInput{
-			TargetUserID: fakes.BuildFakeID(),
+			TargetUserID: fake.BuildFakeID(),
 			Reason:       "test reason",
 		}
 

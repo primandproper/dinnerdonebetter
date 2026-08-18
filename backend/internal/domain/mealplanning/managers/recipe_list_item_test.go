@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -23,9 +23,9 @@ func TestRecipeManager_UpdateRecipeListItem(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		itemID := fakes.BuildFakeID()
-		listID := fakes.BuildFakeID()
-		recipeID := fakes.BuildFakeID()
+		itemID := fake.BuildFakeID()
+		listID := fake.BuildFakeID()
+		recipeID := fake.BuildFakeID()
 		notes := new(t.Name())
 		input := &types.RecipeListItemUpdateRequestInput{
 			Notes: notes,
@@ -53,10 +53,10 @@ func TestRecipeManager_AddRecipeToRecipeList(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		listID := fakes.BuildFakeID()
-		recipeID := fakes.BuildFakeID()
+		listID := fake.BuildFakeID()
+		recipeID := fake.BuildFakeID()
 		expected := &types.RecipeListItem{
-			ID:                  fakes.BuildFakeID(),
+			ID:                  fake.BuildFakeID(),
 			BelongsToRecipeList: listID,
 			Notes:               t.Name(),
 			Recipe:              types.Recipe{ID: recipeID},
@@ -86,8 +86,8 @@ func TestRecipeManager_RemoveRecipeFromRecipeList(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		listID := fakes.BuildFakeID()
-		itemID := fakes.BuildFakeID()
+		listID := fake.BuildFakeID()
+		itemID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			ArchiveRecipeListItemFunc: func(_ context.Context, recipeListItemID string, recipeListID string) error {
@@ -114,12 +114,12 @@ func TestRecipeManager_ListRecipeListItems(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		listID := fakes.BuildFakeID()
+		listID := fake.BuildFakeID()
 		expectedItem := &types.RecipeListItem{
-			ID:                  fakes.BuildFakeID(),
+			ID:                  fake.BuildFakeID(),
 			BelongsToRecipeList: listID,
 			Notes:               t.Name(),
-			Recipe:              types.Recipe{ID: fakes.BuildFakeID()},
+			Recipe:              types.Recipe{ID: fake.BuildFakeID()},
 		}
 		expected := &filtering.QueryFilteredResult[types.RecipeListItem]{Data: []*types.RecipeListItem{expectedItem}}
 

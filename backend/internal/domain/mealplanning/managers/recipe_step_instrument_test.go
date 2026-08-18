@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,8 +25,8 @@ func TestRecipeManager_ListRecipeStepInstruments(T *testing.T) {
 		rm := buildRecipeManagerForTest(t)
 
 		expected := fakes.BuildFakeRecipeStepInstrumentsList()
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetRecipeStepInstrumentsFunc: func(_ context.Context, recipeID string, recipeStepID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeStepInstrument], error) {
@@ -54,8 +55,8 @@ func TestRecipeManager_CreateRecipeStepInstrument(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepInstrument()
 		fakeInput := fakes.BuildFakeRecipeStepInstrumentCreationRequestInput()
 		fakeInput.Index = new(uint16(0))
@@ -92,8 +93,8 @@ func TestRecipeManager_ReadRecipeStepInstrument(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepInstrument()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -124,8 +125,8 @@ func TestRecipeManager_UpdateRecipeStepInstrument(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		exampleRecipeStepInstrument := fakes.BuildFakeRecipeStepInstrument()
 		exampleInput := fakes.BuildFakeRecipeStepInstrumentUpdateRequestInput()
 
@@ -159,8 +160,8 @@ func TestRecipeManager_ArchiveRecipeStepInstrument(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepInstrument()
 
 		db := &mealplanningmock.RepositoryMock{

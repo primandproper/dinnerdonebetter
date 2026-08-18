@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,8 +25,8 @@ func TestRecipeManager_ListRecipeStepCompletionConditions(T *testing.T) {
 		rm := buildRecipeManagerForTest(t)
 
 		expected := fakes.BuildFakeRecipeStepCompletionConditionsList()
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetRecipeStepCompletionConditionsFunc: func(_ context.Context, recipeID string, recipeStepID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeStepCompletionCondition], error) {
@@ -54,8 +55,8 @@ func TestRecipeManager_CreateRecipeStepCompletionCondition(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepCompletionCondition()
 		fakeInput := fakes.BuildFakeRecipeStepCompletionConditionForExistingRecipeCreationRequestInput()
 
@@ -83,8 +84,8 @@ func TestRecipeManager_ReadRecipeStepCompletionCondition(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepCompletionCondition()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -115,8 +116,8 @@ func TestRecipeManager_UpdateRecipeStepCompletionCondition(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		exampleRecipeStepCompletionCondition := fakes.BuildFakeRecipeStepCompletionCondition()
 		exampleInput := fakes.BuildFakeRecipeStepCompletionConditionUpdateRequestInput()
 
@@ -150,8 +151,8 @@ func TestRecipeManager_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStepCompletionCondition()
 
 		db := &mealplanningmock.RepositoryMock{

@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ func TestValidEnumerationManager_SearchValidPreparations(T *testing.T) {
 		vem := buildValidEnumerationsManagerForTest(t)
 
 		expected := fakes.BuildFakeValidPreparationsList()
-		exampleQuery := fakes.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 
 		// media is looked up once per returned record.
 		expectedIDs := map[string]bool{}

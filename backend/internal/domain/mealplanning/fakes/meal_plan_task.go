@@ -4,24 +4,29 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v11/pointer"
 )
+
+// mealPlanTaskUnfinished is the status a task is created in.
+const mealPlanTaskUnfinished = "unfinished"
 
 // BuildFakeMealPlanTask builds a faked meal plan task.
 func BuildFakeMealPlanTask() *types.MealPlanTask {
-	return &types.MealPlanTask{
-		ID:                  BuildFakeID(),
-		CreatedAt:           BuildFakeTime(),
-		Status:              "unfinished",
-		StatusExplanation:   buildUniqueString(),
-		CreationExplanation: buildUniqueString(),
-		MealPlanOption:      *BuildFakeMealPlanOption(),
-		CompletedAt:         nil,
-		RecipePrepTask:      *BuildFakeRecipePrepTask(),
-	}
+	task := fake.BuildFakeRecord[types.MealPlanTask]()
+
+	task.Status = mealPlanTaskUnfinished
+
+	// What the task is for and what it is prepping: both are whole records, and the
+	// worker that runs the task reads through them.
+	task.MealPlanOption = *BuildFakeMealPlanOption()
+	task.RecipePrepTask = *BuildFakeRecipePrepTask()
+
+	return task
 }
 
-// BuildFakeMealPlanTaskCreationRequestInput builds a faked meal plan task.
+// BuildFakeMealPlanTaskCreationRequestInput builds a faked MealPlanTaskCreationRequestInput.
 func BuildFakeMealPlanTaskCreationRequestInput() *types.MealPlanTaskCreationRequestInput {
 	x := BuildFakeMealPlanTask()
 
@@ -30,42 +35,28 @@ func BuildFakeMealPlanTaskCreationRequestInput() *types.MealPlanTaskCreationRequ
 
 // BuildFakeMealPlanTasksList builds a faked MealPlanTaskList.
 func BuildFakeMealPlanTasksList() *filtering.QueryFilteredResult[types.MealPlanTask] {
-	var examples []*types.MealPlanTask
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeMealPlanTask())
-	}
-
-	return &filtering.QueryFilteredResult[types.MealPlanTask]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeMealPlanTask)
 }
 
-// BuildFakeMealPlanTaskDatabaseCreationInputs builds a faked MealPlanTaskList.
+// BuildFakeMealPlanTaskDatabaseCreationInputs builds faked MealPlanTaskDatabaseCreationInputs.
 func BuildFakeMealPlanTaskDatabaseCreationInputs() []*types.MealPlanTaskDatabaseCreationInput {
-	var examples []*types.MealPlanTaskDatabaseCreationInput
+	examples := make([]*types.MealPlanTaskDatabaseCreationInput, 0, exampleQuantity)
 	for range exampleQuantity {
-		examples = append(examples, &types.MealPlanTaskDatabaseCreationInput{
-			MealPlanOptionID:    "",
-			ID:                  BuildFakeID(),
-			StatusExplanation:   buildUniqueString(),
-			CreationExplanation: buildUniqueString(),
-		})
+		input := fake.BuildFakeRecord[types.MealPlanTaskDatabaseCreationInput]()
+
+		// Empty because the caller fills it with the option it is writing tasks for.
+		input.MealPlanOptionID = ""
+
+		examples = append(examples, input)
 	}
 
 	return examples
 }
 
-// BuildFakeMealPlanTaskStatusChangeRequestInput builds a faked meal plan task.
+// BuildFakeMealPlanTaskStatusChangeRequestInput builds a faked MealPlanTaskStatusChangeRequestInput.
 func BuildFakeMealPlanTaskStatusChangeRequestInput() *types.MealPlanTaskStatusChangeRequestInput {
-	return &types.MealPlanTaskStatusChangeRequestInput{
-		MealPlanTaskID:    BuildFakeID(),
-		Status:            new("unfinished"),
-		StatusExplanation: buildUniqueString(),
-	}
+	input := fake.BuildFakeRecord[types.MealPlanTaskStatusChangeRequestInput]()
+	input.Status = pointer.To(mealPlanTaskUnfinished)
+
+	return input
 }

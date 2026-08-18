@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -217,7 +218,7 @@ func TestQuerier_GetIssueReportsForRecord(T *testing.T) {
 		filter := filtering.DefaultQueryFilter()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.GetIssueReportsForRecord(ctx, "", fakes.BuildFakeID(), filter)
+		actual, err := c.GetIssueReportsForRecord(ctx, "", fake.BuildFakeID(), filter)
 		require.Error(t, err)
 		assert.Nil(t, actual)
 	})

@@ -10,6 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -126,7 +127,7 @@ func TestQuerier_RecipeStepIngredientExists(T *testing.T) {
 
 		ctx := t.Context()
 
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		exampleRecipeStepIngredient := fakes.BuildFakeRecipeStepIngredient()
 
 		c := buildInertClientForTest(t)
@@ -141,7 +142,7 @@ func TestQuerier_RecipeStepIngredientExists(T *testing.T) {
 
 		ctx := t.Context()
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		exampleRecipeStepIngredient := fakes.BuildFakeRecipeStepIngredient()
 
 		c := buildInertClientForTest(t)
@@ -156,8 +157,8 @@ func TestQuerier_RecipeStepIngredientExists(T *testing.T) {
 
 		ctx := t.Context()
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 
 		c := buildInertClientForTest(t)
 
@@ -173,7 +174,7 @@ func TestQuerier_GetRecipeStepIngredient(T *testing.T) {
 	T.Run("with invalid recipe ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		exampleRecipeStepIngredient := fakes.BuildFakeRecipeStepIngredient()
 
 		ctx := t.Context()
@@ -187,7 +188,7 @@ func TestQuerier_GetRecipeStepIngredient(T *testing.T) {
 	T.Run("with invalid recipe step ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		exampleRecipeStepIngredient := fakes.BuildFakeRecipeStepIngredient()
 
 		ctx := t.Context()
@@ -201,8 +202,8 @@ func TestQuerier_GetRecipeStepIngredient(T *testing.T) {
 	T.Run("with invalid recipe step ingredient ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -235,7 +236,7 @@ func TestQuerier_GetRecipeStepIngredients(T *testing.T) {
 		t.Parallel()
 
 		filter := filtering.DefaultQueryFilter()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -249,7 +250,7 @@ func TestQuerier_GetRecipeStepIngredients(T *testing.T) {
 		t.Parallel()
 
 		filter := filtering.DefaultQueryFilter()
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -269,7 +270,7 @@ func TestQuerier_CreateRecipeStepIngredient(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.CreateRecipeStepIngredient(ctx, fakes.BuildFakeID(), nil)
+		actual, err := c.CreateRecipeStepIngredient(ctx, fake.BuildFakeID(), nil)
 		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
@@ -299,7 +300,7 @@ func TestQuerier_UpdateRecipeStepIngredient(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.UpdateRecipeStepIngredient(ctx, fakes.BuildFakeID(), nil))
+		assert.Error(t, c.UpdateRecipeStepIngredient(ctx, fake.BuildFakeID(), nil))
 	})
 }
 
@@ -314,18 +315,18 @@ func TestQuerier_ArchiveRecipeStepIngredient(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveRecipeStepIngredient(ctx, fakes.BuildFakeID(), "", exampleRecipeStepIngredient.ID))
+		assert.Error(t, c.ArchiveRecipeStepIngredient(ctx, fake.BuildFakeID(), "", exampleRecipeStepIngredient.ID))
 	})
 
 	T.Run("with invalid recipe step ingredient ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveRecipeStepIngredient(ctx, fakes.BuildFakeID(), exampleRecipeStepID, ""))
+		assert.Error(t, c.ArchiveRecipeStepIngredient(ctx, fake.BuildFakeID(), exampleRecipeStepID, ""))
 	})
 }
 

@@ -16,6 +16,7 @@ import (
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/featureflags"
 	"github.com/primandproper/platform-go/v11/filtering"
 
@@ -30,14 +31,14 @@ import (
 func buildFakeSessionContextData() *sessions.ContextData {
 	return &sessions.ContextData{
 		Requester: sessions.RequesterInfo{
-			UserID:                   identityfakes.BuildFakeID(),
+			UserID:                   fake.BuildFakeID(),
 			AccountStatus:            identity.GoodStandingUserAccountStatus.String(),
 			AccountStatusExplanation: "",
 			ServicePermissions:       authorization.NewServiceRolePermissionChecker([]string{"service_user"}, nil),
 		},
-		ActiveAccountID: identityfakes.BuildFakeID(),
+		ActiveAccountID: fake.BuildFakeID(),
 		AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
-			identityfakes.BuildFakeID(): authorization.NewAccountRolePermissionChecker(nil),
+			fake.BuildFakeID(): authorization.NewAccountRolePermissionChecker(nil),
 		},
 	}
 }
@@ -207,8 +208,8 @@ func TestServiceImpl_ExchangeToken(t *testing.T) {
 		ctx := buildContextWithSessionData(t)
 
 		fakeTokenResponse := &auth.TokenResponse{
-			UserID:       identityfakes.BuildFakeID(),
-			AccountID:    identityfakes.BuildFakeID(),
+			UserID:       fake.BuildFakeID(),
+			AccountID:    fake.BuildFakeID(),
 			AccessToken:  "new-access-token",
 			RefreshToken: "new-refresh-token",
 			ExpiresUTC:   time.Now().Add(time.Hour),
@@ -295,8 +296,8 @@ func TestServiceImpl_LoginForToken(t *testing.T) {
 		ctx := t.Context()
 
 		fakeTokenResponse := &auth.TokenResponse{
-			UserID:       identityfakes.BuildFakeID(),
-			AccountID:    identityfakes.BuildFakeID(),
+			UserID:       fake.BuildFakeID(),
+			AccountID:    fake.BuildFakeID(),
 			AccessToken:  "access-token",
 			RefreshToken: "refresh-token",
 			ExpiresUTC:   time.Now().Add(time.Hour),
@@ -376,8 +377,8 @@ func TestServiceImpl_AdminLoginForToken(t *testing.T) {
 		ctx := t.Context()
 
 		fakeTokenResponse := &auth.TokenResponse{
-			UserID:       identityfakes.BuildFakeID(),
-			AccountID:    identityfakes.BuildFakeID(),
+			UserID:       fake.BuildFakeID(),
+			AccountID:    fake.BuildFakeID(),
 			AccessToken:  "admin-access-token",
 			RefreshToken: "admin-refresh-token",
 			ExpiresUTC:   time.Now().Add(time.Hour),
@@ -1200,7 +1201,7 @@ func TestServiceImpl_VerifyTOTPSecret(t *testing.T) {
 		}
 
 		request := &authsvc.VerifyTOTPSecretRequest{
-			UserId:    identityfakes.BuildFakeID(),
+			UserId:    fake.BuildFakeID(),
 			TotpToken: "123456",
 		}
 
@@ -1227,7 +1228,7 @@ func TestServiceImpl_VerifyTOTPSecret(t *testing.T) {
 		}
 
 		request := &authsvc.VerifyTOTPSecretRequest{
-			UserId:    identityfakes.BuildFakeID(),
+			UserId:    fake.BuildFakeID(),
 			TotpToken: "invalid",
 		}
 
@@ -1330,15 +1331,15 @@ func buildContextWithSessionDataAndSessionID(t *testing.T) (context.Context, *se
 	t.Helper()
 	sessionData := &sessions.ContextData{
 		Requester: sessions.RequesterInfo{
-			UserID:                   identityfakes.BuildFakeID(),
+			UserID:                   fake.BuildFakeID(),
 			AccountStatus:            identity.GoodStandingUserAccountStatus.String(),
 			AccountStatusExplanation: "",
 			ServicePermissions:       authorization.NewServiceRolePermissionChecker([]string{"service_user"}, nil),
 		},
-		ActiveAccountID: identityfakes.BuildFakeID(),
-		SessionID:       identityfakes.BuildFakeID(),
+		ActiveAccountID: fake.BuildFakeID(),
+		SessionID:       fake.BuildFakeID(),
 		AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
-			identityfakes.BuildFakeID(): authorization.NewAccountRolePermissionChecker(nil),
+			fake.BuildFakeID(): authorization.NewAccountRolePermissionChecker(nil),
 		},
 	}
 	sessionData.AccountPermissions[sessionData.ActiveAccountID] = authorization.NewAccountRolePermissionChecker(nil)
@@ -1417,7 +1418,7 @@ func TestServiceImpl_ListActiveSessions(t *testing.T) {
 		ctx, sessionData := buildContextWithSessionDataAndSessionID(t)
 
 		currentSessionID := sessionData.GetSessionID()
-		otherSessionID := identityfakes.BuildFakeID()
+		otherSessionID := fake.BuildFakeID()
 
 		now := time.Now()
 		fakeSessions := &filtering.QueryFilteredResult[auth.UserSession]{
@@ -1530,7 +1531,7 @@ func TestServiceImpl_RevokeSession(t *testing.T) {
 		service, _, authManager, _, _ := buildTestService(t)
 		ctx, sessionData := buildContextWithSessionDataAndSessionID(t)
 
-		targetSessionID := identityfakes.BuildFakeID()
+		targetSessionID := fake.BuildFakeID()
 
 		authManager.RevokeSessionFunc = func(_ context.Context, sessionID, userID string) error {
 			assert.Equal(t, targetSessionID, sessionID)
@@ -1579,7 +1580,7 @@ func TestServiceImpl_RevokeSession(t *testing.T) {
 		ctx := t.Context()
 
 		request := &authsvc.RevokeSessionRequest{
-			SessionId: identityfakes.BuildFakeID(),
+			SessionId: fake.BuildFakeID(),
 		}
 
 		response, err := service.RevokeSession(ctx, request)

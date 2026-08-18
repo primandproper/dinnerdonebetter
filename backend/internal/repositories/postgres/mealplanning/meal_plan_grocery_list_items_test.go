@@ -9,6 +9,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -93,7 +95,7 @@ func TestQuerier_Integration_MealPlanGroceryListItems(t *testing.T) {
 	// partial failure would be written a second time on the next run.
 	goodInput := func() *types.MealPlanGroceryListItemDatabaseCreationInput {
 		return &types.MealPlanGroceryListItemDatabaseCreationInput{
-			ID:                     fakes.BuildFakeID(),
+			ID:                     fake.BuildFakeID(),
 			BelongsToMealPlan:      mealPlan.ID,
 			ValidIngredientID:      ingredient.ID,
 			ValidMeasurementUnitID: measurmentUnit.ID,
@@ -105,7 +107,7 @@ func TestQuerier_Integration_MealPlanGroceryListItems(t *testing.T) {
 	doomedItem := goodInput()
 	// a nonexistent ingredient trips the foreign key, so this input fails after the one before it
 	// has already been inserted.
-	doomedItem.ValidIngredientID = fakes.BuildFakeID()
+	doomedItem.ValidIngredientID = fake.BuildFakeID()
 
 	initialized, err := dbc.InitializeMealPlanGroceryList(ctx, mealPlan.ID, account.ID, []*types.MealPlanGroceryListItemDatabaseCreationInput{goodInput(), doomedItem})
 	require.Error(t, err)

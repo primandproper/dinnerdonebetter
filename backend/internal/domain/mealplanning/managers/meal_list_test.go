@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,10 +24,10 @@ func TestMealPlanningManager_ListMealLists(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		ml := &types.MealList{
-			ID:            fakes.BuildFakeID(),
+			ID:            fake.BuildFakeID(),
 			Name:          t.Name(),
 			Description:   t.Name(),
-			BelongsToUser: fakes.BuildFakeID(),
+			BelongsToUser: fake.BuildFakeID(),
 		}
 		expected := &filtering.QueryFilteredResult[types.MealList]{Data: []*types.MealList{ml}}
 
@@ -57,13 +57,13 @@ func TestMealPlanningManager_CreateMealList(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		input := &types.MealListCreationRequestInput{
 			Name:        t.Name(),
 			Description: t.Name(),
 		}
 		expected := &types.MealList{
-			ID:            fakes.BuildFakeID(),
+			ID:            fake.BuildFakeID(),
 			Name:          input.Name,
 			Description:   input.Description,
 			BelongsToUser: userID,
@@ -93,8 +93,8 @@ func TestMealPlanningManager_ArchiveMealList(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		listID := fakes.BuildFakeID()
-		userID := fakes.BuildFakeID()
+		listID := fake.BuildFakeID()
+		userID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			ArchiveMealListFunc: func(_ context.Context, mealListID string, actualUserID string) error {
@@ -121,8 +121,8 @@ func TestMealPlanningManager_UpdateMealList(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		listID := fakes.BuildFakeID()
-		userID := fakes.BuildFakeID()
+		listID := fake.BuildFakeID()
+		userID := fake.BuildFakeID()
 		name := t.Name()
 		desc := "desc"
 		input := &types.MealListUpdateRequestInput{

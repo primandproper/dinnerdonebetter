@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -164,7 +165,7 @@ func TestValidEnumerationManager_SearchValidPrepTaskConfigsByIngredient(T *testi
 		vem := buildValidEnumerationsManagerForTest(t)
 
 		expected := fakes.BuildFakeValidPrepTaskConfigsList()
-		exampleIngredientID := fakes.BuildFakeID()
+		exampleIngredientID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetValidPrepTaskConfigsForIngredientFunc: func(_ context.Context, ingredientID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPrepTaskConfig], error) {
@@ -193,7 +194,7 @@ func TestValidEnumerationManager_SearchValidPrepTaskConfigsByPreparation(T *test
 		vem := buildValidEnumerationsManagerForTest(t)
 
 		expected := fakes.BuildFakeValidPrepTaskConfigsList()
-		examplePreparationID := fakes.BuildFakeID()
+		examplePreparationID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetValidPrepTaskConfigsForPreparationFunc: func(_ context.Context, preparationID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPrepTaskConfig], error) {
@@ -222,8 +223,8 @@ func TestValidEnumerationManager_SearchValidPrepTaskConfigsByIngredientAndPrepar
 		vem := buildValidEnumerationsManagerForTest(t)
 
 		expected := fakes.BuildFakeValidPrepTaskConfigsList()
-		exampleIngredientID := fakes.BuildFakeID()
-		examplePreparationID := fakes.BuildFakeID()
+		exampleIngredientID := fake.BuildFakeID()
+		examplePreparationID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetValidPrepTaskConfigsForIngredientAndPreparationFunc: func(_ context.Context, ingredientID string, preparationID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPrepTaskConfig], error) {

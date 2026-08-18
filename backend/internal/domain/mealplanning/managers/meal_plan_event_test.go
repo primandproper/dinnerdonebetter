@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,7 @@ func TestMealPlanningManager_ListMealPlanEvents(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		expected := fakes.BuildFakeMealPlanEventsList()
-		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetMealPlanEventsFunc: func(_ context.Context, mealPlanID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanEvent], error) {
@@ -80,7 +81,7 @@ func TestMealPlanningManager_ReadMealPlanEvent(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 		expected := fakes.BuildFakeMealPlanEvent()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -111,7 +112,7 @@ func TestMealPlanningManager_UpdateMealPlanEvent(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		exampleMealPlanEvent := fakes.BuildFakeMealPlanEvent()
-		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 		exampleInput := fakes.BuildFakeMealPlanEventUpdateRequestInput()
 		exampleInput.StartsAt = &exampleMealPlanEvent.StartsAt
 
@@ -141,7 +142,7 @@ func TestMealPlanningManager_UpdateMealPlanEvent(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		exampleMealPlanEvent := fakes.BuildFakeMealPlanEvent()
-		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 		exampleInput := fakes.BuildFakeMealPlanEventUpdateRequestInput()
 		newStartsAt := exampleMealPlanEvent.StartsAt.Add(time.Hour)
 		exampleInput.StartsAt = &newStartsAt
@@ -181,9 +182,9 @@ func TestMealPlanningManager_SwapMealPlanEvents(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		mealPlanID := fakes.BuildFakeID()
-		eventIDA := fakes.BuildFakeID()
-		eventIDB := fakes.BuildFakeID()
+		mealPlanID := fake.BuildFakeID()
+		eventIDA := fake.BuildFakeID()
+		eventIDB := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			SwapMealPlanEventsFunc: func(_ context.Context, actualMealPlanID string, mealPlanEventIDA string, mealPlanEventIDB string) error {
@@ -219,7 +220,7 @@ func TestMealPlanningManager_ArchiveMealPlanEvent(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		mealPlanID := fakes.BuildFakeID()
+		mealPlanID := fake.BuildFakeID()
 		expected := fakes.BuildFakeMealPlanEvent()
 
 		db := &mealplanningmock.RepositoryMock{

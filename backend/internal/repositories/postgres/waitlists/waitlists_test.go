@@ -13,6 +13,7 @@ import (
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	platformerrors "github.com/primandproper/platform-go/v11/errors"
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -85,7 +86,7 @@ func TestQuerier_Integration_Waitlists(t *testing.T) {
 	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
 
 	signupInput := &types.WaitlistSignupDatabaseCreationInput{
-		ID:                fakes.BuildFakeID(),
+		ID:                fake.BuildFakeID(),
 		Notes:             "test signup",
 		BelongsToWaitlist: createdWaitlists[0].ID,
 		BelongsToUser:     user.ID,
@@ -215,7 +216,7 @@ func TestQuerier_GetWaitlistSignup(T *testing.T) {
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
-		exampleWaitlistID := fakes.BuildFakeID()
+		exampleWaitlistID := fake.BuildFakeID()
 
 		actual, err := c.GetWaitlistSignup(ctx, "", exampleWaitlistID)
 		require.Error(t, err)
@@ -228,7 +229,7 @@ func TestQuerier_GetWaitlistSignup(T *testing.T) {
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
-		exampleSignupID := fakes.BuildFakeID()
+		exampleSignupID := fake.BuildFakeID()
 
 		actual, err := c.GetWaitlistSignup(ctx, exampleSignupID, "")
 		require.Error(t, err)

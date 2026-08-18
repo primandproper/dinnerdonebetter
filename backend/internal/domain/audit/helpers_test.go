@@ -5,8 +5,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 
 	"github.com/stretchr/testify/assert"
@@ -21,8 +21,8 @@ func Test_buildDataChangeMessageFromContext(T *testing.T) {
 		ctx := t.Context()
 
 		sessionContextData := &sessions.ContextData{
-			Requester:       sessions.RequesterInfo{UserID: fakes.BuildFakeID()},
-			ActiveAccountID: fakes.BuildFakeID(),
+			Requester:       sessions.RequesterInfo{UserID: fake.BuildFakeID()},
+			ActiveAccountID: fake.BuildFakeID(),
 		}
 		ctx = sessions.AttachToContext(ctx, sessionContextData)
 

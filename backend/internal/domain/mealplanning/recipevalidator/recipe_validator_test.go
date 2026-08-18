@@ -6,6 +6,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 
+	"github.com/primandproper/platform-go/v11/fake"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,28 +51,28 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 
 		// Create the recipe input
 		input := &mealplanning.RecipeDatabaseCreationInput{
-			ID:   fakes.BuildFakeID(),
+			ID:   fake.BuildFakeID(),
 			Name: "Test Recipe",
 			Steps: []*mealplanning.RecipeStepDatabaseCreationInput{
 				{
-					ID:            fakes.BuildFakeID(),
+					ID:            fake.BuildFakeID(),
 					PreparationID: preparation.ID,
 					Ingredients: []*mealplanning.RecipeStepIngredientDatabaseCreationInput{
 						{
-							ID:                               fakes.BuildFakeID(),
+							ID:                               fake.BuildFakeID(),
 							ValidIngredientPreparationID:     new(vip.ID),
 							ValidIngredientMeasurementUnitID: new(vimu.ID),
 						},
 					},
 					Instruments: []*mealplanning.RecipeStepInstrumentDatabaseCreationInput{
 						{
-							ID:                           fakes.BuildFakeID(),
+							ID:                           fake.BuildFakeID(),
 							ValidPreparationInstrumentID: new(vpi.ID),
 						},
 					},
 					Vessels: []*mealplanning.RecipeStepVesselDatabaseCreationInput{
 						{
-							ID:                       fakes.BuildFakeID(),
+							ID:                       fake.BuildFakeID(),
 							ValidPreparationVesselID: new(vpv.ID),
 						},
 					},
@@ -106,15 +108,15 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		preparation := fakes.BuildFakeValidPreparation()
 
 		input := &mealplanning.RecipeDatabaseCreationInput{
-			ID:   fakes.BuildFakeID(),
+			ID:   fake.BuildFakeID(),
 			Name: "Test Recipe",
 			Steps: []*mealplanning.RecipeStepDatabaseCreationInput{
 				{
-					ID:            fakes.BuildFakeID(),
+					ID:            fake.BuildFakeID(),
 					PreparationID: preparation.ID,
 					Ingredients: []*mealplanning.RecipeStepIngredientDatabaseCreationInput{
 						{
-							ID:                           fakes.BuildFakeID(),
+							ID:                           fake.BuildFakeID(),
 							ValidIngredientPreparationID: new("nonexistent-vip-id"),
 						},
 					},
@@ -144,15 +146,15 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		vipMap := map[string]*mealplanning.ValidIngredientPreparation{vip.ID: vip}
 
 		input := &mealplanning.RecipeDatabaseCreationInput{
-			ID:   fakes.BuildFakeID(),
+			ID:   fake.BuildFakeID(),
 			Name: "Test Recipe",
 			Steps: []*mealplanning.RecipeStepDatabaseCreationInput{
 				{
-					ID:            fakes.BuildFakeID(),
+					ID:            fake.BuildFakeID(),
 					PreparationID: stepPreparation.ID, // Different from vip.Preparation.ID
 					Ingredients: []*mealplanning.RecipeStepIngredientDatabaseCreationInput{
 						{
-							ID:                           fakes.BuildFakeID(),
+							ID:                           fake.BuildFakeID(),
 							ValidIngredientPreparationID: new(vip.ID),
 						},
 					},
@@ -186,15 +188,15 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		vimuMap := map[string]*mealplanning.ValidIngredientMeasurementUnit{vimu.ID: vimu}
 
 		input := &mealplanning.RecipeDatabaseCreationInput{
-			ID:   fakes.BuildFakeID(),
+			ID:   fake.BuildFakeID(),
 			Name: "Test Recipe",
 			Steps: []*mealplanning.RecipeStepDatabaseCreationInput{
 				{
-					ID:            fakes.BuildFakeID(),
+					ID:            fake.BuildFakeID(),
 					PreparationID: preparation.ID,
 					Ingredients: []*mealplanning.RecipeStepIngredientDatabaseCreationInput{
 						{
-							ID:                               fakes.BuildFakeID(),
+							ID:                               fake.BuildFakeID(),
 							ValidIngredientPreparationID:     new(vip.ID),
 							ValidIngredientMeasurementUnitID: new(vimu.ID),
 						},
@@ -218,15 +220,15 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		preparation := fakes.BuildFakeValidPreparation()
 
 		input := &mealplanning.RecipeDatabaseCreationInput{
-			ID:   fakes.BuildFakeID(),
+			ID:   fake.BuildFakeID(),
 			Name: "Test Recipe",
 			Steps: []*mealplanning.RecipeStepDatabaseCreationInput{
 				{
-					ID:            fakes.BuildFakeID(),
+					ID:            fake.BuildFakeID(),
 					PreparationID: preparation.ID,
 					Instruments: []*mealplanning.RecipeStepInstrumentDatabaseCreationInput{
 						{
-							ID:                           fakes.BuildFakeID(),
+							ID:                           fake.BuildFakeID(),
 							ValidPreparationInstrumentID: new("nonexistent-vpi-id"),
 						},
 					},
@@ -255,15 +257,15 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		vpiMap := map[string]*mealplanning.ValidPreparationInstrument{vpi.ID: vpi}
 
 		input := &mealplanning.RecipeDatabaseCreationInput{
-			ID:   fakes.BuildFakeID(),
+			ID:   fake.BuildFakeID(),
 			Name: "Test Recipe",
 			Steps: []*mealplanning.RecipeStepDatabaseCreationInput{
 				{
-					ID:            fakes.BuildFakeID(),
+					ID:            fake.BuildFakeID(),
 					PreparationID: stepPreparation.ID,
 					Instruments: []*mealplanning.RecipeStepInstrumentDatabaseCreationInput{
 						{
-							ID:                           fakes.BuildFakeID(),
+							ID:                           fake.BuildFakeID(),
 							ValidPreparationInstrumentID: new(vpi.ID),
 						},
 					},
@@ -286,15 +288,15 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		preparation := fakes.BuildFakeValidPreparation()
 
 		input := &mealplanning.RecipeDatabaseCreationInput{
-			ID:   fakes.BuildFakeID(),
+			ID:   fake.BuildFakeID(),
 			Name: "Test Recipe",
 			Steps: []*mealplanning.RecipeStepDatabaseCreationInput{
 				{
-					ID:            fakes.BuildFakeID(),
+					ID:            fake.BuildFakeID(),
 					PreparationID: preparation.ID,
 					Vessels: []*mealplanning.RecipeStepVesselDatabaseCreationInput{
 						{
-							ID:                       fakes.BuildFakeID(),
+							ID:                       fake.BuildFakeID(),
 							ValidPreparationVesselID: new("nonexistent-vpv-id"),
 						},
 					},
@@ -323,15 +325,15 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		vpvMap := map[string]*mealplanning.ValidPreparationVessel{vpv.ID: vpv}
 
 		input := &mealplanning.RecipeDatabaseCreationInput{
-			ID:   fakes.BuildFakeID(),
+			ID:   fake.BuildFakeID(),
 			Name: "Test Recipe",
 			Steps: []*mealplanning.RecipeStepDatabaseCreationInput{
 				{
-					ID:            fakes.BuildFakeID(),
+					ID:            fake.BuildFakeID(),
 					PreparationID: stepPreparation.ID,
 					Vessels: []*mealplanning.RecipeStepVesselDatabaseCreationInput{
 						{
-							ID:                       fakes.BuildFakeID(),
+							ID:                       fake.BuildFakeID(),
 							ValidPreparationVesselID: new(vpv.ID),
 						},
 					},
@@ -354,16 +356,16 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		preparation := fakes.BuildFakeValidPreparation()
 
 		input := &mealplanning.RecipeDatabaseCreationInput{
-			ID:   fakes.BuildFakeID(),
+			ID:   fake.BuildFakeID(),
 			Name: "Test Recipe",
 			Steps: []*mealplanning.RecipeStepDatabaseCreationInput{
 				{
-					ID:            fakes.BuildFakeID(),
+					ID:            fake.BuildFakeID(),
 					PreparationID: preparation.ID,
 					// Ingredient that is a recipe step product (has RecipeStepProductID)
 					Ingredients: []*mealplanning.RecipeStepIngredientDatabaseCreationInput{
 						{
-							ID:                  fakes.BuildFakeID(),
+							ID:                  fake.BuildFakeID(),
 							RecipeStepProductID: new("some-product-id"),
 							// No ValidIngredientPreparationID - should be skipped, not error
 						},
@@ -371,7 +373,7 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 					// Instrument that is a recipe step product (has ProductOfRecipeStepIndex)
 					Instruments: []*mealplanning.RecipeStepInstrumentDatabaseCreationInput{
 						{
-							ID:                       fakes.BuildFakeID(),
+							ID:                       fake.BuildFakeID(),
 							ProductOfRecipeStepIndex: new(uint64(0)),
 							// No ValidPreparationInstrumentID - should be skipped, not error
 						},
@@ -379,7 +381,7 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 					// Vessel that is a recipe step product (has ProductOfRecipeStepIndex)
 					Vessels: []*mealplanning.RecipeStepVesselDatabaseCreationInput{
 						{
-							ID:                       fakes.BuildFakeID(),
+							ID:                       fake.BuildFakeID(),
 							ProductOfRecipeStepIndex: new(uint64(0)),
 							// No ValidPreparationVesselID - should be skipped, not error
 						},
@@ -406,25 +408,25 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 
 		// Create bridge table entries with specific IDs
 		vip := &mealplanning.ValidIngredientPreparation{
-			ID:          fakes.BuildFakeID(),
+			ID:          fake.BuildFakeID(),
 			Preparation: *preparation,
 			Ingredient:  *ingredient,
 		}
 
 		vimu := &mealplanning.ValidIngredientMeasurementUnit{
-			ID:              fakes.BuildFakeID(),
+			ID:              fake.BuildFakeID(),
 			Ingredient:      *ingredient,
 			MeasurementUnit: *measurementUnit,
 		}
 
 		vpi := &mealplanning.ValidPreparationInstrument{
-			ID:          fakes.BuildFakeID(),
+			ID:          fake.BuildFakeID(),
 			Preparation: *preparation,
 			Instrument:  *instrument,
 		}
 
 		vpv := &mealplanning.ValidPreparationVessel{
-			ID:          fakes.BuildFakeID(),
+			ID:          fake.BuildFakeID(),
 			Preparation: *preparation,
 			Vessel:      *vessel,
 		}
@@ -435,15 +437,15 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		vpvMap := map[string]*mealplanning.ValidPreparationVessel{vpv.ID: vpv}
 
 		input := &mealplanning.RecipeDatabaseCreationInput{
-			ID:   fakes.BuildFakeID(),
+			ID:   fake.BuildFakeID(),
 			Name: "Test Recipe",
 			Steps: []*mealplanning.RecipeStepDatabaseCreationInput{
 				{
-					ID:            fakes.BuildFakeID(),
+					ID:            fake.BuildFakeID(),
 					PreparationID: preparation.ID,
 					Ingredients: []*mealplanning.RecipeStepIngredientDatabaseCreationInput{
 						{
-							ID:                               fakes.BuildFakeID(),
+							ID:                               fake.BuildFakeID(),
 							ValidIngredientPreparationID:     new(vip.ID),
 							ValidIngredientMeasurementUnitID: new(vimu.ID),
 							// IngredientID and MeasurementUnitID should be nil before validation
@@ -451,14 +453,14 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 					},
 					Instruments: []*mealplanning.RecipeStepInstrumentDatabaseCreationInput{
 						{
-							ID:                           fakes.BuildFakeID(),
+							ID:                           fake.BuildFakeID(),
 							ValidPreparationInstrumentID: new(vpi.ID),
 							// InstrumentID should be nil before validation
 						},
 					},
 					Vessels: []*mealplanning.RecipeStepVesselDatabaseCreationInput{
 						{
-							ID:                       fakes.BuildFakeID(),
+							ID:                       fake.BuildFakeID(),
 							ValidPreparationVesselID: new(vpv.ID),
 							// VesselID should be nil before validation
 						},
@@ -493,7 +495,7 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		t.Parallel()
 
 		input := &mealplanning.RecipeDatabaseCreationInput{
-			ID:    fakes.BuildFakeID(),
+			ID:    fake.BuildFakeID(),
 			Name:  "Test Recipe",
 			Steps: []*mealplanning.RecipeStepDatabaseCreationInput{},
 		}
@@ -510,27 +512,27 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		preparation := fakes.BuildFakeValidPreparation()
 
 		input := &mealplanning.RecipeDatabaseCreationInput{
-			ID:   fakes.BuildFakeID(),
+			ID:   fake.BuildFakeID(),
 			Name: "Test Recipe",
 			Steps: []*mealplanning.RecipeStepDatabaseCreationInput{
 				{
-					ID:            fakes.BuildFakeID(),
+					ID:            fake.BuildFakeID(),
 					PreparationID: preparation.ID,
 					Ingredients: []*mealplanning.RecipeStepIngredientDatabaseCreationInput{
 						{
-							ID: fakes.BuildFakeID(),
+							ID: fake.BuildFakeID(),
 							// No bridge IDs set - should pass validation
 						},
 					},
 					Instruments: []*mealplanning.RecipeStepInstrumentDatabaseCreationInput{
 						{
-							ID: fakes.BuildFakeID(),
+							ID: fake.BuildFakeID(),
 							// No bridge IDs set - should pass validation
 						},
 					},
 					Vessels: []*mealplanning.RecipeStepVesselDatabaseCreationInput{
 						{
-							ID: fakes.BuildFakeID(),
+							ID: fake.BuildFakeID(),
 							// No bridge IDs set - should pass validation
 						},
 					},
@@ -555,15 +557,15 @@ func TestRecipeValidator_ValidateAndPopulate(T *testing.T) {
 		vimuMap := map[string]*mealplanning.ValidIngredientMeasurementUnit{vimu.ID: vimu}
 
 		input := &mealplanning.RecipeDatabaseCreationInput{
-			ID:   fakes.BuildFakeID(),
+			ID:   fake.BuildFakeID(),
 			Name: "Test Recipe",
 			Steps: []*mealplanning.RecipeStepDatabaseCreationInput{
 				{
-					ID:            fakes.BuildFakeID(),
+					ID:            fake.BuildFakeID(),
 					PreparationID: preparation.ID,
 					Ingredients: []*mealplanning.RecipeStepIngredientDatabaseCreationInput{
 						{
-							ID: fakes.BuildFakeID(),
+							ID: fake.BuildFakeID(),
 							// Only VIMU, no VIP
 							ValidIngredientMeasurementUnitID: new(vimu.ID),
 						},

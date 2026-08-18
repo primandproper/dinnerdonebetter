@@ -11,6 +11,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -156,7 +158,7 @@ func TestQuerier_GetAccountInvitationByTokenAndID(T *testing.T) {
 	T.Run("with invalid account ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -169,7 +171,7 @@ func TestQuerier_GetAccountInvitationByTokenAndID(T *testing.T) {
 	T.Run("with invalid account invitation ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -186,7 +188,7 @@ func TestQuerier_GetAccountInvitationByAccountAndID(T *testing.T) {
 	T.Run("with invalid account ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -199,7 +201,7 @@ func TestQuerier_GetAccountInvitationByAccountAndID(T *testing.T) {
 	T.Run("with invalid account invitation ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -216,7 +218,7 @@ func TestQuerier_GetAccountInvitationByEmailAndToken(T *testing.T) {
 	T.Run("with invalid account ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -229,7 +231,7 @@ func TestQuerier_GetAccountInvitationByEmailAndToken(T *testing.T) {
 	T.Run("with invalid account invitation ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -278,7 +280,7 @@ func TestSQLQuerier_AcceptAccountInvitation(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleToken := fakes.BuildFakeID()
+		exampleToken := fake.BuildFakeID()
 
 		c := buildInertClientForTest(t)
 

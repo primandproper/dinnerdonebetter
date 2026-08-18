@@ -10,6 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/identifiers"
 
 	"github.com/stretchr/testify/assert"
@@ -115,7 +116,7 @@ func TestQuerier_GetRecipePrepTask(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleRecipePrepTaskID := fakes.BuildFakeID()
+		exampleRecipePrepTaskID := fake.BuildFakeID()
 
 		c := buildInertClientForTest(t)
 

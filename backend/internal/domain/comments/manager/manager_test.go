@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/fakes"
 	commentsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/mock"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
 
@@ -104,7 +105,7 @@ func TestCommentsManager_ArchiveComment(t *testing.T) {
 		ctx := t.Context()
 		cm := buildCommentsManagerForTest(t)
 
-		commentID := fakes.BuildFakeID()
+		commentID := fake.BuildFakeID()
 
 		repo := &commentsmock.RepositoryMock{
 			ArchiveCommentFunc: func(_ context.Context, id string) error {

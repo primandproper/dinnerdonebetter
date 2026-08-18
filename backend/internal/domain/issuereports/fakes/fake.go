@@ -1,81 +1,63 @@
 package fakes
 
 import (
-	"time"
-
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	"github.com/primandproper/platform-go/v11/identifiers"
+	"github.com/primandproper/platform-go/v11/fake"
+	"github.com/primandproper/platform-go/v11/pointer"
 
-	fake "github.com/brianvoe/gofakeit/v7"
+	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
 
-func init() {
-	if err := fake.Seed(time.Now().UnixNano()); err != nil {
-		panic(err)
-	}
+// buildFakeIssueType returns one of the types an issue report may have.
+//
+// Both this and buildFakeRelevantTable name closed sets: the type is one of five the
+// triage path branches on, and the table is one a report can actually point at.
+func buildFakeIssueType() string {
+	return gofakeit.RandomString([]string{"bug", "feature_request", "data_quality", "performance", "other"})
 }
 
-// BuildFakeID builds a fake ID.
-func BuildFakeID() string {
-	return identifiers.New()
-}
-
-// BuildFakeTime builds a fake time.
-func BuildFakeTime() time.Time {
-	return fake.Date().Add(0).Truncate(time.Second).UTC()
+func buildFakeRelevantTable() string {
+	return gofakeit.RandomString([]string{"users", "accounts"})
 }
 
 // BuildFakeIssueReport builds a fake issue report.
 func BuildFakeIssueReport() *types.IssueReport {
-	return &types.IssueReport{
-		ID:               BuildFakeID(),
-		IssueType:        fake.RandomString([]string{"bug", "feature_request", "data_quality", "performance", "other"}),
-		Details:          fake.Sentence(20),
-		RelevantTable:    fake.RandomString([]string{"users", "accounts"}),
-		RelevantRecordID: BuildFakeID(),
-		CreatedAt:        BuildFakeTime(),
-		LastUpdatedAt:    nil,
-		ArchivedAt:       nil,
-		CreatedByUser:    BuildFakeID(),
-		BelongsToAccount: BuildFakeID(),
-	}
+	report := fake.BuildFakeRecord[types.IssueReport]()
+	report.IssueType = buildFakeIssueType()
+	report.RelevantTable = buildFakeRelevantTable()
+
+	return report
 }
 
 // BuildFakeIssueReportCreationRequestInput builds a fake IssueReportCreationRequestInput.
 func BuildFakeIssueReportCreationRequestInput() *types.IssueReportCreationRequestInput {
-	return &types.IssueReportCreationRequestInput{
-		IssueType:        fake.RandomString([]string{"bug", "feature_request", "data_quality", "performance", "other"}),
-		Details:          fake.Sentence(20),
-		RelevantTable:    fake.RandomString([]string{"users", "accounts"}),
-		RelevantRecordID: BuildFakeID(),
-	}
+	input := fake.BuildFakeRecord[types.IssueReportCreationRequestInput]()
+	input.IssueType = buildFakeIssueType()
+	input.RelevantTable = buildFakeRelevantTable()
+
+	return input
 }
 
 // BuildFakeIssueReportDatabaseCreationInput builds a fake IssueReportDatabaseCreationInput.
 func BuildFakeIssueReportDatabaseCreationInput() *types.IssueReportDatabaseCreationInput {
-	return &types.IssueReportDatabaseCreationInput{
-		ID:               BuildFakeID(),
-		IssueType:        fake.RandomString([]string{"bug", "feature_request", "data_quality", "performance", "other"}),
-		Details:          fake.Sentence(20),
-		RelevantTable:    fake.RandomString([]string{"users", "accounts"}),
-		RelevantRecordID: BuildFakeID(),
-		CreatedByUser:    BuildFakeID(),
-		BelongsToAccount: BuildFakeID(),
-	}
+	input := fake.BuildFakeRecord[types.IssueReportDatabaseCreationInput]()
+	input.IssueType = buildFakeIssueType()
+	input.RelevantTable = buildFakeRelevantTable()
+
+	return input
 }
 
 // BuildFakeIssueReportUpdateRequestInput builds a fake IssueReportUpdateRequestInput.
+//
+// Every field on an update input is optional, and BuildFakeRecord leaves an optional
+// field absent — which for this type would be an update that updates nothing. So the
+// fields are filled here, from the value builders above.
 func BuildFakeIssueReportUpdateRequestInput() *types.IssueReportUpdateRequestInput {
-	issueType := fake.RandomString([]string{"bug", "feature_request", "data_quality", "performance", "other"})
-	details := fake.Sentence(20)
-	relevantTable := fake.RandomString([]string{"users", "accounts"})
-	relevantRecordID := BuildFakeID()
-
 	return &types.IssueReportUpdateRequestInput{
-		IssueType:        &issueType,
-		Details:          &details,
-		RelevantTable:    &relevantTable,
-		RelevantRecordID: &relevantRecordID,
+		IssueType:        pointer.To(buildFakeIssueType()),
+		Details:          pointer.To(fake.BuildFakeString()),
+		RelevantTable:    pointer.To(buildFakeRelevantTable()),
+		RelevantRecordID: pointer.To(fake.BuildFakeID()),
 	}
 }

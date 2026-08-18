@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -23,9 +23,9 @@ func TestMealPlanningManager_UpdateMealListItem(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		itemID := fakes.BuildFakeID()
-		listID := fakes.BuildFakeID()
-		mealID := fakes.BuildFakeID()
+		itemID := fake.BuildFakeID()
+		listID := fake.BuildFakeID()
+		mealID := fake.BuildFakeID()
 		notes := new(t.Name())
 		input := &types.MealListItemUpdateRequestInput{
 			Notes: notes,
@@ -53,10 +53,10 @@ func TestMealPlanningManager_AddMealToMealList(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		listID := fakes.BuildFakeID()
-		mealID := fakes.BuildFakeID()
+		listID := fake.BuildFakeID()
+		mealID := fake.BuildFakeID()
 		expected := &types.MealListItem{
-			ID:                fakes.BuildFakeID(),
+			ID:                fake.BuildFakeID(),
 			BelongsToMealList: listID,
 			Notes:             t.Name(),
 			Meal:              types.Meal{ID: mealID},
@@ -89,8 +89,8 @@ func TestMealPlanningManager_AddMealToMealList(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		listID := fakes.BuildFakeID()
-		mealID := fakes.BuildFakeID()
+		listID := fake.BuildFakeID()
+		mealID := fake.BuildFakeID()
 		notes := t.Name()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -120,8 +120,8 @@ func TestMealPlanningManager_RemoveMealFromMealList(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		listID := fakes.BuildFakeID()
-		itemID := fakes.BuildFakeID()
+		listID := fake.BuildFakeID()
+		itemID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			ArchiveMealListItemFunc: func(_ context.Context, mealListItemID string, mealListID string) error {
@@ -148,13 +148,13 @@ func TestMealPlanningManager_ListMealListItems(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		listID := fakes.BuildFakeID()
-		userID := fakes.BuildFakeID()
+		listID := fake.BuildFakeID()
+		userID := fake.BuildFakeID()
 		expectedItem := &types.MealListItem{
-			ID:                fakes.BuildFakeID(),
+			ID:                fake.BuildFakeID(),
 			BelongsToMealList: listID,
 			Notes:             t.Name(),
-			Meal:              types.Meal{ID: fakes.BuildFakeID()},
+			Meal:              types.Meal{ID: fake.BuildFakeID()},
 		}
 		expected := &filtering.QueryFilteredResult[types.MealListItem]{Data: []*types.MealListItem{expectedItem}}
 

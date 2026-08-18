@@ -4,57 +4,43 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 )
 
+// BuildFakeMealPlanGroceryListItem builds a faked meal plan grocery list item.
+//
+// Everything the type leaves optional stays absent: an item nobody has bought yet, and
+// one that belongs to the plan rather than to a particular option's choice group.
 func BuildFakeMealPlanGroceryListItem() *types.MealPlanGroceryListItem {
-	minQty, maxQty := BuildFakeFloat32WithOptionalMax()
-	return &types.MealPlanGroceryListItem{
-		ID:                       BuildFakeID(),
-		BelongsToMealPlan:        BuildFakeID(),
-		Ingredient:               *BuildFakeValidIngredient(),
-		MeasurementUnit:          *BuildFakeValidMeasurementUnit(),
-		MinQuantityNeeded:        minQty,
-		MaxQuantityNeeded:        maxQty,
-		QuantityPurchased:        nil,
-		PurchasedMeasurementUnit: nil,
-		PurchasedUPC:             nil,
-		PurchasePrice:            nil,
-		StatusExplanation:        buildUniqueString(),
-		Status:                   types.MealPlanGroceryListItemStatusUnknown,
-		CreatedAt:                BuildFakeTime(),
-		// Recipe context fields (optional - only set when item is part of a choice group)
-		BelongsToMealPlanOption: nil,
-		RecipeID:                nil,
-		RecipeStepID:            nil,
-		IngredientIndex:         nil,
-		OptionIndex:             nil,
-	}
+	item := fake.BuildFakeRecord[types.MealPlanGroceryListItem]()
+
+	// What to buy and what it is measured in.
+	item.Ingredient = *BuildFakeValidIngredient()
+	item.MeasurementUnit = *BuildFakeValidMeasurementUnit()
+	item.MinQuantityNeeded, item.MaxQuantityNeeded = BuildFakeFloat32WithOptionalMax()
+
+	// One of the statuses the type validates against.
+	item.Status = types.MealPlanGroceryListItemStatusUnknown
+
+	return item
 }
 
+// BuildFakeMealPlanGroceryListItemsList builds a faked MealPlanGroceryListItemList.
 func BuildFakeMealPlanGroceryListItemsList() *filtering.QueryFilteredResult[types.MealPlanGroceryListItem] {
-	var examples []*types.MealPlanGroceryListItem
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeMealPlanGroceryListItem())
-	}
-
-	return &filtering.QueryFilteredResult[types.MealPlanGroceryListItem]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeMealPlanGroceryListItem)
 }
 
+// BuildFakeMealPlanGroceryListItemCreationRequestInput builds a faked MealPlanGroceryListItemCreationRequestInput.
 func BuildFakeMealPlanGroceryListItemCreationRequestInput() *types.MealPlanGroceryListItemCreationRequestInput {
 	mealPlanGroceryListItem := BuildFakeMealPlanGroceryListItem()
+
 	return converters.ConvertMealPlanGroceryListItemToMealPlanGroceryListItemCreationRequestInput(mealPlanGroceryListItem)
 }
 
+// BuildFakeMealPlanGroceryListItemUpdateRequestInput builds a faked MealPlanGroceryListItemUpdateRequestInput.
 func BuildFakeMealPlanGroceryListItemUpdateRequestInput() *types.MealPlanGroceryListItemUpdateRequestInput {
 	mealPlanGroceryListItem := BuildFakeMealPlanGroceryListItem()
+
 	return converters.ConvertMealPlanGroceryListItemToMealPlanGroceryListItemUpdateRequestInput(mealPlanGroceryListItem)
 }

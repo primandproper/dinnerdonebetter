@@ -11,6 +11,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -104,7 +106,7 @@ func TestQuerier_UserNotificationExists(T *testing.T) {
 
 		c := buildInertClientForTest(t)
 
-		actual, err := c.UserNotificationExists(ctx, fakes.BuildFakeID(), "")
+		actual, err := c.UserNotificationExists(ctx, fake.BuildFakeID(), "")
 		require.Error(t, err)
 		assert.False(t, actual)
 	})
@@ -116,7 +118,7 @@ func TestQuerier_UserNotificationExists(T *testing.T) {
 
 		c := buildInertClientForTest(t)
 
-		actual, err := c.UserNotificationExists(ctx, "", fakes.BuildFakeID())
+		actual, err := c.UserNotificationExists(ctx, "", fake.BuildFakeID())
 		require.Error(t, err)
 		assert.False(t, actual)
 	})
@@ -131,7 +133,7 @@ func TestQuerier_GetUserNotification(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.GetUserNotification(ctx, "", fakes.BuildFakeID())
+		actual, err := c.GetUserNotification(ctx, "", fake.BuildFakeID())
 		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
@@ -142,7 +144,7 @@ func TestQuerier_GetUserNotification(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.GetUserNotification(ctx, fakes.BuildFakeID(), "")
+		actual, err := c.GetUserNotification(ctx, fake.BuildFakeID(), "")
 		require.Error(t, err)
 		assert.Nil(t, actual)
 	})

@@ -10,6 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 	webhookmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/mock"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
@@ -286,9 +287,9 @@ func TestWebhookDataManager_ArchiveWebhookTriggerConfig(t *testing.T) {
 
 		ctx := t.Context()
 
-		webhookID := fakes.BuildFakeID()
-		accountID := fakes.BuildFakeID()
-		configID := fakes.BuildFakeID()
+		webhookID := fake.BuildFakeID()
+		accountID := fake.BuildFakeID()
+		configID := fake.BuildFakeID()
 
 		repo := &webhookmock.RepositoryMock{
 			ArchiveWebhookTriggerConfigFunc: func(_ context.Context, actualWebhookID, actualAccountID, actualConfigID string) error {

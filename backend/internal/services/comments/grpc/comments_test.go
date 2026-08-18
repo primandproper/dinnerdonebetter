@@ -10,6 +10,7 @@ import (
 	commentsmanagermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager/mock"
 	commentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	"github.com/primandproper/platform-go/v11/observability/tracing"
@@ -49,7 +50,7 @@ func sessionContextForUser(t *testing.T, userID string) context.Context {
 func buildSessionContextForTest(t *testing.T) context.Context {
 	t.Helper()
 
-	return sessionContextForUser(t, commentsfakes.BuildFakeID())
+	return sessionContextForUser(t, fake.BuildFakeID())
 }
 
 func TestServiceImpl_CreateComment(T *testing.T) {
@@ -58,8 +59,8 @@ func TestServiceImpl_CreateComment(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		userID := commentsfakes.BuildFakeID()
-		recipeID := commentsfakes.BuildFakeID()
+		userID := fake.BuildFakeID()
+		recipeID := fake.BuildFakeID()
 
 		fakeComment := commentsfakes.BuildFakeComment()
 		fakeComment.TargetType = "recipes"
@@ -110,7 +111,7 @@ func TestServiceImpl_CreateComment(T *testing.T) {
 		res, err := s.CreateComment(ctx, &commentssvc.CreateCommentRequest{
 			Input: &commentssvc.CommentCreationRequestInput{
 				Content:      "test",
-				ReferencedId: commentsfakes.BuildFakeID(),
+				ReferencedId: fake.BuildFakeID(),
 			},
 		})
 		require.Error(t, err)
@@ -129,7 +130,7 @@ func TestServiceImpl_GetCommentsForReference(T *testing.T) {
 
 		ctx := buildSessionContextForTest(t)
 
-		recipeID := commentsfakes.BuildFakeID()
+		recipeID := fake.BuildFakeID()
 		expected := commentsfakes.BuildFakeCommentList("recipes", recipeID)
 
 		mcm := &commentsmanagermock.CommentsDataManagerMock{
@@ -161,8 +162,8 @@ func TestServiceImpl_UpdateComment(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		commentID := commentsfakes.BuildFakeID()
-		userID := commentsfakes.BuildFakeID()
+		commentID := fake.BuildFakeID()
+		userID := fake.BuildFakeID()
 		newContent := "updated content"
 
 		fakeComment := commentsfakes.BuildFakeComment()
@@ -200,9 +201,9 @@ func TestServiceImpl_UpdateComment(T *testing.T) {
 	T.Run("permission_denied_when_different_user", func(t *testing.T) {
 		t.Parallel()
 
-		commentID := commentsfakes.BuildFakeID()
-		ownerID := commentsfakes.BuildFakeID()
-		requestingUserID := commentsfakes.BuildFakeID()
+		commentID := fake.BuildFakeID()
+		ownerID := fake.BuildFakeID()
+		requestingUserID := fake.BuildFakeID()
 
 		fakeComment := commentsfakes.BuildFakeComment()
 		fakeComment.ID = commentID
@@ -239,8 +240,8 @@ func TestServiceImpl_ArchiveComment(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		commentID := commentsfakes.BuildFakeID()
-		userID := commentsfakes.BuildFakeID()
+		commentID := fake.BuildFakeID()
+		userID := fake.BuildFakeID()
 
 		fakeComment := commentsfakes.BuildFakeComment()
 		fakeComment.ID = commentID
@@ -274,9 +275,9 @@ func TestServiceImpl_ArchiveComment(T *testing.T) {
 	T.Run("permission_denied_when_different_user", func(t *testing.T) {
 		t.Parallel()
 
-		commentID := commentsfakes.BuildFakeID()
-		ownerID := commentsfakes.BuildFakeID()
-		requestingUserID := commentsfakes.BuildFakeID()
+		commentID := fake.BuildFakeID()
+		ownerID := fake.BuildFakeID()
+		requestingUserID := fake.BuildFakeID()
 
 		fakeComment := commentsfakes.BuildFakeComment()
 		fakeComment.ID = commentID

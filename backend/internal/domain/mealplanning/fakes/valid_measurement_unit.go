@@ -4,54 +4,38 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
-
-	fake "github.com/brianvoe/gofakeit/v7"
 )
 
-// BuildFakeValidMeasurementUnit builds a faked valid ingredient.
+// BuildFakeValidMeasurementUnit builds a faked valid measurement unit.
 func BuildFakeValidMeasurementUnit() *types.ValidMeasurementUnit {
-	return &types.ValidMeasurementUnit{
-		ID:          BuildFakeID(),
-		Name:        buildUniqueString(),
-		Description: buildUniqueString(),
-		Volumetric:  fake.Bool(),
-		IconPath:    buildUniqueString(),
-		Universal:   fake.Bool(),
-		Metric:      true,
-		Imperial:    false,
-		PluralName:  buildUniqueString(),
-		Slug:        buildUniqueString(),
-		CreatedAt:   BuildFakeTime(),
-	}
+	validMeasurementUnit := fake.BuildFakeRecord[types.ValidMeasurementUnit]()
+
+	// A unit belongs to one system or the other, and the conversion path reads both
+	// flags — so a unit that is neither, or both, is one no conversion knows what to do
+	// with.
+	validMeasurementUnit.Metric = true
+	validMeasurementUnit.Imperial = false
+
+	return validMeasurementUnit
 }
 
 // BuildFakeValidMeasurementUnitsList builds a faked ValidMeasurementUnitList.
 func BuildFakeValidMeasurementUnitsList() *filtering.QueryFilteredResult[types.ValidMeasurementUnit] {
-	var examples []*types.ValidMeasurementUnit
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeValidMeasurementUnit())
-	}
-
-	return &filtering.QueryFilteredResult[types.ValidMeasurementUnit]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeValidMeasurementUnit)
 }
 
-// BuildFakeValidMeasurementUnitUpdateRequestInput builds a faked ValidMeasurementUnitUpdateRequestInput from a valid ingredient.
+// BuildFakeValidMeasurementUnitUpdateRequestInput builds a faked ValidMeasurementUnitUpdateRequestInput from a valid measurement unit.
 func BuildFakeValidMeasurementUnitUpdateRequestInput() *types.ValidMeasurementUnitUpdateRequestInput {
 	validMeasurementUnit := BuildFakeValidMeasurementUnit()
+
 	return converters.ConvertValidMeasurementUnitToValidMeasurementUnitUpdateRequestInput(validMeasurementUnit)
 }
 
 // BuildFakeValidMeasurementUnitCreationRequestInput builds a faked ValidMeasurementUnitCreationRequestInput.
 func BuildFakeValidMeasurementUnitCreationRequestInput() *types.ValidMeasurementUnitCreationRequestInput {
 	validMeasurementUnit := BuildFakeValidMeasurementUnit()
+
 	return converters.ConvertValidMeasurementUnitToValidMeasurementUnitCreationRequestInput(validMeasurementUnit)
 }

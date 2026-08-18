@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ func TestRecipeManager_ListRecipeSteps(T *testing.T) {
 		rm := buildRecipeManagerForTest(t)
 
 		expected := fakes.BuildFakeRecipeStepsList()
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetRecipeStepsFunc: func(_ context.Context, recipeID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeStep], error) {
@@ -52,7 +53,7 @@ func TestRecipeManager_CreateRecipeStep(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStep()
 		fakeInput := fakes.BuildFakeRecipeStepCreationRequestInput()
 
@@ -80,7 +81,7 @@ func TestRecipeManager_ReadRecipeStep(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStep()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -110,7 +111,7 @@ func TestRecipeManager_UpdateRecipeStep(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		exampleRecipeStep := fakes.BuildFakeRecipeStep()
 		exampleInput := fakes.BuildFakeRecipeStepUpdateRequestInput()
 
@@ -143,7 +144,7 @@ func TestRecipeManager_ArchiveRecipeStep(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeStep()
 
 		db := &mealplanningmock.RepositoryMock{

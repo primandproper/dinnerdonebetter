@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/fakes"
 	settingsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/mock"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
 
@@ -73,7 +74,7 @@ func TestSettingsManager_ArchiveServiceSetting(t *testing.T) {
 		ctx := t.Context()
 		sm := buildSettingsManagerForTest(t)
 
-		serviceSettingID := fakes.BuildFakeID()
+		serviceSettingID := fake.BuildFakeID()
 
 		repo := &settingsmock.RepositoryMock{
 			ArchiveServiceSettingFunc: func(_ context.Context, id string) error {
@@ -154,7 +155,7 @@ func TestSettingsManager_ArchiveServiceSettingConfiguration(t *testing.T) {
 		ctx := t.Context()
 		sm := buildSettingsManagerForTest(t)
 
-		serviceSettingConfigurationID := fakes.BuildFakeID()
+		serviceSettingConfigurationID := fake.BuildFakeID()
 
 		repo := &settingsmock.RepositoryMock{
 			ArchiveServiceSettingConfigurationFunc: func(_ context.Context, id string) error {

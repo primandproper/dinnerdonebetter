@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ func TestRecipeManager_ListRecipePrepTask(T *testing.T) {
 		rm := buildRecipeManagerForTest(t)
 
 		expected := fakes.BuildFakeRecipePrepTasksList()
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetRecipePrepTasksFunc: func(_ context.Context, recipeID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipePrepTask], error) {
@@ -52,7 +53,7 @@ func TestRecipeManager_CreateRecipePrepTask(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipePrepTask()
 		fakeInput := fakes.BuildFakeRecipePrepTaskCreationRequestInput()
 
@@ -80,7 +81,7 @@ func TestRecipeManager_ReadRecipePrepTask(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipePrepTask()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -110,7 +111,7 @@ func TestRecipeManager_UpdateRecipePrepTask(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		exampleRecipePrepTask := fakes.BuildFakeRecipePrepTask()
 		exampleInput := fakes.BuildFakeRecipePrepTaskUpdateRequestInput()
 
@@ -143,7 +144,7 @@ func TestRecipeManager_ArchiveRecipePrepTask(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipePrepTask()
 
 		db := &mealplanningmock.RepositoryMock{

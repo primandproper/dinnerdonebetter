@@ -10,6 +10,7 @@ import (
 	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +27,7 @@ func TestServiceImpl_ArchiveAccount(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleAccountID := identityfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		identityDataManager.ArchiveAccountFunc = func(_ context.Context, accountID string, _ string) error {
 			assert.Equal(t, exampleAccountID, accountID)
@@ -51,7 +52,7 @@ func TestServiceImpl_ArchiveAccount(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &identitysvc.ArchiveAccountRequest{
-			AccountId: identityfakes.BuildFakeID(),
+			AccountId: fake.BuildFakeID(),
 		}
 
 		result, err := service.ArchiveAccount(t.Context(), request)
@@ -69,7 +70,7 @@ func TestServiceImpl_ArchiveAccount(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleAccountID := identityfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		identityDataManager.ArchiveAccountFunc = func(_ context.Context, accountID string, _ string) error {
 			assert.Equal(t, exampleAccountID, accountID)
@@ -292,7 +293,7 @@ func TestServiceImpl_GetAccount(t *testing.T) {
 	t.Run("with error from data manager", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := identityfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		service, identityDataManager := buildTestService(t)
 		ctx := buildSessionContextForAccount(t, exampleAccountID)
@@ -413,7 +414,7 @@ func TestServiceImpl_SetDefaultAccount(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleAccountID := identityfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		identityDataManager.SetDefaultAccountFunc = func(_ context.Context, _ string, accountID string) error {
 			assert.Equal(t, exampleAccountID, accountID)
@@ -439,7 +440,7 @@ func TestServiceImpl_SetDefaultAccount(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &identitysvc.SetDefaultAccountRequest{
-			AccountId: identityfakes.BuildFakeID(),
+			AccountId: fake.BuildFakeID(),
 		}
 
 		result, err := service.SetDefaultAccount(t.Context(), request)
@@ -457,7 +458,7 @@ func TestServiceImpl_SetDefaultAccount(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleAccountID := identityfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		identityDataManager.SetDefaultAccountFunc = func(_ context.Context, _ string, accountID string) error {
 			assert.Equal(t, exampleAccountID, accountID)
@@ -495,8 +496,8 @@ func TestServiceImpl_TransferAccountOwnership(t *testing.T) {
 		// AccountId is left unset so it derives from the authenticated session's active account.
 		request := &identitysvc.TransferAccountOwnershipRequest{
 			Input: &identitysvc.AccountOwnershipTransferInput{
-				CurrentOwner: identityfakes.BuildFakeID(),
-				NewOwner:     identityfakes.BuildFakeID(),
+				CurrentOwner: fake.BuildFakeID(),
+				NewOwner:     fake.BuildFakeID(),
 				Reason:       "Transfer for testing",
 			},
 		}
@@ -515,10 +516,10 @@ func TestServiceImpl_TransferAccountOwnership(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &identitysvc.TransferAccountOwnershipRequest{
-			AccountId: identityfakes.BuildFakeID(),
+			AccountId: fake.BuildFakeID(),
 			Input: &identitysvc.AccountOwnershipTransferInput{
-				CurrentOwner: identityfakes.BuildFakeID(),
-				NewOwner:     identityfakes.BuildFakeID(),
+				CurrentOwner: fake.BuildFakeID(),
+				NewOwner:     fake.BuildFakeID(),
 			},
 		}
 
@@ -544,8 +545,8 @@ func TestServiceImpl_TransferAccountOwnership(t *testing.T) {
 		// AccountId is left unset so it derives from the authenticated session's active account.
 		request := &identitysvc.TransferAccountOwnershipRequest{
 			Input: &identitysvc.AccountOwnershipTransferInput{
-				CurrentOwner: identityfakes.BuildFakeID(),
-				NewOwner:     identityfakes.BuildFakeID(),
+				CurrentOwner: fake.BuildFakeID(),
+				NewOwner:     fake.BuildFakeID(),
 			},
 		}
 
@@ -593,7 +594,7 @@ func TestServiceImpl_UpdateAccount(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &identitysvc.UpdateAccountRequest{
-			AccountId: identityfakes.BuildFakeID(),
+			AccountId: fake.BuildFakeID(),
 			Input: &identitysvc.AccountUpdateRequestInput{
 				Name: new("Updated Account Name"),
 			},
@@ -644,7 +645,7 @@ func TestServiceImpl_UpdateAccountMemberPermissions(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleUserID := identityfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		identityDataManager.UpdateAccountMemberPermissionsFunc = func(_ context.Context, _ string, accountID string, _ *identity.ModifyUserPermissionsInput) error {
 			assert.Equal(t, exampleUserID, accountID)
@@ -673,7 +674,7 @@ func TestServiceImpl_UpdateAccountMemberPermissions(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &identitysvc.UpdateAccountMemberPermissionsRequest{
-			UserId: identityfakes.BuildFakeID(),
+			UserId: fake.BuildFakeID(),
 			Input: &identitysvc.ModifyUserPermissionsInput{
 				NewRole: "account_admin",
 			},
@@ -699,7 +700,7 @@ func TestServiceImpl_UpdateAccountMemberPermissions(t *testing.T) {
 		}
 
 		request := &identitysvc.UpdateAccountMemberPermissionsRequest{
-			UserId: identityfakes.BuildFakeID(),
+			UserId: fake.BuildFakeID(),
 			Input: &identitysvc.ModifyUserPermissionsInput{
 				NewRole: "account_admin",
 			},
@@ -724,8 +725,8 @@ func TestServiceImpl_ArchiveUserMembership(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleUserID := identityfakes.BuildFakeID()
-		exampleAccountID := identityfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		// the account arg is derived from the authenticated session, not the request.
 		identityDataManager.ArchiveUserMembershipFunc = func(_ context.Context, userID string, _ string) error {
@@ -751,8 +752,8 @@ func TestServiceImpl_ArchiveUserMembership(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleUserID := identityfakes.BuildFakeID()
-		exampleAccountID := identityfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		// the account arg is derived from the authenticated session, not the request.
 		identityDataManager.ArchiveUserMembershipFunc = func(_ context.Context, userID string, _ string) error {

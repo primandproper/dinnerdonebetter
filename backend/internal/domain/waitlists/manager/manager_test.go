@@ -11,6 +11,7 @@ import (
 	waitlistmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/mock"
 
 	platformerrors "github.com/primandproper/platform-go/v11/errors"
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
@@ -191,7 +192,7 @@ func TestWaitlistDataManager_ArchiveWaitlist(t *testing.T) {
 
 		ctx := t.Context()
 
-		waitlistID := fakes.BuildFakeID()
+		waitlistID := fake.BuildFakeID()
 
 		repo := &waitlistmock.RepositoryMock{
 			ArchiveWaitlistFunc: func(_ context.Context, actualID string) error {
@@ -284,7 +285,7 @@ func TestWaitlistDataManager_ArchiveWaitlistSignup(t *testing.T) {
 
 		ctx := t.Context()
 
-		waitlistSignupID := fakes.BuildFakeID()
+		waitlistSignupID := fake.BuildFakeID()
 
 		repo := &waitlistmock.RepositoryMock{
 			ArchiveWaitlistSignupFunc: func(_ context.Context, actualID string) error {
@@ -337,7 +338,7 @@ func TestWaitlistDataManager_GetWaitlistSignupsForUser(t *testing.T) {
 
 		ctx := t.Context()
 
-		userID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		filter := filtering.DefaultQueryFilter()
 		expected := fakes.BuildFakeWaitlistSignupsList()
 

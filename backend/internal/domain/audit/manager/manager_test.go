@@ -10,6 +10,7 @@ import (
 
 	"github.com/primandproper/platform-go/v11/database"
 	mockdatabase "github.com/primandproper/platform-go/v11/database/mock"
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
@@ -67,7 +68,7 @@ func TestAuditDataManager_GetAuditLogEntriesForAccount(t *testing.T) {
 
 		ctx := t.Context()
 
-		accountID := fakes.BuildFakeID()
+		accountID := fake.BuildFakeID()
 		filter := filtering.DefaultQueryFilter()
 		expected := fakes.BuildFakeAuditLogEntriesList()
 

@@ -4,46 +4,36 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/converters"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 )
 
-// BuildFakeUserNotification builds a faked valid ingredient.
+// BuildFakeUserNotification builds a faked user notification.
 func BuildFakeUserNotification() *types.UserNotification {
-	return &types.UserNotification{
-		CreatedAt:     BuildFakeTime(),
-		ID:            BuildFakeID(),
-		Content:       buildUniqueString(),
-		Status:        types.UserNotificationStatusTypeUnread,
-		BelongsToUser: BuildFakeID(),
-	}
+	notification := fake.BuildFakeRecord[types.UserNotification]()
+
+	// A notification is unread until something reads it, and read is the state a test
+	// arrives at rather than starts from.
+	notification.Status = types.UserNotificationStatusTypeUnread
+
+	return notification
 }
 
 // BuildFakeUserNotificationsList builds a faked UserNotificationList.
 func BuildFakeUserNotificationsList() *filtering.QueryFilteredResult[types.UserNotification] {
-	var notifications []*types.UserNotification
-	for range exampleQuantity {
-		notifications = append(notifications, BuildFakeUserNotification())
-	}
-
-	return &filtering.QueryFilteredResult[types.UserNotification]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: notifications,
-	}
+	return fake.BuildFakePage(BuildFakeUserNotification)
 }
 
 // BuildFakeUserNotificationUpdateRequestInput builds a faked UserNotificationUpdateRequestInput.
 func BuildFakeUserNotificationUpdateRequestInput() *types.UserNotificationUpdateRequestInput {
 	userNotification := BuildFakeUserNotification()
+
 	return converters.ConvertUserNotificationToUserNotificationUpdateRequestInput(userNotification)
 }
 
 // BuildFakeUserNotificationCreationRequestInput builds a faked UserNotificationCreationRequestInput.
 func BuildFakeUserNotificationCreationRequestInput() *types.UserNotificationCreationRequestInput {
 	userNotification := BuildFakeUserNotification()
+
 	return converters.ConvertUserNotificationToUserNotificationCreationRequestInput(userNotification)
 }

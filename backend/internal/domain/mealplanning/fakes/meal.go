@@ -4,58 +4,52 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 )
 
 // BuildFakeMeal builds a faked meal.
 func BuildFakeMeal() *mealplanning.Meal {
-	recipes := []*mealplanning.MealComponent{}
-	for range exampleQuantity {
-		recipes = append(recipes, BuildFakeMealComponent())
-	}
+	meal := fake.BuildFakeRecord[mealplanning.Meal]()
 
-	return &mealplanning.Meal{
-		ID:                   BuildFakeID(),
-		Name:                 buildUniqueString(),
-		Description:          buildUniqueString(),
-		MinEstimatedPortions: float32(buildFakeNumber()),
-		MaxEstimatedPortions: nil,
-		CreatedAt:            BuildFakeTime(),
-		CreatedByUser:        BuildFakeID(),
-		Components:           recipes,
-		EligibleForMealPlans: true,
+	// A meal is its components, and one with none is a meal every scaling and grocery
+	// calculation returns nothing for.
+	components := make([]*mealplanning.MealComponent, 0, exampleQuantity)
+	for range exampleQuantity {
+		components = append(components, BuildFakeMealComponent())
 	}
+	meal.Components = components
+
+	// A meal that may be voted on, which is what the meal planning path needs of one.
+	meal.EligibleForMealPlans = true
+
+	return meal
 }
 
 // BuildFakeMealComponent builds a faked meal component.
 func BuildFakeMealComponent() *mealplanning.MealComponent {
-	return &mealplanning.MealComponent{
-		Recipe:        *BuildFakeRecipe(),
-		RecipeScale:   float32(1.0),
-		ComponentType: mealplanning.MealComponentTypesMain,
-	}
+	component := fake.BuildFakeRecord[mealplanning.MealComponent]()
+
+	component.Recipe = *BuildFakeRecipe()
+
+	// Unscaled, so that a test that scales a meal is measuring its own factor rather
+	// than one the fake applied first.
+	component.RecipeScale = 1.0
+
+	// One of the component types the domain enumerates.
+	component.ComponentType = mealplanning.MealComponentTypesMain
+
+	return component
 }
 
 // BuildFakeMealsList builds a faked MealList.
 func BuildFakeMealsList() *filtering.QueryFilteredResult[mealplanning.Meal] {
-	var examples []*mealplanning.Meal
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeMeal())
-	}
-
-	return &filtering.QueryFilteredResult[mealplanning.Meal]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeMeal)
 }
 
 // BuildFakeMealCreationRequestInput builds a faked MealCreationRequestInput.
 func BuildFakeMealCreationRequestInput() *mealplanning.MealCreationRequestInput {
-	recipe := BuildFakeMeal()
-	return converters.ConvertMealToMealCreationRequestInput(recipe)
+	meal := BuildFakeMeal()
+
+	return converters.ConvertMealToMealCreationRequestInput(meal)
 }

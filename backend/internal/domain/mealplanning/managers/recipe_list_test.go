@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,10 +24,10 @@ func TestRecipeManager_ListRecipeLists(T *testing.T) {
 		rm := buildRecipeManagerForTest(t)
 
 		recipeList := &types.RecipeList{
-			ID:            fakes.BuildFakeID(),
+			ID:            fake.BuildFakeID(),
 			Name:          t.Name(),
 			Description:   t.Name(),
-			BelongsToUser: fakes.BuildFakeID(),
+			BelongsToUser: fake.BuildFakeID(),
 		}
 		expected := &filtering.QueryFilteredResult[types.RecipeList]{Data: []*types.RecipeList{recipeList}}
 
@@ -55,12 +55,12 @@ func TestRecipeManager_CreateRecipeList(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		input := &types.RecipeListCreationRequestInput{
 			Name:        t.Name(),
 			Description: t.Name(),
 		}
-		expected := &types.RecipeList{ID: fakes.BuildFakeID(), Name: input.Name, Description: input.Description, BelongsToUser: userID}
+		expected := &types.RecipeList{ID: fake.BuildFakeID(), Name: input.Name, Description: input.Description, BelongsToUser: userID}
 
 		db := &mealplanningmock.RepositoryMock{
 			CreateRecipeListFunc: func(_ context.Context, _ *types.RecipeListDatabaseCreationInput) (*types.RecipeList, error) {
@@ -86,8 +86,8 @@ func TestRecipeManager_ArchiveRecipeList(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
-		listID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
+		listID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			ArchiveRecipeListFunc: func(_ context.Context, recipeListID string, actualUserID string) error {
@@ -114,8 +114,8 @@ func TestRecipeManager_UpdateRecipeList(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		listID := fakes.BuildFakeID()
-		userID := fakes.BuildFakeID()
+		listID := fake.BuildFakeID()
+		userID := fake.BuildFakeID()
 		name := t.Name()
 		desc := "desc"
 		input := &types.RecipeListUpdateRequestInput{

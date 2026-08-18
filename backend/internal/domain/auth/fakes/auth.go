@@ -6,7 +6,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	fake "github.com/brianvoe/gofakeit/v7"
+	"github.com/primandproper/platform-go/v11/fake"
+
+	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
 
 // BuildFakeSessionContextData builds a faked ContextData.
@@ -17,28 +19,28 @@ func BuildFakeSessionContextData() *sessions.ContextData {
 			ServicePermissions:       nil,
 			AccountStatus:            identity.GoodStandingUserAccountStatus.String(),
 			AccountStatusExplanation: "fake",
-			UserID:                   BuildFakeID(),
-			EmailAddress:             fake.Email(),
-			Username:                 buildUniqueString(),
+			UserID:                   fake.BuildFakeID(),
+			EmailAddress:             gofakeit.Email(),
+			Username:                 fake.BuildFakeString(),
 		},
-		ActiveAccountID: BuildFakeID(),
+		ActiveAccountID: fake.BuildFakeID(),
 	}
 }
 
 // BuildFakeChangeActiveAccountInput builds a faked ChangeActiveAccountInput.
 func BuildFakeChangeActiveAccountInput() *auth.ChangeActiveAccountInput {
 	return &auth.ChangeActiveAccountInput{
-		AccountID: fake.UUID(),
+		AccountID: gofakeit.UUID(),
 	}
 }
 
 // BuildFakeUserStatusResponse builds a faked UserStatusResponse.
 func BuildFakeUserStatusResponse() *auth.UserStatusResponse {
 	return &auth.UserStatusResponse{
-		UserID:                   BuildFakeID(),
+		UserID:                   fake.BuildFakeID(),
 		AccountStatus:            identity.GoodStandingUserAccountStatus.String(),
 		AccountStatusExplanation: "",
-		ActiveAccount:            BuildFakeID(),
+		ActiveAccount:            fake.BuildFakeID(),
 		UserIsAuthenticated:      true,
 	}
 }
@@ -46,16 +48,16 @@ func BuildFakeUserStatusResponse() *auth.UserStatusResponse {
 // BuildFakeTokenResponse builds a faked TokenResponse.
 func BuildFakeTokenResponse() *auth.TokenResponse {
 	return &auth.TokenResponse{
-		UserID:      BuildFakeID(),
-		AccountID:   BuildFakeID(),
-		AccessToken: fake.UUID(),
+		UserID:      fake.BuildFakeID(),
+		AccountID:   fake.BuildFakeID(),
+		AccessToken: gofakeit.UUID(),
 	}
 }
 
 func BuildFakeUserLoginInput() *auth.UserLoginInput {
 	return &auth.UserLoginInput{
-		Username:  BuildFakeID(),
-		Password:  buildFakePassword(),
+		Username:  fake.BuildFakeID(),
+		Password:  fake.BuildFakePassword(),
 		TOTPToken: buildFakeTOTPToken(),
 	}
 }

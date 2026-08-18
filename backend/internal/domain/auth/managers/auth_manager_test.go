@@ -20,6 +20,7 @@ import (
 
 	platformtotp "github.com/primandproper/platform-go/v11/authentication/totp"
 	mocktotp "github.com/primandproper/platform-go/v11/authentication/totp/mock"
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 	"github.com/primandproper/platform-go/v11/messagequeue"
 	mockpublishers "github.com/primandproper/platform-go/v11/messagequeue/mock"
@@ -77,7 +78,7 @@ func TestAuthManager_Self(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		userID := identityfakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		expectedUser := identityfakes.BuildFakeUser()
 		expectedUser.ID = userID
 
@@ -116,8 +117,8 @@ func TestAuthManager_CheckUserPermissions(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		userID := identityfakes.BuildFakeID()
-		accountID := identityfakes.BuildFakeID()
+		userID := fake.BuildFakeID()
+		accountID := fake.BuildFakeID()
 
 		sessionData := &sessions.ContextData{
 			Requester: sessions.RequesterInfo{
@@ -209,7 +210,7 @@ func TestAuthManager_Self_UserNotFound(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
-	userID := identityfakes.BuildFakeID()
+	userID := fake.BuildFakeID()
 
 	userDataManager := &identitymock.RepositoryMock{
 		GetUserFunc: func(_ context.Context, actualUserID string) (*identity.User, error) {
@@ -475,7 +476,7 @@ func TestAuthManager_RequestEmailVerificationEmail_Success(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
-	userID := identityfakes.BuildFakeID()
+	userID := fake.BuildFakeID()
 
 	userDataManager := &identitymock.RepositoryMock{
 		GetEmailAddressVerificationTokenForUserFunc: func(_ context.Context, actualUserID string) (string, error) {
@@ -1050,7 +1051,7 @@ func TestAuthManager_NewTOTPSecret_UserNotFound(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
-	userID := identityfakes.BuildFakeID()
+	userID := fake.BuildFakeID()
 	input := authfakes.BuildFakeTOTPSecretRefreshInput()
 
 	userDataManager := &identitymock.RepositoryMock{
@@ -1083,12 +1084,12 @@ func TestAuthManager_GetActiveSessionsForUser(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		userID := identityfakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		filter := filtering.DefaultQueryFilter()
 
 		expected := &filtering.QueryFilteredResult[auth.UserSession]{
 			Data: []*auth.UserSession{
-				{ID: identityfakes.BuildFakeID(), BelongsToUser: userID},
+				{ID: fake.BuildFakeID(), BelongsToUser: userID},
 			},
 		}
 
@@ -1116,7 +1117,7 @@ func TestAuthManager_GetActiveSessionsForUser(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		userID := identityfakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 
 		expected := &filtering.QueryFilteredResult[auth.UserSession]{
 			Data: []*auth.UserSession{},
@@ -1146,7 +1147,7 @@ func TestAuthManager_GetActiveSessionsForUser(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		userID := identityfakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		filter := filtering.DefaultQueryFilter()
 
 		sessionDM := &authmock.UserSessionDataManagerMock{
@@ -1177,8 +1178,8 @@ func TestAuthManager_RevokeSession(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		sessionID := identityfakes.BuildFakeID()
-		userID := identityfakes.BuildFakeID()
+		sessionID := fake.BuildFakeID()
+		userID := fake.BuildFakeID()
 
 		sessionDM := &authmock.UserSessionDataManagerMock{
 			RevokeUserSessionFunc: func(_ context.Context, actualSessionID, actualUserID string) error {
@@ -1203,8 +1204,8 @@ func TestAuthManager_RevokeSession(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		sessionID := identityfakes.BuildFakeID()
-		userID := identityfakes.BuildFakeID()
+		sessionID := fake.BuildFakeID()
+		userID := fake.BuildFakeID()
 
 		sessionDM := &authmock.UserSessionDataManagerMock{
 			RevokeUserSessionFunc: func(_ context.Context, actualSessionID, actualUserID string) error {
@@ -1233,8 +1234,8 @@ func TestAuthManager_RevokeAllSessionsForUserExcept(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		userID := identityfakes.BuildFakeID()
-		currentSessionID := identityfakes.BuildFakeID()
+		userID := fake.BuildFakeID()
+		currentSessionID := fake.BuildFakeID()
 
 		sessionDM := &authmock.UserSessionDataManagerMock{
 			RevokeAllSessionsForUserExceptFunc: func(_ context.Context, actualUserID, sessionID string) error {
@@ -1259,8 +1260,8 @@ func TestAuthManager_RevokeAllSessionsForUserExcept(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		userID := identityfakes.BuildFakeID()
-		currentSessionID := identityfakes.BuildFakeID()
+		userID := fake.BuildFakeID()
+		currentSessionID := fake.BuildFakeID()
 
 		sessionDM := &authmock.UserSessionDataManagerMock{
 			RevokeAllSessionsForUserExceptFunc: func(_ context.Context, actualUserID, sessionID string) error {

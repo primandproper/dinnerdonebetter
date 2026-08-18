@@ -4,49 +4,38 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
-
-	fake "github.com/brianvoe/gofakeit/v7"
 )
 
-// BuildFakeUserIngredientPreference builds a faked valid preparation.
+// BuildFakeUserIngredientPreference builds a faked user ingredient preference.
 func BuildFakeUserIngredientPreference() *types.UserIngredientPreference {
-	return &types.UserIngredientPreference{
-		ID:         BuildFakeID(),
-		Ingredient: *BuildFakeValidIngredient(),
-		Rating:     1,
-		Notes:      buildUniqueString(),
-		Allergy:    fake.Bool(),
-		CreatedAt:  BuildFakeTime(),
-	}
+	preference := fake.BuildFakeRecord[types.UserIngredientPreference]()
+
+	preference.Ingredient = *BuildFakeValidIngredient()
+
+	// A rating inside the range the type validates, which is narrow enough that a
+	// number chosen from anywhere else is outside it.
+	preference.Rating = 1
+
+	return preference
 }
 
 // BuildFakeUserIngredientPreferencesList builds a faked UserIngredientPreferenceList.
 func BuildFakeUserIngredientPreferencesList() *filtering.QueryFilteredResult[types.UserIngredientPreference] {
-	var examples []*types.UserIngredientPreference
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeUserIngredientPreference())
-	}
-
-	return &filtering.QueryFilteredResult[types.UserIngredientPreference]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeUserIngredientPreference)
 }
 
-// BuildFakeUserIngredientPreferenceUpdateRequestInput builds a faked UserIngredientPreferenceUpdateRequestInput from a valid preparation.
+// BuildFakeUserIngredientPreferenceUpdateRequestInput builds a faked UserIngredientPreferenceUpdateRequestInput from a preference.
 func BuildFakeUserIngredientPreferenceUpdateRequestInput() *types.UserIngredientPreferenceUpdateRequestInput {
-	validPreparation := BuildFakeUserIngredientPreference()
-	return converters.ConvertUserIngredientPreferenceToUserIngredientPreferenceUpdateRequestInput(validPreparation)
+	preference := BuildFakeUserIngredientPreference()
+
+	return converters.ConvertUserIngredientPreferenceToUserIngredientPreferenceUpdateRequestInput(preference)
 }
 
 // BuildFakeUserIngredientPreferenceCreationRequestInput builds a faked UserIngredientPreferenceCreationRequestInput.
 func BuildFakeUserIngredientPreferenceCreationRequestInput() *types.UserIngredientPreferenceCreationRequestInput {
-	validPreparation := BuildFakeUserIngredientPreference()
-	return converters.ConvertUserIngredientPreferenceToUserIngredientPreferenceCreationRequestInput(validPreparation)
+	preference := BuildFakeUserIngredientPreference()
+
+	return converters.ConvertUserIngredientPreferenceToUserIngredientPreferenceCreationRequestInput(preference)
 }

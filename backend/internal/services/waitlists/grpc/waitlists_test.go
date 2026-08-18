@@ -8,13 +8,13 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	waitlistfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
 	waitlistmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/mock"
 	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	"github.com/primandproper/platform-go/v11/observability/tracing"
@@ -27,8 +27,8 @@ import (
 )
 
 var (
-	testSessionUserID    = identityfakes.BuildFakeID()
-	testSessionAccountID = identityfakes.BuildFakeID()
+	testSessionUserID    = fake.BuildFakeID()
+	testSessionAccountID = fake.BuildFakeID()
 )
 
 func buildTestService(t *testing.T) (*serviceImpl, *waitlistmock.RepositoryMock) {
@@ -721,8 +721,8 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
 		fakeSignup.BelongsToUser = testSessionUserID
-		signupID := identityfakes.BuildFakeID()
-		waitlistID := identityfakes.BuildFakeID()
+		signupID := fake.BuildFakeID()
+		waitlistID := fake.BuildFakeID()
 
 		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
 			assert.Equal(t, signupID, waitlistSignupID)
@@ -755,8 +755,8 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 		service, mockRepo := buildTestService(t)
 
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		signupID := identityfakes.BuildFakeID()
-		waitlistID := identityfakes.BuildFakeID()
+		signupID := fake.BuildFakeID()
+		waitlistID := fake.BuildFakeID()
 
 		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
 			assert.Equal(t, signupID, waitlistSignupID)
@@ -785,8 +785,8 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 		service, mockRepo := buildTestService(t)
 
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		signupID := identityfakes.BuildFakeID()
-		waitlistID := identityfakes.BuildFakeID()
+		signupID := fake.BuildFakeID()
+		waitlistID := fake.BuildFakeID()
 
 		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
 			assert.Equal(t, signupID, waitlistSignupID)
@@ -816,8 +816,8 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &waitlistssvc.GetWaitlistSignupRequest{
-			WaitlistSignupId: identityfakes.BuildFakeID(),
-			WaitlistId:       identityfakes.BuildFakeID(),
+			WaitlistSignupId: fake.BuildFakeID(),
+			WaitlistId:       fake.BuildFakeID(),
 		}
 
 		response, err := service.GetWaitlistSignup(ctx, request)
@@ -833,8 +833,8 @@ func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
-		signupID := identityfakes.BuildFakeID()
-		waitlistID := identityfakes.BuildFakeID()
+		signupID := fake.BuildFakeID()
+		waitlistID := fake.BuildFakeID()
 
 		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
 			assert.Equal(t, signupID, waitlistSignupID)
@@ -868,7 +868,7 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 		service, mockRepo := buildTestService(t)
 
 		fakeSignups := waitlistfakes.BuildFakeWaitlistSignupsList()
-		waitlistID := identityfakes.BuildFakeID()
+		waitlistID := fake.BuildFakeID()
 
 		mockRepo.GetWaitlistSignupsForWaitlistFunc = func(_ context.Context, actualWaitlistID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.WaitlistSignup], error) {
 			assert.Equal(t, waitlistID, actualWaitlistID)
@@ -901,7 +901,7 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
-			WaitlistId: identityfakes.BuildFakeID(),
+			WaitlistId: fake.BuildFakeID(),
 			Filter:     &grpcfiltering.QueryFilter{},
 		}
 
@@ -919,7 +919,7 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
-			WaitlistId: identityfakes.BuildFakeID(),
+			WaitlistId: fake.BuildFakeID(),
 			Filter:     &grpcfiltering.QueryFilter{},
 		}
 
@@ -936,7 +936,7 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 		ctx := buildAdminSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
-		waitlistID := identityfakes.BuildFakeID()
+		waitlistID := fake.BuildFakeID()
 
 		mockRepo.GetWaitlistSignupsForWaitlistFunc = func(_ context.Context, actualWaitlistID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.WaitlistSignup], error) {
 			assert.Equal(t, waitlistID, actualWaitlistID)
@@ -970,8 +970,8 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
 		fakeSignup.BelongsToUser = testSessionUserID
-		signupID := identityfakes.BuildFakeID()
-		waitlistID := identityfakes.BuildFakeID()
+		signupID := fake.BuildFakeID()
+		waitlistID := fake.BuildFakeID()
 		newNotes := "updated notes"
 
 		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
@@ -1010,8 +1010,8 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 		service, mockRepo := buildTestService(t)
 
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		signupID := identityfakes.BuildFakeID()
-		waitlistID := identityfakes.BuildFakeID()
+		signupID := fake.BuildFakeID()
+		waitlistID := fake.BuildFakeID()
 		newNotes := "updated notes"
 
 		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
@@ -1045,8 +1045,8 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &waitlistssvc.UpdateWaitlistSignupRequest{
-			WaitlistSignupId: identityfakes.BuildFakeID(),
-			WaitlistId:       identityfakes.BuildFakeID(),
+			WaitlistSignupId: fake.BuildFakeID(),
+			WaitlistId:       fake.BuildFakeID(),
 			Input:            &waitlistssvc.WaitlistSignupUpdateRequestInput{},
 		}
 
@@ -1063,8 +1063,8 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
-		signupID := identityfakes.BuildFakeID()
-		waitlistID := identityfakes.BuildFakeID()
+		signupID := fake.BuildFakeID()
+		waitlistID := fake.BuildFakeID()
 
 		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
 			assert.Equal(t, signupID, waitlistSignupID)
@@ -1096,8 +1096,8 @@ func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
 		fakeSignup.BelongsToUser = testSessionUserID
-		signupID := identityfakes.BuildFakeID()
-		waitlistID := identityfakes.BuildFakeID()
+		signupID := fake.BuildFakeID()
+		waitlistID := fake.BuildFakeID()
 		newNotes := "updated notes"
 
 		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
@@ -1140,7 +1140,7 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
 		fakeSignup.BelongsToUser = testSessionUserID
-		signupID := identityfakes.BuildFakeID()
+		signupID := fake.BuildFakeID()
 
 		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
 			assert.Equal(t, signupID, waitlistSignupID)
@@ -1174,7 +1174,7 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 		service, mockRepo := buildTestService(t)
 
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		signupID := identityfakes.BuildFakeID()
+		signupID := fake.BuildFakeID()
 
 		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
 			assert.Equal(t, signupID, waitlistSignupID)
@@ -1207,7 +1207,7 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 		service, mockRepo := buildTestService(t)
 
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		signupID := identityfakes.BuildFakeID()
+		signupID := fake.BuildFakeID()
 
 		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
 			assert.Equal(t, signupID, waitlistSignupID)
@@ -1235,7 +1235,7 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &waitlistssvc.ArchiveWaitlistSignupRequest{
-			WaitlistSignupId: identityfakes.BuildFakeID(),
+			WaitlistSignupId: fake.BuildFakeID(),
 		}
 
 		response, err := service.ArchiveWaitlistSignup(ctx, request)
@@ -1251,7 +1251,7 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		service, mockRepo := buildTestService(t)
 
-		signupID := identityfakes.BuildFakeID()
+		signupID := fake.BuildFakeID()
 
 		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
 			assert.Equal(t, signupID, waitlistSignupID)
@@ -1280,7 +1280,7 @@ func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 
 		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
 		fakeSignup.BelongsToUser = testSessionUserID
-		signupID := identityfakes.BuildFakeID()
+		signupID := fake.BuildFakeID()
 
 		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
 			assert.Equal(t, signupID, waitlistSignupID)

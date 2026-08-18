@@ -12,6 +12,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -127,7 +128,7 @@ func TestQuerier_GetAccount(T *testing.T) {
 
 		ctx := t.Context()
 
-		exampleUserID := fakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 		exampleAccount := fakes.BuildFakeAccount()
 		exampleAccount.BelongsToUser = exampleUserID
 
@@ -177,7 +178,7 @@ func TestQuerier_UpdateAccount(T *testing.T) {
 	T.Run("with invalid input", func(t *testing.T) {
 		t.Parallel()
 
-		exampleUserID := fakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 		exampleAccount := fakes.BuildFakeAccount()
 		exampleAccount.BelongsToUser = exampleUserID
 
@@ -194,7 +195,7 @@ func TestQuerier_ArchiveAccount(T *testing.T) {
 	T.Run("with invalid account ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleUserID := fakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -205,7 +206,7 @@ func TestQuerier_ArchiveAccount(T *testing.T) {
 	T.Run("with invalid user ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)

@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ func TestMealPlanningManager_ListMealPlanGroceryListItemsByMealPlan(T *testing.T
 		mpm := buildMealPlanManagerForTest(t)
 
 		expected := fakes.BuildFakeMealPlanGroceryListItemsList()
-		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetMealPlanGroceryListItemsForMealPlanFunc: func(_ context.Context, mealPlanID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanGroceryListItem], error) {
@@ -79,7 +80,7 @@ func TestMealPlanningManager_ReadMealPlanGroceryListItem(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 		expected := fakes.BuildFakeMealPlanGroceryListItem()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -110,7 +111,7 @@ func TestMealPlanningManager_UpdateMealPlanGroceryListItem(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		exampleMealPlanGroceryListItem := fakes.BuildFakeMealPlanGroceryListItem()
-		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 		exampleInput := fakes.BuildFakeMealPlanGroceryListItemUpdateRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -142,7 +143,7 @@ func TestMealPlanningManager_ArchiveMealPlanGroceryListItem(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		mealPlanID := fakes.BuildFakeID()
+		mealPlanID := fake.BuildFakeID()
 		expected := fakes.BuildFakeMealPlanGroceryListItem()
 
 		db := &mealplanningmock.RepositoryMock{

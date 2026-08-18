@@ -4,66 +4,53 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 )
 
 // BuildFakeValidIngredientGroup builds a faked valid ingredient group.
 func BuildFakeValidIngredientGroup() *types.ValidIngredientGroup {
-	groupID := BuildFakeID()
+	group := fake.BuildFakeRecord[types.ValidIngredientGroup]()
 
-	var members []*types.ValidIngredientGroupMember
+	// Members of this group rather than of three unrelated ones, and at least one of
+	// them: the type validates that a group is not empty.
+	members := make([]*types.ValidIngredientGroupMember, 0, exampleQuantity)
 	for range exampleQuantity {
-		newMember := BuildFakeValidIngredientGroupMember()
-		newMember.BelongsToGroup = groupID
-		members = append(members, newMember)
+		member := BuildFakeValidIngredientGroupMember()
+		member.BelongsToGroup = group.ID
+		members = append(members, member)
 	}
+	group.Members = members
 
-	return &types.ValidIngredientGroup{
-		ID:          groupID,
-		Name:        buildUniqueString(),
-		Description: buildUniqueString(),
-		CreatedAt:   BuildFakeTime(),
-		Slug:        buildUniqueString(),
-		Members:     members,
-	}
+	return group
 }
 
-// BuildFakeValidIngredientGroupMember builds a faked valid ingredient group.
+// BuildFakeValidIngredientGroupMember builds a faked valid ingredient group member.
 func BuildFakeValidIngredientGroupMember() *types.ValidIngredientGroupMember {
-	return &types.ValidIngredientGroupMember{
-		ID:              BuildFakeID(),
-		ValidIngredient: *BuildFakeValidIngredient(),
-		CreatedAt:       BuildFakeTime(),
-		BelongsToGroup:  BuildFakeID(),
-	}
+	member := fake.BuildFakeRecord[types.ValidIngredientGroupMember]()
+
+	// The ingredient the membership is about, built by its own builder so that its
+	// storage temperatures are a range rather than two independent numbers.
+	member.ValidIngredient = *BuildFakeValidIngredient()
+
+	return member
 }
 
 // BuildFakeValidIngredientGroupsList builds a faked ValidIngredientGroupList.
 func BuildFakeValidIngredientGroupsList() *filtering.QueryFilteredResult[types.ValidIngredientGroup] {
-	var examples []*types.ValidIngredientGroup
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeValidIngredientGroup())
-	}
-
-	return &filtering.QueryFilteredResult[types.ValidIngredientGroup]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeValidIngredientGroup)
 }
 
 // BuildFakeValidIngredientGroupUpdateRequestInput builds a faked ValidIngredientGroupUpdateRequestInput from a valid ingredient group.
 func BuildFakeValidIngredientGroupUpdateRequestInput() *types.ValidIngredientGroupUpdateRequestInput {
-	validIngredient := BuildFakeValidIngredientGroup()
-	return converters.ConvertValidIngredientGroupToValidIngredientGroupUpdateRequestInput(validIngredient)
+	validIngredientGroup := BuildFakeValidIngredientGroup()
+
+	return converters.ConvertValidIngredientGroupToValidIngredientGroupUpdateRequestInput(validIngredientGroup)
 }
 
 // BuildFakeValidIngredientGroupCreationRequestInput builds a faked ValidIngredientGroupCreationRequestInput.
 func BuildFakeValidIngredientGroupCreationRequestInput() *types.ValidIngredientGroupCreationRequestInput {
-	validIngredient := BuildFakeValidIngredientGroup()
-	return converters.ConvertValidIngredientGroupToValidIngredientGroupCreationRequestInput(validIngredient)
+	validIngredientGroup := BuildFakeValidIngredientGroup()
+
+	return converters.ConvertValidIngredientGroupToValidIngredientGroupCreationRequestInput(validIngredientGroup)
 }
