@@ -12,10 +12,10 @@ import (
 	httpapi "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api/http"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
-	"github.com/primandproper/platform-go/v10/observability"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/profiling"
-	"github.com/primandproper/platform-go/v10/server/http"
+	"github.com/primandproper/platform-go/v11/observability"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/profiling"
+	"github.com/primandproper/platform-go/v11/server/http"
 
 	"github.com/samber/do/v2"
 )

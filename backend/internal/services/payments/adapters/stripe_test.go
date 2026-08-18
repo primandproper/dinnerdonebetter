@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	capstripe "github.com/primandproper/platform-go/v10/capitalism/stripe"
-	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
+	capstripe "github.com/primandproper/platform-go/v11/capitalism/stripe"
+	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -8,12 +8,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v10/authentication/argon2"
-	"github.com/primandproper/platform-go/v10/authentication/tokens"
-	"github.com/primandproper/platform-go/v10/authentication/totp"
-	"github.com/primandproper/platform-go/v10/messagequeue"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v11/authentication/argon2"
+	"github.com/primandproper/platform-go/v11/authentication/tokens"
+	"github.com/primandproper/platform-go/v11/authentication/totp"
+	"github.com/primandproper/platform-go/v11/messagequeue"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

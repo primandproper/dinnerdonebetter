@@ -7,7 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/converters"
 
-	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v11/filtering"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 )
@@ -19,7 +19,7 @@ import (
 func BuildFakeWebhookEventType() string {
 	eventTypes := catalog.Catalog().EventTypes()
 
-	return eventTypes[fake.Number(0, len(eventTypes)-1)]
+	return eventTypes[fake.Number(0, len(eventTypes)-1)].String()
 }
 
 // BuildFakeWebhook builds a faked Webhook.

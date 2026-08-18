@@ -8,8 +8,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
-	platformwebauthn "github.com/primandproper/platform-go/v10/authentication/webauthn"
-	webauthncfg "github.com/primandproper/platform-go/v10/authentication/webauthn/config"
+	platformwebauthn "github.com/primandproper/platform-go/v11/authentication/webauthn"
+	webauthncfg "github.com/primandproper/platform-go/v11/authentication/webauthn/config"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

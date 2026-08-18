@@ -5,8 +5,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	"github.com/primandproper/platform-go/v10/outbox"
-	searchsync "github.com/primandproper/platform-go/v10/search/sync"
+	"github.com/primandproper/platform-go/v11/outbox"
+	searchsync "github.com/primandproper/platform-go/v11/search/sync"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

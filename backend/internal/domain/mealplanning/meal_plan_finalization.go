@@ -3,7 +3,7 @@ package mealplanning
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v10/database"
+	"github.com/primandproper/platform-go/v11/database"
 )
 
 const (

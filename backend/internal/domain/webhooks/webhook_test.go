@@ -14,7 +14,7 @@ import (
 //
 // Read from the catalog rather than through the fakes package, which imports this one.
 func aKnownEventType() string {
-	return catalog.Catalog().EventTypes()[0]
+	return catalog.Catalog().EventTypes()[0].String()
 }
 
 func TestWebhookCreationInput_Validate(T *testing.T) {

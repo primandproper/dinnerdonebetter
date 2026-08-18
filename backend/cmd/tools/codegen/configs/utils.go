@@ -6,10 +6,10 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
-	circuitbreakingcfg "github.com/primandproper/platform-go/v10/circuitbreaking/config"
-	retrycfg "github.com/primandproper/platform-go/v10/retry/config"
-	"github.com/primandproper/platform-go/v10/webhooks"
-	webhookscfg "github.com/primandproper/platform-go/v10/webhooks/config"
+	circuitbreakingcfg "github.com/primandproper/platform-go/v11/circuitbreaking/config"
+	retrycfg "github.com/primandproper/platform-go/v11/retry/config"
+	"github.com/primandproper/platform-go/v11/webhooks"
+	webhookscfg "github.com/primandproper/platform-go/v11/webhooks/config"
 )
 
 // passkeyCeremonyTimeout bounds a WebAuthn ceremony everywhere it is bounded: the timeout the

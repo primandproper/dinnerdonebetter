@@ -16,7 +16,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
-	"github.com/primandproper/platform-go/v10/config/envvars"
+	"github.com/primandproper/platform-go/v11/config/envvars"
 )
 
 const (

@@ -238,7 +238,7 @@ func render(events []event) ([]byte, error) {
 package catalog
 
 import (
-	"github.com/primandproper/platform-go/v10/webhooks"
+	"github.com/primandproper/platform-go/v11/webhooks"
 )
 
 // definitions is the generated catalog.
@@ -270,7 +270,7 @@ var definitions = webhooks.Catalog{
 func Catalog() webhooks.Catalog {
 	subscribable := make(webhooks.Catalog, len(definitions))
 	for eventType, definition := range definitions {
-		if Excluded(eventType) {
+		if Excluded(eventType.String()) {
 			continue
 		}
 
@@ -284,19 +284,23 @@ func Catalog() webhooks.Catalog {
 //
 // An excluded event is not known here even though the application publishes it, so a dispatch of
 // one is refused even if a subscription to it somehow existed.
+//
+// The parameter is a plain string rather than a webhooks.EventType because the domains name their
+// events with untyped constants and this is where the two vocabularies meet. Converting here keeps
+// that conversion in one place instead of at every call site.
 func Known(eventType string) bool {
 	if Excluded(eventType) {
 		return false
 	}
 
-	_, ok := definitions[eventType]
+	_, ok := definitions[webhooks.EventType(eventType)]
 
 	return ok
 }
 
 // Published reports whether eventType is one this application emits at all, deliverable or not.
 func Published(eventType string) bool {
-	_, ok := definitions[eventType]
+	_, ok := definitions[webhooks.EventType(eventType)]
 
 	return ok
 }

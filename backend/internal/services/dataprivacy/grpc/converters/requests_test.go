@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
-	"github.com/primandproper/platform-go/v10/identifiers"
-	"github.com/primandproper/platform-go/v10/pointer"
+	platformdataprivacy "github.com/primandproper/platform-go/v11/dataprivacy"
+	"github.com/primandproper/platform-go/v11/identifiers"
+	"github.com/primandproper/platform-go/v11/pointer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

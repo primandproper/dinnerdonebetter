@@ -13,9 +13,9 @@ import (
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 	coreemails "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/emails"
 
-	"github.com/primandproper/platform-go/v10/filtering"
-	notifications "github.com/primandproper/platform-go/v10/notifications/mobile"
-	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v11/filtering"
+	notifications "github.com/primandproper/platform-go/v11/notifications/mobile"
+	"github.com/primandproper/platform-go/v11/observability"
 )
 
 // handleIdentityOutboundNotification handles outbound notifications for identity domain events.

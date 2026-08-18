@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/primandproper/platform-go/v10/cookies"
+	"github.com/primandproper/platform-go/v11/cookies"
 )
 
 // CookieName is the name the passkey auth cookie is set under.

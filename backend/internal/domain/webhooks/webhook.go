@@ -7,8 +7,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 
-	"github.com/primandproper/platform-go/v10/encoding"
-	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v11/encoding"
+	"github.com/primandproper/platform-go/v11/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
@@ -231,7 +231,7 @@ func EventTypeCatalog() []*WebhookEventType {
 	eventTypes := make([]*WebhookEventType, 0, len(known))
 	for _, eventType := range known.EventTypes() {
 		eventTypes = append(eventTypes, &WebhookEventType{
-			Type:        eventType,
+			Type:        eventType.String(),
 			Description: known[eventType].Description,
 		})
 	}

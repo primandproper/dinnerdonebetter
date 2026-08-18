@@ -10,12 +10,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
-	"github.com/primandproper/platform-go/v10/authentication/totp"
-	perrors "github.com/primandproper/platform-go/v10/errors"
-	"github.com/primandproper/platform-go/v10/messagequeue"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
+	tokenscfg "github.com/primandproper/platform-go/v11/authentication/tokens/config"
+	"github.com/primandproper/platform-go/v11/authentication/totp"
+	perrors "github.com/primandproper/platform-go/v11/errors"
+	"github.com/primandproper/platform-go/v11/messagequeue"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
 
 	"github.com/go-oauth2/oauth2/v4/server"
 )
