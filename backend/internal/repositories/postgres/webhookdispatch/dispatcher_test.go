@@ -8,13 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/platform-go/v10/database"
-	mockdatabase "github.com/primandproper/platform-go/v10/database/mock"
-	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v10/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v10/webhooks"
-	webhooksmock "github.com/primandproper/platform-go/v10/webhooks/mock"
+	"github.com/primandproper/platform-go/v11/database"
+	mockdatabase "github.com/primandproper/platform-go/v11/database/mock"
+	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v11/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v11/tenancy"
+	"github.com/primandproper/platform-go/v11/webhooks"
+	webhooksmock "github.com/primandproper/platform-go/v11/webhooks/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -96,10 +97,10 @@ func TestDispatcher_Dispatch(T *testing.T) {
 		executor := &mockdatabase.SQLQueryExecutorMock{}
 
 		store := &webhooksmock.StoreMock{
-			EndpointsForEventFunc: func(_ context.Context, q database.SQLQueryExecutor, eventType string) ([]*webhooks.Endpoint, error) {
+			EndpointsForEventFunc: func(_ context.Context, q database.SQLQueryExecutor, _ tenancy.Scope, eventType webhooks.EventType) ([]*webhooks.Endpoint, error) {
 				// The account is inside the subscription string; that is the whole
 				// tenancy mechanism, so it is what this asserts.
-				assert.Equal(t, exampleAccountID+":"+exampleEventType, eventType)
+				assert.Equal(t, webhooks.EventType(exampleAccountID+":"+exampleEventType), eventType)
 				assert.Same(t, executor, q)
 
 				return []*webhooks.Endpoint{{ID: exampleWebhookID}}, nil
@@ -109,7 +110,7 @@ func TestDispatcher_Dispatch(T *testing.T) {
 				assert.Equal(t, []string{exampleWebhookID}, endpointIDs)
 				// The delivery carries the unqualified type: that is what reaches the
 				// subscriber in the X-Platform-Event header.
-				assert.Equal(t, exampleEventType, delivery.EventType)
+				assert.Equal(t, webhooks.EventType(exampleEventType), delivery.EventType)
 				// Store.Enqueue does not mint this — webhooks.Dispatcher did, and this
 				// package replaced it. Left empty, every delivery shares the empty string
 				// as its primary key and the header a subscriber deduplicates on is blank.
@@ -135,7 +136,7 @@ func TestDispatcher_Dispatch(T *testing.T) {
 		ctx := t.Context()
 
 		store := &webhooksmock.StoreMock{
-			EndpointsForEventFunc: func(context.Context, database.SQLQueryExecutor, string) ([]*webhooks.Endpoint, error) {
+			EndpointsForEventFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, webhooks.EventType) ([]*webhooks.Endpoint, error) {
 				return nil, nil
 			},
 		}
@@ -210,7 +211,7 @@ func TestDispatcher_Dispatch(T *testing.T) {
 
 		expected := errors.New("blah")
 		store := &webhooksmock.StoreMock{
-			EndpointsForEventFunc: func(context.Context, database.SQLQueryExecutor, string) ([]*webhooks.Endpoint, error) {
+			EndpointsForEventFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, webhooks.EventType) ([]*webhooks.Endpoint, error) {
 				return nil, expected
 			},
 		}
@@ -259,7 +260,7 @@ func TestDispatcher_Register(T *testing.T) {
 		assert.Empty(t, saved.Secret.Previous)
 
 		assert.Equal(t, exampleWebhookID, saved.ID)
-		assert.Equal(t, []string{exampleAccountID + ":" + exampleEventType}, saved.Events)
+		assert.Equal(t, []webhooks.EventType{exampleAccountID + ":" + exampleEventType}, saved.Events)
 	})
 
 	T.Run("with event type outside the catalog", func(t *testing.T) {
@@ -362,15 +363,15 @@ func TestDispatcher_SetEventTypes(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		otherAccountSubscription := "acct_other:meal_plan_updated"
+		otherAccountSubscription := webhooks.EventType("acct_other:meal_plan_updated")
 
 		var saved *webhooks.Endpoint
 
 		store := &webhooksmock.StoreMock{
-			GetEndpointFunc: func(context.Context, string) (*webhooks.Endpoint, error) {
+			GetEndpointFunc: func(context.Context, tenancy.Scope, string) (*webhooks.Endpoint, error) {
 				return &webhooks.Endpoint{
 					ID: exampleWebhookID,
-					Events: []string{
+					Events: []webhooks.EventType{
 						exampleAccountID + ":" + exampleEventType,
 						otherAccountSubscription,
 					},
@@ -392,7 +393,7 @@ func TestDispatcher_SetEventTypes(T *testing.T) {
 		// This account's subscriptions are replaced; another account's survive untouched.
 		// SaveEndpoint replaces the whole set, so rewriting it from the event types alone
 		// would silently drop the other account's.
-		assert.ElementsMatch(t, []string{
+		assert.ElementsMatch(t, []webhooks.EventType{
 			otherAccountSubscription,
 			exampleAccountID + ":meal_plan_updated",
 		}, saved.Events)
@@ -422,7 +423,7 @@ func TestDispatcher_RotateSecret(T *testing.T) {
 		var saved *webhooks.Endpoint
 
 		store := &webhooksmock.StoreMock{
-			GetEndpointFunc: func(context.Context, string) (*webhooks.Endpoint, error) {
+			GetEndpointFunc: func(context.Context, tenancy.Scope, string) (*webhooks.Endpoint, error) {
 				return &webhooks.Endpoint{ID: exampleWebhookID, Secret: webhooks.Secret{Current: current}}, nil
 			},
 			SaveEndpointFunc: func(_ context.Context, endpoint *webhooks.Endpoint) error {
@@ -458,7 +459,7 @@ func TestQualification(T *testing.T) {
 		t.Parallel()
 
 		subscription := qualify(exampleAccountID, exampleEventType)
-		assert.Equal(t, exampleAccountID+":"+exampleEventType, subscription)
+		assert.Equal(t, webhooks.EventType(exampleAccountID+":"+exampleEventType), subscription)
 
 		eventType, ok := unqualify(exampleAccountID, subscription)
 		assert.True(t, ok)

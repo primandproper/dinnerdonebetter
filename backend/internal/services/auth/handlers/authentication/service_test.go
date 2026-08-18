@@ -12,12 +12,12 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
-	mocktotp "github.com/primandproper/platform-go/v10/authentication/totp/mock"
-	"github.com/primandproper/platform-go/v10/messagequeue"
-	mockpublishers "github.com/primandproper/platform-go/v10/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
+	tokenscfg "github.com/primandproper/platform-go/v11/authentication/tokens/config"
+	mocktotp "github.com/primandproper/platform-go/v11/authentication/totp/mock"
+	"github.com/primandproper/platform-go/v11/messagequeue"
+	mockpublishers "github.com/primandproper/platform-go/v11/messagequeue/mock"
+	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

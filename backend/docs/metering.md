@@ -7,7 +7,7 @@ and the guess that is too low is an outage for a customer who did nothing wrong.
 goes in first, the totals feed dashboards, and the limits get set from what the dashboards say.
 Turning one on later is an edit to `planLimits` rather than a migration.
 
-The machinery is `platform-go/v10/metering`; this repo supplies the three things that package
+The machinery is `platform-go/v11/metering`; this repo supplies the three things that package
 deliberately refuses to model. Read its package documentation for how the guarantees work — this
 document is only about the decisions that are ours.
 

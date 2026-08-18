@@ -6,7 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
-	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
+	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 
 	"github.com/stretchr/testify/assert"
 )

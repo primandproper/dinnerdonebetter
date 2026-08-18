@@ -13,9 +13,9 @@ import (
 	grpctypes "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/audit/grpc/converters"
 
-	errorsgrpc "github.com/primandproper/platform-go/v10/errors/grpc"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
+	errorsgrpc "github.com/primandproper/platform-go/v11/errors/grpc"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )

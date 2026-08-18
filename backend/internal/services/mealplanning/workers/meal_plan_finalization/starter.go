@@ -28,12 +28,12 @@ import (
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v10/database"
-	"github.com/primandproper/platform-go/v10/observability"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/metrics"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
-	"github.com/primandproper/platform-go/v10/saga"
+	"github.com/primandproper/platform-go/v11/database"
+	"github.com/primandproper/platform-go/v11/observability"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/metrics"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
+	"github.com/primandproper/platform-go/v11/saga"
 
 	"github.com/hashicorp/go-multierror"
 )

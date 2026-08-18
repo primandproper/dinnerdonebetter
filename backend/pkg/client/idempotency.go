@@ -3,8 +3,8 @@ package client
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v10/idempotency"
-	idempotencygrpc "github.com/primandproper/platform-go/v10/idempotency/grpc"
+	"github.com/primandproper/platform-go/v11/idempotency"
+	idempotencygrpc "github.com/primandproper/platform-go/v11/idempotency/grpc"
 
 	"google.golang.org/grpc"
 )

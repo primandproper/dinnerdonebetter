@@ -7,14 +7,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	paymentswebhook "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
 
-	"github.com/primandproper/platform-go/v10/encoding"
-	"github.com/primandproper/platform-go/v10/healthcheck"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/metrics"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
-	"github.com/primandproper/platform-go/v10/routing"
-	routingcfg "github.com/primandproper/platform-go/v10/routing/config"
-	"github.com/primandproper/platform-go/v10/version"
+	"github.com/primandproper/platform-go/v11/encoding"
+	"github.com/primandproper/platform-go/v11/healthcheck"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/metrics"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
+	"github.com/primandproper/platform-go/v11/routing"
+	routingcfg "github.com/primandproper/platform-go/v11/routing/config"
+	"github.com/primandproper/platform-go/v11/version"
 )
 
 func ProvideAPIRouter(

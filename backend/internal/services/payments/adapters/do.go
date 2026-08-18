@@ -4,10 +4,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 
-	capitalismcfg "github.com/primandproper/platform-go/v10/capitalism/config"
-	platformerrors "github.com/primandproper/platform-go/v10/errors"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
+	capitalismcfg "github.com/primandproper/platform-go/v11/capitalism/config"
+	platformerrors "github.com/primandproper/platform-go/v11/errors"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

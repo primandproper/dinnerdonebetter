@@ -4,9 +4,9 @@ import (
 	domaininternalops "github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 
-	msgconfig "github.com/primandproper/platform-go/v10/messagequeue/config"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
+	msgconfig "github.com/primandproper/platform-go/v11/messagequeue/config"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

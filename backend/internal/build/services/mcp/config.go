@@ -4,9 +4,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 
-	databasecfg "github.com/primandproper/platform-go/v10/database/config"
-	"github.com/primandproper/platform-go/v10/observability"
-	routingcfg "github.com/primandproper/platform-go/v10/routing/config"
+	databasecfg "github.com/primandproper/platform-go/v11/database/config"
+	"github.com/primandproper/platform-go/v11/observability"
+	routingcfg "github.com/primandproper/platform-go/v11/routing/config"
 
 	"github.com/samber/do/v2"
 )

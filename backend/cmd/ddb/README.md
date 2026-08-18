@@ -40,7 +40,7 @@ sagas; the worker is what steps them through, which is why `meal_plan_finalizati
 interval is the delay before a meal plan enters the finalization pipeline rather than the delay
 before it comes out the other end.
 
-One long-lived process running `jobs.Scheduler` (from `platform-go/v10/jobs`). Every registered job fires on a schedule, and each execution is held under a `distributedlock` lease, so every replica ticks and only the one that wins the lock actually runs the job. A contended lock is the mechanism working, not an error.
+One long-lived process running `jobs.Scheduler` (from `platform-go/v11/jobs`). Every registered job fires on a schedule, and each execution is held under a `distributedlock` lease, so every replica ticks and only the one that wins the lock actually runs the job. A contended lock is the mechanism working, not an error.
 
 Jobs are registered in `internal/build/jobs/scheduler/jobs.go` and scheduled by `config.ScheduledJobsConfig`. Adding one means writing the entrypoint, adding a `ScheduledJobConfig` field, and adding a row to `registrations`.
 

@@ -10,10 +10,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
-	platformerrors "github.com/primandproper/platform-go/v10/errors"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/retry"
-	"github.com/primandproper/platform-go/v10/saga"
+	platformerrors "github.com/primandproper/platform-go/v11/errors"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/retry"
+	"github.com/primandproper/platform-go/v11/saga"
 )
 
 // errNotFinalizable indicates a plan the finalize step could not finalize.

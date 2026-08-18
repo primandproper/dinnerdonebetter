@@ -4,10 +4,10 @@ import (
 	uploadedmediamanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/manager"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
-	"github.com/primandproper/platform-go/v10/metering"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
-	"github.com/primandproper/platform-go/v10/uploads"
+	"github.com/primandproper/platform-go/v11/metering"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
+	"github.com/primandproper/platform-go/v11/uploads"
 
 	"github.com/samber/do/v2"
 )

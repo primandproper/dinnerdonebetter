@@ -10,7 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager"
 
-	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v11/filtering"
 )
 
 // Ensure, that CommentsDataManagerMock does implement manager.CommentsDataManager.

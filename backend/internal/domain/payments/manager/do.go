@@ -6,8 +6,8 @@ import (
 	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

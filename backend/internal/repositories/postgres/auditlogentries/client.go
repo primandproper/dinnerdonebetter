@@ -3,12 +3,12 @@ package auditlogentries
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	platformaudit "github.com/primandproper/platform-go/v10/audit"
-	"github.com/primandproper/platform-go/v10/database"
-	platformerrors "github.com/primandproper/platform-go/v10/errors"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/metrics"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
+	platformaudit "github.com/primandproper/platform-go/v11/audit"
+	"github.com/primandproper/platform-go/v11/database"
+	platformerrors "github.com/primandproper/platform-go/v11/errors"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/metrics"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
 )
 
 const (

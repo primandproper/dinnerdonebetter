@@ -20,13 +20,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/platform-go/v10/database"
-	"github.com/primandproper/platform-go/v10/distributedlock"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/metrics"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
-	"github.com/primandproper/platform-go/v10/outbox"
-	"github.com/primandproper/platform-go/v10/saga"
+	"github.com/primandproper/platform-go/v11/database"
+	"github.com/primandproper/platform-go/v11/distributedlock"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/metrics"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
+	"github.com/primandproper/platform-go/v11/outbox"
+	"github.com/primandproper/platform-go/v11/saga"
 
 	"github.com/samber/do/v2"
 )

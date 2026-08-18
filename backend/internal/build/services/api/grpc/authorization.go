@@ -7,12 +7,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 
-	platformauthz "github.com/primandproper/platform-go/v10/authorization"
-	authzgrpc "github.com/primandproper/platform-go/v10/authorization/grpc"
-	"github.com/primandproper/platform-go/v10/authorization/static"
-	platformerrors "github.com/primandproper/platform-go/v10/errors"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/metrics"
+	platformauthz "github.com/primandproper/platform-go/v11/authorization"
+	authzgrpc "github.com/primandproper/platform-go/v11/authorization/grpc"
+	"github.com/primandproper/platform-go/v11/authorization/static"
+	platformerrors "github.com/primandproper/platform-go/v11/errors"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/metrics"
 )
 
 // auditOnlyAuthorization decides whether the platform enforcer records its verdict or acts on it.

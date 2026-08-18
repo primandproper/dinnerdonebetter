@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	tokenscfg "github.com/primandproper/platform-go/v10/authentication/tokens/config"
-	webauthncfg "github.com/primandproper/platform-go/v10/authentication/webauthn/config"
+	tokenscfg "github.com/primandproper/platform-go/v11/authentication/tokens/config"
+	webauthncfg "github.com/primandproper/platform-go/v11/authentication/webauthn/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

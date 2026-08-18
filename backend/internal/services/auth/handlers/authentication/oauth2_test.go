@@ -14,11 +14,11 @@ import (
 	identitymanagermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	oauthmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/mock"
 
-	"github.com/primandproper/platform-go/v10/authentication/tokens/paseto"
-	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v10/random"
+	"github.com/primandproper/platform-go/v11/authentication/tokens/paseto"
+	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v11/random"
 
 	oauth2errors "github.com/go-oauth2/oauth2/v4/errors"
 	"github.com/stretchr/testify/assert"

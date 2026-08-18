@@ -5,8 +5,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/mock"
 
-	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
+	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 )

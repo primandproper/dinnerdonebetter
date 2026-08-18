@@ -9,7 +9,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 
-	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v11/filtering"
 )
 
 // Ensure, that RepositoryMock does implement waitlists.Repository.

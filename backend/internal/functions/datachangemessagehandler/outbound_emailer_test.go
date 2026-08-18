@@ -8,7 +8,7 @@ import (
 
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	"github.com/primandproper/platform-go/v10/email"
+	"github.com/primandproper/platform-go/v11/email"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

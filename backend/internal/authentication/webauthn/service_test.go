@@ -10,9 +10,9 @@ import (
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 
-	platformwebauthn "github.com/primandproper/platform-go/v10/authentication/webauthn"
-	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
+	platformwebauthn "github.com/primandproper/platform-go/v11/authentication/webauthn"
+	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/stretchr/testify/assert"

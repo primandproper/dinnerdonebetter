@@ -3,11 +3,11 @@ package indexing
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/metrics"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
-	searchsync "github.com/primandproper/platform-go/v10/search/sync"
-	syncsource "github.com/primandproper/platform-go/v10/search/sync/source"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/metrics"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
+	searchsync "github.com/primandproper/platform-go/v11/search/sync"
+	syncsource "github.com/primandproper/platform-go/v11/search/sync/source"
 )
 
 // o11yName names the loggers, spans and metrics of the search sync sources built here. It

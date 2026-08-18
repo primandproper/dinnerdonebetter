@@ -11,14 +11,14 @@ import (
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/platform-go/v10/database"
-	"github.com/primandproper/platform-go/v10/database/dialect"
-	pglock "github.com/primandproper/platform-go/v10/distributedlock/postgres"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	metricsnoop "github.com/primandproper/platform-go/v10/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
-	"github.com/primandproper/platform-go/v10/outbox"
-	"github.com/primandproper/platform-go/v10/saga"
+	"github.com/primandproper/platform-go/v11/database"
+	"github.com/primandproper/platform-go/v11/database/dialect"
+	pglock "github.com/primandproper/platform-go/v11/distributedlock/postgres"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	metricsnoop "github.com/primandproper/platform-go/v11/observability/metrics/noop"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
+	"github.com/primandproper/platform-go/v11/outbox"
+	"github.com/primandproper/platform-go/v11/saga"
 )
 
 // StartSagaWorker builds a saga worker over the given database and runs it until the returned

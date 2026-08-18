@@ -8,12 +8,12 @@ import (
 	auditkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/keys"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	platformaudit "github.com/primandproper/platform-go/v10/audit"
-	"github.com/primandproper/platform-go/v10/database"
-	platformerrors "github.com/primandproper/platform-go/v10/errors"
-	"github.com/primandproper/platform-go/v10/filtering"
-	"github.com/primandproper/platform-go/v10/observability"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
+	platformaudit "github.com/primandproper/platform-go/v11/audit"
+	"github.com/primandproper/platform-go/v11/database"
+	platformerrors "github.com/primandproper/platform-go/v11/errors"
+	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v11/observability"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
 )
 
 var (

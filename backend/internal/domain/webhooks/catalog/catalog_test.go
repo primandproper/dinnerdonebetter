@@ -28,7 +28,7 @@ func TestCatalog(T *testing.T) {
 		subscribable := Catalog()
 
 		for eventType := range definitions {
-			if Excluded(eventType) {
+			if Excluded(eventType.String()) {
 				assert.NotContains(t, subscribable, eventType,
 					"event type %q is excluded but still subscribable", eventType)
 

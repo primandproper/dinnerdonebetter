@@ -7,9 +7,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	domainoauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
-	"github.com/primandproper/platform-go/v10/database"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v11/database"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

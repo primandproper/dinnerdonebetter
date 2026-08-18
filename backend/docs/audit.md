@@ -5,7 +5,7 @@ which resource. It is not logging: a log is a best-effort account written beside
 the work, this is a record written *inside* it, in a table the database refuses to
 edit, chained so that removing or altering an entry is detectable afterwards.
 
-It is built on `platform-go/v10`'s `audit` package. The platform owns the schema,
+It is built on `platform-go/v11`'s `audit` package. The platform owns the schema,
 the hash chain, and retention; this repository owns the vocabulary — an entry
 belongs to a *user* and usually to an *account*, where the platform speaks of an
 *actor* and a *scope*.

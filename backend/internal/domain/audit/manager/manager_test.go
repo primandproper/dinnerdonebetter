@@ -8,11 +8,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/fakes"
 	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
 
-	"github.com/primandproper/platform-go/v10/database"
-	mockdatabase "github.com/primandproper/platform-go/v10/database/mock"
-	"github.com/primandproper/platform-go/v10/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v11/database"
+	mockdatabase "github.com/primandproper/platform-go/v11/database/mock"
+	"github.com/primandproper/platform-go/v11/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

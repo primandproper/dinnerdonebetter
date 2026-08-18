@@ -11,9 +11,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v10/filtering"
-	textsearch "github.com/primandproper/platform-go/v10/search/text"
-	mocksearch "github.com/primandproper/platform-go/v10/search/text/mock"
+	"github.com/primandproper/platform-go/v11/filtering"
+	textsearch "github.com/primandproper/platform-go/v11/search/text"
+	mocksearch "github.com/primandproper/platform-go/v11/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -8,10 +8,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
-	"github.com/primandproper/platform-go/v10/observability"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
+	platformdataprivacy "github.com/primandproper/platform-go/v11/dataprivacy"
+	"github.com/primandproper/platform-go/v11/observability"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
 )
 
 const o11yName = "issue_reports_privacy_collector"

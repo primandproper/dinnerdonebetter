@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

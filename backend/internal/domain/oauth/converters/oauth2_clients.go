@@ -3,7 +3,7 @@ package converters
 import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
-	"github.com/primandproper/platform-go/v10/identifiers"
+	"github.com/primandproper/platform-go/v11/identifiers"
 )
 
 func ConvertOAuth2ClientCreationRequestInputToOAuth2ClientDatabaseCreationInput(x *types.OAuth2ClientCreationRequestInput) *types.OAuth2ClientDatabaseCreationInput {

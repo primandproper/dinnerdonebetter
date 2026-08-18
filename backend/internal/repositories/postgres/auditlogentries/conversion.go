@@ -3,7 +3,7 @@ package auditlogentries
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	platformaudit "github.com/primandproper/platform-go/v10/audit"
+	platformaudit "github.com/primandproper/platform-go/v11/audit"
 )
 
 // toPlatformEntry renders a domain entry in the platform's vocabulary.

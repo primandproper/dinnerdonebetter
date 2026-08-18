@@ -4,7 +4,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
-	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v11/filtering"
 )
 
 // BuildFakeMeal builds a faked meal.

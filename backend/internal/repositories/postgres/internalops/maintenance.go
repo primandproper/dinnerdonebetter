@@ -3,7 +3,7 @@ package internalops
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v10/observability"
+	"github.com/primandproper/platform-go/v11/observability"
 )
 
 // DeleteExpiredOAuth2ClientTokens deletes expired oauth2 client tokens.

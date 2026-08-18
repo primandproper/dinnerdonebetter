@@ -7,9 +7,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentsfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 
-	platformerrors "github.com/primandproper/platform-go/v10/errors"
-	"github.com/primandproper/platform-go/v10/filtering"
-	"github.com/primandproper/platform-go/v10/identifiers"
+	platformerrors "github.com/primandproper/platform-go/v11/errors"
+	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v11/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

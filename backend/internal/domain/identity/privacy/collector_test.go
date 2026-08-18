@@ -9,12 +9,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v10/dataprivacy"
-	platformerrors "github.com/primandproper/platform-go/v10/errors"
-	"github.com/primandproper/platform-go/v10/filtering"
-	"github.com/primandproper/platform-go/v10/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v10/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v10/observability/tracing/noop"
+	platformdataprivacy "github.com/primandproper/platform-go/v11/dataprivacy"
+	platformerrors "github.com/primandproper/platform-go/v11/errors"
+	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v11/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

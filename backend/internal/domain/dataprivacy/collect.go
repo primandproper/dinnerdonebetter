@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	platformerrors "github.com/primandproper/platform-go/v10/errors"
-	"github.com/primandproper/platform-go/v10/filtering"
+	platformerrors "github.com/primandproper/platform-go/v11/errors"
+	"github.com/primandproper/platform-go/v11/filtering"
 )
 
 // CollectAllValues is CollectAllPages with the pointers dereferenced.

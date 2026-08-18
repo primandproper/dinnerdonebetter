@@ -10,7 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
 
-	"github.com/primandproper/platform-go/v10/filtering"
+	"github.com/primandproper/platform-go/v11/filtering"
 )
 
 // Ensure, that AuthManagerInterfaceMock does implement managers.AuthManagerInterface.

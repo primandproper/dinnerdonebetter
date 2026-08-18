@@ -7,12 +7,12 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v10/capitalism"
-	capstripe "github.com/primandproper/platform-go/v10/capitalism/stripe"
-	platformerrors "github.com/primandproper/platform-go/v10/errors"
-	"github.com/primandproper/platform-go/v10/observability"
-	"github.com/primandproper/platform-go/v10/observability/logging"
-	"github.com/primandproper/platform-go/v10/observability/tracing"
+	"github.com/primandproper/platform-go/v11/capitalism"
+	capstripe "github.com/primandproper/platform-go/v11/capitalism/stripe"
+	platformerrors "github.com/primandproper/platform-go/v11/errors"
+	"github.com/primandproper/platform-go/v11/observability"
+	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/tracing"
 
 	"github.com/stripe/stripe-go/v81"
 )

@@ -11,8 +11,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/issuereports/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v10/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v10/errors/grpc"
+	platformerrors "github.com/primandproper/platform-go/v11/errors"
+	errorsgrpc "github.com/primandproper/platform-go/v11/errors/grpc"
 
 	"google.golang.org/grpc/codes"
 )
