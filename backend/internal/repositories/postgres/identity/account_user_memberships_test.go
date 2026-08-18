@@ -7,6 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/identifiers"
 
 	"github.com/stretchr/testify/assert"
@@ -140,7 +141,7 @@ func TestQuerier_UserIsMemberOfAccount(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		c := buildInertClientForTest(t)
 
@@ -153,7 +154,7 @@ func TestQuerier_UserIsMemberOfAccount(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUserID := fakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		c := buildInertClientForTest(t)
 
@@ -170,7 +171,7 @@ func TestQuerier_ModifyUserPermissions(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUserID := fakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 		exampleInput := fakes.BuildFakeUserPermissionModificationInput()
 
 		c := buildInertClientForTest(t)
@@ -182,8 +183,8 @@ func TestQuerier_ModifyUserPermissions(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUserID := fakes.BuildFakeID()
-		exampleAccountID := fakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		c := buildInertClientForTest(t)
 
@@ -235,8 +236,8 @@ func TestQuerier_RemoveUserFromAccount(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUserID := fakes.BuildFakeID()
-		exampleAccountID := fakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		c, db := buildMockSQLTestClient(t)
 

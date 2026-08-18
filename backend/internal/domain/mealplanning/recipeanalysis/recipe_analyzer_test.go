@@ -7,6 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	"github.com/primandproper/platform-go/v11/observability/tracing"
 
@@ -91,9 +92,9 @@ func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 		exampleMealPlanOption.BelongsToMealPlanEvent = exampleMealPlanEvent.ID
 		exampleMealPlanOption.Meal = *exampleMeal
 
-		recipeStepID := fakes.BuildFakeID()
+		recipeStepID := fake.BuildFakeID()
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		exampleRecipe := &mealplanning.Recipe{
 			Name: "Recipe 1",
 			ID:   exampleRecipeID,
@@ -111,10 +112,10 @@ func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 								PluralName:                     "chicken breasts",
 								StorageInstructions:            "keep frozen",
 								Name:                           "chicken breast",
-								ID:                             fakes.BuildFakeID(),
+								ID:                             fake.BuildFakeID(),
 							},
 							Name:                "chicken breast",
-							ID:                  fakes.BuildFakeID(),
+							ID:                  fake.BuildFakeID(),
 							BelongsToRecipeStep: recipeStepID,
 							MeasurementUnit:     mealplanning.ValidMeasurementUnit{Name: "gram", PluralName: "grams"},
 							MinQuantity:         900,
@@ -127,7 +128,7 @@ func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 							Name:                "diced chicken breast",
 							Type:                mealplanning.RecipeStepProductIngredientType,
 							BelongsToRecipeStep: recipeStepID,
-							ID:                  fakes.BuildFakeID(),
+							ID:                  fake.BuildFakeID(),
 							MeasurementUnit:     &mealplanning.ValidMeasurementUnit{},
 						},
 					},
@@ -153,9 +154,9 @@ func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 		g := newAnalyzerForTest(t)
 		ctx := t.Context()
 
-		exampleMealPlanOptionID := fakes.BuildFakeID()
-		recipeStepID := fakes.BuildFakeID()
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleMealPlanOptionID := fake.BuildFakeID()
+		recipeStepID := fake.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		exampleRecipe := &mealplanning.Recipe{
 			Name: "Recipe 1",
 			ID:   exampleRecipeID,
@@ -172,10 +173,10 @@ func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 								PluralName:                     "chicken breasts",
 								StorageInstructions:            "keep refrigerated",
 								Name:                           "chicken breast",
-								ID:                             fakes.BuildFakeID(),
+								ID:                             fake.BuildFakeID(),
 							},
 							Name:                "chicken breast",
-							ID:                  fakes.BuildFakeID(),
+							ID:                  fake.BuildFakeID(),
 							BelongsToRecipeStep: recipeStepID,
 							MeasurementUnit:     mealplanning.ValidMeasurementUnit{Name: "gram", PluralName: "grams"},
 							MinQuantity:         900,
@@ -187,7 +188,7 @@ func TestRecipeAnalyzer_GenerateMealPlanTasksForRecipe(T *testing.T) {
 							Name:                "diced chicken breast",
 							Type:                mealplanning.RecipeStepProductIngredientType,
 							BelongsToRecipeStep: recipeStepID,
-							ID:                  fakes.BuildFakeID(),
+							ID:                  fake.BuildFakeID(),
 							MeasurementUnit:     &mealplanning.ValidMeasurementUnit{},
 						},
 					},
@@ -215,13 +216,13 @@ func Test_recipeAnalyzer_RenderMermaidDiagramForRecipe(T *testing.T) {
 		sautee := fakes.BuildFakeValidPreparation()
 		sautee.Name = "sautee"
 
-		step1ID := fakes.BuildFakeID()
-		step2ID := fakes.BuildFakeID()
-		step3ID := fakes.BuildFakeID()
-		step4ID := fakes.BuildFakeID()
-		dicedOnionRecipeStepProductID := fakes.BuildFakeID()
-		dicedCarrotRecipeStepProductID := fakes.BuildFakeID()
-		dicedCeleryRecipeStepProductID := fakes.BuildFakeID()
+		step1ID := fake.BuildFakeID()
+		step2ID := fake.BuildFakeID()
+		step3ID := fake.BuildFakeID()
+		step4ID := fake.BuildFakeID()
+		dicedOnionRecipeStepProductID := fake.BuildFakeID()
+		dicedCarrotRecipeStepProductID := fake.BuildFakeID()
+		dicedCeleryRecipeStepProductID := fake.BuildFakeID()
 
 		recipe := &mealplanning.Recipe{
 			Name: "example recipe",
@@ -338,8 +339,8 @@ func Test_recipeAnalyzer_RenderMermaidDiagramForRecipe(T *testing.T) {
 		top := fakes.BuildFakeValidPreparation()
 		top.Name = "top"
 
-		breadcrumbProductID := fakes.BuildFakeID()
-		assocStepID := fakes.BuildFakeID()
+		breadcrumbProductID := fake.BuildFakeID()
+		assocStepID := fake.BuildFakeID()
 		assocRecipe := &mealplanning.Recipe{
 			ID:   "breadcrumbs-recipe-id",
 			Name: "Caesar Breadcrumbs",
@@ -355,7 +356,7 @@ func Test_recipeAnalyzer_RenderMermaidDiagramForRecipe(T *testing.T) {
 			},
 		}
 
-		mainStepID := fakes.BuildFakeID()
+		mainStepID := fake.BuildFakeID()
 		recipe := &mealplanning.Recipe{
 			Name: "Caesar Roasted Broccoli",
 			Steps: []*mealplanning.RecipeStep{
@@ -393,13 +394,13 @@ func TestRecipeAnalyzer_MakeGraphForRecipe_WithAssociatedRecipe(T *testing.T) {
 		g := newAnalyzerForTest(t)
 		ctx := t.Context()
 
-		breadcrumbProductID := fakes.BuildFakeID()
+		breadcrumbProductID := fake.BuildFakeID()
 		assocRecipe := &mealplanning.Recipe{
 			ID:   "breadcrumbs-recipe-id",
 			Name: "Caesar Breadcrumbs",
 			Steps: []*mealplanning.RecipeStep{
 				{
-					ID:    fakes.BuildFakeID(),
+					ID:    fake.BuildFakeID(),
 					Index: 0,
 					Products: []*mealplanning.RecipeStepProduct{
 						{ID: breadcrumbProductID, Type: mealplanning.RecipeStepProductIngredientType},
@@ -410,9 +411,9 @@ func TestRecipeAnalyzer_MakeGraphForRecipe_WithAssociatedRecipe(T *testing.T) {
 
 		recipe := &mealplanning.Recipe{
 			Steps: []*mealplanning.RecipeStep{
-				{ID: fakes.BuildFakeID(), Index: 0},
+				{ID: fake.BuildFakeID(), Index: 0},
 				{
-					ID:    fakes.BuildFakeID(),
+					ID:    fake.BuildFakeID(),
 					Index: 1,
 					Ingredients: []*mealplanning.RecipeStepIngredient{
 						{
@@ -449,15 +450,15 @@ func TestRecipeAnalyzer_MakeGraphForMeal(T *testing.T) {
 			ID:   "main-id",
 			Name: "Roasted Chicken",
 			Steps: []*mealplanning.RecipeStep{
-				{ID: fakes.BuildFakeID(), Preparation: *dice, Index: 0},
-				{ID: fakes.BuildFakeID(), Preparation: *dice, Index: 1},
+				{ID: fake.BuildFakeID(), Preparation: *dice, Index: 0},
+				{ID: fake.BuildFakeID(), Preparation: *dice, Index: 1},
 			},
 		}
 		sideRecipe := &mealplanning.Recipe{
 			ID:   "side-id",
 			Name: "Caesar Broccoli",
 			Steps: []*mealplanning.RecipeStep{
-				{ID: fakes.BuildFakeID(), Preparation: *dice, Index: 0},
+				{ID: fake.BuildFakeID(), Preparation: *dice, Index: 0},
 			},
 		}
 
@@ -492,14 +493,14 @@ func TestRecipeAnalyzer_RenderMermaidDiagramForMeal(T *testing.T) {
 			ID:   "main-id",
 			Name: "Roasted Chicken",
 			Steps: []*mealplanning.RecipeStep{
-				{ID: fakes.BuildFakeID(), Preparation: *dice, Index: 0},
+				{ID: fake.BuildFakeID(), Preparation: *dice, Index: 0},
 			},
 		}
 		sideRecipe := &mealplanning.Recipe{
 			ID:   "side-id",
 			Name: "Caesar Broccoli",
 			Steps: []*mealplanning.RecipeStep{
-				{ID: fakes.BuildFakeID(), Preparation: *dice, Index: 0},
+				{ID: fake.BuildFakeID(), Preparation: *dice, Index: 0},
 			},
 		}
 

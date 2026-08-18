@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -25,9 +26,9 @@ func TestMealPlanningManager_ListMealPlanOptionVotes(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		expected := fakes.BuildFakeMealPlanOptionVotesList()
-		exampleMealPlanID := fakes.BuildFakeID()
-		exampleMealPlanEventID := fakes.BuildFakeID()
-		exampleMealPlanOptionID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
+		exampleMealPlanOptionID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetMealPlanOptionVotesFunc: func(_ context.Context, mealPlanID string, mealPlanEventID string, mealPlanOptionID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanOptionVote], error) {
@@ -57,9 +58,9 @@ func TestMealPlanningManager_CreateMealPlanOptionVotes(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		exampleMealPlanID := fakes.BuildFakeID()
-		exampleMealPlanEventID := fakes.BuildFakeID()
-		creatorID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
+		creatorID := fake.BuildFakeID()
 		expected := fakes.BuildFakeMealPlanOptionVotesList().Data
 		fakeInput := fakes.BuildFakeMealPlanOptionVoteCreationRequestInput()
 
@@ -104,9 +105,9 @@ func TestMealPlanningManager_CreateMealPlanOptionVotes(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		exampleMealPlanID := fakes.BuildFakeID()
-		exampleMealPlanEventID := fakes.BuildFakeID()
-		creatorID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
+		creatorID := fake.BuildFakeID()
 		fakeInput := fakes.BuildFakeMealPlanOptionVoteCreationRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -132,9 +133,9 @@ func TestMealPlanningManager_CreateMealPlanOptionVotes(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		exampleMealPlanID := fakes.BuildFakeID()
-		exampleMealPlanEventID := fakes.BuildFakeID()
-		creatorID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
+		creatorID := fake.BuildFakeID()
 		fakeInput := fakes.BuildFakeMealPlanOptionVoteCreationRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -171,9 +172,9 @@ func TestMealPlanningManager_ReadMealPlanOptionVote(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		exampleMealPlanID := fakes.BuildFakeID()
-		exampleMealPlanEventID := fakes.BuildFakeID()
-		exampleMealPlanOptionID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
+		exampleMealPlanOptionID := fake.BuildFakeID()
 		expected := fakes.BuildFakeMealPlanOptionVote()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -206,9 +207,9 @@ func TestMealPlanningManager_UpdateMealPlanOptionVote(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		exampleMealPlanOptionVote := fakes.BuildFakeMealPlanOptionVote()
-		exampleMealPlanID := fakes.BuildFakeID()
-		exampleMealPlanOptionID := fakes.BuildFakeID()
-		exampleMealPlanEventID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanOptionID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
 		exampleInput := fakes.BuildFakeMealPlanOptionVoteUpdateRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -242,9 +243,9 @@ func TestMealPlanningManager_ArchiveMealPlanOptionVote(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		mealPlanID := fakes.BuildFakeID()
-		mealPlanEventID := fakes.BuildFakeID()
-		mealPlanOptionID := fakes.BuildFakeID()
+		mealPlanID := fake.BuildFakeID()
+		mealPlanEventID := fake.BuildFakeID()
+		mealPlanOptionID := fake.BuildFakeID()
 		expected := fakes.BuildFakeMealPlanOptionVote()
 
 		db := &mealplanningmock.RepositoryMock{

@@ -10,6 +10,7 @@ import (
 	issuereportsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/mock"
 
 	platformerrors "github.com/primandproper/platform-go/v11/errors"
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
@@ -189,7 +190,7 @@ func TestIssueReportsDataManager_ArchiveIssueReport(t *testing.T) {
 
 		ctx := t.Context()
 
-		issueReportID := fakes.BuildFakeID()
+		issueReportID := fake.BuildFakeID()
 
 		repo := &issuereportsmock.RepositoryMock{
 			ArchiveIssueReportFunc: func(_ context.Context, actualID string) error {

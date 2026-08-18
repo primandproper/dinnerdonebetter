@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,8 +25,8 @@ func TestMealPlanningManager_ListMealPlanOptions(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		expected := fakes.BuildFakeMealPlanOptionsList()
-		exampleMealPlanID := fakes.BuildFakeID()
-		exampleMealPlanEventID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetMealPlanOptionsFunc: func(_ context.Context, mealPlanID string, mealPlanEventID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanOption], error) {
@@ -117,7 +118,7 @@ func TestMealPlanningManager_CreateMealPlanOptionWithEventID(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		eventID := fakes.BuildFakeID()
+		eventID := fake.BuildFakeID()
 		fakeInput := fakes.BuildFakeMealPlanOptionCreationRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -147,8 +148,8 @@ func TestMealPlanningManager_ReadMealPlanOption(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		exampleMealPlanID := fakes.BuildFakeID()
-		exampleMealPlanEventID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
 		expected := fakes.BuildFakeMealPlanOption()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -179,8 +180,8 @@ func TestMealPlanningManager_MealPlanOptionBelongsToAccount(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		exampleMealPlanOptionID := fakes.BuildFakeID()
-		exampleAccountID := fakes.BuildFakeID()
+		exampleMealPlanOptionID := fake.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			MealPlanOptionBelongsToAccountFunc: func(_ context.Context, mealPlanOptionID string, accountID string) (bool, error) {
@@ -205,8 +206,8 @@ func TestMealPlanningManager_MealPlanOptionBelongsToAccount(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		exampleMealPlanOptionID := fakes.BuildFakeID()
-		exampleAccountID := fakes.BuildFakeID()
+		exampleMealPlanOptionID := fake.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			MealPlanOptionBelongsToAccountFunc: func(_ context.Context, mealPlanOptionID string, accountID string) (bool, error) {
@@ -236,8 +237,8 @@ func TestMealPlanningManager_UpdateMealPlanOption(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		exampleMealPlanOption := fakes.BuildFakeMealPlanOption()
-		exampleMealPlanID := fakes.BuildFakeID()
-		exampleMealPlanEventID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
 		exampleInput := fakes.BuildFakeMealPlanOptionUpdateRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -270,8 +271,8 @@ func TestMealPlanningManager_ArchiveMealPlanOption(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		mealPlanID := fakes.BuildFakeID()
-		mealPlanEventID := fakes.BuildFakeID()
+		mealPlanID := fake.BuildFakeID()
+		mealPlanEventID := fake.BuildFakeID()
 		expected := fakes.BuildFakeMealPlanOption()
 
 		db := &mealplanningmock.RepositoryMock{

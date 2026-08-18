@@ -12,6 +12,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 	"github.com/primandproper/platform-go/v11/identifiers"
 
@@ -146,7 +147,7 @@ func TestQuerier_GetWebhook(T *testing.T) {
 	T.Run("with invalid webhook ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -207,7 +208,7 @@ func TestQuerier_ArchiveWebhook(T *testing.T) {
 	T.Run("with invalid webhook ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -218,7 +219,7 @@ func TestQuerier_ArchiveWebhook(T *testing.T) {
 	T.Run("with invalid account ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleWebhookID := fakes.BuildFakeID()
+		exampleWebhookID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -233,23 +234,23 @@ func TestQuerier_ArchiveWebhookTriggerConfig(T *testing.T) {
 	T.Run("with invalid webhook ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleConfigID := fakes.BuildFakeID()
+		exampleConfigID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveWebhookTriggerConfig(ctx, "", fakes.BuildFakeID(), exampleConfigID))
+		assert.Error(t, c.ArchiveWebhookTriggerConfig(ctx, "", fake.BuildFakeID(), exampleConfigID))
 	})
 
 	T.Run("with invalid webhook trigger config ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleWebhookID := fakes.BuildFakeID()
+		exampleWebhookID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveWebhookTriggerConfig(ctx, exampleWebhookID, fakes.BuildFakeID(), ""))
+		assert.Error(t, c.ArchiveWebhookTriggerConfig(ctx, exampleWebhookID, fake.BuildFakeID(), ""))
 	})
 }
 

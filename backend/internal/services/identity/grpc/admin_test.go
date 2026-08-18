@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
+
+	"github.com/primandproper/platform-go/v11/fake"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,7 +24,7 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleUserID := identityfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		identityDataManager.AdminSetPasswordChangeRequiredFunc = func(_ context.Context, userID string, requiresChange bool) error {
 			assert.Equal(t, exampleUserID, userID)
@@ -50,7 +51,7 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &identitysvc.AdminSetPasswordChangeRequiredRequest{
-			TargetUserId:           identityfakes.BuildFakeID(),
+			TargetUserId:           fake.BuildFakeID(),
 			RequiresPasswordChange: true,
 		}
 
@@ -76,7 +77,7 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 		}
 
 		request := &identitysvc.AdminSetPasswordChangeRequiredRequest{
-			TargetUserId:           identityfakes.BuildFakeID(),
+			TargetUserId:           fake.BuildFakeID(),
 			RequiresPasswordChange: true,
 		}
 
@@ -96,7 +97,7 @@ func TestServiceImpl_AdminSetPasswordChangeRequired(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &identitysvc.AdminSetPasswordChangeRequiredRequest{
-			TargetUserId:           identityfakes.BuildFakeID(),
+			TargetUserId:           fake.BuildFakeID(),
 			RequiresPasswordChange: true,
 		}
 
@@ -119,7 +120,7 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleUserID := identityfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		identityDataManager.AdminUpdateUserStatusFunc = func(_ context.Context, input *identity.UserAccountStatusUpdateInput) error {
 			assert.True(t, input.TargetUserID == exampleUserID && input.NewStatus == identity.GoodStandingUserAccountStatus.String())
@@ -146,7 +147,7 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &identitysvc.AdminUpdateUserStatusRequest{
-			TargetUserId: identityfakes.BuildFakeID(),
+			TargetUserId: fake.BuildFakeID(),
 			NewStatus:    identity.GoodStandingUserAccountStatus.String(),
 		}
 
@@ -170,7 +171,7 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 		}
 
 		request := &identitysvc.AdminUpdateUserStatusRequest{
-			TargetUserId: identityfakes.BuildFakeID(),
+			TargetUserId: fake.BuildFakeID(),
 			NewStatus:    identity.GoodStandingUserAccountStatus.String(),
 		}
 
@@ -190,7 +191,7 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &identitysvc.AdminUpdateUserStatusRequest{
-			TargetUserId: identityfakes.BuildFakeID(),
+			TargetUserId: fake.BuildFakeID(),
 			NewStatus:    identity.BannedUserAccountStatus.String(),
 		}
 
@@ -209,7 +210,7 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleUserID := identityfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		identityDataManager.AdminUpdateUserStatusFunc = func(_ context.Context, input *identity.UserAccountStatusUpdateInput) error {
 			assert.True(t, input.TargetUserID == exampleUserID && input.NewStatus == identity.BannedUserAccountStatus.String())
@@ -235,7 +236,7 @@ func TestServiceImpl_AdminUpdateUserStatus(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleUserID := identityfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		identityDataManager.AdminUpdateUserStatusFunc = func(_ context.Context, input *identity.UserAccountStatusUpdateInput) error {
 			assert.True(t, input.TargetUserID == exampleUserID && input.NewStatus == identity.UnverifiedAccountStatus.String())

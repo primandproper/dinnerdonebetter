@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -128,7 +129,7 @@ func TestQuerier_MealPlanEventExists(T *testing.T) {
 
 		ctx := t.Context()
 
-		exampleMealPlanEventID := fakes.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
 
 		c := buildInertClientForTest(t)
 
@@ -142,7 +143,7 @@ func TestQuerier_MealPlanEventExists(T *testing.T) {
 
 		ctx := t.Context()
 
-		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 
 		c := buildInertClientForTest(t)
 
@@ -158,7 +159,7 @@ func TestQuerier_GetMealPlanEvent(T *testing.T) {
 	T.Run("with invalid meal plan ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleMealPlanEventID := fakes.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -258,7 +259,7 @@ func TestQuerier_ArchiveMealPlanEvent(T *testing.T) {
 	T.Run("with invalid meal plan ID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleMealPlanEventID := fakes.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)

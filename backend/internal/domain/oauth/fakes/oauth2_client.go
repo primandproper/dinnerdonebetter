@@ -5,46 +5,46 @@ import (
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
-	fake "github.com/brianvoe/gofakeit/v7"
+	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
 
 // BuildFakeOAuth2Client builds a faked OAuth2Client.
 func BuildFakeOAuth2Client() *types.OAuth2Client {
-	return &types.OAuth2Client{
-		ID:           BuildFakeID(),
-		Name:         fake.Password(true, true, true, false, false, 32),
-		ClientID:     BuildFakeID(),
-		ClientSecret: buildFakePassword(),
-		CreatedAt:    BuildFakeTime(),
-	}
+	client := fake.BuildFakeRecord[types.OAuth2Client]()
+
+	// A secret that looks like one: it is compared, hashed and stored by code that has
+	// opinions about its alphabet and length.
+	client.ClientSecret = fake.BuildFakePassword()
+	client.Name = gofakeit.Password(true, true, true, false, false, 32)
+
+	return client
 }
 
 // BuildFakeOAuth2ClientToken builds a faked OAuth2ClientToken.
 func BuildFakeOAuth2ClientToken() *types.OAuth2ClientToken {
-	return &types.OAuth2ClientToken{
-		RefreshCreatedAt:    BuildFakeTime(),
-		AccessCreatedAt:     BuildFakeTime(),
-		CodeCreatedAt:       BuildFakeTime(),
-		RedirectURI:         fake.URL(),
-		Code:                buildUniqueString(),
-		CodeChallenge:       buildUniqueString(),
-		CodeChallengeMethod: "S256",
-		BelongsToUser:       BuildFakeID(),
-		Access:              buildUniqueString(),
-		ClientID:            BuildFakeID(),
-		Refresh:             buildUniqueString(),
-		ID:                  BuildFakeID(),
-		CodeExpiresAt:       time.Hour,
-		AccessExpiresAt:     time.Hour,
-		RefreshExpiresAt:    time.Hour,
-	}
+	token := fake.BuildFakeRecord[types.OAuth2ClientToken]()
+
+	// The three durations are lifetimes rather than arbitrary quantities, and a token
+	// whose lifetime faker picked is one that may already have expired.
+	token.CodeExpiresAt = time.Hour
+	token.AccessExpiresAt = time.Hour
+	token.RefreshExpiresAt = time.Hour
+
+	// The two values the OAuth2 spec constrains: a redirect the authorization path
+	// parses as a URL, and the one PKCE challenge method this server supports.
+	token.RedirectURI = gofakeit.URL()
+	token.CodeChallengeMethod = "S256"
+
+	return token
 }
 
 // BuildFakeOAuth2ClientCreationResponse builds a faked OAuth2ClientCreationResponse.
 func BuildFakeOAuth2ClientCreationResponse() *types.OAuth2ClientCreationResponse {
 	client := BuildFakeOAuth2Client()
+
 	return &types.OAuth2ClientCreationResponse{
 		ID:           client.ID,
 		ClientID:     client.ClientID,
@@ -54,20 +54,7 @@ func BuildFakeOAuth2ClientCreationResponse() *types.OAuth2ClientCreationResponse
 
 // BuildFakeOAuth2ClientsList builds a faked OAuth2ClientList.
 func BuildFakeOAuth2ClientsList() *filtering.QueryFilteredResult[types.OAuth2Client] {
-	var examples []*types.OAuth2Client
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeOAuth2Client())
-	}
-
-	return &filtering.QueryFilteredResult[types.OAuth2Client]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeOAuth2Client)
 }
 
 // BuildFakeOAuth2ClientCreationRequestInput builds a faked OAuth2ClientCreationRequestInput.

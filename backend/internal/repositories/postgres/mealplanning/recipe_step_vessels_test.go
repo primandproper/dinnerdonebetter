@@ -10,6 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -121,7 +122,7 @@ func TestQuerier_RecipeStepVesselExists(T *testing.T) {
 
 		ctx := t.Context()
 
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		exampleRecipeStepVessel := fakes.BuildFakeRecipeStepVessel()
 
 		c := buildInertClientForTest(t)
@@ -136,7 +137,7 @@ func TestQuerier_RecipeStepVesselExists(T *testing.T) {
 
 		ctx := t.Context()
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		exampleRecipeStepVessel := fakes.BuildFakeRecipeStepVessel()
 
 		c := buildInertClientForTest(t)
@@ -151,8 +152,8 @@ func TestQuerier_RecipeStepVesselExists(T *testing.T) {
 
 		ctx := t.Context()
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 
 		c := buildInertClientForTest(t)
 
@@ -168,7 +169,7 @@ func TestQuerier_GetRecipeStepVessel(T *testing.T) {
 	T.Run("with invalid recipe MealPlanTaskID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 		exampleRecipeStepVessel := fakes.BuildFakeRecipeStepVessel()
 
 		ctx := t.Context()
@@ -182,7 +183,7 @@ func TestQuerier_GetRecipeStepVessel(T *testing.T) {
 	T.Run("with invalid recipe step MealPlanTaskID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		exampleRecipeStepVessel := fakes.BuildFakeRecipeStepVessel()
 
 		ctx := t.Context()
@@ -196,8 +197,8 @@ func TestQuerier_GetRecipeStepVessel(T *testing.T) {
 	T.Run("with invalid recipe step instrument MealPlanTaskID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleRecipeID := fakes.BuildFakeID()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -215,7 +216,7 @@ func TestQuerier_GetRecipeStepVessels(T *testing.T) {
 		t.Parallel()
 
 		filter := filtering.DefaultQueryFilter()
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -229,7 +230,7 @@ func TestQuerier_GetRecipeStepVessels(T *testing.T) {
 		t.Parallel()
 
 		filter := filtering.DefaultQueryFilter()
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -249,7 +250,7 @@ func TestQuerier_CreateRecipeStepVessel(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.CreateRecipeStepVessel(ctx, fakes.BuildFakeID(), nil)
+		actual, err := c.CreateRecipeStepVessel(ctx, fake.BuildFakeID(), nil)
 		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
@@ -264,7 +265,7 @@ func TestQuerier_UpdateRecipeStepVessel(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.UpdateRecipeStepVessel(ctx, fakes.BuildFakeID(), nil))
+		assert.Error(t, c.UpdateRecipeStepVessel(ctx, fake.BuildFakeID(), nil))
 	})
 }
 
@@ -279,18 +280,18 @@ func TestQuerier_ArchiveRecipeStepVessel(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveRecipeStepVessel(ctx, fakes.BuildFakeID(), "", exampleRecipeStepVessel.ID))
+		assert.Error(t, c.ArchiveRecipeStepVessel(ctx, fake.BuildFakeID(), "", exampleRecipeStepVessel.ID))
 	})
 
 	T.Run("with invalid recipe step instrument MealPlanTaskID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleRecipeStepID := fakes.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.ArchiveRecipeStepVessel(ctx, fakes.BuildFakeID(), exampleRecipeStepID, ""))
+		assert.Error(t, c.ArchiveRecipeStepVessel(ctx, fake.BuildFakeID(), exampleRecipeStepID, ""))
 	})
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 	"github.com/primandproper/platform-go/v11/identifiers"
 
@@ -387,7 +388,7 @@ func TestQuerier_ArchiveRecipe(T *testing.T) {
 	T.Run("with invalid recipe MealPlanTaskID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -427,7 +428,7 @@ func Test_findCreatedRecipeStepProductsForIngredients(T *testing.T) {
 				{
 					Products: []*mealplanning.RecipeStepProductDatabaseCreationInput{
 						{
-							ID:                fakes.BuildFakeID(),
+							ID:                fake.BuildFakeID(),
 							Name:              productName,
 							MeasurementUnitID: &fakes.BuildFakeValidMeasurementUnit().ID,
 							Type:              mealplanning.RecipeStepProductIngredientType,
@@ -507,7 +508,7 @@ func Test_findCreatedRecipeStepProductsForIngredients(T *testing.T) {
 				{
 					Products: []*mealplanning.RecipeStepProductDatabaseCreationInput{
 						{
-							ID:                fakes.BuildFakeID(),
+							ID:                fake.BuildFakeID(),
 							Name:              productName,
 							MeasurementUnitID: &fakes.BuildFakeValidMeasurementUnit().ID,
 							Type:              mealplanning.RecipeStepProductIngredientType,
@@ -561,7 +562,7 @@ func Test_findCreatedRecipeStepProductsForIngredients(T *testing.T) {
 				{
 					Products: []*mealplanning.RecipeStepProductDatabaseCreationInput{
 						{
-							ID:                fakes.BuildFakeID(),
+							ID:                fake.BuildFakeID(),
 							Name:              productName,
 							MeasurementUnitID: &fakes.BuildFakeValidMeasurementUnit().ID,
 							Type:              mealplanning.RecipeStepProductIngredientType,
@@ -651,7 +652,7 @@ func Test_findCreatedRecipeStepProductsForInstruments(T *testing.T) {
 				{
 					Products: []*mealplanning.RecipeStepProductDatabaseCreationInput{
 						{
-							ID:   fakes.BuildFakeID(),
+							ID:   fake.BuildFakeID(),
 							Name: productName,
 							Type: mealplanning.RecipeStepProductInstrumentType,
 						},
@@ -679,7 +680,7 @@ func Test_findCreatedRecipeStepProductsForInstruments(T *testing.T) {
 				{
 					Products: []*mealplanning.RecipeStepProductDatabaseCreationInput{
 						{
-							ID:   fakes.BuildFakeID(),
+							ID:   fake.BuildFakeID(),
 							Name: "roasted asparagus",
 							Type: mealplanning.RecipeStepProductInstrumentType,
 						},

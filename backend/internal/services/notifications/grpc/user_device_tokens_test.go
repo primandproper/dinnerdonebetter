@@ -12,6 +12,7 @@ import (
 	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	notificationssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -282,7 +283,7 @@ func TestServiceImpl_ArchiveUserDeviceToken(t *testing.T) {
 
 		ctx := buildSessionContextForTest(t)
 
-		tokenID := notificationsfakes.BuildFakeID()
+		tokenID := fake.BuildFakeID()
 
 		mockRepo := &notificationsmock.RepositoryMock{
 			ArchiveUserDeviceTokenFunc: func(_ context.Context, userID, actualTokenID string) error {

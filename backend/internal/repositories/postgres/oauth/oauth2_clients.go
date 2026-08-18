@@ -185,6 +185,7 @@ func (q *repository) CreateOAuth2Client(ctx context.Context, input *types.OAuth2
 	client := &types.OAuth2Client{
 		ID:           input.ID,
 		Name:         input.Name,
+		Description:  input.Description,
 		ClientID:     input.ClientID,
 		ClientSecret: input.ClientSecret,
 		CreatedAt:    q.CurrentTime(),

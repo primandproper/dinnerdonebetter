@@ -3,30 +3,32 @@ package fakes
 import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	fake "github.com/brianvoe/gofakeit/v7"
+	"github.com/primandproper/platform-go/v11/fake"
 )
 
 // BuildFakeAccountUserMembership builds a faked AccountUserMembership.
 func BuildFakeAccountUserMembership() *types.AccountUserMembership {
-	return &types.AccountUserMembership{
-		ID:               BuildFakeID(),
-		BelongsToUser:    BuildFakeID(),
-		BelongsToAccount: fake.UUID(),
-		CreatedAt:        BuildFakeTime(),
-		ArchivedAt:       nil,
-	}
+	membership := fake.BuildFakeRecord[types.AccountUserMembership]()
+
+	// Which account a user defaults to is decided by MarkAccountUserMembershipAsUserDefault,
+	// not at creation — the creation input has no field for it, so a new membership is
+	// never the default one.
+	membership.DefaultAccount = false
+
+	return membership
 }
 
 // BuildFakeAccountUserMembershipWithUser builds a faked AccountUserMembershipWithUser.
 func BuildFakeAccountUserMembershipWithUser() *types.AccountUserMembershipWithUser {
-	u := BuildFakeUser()
-	u.TwoFactorSecret = ""
+	membership := fake.BuildFakeRecord[types.AccountUserMembershipWithUser]()
 
-	return &types.AccountUserMembershipWithUser{
-		ID:               BuildFakeID(),
-		BelongsToUser:    u,
-		BelongsToAccount: fake.UUID(),
-		CreatedAt:        BuildFakeTime(),
-		ArchivedAt:       nil,
-	}
+	u := BuildFakeUser()
+
+	// The membership is read back through the account read path, which does not return
+	// anyone's second factor secret, so a fake that carried one would let a test pass
+	// against a response that leaked it.
+	u.TwoFactorSecret = ""
+	membership.BelongsToUser = u
+
+	return membership
 }

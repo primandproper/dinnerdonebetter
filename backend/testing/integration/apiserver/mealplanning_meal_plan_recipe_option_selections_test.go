@@ -14,6 +14,8 @@ import (
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
+	"github.com/primandproper/platform-go/v11/fake"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -317,7 +319,7 @@ func createRecipeWithAlternativeIngredients(t *testing.T, nameSuffix string) ([]
 	// Ingredient C: index=1, optionIndex=0 (regular, non-alternative)
 	step1.Ingredients = []*mealplanning.RecipeStepIngredient{
 		{
-			ID:                  fakes.BuildFakeID(),
+			ID:                  fake.BuildFakeID(),
 			Name:                "Alternative A " + nameSuffix,
 			Ingredient:          createdValidIngredients[0],
 			MeasurementUnit:     *createdValidMeasurementUnit,
@@ -328,7 +330,7 @@ func createRecipeWithAlternativeIngredients(t *testing.T, nameSuffix string) ([]
 			Optional:            false,
 		},
 		{
-			ID:                  fakes.BuildFakeID(),
+			ID:                  fake.BuildFakeID(),
 			Name:                "Alternative B " + nameSuffix,
 			Ingredient:          createdValidIngredients[1],
 			MeasurementUnit:     *createdValidMeasurementUnit,
@@ -339,7 +341,7 @@ func createRecipeWithAlternativeIngredients(t *testing.T, nameSuffix string) ([]
 			Optional:            false,
 		},
 		{
-			ID:                  fakes.BuildFakeID(),
+			ID:                  fake.BuildFakeID(),
 			Name:                "Regular Ingredient " + nameSuffix,
 			Ingredient:          createdValidIngredients[2],
 			MeasurementUnit:     *createdValidMeasurementUnit,
@@ -354,7 +356,7 @@ func createRecipeWithAlternativeIngredients(t *testing.T, nameSuffix string) ([]
 	// Step 2 has a simple ingredient (using the product from step 1)
 	step2.Ingredients = []*mealplanning.RecipeStepIngredient{
 		{
-			ID:                  fakes.BuildFakeID(),
+			ID:                  fake.BuildFakeID(),
 			Name:                "Secondary Ingredient " + nameSuffix,
 			Ingredient:          createdValidIngredients[0],
 			MeasurementUnit:     *createdValidMeasurementUnit,
@@ -632,10 +634,10 @@ func TestMealPlanRecipeOptionSelections_Creating(T *testing.T) {
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
 		_, err := c.CreateMealPlanRecipeOptionSelection(ctx, &mealplanninggrpc.CreateMealPlanRecipeOptionSelectionRequest{
-			MealPlanOptionId: fakes.BuildFakeID(),
+			MealPlanOptionId: fake.BuildFakeID(),
 			Input: &mealplanninggrpc.MealPlanRecipeOptionSelectionCreationRequestInput{
-				RecipeId:            fakes.BuildFakeID(),
-				RecipeStepId:        fakes.BuildFakeID(),
+				RecipeId:            fake.BuildFakeID(),
+				RecipeStepId:        fake.BuildFakeID(),
 				IngredientIndex:     0,
 				SelectedOptionIndex: 1,
 				SelectionType:       mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
@@ -696,8 +698,8 @@ func TestMealPlanRecipeOptionSelections_Reading(T *testing.T) {
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
 		_, err := c.GetMealPlanRecipeOptionSelection(ctx, &mealplanninggrpc.GetMealPlanRecipeOptionSelectionRequest{
-			MealPlanOptionId: fakes.BuildFakeID(),
-			RecipeStepId:     fakes.BuildFakeID(),
+			MealPlanOptionId: fake.BuildFakeID(),
+			RecipeStepId:     fake.BuildFakeID(),
 			IngredientIndex:  0,
 			SelectionType:    mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
 		})
@@ -712,8 +714,8 @@ func TestMealPlanRecipeOptionSelections_Reading(T *testing.T) {
 		_, userClient := createUserAndClientForTest(t)
 
 		_, err := userClient.GetMealPlanRecipeOptionSelection(ctx, &mealplanninggrpc.GetMealPlanRecipeOptionSelectionRequest{
-			MealPlanOptionId: fakes.BuildFakeID(),
-			RecipeStepId:     fakes.BuildFakeID(),
+			MealPlanOptionId: fake.BuildFakeID(),
+			RecipeStepId:     fake.BuildFakeID(),
 			IngredientIndex:  0,
 			SelectionType:    mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
 		})
@@ -771,7 +773,7 @@ func TestMealPlanRecipeOptionSelections_Listing(T *testing.T) {
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
 		_, err := c.GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx, &mealplanninggrpc.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRequest{
-			MealPlanOptionId: fakes.BuildFakeID(),
+			MealPlanOptionId: fake.BuildFakeID(),
 		})
 		require.Error(t, err)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
@@ -835,8 +837,8 @@ func TestMealPlanRecipeOptionSelections_Updating(T *testing.T) {
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
 		_, err := c.UpdateMealPlanRecipeOptionSelection(ctx, &mealplanninggrpc.UpdateMealPlanRecipeOptionSelectionRequest{
-			MealPlanOptionId: fakes.BuildFakeID(),
-			RecipeStepId:     fakes.BuildFakeID(),
+			MealPlanOptionId: fake.BuildFakeID(),
+			RecipeStepId:     fake.BuildFakeID(),
 			IngredientIndex:  0,
 			SelectionType:    mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
 			Input: &mealplanninggrpc.MealPlanRecipeOptionSelectionUpdateRequestInput{
@@ -854,8 +856,8 @@ func TestMealPlanRecipeOptionSelections_Updating(T *testing.T) {
 		_, userClient := createUserAndClientForTest(t)
 
 		_, err := userClient.UpdateMealPlanRecipeOptionSelection(ctx, &mealplanninggrpc.UpdateMealPlanRecipeOptionSelectionRequest{
-			MealPlanOptionId: fakes.BuildFakeID(),
-			RecipeStepId:     fakes.BuildFakeID(),
+			MealPlanOptionId: fake.BuildFakeID(),
+			RecipeStepId:     fake.BuildFakeID(),
 			IngredientIndex:  0,
 			SelectionType:    mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
 			Input: &mealplanninggrpc.MealPlanRecipeOptionSelectionUpdateRequestInput{
@@ -907,8 +909,8 @@ func TestMealPlanRecipeOptionSelections_Archiving(T *testing.T) {
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
 		_, err := c.ArchiveMealPlanRecipeOptionSelection(ctx, &mealplanninggrpc.ArchiveMealPlanRecipeOptionSelectionRequest{
-			MealPlanOptionId: fakes.BuildFakeID(),
-			RecipeStepId:     fakes.BuildFakeID(),
+			MealPlanOptionId: fake.BuildFakeID(),
+			RecipeStepId:     fake.BuildFakeID(),
 			IngredientIndex:  0,
 			SelectionType:    mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
 		})
@@ -923,8 +925,8 @@ func TestMealPlanRecipeOptionSelections_Archiving(T *testing.T) {
 		_, userClient := createUserAndClientForTest(t)
 
 		_, err := userClient.ArchiveMealPlanRecipeOptionSelection(ctx, &mealplanninggrpc.ArchiveMealPlanRecipeOptionSelectionRequest{
-			MealPlanOptionId: fakes.BuildFakeID(),
-			RecipeStepId:     fakes.BuildFakeID(),
+			MealPlanOptionId: fake.BuildFakeID(),
+			RecipeStepId:     fake.BuildFakeID(),
 			IngredientIndex:  0,
 			SelectionType:    mealplanninggrpc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT,
 		})

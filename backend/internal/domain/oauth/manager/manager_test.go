@@ -10,6 +10,7 @@ import (
 	oauthmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/mock"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/messagequeue"
 	mockpublishers "github.com/primandproper/platform-go/v11/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
@@ -73,8 +74,8 @@ func buildSessionContextForTest(t *testing.T) context.Context {
 	t.Helper()
 
 	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
-		ActiveAccountID: fakes.BuildFakeID(),
-		Requester:       sessions.RequesterInfo{UserID: fakes.BuildFakeID()},
+		ActiveAccountID: fake.BuildFakeID(),
+		Requester:       sessions.RequesterInfo{UserID: fake.BuildFakeID()},
 	})
 }
 
@@ -137,7 +138,7 @@ func TestOAuth2Manager_ArchiveOAuth2Client(t *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		om := buildOAuthManagerForTest(t)
 
-		oauth2ClientID := fakes.BuildFakeID()
+		oauth2ClientID := fake.BuildFakeID()
 
 		repo := &oauthmock.RepositoryMock{
 			ArchiveOAuth2ClientFunc: func(_ context.Context, clientID string) error {

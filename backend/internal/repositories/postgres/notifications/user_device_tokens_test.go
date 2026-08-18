@@ -10,6 +10,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -86,7 +88,7 @@ func TestQuerier_UserDeviceTokenExists(t *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.UserDeviceTokenExists(ctx, fakes.BuildFakeID(), "")
+		actual, err := c.UserDeviceTokenExists(ctx, fake.BuildFakeID(), "")
 		require.Error(t, err)
 		assert.False(t, actual)
 	})
@@ -96,7 +98,7 @@ func TestQuerier_UserDeviceTokenExists(t *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.UserDeviceTokenExists(ctx, "", fakes.BuildFakeID())
+		actual, err := c.UserDeviceTokenExists(ctx, "", fake.BuildFakeID())
 		require.Error(t, err)
 		assert.False(t, actual)
 	})
@@ -110,7 +112,7 @@ func TestQuerier_GetUserDeviceToken(t *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.GetUserDeviceToken(ctx, "", fakes.BuildFakeID())
+		actual, err := c.GetUserDeviceToken(ctx, "", fake.BuildFakeID())
 		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
@@ -120,7 +122,7 @@ func TestQuerier_GetUserDeviceToken(t *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.GetUserDeviceToken(ctx, fakes.BuildFakeID(), "")
+		actual, err := c.GetUserDeviceToken(ctx, fake.BuildFakeID(), "")
 		require.Error(t, err)
 		assert.Nil(t, actual)
 	})

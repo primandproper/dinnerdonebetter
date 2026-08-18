@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 	textsearch "github.com/primandproper/platform-go/v11/search/text"
 	mocksearch "github.com/primandproper/platform-go/v11/search/text/mock"
@@ -57,7 +58,7 @@ func TestRecipeManager_CreateRecipe(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		fakeCreatorID := fakes.BuildFakeID()
+		fakeCreatorID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipe()
 		fakeInput := fakes.BuildFakeRecipeCreationRequestInput()
 
@@ -94,7 +95,7 @@ func TestRecipeManager_CreateRecipe(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		fakeCreatorID := fakes.BuildFakeID()
+		fakeCreatorID := fake.BuildFakeID()
 		fakeInput := fakes.BuildFakeRecipeCreationRequestInput()
 
 		analyzer := &recipeanalysis.RecipeAnalyzerMock{
@@ -154,7 +155,7 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		rm := buildRecipeManagerForTest(t)
 
 		expected := fakes.BuildFakeRecipesList()
-		exampleQuery := fakes.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			SearchForRecipesFunc: func(_ context.Context, query string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Recipe], error) {
@@ -179,7 +180,7 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		rm := buildRecipeManagerForTest(t)
 
 		expected := fakes.BuildFakeRecipesList()
-		exampleQuery := fakes.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			SearchForRecipesFunc: func(_ context.Context, query string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Recipe], error) {
@@ -203,7 +204,7 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleQuery := fakes.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipe()
 
 		cursor := "cursor-from-a-previous-page"
@@ -249,7 +250,7 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleQuery := fakes.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipesList()
 
 		cursor := "an-opaque-index-token"
@@ -288,7 +289,7 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleQuery := fakes.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 
 		cursor := "a-cursor-from-a-different-backend"
 		filter := filtering.DefaultQueryFilter()
@@ -319,7 +320,7 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleQuery := fakes.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 
 		cursor := "cursor-for-the-last-page"
 		filter := filtering.DefaultQueryFilter()
@@ -385,7 +386,7 @@ func TestRecipeManager_ArchiveRecipe(T *testing.T) {
 		rm := buildRecipeManagerForTest(t)
 
 		expected := fakes.BuildFakeRecipe()
-		exampleOwnerID := fakes.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			ArchiveRecipeFunc: func(_ context.Context, recipeID, accountID string) error {
@@ -521,7 +522,7 @@ func TestRecipeManager_CloneRecipe(T *testing.T) {
 
 		expected := fakes.BuildFakeRecipe()
 		cloned := fakes.BuildFakeRecipe()
-		exampleOwnerID := fakes.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetRecipeFunc: func(_ context.Context, recipeID string) (*types.Recipe, error) {

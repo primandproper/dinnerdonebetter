@@ -6,6 +6,8 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/fakes"
 
+	"github.com/primandproper/platform-go/v11/fake"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -101,7 +103,7 @@ func TestOAuth2ClientInfoImpl_VerifyPassword(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		plaintext := fakes.BuildFakeID()
+		plaintext := fake.BuildFakeID()
 		client := fakes.BuildFakeOAuth2Client()
 		client.ClientSecret = types.HashClientSecret(plaintext)
 
@@ -117,13 +119,13 @@ func TestOAuth2ClientInfoImpl_VerifyPassword(T *testing.T) {
 		t.Parallel()
 
 		client := fakes.BuildFakeOAuth2Client()
-		client.ClientSecret = types.HashClientSecret(fakes.BuildFakeID())
+		client.ClientSecret = types.HashClientSecret(fake.BuildFakeID())
 
 		impl := &oauth2ClientInfoImpl{
 			client: client,
 			domain: "example.com",
 		}
 
-		assert.False(t, impl.VerifyPassword(fakes.BuildFakeID()))
+		assert.False(t, impl.VerifyPassword(fake.BuildFakeID()))
 	})
 }

@@ -3,37 +3,24 @@ package fakes
 import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 )
 
-// BuildFakeAuditLogEntry builds a faked valid instrument.
+// BuildFakeAuditLogEntry builds a faked audit log entry.
 func BuildFakeAuditLogEntry() *types.AuditLogEntry {
-	return &types.AuditLogEntry{
-		ID:               BuildFakeID(),
-		CreatedAt:        BuildFakeTime(),
-		Changes:          nil,
-		BelongsToAccount: nil,
-		ResourceType:     "example",
-		RelevantID:       BuildFakeID(),
-		EventType:        types.AuditLogEventTypeOther,
-		BelongsToUser:    BuildFakeID(),
-	}
+	entry := fake.BuildFakeRecord[types.AuditLogEntry]()
+
+	// Both of these are closed vocabularies rather than free text: an event type
+	// outside the five constants is one no reader knows how to render, and the
+	// resource type names a table.
+	entry.ResourceType = "example"
+	entry.EventType = types.AuditLogEventTypeOther
+
+	return entry
 }
 
 // BuildFakeAuditLogEntriesList builds a faked AuditLogEntryList.
 func BuildFakeAuditLogEntriesList() *filtering.QueryFilteredResult[types.AuditLogEntry] {
-	var examples []*types.AuditLogEntry
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeAuditLogEntry())
-	}
-
-	return &filtering.QueryFilteredResult[types.AuditLogEntry]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeAuditLogEntry)
 }

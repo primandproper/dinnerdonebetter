@@ -3,63 +3,59 @@ package fakes
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 )
 
+// commentTargetType is the kind of thing these fakes comment on.
+//
+// A comment's target is a table name, and the ones a comment may point at are a closed
+// set the domain knows and a random string is not in.
+const commentTargetType = "recipes"
+
 // BuildFakeComment builds a faked Comment.
 func BuildFakeComment() *comments.Comment {
-	return &comments.Comment{
-		ID:            BuildFakeID(),
-		Content:       buildUniqueString(),
-		TargetType:    "recipes",
-		ReferencedID:  BuildFakeID(),
-		BelongsToUser: BuildFakeID(),
-		CreatedAt:     BuildFakeTime(),
-	}
+	comment := fake.BuildFakeRecord[comments.Comment]()
+	comment.TargetType = commentTargetType
+
+	return comment
 }
 
 // BuildFakeCommentWithParent builds a faked Comment that is a reply.
 func BuildFakeCommentWithParent(parentID string) *comments.Comment {
 	c := BuildFakeComment()
 	c.ParentCommentID = &parentID
+
 	return c
 }
 
 // BuildFakeCommentList builds a faked Comment list.
+//
+// The target is what the read path filtered on, so every element of the page carries
+// it: a page of comments about one recipe, which is the only page the read path
+// returns.
 func BuildFakeCommentList(targetType, referencedID string) *filtering.QueryFilteredResult[comments.Comment] {
-	var examples []*comments.Comment
-	for range 3 {
-		examples = append(examples, BuildFakeComment())
-	}
+	return fake.BuildFakePage(func() *comments.Comment {
+		comment := BuildFakeComment()
+		comment.TargetType = targetType
+		comment.ReferencedID = referencedID
 
-	return &filtering.QueryFilteredResult[comments.Comment]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   3,
-			TotalCount:      3,
-		},
-		Data: examples,
-	}
+		return comment
+	})
 }
 
 // BuildFakeCommentCreationRequestInput builds a faked CommentCreationRequestInput.
 func BuildFakeCommentCreationRequestInput() *comments.CommentCreationRequestInput {
-	return &comments.CommentCreationRequestInput{
-		Content:       buildUniqueString(),
-		TargetType:    "recipes",
-		ReferencedID:  BuildFakeID(),
-		BelongsToUser: BuildFakeID(),
-	}
+	input := fake.BuildFakeRecord[comments.CommentCreationRequestInput]()
+	input.TargetType = commentTargetType
+
+	return input
 }
 
 // BuildFakeCommentDatabaseCreationInput builds a faked CommentDatabaseCreationInput.
 func BuildFakeCommentDatabaseCreationInput() *comments.CommentDatabaseCreationInput {
-	return &comments.CommentDatabaseCreationInput{
-		ID:            BuildFakeID(),
-		Content:       buildUniqueString(),
-		TargetType:    "recipes",
-		ReferencedID:  BuildFakeID(),
-		BelongsToUser: BuildFakeID(),
-	}
+	input := fake.BuildFakeRecord[comments.CommentDatabaseCreationInput]()
+	input.TargetType = commentTargetType
+
+	return input
 }

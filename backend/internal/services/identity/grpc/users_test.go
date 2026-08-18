@@ -13,6 +13,7 @@ import (
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 	"github.com/primandproper/platform-go/v11/uploads"
 	mockuploads "github.com/primandproper/platform-go/v11/uploads/mock"
@@ -36,7 +37,7 @@ func TestServiceImpl_CreateUser(T *testing.T) {
 
 		exampleInput := identityfakes.BuildFakeUserCreationInput()
 		exampleResponse := &identity.UserCreationResponse{
-			CreatedUserID:   identityfakes.BuildFakeID(),
+			CreatedUserID:   fake.BuildFakeID(),
 			Username:        exampleInput.Username,
 			EmailAddress:    exampleInput.EmailAddress,
 			FirstName:       exampleInput.FirstName,
@@ -44,7 +45,7 @@ func TestServiceImpl_CreateUser(T *testing.T) {
 			TwoFactorSecret: "secret",
 			TwoFactorQRCode: "qr_code",
 			AccountStatus:   identity.UnverifiedAccountStatus.String(),
-			CreatedAt:       identityfakes.BuildFakeTime(),
+			CreatedAt:       fake.BuildFakeTime(),
 		}
 
 		identityDataManager.CreateUserFunc = func(_ context.Context, input *identity.UserRegistrationInput) (*identity.UserCreationResponse, error) {
@@ -120,7 +121,7 @@ func TestServiceImpl_ArchiveUser(T *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleUserID := identityfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		identityDataManager.ArchiveUserFunc = func(_ context.Context, userID string) error {
 			assert.Equal(t, exampleUserID, userID)
@@ -144,7 +145,7 @@ func TestServiceImpl_ArchiveUser(T *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleUserID := identityfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		identityDataManager.ArchiveUserFunc = func(_ context.Context, userID string) error {
 			assert.Equal(t, exampleUserID, userID)
@@ -203,7 +204,7 @@ func TestServiceImpl_GetUser(T *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleUserID := identityfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		identityDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
 			assert.Equal(t, exampleUserID, userID)
@@ -731,7 +732,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 		uploadManager := service.uploadManager.(*mockuploads.UploadManagerMock)
 		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
 		uploadedMediaRepo.CreateUploadedMediaFunc = func(_ context.Context, _ *uploadedmedia.UploadedMediaDatabaseCreationInput) (*uploadedmedia.UploadedMedia, error) {
-			return &uploadedmedia.UploadedMedia{ID: identityfakes.BuildFakeID()}, nil
+			return &uploadedmedia.UploadedMedia{ID: fake.BuildFakeID()}, nil
 		}
 		identityDataManager.SetUserAvatarFunc = func(_ context.Context, _ string, _ string) error {
 			return nil
@@ -786,7 +787,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 		uploadManager := service.uploadManager.(*mockuploads.UploadManagerMock)
 		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
 		uploadedMediaRepo.CreateUploadedMediaFunc = func(_ context.Context, _ *uploadedmedia.UploadedMediaDatabaseCreationInput) (*uploadedmedia.UploadedMedia, error) {
-			return &uploadedmedia.UploadedMedia{ID: identityfakes.BuildFakeID()}, nil
+			return &uploadedmedia.UploadedMedia{ID: fake.BuildFakeID()}, nil
 		}
 		identityDataManager.SetUserAvatarFunc = func(_ context.Context, _ string, _ string) error {
 			return errors.New("set avatar error")

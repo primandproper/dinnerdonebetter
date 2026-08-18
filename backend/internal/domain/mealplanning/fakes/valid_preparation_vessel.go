@@ -4,41 +4,29 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 )
 
-// BuildFakeValidPreparationVessel builds a faked valid preparation instrument.
+// BuildFakeValidPreparationVessel builds a faked valid preparation vessel.
 func BuildFakeValidPreparationVessel() *types.ValidPreparationVessel {
-	return &types.ValidPreparationVessel{
-		ID:          BuildFakeID(),
-		Notes:       buildUniqueString(),
-		Preparation: *BuildFakeValidPreparation(),
-		Vessel:      *BuildFakeValidVessel(),
-		CreatedAt:   BuildFakeTime(),
-	}
+	validPreparationVessel := fake.BuildFakeRecord[types.ValidPreparationVessel]()
+
+	validPreparationVessel.Preparation = *BuildFakeValidPreparation()
+	validPreparationVessel.Vessel = *BuildFakeValidVessel()
+
+	return validPreparationVessel
 }
 
 // BuildFakeValidPreparationVesselsList builds a faked ValidPreparationVesselList.
 func BuildFakeValidPreparationVesselsList() *filtering.QueryFilteredResult[types.ValidPreparationVessel] {
-	var examples []*types.ValidPreparationVessel
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeValidPreparationVessel())
-	}
-
-	return &filtering.QueryFilteredResult[types.ValidPreparationVessel]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeValidPreparationVessel)
 }
 
-// BuildFakeValidPreparationVesselUpdateRequestInput builds a faked ValidPreparationVesselUpdateRequestInput from a valid preparation instrument.
+// BuildFakeValidPreparationVesselUpdateRequestInput builds a faked ValidPreparationVesselUpdateRequestInput from a valid preparation vessel.
 func BuildFakeValidPreparationVesselUpdateRequestInput() *types.ValidPreparationVesselUpdateRequestInput {
 	validPreparationVessel := BuildFakeValidPreparationVessel()
+
 	return &types.ValidPreparationVesselUpdateRequestInput{
 		Notes:              &validPreparationVessel.Notes,
 		ValidPreparationID: &validPreparationVessel.Preparation.ID,
@@ -49,5 +37,6 @@ func BuildFakeValidPreparationVesselUpdateRequestInput() *types.ValidPreparation
 // BuildFakeValidPreparationVesselCreationRequestInput builds a faked ValidPreparationVesselCreationRequestInput.
 func BuildFakeValidPreparationVesselCreationRequestInput() *types.ValidPreparationVesselCreationRequestInput {
 	validPreparationVessel := BuildFakeValidPreparationVessel()
+
 	return converters.ConvertValidPreparationVesselToValidPreparationVesselCreationRequestInput(validPreparationVessel)
 }

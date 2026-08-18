@@ -15,6 +15,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 	"github.com/primandproper/platform-go/v11/identifiers"
 
@@ -111,7 +112,7 @@ func TestQuerier_Integration_Users(t *testing.T) {
 	assert.Equal(t, firstUser.Birthday.Round(time.Second), birthday.Round(time.Second))
 
 	// update first user's avatar (create uploaded_media first, then set avatar)
-	avatarMediaID := fakes.BuildFakeID()
+	avatarMediaID := fake.BuildFakeID()
 	_, err = dbc.writeDB.ExecContext(ctx, `INSERT INTO uploaded_media (id, storage_path, mime_type, created_by_user) VALUES ($1, $2, $3, $4)`,
 		avatarMediaID, "avatars/"+avatarMediaID+".png", "image/png", firstUser.ID)
 	require.NoError(t, err)
@@ -122,28 +123,28 @@ func TestQuerier_Integration_Users(t *testing.T) {
 	assert.Equal(t, firstUser.Avatar.ID, avatarMediaID)
 
 	// update first user's email address
-	newEmailAddress := fakes.BuildFakeID()
+	newEmailAddress := fake.BuildFakeID()
 	require.NoError(t, dbc.UpdateUserEmailAddress(ctx, firstUser.ID, newEmailAddress))
 	firstUser, err = dbc.GetUser(ctx, firstUser.ID)
 	require.NoError(t, err)
 	assert.Equal(t, firstUser.EmailAddress, newEmailAddress)
 
 	// update first user's password
-	newPassword := fakes.BuildFakeID()
+	newPassword := fake.BuildFakeID()
 	require.NoError(t, dbc.UpdateUserPassword(ctx, firstUser.ID, newPassword))
 	firstUser, err = dbc.GetUser(ctx, firstUser.ID)
 	require.NoError(t, err)
 	assert.Equal(t, firstUser.HashedPassword, newPassword)
 
 	// update first user's two factor secret
-	new2FASecret := fakes.BuildFakeID()
+	new2FASecret := fake.BuildFakeID()
 	require.NoError(t, dbc.UpdateUserTwoFactorSecret(ctx, firstUser.ID, new2FASecret))
 	firstUser, err = dbc.GetUser(ctx, firstUser.ID)
 	require.NoError(t, err)
 	assert.Equal(t, firstUser.TwoFactorSecret, new2FASecret)
 
 	assert.NoError(t, dbc.MarkUserTwoFactorSecretAsVerified(ctx, firstUser.ID))
-	assert.NoError(t, dbc.MarkUserTwoFactorSecretAsUnverified(ctx, firstUser.ID, fakes.BuildFakeID()))
+	assert.NoError(t, dbc.MarkUserTwoFactorSecretAsUnverified(ctx, firstUser.ID, fake.BuildFakeID()))
 
 	u, err = dbc.GetUserWithUnverifiedTwoFactorSecret(ctx, firstUser.ID)
 	require.NoError(t, err)
@@ -444,7 +445,7 @@ func TestQuerier_MarkUserTwoFactorSecretAsUnverified(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleSecret := fakes.BuildFakeID()
+		exampleSecret := fake.BuildFakeID()
 		c := buildInertClientForTest(t)
 
 		assert.Error(t, c.MarkUserTwoFactorSecretAsUnverified(ctx, "", exampleSecret))
@@ -454,7 +455,7 @@ func TestQuerier_MarkUserTwoFactorSecretAsUnverified(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUserID := fakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 		c := buildInertClientForTest(t)
 
 		assert.Error(t, c.MarkUserTwoFactorSecretAsUnverified(ctx, exampleUserID, ""))
@@ -476,7 +477,7 @@ func TestQuerier_ArchiveUser(T *testing.T) {
 	T.Run("with error beginning transaction", func(t *testing.T) {
 		t.Parallel()
 
-		exampleUserID := fakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c, db := buildMockSQLTestClient(t)

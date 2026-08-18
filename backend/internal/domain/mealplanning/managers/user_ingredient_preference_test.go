@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ func TestMealPlanningManager_ListUserIngredientPreferences(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		expected := fakes.BuildFakeUserIngredientPreferencesList()
-		exampleOwnerID := fakes.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetUserIngredientPreferencesFunc: func(_ context.Context, userID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.UserIngredientPreference], error) {
@@ -53,7 +54,7 @@ func TestMealPlanningManager_CreateUserIngredientPreference(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		expected := fakes.BuildFakeUserIngredientPreferencesList().Data
-		userID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		fakeInput := fakes.BuildFakeUserIngredientPreferenceCreationRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -81,7 +82,7 @@ func TestMealPlanningManager_UpdateUserIngredientPreference(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		exampleUserIngredientPreference := fakes.BuildFakeUserIngredientPreference()
-		ownerID := fakes.BuildFakeID()
+		ownerID := fake.BuildFakeID()
 		exampleInput := fakes.BuildFakeUserIngredientPreferenceUpdateRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -113,7 +114,7 @@ func TestMealPlanningManager_ArchiveUserIngredientPreference(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		ownershipID := fakes.BuildFakeID()
+		ownershipID := fake.BuildFakeID()
 		expected := fakes.BuildFakeUserIngredientPreference()
 
 		db := &mealplanningmock.RepositoryMock{

@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -23,8 +24,8 @@ func TestMealPlanningManager_GetMealPlanRecipeOptionSelection(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		mealPlanOptionID := fakes.BuildFakeID()
-		recipeStepID := fakes.BuildFakeID()
+		mealPlanOptionID := fake.BuildFakeID()
+		recipeStepID := fake.BuildFakeID()
 		ingredientIndex := uint16(0)
 		selectionType := types.MealPlanRecipeOptionSelectionTypeIngredient
 		expected := fakes.BuildFakeMealPlanRecipeOptionSelection()
@@ -59,7 +60,7 @@ func TestMealPlanningManager_GetMealPlanRecipeOptionSelectionsForMealPlanOption(
 		mpm := buildMealPlanManagerForTest(t)
 
 		expected := fakes.BuildFakeMealPlanRecipeOptionSelectionsList()
-		mealPlanOptionID := fakes.BuildFakeID()
+		mealPlanOptionID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetSelectionsForMealPlanOptionFunc: func(_ context.Context, actualMealPlanOptionID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanRecipeOptionSelection], error) {
@@ -87,7 +88,7 @@ func TestMealPlanningManager_CreateMealPlanRecipeOptionSelection(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		mealPlanOptionID := fakes.BuildFakeID()
+		mealPlanOptionID := fake.BuildFakeID()
 		expected := fakes.BuildFakeMealPlanRecipeOptionSelection()
 		fakeInput := fakes.BuildFakeMealPlanRecipeOptionSelectionCreationRequestInput()
 
@@ -116,8 +117,8 @@ func TestMealPlanningManager_UpdateMealPlanRecipeOptionSelection(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		existing := fakes.BuildFakeMealPlanRecipeOptionSelection()
-		mealPlanOptionID := fakes.BuildFakeID()
-		recipeStepID := fakes.BuildFakeID()
+		mealPlanOptionID := fake.BuildFakeID()
+		recipeStepID := fake.BuildFakeID()
 		ingredientIndex := uint16(0)
 		selectionType := types.MealPlanRecipeOptionSelectionTypeIngredient
 		fakeInput := fakes.BuildFakeMealPlanRecipeOptionSelectionUpdateRequestInput()
@@ -159,8 +160,8 @@ func TestMealPlanningManager_ArchiveMealPlanRecipeOptionSelection(T *testing.T) 
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		mealPlanOptionID := fakes.BuildFakeID()
-		recipeStepID := fakes.BuildFakeID()
+		mealPlanOptionID := fake.BuildFakeID()
+		recipeStepID := fake.BuildFakeID()
 		ingredientIndex := uint16(0)
 		selectionType := types.MealPlanRecipeOptionSelectionTypeIngredient
 

@@ -13,6 +13,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -140,7 +141,7 @@ func TestQuerier_GetServiceSettingConfigurationForUserByName(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUserID := fakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetServiceSettingConfigurationForUserByName(ctx, exampleUserID, "")
@@ -156,7 +157,7 @@ func TestQuerier_GetServiceSettingConfigurationForAccountByName(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 		c := buildInertClientForTest(t)
 
 		actual, err := c.GetServiceSettingConfigurationForAccountByName(ctx, exampleAccountID, "")

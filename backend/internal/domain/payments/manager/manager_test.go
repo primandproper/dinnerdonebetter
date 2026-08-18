@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 	paymentsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/mock"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
 
@@ -111,7 +112,7 @@ func TestPaymentsManager_ArchiveProduct(t *testing.T) {
 		ctx := t.Context()
 		pm := buildPaymentsManagerForTest(t)
 
-		productID := fakes.BuildFakeID()
+		productID := fake.BuildFakeID()
 
 		repo := &paymentsmock.RepositoryMock{
 			ArchiveProductFunc: func(_ context.Context, id string) error {
@@ -138,8 +139,8 @@ func TestPaymentsManager_CreateSubscription(t *testing.T) {
 		ctx := t.Context()
 		pm := buildPaymentsManagerForTest(t)
 
-		accountID := fakes.BuildFakeID()
-		productID := fakes.BuildFakeID()
+		accountID := fake.BuildFakeID()
+		productID := fake.BuildFakeID()
 		input := fakes.BuildFakeSubscriptionCreationRequestInput(accountID, productID)
 		expected := fakes.BuildFakeSubscription(accountID, productID)
 
@@ -167,8 +168,8 @@ func TestPaymentsManager_UpdateSubscription(t *testing.T) {
 		ctx := t.Context()
 		pm := buildPaymentsManagerForTest(t)
 
-		accountID := fakes.BuildFakeID()
-		productID := fakes.BuildFakeID()
+		accountID := fake.BuildFakeID()
+		productID := fake.BuildFakeID()
 		sub := fakes.BuildFakeSubscription(accountID, productID)
 		subID := sub.ID
 		status := payments.SubscriptionStatusCancelled
@@ -206,7 +207,7 @@ func TestPaymentsManager_ArchiveSubscription(t *testing.T) {
 		ctx := t.Context()
 		pm := buildPaymentsManagerForTest(t)
 
-		subID := fakes.BuildFakeID()
+		subID := fake.BuildFakeID()
 
 		repo := &paymentsmock.RepositoryMock{
 			ArchiveSubscriptionFunc: func(_ context.Context, id string) error {

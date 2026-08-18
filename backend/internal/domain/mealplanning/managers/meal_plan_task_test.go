@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ func TestMealPlanningManager_ListMealPlanTasksByMealPlan(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		expected := fakes.BuildFakeMealPlanTasksList()
-		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetMealPlanTasksForMealPlanFunc: func(_ context.Context, mealPlanID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanTask], error) {
@@ -52,7 +53,7 @@ func TestMealPlanningManager_ReadMealPlanTask(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 		expected := fakes.BuildFakeMealPlanTask()
 
 		db := &mealplanningmock.RepositoryMock{

@@ -7,12 +7,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	managermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	uploadedmediamock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/mock"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	"github.com/primandproper/platform-go/v11/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
@@ -51,7 +51,7 @@ func buildTestServiceWithUploadMocks(t *testing.T) (*serviceImpl, *managermock.I
 func buildSessionContextForTest(t *testing.T) context.Context {
 	t.Helper()
 
-	return buildSessionContextForAccount(t, identityfakes.BuildFakeID())
+	return buildSessionContextForAccount(t, fake.BuildFakeID())
 }
 
 // buildSessionContextForAccount returns a context whose session is a member of (and has as its
@@ -61,7 +61,7 @@ func buildSessionContextForAccount(t *testing.T, accountID string) context.Conte
 
 	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
 		Requester: sessions.RequesterInfo{
-			UserID:             identityfakes.BuildFakeID(),
+			UserID:             fake.BuildFakeID(),
 			AccountStatus:      identity.GoodStandingUserAccountStatus.String(),
 			ServicePermissions: authorization.NewServiceRolePermissionChecker([]string{authorization.ServiceUserRole.String()}, nil),
 		},
@@ -76,11 +76,11 @@ func buildSessionContextForAccount(t *testing.T, accountID string) context.Conte
 func buildAdminSessionContextForTest(t *testing.T) context.Context {
 	t.Helper()
 
-	accountID := identityfakes.BuildFakeID()
+	accountID := fake.BuildFakeID()
 
 	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
 		Requester: sessions.RequesterInfo{
-			UserID:             identityfakes.BuildFakeID(),
+			UserID:             fake.BuildFakeID(),
 			AccountStatus:      identity.GoodStandingUserAccountStatus.String(),
 			ServicePermissions: authorization.NewServiceRolePermissionChecker([]string{authorization.ServiceAdminRole.String()}, authorization.ServiceAdminPermissions),
 		},
@@ -96,7 +96,7 @@ func buildAdminSessionContextForTest(t *testing.T) context.Context {
 func buildInsufficientPermissionsSessionContextForTest(t *testing.T) context.Context {
 	t.Helper()
 
-	return buildSessionContextForAccount(t, identityfakes.BuildFakeID())
+	return buildSessionContextForAccount(t, fake.BuildFakeID())
 }
 
 func TestNewService(t *testing.T) {

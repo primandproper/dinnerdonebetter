@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/fakes"
 	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
 
@@ -128,8 +129,8 @@ func TestNotificationsManager_ArchiveUserDeviceToken(t *testing.T) {
 		ctx := t.Context()
 		nm := buildNotificationsManagerForTest(t)
 
-		userID := fakes.BuildFakeID()
-		tokenID := fakes.BuildFakeID()
+		userID := fake.BuildFakeID()
+		tokenID := fake.BuildFakeID()
 
 		repo := &notificationsmock.RepositoryMock{
 			ArchiveUserDeviceTokenFunc: func(_ context.Context, archivedUserID, archivedTokenID string) error {
@@ -153,7 +154,7 @@ func TestNotificationsManager_ArchiveUserDeviceToken(t *testing.T) {
 		ctx := t.Context()
 		nm := buildNotificationsManagerForTest(t)
 
-		err := nm.ArchiveUserDeviceToken(ctx, "", fakes.BuildFakeID())
+		err := nm.ArchiveUserDeviceToken(ctx, "", fake.BuildFakeID())
 		assert.Error(t, err)
 	})
 
@@ -163,7 +164,7 @@ func TestNotificationsManager_ArchiveUserDeviceToken(t *testing.T) {
 		ctx := t.Context()
 		nm := buildNotificationsManagerForTest(t)
 
-		err := nm.ArchiveUserDeviceToken(ctx, fakes.BuildFakeID(), "")
+		err := nm.ArchiveUserDeviceToken(ctx, fake.BuildFakeID(), "")
 		assert.Error(t, err)
 	})
 }

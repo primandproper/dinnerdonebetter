@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	platformerrors "github.com/primandproper/platform-go/v11/errors"
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/identifiers"
 
 	"github.com/stretchr/testify/assert"
@@ -92,8 +92,8 @@ func TestQuerier_Integration_PaymentTransactions_WithSubscription(t *testing.T) 
 		ProductID:              product.ID,
 		ExternalSubscriptionID: "ext_sub_" + identifiers.New(),
 		Status:                 payments.SubscriptionStatusActive,
-		CurrentPeriodStart:     fakes.BuildFakeTime(),
-		CurrentPeriodEnd:       fakes.BuildFakeTime().AddDate(0, 1, 0),
+		CurrentPeriodStart:     fake.BuildFakeTime(),
+		CurrentPeriodEnd:       fake.BuildFakeTime().AddDate(0, 1, 0),
 	}
 	subscription, err := dbc.CreateSubscription(ctx, subInput)
 	require.NoError(t, err)

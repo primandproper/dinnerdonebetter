@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ func TestMealPlanningManager_ListMealPlans(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		expected := fakes.BuildFakeMealPlansList()
-		exampleOwnerID := fakes.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetMealPlansForAccountFunc: func(_ context.Context, accountID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlan], error) {
@@ -52,8 +53,8 @@ func TestMealPlanningManager_CreateMealPlan(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		ownerID := fakes.BuildFakeID()
-		creatorID := fakes.BuildFakeID()
+		ownerID := fake.BuildFakeID()
+		creatorID := fake.BuildFakeID()
 		expected := fakes.BuildFakeMealPlan()
 		fakeInput := fakes.BuildFakeMealPlanCreationRequestInput()
 
@@ -79,8 +80,8 @@ func TestMealPlanningManager_CreateMealPlan(T *testing.T) {
 
 		mpm := buildMealPlanManagerForTestWithStarter(t, starter)
 
-		ownerID := fakes.BuildFakeID()
-		creatorID := fakes.BuildFakeID()
+		ownerID := fake.BuildFakeID()
+		creatorID := fake.BuildFakeID()
 		expected := fakes.BuildFakeMealPlan()
 		expected.Status = string(types.MealPlanStatusFinalized)
 		fakeInput := fakes.BuildFakeMealPlanCreationRequestInput()
@@ -110,7 +111,7 @@ func TestMealPlanningManager_ReadMealPlan(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 		expected := fakes.BuildFakeMealPlan()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -141,7 +142,7 @@ func TestMealPlanningManager_UpdateMealPlan(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		exampleMealPlan := fakes.BuildFakeMealPlan()
-		ownerID := fakes.BuildFakeID()
+		ownerID := fake.BuildFakeID()
 		exampleInput := fakes.BuildFakeMealPlanUpdateRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{

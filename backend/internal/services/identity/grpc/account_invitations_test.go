@@ -10,6 +10,7 @@ import (
 	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +27,7 @@ func TestServiceImpl_AcceptAccountInvitation(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleInvitationID := identityfakes.BuildFakeID()
+		exampleInvitationID := fake.BuildFakeID()
 
 		identityDataManager.AcceptAccountInvitationFunc = func(_ context.Context, _ string, accountInvitationID string, _ *identity.AccountInvitationUpdateRequestInput) error {
 			assert.Equal(t, exampleInvitationID, accountInvitationID)
@@ -55,7 +56,7 @@ func TestServiceImpl_AcceptAccountInvitation(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &identitysvc.AcceptAccountInvitationRequest{
-			AccountInvitationId: identityfakes.BuildFakeID(),
+			AccountInvitationId: fake.BuildFakeID(),
 			Input: &identitysvc.AccountInvitationUpdateRequestInput{
 				Token: "invitation-token",
 			},
@@ -76,7 +77,7 @@ func TestServiceImpl_AcceptAccountInvitation(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleInvitationID := identityfakes.BuildFakeID()
+		exampleInvitationID := fake.BuildFakeID()
 
 		identityDataManager.AcceptAccountInvitationFunc = func(_ context.Context, _ string, accountInvitationID string, _ *identity.AccountInvitationUpdateRequestInput) error {
 			assert.Equal(t, exampleInvitationID, accountInvitationID)
@@ -110,7 +111,7 @@ func TestServiceImpl_RejectAccountInvitation(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleInvitationID := identityfakes.BuildFakeID()
+		exampleInvitationID := fake.BuildFakeID()
 
 		identityDataManager.RejectAccountInvitationFunc = func(_ context.Context, _ string, accountInvitationID string, _ *identity.AccountInvitationUpdateRequestInput) error {
 			assert.Equal(t, exampleInvitationID, accountInvitationID)
@@ -139,7 +140,7 @@ func TestServiceImpl_RejectAccountInvitation(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &identitysvc.RejectAccountInvitationRequest{
-			AccountInvitationId: identityfakes.BuildFakeID(),
+			AccountInvitationId: fake.BuildFakeID(),
 			Input: &identitysvc.AccountInvitationUpdateRequestInput{
 				Token: "invitation-token",
 			},
@@ -160,7 +161,7 @@ func TestServiceImpl_RejectAccountInvitation(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleInvitationID := identityfakes.BuildFakeID()
+		exampleInvitationID := fake.BuildFakeID()
 
 		identityDataManager.RejectAccountInvitationFunc = func(_ context.Context, _ string, accountInvitationID string, _ *identity.AccountInvitationUpdateRequestInput) error {
 			assert.Equal(t, exampleInvitationID, accountInvitationID)
@@ -194,7 +195,7 @@ func TestServiceImpl_CancelAccountInvitation(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleInvitationID := identityfakes.BuildFakeID()
+		exampleInvitationID := fake.BuildFakeID()
 
 		identityDataManager.CancelAccountInvitationFunc = func(_ context.Context, _ string, accountInvitationID string, note string) error {
 			assert.Equal(t, exampleInvitationID, accountInvitationID)
@@ -223,7 +224,7 @@ func TestServiceImpl_CancelAccountInvitation(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &identitysvc.CancelAccountInvitationRequest{
-			AccountInvitationId: identityfakes.BuildFakeID(),
+			AccountInvitationId: fake.BuildFakeID(),
 			Input: &identitysvc.AccountInvitationUpdateRequestInput{
 				Note: "Cancelling invitation",
 			},
@@ -244,7 +245,7 @@ func TestServiceImpl_CancelAccountInvitation(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleInvitationID := identityfakes.BuildFakeID()
+		exampleInvitationID := fake.BuildFakeID()
 
 		identityDataManager.CancelAccountInvitationFunc = func(_ context.Context, _ string, accountInvitationID string, note string) error {
 			assert.Equal(t, exampleInvitationID, accountInvitationID)
@@ -307,7 +308,7 @@ func TestServiceImpl_GetAccountInvitation(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &identitysvc.GetAccountInvitationRequest{
-			AccountInvitationId: identityfakes.BuildFakeID(),
+			AccountInvitationId: fake.BuildFakeID(),
 		}
 
 		result, err := service.GetAccountInvitation(t.Context(), request)
@@ -325,7 +326,7 @@ func TestServiceImpl_GetAccountInvitation(t *testing.T) {
 
 		service, identityDataManager := buildTestService(t)
 
-		exampleInvitationID := identityfakes.BuildFakeID()
+		exampleInvitationID := fake.BuildFakeID()
 
 		identityDataManager.GetAccountInvitationFunc = func(_ context.Context, _ string, accountInvitationID string) (*identity.AccountInvitation, error) {
 			assert.Equal(t, exampleInvitationID, accountInvitationID)

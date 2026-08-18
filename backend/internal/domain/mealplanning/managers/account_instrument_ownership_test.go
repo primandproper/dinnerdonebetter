@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ func TestMealPlanningManager_ListAccountInstrumentOwnerships(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		expected := fakes.BuildFakeAccountInstrumentOwnershipsList()
-		exampleOwnerID := fakes.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetAccountInstrumentOwnershipsFunc: func(_ context.Context, accountID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.AccountInstrumentOwnership], error) {
@@ -53,7 +54,7 @@ func TestMealPlanningManager_SearchValidInstrumentsNotOwnedByAccount(T *testing.
 		mpm := buildMealPlanManagerForTest(t)
 
 		expected := fakes.BuildFakeValidInstrumentsList()
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 		exampleQuery := "knife"
 
 		db := &mealplanningmock.RepositoryMock{
@@ -83,7 +84,7 @@ func TestMealPlanningManager_CreateAccountInstrumentOwnership(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		fakeOwnerID := fakes.BuildFakeID()
+		fakeOwnerID := fake.BuildFakeID()
 		expected := fakes.BuildFakeAccountInstrumentOwnership()
 		fakeInput := fakes.BuildFakeAccountInstrumentOwnershipCreationRequestInput()
 
@@ -111,7 +112,7 @@ func TestMealPlanningManager_ReadAccountInstrumentOwnership(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		ownerID := fakes.BuildFakeID()
+		ownerID := fake.BuildFakeID()
 		expected := fakes.BuildFakeAccountInstrumentOwnership()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -142,7 +143,7 @@ func TestMealPlanningManager_UpdateAccountInstrumentOwnership(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		exampleAccountInstrumentOwnership := fakes.BuildFakeAccountInstrumentOwnership()
-		ownerID := fakes.BuildFakeID()
+		ownerID := fake.BuildFakeID()
 		exampleInput := fakes.BuildFakeAccountInstrumentOwnershipUpdateRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -174,7 +175,7 @@ func TestMealPlanningManager_ArchiveAccountInstrumentOwnership(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		ownershipID := fakes.BuildFakeID()
+		ownershipID := fake.BuildFakeID()
 		expected := fakes.BuildFakeAccountInstrumentOwnership()
 
 		db := &mealplanningmock.RepositoryMock{

@@ -6,6 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	"github.com/primandproper/platform-go/v11/observability/tracing"
 
@@ -40,24 +41,24 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		grams := fakes.BuildFakeValidMeasurementUnit()
 
 		// Set up IDs for options, recipes, and steps
-		option1ID := fakes.BuildFakeID()
-		option2ID := fakes.BuildFakeID()
-		option3ID := fakes.BuildFakeID()
-		option4ID := fakes.BuildFakeID()
-		option5ID := fakes.BuildFakeID()
-		recipe1ID := fakes.BuildFakeID()
-		recipe2ID := fakes.BuildFakeID()
-		recipe3ID := fakes.BuildFakeID()
-		recipe4ID := fakes.BuildFakeID()
-		recipe5ID := fakes.BuildFakeID()
-		step1ID := fakes.BuildFakeID()
-		step2ID := fakes.BuildFakeID()
-		step3ID := fakes.BuildFakeID()
-		step4ID := fakes.BuildFakeID()
-		step5ID := fakes.BuildFakeID()
+		option1ID := fake.BuildFakeID()
+		option2ID := fake.BuildFakeID()
+		option3ID := fake.BuildFakeID()
+		option4ID := fake.BuildFakeID()
+		option5ID := fake.BuildFakeID()
+		recipe1ID := fake.BuildFakeID()
+		recipe2ID := fake.BuildFakeID()
+		recipe3ID := fake.BuildFakeID()
+		recipe4ID := fake.BuildFakeID()
+		recipe5ID := fake.BuildFakeID()
+		step1ID := fake.BuildFakeID()
+		step2ID := fake.BuildFakeID()
+		step3ID := fake.BuildFakeID()
+		step4ID := fake.BuildFakeID()
+		step5ID := fake.BuildFakeID()
 
 		expectedMealPlan := &mealplanning.MealPlan{
-			ID: fakes.BuildFakeID(),
+			ID: fake.BuildFakeID(),
 			Events: []*mealplanning.MealPlanEvent{
 				{
 					Options: []*mealplanning.MealPlanOption{
@@ -317,18 +318,18 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		grams := fakes.BuildFakeValidMeasurementUnit()
 
 		// Set up IDs for options, recipes, and steps
-		option1ID := fakes.BuildFakeID()
-		option2ID := fakes.BuildFakeID()
-		option3ID := fakes.BuildFakeID()
-		recipe1ID := fakes.BuildFakeID()
-		recipe2ID := fakes.BuildFakeID()
-		recipe3ID := fakes.BuildFakeID()
-		step1ID := fakes.BuildFakeID()
-		step2ID := fakes.BuildFakeID()
-		step3ID := fakes.BuildFakeID()
+		option1ID := fake.BuildFakeID()
+		option2ID := fake.BuildFakeID()
+		option3ID := fake.BuildFakeID()
+		recipe1ID := fake.BuildFakeID()
+		recipe2ID := fake.BuildFakeID()
+		recipe3ID := fake.BuildFakeID()
+		step1ID := fake.BuildFakeID()
+		step2ID := fake.BuildFakeID()
+		step3ID := fake.BuildFakeID()
 
 		expectedMealPlan := &mealplanning.MealPlan{
-			ID: fakes.BuildFakeID(),
+			ID: fake.BuildFakeID(),
 			Events: []*mealplanning.MealPlanEvent{
 				{
 					Options: []*mealplanning.MealPlanOption{
@@ -501,14 +502,14 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 
 		onion := fakes.BuildFakeValidIngredient()
 		grams := fakes.BuildFakeValidMeasurementUnit()
-		optionID := fakes.BuildFakeID()
-		recipeID := fakes.BuildFakeID()
-		stepID := fakes.BuildFakeID()
+		optionID := fake.BuildFakeID()
+		recipeID := fake.BuildFakeID()
+		stepID := fake.BuildFakeID()
 
 		// Recipe scaled 2x; ingredient has scale_factor 0.5 so effective scale = 2 * 0.5 = 1.0
 		// Quantity min 100 -> 100 (unchanged). Without scale_factor it would be 200.
 		expectedMealPlan := &mealplanning.MealPlan{
-			ID: fakes.BuildFakeID(),
+			ID: fake.BuildFakeID(),
 			Events: []*mealplanning.MealPlanEvent{
 				{
 					Options: []*mealplanning.MealPlanOption{
@@ -572,12 +573,12 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		grams := fakes.BuildFakeValidMeasurementUnit()
 
 		// Set up IDs
-		optionID := fakes.BuildFakeID()
-		recipeID := fakes.BuildFakeID()
-		stepID := fakes.BuildFakeID()
+		optionID := fake.BuildFakeID()
+		recipeID := fake.BuildFakeID()
+		stepID := fake.BuildFakeID()
 
 		expectedMealPlan := &mealplanning.MealPlan{
-			ID: fakes.BuildFakeID(),
+			ID: fake.BuildFakeID(),
 			Events: []*mealplanning.MealPlanEvent{
 				{
 					Options: []*mealplanning.MealPlanOption{
@@ -697,15 +698,15 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		grams := fakes.BuildFakeValidMeasurementUnit()
 
 		// Set up IDs
-		option1ID := fakes.BuildFakeID()
-		option2ID := fakes.BuildFakeID()
-		recipe1ID := fakes.BuildFakeID()
-		recipe2ID := fakes.BuildFakeID()
-		step1ID := fakes.BuildFakeID()
-		step2ID := fakes.BuildFakeID()
+		option1ID := fake.BuildFakeID()
+		option2ID := fake.BuildFakeID()
+		recipe1ID := fake.BuildFakeID()
+		recipe2ID := fake.BuildFakeID()
+		step1ID := fake.BuildFakeID()
+		step2ID := fake.BuildFakeID()
 
 		expectedMealPlan := &mealplanning.MealPlan{
-			ID: fakes.BuildFakeID(),
+			ID: fake.BuildFakeID(),
 			Events: []*mealplanning.MealPlanEvent{
 				{
 					Options: []*mealplanning.MealPlanOption{
@@ -851,12 +852,12 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		grams := fakes.BuildFakeValidMeasurementUnit()
 
 		// Set up IDs
-		optionID := fakes.BuildFakeID()
-		recipeID := fakes.BuildFakeID()
-		stepID := fakes.BuildFakeID()
+		optionID := fake.BuildFakeID()
+		recipeID := fake.BuildFakeID()
+		stepID := fake.BuildFakeID()
 
 		expectedMealPlan := &mealplanning.MealPlan{
-			ID: fakes.BuildFakeID(),
+			ID: fake.BuildFakeID(),
 			// User has selected optionIndex=1 (angelHair) instead of the default (spaghetti)
 			Selections: []*mealplanning.MealPlanRecipeOptionSelection{
 				{
@@ -885,7 +886,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 													Ingredients: []*mealplanning.RecipeStepIngredient{
 														// Alternative A: spaghetti (index=0, optionIndex=0)
 														{
-															ID:              fakes.BuildFakeID(),
+															ID:              fake.BuildFakeID(),
 															Ingredient:      spaghetti,
 															MeasurementUnit: *grams,
 															MinQuantity:     100,
@@ -894,7 +895,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 														},
 														// Alternative B: angelHair (index=0, optionIndex=1)
 														{
-															ID:              fakes.BuildFakeID(),
+															ID:              fake.BuildFakeID(),
 															Ingredient:      angelHair,
 															MeasurementUnit: *grams,
 															MinQuantity:     100,
@@ -903,7 +904,7 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 														},
 														// Non-option ingredient at different index
 														{
-															ID:              fakes.BuildFakeID(),
+															ID:              fake.BuildFakeID(),
 															Ingredient:      onion,
 															MeasurementUnit: *grams,
 															MinQuantity:     50,
@@ -985,14 +986,14 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		grams := fakes.BuildFakeValidMeasurementUnit()
 
 		// Set up IDs
-		optionID := fakes.BuildFakeID()
-		mainRecipeID := fakes.BuildFakeID()
-		associatedRecipeID := fakes.BuildFakeID()
-		mainStepID := fakes.BuildFakeID()
-		associatedStepID := fakes.BuildFakeID()
+		optionID := fake.BuildFakeID()
+		mainRecipeID := fake.BuildFakeID()
+		associatedRecipeID := fake.BuildFakeID()
+		mainStepID := fake.BuildFakeID()
+		associatedStepID := fake.BuildFakeID()
 
 		expectedMealPlan := &mealplanning.MealPlan{
-			ID: fakes.BuildFakeID(),
+			ID: fake.BuildFakeID(),
 			Events: []*mealplanning.MealPlanEvent{
 				{
 					Options: []*mealplanning.MealPlanOption{
@@ -1120,14 +1121,14 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		grams := fakes.BuildFakeValidMeasurementUnit()
 
 		// Set up IDs
-		optionID := fakes.BuildFakeID()
-		mainRecipeID := fakes.BuildFakeID()
-		associatedRecipeID := fakes.BuildFakeID()
-		mainStepID := fakes.BuildFakeID()
-		associatedStepID := fakes.BuildFakeID()
+		optionID := fake.BuildFakeID()
+		mainRecipeID := fake.BuildFakeID()
+		associatedRecipeID := fake.BuildFakeID()
+		mainStepID := fake.BuildFakeID()
+		associatedStepID := fake.BuildFakeID()
 
 		expectedMealPlan := &mealplanning.MealPlan{
-			ID: fakes.BuildFakeID(),
+			ID: fake.BuildFakeID(),
 			Events: []*mealplanning.MealPlanEvent{
 				{
 					Options: []*mealplanning.MealPlanOption{
@@ -1227,14 +1228,14 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		grams := fakes.BuildFakeValidMeasurementUnit()
 
 		// Set up IDs
-		optionID := fakes.BuildFakeID()
-		mainRecipeID := fakes.BuildFakeID()
-		associatedRecipeID := fakes.BuildFakeID()
-		mainStepID := fakes.BuildFakeID()
-		associatedStepID := fakes.BuildFakeID()
+		optionID := fake.BuildFakeID()
+		mainRecipeID := fake.BuildFakeID()
+		associatedRecipeID := fake.BuildFakeID()
+		mainStepID := fake.BuildFakeID()
+		associatedStepID := fake.BuildFakeID()
 
 		expectedMealPlan := &mealplanning.MealPlan{
-			ID: fakes.BuildFakeID(),
+			ID: fake.BuildFakeID(),
 			Events: []*mealplanning.MealPlanEvent{
 				{
 					Options: []*mealplanning.MealPlanOption{
@@ -1348,12 +1349,12 @@ func Test_groceryListCreator_GenerateGroceryListInputs(T *testing.T) {
 		pounds := fakes.BuildFakeValidMeasurementUnit()
 		sprigs := fakes.BuildFakeValidMeasurementUnit()
 
-		optionID := fakes.BuildFakeID()
-		recipeID := fakes.BuildFakeID()
-		stepID := fakes.BuildFakeID()
+		optionID := fake.BuildFakeID()
+		recipeID := fake.BuildFakeID()
+		stepID := fake.BuildFakeID()
 
 		expectedMealPlan := &mealplanning.MealPlan{
-			ID: fakes.BuildFakeID(),
+			ID: fake.BuildFakeID(),
 			Events: []*mealplanning.MealPlanEvent{
 				{
 					Options: []*mealplanning.MealPlanOption{

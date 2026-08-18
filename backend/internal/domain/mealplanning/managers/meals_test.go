@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -49,7 +50,7 @@ func TestMealPlanningManager_CreateMeal(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		creator := fakes.BuildFakeID()
+		creator := fake.BuildFakeID()
 		expected := fakes.BuildFakeMeal()
 		fakeInput := fakes.BuildFakeMealCreationRequestInput()
 
@@ -79,7 +80,7 @@ func TestMealPlanningManager_CreateMeal(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		creator := fakes.BuildFakeID()
+		creator := fake.BuildFakeID()
 		existingMeal := fakes.BuildFakeMeal()
 		fakeInput := fakes.BuildFakeMealCreationRequestInput()
 
@@ -138,7 +139,7 @@ func TestMealPlanningManager_SearchMeals(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		expected := fakes.BuildFakeMealsList()
-		exampleQuery := fakes.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			SearchForMealsFunc: func(_ context.Context, query string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Meal], error) {
@@ -163,7 +164,7 @@ func TestMealPlanningManager_SearchMeals(T *testing.T) {
 		mpm := buildMealPlanManagerForTest(t)
 
 		expected := fakes.BuildFakeMealsList()
-		exampleQuery := fakes.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			SearchForMealsFunc: func(_ context.Context, query string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Meal], error) {

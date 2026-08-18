@@ -9,6 +9,7 @@ import (
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 	textsearch "github.com/primandproper/platform-go/v11/search/text"
 	mocksearch "github.com/primandproper/platform-go/v11/search/text/mock"
@@ -27,7 +28,7 @@ func TestValidEnumerationManager_SearchValidIngredients(T *testing.T) {
 		vem := buildValidEnumerationsManagerForTest(t)
 
 		expected := fakes.BuildFakeValidIngredientsList()
-		exampleQuery := fakes.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 
 		// media is looked up once per returned record.
 		expectedIDs := map[string]bool{}
@@ -63,7 +64,7 @@ func TestValidEnumerationManager_SearchValidIngredients(T *testing.T) {
 		ctx := t.Context()
 		vem := buildValidEnumerationsManagerForTest(t)
 
-		exampleQuery := fakes.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 		expected := fakes.BuildFakeValidIngredient()
 
 		cursor := "cursor-from-a-previous-page"
@@ -114,7 +115,7 @@ func TestValidEnumerationManager_SearchValidIngredients(T *testing.T) {
 		ctx := t.Context()
 		vem := buildValidEnumerationsManagerForTest(t)
 
-		exampleQuery := fakes.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 
 		cursor := "cursor-past-the-result-window"
 		filter := filtering.DefaultQueryFilter()
@@ -344,8 +345,8 @@ func TestValidEnumerationManager_SearchValidIngredientsByPreparationAndIngredien
 		vem := buildValidEnumerationsManagerForTest(t)
 
 		expected := fakes.BuildFakeValidIngredientsList()
-		preparationID := fakes.BuildFakeID()
-		exampleQuery := fakes.BuildFakeID()
+		preparationID := fake.BuildFakeID()
+		exampleQuery := fake.BuildFakeID()
 
 		// media is looked up once per returned record.
 		expectedIDs := map[string]bool{}

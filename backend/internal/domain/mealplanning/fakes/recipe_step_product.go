@@ -4,73 +4,47 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v11/pointer"
 
-	fake "github.com/brianvoe/gofakeit/v7"
+	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
 
 // BuildFakeRecipeStepProduct builds a faked recipe step product.
 func BuildFakeRecipeStepProduct() *types.RecipeStepProduct {
-	measurementMin := float32(buildFakeNumber())
-	measurementMax := measurementMin + float32(buildFakeNumber())
-	itemMin := float32(buildFakeNumber())
-	itemMax := itemMin + float32(buildFakeNumber())
-	storageTempMin := float32(buildFakeNumber())
-	storageTempMax := storageTempMin + float32(buildFakeNumber())
-	storageDurationMax := uint32(buildFakeNumber())
+	product := fake.BuildFakeRecord[types.RecipeStepProduct]()
 
-	p := &types.RecipeStepProduct{
-		ID:                             BuildFakeID(),
-		Name:                           buildUniqueString(),
-		Type:                           types.RecipeStepProductIngredientType,
-		QuantityNotes:                  buildUniqueString(),
-		MeasurementUnit:                BuildFakeValidMeasurementUnit(),
-		CreatedAt:                      BuildFakeTime(),
-		BelongsToRecipeStep:            fake.UUID(),
-		Compostable:                    fake.Bool(),
-		IsLiquid:                       fake.Bool(),
-		IsWaste:                        fake.Bool(),
-		MinMeasurementQuantity:         &measurementMin,
-		MaxMeasurementQuantity:         &measurementMax,
-		MinItemQuantity:                &itemMin,
-		MaxItemQuantity:                &itemMax,
-		MinStorageTemperatureInCelsius: &storageTempMin,
-		MaxStorageTemperatureInCelsius: &storageTempMax,
-		MaxStorageDurationInSeconds:    &storageDurationMax,
-		StorageInstructions:            buildUniqueString(),
-		Index:                          fake.Uint16(),
-		ContainedInVesselIndex:         new(fake.Uint16()),
-	}
+	// One of the three kinds of thing a step can produce, which the type validates.
+	product.Type = types.RecipeStepProductIngredientType
+	product.MeasurementUnit = BuildFakeValidMeasurementUnit()
 
-	return p
+	// Three ranges rather than six independent numbers.
+	product.MinMeasurementQuantity, product.MaxMeasurementQuantity = BuildFakeOptionalFloat32MinMax()
+	product.MinItemQuantity, product.MaxItemQuantity = BuildFakeOptionalFloat32MinMax()
+	product.MinStorageTemperatureInCelsius, product.MaxStorageTemperatureInCelsius = BuildFakeOptionalFloat32MinMax()
+	product.MaxStorageDurationInSeconds = pointer.To(uint32(fake.BuildFakeNumber()))
+
+	product.ContainedInVesselIndex = pointer.To(gofakeit.Uint16())
+
+	return product
 }
 
 // BuildFakeRecipeStepProductsList builds a faked RecipeStepProductList.
 func BuildFakeRecipeStepProductsList() *filtering.QueryFilteredResult[types.RecipeStepProduct] {
-	var examples []*types.RecipeStepProduct
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeRecipeStepProduct())
-	}
-
-	return &filtering.QueryFilteredResult[types.RecipeStepProduct]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeRecipeStepProduct)
 }
 
 // BuildFakeRecipeStepProductUpdateRequestInput builds a faked RecipeStepProductUpdateRequestInput from a recipe step product.
 func BuildFakeRecipeStepProductUpdateRequestInput() *types.RecipeStepProductUpdateRequestInput {
 	recipeStepProduct := BuildFakeRecipeStepProduct()
+
 	return converters.ConvertRecipeStepProductToRecipeStepProductUpdateRequestInput(recipeStepProduct)
 }
 
 // BuildFakeRecipeStepProductCreationRequestInput builds a faked RecipeStepProductCreationRequestInput.
 func BuildFakeRecipeStepProductCreationRequestInput() *types.RecipeStepProductCreationRequestInput {
 	recipeStepProduct := BuildFakeRecipeStepProduct()
+
 	return converters.ConvertRecipeStepProductToRecipeStepProductCreationRequestInput(recipeStepProduct)
 }

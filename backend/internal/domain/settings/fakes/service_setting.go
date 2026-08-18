@@ -4,45 +4,36 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/converters"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v11/pointer"
 )
 
 // BuildFakeServiceSetting builds a faked service setting.
 func BuildFakeServiceSetting() *types.ServiceSetting {
-	defaultValue := buildUniqueString()
+	setting := fake.BuildFakeRecord[types.ServiceSetting]()
 
-	return &types.ServiceSetting{
-		ID:           BuildFakeID(),
-		Name:         buildUniqueString(),
-		Type:         "user",
-		Description:  buildUniqueString(),
-		Enumeration:  []string{defaultValue},
-		DefaultValue: new(defaultValue),
-		AdminsOnly:   true,
-		CreatedAt:    BuildFakeTime(),
-	}
+	// A setting says who it is for, and "user" is one of the few answers.
+	setting.Type = "user"
+	setting.AdminsOnly = true
+
+	// The default has to be one of the values the setting enumerates — the type
+	// validates exactly that — so the two are built together rather than separately.
+	defaultValue := fake.BuildFakeString()
+	setting.Enumeration = []string{defaultValue}
+	setting.DefaultValue = pointer.To(defaultValue)
+
+	return setting
 }
 
 // BuildFakeServiceSettingsList builds a faked ServiceSettingList.
 func BuildFakeServiceSettingsList() *filtering.QueryFilteredResult[types.ServiceSetting] {
-	var examples []*types.ServiceSetting
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeServiceSetting())
-	}
-
-	return &filtering.QueryFilteredResult[types.ServiceSetting]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeServiceSetting)
 }
 
 // BuildFakeServiceSettingCreationRequestInput builds a faked ServiceSettingCreationRequestInput.
 func BuildFakeServiceSettingCreationRequestInput() *types.ServiceSettingCreationRequestInput {
 	serviceSetting := BuildFakeServiceSetting()
+
 	return converters.ConvertServiceSettingToServiceSettingCreationRequestInput(serviceSetting)
 }

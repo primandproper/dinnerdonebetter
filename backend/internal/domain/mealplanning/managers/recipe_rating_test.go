@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ func TestRecipeManager_ListRecipeRatings(T *testing.T) {
 		rm := buildRecipeManagerForTest(t)
 
 		expected := fakes.BuildFakeRecipeRatingsList()
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
 			GetRecipeRatingsForRecipeFunc: func(_ context.Context, recipeID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeRating], error) {
@@ -52,7 +53,7 @@ func TestRecipeManager_ReadRecipeRating(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeRating()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -82,7 +83,7 @@ func TestRecipeManager_CreateRecipeRating(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeRating()
 		fakeInput := fakes.BuildFakeRecipeRatingCreationRequestInput()
 
@@ -110,7 +111,7 @@ func TestRecipeManager_UpdateRecipeRating(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		exampleRecipeRating := fakes.BuildFakeRecipeRating()
 		exampleInput := fakes.BuildFakeRecipeRatingUpdateRequestInput()
 
@@ -143,7 +144,7 @@ func TestRecipeManager_ArchiveRecipeRating(T *testing.T) {
 		ctx := t.Context()
 		rm := buildRecipeManagerForTest(t)
 
-		exampleRecipeID := fakes.BuildFakeID()
+		exampleRecipeID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipeRating()
 
 		db := &mealplanningmock.RepositoryMock{

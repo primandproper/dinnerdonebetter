@@ -4,63 +4,49 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
-
-	fake "github.com/brianvoe/gofakeit/v7"
+	"github.com/primandproper/platform-go/v11/pointer"
 )
 
 // BuildFakeRecipeStepInstrument builds a faked recipe step instrument.
 func BuildFakeRecipeStepInstrument() *types.RecipeStepInstrument {
-	minQty, maxQty := BuildFakeUint32WithOptionalMax()
-	return &types.RecipeStepInstrument{
-		ID:                  BuildFakeID(),
-		Instrument:          BuildFakeValidInstrument(),
-		Name:                buildUniqueString(),
-		RecipeStepProductID: nil,
-		Notes:               buildUniqueString(),
-		PreferenceRank:      fake.Uint8(),
-		CreatedAt:           BuildFakeTime(),
-		BelongsToRecipeStep: fake.UUID(),
-		Index:               0,
-		OptionIndex:         0,
-		Optional:            fake.Bool(),
-		MinQuantity:         minQty,
-		MaxQuantity:         maxQty,
-		ScaleFactor:         1.0,
-	}
+	instrument := fake.BuildFakeRecord[types.RecipeStepInstrument]()
+
+	instrument.Instrument = BuildFakeValidInstrument()
+	instrument.MinQuantity, instrument.MaxQuantity = BuildFakeUint32WithOptionalMax()
+
+	// Assigned from position by the converter during recipe creation, and option zero
+	// for a single-option instrument.
+	instrument.Index = 0
+	instrument.OptionIndex = 0
+
+	instrument.ScaleFactor = 1.0
+
+	return instrument
 }
 
 // BuildFakeRecipeStepInstrumentsList builds a faked RecipeStepInstrumentList.
 func BuildFakeRecipeStepInstrumentsList() *filtering.QueryFilteredResult[types.RecipeStepInstrument] {
-	var examples []*types.RecipeStepInstrument
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeRecipeStepInstrument())
-	}
-
-	return &filtering.QueryFilteredResult[types.RecipeStepInstrument]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeRecipeStepInstrument)
 }
 
 // BuildFakeRecipeStepInstrumentUpdateRequestInput builds a faked RecipeStepInstrumentUpdateRequestInput from a recipe step instrument.
 func BuildFakeRecipeStepInstrumentUpdateRequestInput() *types.RecipeStepInstrumentUpdateRequestInput {
 	recipeStepInstrument := BuildFakeRecipeStepInstrument()
+
 	return converters.ConvertRecipeStepInstrumentToRecipeStepInstrumentUpdateRequestInput(recipeStepInstrument)
 }
 
 // BuildFakeRecipeStepInstrumentCreationRequestInput builds a faked RecipeStepInstrumentCreationRequestInput.
-// Note: This now includes bridge table IDs since they are required.
+//
+// Hand-written past the conversion: the bridge table ID is required on the input and
+// has no counterpart on the record it was converted from.
 func BuildFakeRecipeStepInstrumentCreationRequestInput() *types.RecipeStepInstrumentCreationRequestInput {
 	recipeStepInstrument := BuildFakeRecipeStepInstrument()
 	input := converters.ConvertRecipeStepInstrumentToRecipeStepInstrumentCreationRequestInput(recipeStepInstrument)
-	// Bridge table ID is now required
-	input.ValidPreparationInstrumentID = new(BuildFakeID())
+	input.ValidPreparationInstrumentID = pointer.To(fake.BuildFakeID())
+
 	return input
 }
 
@@ -69,7 +55,8 @@ func BuildFakeRecipeStepInstrumentCreationRequestInput() *types.RecipeStepInstru
 func BuildFakeRecipeStepInstrumentCreationRequestInputForRecipeStepProduct() *types.RecipeStepInstrumentCreationRequestInput {
 	recipeStepInstrument := BuildFakeRecipeStepInstrument()
 	input := converters.ConvertRecipeStepInstrumentToRecipeStepInstrumentCreationRequestInput(recipeStepInstrument)
-	input.ProductOfRecipeStepIndex = new(uint64(0))
-	input.ProductOfRecipeStepProductIndex = new(uint64(0))
+	input.ProductOfRecipeStepIndex = pointer.To(uint64(0))
+	input.ProductOfRecipeStepProductIndex = pointer.To(uint64(0))
+
 	return input
 }

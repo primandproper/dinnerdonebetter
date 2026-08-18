@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	"github.com/stretchr/testify/assert"
@@ -200,7 +201,7 @@ func TestQuerier_MealPlanExists(T *testing.T) {
 
 		ctx := t.Context()
 
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealPlanExists(ctx, "", exampleAccountID)
@@ -213,7 +214,7 @@ func TestQuerier_MealPlanExists(T *testing.T) {
 
 		ctx := t.Context()
 
-		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 		c := buildInertClientForTest(t)
 
 		actual, err := c.MealPlanExists(ctx, exampleMealPlanID, "")
@@ -228,7 +229,7 @@ func TestQuerier_GetMealPlan(T *testing.T) {
 	T.Run("with invalid meal plan MealPlanTaskID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
@@ -240,7 +241,7 @@ func TestQuerier_GetMealPlan(T *testing.T) {
 	T.Run("with invalid account MealPlanTaskID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleMealPlanID := fakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
@@ -284,7 +285,7 @@ func TestQuerier_ArchiveMealPlan(T *testing.T) {
 	T.Run("with invalid meal plan MealPlanTaskID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
@@ -310,7 +311,7 @@ func TestQuerier_AttemptToFinalizeCompleteMealPlan(T *testing.T) {
 	T.Run("with invalid meal plan MealPlanTaskID", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 		ctx := t.Context()
 
 		c := buildInertClientForTest(t)
@@ -342,7 +343,7 @@ func TestQuerier_FetchMissingVotesForMealPlan(T *testing.T) {
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
-		exampleAccountID := fakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		actual, err := c.FetchMissingVotesForMealPlan(ctx, "", exampleAccountID)
 		require.Error(t, err)
@@ -420,7 +421,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		// Add a selection that should match the recipe in the meal
 		dbInput.Selections = []*types.MealPlanRecipeOptionSelectionDatabaseCreationInput{
 			{
-				ID:                  fakes.BuildFakeID(),
+				ID:                  fake.BuildFakeID(),
 				RecipeID:            recipe.ID,
 				RecipeStepID:        recipeStep.ID,
 				IngredientIndex:     0,
@@ -460,7 +461,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		// Add multiple selections for the same recipe
 		dbInput.Selections = []*types.MealPlanRecipeOptionSelectionDatabaseCreationInput{
 			{
-				ID:                  fakes.BuildFakeID(),
+				ID:                  fake.BuildFakeID(),
 				RecipeID:            recipe.ID,
 				RecipeStepID:        recipeStep.ID,
 				IngredientIndex:     0,
@@ -468,7 +469,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 				SelectionType:       types.MealPlanRecipeOptionSelectionTypeIngredient,
 			},
 			{
-				ID:                  fakes.BuildFakeID(),
+				ID:                  fake.BuildFakeID(),
 				RecipeID:            recipe.ID,
 				RecipeStepID:        recipeStep.ID,
 				IngredientIndex:     1,
@@ -476,7 +477,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 				SelectionType:       types.MealPlanRecipeOptionSelectionTypeInstrument,
 			},
 			{
-				ID:                  fakes.BuildFakeID(),
+				ID:                  fake.BuildFakeID(),
 				RecipeID:            recipe.ID,
 				RecipeStepID:        recipeStep.ID,
 				IngredientIndex:     2,
@@ -520,9 +521,9 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		// Add a selection with a non-existent recipe ID - should be skipped
 		dbInput.Selections = []*types.MealPlanRecipeOptionSelectionDatabaseCreationInput{
 			{
-				ID:                  fakes.BuildFakeID(),
-				RecipeID:            fakes.BuildFakeID(), // Non-existent recipe
-				RecipeStepID:        fakes.BuildFakeID(),
+				ID:                  fake.BuildFakeID(),
+				RecipeID:            fake.BuildFakeID(), // Non-existent recipe
+				RecipeStepID:        fake.BuildFakeID(),
 				IngredientIndex:     0,
 				SelectedOptionIndex: 0,
 				SelectionType:       types.MealPlanRecipeOptionSelectionTypeIngredient,
@@ -556,7 +557,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		// Add one matching and one non-matching selection
 		dbInput.Selections = []*types.MealPlanRecipeOptionSelectionDatabaseCreationInput{
 			{
-				ID:                  fakes.BuildFakeID(),
+				ID:                  fake.BuildFakeID(),
 				RecipeID:            recipe.ID, // Matching recipe
 				RecipeStepID:        recipeStep.ID,
 				IngredientIndex:     0,
@@ -564,9 +565,9 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 				SelectionType:       types.MealPlanRecipeOptionSelectionTypeIngredient,
 			},
 			{
-				ID:                  fakes.BuildFakeID(),
-				RecipeID:            fakes.BuildFakeID(), // Non-matching recipe
-				RecipeStepID:        fakes.BuildFakeID(),
+				ID:                  fake.BuildFakeID(),
+				RecipeID:            fake.BuildFakeID(), // Non-matching recipe
+				RecipeStepID:        fake.BuildFakeID(),
 				IngredientIndex:     1,
 				SelectedOptionIndex: 0,
 				SelectionType:       types.MealPlanRecipeOptionSelectionTypeIngredient,
@@ -625,7 +626,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 		// Add multiple selections
 		dbInput.Selections = []*types.MealPlanRecipeOptionSelectionDatabaseCreationInput{
 			{
-				ID:                  fakes.BuildFakeID(),
+				ID:                  fake.BuildFakeID(),
 				RecipeID:            recipe.ID,
 				RecipeStepID:        recipeStep.ID,
 				IngredientIndex:     0,
@@ -633,7 +634,7 @@ func TestQuerier_Integration_MealPlans_WithSelections(t *testing.T) {
 				SelectionType:       types.MealPlanRecipeOptionSelectionTypeIngredient,
 			},
 			{
-				ID:                  fakes.BuildFakeID(),
+				ID:                  fake.BuildFakeID(),
 				RecipeID:            recipe.ID,
 				RecipeStepID:        recipeStep.ID,
 				IngredientIndex:     1,

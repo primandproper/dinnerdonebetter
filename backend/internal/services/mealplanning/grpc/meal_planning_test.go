@@ -36,8 +36,8 @@ func buildSessionContextForTest(t *testing.T) context.Context {
 	t.Helper()
 
 	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
-		ActiveAccountID: mealplanningfakes.BuildFakeID(),
-		Requester:       sessions.RequesterInfo{UserID: mealplanningfakes.BuildFakeID()},
+		ActiveAccountID: fake.BuildFakeID(),
+		Requester:       sessions.RequesterInfo{UserID: fake.BuildFakeID()},
 	})
 }
 
@@ -50,8 +50,8 @@ func TestServiceImpl_ArchiveMeal(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleMealID := mealplanningfakes.BuildFakeID()
-		exampleUserID := mealplanningfakes.BuildFakeID()
+		exampleMealID := fake.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
 			ArchiveMealFunc: func(_ context.Context, mealID string, ownerID string) error {
@@ -86,8 +86,8 @@ func TestServiceImpl_ArchiveMealPlan(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
-		exampleAccountID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
 			ArchiveMealPlanFunc: func(_ context.Context, mealPlanID string, ownerID string) error {
@@ -120,8 +120,8 @@ func TestServiceImpl_ArchiveMealPlanEvent(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
-		exampleMealPlanEventID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
 			ReadMealPlanFunc: func(_ context.Context, _ string, _ string) (*mealplanning.MealPlan, error) {
@@ -157,8 +157,8 @@ func TestServiceImpl_ArchiveMealPlanGroceryListItem(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
-		exampleMealPlanGroceryListItemID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanGroceryListItemID := fake.BuildFakeID()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
 			ReadMealPlanFunc: func(_ context.Context, _ string, _ string) (*mealplanning.MealPlan, error) {
@@ -194,9 +194,9 @@ func TestServiceImpl_ArchiveMealPlanOption(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
-		exampleMealPlanEventID := mealplanningfakes.BuildFakeID()
-		exampleMealPlanOptionID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
+		exampleMealPlanOptionID := fake.BuildFakeID()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
 			ReadMealPlanFunc: func(_ context.Context, _ string, _ string) (*mealplanning.MealPlan, error) {
@@ -234,10 +234,10 @@ func TestServiceImpl_ArchiveMealPlanOptionVote(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
-		exampleMealPlanEventID := mealplanningfakes.BuildFakeID()
-		exampleMealPlanOptionID := mealplanningfakes.BuildFakeID()
-		exampleMealPlanOptionVoteID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
+		exampleMealPlanOptionID := fake.BuildFakeID()
+		exampleMealPlanOptionVoteID := fake.BuildFakeID()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
 			ReadMealPlanFunc: func(_ context.Context, _ string, _ string) (*mealplanning.MealPlan, error) {
@@ -277,8 +277,8 @@ func TestServiceImpl_ArchiveUserIngredientPreference(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleUserID := mealplanningfakes.BuildFakeID()
-		exampleUserIngredientPreferenceID := mealplanningfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
+		exampleUserIngredientPreferenceID := fake.BuildFakeID()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
 			ArchiveUserIngredientPreferenceFunc: func(_ context.Context, ownerID string, ingredientPreferenceID string) error {
@@ -315,7 +315,7 @@ func TestServiceImpl_GetMealLists(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		list := &mealplanning.MealList{ID: mealplanningfakes.BuildFakeID()}
+		list := &mealplanning.MealList{ID: fake.BuildFakeID()}
 		expected := &filtering.QueryFilteredResult[mealplanning.MealList]{Data: []*mealplanning.MealList{list}}
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
@@ -343,13 +343,13 @@ func TestServiceImpl_CreateMealList(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		userID := mealplanningfakes.BuildFakeID()
+		userID := fake.BuildFakeID()
 		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
 			Requester: sessions.RequesterInfo{UserID: userID},
 		})
 
 		input := &mealplanninggrpc.MealListCreationRequestInput{Name: t.Name(), Description: "desc"}
-		created := &mealplanning.MealList{ID: mealplanningfakes.BuildFakeID()}
+		created := &mealplanning.MealList{ID: fake.BuildFakeID()}
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
 			CreateMealListFunc: func(_ context.Context, actualUserID string, _ *mealplanning.MealListCreationRequestInput) (*mealplanning.MealList, error) {
@@ -378,8 +378,8 @@ func TestServiceImpl_UpdateMealList(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		userID := mealplanningfakes.BuildFakeID()
-		listID := mealplanningfakes.BuildFakeID()
+		userID := fake.BuildFakeID()
+		listID := fake.BuildFakeID()
 		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
 			Requester: sessions.RequesterInfo{UserID: userID},
 		})
@@ -421,8 +421,8 @@ func TestServiceImpl_ArchiveMealList(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		userID := mealplanningfakes.BuildFakeID()
-		listID := mealplanningfakes.BuildFakeID()
+		userID := fake.BuildFakeID()
+		listID := fake.BuildFakeID()
 		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
 			Requester: sessions.RequesterInfo{UserID: userID},
 		})
@@ -454,8 +454,8 @@ func TestServiceImpl_GetMealListItems(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		listID := mealplanningfakes.BuildFakeID()
-		item := &mealplanning.MealListItem{ID: mealplanningfakes.BuildFakeID(), Meal: mealplanning.Meal{ID: mealplanningfakes.BuildFakeID()}}
+		listID := fake.BuildFakeID()
+		item := &mealplanning.MealListItem{ID: fake.BuildFakeID(), Meal: mealplanning.Meal{ID: fake.BuildFakeID()}}
 		expected := &filtering.QueryFilteredResult[mealplanning.MealListItem]{Data: []*mealplanning.MealListItem{item}}
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
@@ -485,15 +485,15 @@ func TestServiceImpl_CreateMealListItem(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		listID := mealplanningfakes.BuildFakeID()
-		mealID := mealplanningfakes.BuildFakeID()
+		listID := fake.BuildFakeID()
+		mealID := fake.BuildFakeID()
 		input := &mealplanninggrpc.MealListItemCreationRequestInput{
 			BelongsToMealList: listID,
 			MealId:            mealID,
 			Notes:             t.Name(),
 		}
 
-		created := &mealplanning.MealListItem{ID: mealplanningfakes.BuildFakeID()}
+		created := &mealplanning.MealListItem{ID: fake.BuildFakeID()}
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
 			AddMealToMealListFunc: func(_ context.Context, mealListID string, actualMealID string, notes string) (*mealplanning.MealListItem, error) {
@@ -524,9 +524,9 @@ func TestServiceImpl_UpdateMealListItem(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		itemID := mealplanningfakes.BuildFakeID()
-		listID := mealplanningfakes.BuildFakeID()
-		mealID := mealplanningfakes.BuildFakeID()
+		itemID := fake.BuildFakeID()
+		listID := fake.BuildFakeID()
+		mealID := fake.BuildFakeID()
 		notes := new(t.Name())
 		input := &mealplanninggrpc.MealListItemUpdateRequestInput{
 			BelongsToMealList: &listID,
@@ -565,8 +565,8 @@ func TestServiceImpl_ArchiveMealListItem(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		itemID := mealplanningfakes.BuildFakeID()
-		listID := mealplanningfakes.BuildFakeID()
+		itemID := fake.BuildFakeID()
+		listID := fake.BuildFakeID()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
 			RemoveMealFromMealListFunc: func(_ context.Context, mealListID string, mealListItemID string) error {
@@ -598,7 +598,7 @@ func TestServiceImpl_CreateMeal(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleUserID := mealplanningfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 		exampleCreatedMeal := mealplanningfakes.BuildFakeMeal()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
@@ -636,8 +636,8 @@ func TestServiceImpl_CreateMealPlan(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleAccountID := mealplanningfakes.BuildFakeID()
-		exampleUserID := mealplanningfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 		exampleCreatedMealPlan := mealplanningfakes.BuildFakeMealPlan()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
@@ -677,7 +677,7 @@ func TestServiceImpl_CreateMealPlanEvent(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 		exampleCreatedMealPlanEvent := mealplanningfakes.BuildFakeMealPlanEvent()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
@@ -714,8 +714,8 @@ func TestServiceImpl_CreateMealPlanOption(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
-		exampleMealPlanEventID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
 		exampleCreatedMealPlanOption := mealplanningfakes.BuildFakeMealPlanOption()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
@@ -753,8 +753,8 @@ func TestServiceImpl_CreateMealPlanOptionVote(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
-		exampleUserID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 		exampleCreatedMealPlanOptionVotes := []*mealplanning.MealPlanOptionVote{
 			mealplanningfakes.BuildFakeMealPlanOptionVote(),
 		}
@@ -800,7 +800,7 @@ func TestServiceImpl_CreateMealPlanTask(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 		exampleCreatedMealPlanTask := mealplanningfakes.BuildFakeMealPlanTask()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
@@ -835,7 +835,7 @@ func TestServiceImpl_CreateUserIngredientPreference(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleUserID := mealplanningfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 		exampleCreatedUserIngredientPreferences := []*mealplanning.UserIngredientPreference{
 			mealplanningfakes.BuildFakeUserIngredientPreference(),
 		}
@@ -875,8 +875,8 @@ func TestServiceImpl_FinalizeMealPlan(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
-		exampleAccountID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 		exampleFinalized := true
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
@@ -973,7 +973,7 @@ func TestServiceImpl_GetMealPlan(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeMealPlan()
-		exampleAccountID := mealplanningfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
@@ -1006,7 +1006,7 @@ func TestServiceImpl_GetMealPlansForAccount(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := mealplanningfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeMealPlansList()
 
 		ctx := buildSessionContextForTest(t)
@@ -1076,7 +1076,7 @@ func TestServiceImpl_GetMealPlanEvents(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeMealPlanEventsList()
 
 		ctx := buildSessionContextForTest(t)
@@ -1146,7 +1146,7 @@ func TestServiceImpl_GetMealPlanGroceryListItemsForMealPlan(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeMealPlanGroceryListItemsList()
 
 		ctx := buildSessionContextForTest(t)
@@ -1181,8 +1181,8 @@ func TestServiceImpl_GetMealPlanOption(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeMealPlanOption()
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
-		exampleMealPlanEventID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
 
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
@@ -1221,9 +1221,9 @@ func TestServiceImpl_GetMealPlanOptionVote(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeMealPlanOptionVote()
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
-		exampleMealPlanEventID := mealplanningfakes.BuildFakeID()
-		exampleMealPlanOptionID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
+		exampleMealPlanOptionID := fake.BuildFakeID()
 
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
@@ -1263,9 +1263,9 @@ func TestServiceImpl_GetMealPlanOptionVotes(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
-		exampleMealPlanEventID := mealplanningfakes.BuildFakeID()
-		exampleMealPlanOptionID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
+		exampleMealPlanOptionID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeMealPlanOptionVotesList()
 
 		ctx := buildSessionContextForTest(t)
@@ -1305,8 +1305,8 @@ func TestServiceImpl_GetMealPlanOptions(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
-		exampleMealPlanEventID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
+		exampleMealPlanEventID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeMealPlanOptionsList()
 
 		ctx := buildSessionContextForTest(t)
@@ -1345,7 +1345,7 @@ func TestServiceImpl_GetMealPlanTask(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeMealPlanTask()
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
@@ -1381,7 +1381,7 @@ func TestServiceImpl_GetMealPlanTasks(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleMealPlanID := mealplanningfakes.BuildFakeID()
+		exampleMealPlanID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeMealPlanTasksList()
 
 		ctx := buildSessionContextForTest(t)
@@ -1443,7 +1443,7 @@ func TestServiceImpl_GetUserIngredientPreference(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeUserIngredientPreference()
-		exampleUserID := mealplanningfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
@@ -1480,7 +1480,7 @@ func TestServiceImpl_GetUserIngredientPreferences(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleUserID := mealplanningfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeUserIngredientPreferencesList()
 
 		ctx := buildSessionContextForTest(t)
@@ -1550,7 +1550,7 @@ func TestServiceImpl_UpdateMealPlan(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateMealPlanRequest](t)
 		exampleResponse := mealplanningfakes.BuildFakeMealPlan()
-		exampleAccountID := mealplanningfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		s := buildServiceImplForMealPlanningTest(t)
 
@@ -1800,7 +1800,7 @@ func TestServiceImpl_UpdateUserIngredientPreference(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateUserIngredientPreferenceRequest](t)
 		exampleResponse := mealplanningfakes.BuildFakeUserIngredientPreference()
-		exampleUserID := mealplanningfakes.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 
 		s := buildServiceImplForMealPlanningTest(t)
 
@@ -1844,7 +1844,7 @@ func TestServiceImpl_CreateAccountInstrumentOwnership(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleAccountID := mealplanningfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 		exampleCreatedAccountInstrumentOwnership := mealplanningfakes.BuildFakeAccountInstrumentOwnership()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
@@ -1878,7 +1878,7 @@ func TestServiceImpl_GetAccountInstrumentOwnership(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeAccountInstrumentOwnership()
-		exampleAccountID := mealplanningfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
@@ -1913,7 +1913,7 @@ func TestServiceImpl_GetAccountInstrumentOwnerships(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := mealplanningfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeAccountInstrumentOwnershipsList()
 
 		ctx := buildSessionContextForTest(t)
@@ -1947,7 +1947,7 @@ func TestServiceImpl_SearchForValidInstrumentsNotOwnedByAccount(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		exampleAccountID := mealplanningfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidInstrumentsList()
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForValidInstrumentsNotOwnedByAccountRequest](t)
 
@@ -1986,7 +1986,7 @@ func TestServiceImpl_UpdateAccountInstrumentOwnership(T *testing.T) {
 
 		ctx := buildSessionContextForTest(t)
 		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.UpdateAccountInstrumentOwnershipRequest](t)
-		exampleAccountID := mealplanningfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
 		exampleAccountInstrumentOwnership := mealplanningfakes.BuildFakeAccountInstrumentOwnership()
 
 		s := buildServiceImplForMealPlanningTest(t)
@@ -2029,8 +2029,8 @@ func TestServiceImpl_ArchiveAccountInstrumentOwnership(T *testing.T) {
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
 
-		exampleAccountID := mealplanningfakes.BuildFakeID()
-		exampleAccountInstrumentOwnershipID := mealplanningfakes.BuildFakeID()
+		exampleAccountID := fake.BuildFakeID()
+		exampleAccountInstrumentOwnershipID := fake.BuildFakeID()
 
 		mmpm := &mockmanagers.MealPlanningManagerMock{
 			ArchiveAccountInstrumentOwnershipFunc: func(_ context.Context, ownerID string, instrumentOwnershipID string) error {

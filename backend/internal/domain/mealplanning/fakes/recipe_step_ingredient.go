@@ -4,68 +4,61 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
+	"github.com/primandproper/platform-go/v11/fake"
 	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v11/pointer"
 
-	fake "github.com/brianvoe/gofakeit/v7"
+	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
 
 // BuildFakeRecipeStepIngredient builds a faked recipe step ingredient.
+//
 // NOTE: this currently represents a typical recipe step ingredient with a valid ingredient and not a product.
 func BuildFakeRecipeStepIngredient() *types.RecipeStepIngredient {
-	minQty, maxQty := BuildFakeFloat32WithOptionalMax()
-	return &types.RecipeStepIngredient{
-		ID:                     BuildFakeID(),
-		Name:                   buildUniqueString(),
-		Ingredient:             BuildFakeValidIngredient(),
-		MeasurementUnit:        *BuildFakeValidMeasurementUnit(),
-		MinQuantity:            minQty,
-		MaxQuantity:            maxQty,
-		QuantityNotes:          buildUniqueString(),
-		Optional:               fake.Bool(),
-		IngredientNotes:        buildUniqueString(),
-		CreatedAt:              BuildFakeTime(),
-		BelongsToRecipeStep:    BuildFakeID(),
-		Index:                  0, // Will be set from array index during recipe creation (via converter)
-		OptionIndex:            0, // Default to 0 for single-option items
-		VesselIndex:            new(fake.Uint16()),
-		ToTaste:                fake.Bool(),
-		ProductPercentageToUse: new(float32(buildFakeNumber())),
-		ScaleFactor:            1.0,
-	}
+	ingredient := fake.BuildFakeRecord[types.RecipeStepIngredient]()
+
+	// What is being measured and what it is measured in. Both are optional on the type
+	// and neither is optional in practice: the scaling code multiplies a quantity by a
+	// unit it reads from here.
+	ingredient.Ingredient = BuildFakeValidIngredient()
+	ingredient.MeasurementUnit = *BuildFakeValidMeasurementUnit()
+	ingredient.MinQuantity, ingredient.MaxQuantity = BuildFakeFloat32WithOptionalMax()
+	ingredient.ProductPercentageToUse = pointer.To(float32(fake.BuildFakeNumber()))
+	ingredient.VesselIndex = pointer.To(gofakeit.Uint16())
+
+	// Both indices are assigned from position by the converter during recipe creation,
+	// and a single-option ingredient is option zero.
+	ingredient.Index = 0
+	ingredient.OptionIndex = 0
+
+	// Unscaled, so a test that scales a recipe measures its own factor.
+	ingredient.ScaleFactor = 1.0
+
+	return ingredient
 }
 
 // BuildFakeRecipeStepIngredientsList builds a faked RecipeStepIngredientList.
 func BuildFakeRecipeStepIngredientsList() *filtering.QueryFilteredResult[types.RecipeStepIngredient] {
-	var examples []*types.RecipeStepIngredient
-	for range exampleQuantity {
-		examples = append(examples, BuildFakeRecipeStepIngredient())
-	}
-
-	return &filtering.QueryFilteredResult[types.RecipeStepIngredient]{
-		Pagination: filtering.Pagination{
-			Cursor:          BuildFakeID(),
-			MaxResponseSize: 50,
-			FilteredCount:   exampleQuantity / 2,
-			TotalCount:      exampleQuantity,
-		},
-		Data: examples,
-	}
+	return fake.BuildFakePage(BuildFakeRecipeStepIngredient)
 }
 
 // BuildFakeRecipeStepIngredientUpdateRequestInput builds a faked RecipeStepIngredientUpdateRequestInput from a recipe step ingredient.
 func BuildFakeRecipeStepIngredientUpdateRequestInput() *types.RecipeStepIngredientUpdateRequestInput {
 	recipeStepIngredient := BuildFakeRecipeStepIngredient()
+
 	return converters.ConvertRecipeStepIngredientToRecipeStepIngredientUpdateRequestInput(recipeStepIngredient)
 }
 
 // BuildFakeRecipeStepIngredientCreationRequestInput builds a faked RecipeStepIngredientCreationRequestInput.
-// Note: This now includes bridge table IDs since they are required.
+//
+// Hand-written past the conversion: the bridge table IDs are required on the input and
+// have no counterpart on the record it was converted from.
 func BuildFakeRecipeStepIngredientCreationRequestInput() *types.RecipeStepIngredientCreationRequestInput {
 	recipeStepIngredient := BuildFakeRecipeStepIngredient()
 	input := converters.ConvertRecipeStepIngredientToRecipeStepIngredientCreationRequestInput(recipeStepIngredient)
-	// Bridge table IDs are now required
-	input.ValidIngredientPreparationID = new(BuildFakeID())
-	input.ValidIngredientMeasurementUnitID = new(BuildFakeID())
+	input.ValidIngredientPreparationID = pointer.To(fake.BuildFakeID())
+	input.ValidIngredientMeasurementUnitID = pointer.To(fake.BuildFakeID())
+
 	return input
 }
 
@@ -74,7 +67,8 @@ func BuildFakeRecipeStepIngredientCreationRequestInput() *types.RecipeStepIngred
 func BuildFakeRecipeStepIngredientCreationRequestInputForRecipeStepProduct() *types.RecipeStepIngredientCreationRequestInput {
 	recipeStepIngredient := BuildFakeRecipeStepIngredient()
 	input := converters.ConvertRecipeStepIngredientToRecipeStepIngredientCreationRequestInput(recipeStepIngredient)
-	input.ProductOfRecipeStepIndex = new(uint64(0))
-	input.ProductOfRecipeStepProductIndex = new(uint64(0))
+	input.ProductOfRecipeStepIndex = pointer.To(uint64(0))
+	input.ProductOfRecipeStepProductIndex = pointer.To(uint64(0))
+
 	return input
 }
