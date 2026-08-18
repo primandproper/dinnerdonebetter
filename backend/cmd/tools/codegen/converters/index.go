@@ -4,6 +4,7 @@ import (
 	goast "go/ast"
 	"go/types"
 	"path"
+	"slices"
 	"strings"
 
 	"github.com/primandproper/platform-go/v11/errors"
@@ -90,6 +91,19 @@ func (i *structIndex) Lookup(domain, name string) (*structType, error) {
 	}
 
 	return declared, nil
+}
+
+// TypeNames lists every struct type a domain declares, in a stable order so that the enumeration
+// it drives produces the same file on every run.
+func (i *structIndex) TypeNames(domain string) []string {
+	names := make([]string, 0, len(i.byDomain[domain]))
+	for name := range i.byDomain[domain] {
+		names = append(names, name)
+	}
+
+	slices.Sort(names)
+
+	return names
 }
 
 // Declares reports whether a domain declares the named type, which is what decides whether an

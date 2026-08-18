@@ -8,162 +8,189 @@ import (
 	"github.com/primandproper/platform-go/v11/identifiers"
 )
 
-// ConvertAccountInvitationToAccountInvitationCreationInput builds an AccountInvitationCreationRequestInput from an AccountInvitation.
-func ConvertAccountInvitationToAccountInvitationCreationInput(accountInvitation *identity.AccountInvitation) *identity.AccountInvitationCreationRequestInput {
-	return &identity.AccountInvitationCreationRequestInput{
-		ExpiresAt: &accountInvitation.ExpiresAt,
-		Note:      accountInvitation.Note,
-		ToEmail:   accountInvitation.ToEmail,
-		ToName:    accountInvitation.ToName,
-	}
-}
-
-// ConvertAccountInvitationToAccountInvitationUpdateInput builds an AccountInvitationUpdateRequestInput from an AccountInvitation.
-func ConvertAccountInvitationToAccountInvitationUpdateInput(accountInvitation *identity.AccountInvitation) *identity.AccountInvitationUpdateRequestInput {
-	return &identity.AccountInvitationUpdateRequestInput{
-		Token: accountInvitation.Token,
-		Note:  accountInvitation.Note,
-	}
-}
-
-// ConvertAccountInvitationToAccountInvitationDatabaseCreationInput builds an AccountInvitationDatabaseCreationInput from an AccountInvitation.
-func ConvertAccountInvitationToAccountInvitationDatabaseCreationInput(accountInvitation *identity.AccountInvitation) *identity.AccountInvitationDatabaseCreationInput {
-	return &identity.AccountInvitationDatabaseCreationInput{
-		ID:                   accountInvitation.ID,
-		FromUser:             accountInvitation.FromUser.ID,
-		ToUser:               accountInvitation.ToUser,
-		Note:                 accountInvitation.Note,
-		ToEmail:              accountInvitation.ToEmail,
-		Token:                accountInvitation.Token,
-		ToName:               accountInvitation.ToName,
-		ExpiresAt:            accountInvitation.ExpiresAt,
-		DestinationAccountID: accountInvitation.DestinationAccount.ID,
-	}
-}
-
-// ConvertAccountUserMembershipToAccountUserMembershipDatabaseCreationInput builds an AccountUserMembershipDatabaseCreationInput from an AccountUserMembership.
-func ConvertAccountUserMembershipToAccountUserMembershipDatabaseCreationInput(membership *identity.AccountUserMembership) *identity.AccountUserMembershipDatabaseCreationInput {
-	return &identity.AccountUserMembershipDatabaseCreationInput{
-		ID: identifiers.New(),
-
-		// Reason is left unset. The reason a membership was granted is supplied by whoever
-		// grants it. A membership read back does not carry one.
-		UserID:    membership.BelongsToUser,
-		AccountID: membership.BelongsToAccount,
-	}
-}
-
-// ConvertAccountCreationInputToAccountDatabaseCreationInput builds an AccountDatabaseCreationInput from an AccountCreationRequestInput.
-func ConvertAccountCreationInputToAccountDatabaseCreationInput(input *identity.AccountCreationRequestInput) *identity.AccountDatabaseCreationInput {
-	return &identity.AccountDatabaseCreationInput{
-		ID:            identifiers.New(),
-		Name:          input.Name,
-		AddressLine1:  input.AddressLine1,
-		AddressLine2:  input.AddressLine2,
-		City:          input.City,
-		State:         input.State,
-		ZipCode:       input.ZipCode,
-		Country:       input.Country,
-		Latitude:      input.Latitude,
-		Longitude:     input.Longitude,
-		ContactPhone:  input.ContactPhone,
-		BelongsToUser: input.BelongsToUser,
-
-		// WebhookEncryptionKey is left unset. The HMAC key an account signs its webhook
-		// deliveries with. It is generated for the account, not requested, and the
-		// repository writes it as webhook_hmac_secret.
-	}
-}
-
-// ConvertAccountToAccountUpdateRequestInput builds an AccountUpdateRequestInput from an Account.
-func ConvertAccountToAccountUpdateRequestInput(input *identity.Account) *identity.AccountUpdateRequestInput {
-	return &identity.AccountUpdateRequestInput{
-		Name:          &input.Name,
-		ContactPhone:  &input.ContactPhone,
-		AddressLine1:  &input.AddressLine1,
-		AddressLine2:  &input.AddressLine2,
-		City:          &input.City,
-		State:         &input.State,
-		ZipCode:       &input.ZipCode,
-		Country:       &input.Country,
-		Latitude:      input.Latitude,
-		Longitude:     input.Longitude,
-		BelongsToUser: input.BelongsToUser,
-	}
-}
-
 // ConvertAccountToAccountCreationRequestInput builds an AccountCreationRequestInput from an Account.
-func ConvertAccountToAccountCreationRequestInput(account *identity.Account) *identity.AccountCreationRequestInput {
+func ConvertAccountToAccountCreationRequestInput(x *identity.Account) *identity.AccountCreationRequestInput {
 	return &identity.AccountCreationRequestInput{
-		Latitude:     account.Latitude,
-		Longitude:    account.Longitude,
-		Name:         account.Name,
-		ContactPhone: account.ContactPhone,
-		AddressLine1: account.AddressLine1,
-		AddressLine2: account.AddressLine2,
-		City:         account.City,
-		State:        account.State,
-		ZipCode:      account.ZipCode,
-		Country:      account.Country,
-
-		// BelongsToUser is left unset. Account carries this and the converter this
-		// replaced did not copy it. Preserved rather than corrected, so that generating
-		// these converters is not also a behavior change.
+		Latitude:      x.Latitude,
+		Longitude:     x.Longitude,
+		Name:          x.Name,
+		ContactPhone:  x.ContactPhone,
+		AddressLine1:  x.AddressLine1,
+		AddressLine2:  x.AddressLine2,
+		City:          x.City,
+		State:         x.State,
+		ZipCode:       x.ZipCode,
+		Country:       x.Country,
+		BelongsToUser: x.BelongsToUser,
 	}
 }
 
 // ConvertAccountToAccountDatabaseCreationInput builds an AccountDatabaseCreationInput from an Account.
-func ConvertAccountToAccountDatabaseCreationInput(account *identity.Account) *identity.AccountDatabaseCreationInput {
+func ConvertAccountToAccountDatabaseCreationInput(x *identity.Account) *identity.AccountDatabaseCreationInput {
 	return &identity.AccountDatabaseCreationInput{
-		ID:                   account.ID,
-		Name:                 account.Name,
-		AddressLine1:         account.AddressLine1,
-		AddressLine2:         account.AddressLine2,
-		City:                 account.City,
-		State:                account.State,
-		ZipCode:              account.ZipCode,
-		Country:              account.Country,
-		Latitude:             account.Latitude,
-		Longitude:            account.Longitude,
-		ContactPhone:         account.ContactPhone,
-		BelongsToUser:        account.BelongsToUser,
-		WebhookEncryptionKey: account.WebhookEncryptionKey,
+		ID:                   x.ID,
+		Name:                 x.Name,
+		AddressLine1:         x.AddressLine1,
+		AddressLine2:         x.AddressLine2,
+		City:                 x.City,
+		State:                x.State,
+		ZipCode:              x.ZipCode,
+		Country:              x.Country,
+		Latitude:             x.Latitude,
+		Longitude:            x.Longitude,
+		ContactPhone:         x.ContactPhone,
+		BelongsToUser:        x.BelongsToUser,
+		WebhookEncryptionKey: x.WebhookEncryptionKey,
+	}
+}
+
+// ConvertAccountToAccountUpdateRequestInput builds an AccountUpdateRequestInput from an Account.
+func ConvertAccountToAccountUpdateRequestInput(x *identity.Account) *identity.AccountUpdateRequestInput {
+	return &identity.AccountUpdateRequestInput{
+		Name:          &x.Name,
+		ContactPhone:  &x.ContactPhone,
+		AddressLine1:  &x.AddressLine1,
+		AddressLine2:  &x.AddressLine2,
+		City:          &x.City,
+		State:         &x.State,
+		ZipCode:       &x.ZipCode,
+		Country:       &x.Country,
+		Latitude:      x.Latitude,
+		Longitude:     x.Longitude,
+		BelongsToUser: x.BelongsToUser,
+	}
+}
+
+// ConvertAccountCreationRequestInputToAccountDatabaseCreationInput builds an AccountDatabaseCreationInput from an AccountCreationRequestInput.
+func ConvertAccountCreationRequestInputToAccountDatabaseCreationInput(x *identity.AccountCreationRequestInput) *identity.AccountDatabaseCreationInput {
+	return &identity.AccountDatabaseCreationInput{
+		ID:            identifiers.New(),
+		Name:          x.Name,
+		AddressLine1:  x.AddressLine1,
+		AddressLine2:  x.AddressLine2,
+		City:          x.City,
+		State:         x.State,
+		ZipCode:       x.ZipCode,
+		Country:       x.Country,
+		Latitude:      x.Latitude,
+		Longitude:     x.Longitude,
+		ContactPhone:  x.ContactPhone,
+		BelongsToUser: x.BelongsToUser,
+
+		// WebhookEncryptionKey is left unset. The HMAC key an account signs its webhook
+		// deliveries with. It is generated for the account rather than requested, and the
+		// repository writes it as webhook_hmac_secret.
+	}
+}
+
+// ConvertAccountInvitationToAccountInvitationCreationRequestInput builds an AccountInvitationCreationRequestInput from an AccountInvitation.
+func ConvertAccountInvitationToAccountInvitationCreationRequestInput(x *identity.AccountInvitation) *identity.AccountInvitationCreationRequestInput {
+	return &identity.AccountInvitationCreationRequestInput{
+		ExpiresAt: &x.ExpiresAt,
+		Note:      x.Note,
+		ToEmail:   x.ToEmail,
+		ToName:    x.ToName,
+	}
+}
+
+// ConvertAccountInvitationToAccountInvitationDatabaseCreationInput builds an AccountInvitationDatabaseCreationInput from an AccountInvitation.
+func ConvertAccountInvitationToAccountInvitationDatabaseCreationInput(x *identity.AccountInvitation) *identity.AccountInvitationDatabaseCreationInput {
+	return &identity.AccountInvitationDatabaseCreationInput{
+		ID:                   x.ID,
+		FromUser:             x.FromUser.ID,
+		ToUser:               x.ToUser,
+		Note:                 x.Note,
+		ToEmail:              x.ToEmail,
+		Token:                x.Token,
+		ToName:               x.ToName,
+		ExpiresAt:            x.ExpiresAt,
+		DestinationAccountID: x.DestinationAccount.ID,
+	}
+}
+
+// ConvertAccountInvitationToAccountInvitationUpdateRequestInput builds an AccountInvitationUpdateRequestInput from an AccountInvitation.
+func ConvertAccountInvitationToAccountInvitationUpdateRequestInput(x *identity.AccountInvitation) *identity.AccountInvitationUpdateRequestInput {
+	return &identity.AccountInvitationUpdateRequestInput{
+		Token: x.Token,
+		Note:  x.Note,
+	}
+}
+
+// ConvertAccountUserMembershipToAccountUserMembershipDatabaseCreationInput builds an AccountUserMembershipDatabaseCreationInput from an AccountUserMembership.
+func ConvertAccountUserMembershipToAccountUserMembershipDatabaseCreationInput(x *identity.AccountUserMembership) *identity.AccountUserMembershipDatabaseCreationInput {
+	return &identity.AccountUserMembershipDatabaseCreationInput{
+		// A membership row created from an existing membership is a new grant, not the
+		// same one moved, so it gets its own identifier.
+		ID: identifiers.New(),
+
+		// Reason is left unset. The reason a membership was granted is supplied by whoever
+		// grants it. A membership read back does not carry one.
+		// The membership names its user as BelongsToUser; the row that creates one calls
+		// the same thing UserID.
+		UserID: x.BelongsToUser,
+		// The membership names its account as BelongsToAccount; the row that creates one
+		// calls the same thing AccountID.
+		AccountID: x.BelongsToAccount,
+	}
+}
+
+// ConvertPasswordResetTokenToPasswordResetTokenCreationRequestInput builds a PasswordResetTokenCreationRequestInput from a PasswordResetToken.
+func ConvertPasswordResetTokenToPasswordResetTokenCreationRequestInput(x *identity.PasswordResetToken) *identity.PasswordResetTokenCreationRequestInput {
+	return &identity.PasswordResetTokenCreationRequestInput{
+		// EmailAddress is left unset. A reset is requested by email address and a token is
+		// issued against a user ID. The token does not record which address asked for it.
+	}
+}
+
+// ConvertPasswordResetTokenToPasswordResetTokenDatabaseCreationInput builds a PasswordResetTokenDatabaseCreationInput from a PasswordResetToken.
+func ConvertPasswordResetTokenToPasswordResetTokenDatabaseCreationInput(x *identity.PasswordResetToken) *identity.PasswordResetTokenDatabaseCreationInput {
+	return &identity.PasswordResetTokenDatabaseCreationInput{
+		ExpiresAt:     x.ExpiresAt,
+		ID:            x.ID,
+		Token:         x.Token,
+		BelongsToUser: x.BelongsToUser,
+	}
+}
+
+// ConvertPasswordResetTokenCreationRequestInputToPasswordResetTokenDatabaseCreationInput builds a PasswordResetTokenDatabaseCreationInput from a PasswordResetTokenCreationRequestInput.
+func ConvertPasswordResetTokenCreationRequestInputToPasswordResetTokenDatabaseCreationInput(x *identity.PasswordResetTokenCreationRequestInput) *identity.PasswordResetTokenDatabaseCreationInput {
+	return &identity.PasswordResetTokenDatabaseCreationInput{
+		// ExpiresAt is left unset. The lifetime is the manager's policy, not the
+		// requester's.
+		ID: identifiers.New(),
+
+		// Token is left unset. The token is generated by the manager. A request that could
+		// name its own would be a request that could name somebody else's.
+
+		// BelongsToUser is left unset. The user is resolved from the email address the
+		// request carries, which is a lookup rather than a copy.
 	}
 }
 
 // ConvertUserToUserDatabaseCreationInput builds an UserDatabaseCreationInput from an User.
-func ConvertUserToUserDatabaseCreationInput(user *identity.User) *identity.UserDatabaseCreationInput {
+func ConvertUserToUserDatabaseCreationInput(x *identity.User) *identity.UserDatabaseCreationInput {
 	return &identity.UserDatabaseCreationInput{
-		Birthday:        user.Birthday,
-		ID:              user.ID,
-		HashedPassword:  user.HashedPassword,
-		TwoFactorSecret: user.TwoFactorSecret,
+		Birthday:        x.Birthday,
+		ID:              x.ID,
+		HashedPassword:  x.HashedPassword,
+		TwoFactorSecret: x.TwoFactorSecret,
 
 		// InvitationToken is left unset. The invitation being redeemed, consumed during
 		// registration and not kept on the user.
 
 		// DestinationAccountID is left unset. Set only when the registration is redeeming
 		// an invitation; a stored User does not record which one.
-		Username:     user.Username,
-		EmailAddress: user.EmailAddress,
+		Username:     x.Username,
+		EmailAddress: x.EmailAddress,
 
 		// AccountName is left unset. Names the household account created alongside the
 		// user. It belongs to the registration request, not to the user it created.
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-
-		// AcceptedTOS is left unset. Registration input. A stored User records neither the
-		// acceptance nor when it happened, so there is nothing to carry back.
-
-		// AcceptedPrivacyPolicy is left unset. Registration input; see AcceptedTOS.
-	}
-}
-
-// ConvertUserDetailsUpdateRequestInputToUserDetailsUpdateInput builds an UserDetailsDatabaseUpdateInput from an UserDetailsUpdateRequestInput.
-func ConvertUserDetailsUpdateRequestInputToUserDetailsUpdateInput(x *identity.UserDetailsUpdateRequestInput) *identity.UserDetailsDatabaseUpdateInput {
-	return &identity.UserDetailsDatabaseUpdateInput{
-		Birthday:  x.Birthday,
 		FirstName: x.FirstName,
 		LastName:  x.LastName,
+
+		// AcceptedTOS is left unset. Registration input. A stored User records neither the
+		// acceptance nor when it happened.
+
+		// AcceptedPrivacyPolicy is left unset. Registration input; see AcceptedTOS.
 	}
 }

@@ -1,12 +1,12 @@
 package converters
 
-// The conversions in this file are hand-written: each does something the declaration format in
-// cmd/tools/codegen/converters cannot express, and the note above each one says what. Everything
-// else in this package is generated from those declarations into converters_generated.go.
+// The conversions in this file are hand-written: each does something the generator in
+// cmd/tools/codegen/converters does not produce — it fails, it fans one value out into many, it
+// defaults something, it needs a second entity to make sense of the first. exceptions.go names
+// each one and says why.
 //
-// Adding a conversion here rather than declaring it is a decision, not a default. A conversion
-// that is a field copy with a handful of exceptions belongs in the declaration, where the
-// generator guarantees no destination field is silently forgotten.
+// Everything else in this package is generated. A conversion that is a field copy with a handful
+// of exceptions belongs there, where no destination field can be silently forgotten.
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
@@ -17,9 +17,6 @@ import (
 // ConvertWebhookCreationRequestInputToWebhookDatabaseCreationInput creates a
 // WebhookDatabaseCreationInput from a WebhookCreationRequestInput. CreatedByUser and
 // BelongsToAccount are the caller's to set.
-//
-// Hand-written: it fans a flat list of event types out into one trigger config apiece, minting an
-// ID for each and stamping the webhook's own — not a field copy.
 func ConvertWebhookCreationRequestInputToWebhookDatabaseCreationInput(input *webhooks.WebhookCreationRequestInput) *webhooks.WebhookDatabaseCreationInput {
 	webhookID := identifiers.New()
 	x := &webhooks.WebhookDatabaseCreationInput{

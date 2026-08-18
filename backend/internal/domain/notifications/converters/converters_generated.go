@@ -18,19 +18,10 @@ func ConvertUserDeviceTokenToUserDeviceTokenDatabaseCreationInput(x *notificatio
 	}
 }
 
-// ConvertUserNotificationToUserNotificationUpdateRequestInput builds an UserNotificationUpdateRequestInput from an UserNotification.
-func ConvertUserNotificationToUserNotificationUpdateRequestInput(x *notifications.UserNotification) *notifications.UserNotificationUpdateRequestInput {
-	return &notifications.UserNotificationUpdateRequestInput{
-		Status: &x.Status,
-	}
-}
-
-// ConvertUserNotificationCreationRequestInputToUserNotificationDatabaseCreationInput builds an UserNotificationDatabaseCreationInput from an UserNotificationCreationRequestInput.
-func ConvertUserNotificationCreationRequestInputToUserNotificationDatabaseCreationInput(x *notifications.UserNotificationCreationRequestInput) *notifications.UserNotificationDatabaseCreationInput {
-	return &notifications.UserNotificationDatabaseCreationInput{
-		ID:            identifiers.New(),
-		Content:       x.Content,
-		BelongsToUser: x.BelongsToUser,
+// ConvertUserDeviceTokenToUserDeviceTokenUpdateRequestInput builds an UserDeviceTokenUpdateRequestInput from an UserDeviceToken.
+func ConvertUserDeviceTokenToUserDeviceTokenUpdateRequestInput(x *notifications.UserDeviceToken) *notifications.UserDeviceTokenUpdateRequestInput {
+	return &notifications.UserDeviceTokenUpdateRequestInput{
+		Platform: &x.Platform,
 	}
 }
 
@@ -47,6 +38,22 @@ func ConvertUserNotificationToUserNotificationCreationRequestInput(x *notificati
 func ConvertUserNotificationToUserNotificationDatabaseCreationInput(x *notifications.UserNotification) *notifications.UserNotificationDatabaseCreationInput {
 	return &notifications.UserNotificationDatabaseCreationInput{
 		ID:            x.ID,
+		Content:       x.Content,
+		BelongsToUser: x.BelongsToUser,
+	}
+}
+
+// ConvertUserNotificationToUserNotificationUpdateRequestInput builds an UserNotificationUpdateRequestInput from an UserNotification.
+func ConvertUserNotificationToUserNotificationUpdateRequestInput(x *notifications.UserNotification) *notifications.UserNotificationUpdateRequestInput {
+	return &notifications.UserNotificationUpdateRequestInput{
+		Status: &x.Status,
+	}
+}
+
+// ConvertUserNotificationCreationRequestInputToUserNotificationDatabaseCreationInput builds an UserNotificationDatabaseCreationInput from an UserNotificationCreationRequestInput.
+func ConvertUserNotificationCreationRequestInputToUserNotificationDatabaseCreationInput(x *notifications.UserNotificationCreationRequestInput) *notifications.UserNotificationDatabaseCreationInput {
+	return &notifications.UserNotificationDatabaseCreationInput{
+		ID:            identifiers.New(),
 		Content:       x.Content,
 		BelongsToUser: x.BelongsToUser,
 	}

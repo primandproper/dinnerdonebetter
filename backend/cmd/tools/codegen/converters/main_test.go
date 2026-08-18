@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,142 +14,219 @@ import (
 // cmd/tools/codegen/converters.
 const backendRoot = "../../../.."
 
+func realIndex(t *testing.T) *structIndex {
+	t.Helper()
+
+	index, err := buildStructIndex(filepath.Join(backendRoot, domainDir))
+	require.NoError(t, err)
+
+	return index
+}
+
+func realDomains(t *testing.T) []string {
+	t.Helper()
+
+	domains, err := domainsWithConverters(filepath.Join(backendRoot, domainDir))
+	require.NoError(t, err)
+	require.NotEmpty(t, domains)
+
+	return domains
+}
+
 func TestGeneratedConvertersAreUpToDate(T *testing.T) {
 	T.Parallel()
 
 	// This is the check that turns forgetting `make converters` into a failing build. It
-	// matters more than staleness usually does: the generated converters are what carries an
-	// entity between its shapes, so a declaration that has been edited and not regenerated is
+	// matters more than staleness usually does: these functions are what carries an entity
+	// between its shapes, so a domain type that has grown a field and not been regenerated is
 	// a field that silently stops being copied.
-	T.Run("every domain's generated file matches its declarations", func(t *testing.T) {
+	T.Run("every domain's generated file matches its types", func(t *testing.T) {
 		t.Parallel()
 
-		index, err := buildStructIndex(filepath.Join(backendRoot, domainDir))
-		require.NoError(t, err)
-		require.NotEmpty(t, registered)
+		index := realIndex(t)
 
-		for _, declarations := range registered {
-			rendered, renderErr := renderDomain(index, declarations)
-			require.NoError(t, renderErr, "rendering %s", declarations.Domain)
+		for _, domain := range realDomains(t) {
+			rendered, err := renderDomain(index, enumerate(index, domain))
+			require.NoError(t, err, "rendering %s", domain)
 
-			onDisk, readErr := os.ReadFile(filepath.Join(backendRoot, generatedPath(declarations.Domain)))
+			onDisk, readErr := os.ReadFile(filepath.Join(backendRoot, generatedPath(domain)))
 			require.NoError(t, readErr)
 
 			assert.Equal(t, string(rendered), string(onDisk),
-				"%s converters are stale; run `make converters`", declarations.Domain)
+				"%s converters are stale; run `make converters`", domain)
 		}
 	})
+}
 
-	T.Run("every declared conversion resolves against the real domain types", func(t *testing.T) {
+func TestExceptions(T *testing.T) {
+	T.Parallel()
+
+	// An exception that names nothing is worse than no exception: the field it was meant to
+	// answer quietly goes back to whatever the derivation makes of it, and the entry sits
+	// there reading as though it still applies.
+	T.Run("every exception names a conversion that is generated", func(t *testing.T) {
 		t.Parallel()
 
-		index, err := buildStructIndex(filepath.Join(backendRoot, domainDir))
-		require.NoError(t, err)
+		index := realIndex(t)
 
-		for _, declarations := range registered {
-			resolver := &planner{index: index, domain: declarations.Domain, pkg: declarations.Domain}
-			for _, conversion := range declarations.Conversions {
-				_, planErr := resolver.Plan(conversion)
-				assert.NoError(t, planErr, "%s", conversion.Name)
+		generated := map[string]struct{}{}
+		for _, domain := range realDomains(t) {
+			for _, conversion := range enumerate(index, domain).Conversions {
+				generated[conversion.Name] = struct{}{}
 			}
 		}
+
+		for name := range fieldExceptions {
+			_, ok := generated[name]
+			assert.True(t, ok, "%s has field exceptions but is not generated", name)
+		}
 	})
 
-	T.Run("every declared reason says something", func(t *testing.T) {
+	T.Run("every hand-written entry names a conversion the rules would have produced", func(t *testing.T) {
 		t.Parallel()
 
-		// A rule whose reason is empty is a rule nobody has to justify, and the point of
-		// requiring one is that the justification is where the domain knowledge lives.
-		for _, declarations := range registered {
-			for _, conversion := range declarations.Conversions {
-				for field, rule := range conversion.Fields {
-					if rule.kind != ruleSkip && rule.kind != ruleExpr && rule.kind != ruleDeref {
-						continue
-					}
+		index := realIndex(t)
 
-					assert.NotEmpty(t, rule.why, "%s: %s", conversion.Name, field)
+		// handWritten suppresses generation, so an entry naming a conversion the shape rules
+		// never produce suppresses nothing and only misleads.
+		producible := map[string]struct{}{}
+
+		for _, domain := range realDomains(t) {
+			for _, typeName := range index.TypeNames(domain) {
+				entityName, isEntity := entityOf(typeName)
+				if !isEntity {
+					continue
+				}
+
+				for _, shape := range conversionShapes {
+					from := shape.From.typeName(entityName)
+					to := shape.To.typeName(entityName)
+					if index.Declares(domain, from) && index.Declares(domain, to) {
+						producible[conversionName(from, to)] = struct{}{}
+					}
 				}
 			}
 		}
+
+		for name := range handWritten {
+			_, ok := producible[name]
+			assert.True(t, ok, "%s is listed as hand-written but the shape rules do not produce it", name)
+		}
 	})
-}
 
-func TestBuildStructIndex(T *testing.T) {
-	T.Parallel()
-
-	T.Run("indexes the domain packages", func(t *testing.T) {
+	T.Run("every reason says something", func(t *testing.T) {
 		t.Parallel()
 
-		index, err := buildStructIndex(filepath.Join(backendRoot, domainDir))
-		require.NoError(t, err)
-
-		webhook, err := index.Lookup("webhooks", "Webhook")
-		require.NoError(t, err)
-
-		// The sentinel field every domain type opens with is not something a conversion
-		// assigns, and indexing it would make every destination unfillable.
-		for _, field := range webhook.Fields {
-			assert.NotEqual(t, "_", field.Name)
+		for name, fields := range fieldExceptions {
+			for field, rule := range fields {
+				assert.NotEmpty(t, rule.why, "%s: %s", name, field)
+			}
 		}
 
-		configs, ok := webhook.Field("TriggerConfigs")
-		require.True(t, ok)
-		assert.Equal(t, "[]*WebhookTriggerConfig", configs.Type)
+		for name, why := range handWritten {
+			assert.NotEmpty(t, why, name)
+		}
 	})
 
-	T.Run("a domain's subpackages are not indexed as the domain", func(t *testing.T) {
+	T.Run("a hand-written conversion is actually hand-written", func(t *testing.T) {
 		t.Parallel()
 
-		index, err := buildStructIndex(filepath.Join(backendRoot, domainDir))
-		require.NoError(t, err)
+		// The generator declining to emit a conversion is only half of it: the function still
+		// has to exist, or every call site breaks.
+		manual := map[string]struct{}{}
 
-		// catalog, converters, fakes and mock all sit under webhooks, and none of them
-		// declares a type a conversion reads or writes.
-		assert.False(t, index.Declares("webhooks", "Catalog"))
-	})
+		for _, domain := range realDomains(t) {
+			path := filepath.Join(backendRoot, domainDir, domain, "converters", "converters_manual.go")
 
-	T.Run("unknown lookups are errors rather than empty structs", func(t *testing.T) {
-		t.Parallel()
+			source, err := os.ReadFile(path)
+			if err != nil {
+				continue
+			}
 
-		index, err := buildStructIndex(filepath.Join(backendRoot, domainDir))
-		require.NoError(t, err)
+			for _, line := range strings.Split(string(source), "\n") {
+				name, isFunc := strings.CutPrefix(line, "func ")
+				if !isFunc {
+					continue
+				}
 
-		_, err = index.Lookup("webhooks", "NotAType")
-		require.Error(t, err)
+				if index := strings.IndexByte(name, '('); index > 0 {
+					manual[name[:index]] = struct{}{}
+				}
+			}
+		}
 
-		_, err = index.Lookup("notadomain", "Webhook")
-		require.Error(t, err)
+		for name := range handWritten {
+			_, ok := manual[name]
+			assert.True(t, ok, "%s is not generated and not written by hand either", name)
+		}
 	})
 }
 
-// fixtureIndex is a two-type domain, small enough that a test can say what it expects of a plan
-// without the reader having to look a real domain type up.
-func fixtureIndex() *structIndex {
-	source := newStructTypeFromFields("Source",
-		structField{Name: "ID", Type: "string"},
-		structField{Name: "Name", Type: "string"},
-		structField{Name: "Optional", Type: "*string"},
-		structField{Name: "Nested", Type: "*Nested"},
-		structField{Name: "Children", Type: "[]*Child"},
-	)
-	destination := newStructTypeFromFields("Destination",
-		structField{Name: "ID", Type: "string"},
-		structField{Name: "Name", Type: "string"},
-		structField{Name: "NamePointer", Type: "*string"},
-		structField{Name: "Optional", Type: "*string"},
-		structField{Name: "NestedID", Type: "*string"},
-		structField{Name: "RequiredNestedID", Type: "string"},
-		structField{Name: "Children", Type: "[]*ChildInput"},
-		structField{Name: "Unfillable", Type: "string"},
-	)
+func TestEntityOf(T *testing.T) {
+	T.Parallel()
 
+	T.Run("separates an entity from its shapes", func(t *testing.T) {
+		t.Parallel()
+
+		for typeName, expected := range map[string]string{
+			"Webhook":                      "Webhook",
+			"WebhookCreationRequestInput":  "Webhook",
+			"WebhookDatabaseCreationInput": "Webhook",
+			"WebhookUpdateRequestInput":    "Webhook",
+			"WebhookTriggerConfig":         "WebhookTriggerConfig",
+		} {
+			entityName, isEntity := entityOf(typeName)
+			assert.Equal(t, expected, entityName, typeName)
+			assert.Equal(t, typeName == expected, isEntity, typeName)
+		}
+	})
+}
+
+func TestConversionName(T *testing.T) {
+	T.Parallel()
+
+	T.Run("is the two type names", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t,
+			"ConvertWebhookToWebhookCreationRequestInput",
+			conversionName("Webhook", "WebhookCreationRequestInput"),
+		)
+	})
+}
+
+// fixtureIndex is a small domain a test can state expectations about without looking a real domain
+// type up.
+func fixtureIndex() *structIndex {
 	return &structIndex{byDomain: map[string]map[string]*structType{
 		"fixture": {
-			"Source":      source,
-			"Destination": destination,
-			"Nested":      newStructTypeFromFields("Nested", structField{Name: "ID", Type: "string"}),
-			"Child":       newStructTypeFromFields("Child", structField{Name: "ID", Type: "string"}),
-			"ChildInput":  newStructTypeFromFields("ChildInput", structField{Name: "ID", Type: "string"}),
+			"Thing": newStructTypeFromFields("Thing",
+				structField{Name: "ID", Type: "string"},
+				structField{Name: "Name", Type: "string"},
+				structField{Name: "Optional", Type: "*string"},
+				structField{Name: "Nested", Type: "*Nested"},
+				structField{Name: "Owner", Type: "Nested"},
+				structField{Name: "Parts", Type: "[]*Part"},
+			),
+			"ThingCreationRequestInput": newStructTypeFromFields("ThingCreationRequestInput",
+				structField{Name: "Name", Type: "string"},
+				structField{Name: "Parts", Type: "[]*PartCreationRequestInput"},
+			),
+			"ThingDatabaseCreationInput": newStructTypeFromFields("ThingDatabaseCreationInput",
+				structField{Name: "ID", Type: "string"},
+				structField{Name: "Name", Type: "string"},
+				structField{Name: "NestedID", Type: "*string"},
+				structField{Name: "OwnerID", Type: "string"},
+				structField{Name: "Parts", Type: "[]*PartDatabaseCreationInput"},
+			),
+			"ThingUpdateRequestInput": newStructTypeFromFields("ThingUpdateRequestInput",
+				structField{Name: "Name", Type: "*string"},
+			),
+			"Nested":                   newStructTypeFromFields("Nested", structField{Name: "ID", Type: "string"}),
+			"Part":                     newStructTypeFromFields("Part", structField{Name: "ID", Type: "string"}),
+			"PartCreationRequestInput": newStructTypeFromFields("PartCreationRequestInput", structField{Name: "ID", Type: "string"}),
+			"PartDatabaseCreationInput": newStructTypeFromFields("PartDatabaseCreationInput",
+				structField{Name: "ID", Type: "string"}),
 		},
 	}}
 }
@@ -163,169 +241,84 @@ func newStructTypeFromFields(name string, fields ...structField) *structType {
 }
 
 func fixturePlanner() *planner {
-	return &planner{index: fixtureIndex(), domain: "fixture", pkg: "fixture"}
+	return &planner{index: fixtureIndex(), domain: "fixture"}
 }
 
-// fixtureConversion is a conversion that fills every destination field, so a test can remove one
-// rule and see only the failure it is about.
-func fixtureConversion() *Conversion {
-	return &Conversion{
-		Name: "ConvertSourceToDestination",
-		From: Param{Name: "src", Type: "Source"},
-		To:   "Destination",
-		Fields: map[string]Rule{
-			"NamePointer":      Ref("Name"),
-			"NestedID":         OptionalNestedID("Nested"),
-			"RequiredNestedID": NestedID("Nested"),
-			"Children":         MapSlice("ConvertChildToChildInput"),
-			"Unfillable":       Skip("nothing on the source names it"),
-		},
-	}
+func fixtureConversion(from, to string) *Conversion {
+	return &Conversion{Entity: "Thing", From: from, To: to, Name: conversionName(from, to)}
 }
 
-func TestPlan(T *testing.T) {
+func TestEnumerate(T *testing.T) {
 	T.Parallel()
 
-	T.Run("copies same-named fields and takes the address of a value for a pointer", func(t *testing.T) {
+	T.Run("produces every shape the entity has types for", func(t *testing.T) {
 		t.Parallel()
 
-		resolved, err := fixturePlanner().Plan(fixtureConversion())
+		enumerated := enumerate(fixtureIndex(), "fixture")
+
+		var names []string
+		for _, conversion := range enumerated.Conversions {
+			names = append(names, conversion.Name)
+		}
+
+		// Thing has no UpdateRequestInput, so no conversion to one is produced — and
+		// nothing had to say so.
+		// Part has no UpdateRequestInput, so no conversion to one is produced — and nothing
+		// had to say so. Thing has one, so it gets one.
+		assert.Equal(t, []string{
+			"ConvertPartToPartCreationRequestInput",
+			"ConvertPartToPartDatabaseCreationInput",
+			"ConvertPartCreationRequestInputToPartDatabaseCreationInput",
+			"ConvertThingToThingCreationRequestInput",
+			"ConvertThingToThingDatabaseCreationInput",
+			"ConvertThingToThingUpdateRequestInput",
+			"ConvertThingCreationRequestInputToThingDatabaseCreationInput",
+		}, names)
+	})
+}
+
+func TestDerivation(T *testing.T) {
+	T.Parallel()
+
+	T.Run("copies, takes addresses, and maps collections without being told to", func(t *testing.T) {
+		t.Parallel()
+
+		resolved, err := fixturePlanner().Plan(fixtureConversion("Thing", "ThingDatabaseCreationInput"))
 		require.NoError(t, err)
 
-		assert.Equal(t, "src.Name", expressionFor(resolved, "Name"))
-		assert.Equal(t, "&src.Name", expressionFor(resolved, "NamePointer"))
-		assert.Equal(t, "src.Optional", expressionFor(resolved, "Optional"))
+		assert.Equal(t, "x.ID", expressionFor(resolved, "ID"))
+		assert.Equal(t, "x.Name", expressionFor(resolved, "Name"))
+		assert.Equal(t, "parts", expressionFor(resolved, "Parts"))
+		assert.Contains(t, strings.Join(resolved.Prelude, "\n"), "ConvertPartToPartDatabaseCreationInput(item)")
+
+		// A destination that holds a pointer to what the source holds by value takes its
+		// address, which is what an update input is made of.
+		update, err := fixturePlanner().Plan(fixtureConversion("Thing", "ThingUpdateRequestInput"))
+		require.NoError(t, err)
+		assert.Equal(t, "&x.Name", expressionFor(update, "Name"))
 	})
 
-	T.Run("a destination field with no counterpart and no rule is refused", func(t *testing.T) {
+	T.Run("reduces a nested entity to its identifier, guarding only where absence fits", func(t *testing.T) {
 		t.Parallel()
 
-		conversion := fixtureConversion()
-		delete(conversion.Fields, "Unfillable")
-
-		_, err := fixturePlanner().Plan(conversion)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "Unfillable")
-	})
-
-	T.Run("a type the generator cannot adapt is refused rather than guessed at", func(t *testing.T) {
-		t.Parallel()
-
-		conversion := fixtureConversion()
-		delete(conversion.Fields, "Children")
-
-		_, err := fixturePlanner().Plan(conversion)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "Children")
-	})
-
-	T.Run("a rule for a field the destination does not have is refused", func(t *testing.T) {
-		t.Parallel()
-
-		conversion := fixtureConversion()
-		conversion.Fields["Renamed"] = Skip("this field was renamed away")
-
-		_, err := fixturePlanner().Plan(conversion)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "Renamed")
-	})
-
-	T.Run("a nested ID is guarded only where the destination can hold the absence", func(t *testing.T) {
-		t.Parallel()
-
-		resolved, err := fixturePlanner().Plan(fixtureConversion())
+		resolved, err := fixturePlanner().Plan(fixtureConversion("Thing", "ThingDatabaseCreationInput"))
 		require.NoError(t, err)
 
-		assert.Equal(t, "src.Nested.ID", expressionFor(resolved, "RequiredNestedID"))
+		// Nested is a pointer and NestedID is a pointer, so the read is guarded; Owner is a
+		// value and OwnerID is a value, so it is read straight through.
 		assert.Equal(t, "nestedID", expressionFor(resolved, "NestedID"))
-		require.NotEmpty(t, resolved.Prelude)
-		assert.Contains(t, resolved.Prelude[0], "if src.Nested != nil {")
+		assert.Contains(t, strings.Join(resolved.Prelude, "\n"), "if x.Nested != nil {")
+		assert.Equal(t, "x.Owner.ID", expressionFor(resolved, "OwnerID"))
 	})
 
-	T.Run("a guarded nested ID needs somewhere to put the absence", func(t *testing.T) {
+	T.Run("mints an identifier a request input cannot supply", func(t *testing.T) {
 		t.Parallel()
 
-		conversion := fixtureConversion()
-		conversion.Fields["RequiredNestedID"] = OptionalNestedID("Nested")
-
-		_, err := fixturePlanner().Plan(conversion)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "pointer destination")
-	})
-
-	T.Run("a mapped slice is allocated with room for its source", func(t *testing.T) {
-		t.Parallel()
-
-		resolved, err := fixturePlanner().Plan(fixtureConversion())
-		require.NoError(t, err)
-
-		assert.Contains(t, resolved.Prelude[1], "make([]*fixture.ChildInput, 0, len(src.Children))")
-		assert.Contains(t, resolved.Prelude[1], "ConvertChildToChildInput(item)")
-	})
-
-	T.Run("a nil-when-empty slice is declared rather than allocated", func(t *testing.T) {
-		t.Parallel()
-
-		conversion := fixtureConversion()
-		conversion.Fields["Children"] = MapSlice("ConvertChildToChildInput", NilWhenEmpty())
-
-		resolved, err := fixturePlanner().Plan(conversion)
-		require.NoError(t, err)
-		assert.Contains(t, resolved.Prelude[1], "var children []*fixture.ChildInput")
-	})
-
-	T.Run("children stamped with a minted parent ID read the local it was minted into", func(t *testing.T) {
-		t.Parallel()
-
-		conversion := fixtureConversion()
-		conversion.Fields["ID"] = NewID()
-		conversion.Fields["Children"] = MapSlice("ConvertChildToChildInput", BelongsTo("BelongsToParent"))
-
-		resolved, err := fixturePlanner().Plan(conversion)
-		require.NoError(t, err)
-
-		// The ID has to exist before the children are built, so it is hoisted out of the
-		// literal and into a local that both can read.
-		assert.True(t, resolved.UsesIdentifiers)
-		assert.Equal(t, "destinationID := identifiers.New()", resolved.Prelude[0])
-		assert.Equal(t, "destinationID", expressionFor(resolved, "ID"))
-		assert.Contains(t, resolved.Prelude[2], "converted.BelongsToParent = destinationID")
-	})
-
-	T.Run("children stamped with a copied parent ID read the copy, not a fresh one", func(t *testing.T) {
-		t.Parallel()
-
-		// The failure this guards against is silent: hoisting a minted ID here would give
-		// the children an identifier the parent does not have, and every child row would
-		// point at nothing.
-		conversion := fixtureConversion()
-		conversion.Fields["Children"] = MapSlice("ConvertChildToChildInput", BelongsTo("BelongsToParent"))
-
-		resolved, err := fixturePlanner().Plan(conversion)
-		require.NoError(t, err)
-
-		assert.False(t, resolved.UsesIdentifiers)
-		assert.Equal(t, "src.ID", expressionFor(resolved, "ID"))
-		assert.Contains(t, resolved.Prelude[1], "converted.BelongsToParent = src.ID")
-	})
-
-	T.Run("children stamped with an ID that is neither copied nor minted are refused", func(t *testing.T) {
-		t.Parallel()
-
-		conversion := fixtureConversion()
-		conversion.Fields["ID"] = Expr("someHelper(src)", "computed somewhere else")
-		conversion.Fields["Children"] = MapSlice("ConvertChildToChildInput", BelongsTo("BelongsToParent"))
-
-		_, err := fixturePlanner().Plan(conversion)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "neither copied nor minted")
-	})
-
-	T.Run("a minted ID nothing else reads stays inside the literal", func(t *testing.T) {
-		t.Parallel()
-
-		conversion := fixtureConversion()
-		conversion.Fields["ID"] = NewID()
+		conversion := fixtureConversion("ThingCreationRequestInput", "ThingDatabaseCreationInput")
+		conversion.Fields = map[string]Rule{
+			"NestedID": Skip("the caller resolves this"),
+			"OwnerID":  Skip("the caller stamps this"),
+		}
 
 		resolved, err := fixturePlanner().Plan(conversion)
 		require.NoError(t, err)
@@ -334,19 +327,100 @@ func TestPlan(T *testing.T) {
 		assert.Equal(t, "identifiers.New()", expressionFor(resolved, "ID"))
 	})
 
+	T.Run("a field nothing answers fails the build rather than going quiet", func(t *testing.T) {
+		t.Parallel()
+
+		index := fixtureIndex()
+		index.byDomain["fixture"]["ThingDatabaseCreationInput"].add("Unanswerable", "string")
+
+		resolver := &planner{index: index, domain: "fixture"}
+
+		_, err := resolver.Plan(fixtureConversion("Thing", "ThingDatabaseCreationInput"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Unanswerable")
+	})
+
+	T.Run("every unanswered field is reported, not just the first", func(t *testing.T) {
+		t.Parallel()
+
+		index := fixtureIndex()
+		index.byDomain["fixture"]["ThingDatabaseCreationInput"].add("FirstMissing", "string")
+		index.byDomain["fixture"]["ThingDatabaseCreationInput"].add("SecondMissing", "string")
+
+		resolver := &planner{index: index, domain: "fixture"}
+
+		_, err := resolver.Plan(fixtureConversion("Thing", "ThingDatabaseCreationInput"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "FirstMissing")
+		assert.Contains(t, err.Error(), "SecondMissing")
+	})
+
+	T.Run("a dereference is never derived", func(t *testing.T) {
+		t.Parallel()
+
+		// *string on the source and string on the destination is a read that panics on nil.
+		// Deriving it would be the generator making that call on the domain's behalf.
+		index := fixtureIndex()
+		index.byDomain["fixture"]["ThingDatabaseCreationInput"].add("Optional", "string")
+
+		resolver := &planner{index: index, domain: "fixture"}
+
+		_, err := resolver.Plan(fixtureConversion("Thing", "ThingDatabaseCreationInput"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Optional")
+	})
+
+	T.Run("an ambiguous relation is refused rather than picked", func(t *testing.T) {
+		t.Parallel()
+
+		// A destination named for the relation's type rather than for the field is
+		// resolved by finding the field holding that type — which only works when there
+		// is one of them.
+		index := fixtureIndex()
+		index.byDomain["fixture"]["Thing"] = newStructTypeFromFields("Thing",
+			structField{Name: "ID", Type: "string"},
+			structField{Name: "Name", Type: "string"},
+			structField{Name: "Optional", Type: "*string"},
+			structField{Name: "Alpha", Type: "*Nested"},
+			structField{Name: "Beta", Type: "*Nested"},
+			structField{Name: "Owner", Type: "Nested"},
+			structField{Name: "Parts", Type: "[]*Part"},
+		)
+
+		resolver := &planner{index: index, domain: "fixture"}
+
+		_, err := resolver.Plan(fixtureConversion("Thing", "ThingDatabaseCreationInput"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "NestedID")
+	})
+
+	T.Run("an exception for a field the destination lacks is refused", func(t *testing.T) {
+		t.Parallel()
+
+		conversion := fixtureConversion("Thing", "ThingDatabaseCreationInput")
+		conversion.Fields = map[string]Rule{"Renamed": Skip("this field was renamed away")}
+
+		_, err := fixturePlanner().Plan(conversion)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Renamed")
+	})
+
 	T.Run("a skipped field is carried through so its reason can be rendered", func(t *testing.T) {
 		t.Parallel()
 
-		resolved, err := fixturePlanner().Plan(fixtureConversion())
+		conversion := fixtureConversion("Thing", "ThingDatabaseCreationInput")
+		conversion.Fields = map[string]Rule{"OwnerID": Skip("the caller stamps this")}
+
+		resolved, err := fixturePlanner().Plan(conversion)
 		require.NoError(t, err)
 
 		for _, assigned := range resolved.Assignments {
-			if assigned.Field != "Unfillable" {
+			if assigned.Field != "OwnerID" {
 				continue
 			}
 
 			assert.True(t, assigned.Skipped)
-			assert.Equal(t, "nothing on the source names it", assigned.Why)
+			assert.Equal(t, "the caller stamps this", assigned.Why)
 
 			return
 		}
@@ -358,37 +432,38 @@ func TestPlan(T *testing.T) {
 func TestRenderDomain(T *testing.T) {
 	T.Parallel()
 
-	T.Run("two conversions of the same name are refused", func(t *testing.T) {
+	T.Run("the rendered file names its source x and carries its reasons", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := renderDomain(fixtureIndex(), &domainConversions{
-			Domain:      "fixture",
-			Conversions: []*Conversion{fixtureConversion(), fixtureConversion()},
-		})
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "declared twice")
-	})
+		index := fixtureIndex()
+		enumerated := enumerate(index, "fixture")
 
-	T.Run("a domain with nothing declared is refused rather than emptied", func(t *testing.T) {
-		t.Parallel()
+		for _, conversion := range enumerated.Conversions {
+			switch conversion.Name {
+			case "ConvertThingToThingDatabaseCreationInput":
+				conversion.Fields = map[string]Rule{"OwnerID": Skip("the caller stamps this")}
+			case "ConvertThingCreationRequestInputToThingDatabaseCreationInput":
+				conversion.Fields = map[string]Rule{
+					"NestedID": Skip("the caller resolves this"),
+					"OwnerID":  Skip("the caller stamps this"),
+				}
+			}
+		}
 
-		_, err := renderDomain(fixtureIndex(), &domainConversions{Domain: "fixture"})
-		require.Error(t, err)
-	})
-
-	T.Run("the rendered file compiles as Go and carries its reasons", func(t *testing.T) {
-		t.Parallel()
-
-		rendered, err := renderDomain(fixtureIndex(), &domainConversions{
-			Domain:      "fixture",
-			Conversions: []*Conversion{fixtureConversion()},
-		})
+		rendered, err := renderDomain(index, enumerated)
 		require.NoError(t, err)
 
 		source := string(rendered)
 		assert.Contains(t, source, "// Code generated by cmd/tools/codegen/converters. DO NOT EDIT.")
-		assert.Contains(t, source, "func ConvertSourceToDestination(src *fixture.Source) *fixture.Destination {")
-		assert.Contains(t, source, "// Unfillable is left unset. nothing on the source names it")
+		assert.Contains(t, source, "func ConvertThingToThingDatabaseCreationInput(x *fixture.Thing) *fixture.ThingDatabaseCreationInput {")
+		assert.Contains(t, source, "// OwnerID is left unset. the caller stamps this")
+	})
+
+	T.Run("a domain with nothing to convert is refused rather than emptied", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := renderDomain(fixtureIndex(), &domainConversions{Domain: "fixture"})
+		require.Error(t, err)
 	})
 }
 
@@ -421,43 +496,19 @@ func TestLowerFirstWord(T *testing.T) {
 	})
 }
 
-func TestEntityLocalName(T *testing.T) {
-	T.Parallel()
-
-	T.Run("drops the input shape's suffix", func(t *testing.T) {
-		t.Parallel()
-
-		for input, expected := range map[string]string{
-			"WebhookDatabaseCreationInput": "webhook",
-			"MealPlanCreationRequestInput": "mealPlan",
-			"RecipeUpdateRequestInput":     "recipe",
-			"Webhook":                      "webhook",
-		} {
-			assert.Equal(t, expected, entityLocalName(input), input)
-		}
-	})
-}
-
 func TestWrap(T *testing.T) {
 	T.Parallel()
 
 	T.Run("breaks on word boundaries within the width", func(t *testing.T) {
 		t.Parallel()
 
-		lines := wrap("one two three four five", 9)
-		assert.Equal(t, []string{"one two", "three", "four five"}, lines)
+		assert.Equal(t, []string{"one two", "three", "four five"}, wrap("one two three four five", 9))
 	})
 
 	T.Run("an empty reason renders no comment at all", func(t *testing.T) {
 		t.Parallel()
 
 		assert.Empty(t, wrap("", 80))
-	})
-
-	T.Run("a word longer than the width gets its own line", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, []string{"a", "supercalifragilistic"}, wrap("a supercalifragilistic", 5))
 	})
 }
 

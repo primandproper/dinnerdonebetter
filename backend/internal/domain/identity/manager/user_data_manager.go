@@ -251,7 +251,7 @@ func (m *manager) CreateAccount(ctx context.Context, input *identity.AccountCrea
 
 	logger := m.logger.WithSpan(span)
 
-	created, err := m.identityRepo.CreateAccount(ctx, converters.ConvertAccountCreationInputToAccountDatabaseCreationInput(input))
+	created, err := m.identityRepo.CreateAccount(ctx, converters.ConvertAccountCreationRequestInputToAccountDatabaseCreationInput(input))
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating Account")
 	}
@@ -289,7 +289,7 @@ func (m *manager) CreateAccountInvitation(ctx context.Context, userID, accountID
 		return nil, observability.PrepareError(err, span, "generating account invitation token")
 	}
 
-	convertedInput := converters.ConvertAccountInvitationCreationInputToAccountInvitationDatabaseCreationInput(userID, accountID, token, input)
+	convertedInput := converters.ConvertAccountInvitationCreationRequestInputToAccountInvitationDatabaseCreationInput(userID, accountID, token, input)
 
 	created, err := m.identityRepo.CreateAccountInvitation(ctx, convertedInput)
 	if err != nil {

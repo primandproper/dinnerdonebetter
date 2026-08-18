@@ -8,25 +8,6 @@ import (
 	"github.com/primandproper/platform-go/v11/identifiers"
 )
 
-// ConvertWaitlistToWaitlistUpdateRequestInput builds a WaitlistUpdateRequestInput from a Waitlist.
-func ConvertWaitlistToWaitlistUpdateRequestInput(x *waitlists.Waitlist) *waitlists.WaitlistUpdateRequestInput {
-	return &waitlists.WaitlistUpdateRequestInput{
-		Name:        &x.Name,
-		Description: &x.Description,
-		ValidUntil:  &x.ValidUntil,
-	}
-}
-
-// ConvertWaitlistCreationRequestInputToWaitlistDatabaseCreationInput builds a WaitlistDatabaseCreationInput from a WaitlistCreationRequestInput.
-func ConvertWaitlistCreationRequestInputToWaitlistDatabaseCreationInput(x *waitlists.WaitlistCreationRequestInput) *waitlists.WaitlistDatabaseCreationInput {
-	return &waitlists.WaitlistDatabaseCreationInput{
-		ValidUntil:  x.ValidUntil,
-		ID:          identifiers.New(),
-		Name:        x.Name,
-		Description: x.Description,
-	}
-}
-
 // ConvertWaitlistToWaitlistCreationRequestInput builds a WaitlistCreationRequestInput from a Waitlist.
 func ConvertWaitlistToWaitlistCreationRequestInput(x *waitlists.Waitlist) *waitlists.WaitlistCreationRequestInput {
 	return &waitlists.WaitlistCreationRequestInput{
@@ -46,21 +27,22 @@ func ConvertWaitlistToWaitlistDatabaseCreationInput(x *waitlists.Waitlist) *wait
 	}
 }
 
-// ConvertWaitlistSignupToWaitlistSignupUpdateRequestInput builds a WaitlistSignupUpdateRequestInput from a WaitlistSignup.
-func ConvertWaitlistSignupToWaitlistSignupUpdateRequestInput(x *waitlists.WaitlistSignup) *waitlists.WaitlistSignupUpdateRequestInput {
-	return &waitlists.WaitlistSignupUpdateRequestInput{
-		Notes: &x.Notes,
+// ConvertWaitlistToWaitlistUpdateRequestInput builds a WaitlistUpdateRequestInput from a Waitlist.
+func ConvertWaitlistToWaitlistUpdateRequestInput(x *waitlists.Waitlist) *waitlists.WaitlistUpdateRequestInput {
+	return &waitlists.WaitlistUpdateRequestInput{
+		Name:        &x.Name,
+		Description: &x.Description,
+		ValidUntil:  &x.ValidUntil,
 	}
 }
 
-// ConvertWaitlistSignupCreationRequestInputToWaitlistSignupDatabaseCreationInput builds a WaitlistSignupDatabaseCreationInput from a WaitlistSignupCreationRequestInput.
-func ConvertWaitlistSignupCreationRequestInputToWaitlistSignupDatabaseCreationInput(x *waitlists.WaitlistSignupCreationRequestInput) *waitlists.WaitlistSignupDatabaseCreationInput {
-	return &waitlists.WaitlistSignupDatabaseCreationInput{
-		ID:                identifiers.New(),
-		Notes:             x.Notes,
-		BelongsToWaitlist: x.BelongsToWaitlist,
-		BelongsToUser:     x.BelongsToUser,
-		BelongsToAccount:  x.BelongsToAccount,
+// ConvertWaitlistCreationRequestInputToWaitlistDatabaseCreationInput builds a WaitlistDatabaseCreationInput from a WaitlistCreationRequestInput.
+func ConvertWaitlistCreationRequestInputToWaitlistDatabaseCreationInput(x *waitlists.WaitlistCreationRequestInput) *waitlists.WaitlistDatabaseCreationInput {
+	return &waitlists.WaitlistDatabaseCreationInput{
+		ValidUntil:  x.ValidUntil,
+		ID:          identifiers.New(),
+		Name:        x.Name,
+		Description: x.Description,
 	}
 }
 
@@ -78,6 +60,24 @@ func ConvertWaitlistSignupToWaitlistSignupCreationRequestInput(x *waitlists.Wait
 func ConvertWaitlistSignupToWaitlistSignupDatabaseCreationInput(x *waitlists.WaitlistSignup) *waitlists.WaitlistSignupDatabaseCreationInput {
 	return &waitlists.WaitlistSignupDatabaseCreationInput{
 		ID:                x.ID,
+		Notes:             x.Notes,
+		BelongsToWaitlist: x.BelongsToWaitlist,
+		BelongsToUser:     x.BelongsToUser,
+		BelongsToAccount:  x.BelongsToAccount,
+	}
+}
+
+// ConvertWaitlistSignupToWaitlistSignupUpdateRequestInput builds a WaitlistSignupUpdateRequestInput from a WaitlistSignup.
+func ConvertWaitlistSignupToWaitlistSignupUpdateRequestInput(x *waitlists.WaitlistSignup) *waitlists.WaitlistSignupUpdateRequestInput {
+	return &waitlists.WaitlistSignupUpdateRequestInput{
+		Notes: &x.Notes,
+	}
+}
+
+// ConvertWaitlistSignupCreationRequestInputToWaitlistSignupDatabaseCreationInput builds a WaitlistSignupDatabaseCreationInput from a WaitlistSignupCreationRequestInput.
+func ConvertWaitlistSignupCreationRequestInputToWaitlistSignupDatabaseCreationInput(x *waitlists.WaitlistSignupCreationRequestInput) *waitlists.WaitlistSignupDatabaseCreationInput {
+	return &waitlists.WaitlistSignupDatabaseCreationInput{
+		ID:                identifiers.New(),
 		Notes:             x.Notes,
 		BelongsToWaitlist: x.BelongsToWaitlist,
 		BelongsToUser:     x.BelongsToUser,

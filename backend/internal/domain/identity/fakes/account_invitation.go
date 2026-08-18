@@ -54,5 +54,5 @@ func BuildFakeAccountInvitationUpdateRequestInput() *types.AccountInvitationUpda
 func BuildFakeAccountInvitationCreationRequestInput() *types.AccountInvitationCreationRequestInput {
 	invitation := BuildFakeAccountInvitation()
 
-	return converters.ConvertAccountInvitationToAccountInvitationCreationInput(invitation)
+	return converters.ConvertAccountInvitationToAccountInvitationCreationRequestInput(invitation)
 }

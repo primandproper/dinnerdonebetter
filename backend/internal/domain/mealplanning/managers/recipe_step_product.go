@@ -53,7 +53,7 @@ func (m *mealPlanningManager) CreateRecipeStepProduct(ctx context.Context, recip
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 
-	convertedInput := converters.ConvertRecipeStepProductCreationInputToRecipeStepProductDatabaseCreationInput(input)
+	convertedInput := converters.ConvertRecipeStepProductCreationRequestInputToRecipeStepProductDatabaseCreationInput(input)
 	convertedInput.BelongsToRecipeStep = recipeStepID
 	logger = logger.WithValue(mealplanningkeys.RecipeStepProductIDKey, convertedInput.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepProductIDKey, convertedInput.ID)

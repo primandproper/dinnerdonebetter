@@ -1,12 +1,12 @@
 package converters
 
-// The conversions in this file are hand-written: each does something the declaration format in
-// cmd/tools/codegen/converters cannot express, and the note above each one says what. Everything
-// else in this package is generated from those declarations into converters_generated.go.
+// The conversions in this file are hand-written: each does something the generator in
+// cmd/tools/codegen/converters does not produce — it fails, it fans one value out into many, it
+// defaults something, it needs a second entity to make sense of the first. exceptions.go names
+// each one and says why.
 //
-// Adding a conversion here rather than declaring it is a decision, not a default. A conversion
-// that is a field copy with a handful of exceptions belongs in the declaration, where the
-// generator guarantees no destination field is silently forgotten.
+// Everything else in this package is generated. A conversion that is a field copy with a handful
+// of exceptions belongs there, where no destination field can be silently forgotten.
 
 import (
 	"fmt"
@@ -25,9 +25,6 @@ func mustnt(err error) {
 }
 
 // ConvertMealPlanEventToMealPlanEventCreationRequestInput builds a MealPlanEventCreationRequestInput from a meal plan.
-//
-// Hand-written: it stamps the event's ID onto each option of the entity it was handed before
-// converting it, which mutates its own argument.
 func ConvertMealPlanEventToMealPlanEventCreationRequestInput(mealPlanEvent *mealplanning.MealPlanEvent) *mealplanning.MealPlanEventCreationRequestInput {
 	options := []*mealplanning.MealPlanOptionCreationRequestInput{}
 	for _, opt := range mealPlanEvent.Options {
@@ -44,10 +41,32 @@ func ConvertMealPlanEventToMealPlanEventCreationRequestInput(mealPlanEvent *meal
 	}
 }
 
+// ConvertMealPlanOptionVoteCreationRequestInputToMealPlanOptionVotesDatabaseCreationInput creates a MealPlanOptionVotesDatabaseCreationInput from a MealPlanOptionVoteCreationRequestInput.
+func ConvertMealPlanOptionVoteCreationRequestInputToMealPlanOptionVotesDatabaseCreationInput(input *mealplanning.MealPlanOptionVoteCreationRequestInput) *mealplanning.MealPlanOptionVotesDatabaseCreationInput {
+	var votes []*mealplanning.MealPlanOptionVoteDatabaseCreationInput
+	for _, vote := range input.Votes {
+		votes = append(votes, ConvertMealPlanOptionVoteCreationRequestInputToMealPlanOptionVoteDatabaseCreationInput(vote))
+	}
+
+	x := &mealplanning.MealPlanOptionVotesDatabaseCreationInput{
+		Votes: votes,
+	}
+
+	return x
+}
+
+func ConvertMealPlanOptionVoteCreationRequestInputToMealPlanOptionVoteDatabaseCreationInput(input *mealplanning.MealPlanOptionVoteCreationInput) *mealplanning.MealPlanOptionVoteDatabaseCreationInput {
+	return &mealplanning.MealPlanOptionVoteDatabaseCreationInput{
+		ID:                      identifiers.New(),
+		Notes:                   input.Notes,
+		ByUser:                  input.ByUser,
+		BelongsToMealPlanOption: input.BelongsToMealPlanOption,
+		Rank:                    input.Rank,
+		Abstain:                 input.Abstain,
+	}
+}
+
 // ConvertMealPlanOptionVoteToMealPlanOptionVoteCreationRequestInput builds a MealPlanOptionVoteCreationRequestInput from a meal plan option vote.
-//
-// Hand-written: it wraps one vote in the one-element slice the batch input expects, building the
-// element inline rather than through a converter.
 func ConvertMealPlanOptionVoteToMealPlanOptionVoteCreationRequestInput(mealPlanOptionVote *mealplanning.MealPlanOptionVote) *mealplanning.MealPlanOptionVoteCreationRequestInput {
 	return &mealplanning.MealPlanOptionVoteCreationRequestInput{
 		Votes: []*mealplanning.MealPlanOptionVoteCreationInput{
@@ -64,9 +83,6 @@ func ConvertMealPlanOptionVoteToMealPlanOptionVoteCreationRequestInput(mealPlanO
 }
 
 // ConvertMealPlanOptionVoteToMealPlanOptionVotesDatabaseCreationInput builds a MealPlanOptionVotesDatabaseCreationInput from a meal plan option vote.
-//
-// Hand-written: it wraps one vote in the one-element slice the batch input expects, building the
-// element inline rather than through a converter.
 func ConvertMealPlanOptionVoteToMealPlanOptionVotesDatabaseCreationInput(mealPlanOptionVote *mealplanning.MealPlanOptionVote) *mealplanning.MealPlanOptionVotesDatabaseCreationInput {
 	return &mealplanning.MealPlanOptionVotesDatabaseCreationInput{
 		Votes: []*mealplanning.MealPlanOptionVoteDatabaseCreationInput{
@@ -82,10 +98,20 @@ func ConvertMealPlanOptionVoteToMealPlanOptionVotesDatabaseCreationInput(mealPla
 	}
 }
 
+// ConvertMealPlanRecipeOptionSelectionDatabaseCreationInputToMealPlanRecipeOptionSelectionDatabaseCreationInput creates a new DatabaseCreationInput with a new ID.
+func ConvertMealPlanRecipeOptionSelectionDatabaseCreationInputToMealPlanRecipeOptionSelectionDatabaseCreationInput(input *mealplanning.MealPlanRecipeOptionSelectionCreationRequestInput, mealPlanOptionID string) *mealplanning.MealPlanRecipeOptionSelectionDatabaseCreationInput {
+	return &mealplanning.MealPlanRecipeOptionSelectionDatabaseCreationInput{
+		ID:                      identifiers.New(),
+		BelongsToMealPlanOption: mealPlanOptionID,
+		RecipeID:                input.RecipeID,
+		RecipeStepID:            input.RecipeStepID,
+		IngredientIndex:         input.IngredientIndex,
+		SelectedOptionIndex:     input.SelectedOptionIndex,
+		SelectionType:           input.SelectionType,
+	}
+}
+
 // ConvertMealPlanCreationRequestInputToMealPlanDatabaseCreationInput creates a MealPlanDatabaseCreationInput from a MealPlanCreationRequestInput.
-//
-// Hand-written: it builds each recipe option selection inline, minting an ID per row and leaving
-// the owning option for a later pass.
 func ConvertMealPlanCreationRequestInputToMealPlanDatabaseCreationInput(input *mealplanning.MealPlanCreationRequestInput) *mealplanning.MealPlanDatabaseCreationInput {
 	mealPlanID := identifiers.New()
 	events := []*mealplanning.MealPlanEventDatabaseCreationInput{}
@@ -124,9 +150,6 @@ func ConvertMealPlanCreationRequestInputToMealPlanDatabaseCreationInput(input *m
 }
 
 // ConvertRecipePrepTaskToRecipePrepTaskUpdateRequestInput creates a RecipePrepTaskUpdateRequestInput from a RecipePrepTask.
-//
-// Hand-written: it builds each task step's update input inline, from the address of a per-
-// iteration copy rather than of the entity's own field.
 func ConvertRecipePrepTaskToRecipePrepTaskUpdateRequestInput(input *mealplanning.RecipePrepTask) *mealplanning.RecipePrepTaskUpdateRequestInput {
 	taskSteps := []*mealplanning.RecipePrepTaskStepUpdateRequestInput{}
 	for _, x := range input.TaskSteps {
@@ -156,9 +179,6 @@ func ConvertRecipePrepTaskToRecipePrepTaskUpdateRequestInput(input *mealplanning
 }
 
 // ConvertRecipePrepTaskCreationRequestInputToRecipePrepTaskDatabaseCreationInput creates a DatabaseCreationInput from a CreationInput.
-//
-// Hand-written: it builds each task step inline rather than through a converter, minting an ID for
-// each.
 func ConvertRecipePrepTaskCreationRequestInputToRecipePrepTaskDatabaseCreationInput(input *mealplanning.RecipePrepTaskCreationRequestInput) *mealplanning.RecipePrepTaskDatabaseCreationInput {
 	taskSteps := []*mealplanning.RecipePrepTaskStepDatabaseCreationInput{}
 	for _, x := range input.RecipeSteps {
@@ -189,9 +209,6 @@ func ConvertRecipePrepTaskCreationRequestInputToRecipePrepTaskDatabaseCreationIn
 }
 
 // ConvertRecipePrepTaskWithinRecipeCreationRequestInputToRecipePrepTaskDatabaseCreationInput creates a DatabaseCreationInput from a CreationInput.
-//
-// Hand-written: it resolves every task step against the recipe's steps by index, and a step that
-// names an index the recipe does not have is an error rather than a zero value.
 func ConvertRecipePrepTaskWithinRecipeCreationRequestInputToRecipePrepTaskDatabaseCreationInput(recipe *mealplanning.RecipeDatabaseCreationInput, input *mealplanning.RecipePrepTaskWithinRecipeCreationRequestInput) (*mealplanning.RecipePrepTaskDatabaseCreationInput, error) {
 	x := &mealplanning.RecipePrepTaskDatabaseCreationInput{
 		ID:                                 identifiers.New(),
@@ -225,11 +242,6 @@ func ConvertRecipePrepTaskWithinRecipeCreationRequestInputToRecipePrepTaskDataba
 	return x, nil
 }
 
-// ConvertRecipePrepTaskToRecipePrepTaskWithinRecipeCreationRequestInput builds the destination
-// from its source.
-//
-// Hand-written: each task step is converted against the recipe as well as itself, so this is a
-// conversion that needs a second entity to make sense of the first.
 func ConvertRecipePrepTaskToRecipePrepTaskWithinRecipeCreationRequestInput(recipe *mealplanning.Recipe, input *mealplanning.RecipePrepTask) *mealplanning.RecipePrepTaskWithinRecipeCreationRequestInput {
 	taskSteps := []*mealplanning.RecipePrepTaskStepWithinRecipeCreationRequestInput{}
 	for _, x := range input.TaskSteps {
@@ -252,11 +264,6 @@ func ConvertRecipePrepTaskToRecipePrepTaskWithinRecipeCreationRequestInput(recip
 	}
 }
 
-// ConvertRecipePrepTaskStepToRecipePrepTaskStepWithinRecipeCreationRequestInput builds the
-// destination from its source.
-//
-// Hand-written: it looks a recipe step up by ID to find its position, and falls back to the first
-// position when the recipe has no such step.
 func ConvertRecipePrepTaskStepToRecipePrepTaskStepWithinRecipeCreationRequestInput(recipe *mealplanning.Recipe, input *mealplanning.RecipePrepTaskStep) *mealplanning.RecipePrepTaskStepWithinRecipeCreationRequestInput {
 	var belongsToIndex uint32
 	if x := recipe.FindStepByID(input.BelongsToRecipeStep); x != nil {
@@ -270,9 +277,6 @@ func ConvertRecipePrepTaskStepToRecipePrepTaskStepWithinRecipeCreationRequestInp
 }
 
 // ConvertRecipeStepCompletionConditionCreationRequestInputToRecipeStepCompletionConditionDatabaseCreationInput creates a RecipeStepCompletionConditionDatabaseCreationInput from a RecipeStepCompletionConditionCreationRequestInput.
-//
-// Hand-written: it builds each condition ingredient inline against the step being created,
-// resolving the ingredient by its position in that step.
 func ConvertRecipeStepCompletionConditionCreationRequestInputToRecipeStepCompletionConditionDatabaseCreationInput(recipeStep *mealplanning.RecipeStepDatabaseCreationInput, input *mealplanning.RecipeStepCompletionConditionCreationRequestInput) *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput {
 	recipeStepCompletionConditionID := identifiers.New()
 
@@ -299,10 +303,40 @@ func ConvertRecipeStepCompletionConditionCreationRequestInputToRecipeStepComplet
 	return x
 }
 
+// ConvertRecipeStepCompletionConditionForExistingRecipeCreationRequestInputToRecipeStepCompletionConditionDatabaseCreationInput creates a RecipeStepCompletionConditionDatabaseCreationInput from a RecipeStepCompletionConditionForExitingRecipeCreationRequestInput.
+func ConvertRecipeStepCompletionConditionForExistingRecipeCreationRequestInputToRecipeStepCompletionConditionDatabaseCreationInput(input *mealplanning.RecipeStepCompletionConditionForExistingRecipeCreationRequestInput) *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput {
+	id := identifiers.New()
+
+	var ingredients []*mealplanning.RecipeStepCompletionConditionIngredientDatabaseCreationInput
+	for _, i := range input.Ingredients {
+		x := ConvertRecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInputToRecipeStepCompletionConditionIngredientDatabaseCreationInput(i)
+		x.BelongsToRecipeStepCompletionCondition = id
+		ingredients = append(ingredients, x)
+	}
+
+	x := &mealplanning.RecipeStepCompletionConditionDatabaseCreationInput{
+		ID:                  id,
+		IngredientStateID:   input.IngredientStateID,
+		BelongsToRecipeStep: input.BelongsToRecipeStep,
+		Notes:               input.Notes,
+		Ingredients:         ingredients,
+		Optional:            input.Optional,
+	}
+
+	return x
+}
+
+// ConvertRecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInputToRecipeStepCompletionConditionIngredientDatabaseCreationInput creates a RecipeStepCompletionConditionIngredientDatabaseCreationInput from a RecipeStepCompletionConditionCreationRequestInput.
+func ConvertRecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInputToRecipeStepCompletionConditionIngredientDatabaseCreationInput(input *mealplanning.RecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInput) *mealplanning.RecipeStepCompletionConditionIngredientDatabaseCreationInput {
+	x := &mealplanning.RecipeStepCompletionConditionIngredientDatabaseCreationInput{
+		ID:                   identifiers.New(),
+		RecipeStepIngredient: input.RecipeStepIngredient,
+	}
+
+	return x
+}
+
 // ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionCreationRequestInput builds a RecipeStepCompletionConditionCreationRequestInput from a RecipeStepCompletionCondition.
-//
-// Hand-written: it turns ingredient IDs back into positions by searching the step's ingredients,
-// which is a nested loop with a checked numeric conversion in it.
 func ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionCreationRequestInput(recipeStep *mealplanning.RecipeStep, recipeStepCompletionCondition *mealplanning.RecipeStepCompletionCondition) *mealplanning.RecipeStepCompletionConditionCreationRequestInput {
 	var ingredients []uint64
 	for _, ingredientIndex := range recipeStepCompletionCondition.Ingredients {
@@ -325,9 +359,6 @@ func ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionCreation
 }
 
 // ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionForExistingRecipeCreationRequestInput builds a RecipeStepCompletionConditionCreationRequestInput from a RecipeStepCompletionCondition.
-//
-// Hand-written: its ingredient slice stays nil when the condition has none, and this shape is
-// reached from a request body where nil and [] are different answers.
 func ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionForExistingRecipeCreationRequestInput(recipeStepCompletionCondition *mealplanning.RecipeStepCompletionCondition) *mealplanning.RecipeStepCompletionConditionForExistingRecipeCreationRequestInput {
 	var ingredients []*mealplanning.RecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInput
 	for _, i := range recipeStepCompletionCondition.Ingredients {
@@ -344,9 +375,14 @@ func ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionForExist
 	}
 }
 
+// ConvertRecipeStepCompletionConditionIngredientToRecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInput builds a RecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInput from a RecipeStepCompletionCondition.
+func ConvertRecipeStepCompletionConditionIngredientToRecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInput(recipeStepCompletionConditionIngredient *mealplanning.RecipeStepCompletionConditionIngredient) *mealplanning.RecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInput {
+	return &mealplanning.RecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInput{
+		RecipeStepIngredient: recipeStepCompletionConditionIngredient.RecipeStepIngredient,
+	}
+}
+
 // ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionDatabaseCreationInput builds a RecipeStepCompletionConditionDatabaseCreationInput from a RecipeStepCompletionCondition.
-//
-// Hand-written: it builds each condition ingredient inline rather than through a converter.
 func ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionDatabaseCreationInput(recipeStepCompletionCondition *mealplanning.RecipeStepCompletionCondition) *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput {
 	ingredients := []*mealplanning.RecipeStepCompletionConditionIngredientDatabaseCreationInput{}
 	for _, ingredient := range recipeStepCompletionCondition.Ingredients {
@@ -369,9 +405,6 @@ func ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionDatabase
 
 // ConvertRecipeStepIngredientCreationRequestInputToRecipeStepIngredientDatabaseCreationInput creates a RecipeStepIngredientDatabaseCreationInput from a RecipeStepIngredientCreationRequestInput.
 // If input.Index is nil, it will be set to the provided arrayIndex.
-//
-// Hand-written: the array index it is handed is a fallback for an index the request may omit,
-// which is a defaulting rule rather than a copy.
 func ConvertRecipeStepIngredientCreationRequestInputToRecipeStepIngredientDatabaseCreationInput(input *mealplanning.RecipeStepIngredientCreationRequestInput, arrayIndex uint16) *mealplanning.RecipeStepIngredientDatabaseCreationInput {
 	index := arrayIndex
 	if input.Index != nil {
@@ -405,9 +438,6 @@ func ConvertRecipeStepIngredientCreationRequestInputToRecipeStepIngredientDataba
 // ConvertRecipeStepIngredientToRecipeStepIngredientCreationRequestInput builds a RecipeStepIngredientCreationRequestInput from a RecipeStepIngredient.
 // Note: This conversion loses bridge table ID information since RecipeStepIngredient doesn't store them.
 // If Index is 0, it will be set to nil so that the converter can use the array index during recipe creation.
-//
-// Hand-written: an index of zero becomes nil, so that recipe creation fills it from the element's
-// position instead.
 func ConvertRecipeStepIngredientToRecipeStepIngredientCreationRequestInput(input *mealplanning.RecipeStepIngredient) *mealplanning.RecipeStepIngredientCreationRequestInput {
 	var indexPtr *uint16
 	if input.Index != 0 {
@@ -431,9 +461,6 @@ func ConvertRecipeStepIngredientToRecipeStepIngredientCreationRequestInput(input
 
 // ConvertRecipeStepInstrumentCreationRequestInputToRecipeStepInstrumentDatabaseCreationInput creates a RecipeStepInstrumentDatabaseCreationInput from a RecipeStepInstrumentCreationRequestInput.
 // If input.Index is nil, it will be set to the provided arrayIndex.
-//
-// Hand-written: the array index it is handed is a fallback for an index the request may omit,
-// which is a defaulting rule rather than a copy.
 func ConvertRecipeStepInstrumentCreationRequestInputToRecipeStepInstrumentDatabaseCreationInput(input *mealplanning.RecipeStepInstrumentCreationRequestInput, arrayIndex uint16) *mealplanning.RecipeStepInstrumentDatabaseCreationInput {
 	index := arrayIndex
 	if input.Index != nil {
@@ -470,9 +497,6 @@ func scaleFactorOrDefault(v float32) float32 {
 // ConvertRecipeStepInstrumentToRecipeStepInstrumentCreationRequestInput builds a RecipeStepInstrumentCreationRequestInput from a RecipeStepInstrument.
 // Note: This conversion loses bridge table ID information since RecipeStepInstrument doesn't store them.
 // If Index is 0, it will be set to nil so that the converter can use the array index during recipe creation.
-//
-// Hand-written: an index of zero becomes nil, so that recipe creation fills it from the element's
-// position instead.
 func ConvertRecipeStepInstrumentToRecipeStepInstrumentCreationRequestInput(input *mealplanning.RecipeStepInstrument) *mealplanning.RecipeStepInstrumentCreationRequestInput {
 	var indexPtr *uint16
 	if input.Index != 0 {
@@ -493,8 +517,6 @@ func ConvertRecipeStepInstrumentToRecipeStepInstrumentCreationRequestInput(input
 }
 
 // ConvertRecipeStepProductToRecipeStepProductUpdateRequestInput creates a RecipeStepProductUpdateRequestInput from a RecipeStepProduct.
-//
-// Hand-written: it returns nil for a nil product rather than dereferencing one.
 func ConvertRecipeStepProductToRecipeStepProductUpdateRequestInput(input *mealplanning.RecipeStepProduct) *mealplanning.RecipeStepProductUpdateRequestInput {
 	if input == nil {
 		return nil
@@ -525,10 +547,8 @@ func ConvertRecipeStepProductToRecipeStepProductUpdateRequestInput(input *mealpl
 	return x
 }
 
-// ConvertRecipeStepProductCreationInputToRecipeStepProductDatabaseCreationInput creates a RecipeStepProductDatabaseCreationInput from a RecipeStepProductCreationRequestInput.
-//
-// Hand-written: it returns nil for a nil input rather than dereferencing one.
-func ConvertRecipeStepProductCreationInputToRecipeStepProductDatabaseCreationInput(input *mealplanning.RecipeStepProductCreationRequestInput) *mealplanning.RecipeStepProductDatabaseCreationInput {
+// ConvertRecipeStepProductCreationRequestInputToRecipeStepProductDatabaseCreationInput creates a RecipeStepProductDatabaseCreationInput from a RecipeStepProductCreationRequestInput.
+func ConvertRecipeStepProductCreationRequestInputToRecipeStepProductDatabaseCreationInput(input *mealplanning.RecipeStepProductCreationRequestInput) *mealplanning.RecipeStepProductDatabaseCreationInput {
 	if input == nil {
 		return nil
 	}
@@ -560,9 +580,6 @@ func ConvertRecipeStepProductCreationInputToRecipeStepProductDatabaseCreationInp
 
 // ConvertRecipeStepVesselCreationRequestInputToRecipeStepVesselDatabaseCreationInput creates a RecipeStepVesselDatabaseCreationInput from a RecipeStepVesselCreationRequestInput.
 // If input.Index is nil, it will be set to the provided arrayIndex.
-//
-// Hand-written: the array index it is handed is a fallback for an index the request may omit,
-// which is a defaulting rule rather than a copy.
 func ConvertRecipeStepVesselCreationRequestInputToRecipeStepVesselDatabaseCreationInput(input *mealplanning.RecipeStepVesselCreationRequestInput, arrayIndex uint16) *mealplanning.RecipeStepVesselDatabaseCreationInput {
 	index := arrayIndex
 	if input.Index != nil {
@@ -592,9 +609,6 @@ func ConvertRecipeStepVesselCreationRequestInputToRecipeStepVesselDatabaseCreati
 // ConvertRecipeStepVesselToRecipeStepVesselCreationRequestInput builds a RecipeStepVesselCreationRequestInput from a RecipeStepVessel.
 // Note: This conversion loses bridge table ID information since RecipeStepVessel doesn't store them.
 // If Index is 0, it will be set to nil so that the converter can use the array index during recipe creation.
-//
-// Hand-written: an index of zero becomes nil, so that recipe creation fills it from the element's
-// position instead.
 func ConvertRecipeStepVesselToRecipeStepVesselCreationRequestInput(input *mealplanning.RecipeStepVessel) *mealplanning.RecipeStepVesselCreationRequestInput {
 	var indexPtr *uint16
 	if input.Index != 0 {
@@ -614,12 +628,8 @@ func ConvertRecipeStepVesselToRecipeStepVesselCreationRequestInput(input *mealpl
 	}
 }
 
-// ConvertRecipeStepCreationInputToRecipeStepDatabaseCreationInput creates a RecipeStepDatabaseCreationInput from a RecipeStepCreationRequestInput.
-//
-// Hand-written: it mints the step's ID and then converts five child collections against it, re-
-// minting each child's ID and stamping the step's own; the completion conditions are converted
-// against a temporary step built for that purpose.
-func ConvertRecipeStepCreationInputToRecipeStepDatabaseCreationInput(input *mealplanning.RecipeStepCreationRequestInput) *mealplanning.RecipeStepDatabaseCreationInput {
+// ConvertRecipeStepCreationRequestInputToRecipeStepDatabaseCreationInput creates a RecipeStepDatabaseCreationInput from a RecipeStepCreationRequestInput.
+func ConvertRecipeStepCreationRequestInputToRecipeStepDatabaseCreationInput(input *mealplanning.RecipeStepCreationRequestInput) *mealplanning.RecipeStepDatabaseCreationInput {
 	stepID := identifiers.New()
 
 	ingredients := []*mealplanning.RecipeStepIngredientDatabaseCreationInput{}
@@ -648,7 +658,7 @@ func ConvertRecipeStepCreationInputToRecipeStepDatabaseCreationInput(input *meal
 
 	products := []*mealplanning.RecipeStepProductDatabaseCreationInput{}
 	for _, product := range input.Products {
-		convertedProduct := ConvertRecipeStepProductCreationInputToRecipeStepProductDatabaseCreationInput(product)
+		convertedProduct := ConvertRecipeStepProductCreationRequestInputToRecipeStepProductDatabaseCreationInput(product)
 		convertedProduct.ID = identifiers.New()
 		convertedProduct.BelongsToRecipeStep = stepID
 		products = append(products, convertedProduct)
@@ -691,9 +701,54 @@ func ConvertRecipeStepCreationInputToRecipeStepDatabaseCreationInput(input *meal
 	}
 }
 
+// ConvertRecipeStepToRecipeStepCreationRequestInput builds a RecipeStepCreationRequestInput from a RecipeStep.
+func ConvertRecipeStepToRecipeStepCreationRequestInput(recipeStep *mealplanning.RecipeStep) *mealplanning.RecipeStepCreationRequestInput {
+	ingredients := []*mealplanning.RecipeStepIngredientCreationRequestInput{}
+	for _, ingredient := range recipeStep.Ingredients {
+		ingredients = append(ingredients, ConvertRecipeStepIngredientToRecipeStepIngredientCreationRequestInput(ingredient))
+	}
+
+	instruments := []*mealplanning.RecipeStepInstrumentCreationRequestInput{}
+	for _, instrument := range recipeStep.Instruments {
+		instruments = append(instruments, ConvertRecipeStepInstrumentToRecipeStepInstrumentCreationRequestInput(instrument))
+	}
+
+	vessels := []*mealplanning.RecipeStepVesselCreationRequestInput{}
+	for _, vessel := range recipeStep.Vessels {
+		vessels = append(vessels, ConvertRecipeStepVesselToRecipeStepVesselCreationRequestInput(vessel))
+	}
+
+	products := []*mealplanning.RecipeStepProductCreationRequestInput{}
+	for _, product := range recipeStep.Products {
+		products = append(products, ConvertRecipeStepProductToRecipeStepProductCreationRequestInput(product))
+	}
+
+	completionConditions := []*mealplanning.RecipeStepCompletionConditionCreationRequestInput{}
+	for _, completionCondition := range recipeStep.CompletionConditions {
+		completionConditions = append(completionConditions, ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionCreationRequestInput(recipeStep, completionCondition))
+	}
+
+	return &mealplanning.RecipeStepCreationRequestInput{
+		Optional:                  recipeStep.Optional,
+		Index:                     recipeStep.Index,
+		PreparationID:             recipeStep.Preparation.ID,
+		MinEstimatedTimeInSeconds: recipeStep.MinEstimatedTimeInSeconds,
+		MaxEstimatedTimeInSeconds: recipeStep.MaxEstimatedTimeInSeconds,
+		MinTemperatureInCelsius:   recipeStep.MinTemperatureInCelsius,
+		MaxTemperatureInCelsius:   recipeStep.MaxTemperatureInCelsius,
+		Notes:                     recipeStep.Notes,
+		ExplicitInstructions:      recipeStep.ExplicitInstructions,
+		ConditionExpression:       recipeStep.ConditionExpression,
+		StartTimerAutomatically:   recipeStep.StartTimerAutomatically,
+		Products:                  products,
+		Ingredients:               ingredients,
+		Instruments:               instruments,
+		Vessels:                   vessels,
+		CompletionConditions:      completionConditions,
+	}
+}
+
 // ConvertRecipeCreationRequestInputToRecipeDatabaseCreationInput creates a DatabaseCreationInput from a CreationInput.
-//
-// Hand-written: converting a prep task can fail, so this returns an error rather than a value.
 func ConvertRecipeCreationRequestInputToRecipeDatabaseCreationInput(input *mealplanning.RecipeCreationRequestInput) (*mealplanning.RecipeDatabaseCreationInput, error) {
 	x := &mealplanning.RecipeDatabaseCreationInput{
 		ID:                   identifiers.New(),
@@ -713,7 +768,7 @@ func ConvertRecipeCreationRequestInputToRecipeDatabaseCreationInput(input *mealp
 	}
 
 	for _, step := range input.Steps {
-		s := ConvertRecipeStepCreationInputToRecipeStepDatabaseCreationInput(step)
+		s := ConvertRecipeStepCreationRequestInputToRecipeStepDatabaseCreationInput(step)
 		s.BelongsToRecipe = x.ID
 		x.Steps = append(x.Steps, s)
 	}
@@ -730,9 +785,37 @@ func ConvertRecipeCreationRequestInputToRecipeDatabaseCreationInput(input *mealp
 	return x, nil
 }
 
+// ConvertRecipeToRecipeCreationRequestInput builds a RecipeCreationRequestInput from a recipe.
+func ConvertRecipeToRecipeCreationRequestInput(input *mealplanning.Recipe) *mealplanning.RecipeCreationRequestInput {
+	steps := []*mealplanning.RecipeStepCreationRequestInput{}
+	for _, step := range input.Steps {
+		steps = append(steps, ConvertRecipeStepToRecipeStepCreationRequestInput(step))
+	}
+
+	prepTasks := []*mealplanning.RecipePrepTaskWithinRecipeCreationRequestInput{}
+	for _, prepTask := range input.PrepTasks {
+		prepTasks = append(prepTasks, ConvertRecipePrepTaskToRecipePrepTaskWithinRecipeCreationRequestInput(input, prepTask))
+	}
+
+	return &mealplanning.RecipeCreationRequestInput{
+		Name:                 input.Name,
+		Slug:                 input.Slug,
+		Source:               input.Source,
+		SourceISBN:           input.SourceISBN,
+		Description:          input.Description,
+		InspiredByRecipeID:   input.InspiredByRecipeID,
+		MinEstimatedPortions: input.MinEstimatedPortions,
+		MaxEstimatedPortions: input.MaxEstimatedPortions,
+		PortionName:          input.PortionName,
+		PluralPortionName:    input.PluralPortionName,
+		Steps:                steps,
+		PrepTasks:            prepTasks,
+		EligibleForMeals:     input.EligibleForMeals,
+		YieldsComponentType:  input.YieldsComponentType,
+	}
+}
+
 // ConvertValidIngredientGroupCreationRequestInputToValidIngredientGroupDatabaseCreationInput creates a DatabaseCreationInput from a CreationInput.
-//
-// Hand-written: it builds each member row inline, minting an ID and stamping the group's own.
 func ConvertValidIngredientGroupCreationRequestInputToValidIngredientGroupDatabaseCreationInput(input *mealplanning.ValidIngredientGroupCreationRequestInput) *mealplanning.ValidIngredientGroupDatabaseCreationInput {
 	var members []*mealplanning.ValidIngredientGroupMemberDatabaseCreationInput
 	for _, member := range input.Members {
@@ -754,8 +837,6 @@ func ConvertValidIngredientGroupCreationRequestInputToValidIngredientGroupDataba
 }
 
 // ConvertValidIngredientGroupToValidIngredientGroupDatabaseCreationInput builds a ValidIngredientGroupDatabaseCreationInput from a ValidIngredientGroup.
-//
-// Hand-written: it builds each member row inline, minting an ID and stamping the group's own.
 func ConvertValidIngredientGroupToValidIngredientGroupDatabaseCreationInput(validIngredient *mealplanning.ValidIngredientGroup) *mealplanning.ValidIngredientGroupDatabaseCreationInput {
 	members := make([]*mealplanning.ValidIngredientGroupMemberDatabaseCreationInput, len(validIngredient.Members))
 	for i, member := range validIngredient.Members {
@@ -774,10 +855,25 @@ func ConvertValidIngredientGroupToValidIngredientGroupDatabaseCreationInput(vali
 	}
 }
 
+// ConvertNullableValidInstrumentToValidInstrument produces a ValidInstrument from a NullableValidInstrument.
+func ConvertNullableValidInstrumentToValidInstrument(x *mealplanning.NullableValidInstrument) *mealplanning.ValidInstrument {
+	return &mealplanning.ValidInstrument{
+		LastUpdatedAt:                  x.LastUpdatedAt,
+		ArchivedAt:                     x.ArchivedAt,
+		Description:                    *x.Description,
+		IconPath:                       *x.IconPath,
+		ID:                             *x.ID,
+		Name:                           *x.Name,
+		PluralName:                     *x.PluralName,
+		CreatedAt:                      *x.CreatedAt,
+		UsableForStorage:               *x.UsableForStorage,
+		Slug:                           *x.Slug,
+		DisplayInSummaryLists:          *x.DisplayInSummaryLists,
+		IncludeInGeneratedInstructions: *x.IncludeInGeneratedInstructions,
+	}
+}
+
 // ConvertNullableValidMeasurementUnitToValidMeasurementUnit produces a ValidMeasurementUnit from a NullableValidMeasurementUnit.
-//
-// Hand-written: the nullable shape is what a LEFT JOIN produces, and this returns nil when the
-// join did not match rather than reading through it.
 func ConvertNullableValidMeasurementUnitToValidMeasurementUnit(x *mealplanning.NullableValidMeasurementUnit) *mealplanning.ValidMeasurementUnit {
 	if x != nil && x.ID != nil {
 		return &mealplanning.ValidMeasurementUnit{
@@ -799,10 +895,26 @@ func ConvertNullableValidMeasurementUnitToValidMeasurementUnit(x *mealplanning.N
 	return nil
 }
 
+// ConvertValidMeasurementUnitToNullableValidMeasurementUnit converts a NullableValidMeasurementUnit to a ValidMeasurementUnit.
+func ConvertValidMeasurementUnitToNullableValidMeasurementUnit(input *mealplanning.ValidMeasurementUnit) *mealplanning.NullableValidMeasurementUnit {
+	return &mealplanning.NullableValidMeasurementUnit{
+		CreatedAt:     &input.CreatedAt,
+		LastUpdatedAt: input.LastUpdatedAt,
+		ArchivedAt:    input.ArchivedAt,
+		Name:          &input.Name,
+		IconPath:      &input.IconPath,
+		ID:            &input.ID,
+		Description:   &input.Description,
+		PluralName:    &input.PluralName,
+		Slug:          &input.Slug,
+		Volumetric:    &input.Volumetric,
+		Universal:     &input.Universal,
+		Metric:        &input.Metric,
+		Imperial:      &input.Imperial,
+	}
+}
+
 // ConvertNullableValidVesselToValidVessel produces a ValidVessel from a NullableValidVessel.
-//
-// Hand-written: every column is guarded on its own, so an absent one leaves a zero value rather
-// than panicking.
 func ConvertNullableValidVesselToValidVessel(x *mealplanning.NullableValidVessel) *mealplanning.ValidVessel {
 	v := &mealplanning.ValidVessel{
 		CapacityUnit:  ConvertNullableValidMeasurementUnitToValidMeasurementUnit(x.CapacityUnit),

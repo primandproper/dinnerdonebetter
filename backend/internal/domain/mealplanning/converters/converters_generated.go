@@ -8,28 +8,6 @@ import (
 	"github.com/primandproper/platform-go/v11/identifiers"
 )
 
-// ConvertAccountInstrumentOwnershipToAccountInstrumentOwnershipUpdateRequestInput builds an AccountInstrumentOwnershipUpdateRequestInput from an AccountInstrumentOwnership.
-func ConvertAccountInstrumentOwnershipToAccountInstrumentOwnershipUpdateRequestInput(x *mealplanning.AccountInstrumentOwnership) *mealplanning.AccountInstrumentOwnershipUpdateRequestInput {
-	return &mealplanning.AccountInstrumentOwnershipUpdateRequestInput{
-		Notes:             &x.Notes,
-		Quantity:          &x.Quantity,
-		ValidInstrumentID: &x.Instrument.ID,
-	}
-}
-
-// ConvertAccountInstrumentOwnershipCreationRequestInputToAccountInstrumentOwnershipDatabaseCreationInput builds an AccountInstrumentOwnershipDatabaseCreationInput from an AccountInstrumentOwnershipCreationRequestInput.
-func ConvertAccountInstrumentOwnershipCreationRequestInputToAccountInstrumentOwnershipDatabaseCreationInput(x *mealplanning.AccountInstrumentOwnershipCreationRequestInput) *mealplanning.AccountInstrumentOwnershipDatabaseCreationInput {
-	return &mealplanning.AccountInstrumentOwnershipDatabaseCreationInput{
-		ID:                identifiers.New(),
-		Notes:             x.Notes,
-		ValidInstrumentID: x.ValidInstrumentID,
-
-		// BelongsToAccount is left unset. Comes from the session rather than the request
-		// body, so the manager stamps it after this.
-		Quantity: x.Quantity,
-	}
-}
-
 // ConvertAccountInstrumentOwnershipToAccountInstrumentOwnershipCreationRequestInput builds an AccountInstrumentOwnershipCreationRequestInput from an AccountInstrumentOwnership.
 func ConvertAccountInstrumentOwnershipToAccountInstrumentOwnershipCreationRequestInput(x *mealplanning.AccountInstrumentOwnership) *mealplanning.AccountInstrumentOwnershipCreationRequestInput {
 	return &mealplanning.AccountInstrumentOwnershipCreationRequestInput{
@@ -50,283 +28,546 @@ func ConvertAccountInstrumentOwnershipToAccountInstrumentOwnershipDatabaseCreati
 	}
 }
 
+// ConvertAccountInstrumentOwnershipToAccountInstrumentOwnershipUpdateRequestInput builds an AccountInstrumentOwnershipUpdateRequestInput from an AccountInstrumentOwnership.
+func ConvertAccountInstrumentOwnershipToAccountInstrumentOwnershipUpdateRequestInput(x *mealplanning.AccountInstrumentOwnership) *mealplanning.AccountInstrumentOwnershipUpdateRequestInput {
+	return &mealplanning.AccountInstrumentOwnershipUpdateRequestInput{
+		Notes:             &x.Notes,
+		Quantity:          &x.Quantity,
+		ValidInstrumentID: &x.Instrument.ID,
+	}
+}
+
+// ConvertAccountInstrumentOwnershipCreationRequestInputToAccountInstrumentOwnershipDatabaseCreationInput builds an AccountInstrumentOwnershipDatabaseCreationInput from an AccountInstrumentOwnershipCreationRequestInput.
+func ConvertAccountInstrumentOwnershipCreationRequestInputToAccountInstrumentOwnershipDatabaseCreationInput(x *mealplanning.AccountInstrumentOwnershipCreationRequestInput) *mealplanning.AccountInstrumentOwnershipDatabaseCreationInput {
+	return &mealplanning.AccountInstrumentOwnershipDatabaseCreationInput{
+		ID:                identifiers.New(),
+		Notes:             x.Notes,
+		ValidInstrumentID: x.ValidInstrumentID,
+
+		// BelongsToAccount is left unset. Comes from the authenticated session rather than
+		// the request body, so the manager stamps it after this.
+		Quantity: x.Quantity,
+	}
+}
+
+// ConvertMealToMealCreationRequestInput builds a MealCreationRequestInput from a Meal.
+func ConvertMealToMealCreationRequestInput(x *mealplanning.Meal) *mealplanning.MealCreationRequestInput {
+	components := make([]*mealplanning.MealComponentCreationRequestInput, 0, len(x.Components))
+	for _, item := range x.Components {
+		components = append(components, ConvertMealComponentToMealComponentCreationRequestInput(item))
+	}
+
+	return &mealplanning.MealCreationRequestInput{
+		MaxEstimatedPortions: x.MaxEstimatedPortions,
+		Name:                 x.Name,
+		Description:          x.Description,
+		Components:           components,
+		MinEstimatedPortions: x.MinEstimatedPortions,
+		EligibleForMealPlans: x.EligibleForMealPlans,
+	}
+}
+
+// ConvertMealToMealDatabaseCreationInput builds a MealDatabaseCreationInput from a Meal.
+func ConvertMealToMealDatabaseCreationInput(x *mealplanning.Meal) *mealplanning.MealDatabaseCreationInput {
+	components := make([]*mealplanning.MealComponentDatabaseCreationInput, 0, len(x.Components))
+	for _, item := range x.Components {
+		components = append(components, ConvertMealComponentToMealComponentDatabaseCreationInput(item))
+	}
+
+	return &mealplanning.MealDatabaseCreationInput{
+		MaxEstimatedPortions: x.MaxEstimatedPortions,
+		ID:                   x.ID,
+		Name:                 x.Name,
+		Description:          x.Description,
+		CreatedByUser:        x.CreatedByUser,
+		Components:           components,
+		MinEstimatedPortions: x.MinEstimatedPortions,
+		EligibleForMealPlans: x.EligibleForMealPlans,
+	}
+}
+
+// ConvertMealCreationRequestInputToMealDatabaseCreationInput builds a MealDatabaseCreationInput from a MealCreationRequestInput.
+func ConvertMealCreationRequestInputToMealDatabaseCreationInput(x *mealplanning.MealCreationRequestInput) *mealplanning.MealDatabaseCreationInput {
+	components := make([]*mealplanning.MealComponentDatabaseCreationInput, 0, len(x.Components))
+	for _, item := range x.Components {
+		components = append(components, ConvertMealComponentCreationRequestInputToMealComponentDatabaseCreationInput(item))
+	}
+
+	return &mealplanning.MealDatabaseCreationInput{
+		MaxEstimatedPortions: x.MaxEstimatedPortions,
+		ID:                   identifiers.New(),
+		Name:                 x.Name,
+		Description:          x.Description,
+
+		// CreatedByUser is left unset. Comes from the authenticated session rather than
+		// the request body, so the manager stamps it after this.
+		Components:           components,
+		MinEstimatedPortions: x.MinEstimatedPortions,
+		EligibleForMealPlans: x.EligibleForMealPlans,
+	}
+}
+
+// ConvertMealComponentToMealComponentCreationRequestInput builds a MealComponentCreationRequestInput from a MealComponent.
+func ConvertMealComponentToMealComponentCreationRequestInput(x *mealplanning.MealComponent) *mealplanning.MealComponentCreationRequestInput {
+	return &mealplanning.MealComponentCreationRequestInput{
+		RecipeID:      x.Recipe.ID,
+		ComponentType: x.ComponentType,
+		RecipeScale:   x.RecipeScale,
+	}
+}
+
+// ConvertMealComponentToMealComponentDatabaseCreationInput builds a MealComponentDatabaseCreationInput from a MealComponent.
+func ConvertMealComponentToMealComponentDatabaseCreationInput(x *mealplanning.MealComponent) *mealplanning.MealComponentDatabaseCreationInput {
+	return &mealplanning.MealComponentDatabaseCreationInput{
+		RecipeID:      x.Recipe.ID,
+		ComponentType: x.ComponentType,
+		RecipeScale:   x.RecipeScale,
+	}
+}
+
+// ConvertMealComponentCreationRequestInputToMealComponentDatabaseCreationInput builds a MealComponentDatabaseCreationInput from a MealComponentCreationRequestInput.
+func ConvertMealComponentCreationRequestInputToMealComponentDatabaseCreationInput(x *mealplanning.MealComponentCreationRequestInput) *mealplanning.MealComponentDatabaseCreationInput {
+	return &mealplanning.MealComponentDatabaseCreationInput{
+		RecipeID:      x.RecipeID,
+		ComponentType: x.ComponentType,
+		RecipeScale:   x.RecipeScale,
+	}
+}
+
+// ConvertMealListToMealListCreationRequestInput builds a MealListCreationRequestInput from a MealList.
+func ConvertMealListToMealListCreationRequestInput(x *mealplanning.MealList) *mealplanning.MealListCreationRequestInput {
+	items := make([]*mealplanning.MealListItemCreationRequestInput, 0, len(x.Items))
+	for _, item := range x.Items {
+		items = append(items, ConvertMealListItemToMealListItemCreationRequestInput(item))
+	}
+
+	return &mealplanning.MealListCreationRequestInput{
+		Name:        x.Name,
+		Description: x.Description,
+		Items:       items,
+	}
+}
+
+// ConvertMealListToMealListDatabaseCreationInput builds a MealListDatabaseCreationInput from a MealList.
+func ConvertMealListToMealListDatabaseCreationInput(x *mealplanning.MealList) *mealplanning.MealListDatabaseCreationInput {
+	items := make([]*mealplanning.MealListItemDatabaseCreationInput, 0, len(x.Items))
+	for _, item := range x.Items {
+		items = append(items, ConvertMealListItemToMealListItemDatabaseCreationInput(item))
+	}
+
+	return &mealplanning.MealListDatabaseCreationInput{
+		ID:            x.ID,
+		Name:          x.Name,
+		Description:   x.Description,
+		BelongsToUser: x.BelongsToUser,
+		Items:         items,
+	}
+}
+
+// ConvertMealListToMealListUpdateRequestInput builds a MealListUpdateRequestInput from a MealList.
+func ConvertMealListToMealListUpdateRequestInput(x *mealplanning.MealList) *mealplanning.MealListUpdateRequestInput {
+	return &mealplanning.MealListUpdateRequestInput{
+		Name:        &x.Name,
+		Description: &x.Description,
+	}
+}
+
+// ConvertMealListCreationRequestInputToMealListDatabaseCreationInput builds a MealListDatabaseCreationInput from a MealListCreationRequestInput.
+func ConvertMealListCreationRequestInputToMealListDatabaseCreationInput(x *mealplanning.MealListCreationRequestInput) *mealplanning.MealListDatabaseCreationInput {
+	items := make([]*mealplanning.MealListItemDatabaseCreationInput, 0, len(x.Items))
+	for _, item := range x.Items {
+		items = append(items, ConvertMealListItemCreationRequestInputToMealListItemDatabaseCreationInput(item))
+	}
+
+	return &mealplanning.MealListDatabaseCreationInput{
+		ID:          identifiers.New(),
+		Name:        x.Name,
+		Description: x.Description,
+
+		// BelongsToUser is left unset. Comes from the authenticated session rather than
+		// the request body, so the manager stamps it after this.
+		Items: items,
+	}
+}
+
+// ConvertMealListItemToMealListItemCreationRequestInput builds a MealListItemCreationRequestInput from a MealListItem.
+func ConvertMealListItemToMealListItemCreationRequestInput(x *mealplanning.MealListItem) *mealplanning.MealListItemCreationRequestInput {
+	return &mealplanning.MealListItemCreationRequestInput{
+		MealID: x.Meal.ID,
+		Notes:  x.Notes,
+	}
+}
+
+// ConvertMealListItemToMealListItemDatabaseCreationInput builds a MealListItemDatabaseCreationInput from a MealListItem.
+func ConvertMealListItemToMealListItemDatabaseCreationInput(x *mealplanning.MealListItem) *mealplanning.MealListItemDatabaseCreationInput {
+	return &mealplanning.MealListItemDatabaseCreationInput{
+		ID:                x.ID,
+		MealID:            x.Meal.ID,
+		Notes:             x.Notes,
+		BelongsToMealList: x.BelongsToMealList,
+	}
+}
+
+// ConvertMealListItemToMealListItemUpdateRequestInput builds a MealListItemUpdateRequestInput from a MealListItem.
+func ConvertMealListItemToMealListItemUpdateRequestInput(x *mealplanning.MealListItem) *mealplanning.MealListItemUpdateRequestInput {
+	return &mealplanning.MealListItemUpdateRequestInput{
+		Notes: &x.Notes,
+	}
+}
+
+// ConvertMealListItemCreationRequestInputToMealListItemDatabaseCreationInput builds a MealListItemDatabaseCreationInput from a MealListItemCreationRequestInput.
+func ConvertMealListItemCreationRequestInputToMealListItemDatabaseCreationInput(x *mealplanning.MealListItemCreationRequestInput) *mealplanning.MealListItemDatabaseCreationInput {
+	return &mealplanning.MealListItemDatabaseCreationInput{
+		ID:     identifiers.New(),
+		MealID: x.MealID,
+		Notes:  x.Notes,
+
+		// BelongsToMealList is left unset. The parent does not exist yet when a request is
+		// parsed, so whoever mints its ID stamps this.
+	}
+}
+
+// ConvertMealPlanToMealPlanCreationRequestInput builds a MealPlanCreationRequestInput from a MealPlan.
+func ConvertMealPlanToMealPlanCreationRequestInput(x *mealplanning.MealPlan) *mealplanning.MealPlanCreationRequestInput {
+	events := make([]*mealplanning.MealPlanEventCreationRequestInput, 0, len(x.Events))
+	for _, item := range x.Events {
+		events = append(events, ConvertMealPlanEventToMealPlanEventCreationRequestInput(item))
+	}
+
+	selections := make([]*mealplanning.MealPlanRecipeOptionSelectionCreationRequestInput, 0, len(x.Selections))
+	for _, item := range x.Selections {
+		selections = append(selections, ConvertMealPlanRecipeOptionSelectionToMealPlanRecipeOptionSelectionCreationRequestInput(item))
+	}
+
+	return &mealplanning.MealPlanCreationRequestInput{
+		VotingDeadline: x.VotingDeadline,
+		Notes:          x.Notes,
+		ElectionMethod: x.ElectionMethod,
+		Events:         events,
+		Selections:     selections,
+	}
+}
+
+// ConvertMealPlanToMealPlanDatabaseCreationInput builds a MealPlanDatabaseCreationInput from a MealPlan.
+func ConvertMealPlanToMealPlanDatabaseCreationInput(x *mealplanning.MealPlan) *mealplanning.MealPlanDatabaseCreationInput {
+	events := make([]*mealplanning.MealPlanEventDatabaseCreationInput, 0, len(x.Events))
+	for _, item := range x.Events {
+		events = append(events, ConvertMealPlanEventToMealPlanEventDatabaseCreationInput(item))
+	}
+
+	selections := make([]*mealplanning.MealPlanRecipeOptionSelectionDatabaseCreationInput, 0, len(x.Selections))
+	for _, item := range x.Selections {
+		selections = append(selections, ConvertMealPlanRecipeOptionSelectionToMealPlanRecipeOptionSelectionDatabaseCreationInput(item))
+	}
+
+	return &mealplanning.MealPlanDatabaseCreationInput{
+		VotingDeadline:   x.VotingDeadline,
+		BelongsToAccount: x.BelongsToAccount,
+		Notes:            x.Notes,
+		ID:               x.ID,
+		ElectionMethod:   x.ElectionMethod,
+		CreatedByUser:    x.CreatedByUser,
+		Events:           events,
+		Selections:       selections,
+	}
+}
+
+// ConvertMealPlanToMealPlanUpdateRequestInput builds a MealPlanUpdateRequestInput from a MealPlan.
+func ConvertMealPlanToMealPlanUpdateRequestInput(x *mealplanning.MealPlan) *mealplanning.MealPlanUpdateRequestInput {
+	return &mealplanning.MealPlanUpdateRequestInput{
+		BelongsToAccount: &x.BelongsToAccount,
+		Notes:            &x.Notes,
+		VotingDeadline:   &x.VotingDeadline,
+	}
+}
+
+// ConvertMealPlanEventToMealPlanEventDatabaseCreationInput builds a MealPlanEventDatabaseCreationInput from a MealPlanEvent.
+func ConvertMealPlanEventToMealPlanEventDatabaseCreationInput(x *mealplanning.MealPlanEvent) *mealplanning.MealPlanEventDatabaseCreationInput {
+	options := make([]*mealplanning.MealPlanOptionDatabaseCreationInput, 0, len(x.Options))
+	for _, item := range x.Options {
+		options = append(options, ConvertMealPlanOptionToMealPlanOptionDatabaseCreationInput(item))
+	}
+
+	return &mealplanning.MealPlanEventDatabaseCreationInput{
+		StartsAt:          x.StartsAt,
+		EndsAt:            x.EndsAt,
+		BelongsToMealPlan: x.BelongsToMealPlan,
+		Notes:             x.Notes,
+		MealName:          x.MealName,
+		ID:                x.ID,
+		Options:           options,
+	}
+}
+
 // ConvertMealPlanEventToMealPlanEventUpdateRequestInput builds a MealPlanEventUpdateRequestInput from a MealPlanEvent.
-func ConvertMealPlanEventToMealPlanEventUpdateRequestInput(input *mealplanning.MealPlanEvent) *mealplanning.MealPlanEventUpdateRequestInput {
+func ConvertMealPlanEventToMealPlanEventUpdateRequestInput(x *mealplanning.MealPlanEvent) *mealplanning.MealPlanEventUpdateRequestInput {
 	return &mealplanning.MealPlanEventUpdateRequestInput{
-		Notes:             &input.Notes,
-		StartsAt:          &input.StartsAt,
-		MealName:          &input.MealName,
-		EndsAt:            &input.EndsAt,
-		BelongsToMealPlan: input.BelongsToMealPlan,
+		Notes:             &x.Notes,
+		StartsAt:          &x.StartsAt,
+		MealName:          &x.MealName,
+		EndsAt:            &x.EndsAt,
+		BelongsToMealPlan: x.BelongsToMealPlan,
 	}
 }
 
 // ConvertMealPlanEventCreationRequestInputToMealPlanEventDatabaseCreationInput builds a MealPlanEventDatabaseCreationInput from a MealPlanEventCreationRequestInput.
-func ConvertMealPlanEventCreationRequestInputToMealPlanEventDatabaseCreationInput(input *mealplanning.MealPlanEventCreationRequestInput) *mealplanning.MealPlanEventDatabaseCreationInput {
-	options := make([]*mealplanning.MealPlanOptionDatabaseCreationInput, 0, len(input.Options))
-	for _, item := range input.Options {
+func ConvertMealPlanEventCreationRequestInputToMealPlanEventDatabaseCreationInput(x *mealplanning.MealPlanEventCreationRequestInput) *mealplanning.MealPlanEventDatabaseCreationInput {
+	options := make([]*mealplanning.MealPlanOptionDatabaseCreationInput, 0, len(x.Options))
+	for _, item := range x.Options {
 		options = append(options, ConvertMealPlanOptionCreationRequestInputToMealPlanOptionDatabaseCreationInput(item))
 	}
 
 	return &mealplanning.MealPlanEventDatabaseCreationInput{
-		StartsAt: input.StartsAt,
-		EndsAt:   input.EndsAt,
+		StartsAt: x.StartsAt,
+		EndsAt:   x.EndsAt,
 
 		// BelongsToMealPlan is left unset. The parent does not exist yet when a request is
-		// parsed; whoever mints its ID stamps this.
-		Notes:    input.Notes,
-		MealName: input.MealName,
+		// parsed, so whoever mints its ID stamps this.
+		Notes:    x.Notes,
+		MealName: x.MealName,
 		ID:       identifiers.New(),
 		Options:  options,
 	}
 }
 
-// ConvertMealPlanEventToMealPlanEventDatabaseCreationInput builds a MealPlanEventDatabaseCreationInput from a MealPlanEvent.
-func ConvertMealPlanEventToMealPlanEventDatabaseCreationInput(mealPlanEvent *mealplanning.MealPlanEvent) *mealplanning.MealPlanEventDatabaseCreationInput {
-	options := make([]*mealplanning.MealPlanOptionDatabaseCreationInput, 0, len(mealPlanEvent.Options))
-	for _, item := range mealPlanEvent.Options {
-		options = append(options, ConvertMealPlanOptionToMealPlanOptionDatabaseCreationInput(item))
+// ConvertMealPlanGroceryListItemToMealPlanGroceryListItemCreationRequestInput builds a MealPlanGroceryListItemCreationRequestInput from a MealPlanGroceryListItem.
+func ConvertMealPlanGroceryListItemToMealPlanGroceryListItemCreationRequestInput(x *mealplanning.MealPlanGroceryListItem) *mealplanning.MealPlanGroceryListItemCreationRequestInput {
+	var purchasedMeasurementUnitID *string
+	if x.PurchasedMeasurementUnit != nil {
+		purchasedMeasurementUnitID = &x.PurchasedMeasurementUnit.ID
 	}
 
-	return &mealplanning.MealPlanEventDatabaseCreationInput{
-		StartsAt:          mealPlanEvent.StartsAt,
-		EndsAt:            mealPlanEvent.EndsAt,
-		BelongsToMealPlan: mealPlanEvent.BelongsToMealPlan,
-		Notes:             mealPlanEvent.Notes,
-		MealName:          mealPlanEvent.MealName,
-		ID:                mealPlanEvent.ID,
-		Options:           options,
+	return &mealplanning.MealPlanGroceryListItemCreationRequestInput{
+		MaxQuantityNeeded:          x.MaxQuantityNeeded,
+		PurchasedMeasurementUnitID: purchasedMeasurementUnitID,
+		PurchasedUPC:               x.PurchasedUPC,
+		PurchasePrice:              x.PurchasePrice,
+		QuantityPurchased:          x.QuantityPurchased,
+		Status:                     x.Status,
+		BelongsToMealPlan:          x.BelongsToMealPlan,
+		ValidIngredientID:          x.Ingredient.ID,
+		// MealPlanGroceryListItem holds two measurement units — the one called for and
+		// the one purchased — so which of them an unqualified ValidMeasurementUnitID
+		// means has to be said.
+		ValidMeasurementUnitID: x.MeasurementUnit.ID,
+		StatusExplanation:      x.StatusExplanation,
+		MinQuantityNeeded:      x.MinQuantityNeeded,
 	}
 }
 
 // ConvertMealPlanGroceryListItemToMealPlanGroceryListItemDatabaseCreationInput builds a MealPlanGroceryListItemDatabaseCreationInput from a MealPlanGroceryListItem.
-func ConvertMealPlanGroceryListItemToMealPlanGroceryListItemDatabaseCreationInput(input *mealplanning.MealPlanGroceryListItem) *mealplanning.MealPlanGroceryListItemDatabaseCreationInput {
+func ConvertMealPlanGroceryListItemToMealPlanGroceryListItemDatabaseCreationInput(x *mealplanning.MealPlanGroceryListItem) *mealplanning.MealPlanGroceryListItemDatabaseCreationInput {
 	var purchasedMeasurementUnitID *string
-	if input.PurchasedMeasurementUnit != nil {
-		purchasedMeasurementUnitID = &input.PurchasedMeasurementUnit.ID
+	if x.PurchasedMeasurementUnit != nil {
+		purchasedMeasurementUnitID = &x.PurchasedMeasurementUnit.ID
 	}
 
 	return &mealplanning.MealPlanGroceryListItemDatabaseCreationInput{
-		MaxQuantityNeeded:          input.MaxQuantityNeeded,
-		BelongsToMealPlanOption:    input.BelongsToMealPlanOption,
-		PurchasePrice:              input.PurchasePrice,
+		MaxQuantityNeeded:          x.MaxQuantityNeeded,
+		BelongsToMealPlanOption:    x.BelongsToMealPlanOption,
+		PurchasePrice:              x.PurchasePrice,
 		PurchasedMeasurementUnitID: purchasedMeasurementUnitID,
-		QuantityPurchased:          input.QuantityPurchased,
-		PurchasedUPC:               input.PurchasedUPC,
-		OptionIndex:                input.OptionIndex,
-		IngredientIndex:            input.IngredientIndex,
-		RecipeStepID:               input.RecipeStepID,
-		RecipeID:                   input.RecipeID,
-		Status:                     input.Status,
-		StatusExplanation:          input.StatusExplanation,
-		ID:                         input.ID,
-		BelongsToMealPlan:          input.BelongsToMealPlan,
-		ValidIngredientID:          input.Ingredient.ID,
-		ValidMeasurementUnitID:     input.MeasurementUnit.ID,
-		MinQuantityNeeded:          input.MinQuantityNeeded,
-	}
-}
-
-// ConvertMealPlanGroceryListItemToMealPlanGroceryListItemCreationRequestInput builds a MealPlanGroceryListItemCreationRequestInput from a MealPlanGroceryListItem.
-func ConvertMealPlanGroceryListItemToMealPlanGroceryListItemCreationRequestInput(input *mealplanning.MealPlanGroceryListItem) *mealplanning.MealPlanGroceryListItemCreationRequestInput {
-	var purchasedMeasurementUnitID *string
-	if input.PurchasedMeasurementUnit != nil {
-		purchasedMeasurementUnitID = &input.PurchasedMeasurementUnit.ID
-	}
-
-	return &mealplanning.MealPlanGroceryListItemCreationRequestInput{
-		MaxQuantityNeeded:          input.MaxQuantityNeeded,
-		PurchasedMeasurementUnitID: purchasedMeasurementUnitID,
-		PurchasedUPC:               input.PurchasedUPC,
-		PurchasePrice:              input.PurchasePrice,
-		QuantityPurchased:          input.QuantityPurchased,
-		Status:                     input.Status,
-		BelongsToMealPlan:          input.BelongsToMealPlan,
-		ValidIngredientID:          input.Ingredient.ID,
-		ValidMeasurementUnitID:     input.MeasurementUnit.ID,
-		StatusExplanation:          input.StatusExplanation,
-		MinQuantityNeeded:          input.MinQuantityNeeded,
-	}
-}
-
-// ConvertMealPlanGroceryListItemCreationRequestInputToMealPlanGroceryListItemDatabaseCreationInput builds a MealPlanGroceryListItemDatabaseCreationInput from a MealPlanGroceryListItemCreationRequestInput.
-func ConvertMealPlanGroceryListItemCreationRequestInputToMealPlanGroceryListItemDatabaseCreationInput(input *mealplanning.MealPlanGroceryListItemCreationRequestInput) *mealplanning.MealPlanGroceryListItemDatabaseCreationInput {
-	return &mealplanning.MealPlanGroceryListItemDatabaseCreationInput{
-		MaxQuantityNeeded: input.MaxQuantityNeeded,
-
-		// BelongsToMealPlanOption is left unset. Provenance the grocery list generator
-		// records — which option, which recipe, which step an item came from. An item
-		// created by hand has none of it, and the request input carries no such field.
-		PurchasePrice:              input.PurchasePrice,
-		PurchasedMeasurementUnitID: input.PurchasedMeasurementUnitID,
-		QuantityPurchased:          input.QuantityPurchased,
-		PurchasedUPC:               input.PurchasedUPC,
-
-		// OptionIndex is left unset. Generator provenance; see BelongsToMealPlanOption.
-
-		// IngredientIndex is left unset. Generator provenance; see
-		// BelongsToMealPlanOption.
-
-		// RecipeStepID is left unset. Generator provenance; see BelongsToMealPlanOption.
-
-		// RecipeID is left unset. Generator provenance; see BelongsToMealPlanOption.
-		Status:                 input.Status,
-		StatusExplanation:      input.StatusExplanation,
-		ID:                     identifiers.New(),
-		BelongsToMealPlan:      input.BelongsToMealPlan,
-		ValidIngredientID:      input.ValidIngredientID,
-		ValidMeasurementUnitID: input.ValidMeasurementUnitID,
-		MinQuantityNeeded:      input.MinQuantityNeeded,
+		QuantityPurchased:          x.QuantityPurchased,
+		PurchasedUPC:               x.PurchasedUPC,
+		OptionIndex:                x.OptionIndex,
+		IngredientIndex:            x.IngredientIndex,
+		RecipeStepID:               x.RecipeStepID,
+		RecipeID:                   x.RecipeID,
+		Status:                     x.Status,
+		StatusExplanation:          x.StatusExplanation,
+		ID:                         x.ID,
+		BelongsToMealPlan:          x.BelongsToMealPlan,
+		ValidIngredientID:          x.Ingredient.ID,
+		// MealPlanGroceryListItem holds two measurement units — the one called for and
+		// the one purchased — so which of them an unqualified ValidMeasurementUnitID
+		// means has to be said.
+		ValidMeasurementUnitID: x.MeasurementUnit.ID,
+		MinQuantityNeeded:      x.MinQuantityNeeded,
 	}
 }
 
 // ConvertMealPlanGroceryListItemToMealPlanGroceryListItemUpdateRequestInput builds a MealPlanGroceryListItemUpdateRequestInput from a MealPlanGroceryListItem.
-func ConvertMealPlanGroceryListItemToMealPlanGroceryListItemUpdateRequestInput(input *mealplanning.MealPlanGroceryListItem) *mealplanning.MealPlanGroceryListItemUpdateRequestInput {
+func ConvertMealPlanGroceryListItemToMealPlanGroceryListItemUpdateRequestInput(x *mealplanning.MealPlanGroceryListItem) *mealplanning.MealPlanGroceryListItemUpdateRequestInput {
 	var purchasedMeasurementUnitID *string
-	if input.PurchasedMeasurementUnit != nil {
-		purchasedMeasurementUnitID = &input.PurchasedMeasurementUnit.ID
+	if x.PurchasedMeasurementUnit != nil {
+		purchasedMeasurementUnitID = &x.PurchasedMeasurementUnit.ID
 	}
 
 	return &mealplanning.MealPlanGroceryListItemUpdateRequestInput{
-		BelongsToMealPlan:          &input.BelongsToMealPlan,
-		ValidIngredientID:          &input.Ingredient.ID,
-		ValidMeasurementUnitID:     &input.MeasurementUnit.ID,
-		StatusExplanation:          &input.StatusExplanation,
-		QuantityPurchased:          input.QuantityPurchased,
+		BelongsToMealPlan: &x.BelongsToMealPlan,
+		ValidIngredientID: &x.Ingredient.ID,
+		// MealPlanGroceryListItem holds two measurement units — the one called for and
+		// the one purchased — so which of them an unqualified ValidMeasurementUnitID
+		// means has to be said.
+		ValidMeasurementUnitID:     &x.MeasurementUnit.ID,
+		StatusExplanation:          &x.StatusExplanation,
+		QuantityPurchased:          x.QuantityPurchased,
 		PurchasedMeasurementUnitID: purchasedMeasurementUnitID,
-		PurchasedUPC:               input.PurchasedUPC,
-		PurchasePrice:              input.PurchasePrice,
-		Status:                     &input.Status,
-		MinQuantityNeeded:          &input.MinQuantityNeeded,
-		MaxQuantityNeeded:          input.MaxQuantityNeeded,
+		PurchasedUPC:               x.PurchasedUPC,
+		PurchasePrice:              x.PurchasePrice,
+		Status:                     &x.Status,
+		MinQuantityNeeded:          &x.MinQuantityNeeded,
+		MaxQuantityNeeded:          x.MaxQuantityNeeded,
 	}
 }
 
-// ConvertMealPlanOptionVoteToMealPlanOptionVoteUpdateRequestInput builds a MealPlanOptionVoteUpdateRequestInput from a MealPlanOptionVote.
-func ConvertMealPlanOptionVoteToMealPlanOptionVoteUpdateRequestInput(input *mealplanning.MealPlanOptionVote) *mealplanning.MealPlanOptionVoteUpdateRequestInput {
-	return &mealplanning.MealPlanOptionVoteUpdateRequestInput{
-		Notes:                   &input.Notes,
-		Rank:                    &input.Rank,
-		Abstain:                 &input.Abstain,
-		BelongsToMealPlanOption: input.BelongsToMealPlanOption,
-	}
-}
+// ConvertMealPlanGroceryListItemCreationRequestInputToMealPlanGroceryListItemDatabaseCreationInput builds a MealPlanGroceryListItemDatabaseCreationInput from a MealPlanGroceryListItemCreationRequestInput.
+func ConvertMealPlanGroceryListItemCreationRequestInputToMealPlanGroceryListItemDatabaseCreationInput(x *mealplanning.MealPlanGroceryListItemCreationRequestInput) *mealplanning.MealPlanGroceryListItemDatabaseCreationInput {
+	return &mealplanning.MealPlanGroceryListItemDatabaseCreationInput{
+		MaxQuantityNeeded: x.MaxQuantityNeeded,
 
-// ConvertMealPlanOptionVoteCreationRequestInputToMealPlanOptionVotesDatabaseCreationInput builds a MealPlanOptionVotesDatabaseCreationInput from a MealPlanOptionVoteCreationRequestInput.
-func ConvertMealPlanOptionVoteCreationRequestInputToMealPlanOptionVotesDatabaseCreationInput(input *mealplanning.MealPlanOptionVoteCreationRequestInput) *mealplanning.MealPlanOptionVotesDatabaseCreationInput {
-	var votes []*mealplanning.MealPlanOptionVoteDatabaseCreationInput
-	for _, item := range input.Votes {
-		votes = append(votes, ConvertMealPlanOptionVoteCreationRequestInputToMealPlanOptionVoteDatabaseCreationInput(item))
-	}
+		// BelongsToMealPlanOption is left unset. Provenance the grocery list generator
+		// records — which option, which recipe, which step an item came from. An item
+		// created by hand has none of it.
+		PurchasePrice:              x.PurchasePrice,
+		PurchasedMeasurementUnitID: x.PurchasedMeasurementUnitID,
+		QuantityPurchased:          x.QuantityPurchased,
+		PurchasedUPC:               x.PurchasedUPC,
 
-	return &mealplanning.MealPlanOptionVotesDatabaseCreationInput{
-		Votes: votes,
-	}
-}
+		// OptionIndex is left unset. Provenance the grocery list generator records —
+		// which option, which recipe, which step an item came from. An item created by
+		// hand has none of it.
 
-// ConvertMealPlanOptionVoteCreationRequestInputToMealPlanOptionVoteDatabaseCreationInput builds a MealPlanOptionVoteDatabaseCreationInput from a MealPlanOptionVoteCreationInput.
-func ConvertMealPlanOptionVoteCreationRequestInputToMealPlanOptionVoteDatabaseCreationInput(input *mealplanning.MealPlanOptionVoteCreationInput) *mealplanning.MealPlanOptionVoteDatabaseCreationInput {
-	return &mealplanning.MealPlanOptionVoteDatabaseCreationInput{
-		ID:                      identifiers.New(),
-		Notes:                   input.Notes,
-		ByUser:                  input.ByUser,
-		BelongsToMealPlanOption: input.BelongsToMealPlanOption,
-		Rank:                    input.Rank,
-		Abstain:                 input.Abstain,
-	}
-}
+		// IngredientIndex is left unset. Provenance the grocery list generator records —
+		// which option, which recipe, which step an item came from. An item created by
+		// hand has none of it.
 
-// ConvertMealPlanOptionToMealPlanOptionUpdateRequestInput builds a MealPlanOptionUpdateRequestInput from a MealPlanOption.
-func ConvertMealPlanOptionToMealPlanOptionUpdateRequestInput(input *mealplanning.MealPlanOption) *mealplanning.MealPlanOptionUpdateRequestInput {
-	return &mealplanning.MealPlanOptionUpdateRequestInput{
-		MealID:                 &input.Meal.ID,
-		Notes:                  &input.Notes,
-		AssignedCook:           input.AssignedCook,
-		AssignedDishwasher:     input.AssignedDishwasher,
-		MealScale:              &input.MealScale,
-		BelongsToMealPlanEvent: &input.BelongsToMealPlanEvent,
-	}
-}
+		// RecipeStepID is left unset. Provenance the grocery list generator records —
+		// which option, which recipe, which step an item came from. An item created by
+		// hand has none of it.
 
-// ConvertMealPlanOptionCreationRequestInputToMealPlanOptionDatabaseCreationInput builds a MealPlanOptionDatabaseCreationInput from a MealPlanOptionCreationRequestInput.
-func ConvertMealPlanOptionCreationRequestInputToMealPlanOptionDatabaseCreationInput(input *mealplanning.MealPlanOptionCreationRequestInput) *mealplanning.MealPlanOptionDatabaseCreationInput {
-	return &mealplanning.MealPlanOptionDatabaseCreationInput{
-		ID:                 identifiers.New(),
-		MealID:             input.MealID,
-		Notes:              input.Notes,
-		AssignedCook:       input.AssignedCook,
-		AssignedDishwasher: input.AssignedDishwasher,
-
-		// BelongsToMealPlanEvent is left unset. The parent does not exist yet when a
-		// request is parsed; whoever mints its ID stamps this.
-		MealScale: input.MealScale,
+		// RecipeID is left unset. Provenance the grocery list generator records — which
+		// option, which recipe, which step an item came from. An item created by hand has
+		// none of it.
+		Status:                 x.Status,
+		StatusExplanation:      x.StatusExplanation,
+		ID:                     identifiers.New(),
+		BelongsToMealPlan:      x.BelongsToMealPlan,
+		ValidIngredientID:      x.ValidIngredientID,
+		ValidMeasurementUnitID: x.ValidMeasurementUnitID,
+		MinQuantityNeeded:      x.MinQuantityNeeded,
 	}
 }
 
 // ConvertMealPlanOptionToMealPlanOptionCreationRequestInput builds a MealPlanOptionCreationRequestInput from a MealPlanOption.
-func ConvertMealPlanOptionToMealPlanOptionCreationRequestInput(mealPlanOption *mealplanning.MealPlanOption) *mealplanning.MealPlanOptionCreationRequestInput {
+func ConvertMealPlanOptionToMealPlanOptionCreationRequestInput(x *mealplanning.MealPlanOption) *mealplanning.MealPlanOptionCreationRequestInput {
 	return &mealplanning.MealPlanOptionCreationRequestInput{
-		AssignedCook:       mealPlanOption.AssignedCook,
-		AssignedDishwasher: mealPlanOption.AssignedDishwasher,
-		MealID:             mealPlanOption.Meal.ID,
-		Notes:              mealPlanOption.Notes,
+		AssignedCook:       x.AssignedCook,
+		AssignedDishwasher: x.AssignedDishwasher,
+		MealID:             x.Meal.ID,
+		Notes:              x.Notes,
 
 		// Selections is left unset. A stored MealPlanOption does not carry the recipe
 		// selections made against it; they are read from the meal plan.
-		MealScale: mealPlanOption.MealScale,
+		MealScale: x.MealScale,
 	}
 }
 
 // ConvertMealPlanOptionToMealPlanOptionDatabaseCreationInput builds a MealPlanOptionDatabaseCreationInput from a MealPlanOption.
-func ConvertMealPlanOptionToMealPlanOptionDatabaseCreationInput(mealPlanOption *mealplanning.MealPlanOption) *mealplanning.MealPlanOptionDatabaseCreationInput {
+func ConvertMealPlanOptionToMealPlanOptionDatabaseCreationInput(x *mealplanning.MealPlanOption) *mealplanning.MealPlanOptionDatabaseCreationInput {
 	return &mealplanning.MealPlanOptionDatabaseCreationInput{
-		ID:                     mealPlanOption.ID,
-		MealID:                 mealPlanOption.Meal.ID,
-		Notes:                  mealPlanOption.Notes,
-		AssignedCook:           mealPlanOption.AssignedCook,
-		AssignedDishwasher:     mealPlanOption.AssignedDishwasher,
-		BelongsToMealPlanEvent: mealPlanOption.BelongsToMealPlanEvent,
-		MealScale:              mealPlanOption.MealScale,
+		ID:                     x.ID,
+		MealID:                 x.Meal.ID,
+		Notes:                  x.Notes,
+		AssignedCook:           x.AssignedCook,
+		AssignedDishwasher:     x.AssignedDishwasher,
+		BelongsToMealPlanEvent: x.BelongsToMealPlanEvent,
+		MealScale:              x.MealScale,
+	}
+}
+
+// ConvertMealPlanOptionToMealPlanOptionUpdateRequestInput builds a MealPlanOptionUpdateRequestInput from a MealPlanOption.
+func ConvertMealPlanOptionToMealPlanOptionUpdateRequestInput(x *mealplanning.MealPlanOption) *mealplanning.MealPlanOptionUpdateRequestInput {
+	return &mealplanning.MealPlanOptionUpdateRequestInput{
+		MealID:                 &x.Meal.ID,
+		Notes:                  &x.Notes,
+		AssignedCook:           x.AssignedCook,
+		AssignedDishwasher:     x.AssignedDishwasher,
+		MealScale:              &x.MealScale,
+		BelongsToMealPlanEvent: &x.BelongsToMealPlanEvent,
+	}
+}
+
+// ConvertMealPlanOptionCreationRequestInputToMealPlanOptionDatabaseCreationInput builds a MealPlanOptionDatabaseCreationInput from a MealPlanOptionCreationRequestInput.
+func ConvertMealPlanOptionCreationRequestInputToMealPlanOptionDatabaseCreationInput(x *mealplanning.MealPlanOptionCreationRequestInput) *mealplanning.MealPlanOptionDatabaseCreationInput {
+	return &mealplanning.MealPlanOptionDatabaseCreationInput{
+		ID:                 identifiers.New(),
+		MealID:             x.MealID,
+		Notes:              x.Notes,
+		AssignedCook:       x.AssignedCook,
+		AssignedDishwasher: x.AssignedDishwasher,
+
+		// BelongsToMealPlanEvent is left unset. The parent does not exist yet when a
+		// request is parsed, so whoever mints its ID stamps this.
+		MealScale: x.MealScale,
+	}
+}
+
+// ConvertMealPlanOptionVoteToMealPlanOptionVoteDatabaseCreationInput builds a MealPlanOptionVoteDatabaseCreationInput from a MealPlanOptionVote.
+func ConvertMealPlanOptionVoteToMealPlanOptionVoteDatabaseCreationInput(x *mealplanning.MealPlanOptionVote) *mealplanning.MealPlanOptionVoteDatabaseCreationInput {
+	return &mealplanning.MealPlanOptionVoteDatabaseCreationInput{
+		ID:                      x.ID,
+		Notes:                   x.Notes,
+		ByUser:                  x.ByUser,
+		BelongsToMealPlanOption: x.BelongsToMealPlanOption,
+		Rank:                    x.Rank,
+		Abstain:                 x.Abstain,
+	}
+}
+
+// ConvertMealPlanOptionVoteToMealPlanOptionVoteUpdateRequestInput builds a MealPlanOptionVoteUpdateRequestInput from a MealPlanOptionVote.
+func ConvertMealPlanOptionVoteToMealPlanOptionVoteUpdateRequestInput(x *mealplanning.MealPlanOptionVote) *mealplanning.MealPlanOptionVoteUpdateRequestInput {
+	return &mealplanning.MealPlanOptionVoteUpdateRequestInput{
+		Notes:                   &x.Notes,
+		Rank:                    &x.Rank,
+		Abstain:                 &x.Abstain,
+		BelongsToMealPlanOption: x.BelongsToMealPlanOption,
+	}
+}
+
+// ConvertMealPlanRecipeOptionSelectionToMealPlanRecipeOptionSelectionCreationRequestInput builds a MealPlanRecipeOptionSelectionCreationRequestInput from a MealPlanRecipeOptionSelection.
+func ConvertMealPlanRecipeOptionSelectionToMealPlanRecipeOptionSelectionCreationRequestInput(x *mealplanning.MealPlanRecipeOptionSelection) *mealplanning.MealPlanRecipeOptionSelectionCreationRequestInput {
+	return &mealplanning.MealPlanRecipeOptionSelectionCreationRequestInput{
+		RecipeID:            x.RecipeID,
+		RecipeStepID:        x.RecipeStepID,
+		SelectionType:       x.SelectionType,
+		IngredientIndex:     x.IngredientIndex,
+		SelectedOptionIndex: x.SelectedOptionIndex,
 	}
 }
 
 // ConvertMealPlanRecipeOptionSelectionToMealPlanRecipeOptionSelectionDatabaseCreationInput builds a MealPlanRecipeOptionSelectionDatabaseCreationInput from a MealPlanRecipeOptionSelection.
-func ConvertMealPlanRecipeOptionSelectionToMealPlanRecipeOptionSelectionDatabaseCreationInput(input *mealplanning.MealPlanRecipeOptionSelection) *mealplanning.MealPlanRecipeOptionSelectionDatabaseCreationInput {
+func ConvertMealPlanRecipeOptionSelectionToMealPlanRecipeOptionSelectionDatabaseCreationInput(x *mealplanning.MealPlanRecipeOptionSelection) *mealplanning.MealPlanRecipeOptionSelectionDatabaseCreationInput {
 	return &mealplanning.MealPlanRecipeOptionSelectionDatabaseCreationInput{
-		ID:                      input.ID,
-		BelongsToMealPlanOption: input.BelongsToMealPlanOption,
-		RecipeID:                input.RecipeID,
-		RecipeStepID:            input.RecipeStepID,
-		SelectionType:           input.SelectionType,
-		IngredientIndex:         input.IngredientIndex,
-		SelectedOptionIndex:     input.SelectedOptionIndex,
+		ID:                      x.ID,
+		BelongsToMealPlanOption: x.BelongsToMealPlanOption,
+		RecipeID:                x.RecipeID,
+		RecipeStepID:            x.RecipeStepID,
+		SelectionType:           x.SelectionType,
+		IngredientIndex:         x.IngredientIndex,
+		SelectedOptionIndex:     x.SelectedOptionIndex,
 	}
 }
 
-// ConvertMealPlanRecipeOptionSelectionDatabaseCreationInputToMealPlanRecipeOptionSelectionDatabaseCreationInput builds a MealPlanRecipeOptionSelectionDatabaseCreationInput from a MealPlanRecipeOptionSelectionCreationRequestInput.
-func ConvertMealPlanRecipeOptionSelectionDatabaseCreationInputToMealPlanRecipeOptionSelectionDatabaseCreationInput(input *mealplanning.MealPlanRecipeOptionSelectionCreationRequestInput, mealPlanOptionID string) *mealplanning.MealPlanRecipeOptionSelectionDatabaseCreationInput {
+// ConvertMealPlanRecipeOptionSelectionToMealPlanRecipeOptionSelectionUpdateRequestInput builds a MealPlanRecipeOptionSelectionUpdateRequestInput from a MealPlanRecipeOptionSelection.
+func ConvertMealPlanRecipeOptionSelectionToMealPlanRecipeOptionSelectionUpdateRequestInput(x *mealplanning.MealPlanRecipeOptionSelection) *mealplanning.MealPlanRecipeOptionSelectionUpdateRequestInput {
+	return &mealplanning.MealPlanRecipeOptionSelectionUpdateRequestInput{
+		SelectedOptionIndex: &x.SelectedOptionIndex,
+	}
+}
+
+// ConvertMealPlanRecipeOptionSelectionCreationRequestInputToMealPlanRecipeOptionSelectionDatabaseCreationInput builds a MealPlanRecipeOptionSelectionDatabaseCreationInput from a MealPlanRecipeOptionSelectionCreationRequestInput.
+func ConvertMealPlanRecipeOptionSelectionCreationRequestInputToMealPlanRecipeOptionSelectionDatabaseCreationInput(x *mealplanning.MealPlanRecipeOptionSelectionCreationRequestInput) *mealplanning.MealPlanRecipeOptionSelectionDatabaseCreationInput {
 	return &mealplanning.MealPlanRecipeOptionSelectionDatabaseCreationInput{
 		ID: identifiers.New(),
-		// The option a selection belongs to is the caller's to name: the same request
-		// input is applied to whichever option is being voted on.
-		BelongsToMealPlanOption: mealPlanOptionID,
-		RecipeID:                input.RecipeID,
-		RecipeStepID:            input.RecipeStepID,
-		SelectionType:           input.SelectionType,
-		IngredientIndex:         input.IngredientIndex,
-		SelectedOptionIndex:     input.SelectedOptionIndex,
-	}
-}
 
-// ConvertMealPlanTaskCreationRequestInputToMealPlanTaskDatabaseCreationInput builds a MealPlanTaskDatabaseCreationInput from a MealPlanTaskCreationRequestInput.
-func ConvertMealPlanTaskCreationRequestInputToMealPlanTaskDatabaseCreationInput(input *mealplanning.MealPlanTaskCreationRequestInput) *mealplanning.MealPlanTaskDatabaseCreationInput {
-	return &mealplanning.MealPlanTaskDatabaseCreationInput{
-		AssignedToUser:      input.AssignedToUser,
-		CreationExplanation: input.CreationExplanation,
-		StatusExplanation:   input.StatusExplanation,
-		MealPlanOptionID:    input.MealPlanOptionID,
-		RecipePrepTaskID:    input.RecipePrepTaskID,
-		ID:                  identifiers.New(),
+		// BelongsToMealPlanOption is left unset. The parent does not exist yet when a
+		// request is parsed, so whoever mints its ID stamps this.
+		RecipeID:            x.RecipeID,
+		RecipeStepID:        x.RecipeStepID,
+		SelectionType:       x.SelectionType,
+		IngredientIndex:     x.IngredientIndex,
+		SelectedOptionIndex: x.SelectedOptionIndex,
 	}
 }
 
@@ -354,84 +595,307 @@ func ConvertMealPlanTaskToMealPlanTaskDatabaseCreationInput(x *mealplanning.Meal
 	}
 }
 
-// ConvertMealPlanToMealPlanUpdateRequestInput builds a MealPlanUpdateRequestInput from a MealPlan.
-func ConvertMealPlanToMealPlanUpdateRequestInput(input *mealplanning.MealPlan) *mealplanning.MealPlanUpdateRequestInput {
-	return &mealplanning.MealPlanUpdateRequestInput{
-		BelongsToAccount: &input.BelongsToAccount,
-		Notes:            &input.Notes,
-		VotingDeadline:   &input.VotingDeadline,
+// ConvertMealPlanTaskCreationRequestInputToMealPlanTaskDatabaseCreationInput builds a MealPlanTaskDatabaseCreationInput from a MealPlanTaskCreationRequestInput.
+func ConvertMealPlanTaskCreationRequestInputToMealPlanTaskDatabaseCreationInput(x *mealplanning.MealPlanTaskCreationRequestInput) *mealplanning.MealPlanTaskDatabaseCreationInput {
+	return &mealplanning.MealPlanTaskDatabaseCreationInput{
+		AssignedToUser:      x.AssignedToUser,
+		CreationExplanation: x.CreationExplanation,
+		StatusExplanation:   x.StatusExplanation,
+		MealPlanOptionID:    x.MealPlanOptionID,
+		RecipePrepTaskID:    x.RecipePrepTaskID,
+		ID:                  identifiers.New(),
 	}
 }
 
-// ConvertMealPlanToMealPlanCreationRequestInput builds a MealPlanCreationRequestInput from a MealPlan.
-func ConvertMealPlanToMealPlanCreationRequestInput(mealPlan *mealplanning.MealPlan) *mealplanning.MealPlanCreationRequestInput {
-	events := make([]*mealplanning.MealPlanEventCreationRequestInput, 0, len(mealPlan.Events))
-	for _, item := range mealPlan.Events {
-		events = append(events, ConvertMealPlanEventToMealPlanEventCreationRequestInput(item))
+// ConvertRecipeToRecipeDatabaseCreationInput builds a RecipeDatabaseCreationInput from a Recipe.
+func ConvertRecipeToRecipeDatabaseCreationInput(x *mealplanning.Recipe) *mealplanning.RecipeDatabaseCreationInput {
+	prepTasks := make([]*mealplanning.RecipePrepTaskDatabaseCreationInput, 0, len(x.PrepTasks))
+	for _, item := range x.PrepTasks {
+		prepTasks = append(prepTasks, ConvertRecipePrepTaskToRecipePrepTaskDatabaseCreationInput(item))
 	}
 
-	return &mealplanning.MealPlanCreationRequestInput{
-		VotingDeadline: mealPlan.VotingDeadline,
-		Notes:          mealPlan.Notes,
-		ElectionMethod: mealPlan.ElectionMethod,
-		Events:         events,
-
-		// Selections is left unset. MealPlan carries selections in their stored shape and
-		// the converter this replaced did not map them back to request inputs. Preserved
-		// rather than corrected, so that generating these converters is not also a
-		// behavior change.
-	}
-}
-
-// ConvertMealPlanToMealPlanDatabaseCreationInput builds a MealPlanDatabaseCreationInput from a MealPlan.
-func ConvertMealPlanToMealPlanDatabaseCreationInput(mealPlan *mealplanning.MealPlan) *mealplanning.MealPlanDatabaseCreationInput {
-	events := make([]*mealplanning.MealPlanEventDatabaseCreationInput, 0, len(mealPlan.Events))
-	for _, item := range mealPlan.Events {
-		events = append(events, ConvertMealPlanEventToMealPlanEventDatabaseCreationInput(item))
+	steps := make([]*mealplanning.RecipeStepDatabaseCreationInput, 0, len(x.Steps))
+	for _, item := range x.Steps {
+		steps = append(steps, ConvertRecipeStepToRecipeStepDatabaseCreationInput(item))
 	}
 
-	selections := make([]*mealplanning.MealPlanRecipeOptionSelectionDatabaseCreationInput, 0, len(mealPlan.Selections))
-	for _, item := range mealPlan.Selections {
-		selections = append(selections, ConvertMealPlanRecipeOptionSelectionToMealPlanRecipeOptionSelectionDatabaseCreationInput(item))
-	}
+	return &mealplanning.RecipeDatabaseCreationInput{
+		// ClonedFromRecipeID is left unset. Set by the clone path, which is the only
+		// caller that knows what was cloned. A recipe read back does not record it.
+		InspiredByRecipeID:   x.InspiredByRecipeID,
+		MaxEstimatedPortions: x.MaxEstimatedPortions,
+		CreatedByUser:        x.CreatedByUser,
+		ID:                   x.ID,
+		Name:                 x.Name,
+		Slug:                 x.Slug,
+		Source:               x.Source,
+		SourceISBN:           x.SourceISBN,
+		PluralPortionName:    x.PluralPortionName,
+		PortionName:          x.PortionName,
+		Description:          x.Description,
+		YieldsComponentType:  x.YieldsComponentType,
+		PrepTasks:            prepTasks,
+		Steps:                steps,
+		MinEstimatedPortions: x.MinEstimatedPortions,
 
-	return &mealplanning.MealPlanDatabaseCreationInput{
-		VotingDeadline:   mealPlan.VotingDeadline,
-		BelongsToAccount: mealPlan.BelongsToAccount,
-		Notes:            mealPlan.Notes,
-		ID:               mealPlan.ID,
-		ElectionMethod:   mealPlan.ElectionMethod,
-		CreatedByUser:    mealPlan.CreatedByUser,
-		Events:           events,
-		Selections:       selections,
+		// AlsoCreateMeal is left unset. A request-time instruction to create a meal
+		// alongside the recipe, not a property of the recipe that resulted.
+		EligibleForMeals: x.EligibleForMeals,
 	}
 }
 
-// ConvertRecipeRatingToRecipeRatingUpdateRequestInput builds a RecipeRatingUpdateRequestInput from a RecipeRating.
-func ConvertRecipeRatingToRecipeRatingUpdateRequestInput(x *mealplanning.RecipeRating) *mealplanning.RecipeRatingUpdateRequestInput {
-	return &mealplanning.RecipeRatingUpdateRequestInput{
-		BelongsToRecipe: &x.BelongsToRecipe,
-		Taste:           &x.Taste,
-		Difficulty:      &x.Difficulty,
-		Cleanup:         &x.Cleanup,
-		Instructions:    &x.Instructions,
-		Overall:         &x.Overall,
-		Notes:           &x.Notes,
+// ConvertRecipeToRecipeUpdateRequestInput builds a RecipeUpdateRequestInput from a Recipe.
+func ConvertRecipeToRecipeUpdateRequestInput(x *mealplanning.Recipe) *mealplanning.RecipeUpdateRequestInput {
+	return &mealplanning.RecipeUpdateRequestInput{
+		Name:                 &x.Name,
+		Slug:                 &x.Slug,
+		Source:               &x.Source,
+		SourceISBN:           &x.SourceISBN,
+		Description:          &x.Description,
+		InspiredByRecipeID:   x.InspiredByRecipeID,
+		MinEstimatedPortions: &x.MinEstimatedPortions,
+		MaxEstimatedPortions: x.MaxEstimatedPortions,
+		PortionName:          &x.PortionName,
+		PluralPortionName:    &x.PluralPortionName,
+		EligibleForMeals:     &x.EligibleForMeals,
+		YieldsComponentType:  &x.YieldsComponentType,
 	}
 }
 
-// ConvertRecipeRatingCreationRequestInputToRecipeRatingDatabaseCreationInput builds a RecipeRatingDatabaseCreationInput from a RecipeRatingCreationRequestInput.
-func ConvertRecipeRatingCreationRequestInputToRecipeRatingDatabaseCreationInput(x *mealplanning.RecipeRatingCreationRequestInput) *mealplanning.RecipeRatingDatabaseCreationInput {
-	return &mealplanning.RecipeRatingDatabaseCreationInput{
-		ID:              identifiers.New(),
-		BelongsToRecipe: x.BelongsToRecipe,
-		Notes:           x.Notes,
-		CreatedByUser:   x.CreatedByUser,
-		Taste:           x.Taste,
-		Difficulty:      x.Difficulty,
-		Cleanup:         x.Cleanup,
-		Instructions:    x.Instructions,
-		Overall:         x.Overall,
+// ConvertRecipeListToRecipeListCreationRequestInput builds a RecipeListCreationRequestInput from a RecipeList.
+func ConvertRecipeListToRecipeListCreationRequestInput(x *mealplanning.RecipeList) *mealplanning.RecipeListCreationRequestInput {
+	items := make([]*mealplanning.RecipeListItemCreationRequestInput, 0, len(x.Items))
+	for _, item := range x.Items {
+		items = append(items, ConvertRecipeListItemToRecipeListItemCreationRequestInput(item))
+	}
+
+	return &mealplanning.RecipeListCreationRequestInput{
+		Name:        x.Name,
+		Description: x.Description,
+		Items:       items,
+	}
+}
+
+// ConvertRecipeListToRecipeListDatabaseCreationInput builds a RecipeListDatabaseCreationInput from a RecipeList.
+func ConvertRecipeListToRecipeListDatabaseCreationInput(x *mealplanning.RecipeList) *mealplanning.RecipeListDatabaseCreationInput {
+	items := make([]*mealplanning.RecipeListItemDatabaseCreationInput, 0, len(x.Items))
+	for _, item := range x.Items {
+		items = append(items, ConvertRecipeListItemToRecipeListItemDatabaseCreationInput(item))
+	}
+
+	return &mealplanning.RecipeListDatabaseCreationInput{
+		ID:            x.ID,
+		Name:          x.Name,
+		Description:   x.Description,
+		BelongsToUser: x.BelongsToUser,
+		Items:         items,
+	}
+}
+
+// ConvertRecipeListToRecipeListUpdateRequestInput builds a RecipeListUpdateRequestInput from a RecipeList.
+func ConvertRecipeListToRecipeListUpdateRequestInput(x *mealplanning.RecipeList) *mealplanning.RecipeListUpdateRequestInput {
+	return &mealplanning.RecipeListUpdateRequestInput{
+		Name:        &x.Name,
+		Description: &x.Description,
+	}
+}
+
+// ConvertRecipeListCreationRequestInputToRecipeListDatabaseCreationInput builds a RecipeListDatabaseCreationInput from a RecipeListCreationRequestInput.
+func ConvertRecipeListCreationRequestInputToRecipeListDatabaseCreationInput(x *mealplanning.RecipeListCreationRequestInput) *mealplanning.RecipeListDatabaseCreationInput {
+	items := make([]*mealplanning.RecipeListItemDatabaseCreationInput, 0, len(x.Items))
+	for _, item := range x.Items {
+		items = append(items, ConvertRecipeListItemCreationRequestInputToRecipeListItemDatabaseCreationInput(item))
+	}
+
+	return &mealplanning.RecipeListDatabaseCreationInput{
+		ID:          identifiers.New(),
+		Name:        x.Name,
+		Description: x.Description,
+
+		// BelongsToUser is left unset. Comes from the authenticated session rather than
+		// the request body, so the manager stamps it after this.
+		Items: items,
+	}
+}
+
+// ConvertRecipeListItemToRecipeListItemCreationRequestInput builds a RecipeListItemCreationRequestInput from a RecipeListItem.
+func ConvertRecipeListItemToRecipeListItemCreationRequestInput(x *mealplanning.RecipeListItem) *mealplanning.RecipeListItemCreationRequestInput {
+	return &mealplanning.RecipeListItemCreationRequestInput{
+		RecipeID: x.Recipe.ID,
+		Notes:    x.Notes,
+	}
+}
+
+// ConvertRecipeListItemToRecipeListItemDatabaseCreationInput builds a RecipeListItemDatabaseCreationInput from a RecipeListItem.
+func ConvertRecipeListItemToRecipeListItemDatabaseCreationInput(x *mealplanning.RecipeListItem) *mealplanning.RecipeListItemDatabaseCreationInput {
+	return &mealplanning.RecipeListItemDatabaseCreationInput{
+		ID:                  x.ID,
+		RecipeID:            x.Recipe.ID,
+		Notes:               x.Notes,
+		BelongsToRecipeList: x.BelongsToRecipeList,
+	}
+}
+
+// ConvertRecipeListItemToRecipeListItemUpdateRequestInput builds a RecipeListItemUpdateRequestInput from a RecipeListItem.
+func ConvertRecipeListItemToRecipeListItemUpdateRequestInput(x *mealplanning.RecipeListItem) *mealplanning.RecipeListItemUpdateRequestInput {
+	return &mealplanning.RecipeListItemUpdateRequestInput{
+		Notes: &x.Notes,
+	}
+}
+
+// ConvertRecipeListItemCreationRequestInputToRecipeListItemDatabaseCreationInput builds a RecipeListItemDatabaseCreationInput from a RecipeListItemCreationRequestInput.
+func ConvertRecipeListItemCreationRequestInputToRecipeListItemDatabaseCreationInput(x *mealplanning.RecipeListItemCreationRequestInput) *mealplanning.RecipeListItemDatabaseCreationInput {
+	return &mealplanning.RecipeListItemDatabaseCreationInput{
+		ID:       identifiers.New(),
+		RecipeID: x.RecipeID,
+		Notes:    x.Notes,
+
+		// BelongsToRecipeList is left unset. The parent does not exist yet when a request
+		// is parsed, so whoever mints its ID stamps this.
+	}
+}
+
+// ConvertRecipeMediaToRecipeMediaCreationRequestInput builds a RecipeMediaCreationRequestInput from a RecipeMedia.
+func ConvertRecipeMediaToRecipeMediaCreationRequestInput(x *mealplanning.RecipeMedia) *mealplanning.RecipeMediaCreationRequestInput {
+	return &mealplanning.RecipeMediaCreationRequestInput{
+		BelongsToRecipe:     x.BelongsToRecipe,
+		BelongsToRecipeStep: x.BelongsToRecipeStep,
+		MimeType:            x.MimeType,
+		InternalPath:        x.InternalPath,
+		ExternalPath:        x.ExternalPath,
+		Index:               x.Index,
+	}
+}
+
+// ConvertRecipeMediaToRecipeMediaDatabaseCreationInput builds a RecipeMediaDatabaseCreationInput from a RecipeMedia.
+func ConvertRecipeMediaToRecipeMediaDatabaseCreationInput(x *mealplanning.RecipeMedia) *mealplanning.RecipeMediaDatabaseCreationInput {
+	return &mealplanning.RecipeMediaDatabaseCreationInput{
+		ID:                  x.ID,
+		BelongsToRecipe:     x.BelongsToRecipe,
+		BelongsToRecipeStep: x.BelongsToRecipeStep,
+		MimeType:            x.MimeType,
+		InternalPath:        x.InternalPath,
+		ExternalPath:        x.ExternalPath,
+		Index:               x.Index,
+	}
+}
+
+// ConvertRecipeMediaToRecipeMediaUpdateRequestInput builds a RecipeMediaUpdateRequestInput from a RecipeMedia.
+func ConvertRecipeMediaToRecipeMediaUpdateRequestInput(x *mealplanning.RecipeMedia) *mealplanning.RecipeMediaUpdateRequestInput {
+	return &mealplanning.RecipeMediaUpdateRequestInput{
+		BelongsToRecipe:     x.BelongsToRecipe,
+		BelongsToRecipeStep: x.BelongsToRecipeStep,
+		MimeType:            &x.MimeType,
+		InternalPath:        &x.InternalPath,
+		ExternalPath:        &x.ExternalPath,
+		Index:               &x.Index,
+	}
+}
+
+// ConvertRecipeMediaCreationRequestInputToRecipeMediaDatabaseCreationInput builds a RecipeMediaDatabaseCreationInput from a RecipeMediaCreationRequestInput.
+func ConvertRecipeMediaCreationRequestInputToRecipeMediaDatabaseCreationInput(x *mealplanning.RecipeMediaCreationRequestInput) *mealplanning.RecipeMediaDatabaseCreationInput {
+	return &mealplanning.RecipeMediaDatabaseCreationInput{
+		ID:                  identifiers.New(),
+		BelongsToRecipe:     x.BelongsToRecipe,
+		BelongsToRecipeStep: x.BelongsToRecipeStep,
+		MimeType:            x.MimeType,
+		InternalPath:        x.InternalPath,
+		ExternalPath:        x.ExternalPath,
+		Index:               x.Index,
+	}
+}
+
+// ConvertRecipePrepTaskToRecipePrepTaskCreationRequestInput builds a RecipePrepTaskCreationRequestInput from a RecipePrepTask.
+func ConvertRecipePrepTaskToRecipePrepTaskCreationRequestInput(x *mealplanning.RecipePrepTask) *mealplanning.RecipePrepTaskCreationRequestInput {
+	recipeSteps := make([]*mealplanning.RecipePrepTaskStepCreationRequestInput, 0, len(x.TaskSteps))
+	for _, item := range x.TaskSteps {
+		recipeSteps = append(recipeSteps, ConvertRecipePrepTaskStepToRecipePrepTaskStepCreationRequestInput(item))
+	}
+
+	return &mealplanning.RecipePrepTaskCreationRequestInput{
+		MinStorageTemperatureInCelsius:     x.MinStorageTemperatureInCelsius,
+		MaxStorageTemperatureInCelsius:     x.MaxStorageTemperatureInCelsius,
+		MaxTimeBufferBeforeRecipeInSeconds: x.MaxTimeBufferBeforeRecipeInSeconds,
+		ExplicitStorageInstructions:        x.ExplicitStorageInstructions,
+		StorageType:                        x.StorageType,
+		Notes:                              x.Notes,
+		Name:                               x.Name,
+		Description:                        x.Description,
+		BelongsToRecipe:                    x.BelongsToRecipe,
+		// The prep task calls its steps TaskSteps and the request input calls them
+		// RecipeSteps.
+		RecipeSteps:                        recipeSteps,
+		MinTimeBufferBeforeRecipeInSeconds: x.MinTimeBufferBeforeRecipeInSeconds,
+		Optional:                           x.Optional,
+	}
+}
+
+// ConvertRecipePrepTaskToRecipePrepTaskDatabaseCreationInput builds a RecipePrepTaskDatabaseCreationInput from a RecipePrepTask.
+func ConvertRecipePrepTaskToRecipePrepTaskDatabaseCreationInput(x *mealplanning.RecipePrepTask) *mealplanning.RecipePrepTaskDatabaseCreationInput {
+	taskSteps := make([]*mealplanning.RecipePrepTaskStepDatabaseCreationInput, 0, len(x.TaskSteps))
+	for _, item := range x.TaskSteps {
+		taskSteps = append(taskSteps, ConvertRecipePrepTaskStepToRecipePrepTaskStepDatabaseCreationInput(item))
+	}
+
+	return &mealplanning.RecipePrepTaskDatabaseCreationInput{
+		MinStorageTemperatureInCelsius:     x.MinStorageTemperatureInCelsius,
+		MaxStorageTemperatureInCelsius:     x.MaxStorageTemperatureInCelsius,
+		MaxTimeBufferBeforeRecipeInSeconds: x.MaxTimeBufferBeforeRecipeInSeconds,
+		Notes:                              x.Notes,
+		ExplicitStorageInstructions:        x.ExplicitStorageInstructions,
+		ID:                                 x.ID,
+		Name:                               x.Name,
+		Description:                        x.Description,
+		StorageType:                        x.StorageType,
+		BelongsToRecipe:                    x.BelongsToRecipe,
+		TaskSteps:                          taskSteps,
+		MinTimeBufferBeforeRecipeInSeconds: x.MinTimeBufferBeforeRecipeInSeconds,
+		Optional:                           x.Optional,
+	}
+}
+
+// ConvertRecipePrepTaskStepToRecipePrepTaskStepCreationRequestInput builds a RecipePrepTaskStepCreationRequestInput from a RecipePrepTaskStep.
+func ConvertRecipePrepTaskStepToRecipePrepTaskStepCreationRequestInput(x *mealplanning.RecipePrepTaskStep) *mealplanning.RecipePrepTaskStepCreationRequestInput {
+	return &mealplanning.RecipePrepTaskStepCreationRequestInput{
+		BelongsToRecipeStep: x.BelongsToRecipeStep,
+		SatisfiesRecipeStep: x.SatisfiesRecipeStep,
+	}
+}
+
+// ConvertRecipePrepTaskStepToRecipePrepTaskStepDatabaseCreationInput builds a RecipePrepTaskStepDatabaseCreationInput from a RecipePrepTaskStep.
+func ConvertRecipePrepTaskStepToRecipePrepTaskStepDatabaseCreationInput(x *mealplanning.RecipePrepTaskStep) *mealplanning.RecipePrepTaskStepDatabaseCreationInput {
+	return &mealplanning.RecipePrepTaskStepDatabaseCreationInput{
+		ID:                      x.ID,
+		BelongsToRecipeStep:     x.BelongsToRecipeStep,
+		BelongsToRecipePrepTask: x.BelongsToRecipePrepTask,
+		SatisfiesRecipeStep:     x.SatisfiesRecipeStep,
+	}
+}
+
+// ConvertRecipePrepTaskStepToRecipePrepTaskStepUpdateRequestInput builds a RecipePrepTaskStepUpdateRequestInput from a RecipePrepTaskStep.
+func ConvertRecipePrepTaskStepToRecipePrepTaskStepUpdateRequestInput(x *mealplanning.RecipePrepTaskStep) *mealplanning.RecipePrepTaskStepUpdateRequestInput {
+	return &mealplanning.RecipePrepTaskStepUpdateRequestInput{
+		// Points at a copy rather than at the entity's own field, so amending the update
+		// input cannot write back through to what it was built from.
+		SatisfiesRecipeStep: new(x.SatisfiesRecipeStep),
+		// Points at a copy rather than at the entity's own field, so amending the update
+		// input cannot write back through to what it was built from.
+		BelongsToRecipeStep: new(x.BelongsToRecipeStep),
+		// Points at a copy rather than at the entity's own field, so amending the update
+		// input cannot write back through to what it was built from.
+		BelongsToRecipePrepTask: new(x.BelongsToRecipePrepTask),
+	}
+}
+
+// ConvertRecipePrepTaskStepCreationRequestInputToRecipePrepTaskStepDatabaseCreationInput builds a RecipePrepTaskStepDatabaseCreationInput from a RecipePrepTaskStepCreationRequestInput.
+func ConvertRecipePrepTaskStepCreationRequestInputToRecipePrepTaskStepDatabaseCreationInput(x *mealplanning.RecipePrepTaskStepCreationRequestInput) *mealplanning.RecipePrepTaskStepDatabaseCreationInput {
+	return &mealplanning.RecipePrepTaskStepDatabaseCreationInput{
+		ID:                  identifiers.New(),
+		BelongsToRecipeStep: x.BelongsToRecipeStep,
+
+		// BelongsToRecipePrepTask is left unset. The parent does not exist yet when a
+		// request is parsed, so whoever mints its ID stamps this.
+		SatisfiesRecipeStep: x.SatisfiesRecipeStep,
 	}
 }
 
@@ -464,327 +928,141 @@ func ConvertRecipeRatingToRecipeRatingDatabaseCreationInput(x *mealplanning.Reci
 	}
 }
 
-// ConvertMealCreationRequestInputToMealDatabaseCreationInput builds a MealDatabaseCreationInput from a MealCreationRequestInput.
-func ConvertMealCreationRequestInputToMealDatabaseCreationInput(input *mealplanning.MealCreationRequestInput) *mealplanning.MealDatabaseCreationInput {
-	components := make([]*mealplanning.MealComponentDatabaseCreationInput, 0, len(input.Components))
-	for _, item := range input.Components {
-		components = append(components, ConvertMealComponentCreationRequestInputToMealComponentDatabaseCreationInput(item))
-	}
-
-	return &mealplanning.MealDatabaseCreationInput{
-		MaxEstimatedPortions: input.MaxEstimatedPortions,
-		ID:                   identifiers.New(),
-		Name:                 input.Name,
-		Description:          input.Description,
-
-		// CreatedByUser is left unset. Comes from the session rather than the request
-		// body, so the manager stamps it after this.
-		Components:           components,
-		MinEstimatedPortions: input.MinEstimatedPortions,
-		EligibleForMealPlans: input.EligibleForMealPlans,
+// ConvertRecipeRatingToRecipeRatingUpdateRequestInput builds a RecipeRatingUpdateRequestInput from a RecipeRating.
+func ConvertRecipeRatingToRecipeRatingUpdateRequestInput(x *mealplanning.RecipeRating) *mealplanning.RecipeRatingUpdateRequestInput {
+	return &mealplanning.RecipeRatingUpdateRequestInput{
+		BelongsToRecipe: &x.BelongsToRecipe,
+		Taste:           &x.Taste,
+		Difficulty:      &x.Difficulty,
+		Cleanup:         &x.Cleanup,
+		Instructions:    &x.Instructions,
+		Overall:         &x.Overall,
+		Notes:           &x.Notes,
 	}
 }
 
-// ConvertMealComponentCreationRequestInputToMealComponentDatabaseCreationInput builds a MealComponentDatabaseCreationInput from a MealComponentCreationRequestInput.
-func ConvertMealComponentCreationRequestInputToMealComponentDatabaseCreationInput(input *mealplanning.MealComponentCreationRequestInput) *mealplanning.MealComponentDatabaseCreationInput {
-	return &mealplanning.MealComponentDatabaseCreationInput{
-		RecipeID:      input.RecipeID,
-		ComponentType: input.ComponentType,
-		RecipeScale:   input.RecipeScale,
+// ConvertRecipeRatingCreationRequestInputToRecipeRatingDatabaseCreationInput builds a RecipeRatingDatabaseCreationInput from a RecipeRatingCreationRequestInput.
+func ConvertRecipeRatingCreationRequestInputToRecipeRatingDatabaseCreationInput(x *mealplanning.RecipeRatingCreationRequestInput) *mealplanning.RecipeRatingDatabaseCreationInput {
+	return &mealplanning.RecipeRatingDatabaseCreationInput{
+		ID:              identifiers.New(),
+		BelongsToRecipe: x.BelongsToRecipe,
+		Notes:           x.Notes,
+		CreatedByUser:   x.CreatedByUser,
+		Taste:           x.Taste,
+		Difficulty:      x.Difficulty,
+		Cleanup:         x.Cleanup,
+		Instructions:    x.Instructions,
+		Overall:         x.Overall,
 	}
 }
 
-// ConvertMealToMealCreationRequestInput builds a MealCreationRequestInput from a Meal.
-func ConvertMealToMealCreationRequestInput(meal *mealplanning.Meal) *mealplanning.MealCreationRequestInput {
-	components := make([]*mealplanning.MealComponentCreationRequestInput, 0, len(meal.Components))
-	for _, item := range meal.Components {
-		components = append(components, ConvertMealComponentToMealComponentCreationRequestInput(item))
+// ConvertRecipeStepToRecipeStepDatabaseCreationInput builds a RecipeStepDatabaseCreationInput from a RecipeStep.
+func ConvertRecipeStepToRecipeStepDatabaseCreationInput(x *mealplanning.RecipeStep) *mealplanning.RecipeStepDatabaseCreationInput {
+	ingredients := make([]*mealplanning.RecipeStepIngredientDatabaseCreationInput, 0, len(x.Ingredients))
+	for _, item := range x.Ingredients {
+		ingredients = append(ingredients, ConvertRecipeStepIngredientToRecipeStepIngredientDatabaseCreationInput(item))
 	}
 
-	return &mealplanning.MealCreationRequestInput{
-		MaxEstimatedPortions: meal.MaxEstimatedPortions,
-		Name:                 meal.Name,
-		Description:          meal.Description,
-		Components:           components,
-		MinEstimatedPortions: meal.MinEstimatedPortions,
-		EligibleForMealPlans: meal.EligibleForMealPlans,
-	}
-}
-
-// ConvertMealComponentToMealComponentCreationRequestInput builds a MealComponentCreationRequestInput from a MealComponent.
-func ConvertMealComponentToMealComponentCreationRequestInput(input *mealplanning.MealComponent) *mealplanning.MealComponentCreationRequestInput {
-	return &mealplanning.MealComponentCreationRequestInput{
-		RecipeID:      input.Recipe.ID,
-		ComponentType: input.ComponentType,
-		RecipeScale:   input.RecipeScale,
-	}
-}
-
-// ConvertMealToMealDatabaseCreationInput builds a MealDatabaseCreationInput from a Meal.
-func ConvertMealToMealDatabaseCreationInput(meal *mealplanning.Meal) *mealplanning.MealDatabaseCreationInput {
-	components := make([]*mealplanning.MealComponentDatabaseCreationInput, 0, len(meal.Components))
-	for _, item := range meal.Components {
-		components = append(components, ConvertMealComponentToMealComponentDatabaseCreationInput(item))
+	instruments := make([]*mealplanning.RecipeStepInstrumentDatabaseCreationInput, 0, len(x.Instruments))
+	for _, item := range x.Instruments {
+		instruments = append(instruments, ConvertRecipeStepInstrumentToRecipeStepInstrumentDatabaseCreationInput(item))
 	}
 
-	return &mealplanning.MealDatabaseCreationInput{
-		MaxEstimatedPortions: meal.MaxEstimatedPortions,
-		ID:                   meal.ID,
-		Name:                 meal.Name,
-		Description:          meal.Description,
-		CreatedByUser:        meal.CreatedByUser,
-		Components:           components,
-		MinEstimatedPortions: meal.MinEstimatedPortions,
-		EligibleForMealPlans: meal.EligibleForMealPlans,
+	vessels := make([]*mealplanning.RecipeStepVesselDatabaseCreationInput, 0, len(x.Vessels))
+	for _, item := range x.Vessels {
+		vessels = append(vessels, ConvertRecipeStepVesselToRecipeStepVesselDatabaseCreationInput(item))
 	}
-}
 
-// ConvertMealComponentToMealComponentDatabaseCreationInput builds a MealComponentDatabaseCreationInput from a MealComponent.
-func ConvertMealComponentToMealComponentDatabaseCreationInput(input *mealplanning.MealComponent) *mealplanning.MealComponentDatabaseCreationInput {
-	return &mealplanning.MealComponentDatabaseCreationInput{
-		RecipeID:      input.Recipe.ID,
-		ComponentType: input.ComponentType,
-		RecipeScale:   input.RecipeScale,
+	products := make([]*mealplanning.RecipeStepProductDatabaseCreationInput, 0, len(x.Products))
+	for _, item := range x.Products {
+		products = append(products, ConvertRecipeStepProductToRecipeStepProductDatabaseCreationInput(item))
+	}
+
+	completionConditions := make([]*mealplanning.RecipeStepCompletionConditionDatabaseCreationInput, 0, len(x.CompletionConditions))
+	for _, item := range x.CompletionConditions {
+		completionConditions = append(completionConditions, ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionDatabaseCreationInput(item))
+	}
+
+	return &mealplanning.RecipeStepDatabaseCreationInput{
+		MinEstimatedTimeInSeconds: x.MinEstimatedTimeInSeconds,
+		MaxEstimatedTimeInSeconds: x.MaxEstimatedTimeInSeconds,
+		MinTemperatureInCelsius:   x.MinTemperatureInCelsius,
+		MaxTemperatureInCelsius:   x.MaxTemperatureInCelsius,
+		BelongsToRecipe:           x.BelongsToRecipe,
+		PreparationID:             x.Preparation.ID,
+		ID:                        x.ID,
+		Notes:                     x.Notes,
+		ExplicitInstructions:      x.ExplicitInstructions,
+		ConditionExpression:       x.ConditionExpression,
+		Ingredients:               ingredients,
+		Instruments:               instruments,
+		Vessels:                   vessels,
+		Products:                  products,
+		CompletionConditions:      completionConditions,
+		Index:                     x.Index,
+		Optional:                  x.Optional,
+		StartTimerAutomatically:   x.StartTimerAutomatically,
 	}
 }
 
-// ConvertRecipeListItemCreationRequestInputToRecipeListItemDatabaseCreationInput builds a RecipeListItemDatabaseCreationInput from a RecipeListItemCreationRequestInput.
-func ConvertRecipeListItemCreationRequestInputToRecipeListItemDatabaseCreationInput(x *mealplanning.RecipeListItemCreationRequestInput, recipeListID string) *mealplanning.RecipeListItemDatabaseCreationInput {
-	return &mealplanning.RecipeListItemDatabaseCreationInput{
-		ID:       identifiers.New(),
-		RecipeID: x.RecipeID,
-		Notes:    x.Notes,
-		// The list an item joins is the caller's to name; the request body carries only
-		// the item.
-		BelongsToRecipeList: recipeListID,
-	}
-}
-
-// ConvertRecipeMediaToRecipeMediaUpdateRequestInput builds a RecipeMediaUpdateRequestInput from a RecipeMedia.
-func ConvertRecipeMediaToRecipeMediaUpdateRequestInput(input *mealplanning.RecipeMedia) *mealplanning.RecipeMediaUpdateRequestInput {
-	return &mealplanning.RecipeMediaUpdateRequestInput{
-		BelongsToRecipe:     input.BelongsToRecipe,
-		BelongsToRecipeStep: input.BelongsToRecipeStep,
-		MimeType:            &input.MimeType,
-		InternalPath:        &input.InternalPath,
-		ExternalPath:        &input.ExternalPath,
-		Index:               &input.Index,
-	}
-}
-
-// ConvertRecipeMediaCreationRequestInputToRecipeMediaDatabaseCreationInput builds a RecipeMediaDatabaseCreationInput from a RecipeMediaCreationRequestInput.
-func ConvertRecipeMediaCreationRequestInputToRecipeMediaDatabaseCreationInput(input *mealplanning.RecipeMediaCreationRequestInput) *mealplanning.RecipeMediaDatabaseCreationInput {
-	return &mealplanning.RecipeMediaDatabaseCreationInput{
-		ID:                  identifiers.New(),
-		BelongsToRecipe:     input.BelongsToRecipe,
-		BelongsToRecipeStep: input.BelongsToRecipeStep,
-		MimeType:            input.MimeType,
-		InternalPath:        input.InternalPath,
-		ExternalPath:        input.ExternalPath,
-		Index:               input.Index,
-	}
-}
-
-// ConvertRecipeMediaToRecipeMediaCreationRequestInput builds a RecipeMediaCreationRequestInput from a RecipeMedia.
-func ConvertRecipeMediaToRecipeMediaCreationRequestInput(recipeMedia *mealplanning.RecipeMedia) *mealplanning.RecipeMediaCreationRequestInput {
-	return &mealplanning.RecipeMediaCreationRequestInput{
-		BelongsToRecipe:     recipeMedia.BelongsToRecipe,
-		BelongsToRecipeStep: recipeMedia.BelongsToRecipeStep,
-		MimeType:            recipeMedia.MimeType,
-		InternalPath:        recipeMedia.InternalPath,
-		ExternalPath:        recipeMedia.ExternalPath,
-		Index:               recipeMedia.Index,
-	}
-}
-
-// ConvertRecipeMediaToRecipeMediaDatabaseCreationInput builds a RecipeMediaDatabaseCreationInput from a RecipeMedia.
-func ConvertRecipeMediaToRecipeMediaDatabaseCreationInput(recipeMedia *mealplanning.RecipeMedia) *mealplanning.RecipeMediaDatabaseCreationInput {
-	return &mealplanning.RecipeMediaDatabaseCreationInput{
-		ID:                  recipeMedia.ID,
-		BelongsToRecipe:     recipeMedia.BelongsToRecipe,
-		BelongsToRecipeStep: recipeMedia.BelongsToRecipeStep,
-		MimeType:            recipeMedia.MimeType,
-		InternalPath:        recipeMedia.InternalPath,
-		ExternalPath:        recipeMedia.ExternalPath,
-		Index:               recipeMedia.Index,
-	}
-}
-
-// ConvertRecipePrepTaskToRecipePrepTaskDatabaseCreationInput builds a RecipePrepTaskDatabaseCreationInput from a RecipePrepTask.
-func ConvertRecipePrepTaskToRecipePrepTaskDatabaseCreationInput(input *mealplanning.RecipePrepTask) *mealplanning.RecipePrepTaskDatabaseCreationInput {
-	taskSteps := make([]*mealplanning.RecipePrepTaskStepDatabaseCreationInput, 0, len(input.TaskSteps))
-	for _, item := range input.TaskSteps {
-		taskSteps = append(taskSteps, ConvertRecipePrepTaskStepToRecipePrepTaskStepDatabaseCreationInput(item))
-	}
-
-	return &mealplanning.RecipePrepTaskDatabaseCreationInput{
-		MinStorageTemperatureInCelsius:     input.MinStorageTemperatureInCelsius,
-		MaxStorageTemperatureInCelsius:     input.MaxStorageTemperatureInCelsius,
-		MaxTimeBufferBeforeRecipeInSeconds: input.MaxTimeBufferBeforeRecipeInSeconds,
-		Notes:                              input.Notes,
-		ExplicitStorageInstructions:        input.ExplicitStorageInstructions,
-		ID:                                 input.ID,
-		Name:                               input.Name,
-		Description:                        input.Description,
-		StorageType:                        input.StorageType,
-		BelongsToRecipe:                    input.BelongsToRecipe,
-		TaskSteps:                          taskSteps,
-		MinTimeBufferBeforeRecipeInSeconds: input.MinTimeBufferBeforeRecipeInSeconds,
-		Optional:                           input.Optional,
-	}
-}
-
-// ConvertRecipePrepTaskStepToRecipePrepTaskStepCreationRequestInput builds a RecipePrepTaskStepCreationRequestInput from a RecipePrepTaskStep.
-func ConvertRecipePrepTaskStepToRecipePrepTaskStepCreationRequestInput(input *mealplanning.RecipePrepTaskStep) *mealplanning.RecipePrepTaskStepCreationRequestInput {
-	return &mealplanning.RecipePrepTaskStepCreationRequestInput{
-		BelongsToRecipeStep: input.BelongsToRecipeStep,
-		SatisfiesRecipeStep: input.SatisfiesRecipeStep,
-	}
-}
-
-// ConvertRecipePrepTaskToRecipePrepTaskCreationRequestInput builds a RecipePrepTaskCreationRequestInput from a RecipePrepTask.
-func ConvertRecipePrepTaskToRecipePrepTaskCreationRequestInput(input *mealplanning.RecipePrepTask) *mealplanning.RecipePrepTaskCreationRequestInput {
-	recipeSteps := make([]*mealplanning.RecipePrepTaskStepCreationRequestInput, 0, len(input.TaskSteps))
-	for _, item := range input.TaskSteps {
-		recipeSteps = append(recipeSteps, ConvertRecipePrepTaskStepToRecipePrepTaskStepCreationRequestInput(item))
-	}
-
-	return &mealplanning.RecipePrepTaskCreationRequestInput{
-		MinStorageTemperatureInCelsius:     input.MinStorageTemperatureInCelsius,
-		MaxStorageTemperatureInCelsius:     input.MaxStorageTemperatureInCelsius,
-		MaxTimeBufferBeforeRecipeInSeconds: input.MaxTimeBufferBeforeRecipeInSeconds,
-		ExplicitStorageInstructions:        input.ExplicitStorageInstructions,
-		StorageType:                        input.StorageType,
-		Notes:                              input.Notes,
-		Name:                               input.Name,
-		Description:                        input.Description,
-		BelongsToRecipe:                    input.BelongsToRecipe,
-		RecipeSteps:                        recipeSteps,
-		MinTimeBufferBeforeRecipeInSeconds: input.MinTimeBufferBeforeRecipeInSeconds,
-		Optional:                           input.Optional,
-	}
-}
-
-// ConvertRecipePrepTaskStepToRecipePrepTaskStepUpdateRequestInput builds a RecipePrepTaskStepUpdateRequestInput from a RecipePrepTaskStep.
-func ConvertRecipePrepTaskStepToRecipePrepTaskStepUpdateRequestInput(input *mealplanning.RecipePrepTaskStep) *mealplanning.RecipePrepTaskStepUpdateRequestInput {
-	return &mealplanning.RecipePrepTaskStepUpdateRequestInput{
-		// An update input holds pointers, and this one points at a copy rather than at the
-		// entity's own field.
-		SatisfiesRecipeStep: new(input.SatisfiesRecipeStep),
-		// An update input holds pointers, and this one points at a copy rather than at the
-		// entity's own field.
-		BelongsToRecipeStep: new(input.BelongsToRecipeStep),
-		// An update input holds pointers, and this one points at a copy rather than at the
-		// entity's own field.
-		BelongsToRecipePrepTask: new(input.BelongsToRecipePrepTask),
-	}
-}
-
-// ConvertRecipePrepTaskStepToRecipePrepTaskStepDatabaseCreationInput builds a RecipePrepTaskStepDatabaseCreationInput from a RecipePrepTaskStep.
-func ConvertRecipePrepTaskStepToRecipePrepTaskStepDatabaseCreationInput(input *mealplanning.RecipePrepTaskStep) *mealplanning.RecipePrepTaskStepDatabaseCreationInput {
-	return &mealplanning.RecipePrepTaskStepDatabaseCreationInput{
-		ID:                      input.ID,
-		BelongsToRecipeStep:     input.BelongsToRecipeStep,
-		BelongsToRecipePrepTask: input.BelongsToRecipePrepTask,
-		SatisfiesRecipeStep:     input.SatisfiesRecipeStep,
-	}
-}
-
-// ConvertRecipeStepCompletionConditionForExistingRecipeCreationRequestInputToRecipeStepCompletionConditionDatabaseCreationInput builds a RecipeStepCompletionConditionDatabaseCreationInput from a RecipeStepCompletionConditionForExistingRecipeCreationRequestInput.
-func ConvertRecipeStepCompletionConditionForExistingRecipeCreationRequestInputToRecipeStepCompletionConditionDatabaseCreationInput(input *mealplanning.RecipeStepCompletionConditionForExistingRecipeCreationRequestInput) *mealplanning.RecipeStepCompletionConditionDatabaseCreationInput {
-	recipeStepCompletionConditionID := identifiers.New()
-
-	var ingredients []*mealplanning.RecipeStepCompletionConditionIngredientDatabaseCreationInput
-	for _, item := range input.Ingredients {
-		converted := ConvertRecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInputToRecipeStepCompletionConditionIngredientDatabaseCreationInput(item)
-		converted.BelongsToRecipeStepCompletionCondition = recipeStepCompletionConditionID
-		ingredients = append(ingredients, converted)
-	}
-
-	return &mealplanning.RecipeStepCompletionConditionDatabaseCreationInput{
-		ID:                  recipeStepCompletionConditionID,
-		IngredientStateID:   input.IngredientStateID,
-		BelongsToRecipeStep: input.BelongsToRecipeStep,
-		Notes:               input.Notes,
-		Ingredients:         ingredients,
-		Optional:            input.Optional,
-	}
-}
-
-// ConvertRecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInputToRecipeStepCompletionConditionIngredientDatabaseCreationInput builds a RecipeStepCompletionConditionIngredientDatabaseCreationInput from a RecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInput.
-func ConvertRecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInputToRecipeStepCompletionConditionIngredientDatabaseCreationInput(input *mealplanning.RecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInput) *mealplanning.RecipeStepCompletionConditionIngredientDatabaseCreationInput {
-	return &mealplanning.RecipeStepCompletionConditionIngredientDatabaseCreationInput{
-		ID: identifiers.New(),
-
-		// BelongsToRecipeStepCompletionCondition is left unset. The parent does not exist
-		// yet when a request is parsed; whoever mints its ID stamps this.
-		RecipeStepIngredient: input.RecipeStepIngredient,
+// ConvertRecipeStepToRecipeStepUpdateRequestInput builds a RecipeStepUpdateRequestInput from a RecipeStep.
+func ConvertRecipeStepToRecipeStepUpdateRequestInput(x *mealplanning.RecipeStep) *mealplanning.RecipeStepUpdateRequestInput {
+	return &mealplanning.RecipeStepUpdateRequestInput{
+		MinEstimatedTimeInSeconds: x.MinEstimatedTimeInSeconds,
+		MaxEstimatedTimeInSeconds: x.MaxEstimatedTimeInSeconds,
+		MinTemperatureInCelsius:   x.MinTemperatureInCelsius,
+		MaxTemperatureInCelsius:   x.MaxTemperatureInCelsius,
+		Notes:                     &x.Notes,
+		Preparation:               &x.Preparation,
+		Index:                     &x.Index,
+		Optional:                  &x.Optional,
+		ExplicitInstructions:      &x.ExplicitInstructions,
+		ConditionExpression:       &x.ConditionExpression,
+		StartTimerAutomatically:   &x.StartTimerAutomatically,
+		BelongsToRecipe:           &x.BelongsToRecipe,
 	}
 }
 
 // ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionUpdateRequestInput builds a RecipeStepCompletionConditionUpdateRequestInput from a RecipeStepCompletionCondition.
-func ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionUpdateRequestInput(input *mealplanning.RecipeStepCompletionCondition) *mealplanning.RecipeStepCompletionConditionUpdateRequestInput {
+func ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionUpdateRequestInput(x *mealplanning.RecipeStepCompletionCondition) *mealplanning.RecipeStepCompletionConditionUpdateRequestInput {
 	return &mealplanning.RecipeStepCompletionConditionUpdateRequestInput{
-		IngredientStateID:   &input.IngredientState.ID,
-		BelongsToRecipeStep: &input.BelongsToRecipeStep,
-		Notes:               &input.Notes,
-		Optional:            &input.Optional,
+		IngredientStateID:   &x.IngredientState.ID,
+		BelongsToRecipeStep: &x.BelongsToRecipeStep,
+		Notes:               &x.Notes,
+		Optional:            &x.Optional,
 	}
 }
 
-// ConvertRecipeStepCompletionConditionIngredientToRecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInput builds a RecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInput from a RecipeStepCompletionConditionIngredient.
-func ConvertRecipeStepCompletionConditionIngredientToRecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInput(recipeStepCompletionConditionIngredient *mealplanning.RecipeStepCompletionConditionIngredient) *mealplanning.RecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInput {
-	return &mealplanning.RecipeStepCompletionConditionIngredientForExistingRecipeCreationRequestInput{
-		RecipeStepIngredient: recipeStepCompletionConditionIngredient.RecipeStepIngredient,
-	}
-}
-
-// ConvertRecipeStepIngredientToRecipeStepIngredientUpdateRequestInput builds a RecipeStepIngredientUpdateRequestInput from a RecipeStepIngredient.
-func ConvertRecipeStepIngredientToRecipeStepIngredientUpdateRequestInput(input *mealplanning.RecipeStepIngredient) *mealplanning.RecipeStepIngredientUpdateRequestInput {
-	return &mealplanning.RecipeStepIngredientUpdateRequestInput{
-		IngredientID:           &input.Ingredient.ID,
-		RecipeStepProductID:    input.RecipeStepProductID,
-		Name:                   &input.Name,
-		Optional:               &input.Optional,
-		MeasurementUnitID:      &input.MeasurementUnit.ID,
-		QuantityNotes:          &input.QuantityNotes,
-		IngredientNotes:        &input.IngredientNotes,
-		BelongsToRecipeStep:    &input.BelongsToRecipeStep,
-		MinQuantity:            &input.MinQuantity,
-		MaxQuantity:            input.MaxQuantity,
-		Index:                  &input.Index,
-		OptionIndex:            &input.OptionIndex,
-		VesselIndex:            input.VesselIndex,
-		ToTaste:                &input.ToTaste,
-		ProductPercentageToUse: input.ProductPercentageToUse,
-
-		// RecipeStepProductRecipeID is left unset. RecipeStepIngredient carries this and
-		// the converter this replaced did not copy it. Preserved rather than corrected, so
-		// that generating these converters is not also a behavior change.
-		ScaleFactor: &input.ScaleFactor,
+// ConvertRecipeStepCompletionConditionIngredientToRecipeStepCompletionConditionIngredientDatabaseCreationInput builds a RecipeStepCompletionConditionIngredientDatabaseCreationInput from a RecipeStepCompletionConditionIngredient.
+func ConvertRecipeStepCompletionConditionIngredientToRecipeStepCompletionConditionIngredientDatabaseCreationInput(x *mealplanning.RecipeStepCompletionConditionIngredient) *mealplanning.RecipeStepCompletionConditionIngredientDatabaseCreationInput {
+	return &mealplanning.RecipeStepCompletionConditionIngredientDatabaseCreationInput{
+		ID:                                     x.ID,
+		BelongsToRecipeStepCompletionCondition: x.BelongsToRecipeStepCompletionCondition,
+		RecipeStepIngredient:                   x.RecipeStepIngredient,
 	}
 }
 
 // ConvertRecipeStepIngredientToRecipeStepIngredientDatabaseCreationInput builds a RecipeStepIngredientDatabaseCreationInput from a RecipeStepIngredient.
-func ConvertRecipeStepIngredientToRecipeStepIngredientDatabaseCreationInput(input *mealplanning.RecipeStepIngredient) *mealplanning.RecipeStepIngredientDatabaseCreationInput {
+func ConvertRecipeStepIngredientToRecipeStepIngredientDatabaseCreationInput(x *mealplanning.RecipeStepIngredient) *mealplanning.RecipeStepIngredientDatabaseCreationInput {
 	var ingredientID *string
-	if input.Ingredient != nil {
-		ingredientID = &input.Ingredient.ID
+	if x.Ingredient != nil {
+		ingredientID = &x.Ingredient.ID
 	}
 
 	return &mealplanning.RecipeStepIngredientDatabaseCreationInput{
-		MaxQuantity:               input.MaxQuantity,
-		RecipeStepProductRecipeID: input.RecipeStepProductRecipeID,
+		MaxQuantity:               x.MaxQuantity,
+		RecipeStepProductRecipeID: x.RecipeStepProductRecipeID,
 		IngredientID:              ingredientID,
-		RecipeStepProductID:       input.RecipeStepProductID,
+		RecipeStepProductID:       x.RecipeStepProductID,
 
 		// ProductOfRecipeStepIndex is left unset. An index into the recipe being created,
 		// resolved to an ID once it is. A stored step has the ID and no longer the index.
 
 		// ProductOfRecipeStepProductIndex is left unset. An index into the recipe being
-		// created; see ProductOfRecipeStepIndex.
-		VesselIndex:            input.VesselIndex,
-		ProductPercentageToUse: input.ProductPercentageToUse,
+		// created, resolved to an ID once it is. A stored step has the ID and no longer
+		// the index.
+		VesselIndex:            x.VesselIndex,
+		ProductPercentageToUse: x.ProductPercentageToUse,
 
 		// ValidIngredientPreparationID is left unset. The bridge-table row this step was
 		// built from. A stored step keeps the entity it resolved to, not the row that
@@ -793,155 +1071,176 @@ func ConvertRecipeStepIngredientToRecipeStepIngredientDatabaseCreationInput(inpu
 		// ValidIngredientMeasurementUnitID is left unset. The bridge-table row this step
 		// was built from. A stored step keeps the entity it resolved to, not the row that
 		// justified it.
-		ID:                  input.ID,
-		BelongsToRecipeStep: input.BelongsToRecipeStep,
-		Name:                input.Name,
-		IngredientNotes:     input.IngredientNotes,
-		QuantityNotes:       input.QuantityNotes,
-		MeasurementUnitID:   input.MeasurementUnit.ID,
-		MinQuantity:         input.MinQuantity,
-		Index:               input.Index,
-		OptionIndex:         input.OptionIndex,
-		Optional:            input.Optional,
-		ToTaste:             input.ToTaste,
+		ID:                  x.ID,
+		BelongsToRecipeStep: x.BelongsToRecipeStep,
+		Name:                x.Name,
+		IngredientNotes:     x.IngredientNotes,
+		QuantityNotes:       x.QuantityNotes,
+		MeasurementUnitID:   x.MeasurementUnit.ID,
+		MinQuantity:         x.MinQuantity,
+		Index:               x.Index,
+		OptionIndex:         x.OptionIndex,
+		Optional:            x.Optional,
+		ToTaste:             x.ToTaste,
 		// Zero means unset on the wire and one in the database, and scaleFactorOrDefault
 		// is where that is decided.
-		ScaleFactor: scaleFactorOrDefault(input.ScaleFactor),
+		ScaleFactor: scaleFactorOrDefault(x.ScaleFactor),
 	}
 }
 
-// ConvertRecipeStepInstrumentToRecipeStepInstrumentUpdateRequestInput builds a RecipeStepInstrumentUpdateRequestInput from a RecipeStepInstrument.
-func ConvertRecipeStepInstrumentToRecipeStepInstrumentUpdateRequestInput(input *mealplanning.RecipeStepInstrument) *mealplanning.RecipeStepInstrumentUpdateRequestInput {
-	return &mealplanning.RecipeStepInstrumentUpdateRequestInput{
-		InstrumentID:        &input.Instrument.ID,
-		RecipeStepProductID: input.RecipeStepProductID,
-		Notes:               &input.Notes,
-		PreferenceRank:      &input.PreferenceRank,
-		BelongsToRecipeStep: &input.BelongsToRecipeStep,
-		Name:                &input.Name,
-		Optional:            &input.Optional,
-		Index:               &input.Index,
-		OptionIndex:         &input.OptionIndex,
-		MinQuantity:         &input.MinQuantity,
-		MaxQuantity:         input.MaxQuantity,
-		ScaleFactor:         &input.ScaleFactor,
+// ConvertRecipeStepIngredientToRecipeStepIngredientUpdateRequestInput builds a RecipeStepIngredientUpdateRequestInput from a RecipeStepIngredient.
+func ConvertRecipeStepIngredientToRecipeStepIngredientUpdateRequestInput(x *mealplanning.RecipeStepIngredient) *mealplanning.RecipeStepIngredientUpdateRequestInput {
+	var ingredientID *string
+	if x.Ingredient != nil {
+		ingredientID = &x.Ingredient.ID
+	}
+
+	return &mealplanning.RecipeStepIngredientUpdateRequestInput{
+		IngredientID:              ingredientID,
+		RecipeStepProductID:       x.RecipeStepProductID,
+		Name:                      &x.Name,
+		Optional:                  &x.Optional,
+		MeasurementUnitID:         &x.MeasurementUnit.ID,
+		QuantityNotes:             &x.QuantityNotes,
+		IngredientNotes:           &x.IngredientNotes,
+		BelongsToRecipeStep:       &x.BelongsToRecipeStep,
+		MinQuantity:               &x.MinQuantity,
+		MaxQuantity:               x.MaxQuantity,
+		Index:                     &x.Index,
+		OptionIndex:               &x.OptionIndex,
+		VesselIndex:               x.VesselIndex,
+		ToTaste:                   &x.ToTaste,
+		ProductPercentageToUse:    x.ProductPercentageToUse,
+		RecipeStepProductRecipeID: x.RecipeStepProductRecipeID,
+		ScaleFactor:               &x.ScaleFactor,
 	}
 }
 
 // ConvertRecipeStepInstrumentToRecipeStepInstrumentDatabaseCreationInput builds a RecipeStepInstrumentDatabaseCreationInput from a RecipeStepInstrument.
-func ConvertRecipeStepInstrumentToRecipeStepInstrumentDatabaseCreationInput(input *mealplanning.RecipeStepInstrument) *mealplanning.RecipeStepInstrumentDatabaseCreationInput {
+func ConvertRecipeStepInstrumentToRecipeStepInstrumentDatabaseCreationInput(x *mealplanning.RecipeStepInstrument) *mealplanning.RecipeStepInstrumentDatabaseCreationInput {
 	var instrumentID *string
-	if input.Instrument != nil {
-		instrumentID = &input.Instrument.ID
+	if x.Instrument != nil {
+		instrumentID = &x.Instrument.ID
 	}
 
 	return &mealplanning.RecipeStepInstrumentDatabaseCreationInput{
-		MaxQuantity: input.MaxQuantity,
+		MaxQuantity: x.MaxQuantity,
 
 		// ProductOfRecipeStepIndex is left unset. An index into the recipe being created,
 		// resolved to an ID once it is. A stored step has the ID and no longer the index.
-		RecipeStepProductID: input.RecipeStepProductID,
+		RecipeStepProductID: x.RecipeStepProductID,
 
 		// ProductOfRecipeStepProductIndex is left unset. An index into the recipe being
-		// created; see ProductOfRecipeStepIndex.
+		// created, resolved to an ID once it is. A stored step has the ID and no longer
+		// the index.
 		InstrumentID: instrumentID,
 
 		// ValidPreparationInstrumentID is left unset. The bridge-table row this step was
 		// built from. A stored step keeps the entity it resolved to, not the row that
 		// justified it.
-		BelongsToRecipeStep: input.BelongsToRecipeStep,
-		Name:                input.Name,
-		ID:                  input.ID,
-		Notes:               input.Notes,
-		MinQuantity:         input.MinQuantity,
-		Index:               input.Index,
-		OptionIndex:         input.OptionIndex,
-		Optional:            input.Optional,
-		PreferenceRank:      input.PreferenceRank,
+		BelongsToRecipeStep: x.BelongsToRecipeStep,
+		Name:                x.Name,
+		ID:                  x.ID,
+		Notes:               x.Notes,
+		MinQuantity:         x.MinQuantity,
+		Index:               x.Index,
+		OptionIndex:         x.OptionIndex,
+		Optional:            x.Optional,
+		PreferenceRank:      x.PreferenceRank,
 		// Zero means unset on the wire and one in the database, and scaleFactorOrDefault
 		// is where that is decided.
-		ScaleFactor: scaleFactorOrDefault(input.ScaleFactor),
+		ScaleFactor: scaleFactorOrDefault(x.ScaleFactor),
+	}
+}
+
+// ConvertRecipeStepInstrumentToRecipeStepInstrumentUpdateRequestInput builds a RecipeStepInstrumentUpdateRequestInput from a RecipeStepInstrument.
+func ConvertRecipeStepInstrumentToRecipeStepInstrumentUpdateRequestInput(x *mealplanning.RecipeStepInstrument) *mealplanning.RecipeStepInstrumentUpdateRequestInput {
+	var instrumentID *string
+	if x.Instrument != nil {
+		instrumentID = &x.Instrument.ID
+	}
+
+	return &mealplanning.RecipeStepInstrumentUpdateRequestInput{
+		InstrumentID:        instrumentID,
+		RecipeStepProductID: x.RecipeStepProductID,
+		Notes:               &x.Notes,
+		PreferenceRank:      &x.PreferenceRank,
+		BelongsToRecipeStep: &x.BelongsToRecipeStep,
+		Name:                &x.Name,
+		Optional:            &x.Optional,
+		Index:               &x.Index,
+		OptionIndex:         &x.OptionIndex,
+		MinQuantity:         &x.MinQuantity,
+		MaxQuantity:         x.MaxQuantity,
+		ScaleFactor:         &x.ScaleFactor,
 	}
 }
 
 // ConvertRecipeStepProductToRecipeStepProductCreationRequestInput builds a RecipeStepProductCreationRequestInput from a RecipeStepProduct.
-func ConvertRecipeStepProductToRecipeStepProductCreationRequestInput(recipeStepProduct *mealplanning.RecipeStepProduct) *mealplanning.RecipeStepProductCreationRequestInput {
+func ConvertRecipeStepProductToRecipeStepProductCreationRequestInput(x *mealplanning.RecipeStepProduct) *mealplanning.RecipeStepProductCreationRequestInput {
+	var measurementUnitID *string
+	if x.MeasurementUnit != nil {
+		measurementUnitID = &x.MeasurementUnit.ID
+	}
+
 	return &mealplanning.RecipeStepProductCreationRequestInput{
-		MinStorageTemperatureInCelsius: recipeStepProduct.MinStorageTemperatureInCelsius,
-		MaxStorageTemperatureInCelsius: recipeStepProduct.MaxStorageTemperatureInCelsius,
-		MinStorageDurationInSeconds:    recipeStepProduct.MinStorageDurationInSeconds,
-		MaxStorageDurationInSeconds:    recipeStepProduct.MaxStorageDurationInSeconds,
-		MinMeasurementQuantity:         recipeStepProduct.MinMeasurementQuantity,
-		MaxMeasurementQuantity:         recipeStepProduct.MaxMeasurementQuantity,
-		MinItemQuantity:                recipeStepProduct.MinItemQuantity,
-		MaxItemQuantity:                recipeStepProduct.MaxItemQuantity,
-		MeasurementUnitID:              &recipeStepProduct.MeasurementUnit.ID,
-		ContainedInVesselIndex:         recipeStepProduct.ContainedInVesselIndex,
-		QuantityNotes:                  recipeStepProduct.QuantityNotes,
-		Name:                           recipeStepProduct.Name,
-		StorageInstructions:            recipeStepProduct.StorageInstructions,
-		Type:                           recipeStepProduct.Type,
-		Index:                          recipeStepProduct.Index,
-		Compostable:                    recipeStepProduct.Compostable,
-		IsLiquid:                       recipeStepProduct.IsLiquid,
-		IsWaste:                        recipeStepProduct.IsWaste,
+		MinStorageTemperatureInCelsius: x.MinStorageTemperatureInCelsius,
+		MaxStorageTemperatureInCelsius: x.MaxStorageTemperatureInCelsius,
+		MinStorageDurationInSeconds:    x.MinStorageDurationInSeconds,
+		MaxStorageDurationInSeconds:    x.MaxStorageDurationInSeconds,
+		MinMeasurementQuantity:         x.MinMeasurementQuantity,
+		MaxMeasurementQuantity:         x.MaxMeasurementQuantity,
+		MinItemQuantity:                x.MinItemQuantity,
+		MaxItemQuantity:                x.MaxItemQuantity,
+		MeasurementUnitID:              measurementUnitID,
+		ContainedInVesselIndex:         x.ContainedInVesselIndex,
+		QuantityNotes:                  x.QuantityNotes,
+		Name:                           x.Name,
+		StorageInstructions:            x.StorageInstructions,
+		Type:                           x.Type,
+		Index:                          x.Index,
+		Compostable:                    x.Compostable,
+		IsLiquid:                       x.IsLiquid,
+		IsWaste:                        x.IsWaste,
 	}
 }
 
 // ConvertRecipeStepProductToRecipeStepProductDatabaseCreationInput builds a RecipeStepProductDatabaseCreationInput from a RecipeStepProduct.
-func ConvertRecipeStepProductToRecipeStepProductDatabaseCreationInput(recipeStepProduct *mealplanning.RecipeStepProduct) *mealplanning.RecipeStepProductDatabaseCreationInput {
+func ConvertRecipeStepProductToRecipeStepProductDatabaseCreationInput(x *mealplanning.RecipeStepProduct) *mealplanning.RecipeStepProductDatabaseCreationInput {
 	var measurementUnitID *string
-	if recipeStepProduct.MeasurementUnit != nil {
-		measurementUnitID = &recipeStepProduct.MeasurementUnit.ID
+	if x.MeasurementUnit != nil {
+		measurementUnitID = &x.MeasurementUnit.ID
 	}
 
 	return &mealplanning.RecipeStepProductDatabaseCreationInput{
-		MinStorageTemperatureInCelsius: recipeStepProduct.MinStorageTemperatureInCelsius,
-		MaxStorageTemperatureInCelsius: recipeStepProduct.MaxStorageTemperatureInCelsius,
-		MinStorageDurationInSeconds:    recipeStepProduct.MinStorageDurationInSeconds,
-		MaxStorageDurationInSeconds:    recipeStepProduct.MaxStorageDurationInSeconds,
-		MinMeasurementQuantity:         recipeStepProduct.MinMeasurementQuantity,
-		MaxMeasurementQuantity:         recipeStepProduct.MaxMeasurementQuantity,
-		MinItemQuantity:                recipeStepProduct.MinItemQuantity,
-		MaxItemQuantity:                recipeStepProduct.MaxItemQuantity,
+		MinStorageTemperatureInCelsius: x.MinStorageTemperatureInCelsius,
+		MaxStorageTemperatureInCelsius: x.MaxStorageTemperatureInCelsius,
+		MinStorageDurationInSeconds:    x.MinStorageDurationInSeconds,
+		MaxStorageDurationInSeconds:    x.MaxStorageDurationInSeconds,
+		MinMeasurementQuantity:         x.MinMeasurementQuantity,
+		MaxMeasurementQuantity:         x.MaxMeasurementQuantity,
+		MinItemQuantity:                x.MinItemQuantity,
+		MaxItemQuantity:                x.MaxItemQuantity,
 		MeasurementUnitID:              measurementUnitID,
-		ContainedInVesselIndex:         recipeStepProduct.ContainedInVesselIndex,
-		Name:                           recipeStepProduct.Name,
-		BelongsToRecipeStep:            recipeStepProduct.BelongsToRecipeStep,
-		StorageInstructions:            recipeStepProduct.StorageInstructions,
-		QuantityNotes:                  recipeStepProduct.QuantityNotes,
-		ID:                             recipeStepProduct.ID,
-		Type:                           recipeStepProduct.Type,
-		Index:                          recipeStepProduct.Index,
-		Compostable:                    recipeStepProduct.Compostable,
-		IsLiquid:                       recipeStepProduct.IsLiquid,
-		IsWaste:                        recipeStepProduct.IsWaste,
-	}
-}
-
-// ConvertRecipeStepVesselToRecipeStepVesselUpdateRequestInput builds a RecipeStepVesselUpdateRequestInput from a RecipeStepVessel.
-func ConvertRecipeStepVesselToRecipeStepVesselUpdateRequestInput(input *mealplanning.RecipeStepVessel) *mealplanning.RecipeStepVesselUpdateRequestInput {
-	return &mealplanning.RecipeStepVesselUpdateRequestInput{
-		RecipeStepProductID:  input.RecipeStepProductID,
-		Name:                 &input.Name,
-		Notes:                &input.Notes,
-		BelongsToRecipeStep:  &input.BelongsToRecipeStep,
-		VesselID:             &input.Vessel.ID,
-		MinQuantity:          &input.MinQuantity,
-		MaxQuantity:          input.MaxQuantity,
-		Index:                &input.Index,
-		OptionIndex:          &input.OptionIndex,
-		VesselPreposition:    &input.VesselPreposition,
-		UnavailableAfterStep: &input.UnavailableAfterStep,
-		ScaleFactor:          &input.ScaleFactor,
+		ContainedInVesselIndex:         x.ContainedInVesselIndex,
+		Name:                           x.Name,
+		BelongsToRecipeStep:            x.BelongsToRecipeStep,
+		StorageInstructions:            x.StorageInstructions,
+		QuantityNotes:                  x.QuantityNotes,
+		ID:                             x.ID,
+		Type:                           x.Type,
+		Index:                          x.Index,
+		Compostable:                    x.Compostable,
+		IsLiquid:                       x.IsLiquid,
+		IsWaste:                        x.IsWaste,
 	}
 }
 
 // ConvertRecipeStepVesselToRecipeStepVesselDatabaseCreationInput builds a RecipeStepVesselDatabaseCreationInput from a RecipeStepVessel.
-func ConvertRecipeStepVesselToRecipeStepVesselDatabaseCreationInput(input *mealplanning.RecipeStepVessel) *mealplanning.RecipeStepVesselDatabaseCreationInput {
+func ConvertRecipeStepVesselToRecipeStepVesselDatabaseCreationInput(x *mealplanning.RecipeStepVessel) *mealplanning.RecipeStepVesselDatabaseCreationInput {
 	var vesselID *string
-	if input.Vessel != nil {
-		vesselID = &input.Vessel.ID
+	if x.Vessel != nil {
+		vesselID = &x.Vessel.ID
 	}
 
 	return &mealplanning.RecipeStepVesselDatabaseCreationInput{
@@ -950,252 +1249,50 @@ func ConvertRecipeStepVesselToRecipeStepVesselDatabaseCreationInput(input *mealp
 		// ValidPreparationVesselID is left unset. The bridge-table row this step was built
 		// from. A stored step keeps the entity it resolved to, not the row that justified
 		// it.
-		RecipeStepProductID: input.RecipeStepProductID,
+		RecipeStepProductID: x.RecipeStepProductID,
 
 		// ProductOfRecipeStepIndex is left unset. An index into the recipe being created,
 		// resolved to an ID once it is. A stored step has the ID and no longer the index.
 
 		// ProductOfRecipeStepProductIndex is left unset. An index into the recipe being
-		// created; see ProductOfRecipeStepIndex.
-		MaxQuantity:          input.MaxQuantity,
-		ID:                   input.ID,
-		Notes:                input.Notes,
-		BelongsToRecipeStep:  input.BelongsToRecipeStep,
-		VesselPreposition:    input.VesselPreposition,
-		Name:                 input.Name,
-		MinQuantity:          input.MinQuantity,
-		Index:                input.Index,
-		OptionIndex:          input.OptionIndex,
-		UnavailableAfterStep: input.UnavailableAfterStep,
+		// created, resolved to an ID once it is. A stored step has the ID and no longer
+		// the index.
+		MaxQuantity:          x.MaxQuantity,
+		ID:                   x.ID,
+		Notes:                x.Notes,
+		BelongsToRecipeStep:  x.BelongsToRecipeStep,
+		VesselPreposition:    x.VesselPreposition,
+		Name:                 x.Name,
+		MinQuantity:          x.MinQuantity,
+		Index:                x.Index,
+		OptionIndex:          x.OptionIndex,
+		UnavailableAfterStep: x.UnavailableAfterStep,
 		// Zero means unset on the wire and one in the database, and scaleFactorOrDefault
 		// is where that is decided.
-		ScaleFactor: scaleFactorOrDefault(input.ScaleFactor),
+		ScaleFactor: scaleFactorOrDefault(x.ScaleFactor),
 	}
 }
 
-// ConvertRecipeStepToRecipeStepUpdateRequestInput builds a RecipeStepUpdateRequestInput from a RecipeStep.
-func ConvertRecipeStepToRecipeStepUpdateRequestInput(input *mealplanning.RecipeStep) *mealplanning.RecipeStepUpdateRequestInput {
-	return &mealplanning.RecipeStepUpdateRequestInput{
-		MinEstimatedTimeInSeconds: input.MinEstimatedTimeInSeconds,
-		MaxEstimatedTimeInSeconds: input.MaxEstimatedTimeInSeconds,
-		MinTemperatureInCelsius:   input.MinTemperatureInCelsius,
-		MaxTemperatureInCelsius:   input.MaxTemperatureInCelsius,
-		Notes:                     &input.Notes,
-		Preparation:               &input.Preparation,
-		Index:                     &input.Index,
-		Optional:                  &input.Optional,
-		ExplicitInstructions:      &input.ExplicitInstructions,
-		ConditionExpression:       &input.ConditionExpression,
-		StartTimerAutomatically:   &input.StartTimerAutomatically,
-		BelongsToRecipe:           &input.BelongsToRecipe,
-	}
-}
-
-// ConvertRecipeStepToRecipeStepCreationRequestInput builds a RecipeStepCreationRequestInput from a RecipeStep.
-func ConvertRecipeStepToRecipeStepCreationRequestInput(recipeStep *mealplanning.RecipeStep) *mealplanning.RecipeStepCreationRequestInput {
-	instruments := make([]*mealplanning.RecipeStepInstrumentCreationRequestInput, 0, len(recipeStep.Instruments))
-	for _, item := range recipeStep.Instruments {
-		instruments = append(instruments, ConvertRecipeStepInstrumentToRecipeStepInstrumentCreationRequestInput(item))
+// ConvertRecipeStepVesselToRecipeStepVesselUpdateRequestInput builds a RecipeStepVesselUpdateRequestInput from a RecipeStepVessel.
+func ConvertRecipeStepVesselToRecipeStepVesselUpdateRequestInput(x *mealplanning.RecipeStepVessel) *mealplanning.RecipeStepVesselUpdateRequestInput {
+	var vesselID *string
+	if x.Vessel != nil {
+		vesselID = &x.Vessel.ID
 	}
 
-	vessels := make([]*mealplanning.RecipeStepVesselCreationRequestInput, 0, len(recipeStep.Vessels))
-	for _, item := range recipeStep.Vessels {
-		vessels = append(vessels, ConvertRecipeStepVesselToRecipeStepVesselCreationRequestInput(item))
-	}
-
-	products := make([]*mealplanning.RecipeStepProductCreationRequestInput, 0, len(recipeStep.Products))
-	for _, item := range recipeStep.Products {
-		products = append(products, ConvertRecipeStepProductToRecipeStepProductCreationRequestInput(item))
-	}
-
-	ingredients := make([]*mealplanning.RecipeStepIngredientCreationRequestInput, 0, len(recipeStep.Ingredients))
-	for _, item := range recipeStep.Ingredients {
-		ingredients = append(ingredients, ConvertRecipeStepIngredientToRecipeStepIngredientCreationRequestInput(item))
-	}
-
-	completionConditions := make([]*mealplanning.RecipeStepCompletionConditionCreationRequestInput, 0, len(recipeStep.CompletionConditions))
-	for _, item := range recipeStep.CompletionConditions {
-		completionConditions = append(completionConditions, ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionCreationRequestInput(recipeStep, item))
-	}
-
-	return &mealplanning.RecipeStepCreationRequestInput{
-		MinEstimatedTimeInSeconds: recipeStep.MinEstimatedTimeInSeconds,
-		MaxEstimatedTimeInSeconds: recipeStep.MaxEstimatedTimeInSeconds,
-		MinTemperatureInCelsius:   recipeStep.MinTemperatureInCelsius,
-		MaxTemperatureInCelsius:   recipeStep.MaxTemperatureInCelsius,
-		PreparationID:             recipeStep.Preparation.ID,
-		Notes:                     recipeStep.Notes,
-		ConditionExpression:       recipeStep.ConditionExpression,
-		ExplicitInstructions:      recipeStep.ExplicitInstructions,
-		Instruments:               instruments,
-		Vessels:                   vessels,
-		Products:                  products,
-		Ingredients:               ingredients,
-		CompletionConditions:      completionConditions,
-		Index:                     recipeStep.Index,
-		Optional:                  recipeStep.Optional,
-		StartTimerAutomatically:   recipeStep.StartTimerAutomatically,
-	}
-}
-
-// ConvertRecipeStepToRecipeStepDatabaseCreationInput builds a RecipeStepDatabaseCreationInput from a RecipeStep.
-func ConvertRecipeStepToRecipeStepDatabaseCreationInput(recipeStep *mealplanning.RecipeStep) *mealplanning.RecipeStepDatabaseCreationInput {
-	ingredients := make([]*mealplanning.RecipeStepIngredientDatabaseCreationInput, 0, len(recipeStep.Ingredients))
-	for _, item := range recipeStep.Ingredients {
-		ingredients = append(ingredients, ConvertRecipeStepIngredientToRecipeStepIngredientDatabaseCreationInput(item))
-	}
-
-	instruments := make([]*mealplanning.RecipeStepInstrumentDatabaseCreationInput, 0, len(recipeStep.Instruments))
-	for _, item := range recipeStep.Instruments {
-		instruments = append(instruments, ConvertRecipeStepInstrumentToRecipeStepInstrumentDatabaseCreationInput(item))
-	}
-
-	vessels := make([]*mealplanning.RecipeStepVesselDatabaseCreationInput, 0, len(recipeStep.Vessels))
-	for _, item := range recipeStep.Vessels {
-		vessels = append(vessels, ConvertRecipeStepVesselToRecipeStepVesselDatabaseCreationInput(item))
-	}
-
-	products := make([]*mealplanning.RecipeStepProductDatabaseCreationInput, 0, len(recipeStep.Products))
-	for _, item := range recipeStep.Products {
-		products = append(products, ConvertRecipeStepProductToRecipeStepProductDatabaseCreationInput(item))
-	}
-
-	completionConditions := make([]*mealplanning.RecipeStepCompletionConditionDatabaseCreationInput, 0, len(recipeStep.CompletionConditions))
-	for _, item := range recipeStep.CompletionConditions {
-		completionConditions = append(completionConditions, ConvertRecipeStepCompletionConditionToRecipeStepCompletionConditionDatabaseCreationInput(item))
-	}
-
-	return &mealplanning.RecipeStepDatabaseCreationInput{
-		MinEstimatedTimeInSeconds: recipeStep.MinEstimatedTimeInSeconds,
-		MaxEstimatedTimeInSeconds: recipeStep.MaxEstimatedTimeInSeconds,
-		MinTemperatureInCelsius:   recipeStep.MinTemperatureInCelsius,
-		MaxTemperatureInCelsius:   recipeStep.MaxTemperatureInCelsius,
-		BelongsToRecipe:           recipeStep.BelongsToRecipe,
-		PreparationID:             recipeStep.Preparation.ID,
-		ID:                        recipeStep.ID,
-		Notes:                     recipeStep.Notes,
-		ExplicitInstructions:      recipeStep.ExplicitInstructions,
-		ConditionExpression:       recipeStep.ConditionExpression,
-		Ingredients:               ingredients,
-		Instruments:               instruments,
-		Vessels:                   vessels,
-		Products:                  products,
-		CompletionConditions:      completionConditions,
-		Index:                     recipeStep.Index,
-		Optional:                  recipeStep.Optional,
-		StartTimerAutomatically:   recipeStep.StartTimerAutomatically,
-	}
-}
-
-// ConvertRecipeToRecipeUpdateRequestInput builds a RecipeUpdateRequestInput from a Recipe.
-func ConvertRecipeToRecipeUpdateRequestInput(input *mealplanning.Recipe) *mealplanning.RecipeUpdateRequestInput {
-	return &mealplanning.RecipeUpdateRequestInput{
-		Name:                 &input.Name,
-		Slug:                 &input.Slug,
-		Source:               &input.Source,
-		SourceISBN:           &input.SourceISBN,
-		Description:          &input.Description,
-		InspiredByRecipeID:   input.InspiredByRecipeID,
-		MinEstimatedPortions: &input.MinEstimatedPortions,
-		MaxEstimatedPortions: input.MaxEstimatedPortions,
-		PortionName:          &input.PortionName,
-		PluralPortionName:    &input.PluralPortionName,
-		EligibleForMeals:     &input.EligibleForMeals,
-		YieldsComponentType:  &input.YieldsComponentType,
-	}
-}
-
-// ConvertRecipeToRecipeCreationRequestInput builds a RecipeCreationRequestInput from a Recipe.
-func ConvertRecipeToRecipeCreationRequestInput(input *mealplanning.Recipe) *mealplanning.RecipeCreationRequestInput {
-	prepTasks := make([]*mealplanning.RecipePrepTaskWithinRecipeCreationRequestInput, 0, len(input.PrepTasks))
-	for _, item := range input.PrepTasks {
-		prepTasks = append(prepTasks, ConvertRecipePrepTaskToRecipePrepTaskWithinRecipeCreationRequestInput(input, item))
-	}
-
-	steps := make([]*mealplanning.RecipeStepCreationRequestInput, 0, len(input.Steps))
-	for _, item := range input.Steps {
-		steps = append(steps, ConvertRecipeStepToRecipeStepCreationRequestInput(item))
-	}
-
-	return &mealplanning.RecipeCreationRequestInput{
-		InspiredByRecipeID:   input.InspiredByRecipeID,
-		MaxEstimatedPortions: input.MaxEstimatedPortions,
-		Name:                 input.Name,
-		Source:               input.Source,
-		SourceISBN:           input.SourceISBN,
-		Description:          input.Description,
-		PluralPortionName:    input.PluralPortionName,
-		PortionName:          input.PortionName,
-		Slug:                 input.Slug,
-		YieldsComponentType:  input.YieldsComponentType,
-		PrepTasks:            prepTasks,
-		Steps:                steps,
-		MinEstimatedPortions: input.MinEstimatedPortions,
-
-		// AlsoCreateMeal is left unset. A request-time instruction to create a meal
-		// alongside the recipe, not a property of the recipe that resulted.
-		EligibleForMeals: input.EligibleForMeals,
-	}
-}
-
-// ConvertRecipeToRecipeDatabaseCreationInput builds a RecipeDatabaseCreationInput from a Recipe.
-func ConvertRecipeToRecipeDatabaseCreationInput(input *mealplanning.Recipe) *mealplanning.RecipeDatabaseCreationInput {
-	prepTasks := make([]*mealplanning.RecipePrepTaskDatabaseCreationInput, 0, len(input.PrepTasks))
-	for _, item := range input.PrepTasks {
-		prepTasks = append(prepTasks, ConvertRecipePrepTaskToRecipePrepTaskDatabaseCreationInput(item))
-	}
-
-	steps := make([]*mealplanning.RecipeStepDatabaseCreationInput, 0, len(input.Steps))
-	for _, item := range input.Steps {
-		steps = append(steps, ConvertRecipeStepToRecipeStepDatabaseCreationInput(item))
-	}
-
-	return &mealplanning.RecipeDatabaseCreationInput{
-		// ClonedFromRecipeID is left unset. Set by the clone path, which is the only
-		// caller that knows what was cloned. A recipe read back does not record it.
-		InspiredByRecipeID:   input.InspiredByRecipeID,
-		MaxEstimatedPortions: input.MaxEstimatedPortions,
-		CreatedByUser:        input.CreatedByUser,
-		ID:                   input.ID,
-		Name:                 input.Name,
-		Slug:                 input.Slug,
-		Source:               input.Source,
-		SourceISBN:           input.SourceISBN,
-		PluralPortionName:    input.PluralPortionName,
-		PortionName:          input.PortionName,
-		Description:          input.Description,
-		YieldsComponentType:  input.YieldsComponentType,
-		PrepTasks:            prepTasks,
-		Steps:                steps,
-		MinEstimatedPortions: input.MinEstimatedPortions,
-
-		// AlsoCreateMeal is left unset. A request-time instruction, not a property of the
-		// recipe; see the request-input converter.
-		EligibleForMeals: input.EligibleForMeals,
-	}
-}
-
-// ConvertUserIngredientPreferenceToUserIngredientPreferenceUpdateRequestInput builds an UserIngredientPreferenceUpdateRequestInput from an UserIngredientPreference.
-func ConvertUserIngredientPreferenceToUserIngredientPreferenceUpdateRequestInput(input *mealplanning.UserIngredientPreference) *mealplanning.UserIngredientPreferenceUpdateRequestInput {
-	return &mealplanning.UserIngredientPreferenceUpdateRequestInput{
-		Notes:        &input.Notes,
-		IngredientID: &input.Ingredient.ID,
-		Rating:       &input.Rating,
-		Allergy:      &input.Allergy,
-	}
-}
-
-// ConvertUserIngredientPreferenceCreationRequestInputToUserIngredientPreferenceDatabaseCreationInput builds an UserIngredientPreferenceDatabaseCreationInput from an UserIngredientPreferenceCreationRequestInput.
-func ConvertUserIngredientPreferenceCreationRequestInputToUserIngredientPreferenceDatabaseCreationInput(input *mealplanning.UserIngredientPreferenceCreationRequestInput) *mealplanning.UserIngredientPreferenceDatabaseCreationInput {
-	return &mealplanning.UserIngredientPreferenceDatabaseCreationInput{
-		ValidIngredientGroupID: input.ValidIngredientGroupID,
-		ValidIngredientID:      input.ValidIngredientID,
-		Notes:                  input.Notes,
-
-		// CreatedByUser is left unset. Comes from the session rather than the request
-		// body, so the manager stamps it after this.
-		Rating:  input.Rating,
-		Allergy: input.Allergy,
+	return &mealplanning.RecipeStepVesselUpdateRequestInput{
+		RecipeStepProductID:  x.RecipeStepProductID,
+		Name:                 &x.Name,
+		Notes:                &x.Notes,
+		BelongsToRecipeStep:  &x.BelongsToRecipeStep,
+		VesselID:             vesselID,
+		MinQuantity:          &x.MinQuantity,
+		MaxQuantity:          x.MaxQuantity,
+		Index:                &x.Index,
+		OptionIndex:          &x.OptionIndex,
+		VesselPreposition:    &x.VesselPreposition,
+		UnavailableAfterStep: &x.UnavailableAfterStep,
+		ScaleFactor:          &x.ScaleFactor,
 	}
 }
 
@@ -1204,7 +1301,7 @@ func ConvertUserIngredientPreferenceToUserIngredientPreferenceCreationRequestInp
 	return &mealplanning.UserIngredientPreferenceCreationRequestInput{
 		// ValidIngredientGroupID is left unset. A preference is stored against one
 		// ingredient, whether it was expressed against a group or not, so the group it
-		// came from is not recoverable from it.
+		// came from is not recoverable.
 		ValidIngredientID: x.Ingredient.ID,
 		Notes:             x.Notes,
 		Rating:            x.Rating,
@@ -1215,8 +1312,9 @@ func ConvertUserIngredientPreferenceToUserIngredientPreferenceCreationRequestInp
 // ConvertUserIngredientPreferenceToUserIngredientPreferenceDatabaseCreationInput builds an UserIngredientPreferenceDatabaseCreationInput from an UserIngredientPreference.
 func ConvertUserIngredientPreferenceToUserIngredientPreferenceDatabaseCreationInput(x *mealplanning.UserIngredientPreference) *mealplanning.UserIngredientPreferenceDatabaseCreationInput {
 	return &mealplanning.UserIngredientPreferenceDatabaseCreationInput{
-		// ValidIngredientGroupID is left unset. Not recoverable from a stored preference;
-		// see the request-input converter.
+		// ValidIngredientGroupID is left unset. A preference is stored against one
+		// ingredient, whether it was expressed against a group or not, so the group it
+		// came from is not recoverable.
 		ValidIngredientID: x.Ingredient.ID,
 		Notes:             x.Notes,
 		CreatedByUser:     x.CreatedByUser,
@@ -1225,279 +1323,27 @@ func ConvertUserIngredientPreferenceToUserIngredientPreferenceDatabaseCreationIn
 	}
 }
 
-// ConvertValidIngredientGroupToValidIngredientGroupUpdateRequestInput builds a ValidIngredientGroupUpdateRequestInput from a ValidIngredientGroup.
-func ConvertValidIngredientGroupToValidIngredientGroupUpdateRequestInput(input *mealplanning.ValidIngredientGroup) *mealplanning.ValidIngredientGroupUpdateRequestInput {
-	return &mealplanning.ValidIngredientGroupUpdateRequestInput{
-		Name:        &input.Name,
-		Slug:        &input.Slug,
-		Description: &input.Description,
+// ConvertUserIngredientPreferenceToUserIngredientPreferenceUpdateRequestInput builds an UserIngredientPreferenceUpdateRequestInput from an UserIngredientPreference.
+func ConvertUserIngredientPreferenceToUserIngredientPreferenceUpdateRequestInput(x *mealplanning.UserIngredientPreference) *mealplanning.UserIngredientPreferenceUpdateRequestInput {
+	return &mealplanning.UserIngredientPreferenceUpdateRequestInput{
+		Notes:        &x.Notes,
+		IngredientID: &x.Ingredient.ID,
+		Rating:       &x.Rating,
+		Allergy:      &x.Allergy,
 	}
 }
 
-// ConvertValidIngredientGroupToValidIngredientGroupCreationRequestInput builds a ValidIngredientGroupCreationRequestInput from a ValidIngredientGroup.
-func ConvertValidIngredientGroupToValidIngredientGroupCreationRequestInput(validIngredient *mealplanning.ValidIngredientGroup) *mealplanning.ValidIngredientGroupCreationRequestInput {
-	return &mealplanning.ValidIngredientGroupCreationRequestInput{
-		Name:        validIngredient.Name,
-		Slug:        validIngredient.Slug,
-		Description: validIngredient.Description,
+// ConvertUserIngredientPreferenceCreationRequestInputToUserIngredientPreferenceDatabaseCreationInput builds an UserIngredientPreferenceDatabaseCreationInput from an UserIngredientPreferenceCreationRequestInput.
+func ConvertUserIngredientPreferenceCreationRequestInputToUserIngredientPreferenceDatabaseCreationInput(x *mealplanning.UserIngredientPreferenceCreationRequestInput) *mealplanning.UserIngredientPreferenceDatabaseCreationInput {
+	return &mealplanning.UserIngredientPreferenceDatabaseCreationInput{
+		ValidIngredientGroupID: x.ValidIngredientGroupID,
+		ValidIngredientID:      x.ValidIngredientID,
+		Notes:                  x.Notes,
 
-		// Members is left unset. ValidIngredientGroup carries its members in their stored
-		// shape and the converter this replaced did not map them back to request inputs.
-		// Preserved rather than corrected, so that generating these converters is not also
-		// a behavior change.
-	}
-}
-
-// ConvertValidIngredientMeasurementUnitToValidIngredientMeasurementUnitUpdateRequestInput builds a ValidIngredientMeasurementUnitUpdateRequestInput from a ValidIngredientMeasurementUnit.
-func ConvertValidIngredientMeasurementUnitToValidIngredientMeasurementUnitUpdateRequestInput(input *mealplanning.ValidIngredientMeasurementUnit) *mealplanning.ValidIngredientMeasurementUnitUpdateRequestInput {
-	return &mealplanning.ValidIngredientMeasurementUnitUpdateRequestInput{
-		Notes:                  &input.Notes,
-		ValidMeasurementUnitID: &input.MeasurementUnit.ID,
-		ValidIngredientID:      &input.Ingredient.ID,
-		MinAllowableQuantity:   &input.MinAllowableQuantity,
-		MaxAllowableQuantity:   input.MaxAllowableQuantity,
-	}
-}
-
-// ConvertValidIngredientMeasurementUnitCreationRequestInputToValidIngredientMeasurementUnitDatabaseCreationInput builds a ValidIngredientMeasurementUnitDatabaseCreationInput from a ValidIngredientMeasurementUnitCreationRequestInput.
-func ConvertValidIngredientMeasurementUnitCreationRequestInputToValidIngredientMeasurementUnitDatabaseCreationInput(input *mealplanning.ValidIngredientMeasurementUnitCreationRequestInput) *mealplanning.ValidIngredientMeasurementUnitDatabaseCreationInput {
-	return &mealplanning.ValidIngredientMeasurementUnitDatabaseCreationInput{
-		MaxAllowableQuantity:   input.MaxAllowableQuantity,
-		ID:                     identifiers.New(),
-		Notes:                  input.Notes,
-		ValidMeasurementUnitID: input.ValidMeasurementUnitID,
-		ValidIngredientID:      input.ValidIngredientID,
-		MinAllowableQuantity:   input.MinAllowableQuantity,
-	}
-}
-
-// ConvertValidIngredientMeasurementUnitToValidIngredientMeasurementUnitCreationRequestInput builds a ValidIngredientMeasurementUnitCreationRequestInput from a ValidIngredientMeasurementUnit.
-func ConvertValidIngredientMeasurementUnitToValidIngredientMeasurementUnitCreationRequestInput(validIngredientMeasurementUnit *mealplanning.ValidIngredientMeasurementUnit) *mealplanning.ValidIngredientMeasurementUnitCreationRequestInput {
-	return &mealplanning.ValidIngredientMeasurementUnitCreationRequestInput{
-		MaxAllowableQuantity:   validIngredientMeasurementUnit.MaxAllowableQuantity,
-		Notes:                  validIngredientMeasurementUnit.Notes,
-		ValidMeasurementUnitID: validIngredientMeasurementUnit.MeasurementUnit.ID,
-		ValidIngredientID:      validIngredientMeasurementUnit.Ingredient.ID,
-		MinAllowableQuantity:   validIngredientMeasurementUnit.MinAllowableQuantity,
-	}
-}
-
-// ConvertValidIngredientMeasurementUnitToValidIngredientMeasurementUnitDatabaseCreationInput builds a ValidIngredientMeasurementUnitDatabaseCreationInput from a ValidIngredientMeasurementUnit.
-func ConvertValidIngredientMeasurementUnitToValidIngredientMeasurementUnitDatabaseCreationInput(validIngredientMeasurementUnit *mealplanning.ValidIngredientMeasurementUnit) *mealplanning.ValidIngredientMeasurementUnitDatabaseCreationInput {
-	return &mealplanning.ValidIngredientMeasurementUnitDatabaseCreationInput{
-		MaxAllowableQuantity:   validIngredientMeasurementUnit.MaxAllowableQuantity,
-		ID:                     validIngredientMeasurementUnit.ID,
-		Notes:                  validIngredientMeasurementUnit.Notes,
-		ValidMeasurementUnitID: validIngredientMeasurementUnit.MeasurementUnit.ID,
-		ValidIngredientID:      validIngredientMeasurementUnit.Ingredient.ID,
-		MinAllowableQuantity:   validIngredientMeasurementUnit.MinAllowableQuantity,
-	}
-}
-
-// ConvertValidIngredientPreparationCreationRequestInputToValidIngredientPreparationDatabaseCreationInput builds a ValidIngredientPreparationDatabaseCreationInput from a ValidIngredientPreparationCreationRequestInput.
-func ConvertValidIngredientPreparationCreationRequestInputToValidIngredientPreparationDatabaseCreationInput(input *mealplanning.ValidIngredientPreparationCreationRequestInput) *mealplanning.ValidIngredientPreparationDatabaseCreationInput {
-	return &mealplanning.ValidIngredientPreparationDatabaseCreationInput{
-		ID:                 identifiers.New(),
-		Notes:              input.Notes,
-		ValidPreparationID: input.ValidPreparationID,
-		ValidIngredientID:  input.ValidIngredientID,
-	}
-}
-
-// ConvertValidIngredientPreparationToValidIngredientPreparationUpdateRequestInput builds a ValidIngredientPreparationUpdateRequestInput from a ValidIngredientPreparation.
-func ConvertValidIngredientPreparationToValidIngredientPreparationUpdateRequestInput(validIngredientPreparation *mealplanning.ValidIngredientPreparation) *mealplanning.ValidIngredientPreparationUpdateRequestInput {
-	return &mealplanning.ValidIngredientPreparationUpdateRequestInput{
-		Notes:              &validIngredientPreparation.Notes,
-		ValidPreparationID: &validIngredientPreparation.Preparation.ID,
-		ValidIngredientID:  &validIngredientPreparation.Ingredient.ID,
-	}
-}
-
-// ConvertValidIngredientPreparationToValidIngredientPreparationCreationRequestInput builds a ValidIngredientPreparationCreationRequestInput from a ValidIngredientPreparation.
-func ConvertValidIngredientPreparationToValidIngredientPreparationCreationRequestInput(validIngredientPreparation *mealplanning.ValidIngredientPreparation) *mealplanning.ValidIngredientPreparationCreationRequestInput {
-	return &mealplanning.ValidIngredientPreparationCreationRequestInput{
-		Notes:              validIngredientPreparation.Notes,
-		ValidPreparationID: validIngredientPreparation.Preparation.ID,
-		ValidIngredientID:  validIngredientPreparation.Ingredient.ID,
-	}
-}
-
-// ConvertValidIngredientPreparationToValidIngredientPreparationDatabaseCreationInput builds a ValidIngredientPreparationDatabaseCreationInput from a ValidIngredientPreparation.
-func ConvertValidIngredientPreparationToValidIngredientPreparationDatabaseCreationInput(validIngredientPreparation *mealplanning.ValidIngredientPreparation) *mealplanning.ValidIngredientPreparationDatabaseCreationInput {
-	return &mealplanning.ValidIngredientPreparationDatabaseCreationInput{
-		ID:                 validIngredientPreparation.ID,
-		Notes:              validIngredientPreparation.Notes,
-		ValidPreparationID: validIngredientPreparation.Preparation.ID,
-		ValidIngredientID:  validIngredientPreparation.Ingredient.ID,
-	}
-}
-
-// ConvertValidIngredientStateIngredientCreationRequestInputToValidIngredientStateIngredientDatabaseCreationInput builds a ValidIngredientStateIngredientDatabaseCreationInput from a ValidIngredientStateIngredientCreationRequestInput.
-func ConvertValidIngredientStateIngredientCreationRequestInputToValidIngredientStateIngredientDatabaseCreationInput(input *mealplanning.ValidIngredientStateIngredientCreationRequestInput) *mealplanning.ValidIngredientStateIngredientDatabaseCreationInput {
-	return &mealplanning.ValidIngredientStateIngredientDatabaseCreationInput{
-		ID:                     identifiers.New(),
-		Notes:                  input.Notes,
-		ValidIngredientStateID: input.ValidIngredientStateID,
-		ValidIngredientID:      input.ValidIngredientID,
-	}
-}
-
-// ConvertValidIngredientStateIngredientToValidIngredientStateIngredientUpdateRequestInput builds a ValidIngredientStateIngredientUpdateRequestInput from a ValidIngredientStateIngredient.
-func ConvertValidIngredientStateIngredientToValidIngredientStateIngredientUpdateRequestInput(validIngredientStateIngredient *mealplanning.ValidIngredientStateIngredient) *mealplanning.ValidIngredientStateIngredientUpdateRequestInput {
-	return &mealplanning.ValidIngredientStateIngredientUpdateRequestInput{
-		Notes:                  &validIngredientStateIngredient.Notes,
-		ValidIngredientStateID: &validIngredientStateIngredient.IngredientState.ID,
-		ValidIngredientID:      &validIngredientStateIngredient.Ingredient.ID,
-	}
-}
-
-// ConvertValidIngredientStateIngredientToValidIngredientStateIngredientCreationRequestInput builds a ValidIngredientStateIngredientCreationRequestInput from a ValidIngredientStateIngredient.
-func ConvertValidIngredientStateIngredientToValidIngredientStateIngredientCreationRequestInput(validIngredientStateIngredient *mealplanning.ValidIngredientStateIngredient) *mealplanning.ValidIngredientStateIngredientCreationRequestInput {
-	return &mealplanning.ValidIngredientStateIngredientCreationRequestInput{
-		Notes:                  validIngredientStateIngredient.Notes,
-		ValidIngredientStateID: validIngredientStateIngredient.IngredientState.ID,
-		ValidIngredientID:      validIngredientStateIngredient.Ingredient.ID,
-	}
-}
-
-// ConvertValidIngredientStateIngredientToValidIngredientStateIngredientDatabaseCreationInput builds a ValidIngredientStateIngredientDatabaseCreationInput from a ValidIngredientStateIngredient.
-func ConvertValidIngredientStateIngredientToValidIngredientStateIngredientDatabaseCreationInput(validIngredientStateIngredient *mealplanning.ValidIngredientStateIngredient) *mealplanning.ValidIngredientStateIngredientDatabaseCreationInput {
-	return &mealplanning.ValidIngredientStateIngredientDatabaseCreationInput{
-		ID:                     validIngredientStateIngredient.ID,
-		Notes:                  validIngredientStateIngredient.Notes,
-		ValidIngredientStateID: validIngredientStateIngredient.IngredientState.ID,
-		ValidIngredientID:      validIngredientStateIngredient.Ingredient.ID,
-	}
-}
-
-// ConvertValidIngredientStateToValidIngredientStateUpdateRequestInput builds a ValidIngredientStateUpdateRequestInput from a ValidIngredientState.
-func ConvertValidIngredientStateToValidIngredientStateUpdateRequestInput(input *mealplanning.ValidIngredientState) *mealplanning.ValidIngredientStateUpdateRequestInput {
-	return &mealplanning.ValidIngredientStateUpdateRequestInput{
-		Name:          &input.Name,
-		Slug:          &input.Slug,
-		PastTense:     &input.PastTense,
-		Description:   &input.Description,
-		AttributeType: &input.AttributeType,
-		IconPath:      &input.IconPath,
-	}
-}
-
-// ConvertValidIngredientStateCreationRequestInputToValidIngredientStateDatabaseCreationInput builds a ValidIngredientStateDatabaseCreationInput from a ValidIngredientStateCreationRequestInput.
-func ConvertValidIngredientStateCreationRequestInputToValidIngredientStateDatabaseCreationInput(input *mealplanning.ValidIngredientStateCreationRequestInput) *mealplanning.ValidIngredientStateDatabaseCreationInput {
-	return &mealplanning.ValidIngredientStateDatabaseCreationInput{
-		ID:            identifiers.New(),
-		Name:          input.Name,
-		Slug:          input.Slug,
-		PastTense:     input.PastTense,
-		Description:   input.Description,
-		AttributeType: input.AttributeType,
-		IconPath:      input.IconPath,
-	}
-}
-
-// ConvertValidIngredientStateToValidIngredientStateCreationRequestInput builds a ValidIngredientStateCreationRequestInput from a ValidIngredientState.
-func ConvertValidIngredientStateToValidIngredientStateCreationRequestInput(validIngredientState *mealplanning.ValidIngredientState) *mealplanning.ValidIngredientStateCreationRequestInput {
-	return &mealplanning.ValidIngredientStateCreationRequestInput{
-		Name:          validIngredientState.Name,
-		Slug:          validIngredientState.Slug,
-		PastTense:     validIngredientState.PastTense,
-		Description:   validIngredientState.Description,
-		AttributeType: validIngredientState.AttributeType,
-		IconPath:      validIngredientState.IconPath,
-	}
-}
-
-// ConvertValidIngredientStateToValidIngredientStateDatabaseCreationInput builds a ValidIngredientStateDatabaseCreationInput from a ValidIngredientState.
-func ConvertValidIngredientStateToValidIngredientStateDatabaseCreationInput(validIngredientState *mealplanning.ValidIngredientState) *mealplanning.ValidIngredientStateDatabaseCreationInput {
-	return &mealplanning.ValidIngredientStateDatabaseCreationInput{
-		ID:            validIngredientState.ID,
-		Name:          validIngredientState.Name,
-		Slug:          validIngredientState.Slug,
-		PastTense:     validIngredientState.PastTense,
-		Description:   validIngredientState.Description,
-		AttributeType: validIngredientState.AttributeType,
-		IconPath:      validIngredientState.IconPath,
-	}
-}
-
-// ConvertValidIngredientToValidIngredientUpdateRequestInput builds a ValidIngredientUpdateRequestInput from a ValidIngredient.
-func ConvertValidIngredientToValidIngredientUpdateRequestInput(x *mealplanning.ValidIngredient) *mealplanning.ValidIngredientUpdateRequestInput {
-	return &mealplanning.ValidIngredientUpdateRequestInput{
-		Name:                           &x.Name,
-		Description:                    &x.Description,
-		Warning:                        &x.Warning,
-		IconPath:                       &x.IconPath,
-		ContainsDairy:                  &x.ContainsDairy,
-		ContainsPeanut:                 &x.ContainsPeanut,
-		ContainsTreeNut:                &x.ContainsTreeNut,
-		ContainsEgg:                    &x.ContainsEgg,
-		ContainsWheat:                  &x.ContainsWheat,
-		ContainsShellfish:              &x.ContainsShellfish,
-		ContainsSesame:                 &x.ContainsSesame,
-		ContainsFish:                   &x.ContainsFish,
-		ContainsGluten:                 &x.ContainsGluten,
-		AnimalFlesh:                    &x.AnimalFlesh,
-		IsLiquid:                       &x.IsLiquid,
-		ContainsSoy:                    &x.ContainsSoy,
-		PluralName:                     &x.PluralName,
-		AnimalDerived:                  &x.AnimalDerived,
-		RestrictToPreparations:         &x.RestrictToPreparations,
-		ContaminatesEquipment:          &x.ContaminatesEquipment,
-		MinStorageTemperatureInCelsius: x.MinStorageTemperatureInCelsius,
-		MaxStorageTemperatureInCelsius: x.MaxStorageTemperatureInCelsius,
-		StorageInstructions:            &x.StorageInstructions,
-		Slug:                           &x.Slug,
-		ContainsAlcohol:                &x.ContainsAlcohol,
-		ShoppingSuggestions:            &x.ShoppingSuggestions,
-		IsStarch:                       &x.IsStarch,
-		IsProtein:                      &x.IsProtein,
-		IsGrain:                        &x.IsGrain,
-		IsFruit:                        &x.IsFruit,
-		IsSalt:                         &x.IsSalt,
-		IsFat:                          &x.IsFat,
-		IsAcid:                         &x.IsAcid,
-		IsHeat:                         &x.IsHeat,
-	}
-}
-
-// ConvertValidIngredientCreationRequestInputToValidIngredientDatabaseCreationInput builds a ValidIngredientDatabaseCreationInput from a ValidIngredientCreationRequestInput.
-func ConvertValidIngredientCreationRequestInputToValidIngredientDatabaseCreationInput(x *mealplanning.ValidIngredientCreationRequestInput) *mealplanning.ValidIngredientDatabaseCreationInput {
-	return &mealplanning.ValidIngredientDatabaseCreationInput{
-		MinStorageTemperatureInCelsius: x.MinStorageTemperatureInCelsius,
-		MaxStorageTemperatureInCelsius: x.MaxStorageTemperatureInCelsius,
-		ID:                             identifiers.New(),
-		Warning:                        x.Warning,
-		IconPath:                       x.IconPath,
-		PluralName:                     x.PluralName,
-		StorageInstructions:            x.StorageInstructions,
-		Name:                           x.Name,
-		Description:                    x.Description,
-		Slug:                           x.Slug,
-		ShoppingSuggestions:            x.ShoppingSuggestions,
-		ContainsFish:                   x.ContainsFish,
-		ContainsShellfish:              x.ContainsShellfish,
-		AnimalFlesh:                    x.AnimalFlesh,
-		ContainsEgg:                    x.ContainsEgg,
-		IsLiquid:                       x.IsLiquid,
-		ContainsSoy:                    x.ContainsSoy,
-		ContainsPeanut:                 x.ContainsPeanut,
-		AnimalDerived:                  x.AnimalDerived,
-		RestrictToPreparations:         x.RestrictToPreparations,
-		ContaminatesEquipment:          x.ContaminatesEquipment,
-		ContainsDairy:                  x.ContainsDairy,
-		ContainsSesame:                 x.ContainsSesame,
-		ContainsTreeNut:                x.ContainsTreeNut,
-		ContainsWheat:                  x.ContainsWheat,
-		ContainsAlcohol:                x.ContainsAlcohol,
-		ContainsGluten:                 x.ContainsGluten,
-		IsStarch:                       x.IsStarch,
-		IsProtein:                      x.IsProtein,
-		IsGrain:                        x.IsGrain,
-		IsFruit:                        x.IsFruit,
-		IsSalt:                         x.IsSalt,
-		IsFat:                          x.IsFat,
-		IsAcid:                         x.IsAcid,
-		IsHeat:                         x.IsHeat,
+		// CreatedByUser is left unset. Comes from the authenticated session rather than
+		// the request body, so the manager stamps it after this.
+		Rating:  x.Rating,
+		Allergy: x.Allergy,
 	}
 }
 
@@ -1582,354 +1428,686 @@ func ConvertValidIngredientToValidIngredientDatabaseCreationInput(x *mealplannin
 	}
 }
 
-// ConvertValidInstrumentToValidInstrumentUpdateRequestInput builds a ValidInstrumentUpdateRequestInput from a ValidInstrument.
-func ConvertValidInstrumentToValidInstrumentUpdateRequestInput(input *mealplanning.ValidInstrument) *mealplanning.ValidInstrumentUpdateRequestInput {
-	return &mealplanning.ValidInstrumentUpdateRequestInput{
-		Name:                           &input.Name,
-		PluralName:                     &input.PluralName,
-		Description:                    &input.Description,
-		IconPath:                       &input.IconPath,
-		Slug:                           &input.Slug,
-		UsableForStorage:               &input.UsableForStorage,
-		DisplayInSummaryLists:          &input.DisplayInSummaryLists,
-		IncludeInGeneratedInstructions: &input.IncludeInGeneratedInstructions,
+// ConvertValidIngredientToValidIngredientUpdateRequestInput builds a ValidIngredientUpdateRequestInput from a ValidIngredient.
+func ConvertValidIngredientToValidIngredientUpdateRequestInput(x *mealplanning.ValidIngredient) *mealplanning.ValidIngredientUpdateRequestInput {
+	return &mealplanning.ValidIngredientUpdateRequestInput{
+		Name:                           &x.Name,
+		Description:                    &x.Description,
+		Warning:                        &x.Warning,
+		IconPath:                       &x.IconPath,
+		ContainsDairy:                  &x.ContainsDairy,
+		ContainsPeanut:                 &x.ContainsPeanut,
+		ContainsTreeNut:                &x.ContainsTreeNut,
+		ContainsEgg:                    &x.ContainsEgg,
+		ContainsWheat:                  &x.ContainsWheat,
+		ContainsShellfish:              &x.ContainsShellfish,
+		ContainsSesame:                 &x.ContainsSesame,
+		ContainsFish:                   &x.ContainsFish,
+		ContainsGluten:                 &x.ContainsGluten,
+		AnimalFlesh:                    &x.AnimalFlesh,
+		IsLiquid:                       &x.IsLiquid,
+		ContainsSoy:                    &x.ContainsSoy,
+		PluralName:                     &x.PluralName,
+		AnimalDerived:                  &x.AnimalDerived,
+		RestrictToPreparations:         &x.RestrictToPreparations,
+		ContaminatesEquipment:          &x.ContaminatesEquipment,
+		MinStorageTemperatureInCelsius: x.MinStorageTemperatureInCelsius,
+		MaxStorageTemperatureInCelsius: x.MaxStorageTemperatureInCelsius,
+		StorageInstructions:            &x.StorageInstructions,
+		Slug:                           &x.Slug,
+		ContainsAlcohol:                &x.ContainsAlcohol,
+		ShoppingSuggestions:            &x.ShoppingSuggestions,
+		IsStarch:                       &x.IsStarch,
+		IsProtein:                      &x.IsProtein,
+		IsGrain:                        &x.IsGrain,
+		IsFruit:                        &x.IsFruit,
+		IsSalt:                         &x.IsSalt,
+		IsFat:                          &x.IsFat,
+		IsAcid:                         &x.IsAcid,
+		IsHeat:                         &x.IsHeat,
 	}
 }
 
-// ConvertValidInstrumentCreationRequestInputToValidInstrumentDatabaseCreationInput builds a ValidInstrumentDatabaseCreationInput from a ValidInstrumentCreationRequestInput.
-func ConvertValidInstrumentCreationRequestInputToValidInstrumentDatabaseCreationInput(input *mealplanning.ValidInstrumentCreationRequestInput) *mealplanning.ValidInstrumentDatabaseCreationInput {
-	return &mealplanning.ValidInstrumentDatabaseCreationInput{
+// ConvertValidIngredientCreationRequestInputToValidIngredientDatabaseCreationInput builds a ValidIngredientDatabaseCreationInput from a ValidIngredientCreationRequestInput.
+func ConvertValidIngredientCreationRequestInputToValidIngredientDatabaseCreationInput(x *mealplanning.ValidIngredientCreationRequestInput) *mealplanning.ValidIngredientDatabaseCreationInput {
+	return &mealplanning.ValidIngredientDatabaseCreationInput{
+		MinStorageTemperatureInCelsius: x.MinStorageTemperatureInCelsius,
+		MaxStorageTemperatureInCelsius: x.MaxStorageTemperatureInCelsius,
 		ID:                             identifiers.New(),
-		Name:                           input.Name,
-		PluralName:                     input.PluralName,
-		Description:                    input.Description,
-		IconPath:                       input.IconPath,
-		Slug:                           input.Slug,
-		DisplayInSummaryLists:          input.DisplayInSummaryLists,
-		UsableForStorage:               input.UsableForStorage,
-		IncludeInGeneratedInstructions: input.IncludeInGeneratedInstructions,
+		Warning:                        x.Warning,
+		IconPath:                       x.IconPath,
+		PluralName:                     x.PluralName,
+		StorageInstructions:            x.StorageInstructions,
+		Name:                           x.Name,
+		Description:                    x.Description,
+		Slug:                           x.Slug,
+		ShoppingSuggestions:            x.ShoppingSuggestions,
+		ContainsFish:                   x.ContainsFish,
+		ContainsShellfish:              x.ContainsShellfish,
+		AnimalFlesh:                    x.AnimalFlesh,
+		ContainsEgg:                    x.ContainsEgg,
+		IsLiquid:                       x.IsLiquid,
+		ContainsSoy:                    x.ContainsSoy,
+		ContainsPeanut:                 x.ContainsPeanut,
+		AnimalDerived:                  x.AnimalDerived,
+		RestrictToPreparations:         x.RestrictToPreparations,
+		ContaminatesEquipment:          x.ContaminatesEquipment,
+		ContainsDairy:                  x.ContainsDairy,
+		ContainsSesame:                 x.ContainsSesame,
+		ContainsTreeNut:                x.ContainsTreeNut,
+		ContainsWheat:                  x.ContainsWheat,
+		ContainsAlcohol:                x.ContainsAlcohol,
+		ContainsGluten:                 x.ContainsGluten,
+		IsStarch:                       x.IsStarch,
+		IsProtein:                      x.IsProtein,
+		IsGrain:                        x.IsGrain,
+		IsFruit:                        x.IsFruit,
+		IsSalt:                         x.IsSalt,
+		IsFat:                          x.IsFat,
+		IsAcid:                         x.IsAcid,
+		IsHeat:                         x.IsHeat,
 	}
 }
 
-// ConvertNullableValidInstrumentToValidInstrument builds a ValidInstrument from a NullableValidInstrument.
-func ConvertNullableValidInstrumentToValidInstrument(x *mealplanning.NullableValidInstrument) *mealplanning.ValidInstrument {
-	return &mealplanning.ValidInstrument{
-		// Reads through without a guard, which asserts the join matched.
-		CreatedAt:     *x.CreatedAt,
-		LastUpdatedAt: x.LastUpdatedAt,
-		ArchivedAt:    x.ArchivedAt,
-		// Reads through without a guard, which asserts the join matched.
-		IconPath: *x.IconPath,
-		// Reads through without a guard, which asserts the join matched.
-		ID: *x.ID,
-		// Reads through without a guard, which asserts the join matched.
-		Name: *x.Name,
-		// Reads through without a guard, which asserts the join matched.
-		PluralName: *x.PluralName,
-		// Reads through without a guard, which asserts the join matched.
-		Description: *x.Description,
-		// Reads through without a guard, which asserts the join matched.
-		Slug: *x.Slug,
-		// Reads through without a guard, which asserts the join matched.
-		DisplayInSummaryLists: *x.DisplayInSummaryLists,
-		// Reads through without a guard, which asserts the join matched.
-		IncludeInGeneratedInstructions: *x.IncludeInGeneratedInstructions,
-		// Reads through without a guard, which asserts the join matched.
-		UsableForStorage: *x.UsableForStorage,
+// ConvertValidIngredientGroupToValidIngredientGroupCreationRequestInput builds a ValidIngredientGroupCreationRequestInput from a ValidIngredientGroup.
+func ConvertValidIngredientGroupToValidIngredientGroupCreationRequestInput(x *mealplanning.ValidIngredientGroup) *mealplanning.ValidIngredientGroupCreationRequestInput {
+	members := make([]*mealplanning.ValidIngredientGroupMemberCreationRequestInput, 0, len(x.Members))
+	for _, item := range x.Members {
+		members = append(members, ConvertValidIngredientGroupMemberToValidIngredientGroupMemberCreationRequestInput(item))
+	}
+
+	return &mealplanning.ValidIngredientGroupCreationRequestInput{
+		Name:        x.Name,
+		Slug:        x.Slug,
+		Description: x.Description,
+		Members:     members,
+	}
+}
+
+// ConvertValidIngredientGroupToValidIngredientGroupUpdateRequestInput builds a ValidIngredientGroupUpdateRequestInput from a ValidIngredientGroup.
+func ConvertValidIngredientGroupToValidIngredientGroupUpdateRequestInput(x *mealplanning.ValidIngredientGroup) *mealplanning.ValidIngredientGroupUpdateRequestInput {
+	return &mealplanning.ValidIngredientGroupUpdateRequestInput{
+		Name:        &x.Name,
+		Slug:        &x.Slug,
+		Description: &x.Description,
+	}
+}
+
+// ConvertValidIngredientGroupMemberToValidIngredientGroupMemberCreationRequestInput builds a ValidIngredientGroupMemberCreationRequestInput from a ValidIngredientGroupMember.
+func ConvertValidIngredientGroupMemberToValidIngredientGroupMemberCreationRequestInput(x *mealplanning.ValidIngredientGroupMember) *mealplanning.ValidIngredientGroupMemberCreationRequestInput {
+	return &mealplanning.ValidIngredientGroupMemberCreationRequestInput{
+		ValidIngredientID: x.ValidIngredient.ID,
+	}
+}
+
+// ConvertValidIngredientGroupMemberToValidIngredientGroupMemberDatabaseCreationInput builds a ValidIngredientGroupMemberDatabaseCreationInput from a ValidIngredientGroupMember.
+func ConvertValidIngredientGroupMemberToValidIngredientGroupMemberDatabaseCreationInput(x *mealplanning.ValidIngredientGroupMember) *mealplanning.ValidIngredientGroupMemberDatabaseCreationInput {
+	return &mealplanning.ValidIngredientGroupMemberDatabaseCreationInput{
+		ID:                x.ID,
+		ValidIngredientID: x.ValidIngredient.ID,
+	}
+}
+
+// ConvertValidIngredientGroupMemberCreationRequestInputToValidIngredientGroupMemberDatabaseCreationInput builds a ValidIngredientGroupMemberDatabaseCreationInput from a ValidIngredientGroupMemberCreationRequestInput.
+func ConvertValidIngredientGroupMemberCreationRequestInputToValidIngredientGroupMemberDatabaseCreationInput(x *mealplanning.ValidIngredientGroupMemberCreationRequestInput) *mealplanning.ValidIngredientGroupMemberDatabaseCreationInput {
+	return &mealplanning.ValidIngredientGroupMemberDatabaseCreationInput{
+		ID:                identifiers.New(),
+		ValidIngredientID: x.ValidIngredientID,
+	}
+}
+
+// ConvertValidIngredientMeasurementUnitToValidIngredientMeasurementUnitCreationRequestInput builds a ValidIngredientMeasurementUnitCreationRequestInput from a ValidIngredientMeasurementUnit.
+func ConvertValidIngredientMeasurementUnitToValidIngredientMeasurementUnitCreationRequestInput(x *mealplanning.ValidIngredientMeasurementUnit) *mealplanning.ValidIngredientMeasurementUnitCreationRequestInput {
+	return &mealplanning.ValidIngredientMeasurementUnitCreationRequestInput{
+		MaxAllowableQuantity:   x.MaxAllowableQuantity,
+		Notes:                  x.Notes,
+		ValidMeasurementUnitID: x.MeasurementUnit.ID,
+		ValidIngredientID:      x.Ingredient.ID,
+		MinAllowableQuantity:   x.MinAllowableQuantity,
+	}
+}
+
+// ConvertValidIngredientMeasurementUnitToValidIngredientMeasurementUnitDatabaseCreationInput builds a ValidIngredientMeasurementUnitDatabaseCreationInput from a ValidIngredientMeasurementUnit.
+func ConvertValidIngredientMeasurementUnitToValidIngredientMeasurementUnitDatabaseCreationInput(x *mealplanning.ValidIngredientMeasurementUnit) *mealplanning.ValidIngredientMeasurementUnitDatabaseCreationInput {
+	return &mealplanning.ValidIngredientMeasurementUnitDatabaseCreationInput{
+		MaxAllowableQuantity:   x.MaxAllowableQuantity,
+		ID:                     x.ID,
+		Notes:                  x.Notes,
+		ValidMeasurementUnitID: x.MeasurementUnit.ID,
+		ValidIngredientID:      x.Ingredient.ID,
+		MinAllowableQuantity:   x.MinAllowableQuantity,
+	}
+}
+
+// ConvertValidIngredientMeasurementUnitToValidIngredientMeasurementUnitUpdateRequestInput builds a ValidIngredientMeasurementUnitUpdateRequestInput from a ValidIngredientMeasurementUnit.
+func ConvertValidIngredientMeasurementUnitToValidIngredientMeasurementUnitUpdateRequestInput(x *mealplanning.ValidIngredientMeasurementUnit) *mealplanning.ValidIngredientMeasurementUnitUpdateRequestInput {
+	return &mealplanning.ValidIngredientMeasurementUnitUpdateRequestInput{
+		Notes:                  &x.Notes,
+		ValidMeasurementUnitID: &x.MeasurementUnit.ID,
+		ValidIngredientID:      &x.Ingredient.ID,
+		MinAllowableQuantity:   &x.MinAllowableQuantity,
+		MaxAllowableQuantity:   x.MaxAllowableQuantity,
+	}
+}
+
+// ConvertValidIngredientMeasurementUnitCreationRequestInputToValidIngredientMeasurementUnitDatabaseCreationInput builds a ValidIngredientMeasurementUnitDatabaseCreationInput from a ValidIngredientMeasurementUnitCreationRequestInput.
+func ConvertValidIngredientMeasurementUnitCreationRequestInputToValidIngredientMeasurementUnitDatabaseCreationInput(x *mealplanning.ValidIngredientMeasurementUnitCreationRequestInput) *mealplanning.ValidIngredientMeasurementUnitDatabaseCreationInput {
+	return &mealplanning.ValidIngredientMeasurementUnitDatabaseCreationInput{
+		MaxAllowableQuantity:   x.MaxAllowableQuantity,
+		ID:                     identifiers.New(),
+		Notes:                  x.Notes,
+		ValidMeasurementUnitID: x.ValidMeasurementUnitID,
+		ValidIngredientID:      x.ValidIngredientID,
+		MinAllowableQuantity:   x.MinAllowableQuantity,
+	}
+}
+
+// ConvertValidIngredientPreparationToValidIngredientPreparationCreationRequestInput builds a ValidIngredientPreparationCreationRequestInput from a ValidIngredientPreparation.
+func ConvertValidIngredientPreparationToValidIngredientPreparationCreationRequestInput(x *mealplanning.ValidIngredientPreparation) *mealplanning.ValidIngredientPreparationCreationRequestInput {
+	return &mealplanning.ValidIngredientPreparationCreationRequestInput{
+		Notes:              x.Notes,
+		ValidPreparationID: x.Preparation.ID,
+		ValidIngredientID:  x.Ingredient.ID,
+	}
+}
+
+// ConvertValidIngredientPreparationToValidIngredientPreparationDatabaseCreationInput builds a ValidIngredientPreparationDatabaseCreationInput from a ValidIngredientPreparation.
+func ConvertValidIngredientPreparationToValidIngredientPreparationDatabaseCreationInput(x *mealplanning.ValidIngredientPreparation) *mealplanning.ValidIngredientPreparationDatabaseCreationInput {
+	return &mealplanning.ValidIngredientPreparationDatabaseCreationInput{
+		ID:                 x.ID,
+		Notes:              x.Notes,
+		ValidPreparationID: x.Preparation.ID,
+		ValidIngredientID:  x.Ingredient.ID,
+	}
+}
+
+// ConvertValidIngredientPreparationToValidIngredientPreparationUpdateRequestInput builds a ValidIngredientPreparationUpdateRequestInput from a ValidIngredientPreparation.
+func ConvertValidIngredientPreparationToValidIngredientPreparationUpdateRequestInput(x *mealplanning.ValidIngredientPreparation) *mealplanning.ValidIngredientPreparationUpdateRequestInput {
+	return &mealplanning.ValidIngredientPreparationUpdateRequestInput{
+		Notes:              &x.Notes,
+		ValidPreparationID: &x.Preparation.ID,
+		ValidIngredientID:  &x.Ingredient.ID,
+	}
+}
+
+// ConvertValidIngredientPreparationCreationRequestInputToValidIngredientPreparationDatabaseCreationInput builds a ValidIngredientPreparationDatabaseCreationInput from a ValidIngredientPreparationCreationRequestInput.
+func ConvertValidIngredientPreparationCreationRequestInputToValidIngredientPreparationDatabaseCreationInput(x *mealplanning.ValidIngredientPreparationCreationRequestInput) *mealplanning.ValidIngredientPreparationDatabaseCreationInput {
+	return &mealplanning.ValidIngredientPreparationDatabaseCreationInput{
+		ID:                 identifiers.New(),
+		Notes:              x.Notes,
+		ValidPreparationID: x.ValidPreparationID,
+		ValidIngredientID:  x.ValidIngredientID,
+	}
+}
+
+// ConvertValidIngredientStateToValidIngredientStateCreationRequestInput builds a ValidIngredientStateCreationRequestInput from a ValidIngredientState.
+func ConvertValidIngredientStateToValidIngredientStateCreationRequestInput(x *mealplanning.ValidIngredientState) *mealplanning.ValidIngredientStateCreationRequestInput {
+	return &mealplanning.ValidIngredientStateCreationRequestInput{
+		Name:          x.Name,
+		Slug:          x.Slug,
+		PastTense:     x.PastTense,
+		Description:   x.Description,
+		AttributeType: x.AttributeType,
+		IconPath:      x.IconPath,
+	}
+}
+
+// ConvertValidIngredientStateToValidIngredientStateDatabaseCreationInput builds a ValidIngredientStateDatabaseCreationInput from a ValidIngredientState.
+func ConvertValidIngredientStateToValidIngredientStateDatabaseCreationInput(x *mealplanning.ValidIngredientState) *mealplanning.ValidIngredientStateDatabaseCreationInput {
+	return &mealplanning.ValidIngredientStateDatabaseCreationInput{
+		ID:            x.ID,
+		Name:          x.Name,
+		Slug:          x.Slug,
+		PastTense:     x.PastTense,
+		Description:   x.Description,
+		AttributeType: x.AttributeType,
+		IconPath:      x.IconPath,
+	}
+}
+
+// ConvertValidIngredientStateToValidIngredientStateUpdateRequestInput builds a ValidIngredientStateUpdateRequestInput from a ValidIngredientState.
+func ConvertValidIngredientStateToValidIngredientStateUpdateRequestInput(x *mealplanning.ValidIngredientState) *mealplanning.ValidIngredientStateUpdateRequestInput {
+	return &mealplanning.ValidIngredientStateUpdateRequestInput{
+		Name:          &x.Name,
+		Slug:          &x.Slug,
+		PastTense:     &x.PastTense,
+		Description:   &x.Description,
+		AttributeType: &x.AttributeType,
+		IconPath:      &x.IconPath,
+	}
+}
+
+// ConvertValidIngredientStateCreationRequestInputToValidIngredientStateDatabaseCreationInput builds a ValidIngredientStateDatabaseCreationInput from a ValidIngredientStateCreationRequestInput.
+func ConvertValidIngredientStateCreationRequestInputToValidIngredientStateDatabaseCreationInput(x *mealplanning.ValidIngredientStateCreationRequestInput) *mealplanning.ValidIngredientStateDatabaseCreationInput {
+	return &mealplanning.ValidIngredientStateDatabaseCreationInput{
+		ID:            identifiers.New(),
+		Name:          x.Name,
+		Slug:          x.Slug,
+		PastTense:     x.PastTense,
+		Description:   x.Description,
+		AttributeType: x.AttributeType,
+		IconPath:      x.IconPath,
+	}
+}
+
+// ConvertValidIngredientStateIngredientToValidIngredientStateIngredientCreationRequestInput builds a ValidIngredientStateIngredientCreationRequestInput from a ValidIngredientStateIngredient.
+func ConvertValidIngredientStateIngredientToValidIngredientStateIngredientCreationRequestInput(x *mealplanning.ValidIngredientStateIngredient) *mealplanning.ValidIngredientStateIngredientCreationRequestInput {
+	return &mealplanning.ValidIngredientStateIngredientCreationRequestInput{
+		Notes:                  x.Notes,
+		ValidIngredientStateID: x.IngredientState.ID,
+		ValidIngredientID:      x.Ingredient.ID,
+	}
+}
+
+// ConvertValidIngredientStateIngredientToValidIngredientStateIngredientDatabaseCreationInput builds a ValidIngredientStateIngredientDatabaseCreationInput from a ValidIngredientStateIngredient.
+func ConvertValidIngredientStateIngredientToValidIngredientStateIngredientDatabaseCreationInput(x *mealplanning.ValidIngredientStateIngredient) *mealplanning.ValidIngredientStateIngredientDatabaseCreationInput {
+	return &mealplanning.ValidIngredientStateIngredientDatabaseCreationInput{
+		ID:                     x.ID,
+		Notes:                  x.Notes,
+		ValidIngredientStateID: x.IngredientState.ID,
+		ValidIngredientID:      x.Ingredient.ID,
+	}
+}
+
+// ConvertValidIngredientStateIngredientToValidIngredientStateIngredientUpdateRequestInput builds a ValidIngredientStateIngredientUpdateRequestInput from a ValidIngredientStateIngredient.
+func ConvertValidIngredientStateIngredientToValidIngredientStateIngredientUpdateRequestInput(x *mealplanning.ValidIngredientStateIngredient) *mealplanning.ValidIngredientStateIngredientUpdateRequestInput {
+	return &mealplanning.ValidIngredientStateIngredientUpdateRequestInput{
+		Notes:                  &x.Notes,
+		ValidIngredientStateID: &x.IngredientState.ID,
+		ValidIngredientID:      &x.Ingredient.ID,
+	}
+}
+
+// ConvertValidIngredientStateIngredientCreationRequestInputToValidIngredientStateIngredientDatabaseCreationInput builds a ValidIngredientStateIngredientDatabaseCreationInput from a ValidIngredientStateIngredientCreationRequestInput.
+func ConvertValidIngredientStateIngredientCreationRequestInputToValidIngredientStateIngredientDatabaseCreationInput(x *mealplanning.ValidIngredientStateIngredientCreationRequestInput) *mealplanning.ValidIngredientStateIngredientDatabaseCreationInput {
+	return &mealplanning.ValidIngredientStateIngredientDatabaseCreationInput{
+		ID:                     identifiers.New(),
+		Notes:                  x.Notes,
+		ValidIngredientStateID: x.ValidIngredientStateID,
+		ValidIngredientID:      x.ValidIngredientID,
 	}
 }
 
 // ConvertValidInstrumentToValidInstrumentCreationRequestInput builds a ValidInstrumentCreationRequestInput from a ValidInstrument.
-func ConvertValidInstrumentToValidInstrumentCreationRequestInput(validInstrument *mealplanning.ValidInstrument) *mealplanning.ValidInstrumentCreationRequestInput {
+func ConvertValidInstrumentToValidInstrumentCreationRequestInput(x *mealplanning.ValidInstrument) *mealplanning.ValidInstrumentCreationRequestInput {
 	return &mealplanning.ValidInstrumentCreationRequestInput{
-		Name:                           validInstrument.Name,
-		PluralName:                     validInstrument.PluralName,
-		Description:                    validInstrument.Description,
-		IconPath:                       validInstrument.IconPath,
-		Slug:                           validInstrument.Slug,
-		DisplayInSummaryLists:          validInstrument.DisplayInSummaryLists,
-		IncludeInGeneratedInstructions: validInstrument.IncludeInGeneratedInstructions,
-		UsableForStorage:               validInstrument.UsableForStorage,
+		Name:                           x.Name,
+		PluralName:                     x.PluralName,
+		Description:                    x.Description,
+		IconPath:                       x.IconPath,
+		Slug:                           x.Slug,
+		DisplayInSummaryLists:          x.DisplayInSummaryLists,
+		IncludeInGeneratedInstructions: x.IncludeInGeneratedInstructions,
+		UsableForStorage:               x.UsableForStorage,
 	}
 }
 
 // ConvertValidInstrumentToValidInstrumentDatabaseCreationInput builds a ValidInstrumentDatabaseCreationInput from a ValidInstrument.
-func ConvertValidInstrumentToValidInstrumentDatabaseCreationInput(validInstrument *mealplanning.ValidInstrument) *mealplanning.ValidInstrumentDatabaseCreationInput {
+func ConvertValidInstrumentToValidInstrumentDatabaseCreationInput(x *mealplanning.ValidInstrument) *mealplanning.ValidInstrumentDatabaseCreationInput {
 	return &mealplanning.ValidInstrumentDatabaseCreationInput{
-		ID:                             validInstrument.ID,
-		Name:                           validInstrument.Name,
-		PluralName:                     validInstrument.PluralName,
-		Description:                    validInstrument.Description,
-		IconPath:                       validInstrument.IconPath,
-		Slug:                           validInstrument.Slug,
-		DisplayInSummaryLists:          validInstrument.DisplayInSummaryLists,
-		UsableForStorage:               validInstrument.UsableForStorage,
-		IncludeInGeneratedInstructions: validInstrument.IncludeInGeneratedInstructions,
+		ID:                             x.ID,
+		Name:                           x.Name,
+		PluralName:                     x.PluralName,
+		Description:                    x.Description,
+		IconPath:                       x.IconPath,
+		Slug:                           x.Slug,
+		DisplayInSummaryLists:          x.DisplayInSummaryLists,
+		UsableForStorage:               x.UsableForStorage,
+		IncludeInGeneratedInstructions: x.IncludeInGeneratedInstructions,
 	}
 }
 
-// ConvertValidMeasurementUnitConversionToValidMeasurementUnitConversionUpdateRequestInput builds a ValidMeasurementUnitConversionUpdateRequestInput from a ValidMeasurementUnitConversion.
-func ConvertValidMeasurementUnitConversionToValidMeasurementUnitConversionUpdateRequestInput(input *mealplanning.ValidMeasurementUnitConversion) *mealplanning.ValidMeasurementUnitConversionUpdateRequestInput {
-	var onlyForIngredient *string
-	if input.OnlyForIngredient != nil {
-		onlyForIngredient = &input.OnlyForIngredient.ID
-	}
-
-	return &mealplanning.ValidMeasurementUnitConversionUpdateRequestInput{
-		From:              &input.From.ID,
-		To:                &input.To.ID,
-		OnlyForIngredient: onlyForIngredient,
-		Modifier:          &input.Modifier,
-		Notes:             &input.Notes,
+// ConvertValidInstrumentToValidInstrumentUpdateRequestInput builds a ValidInstrumentUpdateRequestInput from a ValidInstrument.
+func ConvertValidInstrumentToValidInstrumentUpdateRequestInput(x *mealplanning.ValidInstrument) *mealplanning.ValidInstrumentUpdateRequestInput {
+	return &mealplanning.ValidInstrumentUpdateRequestInput{
+		Name:                           &x.Name,
+		PluralName:                     &x.PluralName,
+		Description:                    &x.Description,
+		IconPath:                       &x.IconPath,
+		Slug:                           &x.Slug,
+		UsableForStorage:               &x.UsableForStorage,
+		DisplayInSummaryLists:          &x.DisplayInSummaryLists,
+		IncludeInGeneratedInstructions: &x.IncludeInGeneratedInstructions,
 	}
 }
 
-// ConvertValidMeasurementUnitConversionCreationRequestInputToValidMeasurementUnitConversionDatabaseCreationInput builds a ValidMeasurementUnitConversionDatabaseCreationInput from a ValidMeasurementUnitConversionCreationRequestInput.
-func ConvertValidMeasurementUnitConversionCreationRequestInputToValidMeasurementUnitConversionDatabaseCreationInput(input *mealplanning.ValidMeasurementUnitConversionCreationRequestInput) *mealplanning.ValidMeasurementUnitConversionDatabaseCreationInput {
-	return &mealplanning.ValidMeasurementUnitConversionDatabaseCreationInput{
-		OnlyForIngredient: input.OnlyForIngredient,
-		ID:                identifiers.New(),
-		From:              input.From,
-		To:                input.To,
-		Notes:             input.Notes,
-		Modifier:          input.Modifier,
-	}
-}
-
-// ConvertValidMeasurementUnitConversionToValidMeasurementUnitConversionCreationRequestInput builds a ValidMeasurementUnitConversionCreationRequestInput from a ValidMeasurementUnitConversion.
-func ConvertValidMeasurementUnitConversionToValidMeasurementUnitConversionCreationRequestInput(validMeasurementUnitConversion *mealplanning.ValidMeasurementUnitConversion) *mealplanning.ValidMeasurementUnitConversionCreationRequestInput {
-	var onlyForIngredient *string
-	if validMeasurementUnitConversion.OnlyForIngredient != nil {
-		onlyForIngredient = &validMeasurementUnitConversion.OnlyForIngredient.ID
-	}
-
-	return &mealplanning.ValidMeasurementUnitConversionCreationRequestInput{
-		OnlyForIngredient: onlyForIngredient,
-		From:              validMeasurementUnitConversion.From.ID,
-		To:                validMeasurementUnitConversion.To.ID,
-		Notes:             validMeasurementUnitConversion.Notes,
-		Modifier:          validMeasurementUnitConversion.Modifier,
-	}
-}
-
-// ConvertValidMeasurementUnitConversionToValidMeasurementUnitConversionDatabaseCreationInput builds a ValidMeasurementUnitConversionDatabaseCreationInput from a ValidMeasurementUnitConversion.
-func ConvertValidMeasurementUnitConversionToValidMeasurementUnitConversionDatabaseCreationInput(validMeasurementUnitConversion *mealplanning.ValidMeasurementUnitConversion) *mealplanning.ValidMeasurementUnitConversionDatabaseCreationInput {
-	var onlyForIngredient *string
-	if validMeasurementUnitConversion.OnlyForIngredient != nil {
-		onlyForIngredient = &validMeasurementUnitConversion.OnlyForIngredient.ID
-	}
-
-	return &mealplanning.ValidMeasurementUnitConversionDatabaseCreationInput{
-		OnlyForIngredient: onlyForIngredient,
-		ID:                validMeasurementUnitConversion.ID,
-		From:              validMeasurementUnitConversion.From.ID,
-		To:                validMeasurementUnitConversion.To.ID,
-		Notes:             validMeasurementUnitConversion.Notes,
-		Modifier:          validMeasurementUnitConversion.Modifier,
-	}
-}
-
-// ConvertValidMeasurementUnitToValidMeasurementUnitUpdateRequestInput builds a ValidMeasurementUnitUpdateRequestInput from a ValidMeasurementUnit.
-func ConvertValidMeasurementUnitToValidMeasurementUnitUpdateRequestInput(input *mealplanning.ValidMeasurementUnit) *mealplanning.ValidMeasurementUnitUpdateRequestInput {
-	return &mealplanning.ValidMeasurementUnitUpdateRequestInput{
-		Name:        &input.Name,
-		Description: &input.Description,
-		IconPath:    &input.IconPath,
-		Volumetric:  &input.Volumetric,
-		Universal:   &input.Universal,
-		Metric:      &input.Metric,
-		Imperial:    &input.Imperial,
-		PluralName:  &input.PluralName,
-		Slug:        &input.Slug,
-	}
-}
-
-// ConvertValidMeasurementUnitCreationRequestInputToValidMeasurementUnitDatabaseCreationInput builds a ValidMeasurementUnitDatabaseCreationInput from a ValidMeasurementUnitCreationRequestInput.
-func ConvertValidMeasurementUnitCreationRequestInputToValidMeasurementUnitDatabaseCreationInput(input *mealplanning.ValidMeasurementUnitCreationRequestInput) *mealplanning.ValidMeasurementUnitDatabaseCreationInput {
-	return &mealplanning.ValidMeasurementUnitDatabaseCreationInput{
-		Name:        input.Name,
-		Description: input.Description,
-		ID:          identifiers.New(),
-		IconPath:    input.IconPath,
-		PluralName:  input.PluralName,
-		Slug:        input.Slug,
-		Volumetric:  input.Volumetric,
-		Universal:   input.Universal,
-		Metric:      input.Metric,
-		Imperial:    input.Imperial,
+// ConvertValidInstrumentCreationRequestInputToValidInstrumentDatabaseCreationInput builds a ValidInstrumentDatabaseCreationInput from a ValidInstrumentCreationRequestInput.
+func ConvertValidInstrumentCreationRequestInputToValidInstrumentDatabaseCreationInput(x *mealplanning.ValidInstrumentCreationRequestInput) *mealplanning.ValidInstrumentDatabaseCreationInput {
+	return &mealplanning.ValidInstrumentDatabaseCreationInput{
+		ID:                             identifiers.New(),
+		Name:                           x.Name,
+		PluralName:                     x.PluralName,
+		Description:                    x.Description,
+		IconPath:                       x.IconPath,
+		Slug:                           x.Slug,
+		DisplayInSummaryLists:          x.DisplayInSummaryLists,
+		UsableForStorage:               x.UsableForStorage,
+		IncludeInGeneratedInstructions: x.IncludeInGeneratedInstructions,
 	}
 }
 
 // ConvertValidMeasurementUnitToValidMeasurementUnitCreationRequestInput builds a ValidMeasurementUnitCreationRequestInput from a ValidMeasurementUnit.
-func ConvertValidMeasurementUnitToValidMeasurementUnitCreationRequestInput(validMeasurementUnit *mealplanning.ValidMeasurementUnit) *mealplanning.ValidMeasurementUnitCreationRequestInput {
+func ConvertValidMeasurementUnitToValidMeasurementUnitCreationRequestInput(x *mealplanning.ValidMeasurementUnit) *mealplanning.ValidMeasurementUnitCreationRequestInput {
 	return &mealplanning.ValidMeasurementUnitCreationRequestInput{
-		Name:        validMeasurementUnit.Name,
-		Description: validMeasurementUnit.Description,
-		IconPath:    validMeasurementUnit.IconPath,
-		PluralName:  validMeasurementUnit.PluralName,
-		Slug:        validMeasurementUnit.Slug,
-		Volumetric:  validMeasurementUnit.Volumetric,
-		Universal:   validMeasurementUnit.Universal,
-		Metric:      validMeasurementUnit.Metric,
-		Imperial:    validMeasurementUnit.Imperial,
+		Name:        x.Name,
+		Description: x.Description,
+		IconPath:    x.IconPath,
+		PluralName:  x.PluralName,
+		Slug:        x.Slug,
+		Volumetric:  x.Volumetric,
+		Universal:   x.Universal,
+		Metric:      x.Metric,
+		Imperial:    x.Imperial,
 	}
 }
 
 // ConvertValidMeasurementUnitToValidMeasurementUnitDatabaseCreationInput builds a ValidMeasurementUnitDatabaseCreationInput from a ValidMeasurementUnit.
-func ConvertValidMeasurementUnitToValidMeasurementUnitDatabaseCreationInput(validMeasurementUnit *mealplanning.ValidMeasurementUnit) *mealplanning.ValidMeasurementUnitDatabaseCreationInput {
+func ConvertValidMeasurementUnitToValidMeasurementUnitDatabaseCreationInput(x *mealplanning.ValidMeasurementUnit) *mealplanning.ValidMeasurementUnitDatabaseCreationInput {
 	return &mealplanning.ValidMeasurementUnitDatabaseCreationInput{
-		Name:        validMeasurementUnit.Name,
-		Description: validMeasurementUnit.Description,
-		ID:          validMeasurementUnit.ID,
-		IconPath:    validMeasurementUnit.IconPath,
-		PluralName:  validMeasurementUnit.PluralName,
-		Slug:        validMeasurementUnit.Slug,
-		Volumetric:  validMeasurementUnit.Volumetric,
-		Universal:   validMeasurementUnit.Universal,
-		Metric:      validMeasurementUnit.Metric,
-		Imperial:    validMeasurementUnit.Imperial,
+		Name:        x.Name,
+		Description: x.Description,
+		ID:          x.ID,
+		IconPath:    x.IconPath,
+		PluralName:  x.PluralName,
+		Slug:        x.Slug,
+		Volumetric:  x.Volumetric,
+		Universal:   x.Universal,
+		Metric:      x.Metric,
+		Imperial:    x.Imperial,
 	}
 }
 
-// ConvertValidMeasurementUnitToNullableValidMeasurementUnit builds a NullableValidMeasurementUnit from a ValidMeasurementUnit.
-func ConvertValidMeasurementUnitToNullableValidMeasurementUnit(input *mealplanning.ValidMeasurementUnit) *mealplanning.NullableValidMeasurementUnit {
-	return &mealplanning.NullableValidMeasurementUnit{
-		CreatedAt:     &input.CreatedAt,
-		LastUpdatedAt: input.LastUpdatedAt,
-		ArchivedAt:    input.ArchivedAt,
-		Name:          &input.Name,
-		IconPath:      &input.IconPath,
-		ID:            &input.ID,
-		Description:   &input.Description,
-		PluralName:    &input.PluralName,
-		Slug:          &input.Slug,
-		Volumetric:    &input.Volumetric,
-		Universal:     &input.Universal,
-		Metric:        &input.Metric,
-		Imperial:      &input.Imperial,
+// ConvertValidMeasurementUnitToValidMeasurementUnitUpdateRequestInput builds a ValidMeasurementUnitUpdateRequestInput from a ValidMeasurementUnit.
+func ConvertValidMeasurementUnitToValidMeasurementUnitUpdateRequestInput(x *mealplanning.ValidMeasurementUnit) *mealplanning.ValidMeasurementUnitUpdateRequestInput {
+	return &mealplanning.ValidMeasurementUnitUpdateRequestInput{
+		Name:        &x.Name,
+		Description: &x.Description,
+		IconPath:    &x.IconPath,
+		Volumetric:  &x.Volumetric,
+		Universal:   &x.Universal,
+		Metric:      &x.Metric,
+		Imperial:    &x.Imperial,
+		PluralName:  &x.PluralName,
+		Slug:        &x.Slug,
 	}
 }
 
-// ConvertValidPrepTaskConfigCreationRequestInputToValidPrepTaskConfigDatabaseCreationInput builds a ValidPrepTaskConfigDatabaseCreationInput from a ValidPrepTaskConfigCreationRequestInput.
-func ConvertValidPrepTaskConfigCreationRequestInputToValidPrepTaskConfigDatabaseCreationInput(input *mealplanning.ValidPrepTaskConfigCreationRequestInput) *mealplanning.ValidPrepTaskConfigDatabaseCreationInput {
-	return &mealplanning.ValidPrepTaskConfigDatabaseCreationInput{
-		MaxStorageDurationInSeconds:    input.MaxStorageDurationInSeconds,
-		MinStorageTemperatureInCelsius: input.MinStorageTemperatureInCelsius,
-		MaxStorageTemperatureInCelsius: input.MaxStorageTemperatureInCelsius,
-		ID:                             identifiers.New(),
-		StorageType:                    input.StorageType,
-		StorageInstructions:            input.StorageInstructions,
-		Notes:                          input.Notes,
-		Source:                         input.Source,
-		ValidPreparationID:             input.ValidPreparationID,
-		ValidIngredientID:              input.ValidIngredientID,
-		MinStorageDurationInSeconds:    input.MinStorageDurationInSeconds,
+// ConvertValidMeasurementUnitCreationRequestInputToValidMeasurementUnitDatabaseCreationInput builds a ValidMeasurementUnitDatabaseCreationInput from a ValidMeasurementUnitCreationRequestInput.
+func ConvertValidMeasurementUnitCreationRequestInputToValidMeasurementUnitDatabaseCreationInput(x *mealplanning.ValidMeasurementUnitCreationRequestInput) *mealplanning.ValidMeasurementUnitDatabaseCreationInput {
+	return &mealplanning.ValidMeasurementUnitDatabaseCreationInput{
+		Name:        x.Name,
+		Description: x.Description,
+		ID:          identifiers.New(),
+		IconPath:    x.IconPath,
+		PluralName:  x.PluralName,
+		Slug:        x.Slug,
+		Volumetric:  x.Volumetric,
+		Universal:   x.Universal,
+		Metric:      x.Metric,
+		Imperial:    x.Imperial,
 	}
 }
 
-// ConvertValidPrepTaskConfigToValidPrepTaskConfigUpdateRequestInput builds a ValidPrepTaskConfigUpdateRequestInput from a ValidPrepTaskConfig.
-func ConvertValidPrepTaskConfigToValidPrepTaskConfigUpdateRequestInput(validPrepTaskConfig *mealplanning.ValidPrepTaskConfig) *mealplanning.ValidPrepTaskConfigUpdateRequestInput {
-	return &mealplanning.ValidPrepTaskConfigUpdateRequestInput{
-		MinStorageDurationInSeconds:    &validPrepTaskConfig.MinStorageDurationInSeconds,
-		MaxStorageDurationInSeconds:    validPrepTaskConfig.MaxStorageDurationInSeconds,
-		MinStorageTemperatureInCelsius: validPrepTaskConfig.MinStorageTemperatureInCelsius,
-		MaxStorageTemperatureInCelsius: validPrepTaskConfig.MaxStorageTemperatureInCelsius,
-		StorageType:                    &validPrepTaskConfig.StorageType,
-		StorageInstructions:            &validPrepTaskConfig.StorageInstructions,
-		Notes:                          &validPrepTaskConfig.Notes,
-		Source:                         &validPrepTaskConfig.Source,
-		ValidPreparationID:             &validPrepTaskConfig.Preparation.ID,
-		ValidIngredientID:              &validPrepTaskConfig.Ingredient.ID,
+// ConvertValidMeasurementUnitConversionToValidMeasurementUnitConversionCreationRequestInput builds a ValidMeasurementUnitConversionCreationRequestInput from a ValidMeasurementUnitConversion.
+func ConvertValidMeasurementUnitConversionToValidMeasurementUnitConversionCreationRequestInput(x *mealplanning.ValidMeasurementUnitConversion) *mealplanning.ValidMeasurementUnitConversionCreationRequestInput {
+	var onlyForIngredient *string
+	if x.OnlyForIngredient != nil {
+		onlyForIngredient = &x.OnlyForIngredient.ID
+	}
+
+	return &mealplanning.ValidMeasurementUnitConversionCreationRequestInput{
+		OnlyForIngredient: onlyForIngredient,
+		From:              x.From.ID,
+		To:                x.To.ID,
+		Notes:             x.Notes,
+		Modifier:          x.Modifier,
+	}
+}
+
+// ConvertValidMeasurementUnitConversionToValidMeasurementUnitConversionDatabaseCreationInput builds a ValidMeasurementUnitConversionDatabaseCreationInput from a ValidMeasurementUnitConversion.
+func ConvertValidMeasurementUnitConversionToValidMeasurementUnitConversionDatabaseCreationInput(x *mealplanning.ValidMeasurementUnitConversion) *mealplanning.ValidMeasurementUnitConversionDatabaseCreationInput {
+	var onlyForIngredient *string
+	if x.OnlyForIngredient != nil {
+		onlyForIngredient = &x.OnlyForIngredient.ID
+	}
+
+	return &mealplanning.ValidMeasurementUnitConversionDatabaseCreationInput{
+		OnlyForIngredient: onlyForIngredient,
+		ID:                x.ID,
+		From:              x.From.ID,
+		To:                x.To.ID,
+		Notes:             x.Notes,
+		Modifier:          x.Modifier,
+	}
+}
+
+// ConvertValidMeasurementUnitConversionToValidMeasurementUnitConversionUpdateRequestInput builds a ValidMeasurementUnitConversionUpdateRequestInput from a ValidMeasurementUnitConversion.
+func ConvertValidMeasurementUnitConversionToValidMeasurementUnitConversionUpdateRequestInput(x *mealplanning.ValidMeasurementUnitConversion) *mealplanning.ValidMeasurementUnitConversionUpdateRequestInput {
+	var onlyForIngredient *string
+	if x.OnlyForIngredient != nil {
+		onlyForIngredient = &x.OnlyForIngredient.ID
+	}
+
+	return &mealplanning.ValidMeasurementUnitConversionUpdateRequestInput{
+		From:              &x.From.ID,
+		To:                &x.To.ID,
+		OnlyForIngredient: onlyForIngredient,
+		Modifier:          &x.Modifier,
+		Notes:             &x.Notes,
+	}
+}
+
+// ConvertValidMeasurementUnitConversionCreationRequestInputToValidMeasurementUnitConversionDatabaseCreationInput builds a ValidMeasurementUnitConversionDatabaseCreationInput from a ValidMeasurementUnitConversionCreationRequestInput.
+func ConvertValidMeasurementUnitConversionCreationRequestInputToValidMeasurementUnitConversionDatabaseCreationInput(x *mealplanning.ValidMeasurementUnitConversionCreationRequestInput) *mealplanning.ValidMeasurementUnitConversionDatabaseCreationInput {
+	return &mealplanning.ValidMeasurementUnitConversionDatabaseCreationInput{
+		OnlyForIngredient: x.OnlyForIngredient,
+		ID:                identifiers.New(),
+		From:              x.From,
+		To:                x.To,
+		Notes:             x.Notes,
+		Modifier:          x.Modifier,
 	}
 }
 
 // ConvertValidPrepTaskConfigToValidPrepTaskConfigCreationRequestInput builds a ValidPrepTaskConfigCreationRequestInput from a ValidPrepTaskConfig.
-func ConvertValidPrepTaskConfigToValidPrepTaskConfigCreationRequestInput(validPrepTaskConfig *mealplanning.ValidPrepTaskConfig) *mealplanning.ValidPrepTaskConfigCreationRequestInput {
+func ConvertValidPrepTaskConfigToValidPrepTaskConfigCreationRequestInput(x *mealplanning.ValidPrepTaskConfig) *mealplanning.ValidPrepTaskConfigCreationRequestInput {
 	return &mealplanning.ValidPrepTaskConfigCreationRequestInput{
-		MaxStorageDurationInSeconds:    validPrepTaskConfig.MaxStorageDurationInSeconds,
-		MinStorageTemperatureInCelsius: validPrepTaskConfig.MinStorageTemperatureInCelsius,
-		MaxStorageTemperatureInCelsius: validPrepTaskConfig.MaxStorageTemperatureInCelsius,
-		StorageType:                    validPrepTaskConfig.StorageType,
-		StorageInstructions:            validPrepTaskConfig.StorageInstructions,
-		Notes:                          validPrepTaskConfig.Notes,
-		Source:                         validPrepTaskConfig.Source,
-		ValidPreparationID:             validPrepTaskConfig.Preparation.ID,
-		ValidIngredientID:              validPrepTaskConfig.Ingredient.ID,
-		MinStorageDurationInSeconds:    validPrepTaskConfig.MinStorageDurationInSeconds,
+		MaxStorageDurationInSeconds:    x.MaxStorageDurationInSeconds,
+		MinStorageTemperatureInCelsius: x.MinStorageTemperatureInCelsius,
+		MaxStorageTemperatureInCelsius: x.MaxStorageTemperatureInCelsius,
+		StorageType:                    x.StorageType,
+		StorageInstructions:            x.StorageInstructions,
+		Notes:                          x.Notes,
+		Source:                         x.Source,
+		ValidPreparationID:             x.Preparation.ID,
+		ValidIngredientID:              x.Ingredient.ID,
+		MinStorageDurationInSeconds:    x.MinStorageDurationInSeconds,
 	}
 }
 
 // ConvertValidPrepTaskConfigToValidPrepTaskConfigDatabaseCreationInput builds a ValidPrepTaskConfigDatabaseCreationInput from a ValidPrepTaskConfig.
-func ConvertValidPrepTaskConfigToValidPrepTaskConfigDatabaseCreationInput(validPrepTaskConfig *mealplanning.ValidPrepTaskConfig) *mealplanning.ValidPrepTaskConfigDatabaseCreationInput {
+func ConvertValidPrepTaskConfigToValidPrepTaskConfigDatabaseCreationInput(x *mealplanning.ValidPrepTaskConfig) *mealplanning.ValidPrepTaskConfigDatabaseCreationInput {
 	return &mealplanning.ValidPrepTaskConfigDatabaseCreationInput{
-		MaxStorageDurationInSeconds:    validPrepTaskConfig.MaxStorageDurationInSeconds,
-		MinStorageTemperatureInCelsius: validPrepTaskConfig.MinStorageTemperatureInCelsius,
-		MaxStorageTemperatureInCelsius: validPrepTaskConfig.MaxStorageTemperatureInCelsius,
-		ID:                             validPrepTaskConfig.ID,
-		StorageType:                    validPrepTaskConfig.StorageType,
-		StorageInstructions:            validPrepTaskConfig.StorageInstructions,
-		Notes:                          validPrepTaskConfig.Notes,
-		Source:                         validPrepTaskConfig.Source,
-		ValidPreparationID:             validPrepTaskConfig.Preparation.ID,
-		ValidIngredientID:              validPrepTaskConfig.Ingredient.ID,
-		MinStorageDurationInSeconds:    validPrepTaskConfig.MinStorageDurationInSeconds,
+		MaxStorageDurationInSeconds:    x.MaxStorageDurationInSeconds,
+		MinStorageTemperatureInCelsius: x.MinStorageTemperatureInCelsius,
+		MaxStorageTemperatureInCelsius: x.MaxStorageTemperatureInCelsius,
+		ID:                             x.ID,
+		StorageType:                    x.StorageType,
+		StorageInstructions:            x.StorageInstructions,
+		Notes:                          x.Notes,
+		Source:                         x.Source,
+		ValidPreparationID:             x.Preparation.ID,
+		ValidIngredientID:              x.Ingredient.ID,
+		MinStorageDurationInSeconds:    x.MinStorageDurationInSeconds,
 	}
 }
 
-// ConvertValidPreparationInstrumentCreationRequestInputToValidPreparationInstrumentDatabaseCreationInput builds a ValidPreparationInstrumentDatabaseCreationInput from a ValidPreparationInstrumentCreationRequestInput.
-func ConvertValidPreparationInstrumentCreationRequestInputToValidPreparationInstrumentDatabaseCreationInput(input *mealplanning.ValidPreparationInstrumentCreationRequestInput) *mealplanning.ValidPreparationInstrumentDatabaseCreationInput {
-	return &mealplanning.ValidPreparationInstrumentDatabaseCreationInput{
-		ID:                 identifiers.New(),
-		Notes:              input.Notes,
-		ValidPreparationID: input.ValidPreparationID,
-		ValidInstrumentID:  input.ValidInstrumentID,
+// ConvertValidPrepTaskConfigToValidPrepTaskConfigUpdateRequestInput builds a ValidPrepTaskConfigUpdateRequestInput from a ValidPrepTaskConfig.
+func ConvertValidPrepTaskConfigToValidPrepTaskConfigUpdateRequestInput(x *mealplanning.ValidPrepTaskConfig) *mealplanning.ValidPrepTaskConfigUpdateRequestInput {
+	return &mealplanning.ValidPrepTaskConfigUpdateRequestInput{
+		MinStorageDurationInSeconds:    &x.MinStorageDurationInSeconds,
+		MaxStorageDurationInSeconds:    x.MaxStorageDurationInSeconds,
+		MinStorageTemperatureInCelsius: x.MinStorageTemperatureInCelsius,
+		MaxStorageTemperatureInCelsius: x.MaxStorageTemperatureInCelsius,
+		StorageType:                    &x.StorageType,
+		StorageInstructions:            &x.StorageInstructions,
+		Notes:                          &x.Notes,
+		Source:                         &x.Source,
+		ValidPreparationID:             &x.Preparation.ID,
+		ValidIngredientID:              &x.Ingredient.ID,
 	}
 }
 
-// ConvertValidPreparationInstrumentToValidPreparationInstrumentUpdateRequestInput builds a ValidPreparationInstrumentUpdateRequestInput from a ValidPreparationInstrument.
-func ConvertValidPreparationInstrumentToValidPreparationInstrumentUpdateRequestInput(validPreparationInstrument *mealplanning.ValidPreparationInstrument) *mealplanning.ValidPreparationInstrumentUpdateRequestInput {
-	return &mealplanning.ValidPreparationInstrumentUpdateRequestInput{
-		Notes:              &validPreparationInstrument.Notes,
-		ValidPreparationID: &validPreparationInstrument.Preparation.ID,
-		ValidInstrumentID:  &validPreparationInstrument.Instrument.ID,
+// ConvertValidPrepTaskConfigCreationRequestInputToValidPrepTaskConfigDatabaseCreationInput builds a ValidPrepTaskConfigDatabaseCreationInput from a ValidPrepTaskConfigCreationRequestInput.
+func ConvertValidPrepTaskConfigCreationRequestInputToValidPrepTaskConfigDatabaseCreationInput(x *mealplanning.ValidPrepTaskConfigCreationRequestInput) *mealplanning.ValidPrepTaskConfigDatabaseCreationInput {
+	return &mealplanning.ValidPrepTaskConfigDatabaseCreationInput{
+		MaxStorageDurationInSeconds:    x.MaxStorageDurationInSeconds,
+		MinStorageTemperatureInCelsius: x.MinStorageTemperatureInCelsius,
+		MaxStorageTemperatureInCelsius: x.MaxStorageTemperatureInCelsius,
+		ID:                             identifiers.New(),
+		StorageType:                    x.StorageType,
+		StorageInstructions:            x.StorageInstructions,
+		Notes:                          x.Notes,
+		Source:                         x.Source,
+		ValidPreparationID:             x.ValidPreparationID,
+		ValidIngredientID:              x.ValidIngredientID,
+		MinStorageDurationInSeconds:    x.MinStorageDurationInSeconds,
+	}
+}
+
+// ConvertValidPreparationToValidPreparationCreationRequestInput builds a ValidPreparationCreationRequestInput from a ValidPreparation.
+func ConvertValidPreparationToValidPreparationCreationRequestInput(x *mealplanning.ValidPreparation) *mealplanning.ValidPreparationCreationRequestInput {
+	return &mealplanning.ValidPreparationCreationRequestInput{
+		MaxInstrumentCount:          x.MaxInstrumentCount,
+		MaxIngredientCount:          x.MaxIngredientCount,
+		MaxVesselCount:              x.MaxVesselCount,
+		IconPath:                    x.IconPath,
+		PastTense:                   x.PastTense,
+		Slug:                        x.Slug,
+		Name:                        x.Name,
+		Description:                 x.Description,
+		MinInstrumentCount:          x.MinInstrumentCount,
+		MinIngredientCount:          x.MinIngredientCount,
+		MinVesselCount:              x.MinVesselCount,
+		TemperatureRequired:         x.TemperatureRequired,
+		TimeEstimateRequired:        x.TimeEstimateRequired,
+		ConditionExpressionRequired: x.ConditionExpressionRequired,
+		ConsumesVessel:              x.ConsumesVessel,
+		OnlyForVessels:              x.OnlyForVessels,
+		RestrictToIngredients:       x.RestrictToIngredients,
+		YieldsNothing:               x.YieldsNothing,
+	}
+}
+
+// ConvertValidPreparationToValidPreparationDatabaseCreationInput builds a ValidPreparationDatabaseCreationInput from a ValidPreparation.
+func ConvertValidPreparationToValidPreparationDatabaseCreationInput(x *mealplanning.ValidPreparation) *mealplanning.ValidPreparationDatabaseCreationInput {
+	return &mealplanning.ValidPreparationDatabaseCreationInput{
+		MaxInstrumentCount:          x.MaxInstrumentCount,
+		MaxIngredientCount:          x.MaxIngredientCount,
+		MaxVesselCount:              x.MaxVesselCount,
+		IconPath:                    x.IconPath,
+		PastTense:                   x.PastTense,
+		Slug:                        x.Slug,
+		ID:                          x.ID,
+		Name:                        x.Name,
+		Description:                 x.Description,
+		MinInstrumentCount:          x.MinInstrumentCount,
+		MinIngredientCount:          x.MinIngredientCount,
+		MinVesselCount:              x.MinVesselCount,
+		TemperatureRequired:         x.TemperatureRequired,
+		TimeEstimateRequired:        x.TimeEstimateRequired,
+		ConditionExpressionRequired: x.ConditionExpressionRequired,
+		ConsumesVessel:              x.ConsumesVessel,
+		OnlyForVessels:              x.OnlyForVessels,
+		RestrictToIngredients:       x.RestrictToIngredients,
+		YieldsNothing:               x.YieldsNothing,
+	}
+}
+
+// ConvertValidPreparationToValidPreparationUpdateRequestInput builds a ValidPreparationUpdateRequestInput from a ValidPreparation.
+func ConvertValidPreparationToValidPreparationUpdateRequestInput(x *mealplanning.ValidPreparation) *mealplanning.ValidPreparationUpdateRequestInput {
+	return &mealplanning.ValidPreparationUpdateRequestInput{
+		MinInstrumentCount:          &x.MinInstrumentCount,
+		MaxInstrumentCount:          x.MaxInstrumentCount,
+		MinIngredientCount:          &x.MinIngredientCount,
+		MaxIngredientCount:          x.MaxIngredientCount,
+		MinVesselCount:              &x.MinVesselCount,
+		MaxVesselCount:              x.MaxVesselCount,
+		Name:                        &x.Name,
+		Description:                 &x.Description,
+		IconPath:                    &x.IconPath,
+		YieldsNothing:               &x.YieldsNothing,
+		Slug:                        &x.Slug,
+		RestrictToIngredients:       &x.RestrictToIngredients,
+		PastTense:                   &x.PastTense,
+		TemperatureRequired:         &x.TemperatureRequired,
+		TimeEstimateRequired:        &x.TimeEstimateRequired,
+		ConditionExpressionRequired: &x.ConditionExpressionRequired,
+		ConsumesVessel:              &x.ConsumesVessel,
+		OnlyForVessels:              &x.OnlyForVessels,
+	}
+}
+
+// ConvertValidPreparationCreationRequestInputToValidPreparationDatabaseCreationInput builds a ValidPreparationDatabaseCreationInput from a ValidPreparationCreationRequestInput.
+func ConvertValidPreparationCreationRequestInputToValidPreparationDatabaseCreationInput(x *mealplanning.ValidPreparationCreationRequestInput) *mealplanning.ValidPreparationDatabaseCreationInput {
+	return &mealplanning.ValidPreparationDatabaseCreationInput{
+		MaxInstrumentCount:          x.MaxInstrumentCount,
+		MaxIngredientCount:          x.MaxIngredientCount,
+		MaxVesselCount:              x.MaxVesselCount,
+		IconPath:                    x.IconPath,
+		PastTense:                   x.PastTense,
+		Slug:                        x.Slug,
+		ID:                          identifiers.New(),
+		Name:                        x.Name,
+		Description:                 x.Description,
+		MinInstrumentCount:          x.MinInstrumentCount,
+		MinIngredientCount:          x.MinIngredientCount,
+		MinVesselCount:              x.MinVesselCount,
+		TemperatureRequired:         x.TemperatureRequired,
+		TimeEstimateRequired:        x.TimeEstimateRequired,
+		ConditionExpressionRequired: x.ConditionExpressionRequired,
+		ConsumesVessel:              x.ConsumesVessel,
+		OnlyForVessels:              x.OnlyForVessels,
+		RestrictToIngredients:       x.RestrictToIngredients,
+		YieldsNothing:               x.YieldsNothing,
 	}
 }
 
 // ConvertValidPreparationInstrumentToValidPreparationInstrumentCreationRequestInput builds a ValidPreparationInstrumentCreationRequestInput from a ValidPreparationInstrument.
-func ConvertValidPreparationInstrumentToValidPreparationInstrumentCreationRequestInput(validPreparationInstrument *mealplanning.ValidPreparationInstrument) *mealplanning.ValidPreparationInstrumentCreationRequestInput {
+func ConvertValidPreparationInstrumentToValidPreparationInstrumentCreationRequestInput(x *mealplanning.ValidPreparationInstrument) *mealplanning.ValidPreparationInstrumentCreationRequestInput {
 	return &mealplanning.ValidPreparationInstrumentCreationRequestInput{
-		Notes:              validPreparationInstrument.Notes,
-		ValidPreparationID: validPreparationInstrument.Preparation.ID,
-		ValidInstrumentID:  validPreparationInstrument.Instrument.ID,
+		Notes:              x.Notes,
+		ValidPreparationID: x.Preparation.ID,
+		ValidInstrumentID:  x.Instrument.ID,
 	}
 }
 
 // ConvertValidPreparationInstrumentToValidPreparationInstrumentDatabaseCreationInput builds a ValidPreparationInstrumentDatabaseCreationInput from a ValidPreparationInstrument.
-func ConvertValidPreparationInstrumentToValidPreparationInstrumentDatabaseCreationInput(validPreparationInstrument *mealplanning.ValidPreparationInstrument) *mealplanning.ValidPreparationInstrumentDatabaseCreationInput {
+func ConvertValidPreparationInstrumentToValidPreparationInstrumentDatabaseCreationInput(x *mealplanning.ValidPreparationInstrument) *mealplanning.ValidPreparationInstrumentDatabaseCreationInput {
 	return &mealplanning.ValidPreparationInstrumentDatabaseCreationInput{
-		ID:                 validPreparationInstrument.ID,
-		Notes:              validPreparationInstrument.Notes,
-		ValidPreparationID: validPreparationInstrument.Preparation.ID,
-		ValidInstrumentID:  validPreparationInstrument.Instrument.ID,
+		ID:                 x.ID,
+		Notes:              x.Notes,
+		ValidPreparationID: x.Preparation.ID,
+		ValidInstrumentID:  x.Instrument.ID,
 	}
 }
 
-// ConvertValidPreparationVesselCreationRequestInputToValidPreparationVesselDatabaseCreationInput builds a ValidPreparationVesselDatabaseCreationInput from a ValidPreparationVesselCreationRequestInput.
-func ConvertValidPreparationVesselCreationRequestInputToValidPreparationVesselDatabaseCreationInput(x *mealplanning.ValidPreparationVesselCreationRequestInput) *mealplanning.ValidPreparationVesselDatabaseCreationInput {
-	return &mealplanning.ValidPreparationVesselDatabaseCreationInput{
+// ConvertValidPreparationInstrumentToValidPreparationInstrumentUpdateRequestInput builds a ValidPreparationInstrumentUpdateRequestInput from a ValidPreparationInstrument.
+func ConvertValidPreparationInstrumentToValidPreparationInstrumentUpdateRequestInput(x *mealplanning.ValidPreparationInstrument) *mealplanning.ValidPreparationInstrumentUpdateRequestInput {
+	return &mealplanning.ValidPreparationInstrumentUpdateRequestInput{
+		Notes:              &x.Notes,
+		ValidPreparationID: &x.Preparation.ID,
+		ValidInstrumentID:  &x.Instrument.ID,
+	}
+}
+
+// ConvertValidPreparationInstrumentCreationRequestInputToValidPreparationInstrumentDatabaseCreationInput builds a ValidPreparationInstrumentDatabaseCreationInput from a ValidPreparationInstrumentCreationRequestInput.
+func ConvertValidPreparationInstrumentCreationRequestInputToValidPreparationInstrumentDatabaseCreationInput(x *mealplanning.ValidPreparationInstrumentCreationRequestInput) *mealplanning.ValidPreparationInstrumentDatabaseCreationInput {
+	return &mealplanning.ValidPreparationInstrumentDatabaseCreationInput{
 		ID:                 identifiers.New(),
 		Notes:              x.Notes,
 		ValidPreparationID: x.ValidPreparationID,
-		ValidVesselID:      x.ValidVesselID,
-	}
-}
-
-// ConvertValidPreparationVesselToValidPreparationVesselUpdateRequestInput builds a ValidPreparationVesselUpdateRequestInput from a ValidPreparationVessel.
-func ConvertValidPreparationVesselToValidPreparationVesselUpdateRequestInput(x *mealplanning.ValidPreparationVessel) *mealplanning.ValidPreparationVesselUpdateRequestInput {
-	return &mealplanning.ValidPreparationVesselUpdateRequestInput{
-		Notes:              &x.Notes,
-		ValidPreparationID: &x.Preparation.ID,
-		ValidVesselID:      &x.Vessel.ID,
+		ValidInstrumentID:  x.ValidInstrumentID,
 	}
 }
 
@@ -1952,142 +2130,22 @@ func ConvertValidPreparationVesselToValidPreparationVesselDatabaseCreationInput(
 	}
 }
 
-// ConvertValidPreparationToValidPreparationUpdateRequestInput builds a ValidPreparationUpdateRequestInput from a ValidPreparation.
-func ConvertValidPreparationToValidPreparationUpdateRequestInput(input *mealplanning.ValidPreparation) *mealplanning.ValidPreparationUpdateRequestInput {
-	return &mealplanning.ValidPreparationUpdateRequestInput{
-		MinInstrumentCount:          &input.MinInstrumentCount,
-		MaxInstrumentCount:          input.MaxInstrumentCount,
-		MinIngredientCount:          &input.MinIngredientCount,
-		MaxIngredientCount:          input.MaxIngredientCount,
-		MinVesselCount:              &input.MinVesselCount,
-		MaxVesselCount:              input.MaxVesselCount,
-		Name:                        &input.Name,
-		Description:                 &input.Description,
-		IconPath:                    &input.IconPath,
-		YieldsNothing:               &input.YieldsNothing,
-		Slug:                        &input.Slug,
-		RestrictToIngredients:       &input.RestrictToIngredients,
-		PastTense:                   &input.PastTense,
-		TemperatureRequired:         &input.TemperatureRequired,
-		TimeEstimateRequired:        &input.TimeEstimateRequired,
-		ConditionExpressionRequired: &input.ConditionExpressionRequired,
-		ConsumesVessel:              &input.ConsumesVessel,
-		OnlyForVessels:              &input.OnlyForVessels,
+// ConvertValidPreparationVesselToValidPreparationVesselUpdateRequestInput builds a ValidPreparationVesselUpdateRequestInput from a ValidPreparationVessel.
+func ConvertValidPreparationVesselToValidPreparationVesselUpdateRequestInput(x *mealplanning.ValidPreparationVessel) *mealplanning.ValidPreparationVesselUpdateRequestInput {
+	return &mealplanning.ValidPreparationVesselUpdateRequestInput{
+		Notes:              &x.Notes,
+		ValidPreparationID: &x.Preparation.ID,
+		ValidVesselID:      &x.Vessel.ID,
 	}
 }
 
-// ConvertValidPreparationCreationRequestInputToValidPreparationDatabaseCreationInput builds a ValidPreparationDatabaseCreationInput from a ValidPreparationCreationRequestInput.
-func ConvertValidPreparationCreationRequestInputToValidPreparationDatabaseCreationInput(input *mealplanning.ValidPreparationCreationRequestInput) *mealplanning.ValidPreparationDatabaseCreationInput {
-	return &mealplanning.ValidPreparationDatabaseCreationInput{
-		MaxInstrumentCount:          input.MaxInstrumentCount,
-		MaxIngredientCount:          input.MaxIngredientCount,
-		MaxVesselCount:              input.MaxVesselCount,
-		IconPath:                    input.IconPath,
-		PastTense:                   input.PastTense,
-		Slug:                        input.Slug,
-		ID:                          identifiers.New(),
-		Name:                        input.Name,
-		Description:                 input.Description,
-		MinInstrumentCount:          input.MinInstrumentCount,
-		MinIngredientCount:          input.MinIngredientCount,
-		MinVesselCount:              input.MinVesselCount,
-		TemperatureRequired:         input.TemperatureRequired,
-		TimeEstimateRequired:        input.TimeEstimateRequired,
-		ConditionExpressionRequired: input.ConditionExpressionRequired,
-		ConsumesVessel:              input.ConsumesVessel,
-		OnlyForVessels:              input.OnlyForVessels,
-		RestrictToIngredients:       input.RestrictToIngredients,
-		YieldsNothing:               input.YieldsNothing,
-	}
-}
-
-// ConvertValidPreparationToValidPreparationCreationRequestInput builds a ValidPreparationCreationRequestInput from a ValidPreparation.
-func ConvertValidPreparationToValidPreparationCreationRequestInput(validPreparation *mealplanning.ValidPreparation) *mealplanning.ValidPreparationCreationRequestInput {
-	return &mealplanning.ValidPreparationCreationRequestInput{
-		MaxInstrumentCount:          validPreparation.MaxInstrumentCount,
-		MaxIngredientCount:          validPreparation.MaxIngredientCount,
-		MaxVesselCount:              validPreparation.MaxVesselCount,
-		IconPath:                    validPreparation.IconPath,
-		PastTense:                   validPreparation.PastTense,
-		Slug:                        validPreparation.Slug,
-		Name:                        validPreparation.Name,
-		Description:                 validPreparation.Description,
-		MinInstrumentCount:          validPreparation.MinInstrumentCount,
-		MinIngredientCount:          validPreparation.MinIngredientCount,
-		MinVesselCount:              validPreparation.MinVesselCount,
-		TemperatureRequired:         validPreparation.TemperatureRequired,
-		TimeEstimateRequired:        validPreparation.TimeEstimateRequired,
-		ConditionExpressionRequired: validPreparation.ConditionExpressionRequired,
-		ConsumesVessel:              validPreparation.ConsumesVessel,
-		OnlyForVessels:              validPreparation.OnlyForVessels,
-		RestrictToIngredients:       validPreparation.RestrictToIngredients,
-		YieldsNothing:               validPreparation.YieldsNothing,
-	}
-}
-
-// ConvertValidPreparationToValidPreparationDatabaseCreationInput builds a ValidPreparationDatabaseCreationInput from a ValidPreparation.
-func ConvertValidPreparationToValidPreparationDatabaseCreationInput(validPreparation *mealplanning.ValidPreparation) *mealplanning.ValidPreparationDatabaseCreationInput {
-	return &mealplanning.ValidPreparationDatabaseCreationInput{
-		MaxInstrumentCount:          validPreparation.MaxInstrumentCount,
-		MaxIngredientCount:          validPreparation.MaxIngredientCount,
-		MaxVesselCount:              validPreparation.MaxVesselCount,
-		IconPath:                    validPreparation.IconPath,
-		PastTense:                   validPreparation.PastTense,
-		Slug:                        validPreparation.Slug,
-		ID:                          validPreparation.ID,
-		Name:                        validPreparation.Name,
-		Description:                 validPreparation.Description,
-		MinInstrumentCount:          validPreparation.MinInstrumentCount,
-		MinIngredientCount:          validPreparation.MinIngredientCount,
-		MinVesselCount:              validPreparation.MinVesselCount,
-		TemperatureRequired:         validPreparation.TemperatureRequired,
-		TimeEstimateRequired:        validPreparation.TimeEstimateRequired,
-		ConditionExpressionRequired: validPreparation.ConditionExpressionRequired,
-		ConsumesVessel:              validPreparation.ConsumesVessel,
-		OnlyForVessels:              validPreparation.OnlyForVessels,
-		RestrictToIngredients:       validPreparation.RestrictToIngredients,
-		YieldsNothing:               validPreparation.YieldsNothing,
-	}
-}
-
-// ConvertValidVesselToValidVesselUpdateRequestInput builds a ValidVesselUpdateRequestInput from a ValidVessel.
-func ConvertValidVesselToValidVesselUpdateRequestInput(x *mealplanning.ValidVessel) *mealplanning.ValidVesselUpdateRequestInput {
-	return &mealplanning.ValidVesselUpdateRequestInput{
-		Name:                           &x.Name,
-		PluralName:                     &x.PluralName,
-		Description:                    &x.Description,
-		IconPath:                       &x.IconPath,
-		UsableForStorage:               &x.UsableForStorage,
-		Slug:                           &x.Slug,
-		DisplayInSummaryLists:          &x.DisplayInSummaryLists,
-		IncludeInGeneratedInstructions: &x.IncludeInGeneratedInstructions,
-		Capacity:                       &x.Capacity,
-		CapacityUnitID:                 &x.CapacityUnit.ID,
-		WidthInMillimeters:             &x.WidthInMillimeters,
-		LengthInMillimeters:            &x.LengthInMillimeters,
-		HeightInMillimeters:            &x.HeightInMillimeters,
-		Shape:                          &x.Shape,
-	}
-}
-
-// ConvertValidVesselCreationRequestInputToValidVesselDatabaseCreationInput builds a ValidVesselDatabaseCreationInput from a ValidVesselCreationRequestInput.
-func ConvertValidVesselCreationRequestInputToValidVesselDatabaseCreationInput(x *mealplanning.ValidVesselCreationRequestInput) *mealplanning.ValidVesselDatabaseCreationInput {
-	return &mealplanning.ValidVesselDatabaseCreationInput{
-		CapacityUnitID:                 x.CapacityUnitID,
-		ID:                             identifiers.New(),
-		Name:                           x.Name,
-		PluralName:                     x.PluralName,
-		Description:                    x.Description,
-		IconPath:                       x.IconPath,
-		Shape:                          x.Shape,
-		Slug:                           x.Slug,
-		WidthInMillimeters:             x.WidthInMillimeters,
-		Capacity:                       x.Capacity,
-		LengthInMillimeters:            x.LengthInMillimeters,
-		HeightInMillimeters:            x.HeightInMillimeters,
-		IncludeInGeneratedInstructions: x.IncludeInGeneratedInstructions,
-		DisplayInSummaryLists:          x.DisplayInSummaryLists,
-		UsableForStorage:               x.UsableForStorage,
+// ConvertValidPreparationVesselCreationRequestInputToValidPreparationVesselDatabaseCreationInput builds a ValidPreparationVesselDatabaseCreationInput from a ValidPreparationVesselCreationRequestInput.
+func ConvertValidPreparationVesselCreationRequestInputToValidPreparationVesselDatabaseCreationInput(x *mealplanning.ValidPreparationVesselCreationRequestInput) *mealplanning.ValidPreparationVesselDatabaseCreationInput {
+	return &mealplanning.ValidPreparationVesselDatabaseCreationInput{
+		ID:                 identifiers.New(),
+		Notes:              x.Notes,
+		ValidPreparationID: x.ValidPreparationID,
+		ValidVesselID:      x.ValidVesselID,
 	}
 }
 
@@ -2126,6 +2184,52 @@ func ConvertValidVesselToValidVesselDatabaseCreationInput(x *mealplanning.ValidV
 	return &mealplanning.ValidVesselDatabaseCreationInput{
 		CapacityUnitID:                 capacityUnitID,
 		ID:                             x.ID,
+		Name:                           x.Name,
+		PluralName:                     x.PluralName,
+		Description:                    x.Description,
+		IconPath:                       x.IconPath,
+		Shape:                          x.Shape,
+		Slug:                           x.Slug,
+		WidthInMillimeters:             x.WidthInMillimeters,
+		Capacity:                       x.Capacity,
+		LengthInMillimeters:            x.LengthInMillimeters,
+		HeightInMillimeters:            x.HeightInMillimeters,
+		IncludeInGeneratedInstructions: x.IncludeInGeneratedInstructions,
+		DisplayInSummaryLists:          x.DisplayInSummaryLists,
+		UsableForStorage:               x.UsableForStorage,
+	}
+}
+
+// ConvertValidVesselToValidVesselUpdateRequestInput builds a ValidVesselUpdateRequestInput from a ValidVessel.
+func ConvertValidVesselToValidVesselUpdateRequestInput(x *mealplanning.ValidVessel) *mealplanning.ValidVesselUpdateRequestInput {
+	var capacityUnitID *string
+	if x.CapacityUnit != nil {
+		capacityUnitID = &x.CapacityUnit.ID
+	}
+
+	return &mealplanning.ValidVesselUpdateRequestInput{
+		Name:                           &x.Name,
+		PluralName:                     &x.PluralName,
+		Description:                    &x.Description,
+		IconPath:                       &x.IconPath,
+		UsableForStorage:               &x.UsableForStorage,
+		Slug:                           &x.Slug,
+		DisplayInSummaryLists:          &x.DisplayInSummaryLists,
+		IncludeInGeneratedInstructions: &x.IncludeInGeneratedInstructions,
+		Capacity:                       &x.Capacity,
+		CapacityUnitID:                 capacityUnitID,
+		WidthInMillimeters:             &x.WidthInMillimeters,
+		LengthInMillimeters:            &x.LengthInMillimeters,
+		HeightInMillimeters:            &x.HeightInMillimeters,
+		Shape:                          &x.Shape,
+	}
+}
+
+// ConvertValidVesselCreationRequestInputToValidVesselDatabaseCreationInput builds a ValidVesselDatabaseCreationInput from a ValidVesselCreationRequestInput.
+func ConvertValidVesselCreationRequestInputToValidVesselDatabaseCreationInput(x *mealplanning.ValidVesselCreationRequestInput) *mealplanning.ValidVesselDatabaseCreationInput {
+	return &mealplanning.ValidVesselDatabaseCreationInput{
+		CapacityUnitID:                 x.CapacityUnitID,
+		ID:                             identifiers.New(),
 		Name:                           x.Name,
 		PluralName:                     x.PluralName,
 		Description:                    x.Description,

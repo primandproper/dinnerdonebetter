@@ -9,60 +9,60 @@ import (
 )
 
 // ConvertWebhookToWebhookCreationRequestInput builds a WebhookCreationRequestInput from a Webhook.
-func ConvertWebhookToWebhookCreationRequestInput(webhook *webhooks.Webhook) *webhooks.WebhookCreationRequestInput {
+func ConvertWebhookToWebhookCreationRequestInput(x *webhooks.Webhook) *webhooks.WebhookCreationRequestInput {
 	return &webhooks.WebhookCreationRequestInput{
-		Name:        webhook.Name,
-		ContentType: webhook.ContentType,
-		URL:         webhook.URL,
-		Method:      webhook.Method,
+		Name:        x.Name,
+		ContentType: x.ContentType,
+		URL:         x.URL,
+		Method:      x.Method,
 		// A request lists event types; a webhook stores one trigger config per
 		// subscription. EventTypes flattens the configs back to the strings they subscribe
 		// to.
-		Events: webhook.EventTypes(),
+		Events: x.EventTypes(),
 	}
 }
 
 // ConvertWebhookToWebhookDatabaseCreationInput builds a WebhookDatabaseCreationInput from a Webhook.
-func ConvertWebhookToWebhookDatabaseCreationInput(webhook *webhooks.Webhook) *webhooks.WebhookDatabaseCreationInput {
-	triggerConfigs := make([]*webhooks.WebhookTriggerConfigDatabaseCreationInput, 0, len(webhook.TriggerConfigs))
-	for _, item := range webhook.TriggerConfigs {
+func ConvertWebhookToWebhookDatabaseCreationInput(x *webhooks.Webhook) *webhooks.WebhookDatabaseCreationInput {
+	triggerConfigs := make([]*webhooks.WebhookTriggerConfigDatabaseCreationInput, 0, len(x.TriggerConfigs))
+	for _, item := range x.TriggerConfigs {
 		triggerConfigs = append(triggerConfigs, ConvertWebhookTriggerConfigToWebhookTriggerConfigDatabaseCreationInput(item))
 	}
 
 	return &webhooks.WebhookDatabaseCreationInput{
-		ID:               webhook.ID,
-		Name:             webhook.Name,
-		ContentType:      webhook.ContentType,
-		URL:              webhook.URL,
-		Method:           webhook.Method,
-		CreatedByUser:    webhook.CreatedByUser,
-		BelongsToAccount: webhook.BelongsToAccount,
+		ID:               x.ID,
+		Name:             x.Name,
+		ContentType:      x.ContentType,
+		URL:              x.URL,
+		Method:           x.Method,
+		CreatedByUser:    x.CreatedByUser,
+		BelongsToAccount: x.BelongsToAccount,
 		TriggerConfigs:   triggerConfigs,
 	}
 }
 
 // ConvertWebhookTriggerConfigToWebhookTriggerConfigCreationRequestInput builds a WebhookTriggerConfigCreationRequestInput from a WebhookTriggerConfig.
-func ConvertWebhookTriggerConfigToWebhookTriggerConfigCreationRequestInput(cfg *webhooks.WebhookTriggerConfig) *webhooks.WebhookTriggerConfigCreationRequestInput {
+func ConvertWebhookTriggerConfigToWebhookTriggerConfigCreationRequestInput(x *webhooks.WebhookTriggerConfig) *webhooks.WebhookTriggerConfigCreationRequestInput {
 	return &webhooks.WebhookTriggerConfigCreationRequestInput{
-		BelongsToWebhook: cfg.BelongsToWebhook,
-		EventType:        cfg.EventType,
-	}
-}
-
-// ConvertWebhookTriggerConfigCreationRequestInputToWebhookTriggerConfigDatabaseCreationInput builds a WebhookTriggerConfigDatabaseCreationInput from a WebhookTriggerConfigCreationRequestInput.
-func ConvertWebhookTriggerConfigCreationRequestInputToWebhookTriggerConfigDatabaseCreationInput(input *webhooks.WebhookTriggerConfigCreationRequestInput) *webhooks.WebhookTriggerConfigDatabaseCreationInput {
-	return &webhooks.WebhookTriggerConfigDatabaseCreationInput{
-		ID:               identifiers.New(),
-		BelongsToWebhook: input.BelongsToWebhook,
-		EventType:        input.EventType,
+		BelongsToWebhook: x.BelongsToWebhook,
+		EventType:        x.EventType,
 	}
 }
 
 // ConvertWebhookTriggerConfigToWebhookTriggerConfigDatabaseCreationInput builds a WebhookTriggerConfigDatabaseCreationInput from a WebhookTriggerConfig.
-func ConvertWebhookTriggerConfigToWebhookTriggerConfigDatabaseCreationInput(cfg *webhooks.WebhookTriggerConfig) *webhooks.WebhookTriggerConfigDatabaseCreationInput {
+func ConvertWebhookTriggerConfigToWebhookTriggerConfigDatabaseCreationInput(x *webhooks.WebhookTriggerConfig) *webhooks.WebhookTriggerConfigDatabaseCreationInput {
 	return &webhooks.WebhookTriggerConfigDatabaseCreationInput{
-		ID:               cfg.ID,
-		BelongsToWebhook: cfg.BelongsToWebhook,
-		EventType:        cfg.EventType,
+		ID:               x.ID,
+		BelongsToWebhook: x.BelongsToWebhook,
+		EventType:        x.EventType,
+	}
+}
+
+// ConvertWebhookTriggerConfigCreationRequestInputToWebhookTriggerConfigDatabaseCreationInput builds a WebhookTriggerConfigDatabaseCreationInput from a WebhookTriggerConfigCreationRequestInput.
+func ConvertWebhookTriggerConfigCreationRequestInputToWebhookTriggerConfigDatabaseCreationInput(x *webhooks.WebhookTriggerConfigCreationRequestInput) *webhooks.WebhookTriggerConfigDatabaseCreationInput {
+	return &webhooks.WebhookTriggerConfigDatabaseCreationInput{
+		ID:               identifiers.New(),
+		BelongsToWebhook: x.BelongsToWebhook,
+		EventType:        x.EventType,
 	}
 }

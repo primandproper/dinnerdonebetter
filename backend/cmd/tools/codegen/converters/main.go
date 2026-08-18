@@ -1,22 +1,29 @@
 // Command converters generates the domain converters — the functions that carry an entity between
 // its stored shape and the request and database input shapes of the same entity.
 //
-// Nearly all of that is a field copy, and the reason to generate it is not the line count: a
-// generated converter cannot forget a field. A destination field with no same-named source field
-// and no declared rule fails this tool rather than becoming a zero value, which is the one failure
-// mode a reviewer of a hand-written converter cannot reliably catch — the symptom of a forgotten
-// copy is a column that is empty, arriving much later, with nothing in it to say what went wrong.
+// There is no list of conversions anywhere in this tool. The domain packages already say which
+// conversions exist, in the names of their types: an entity X is created from an
+// XCreationRequestInput, stored through an XDatabaseCreationInput, and amended by an
+// XUpdateRequestInput. shapes.go reads that convention, and every conversion it implies is
+// generated — which is why a new entity needs no declaration at all, and why a conversion cannot
+// exist for one entity and be missing for its neighbor.
 //
-// What is left is the quarter of the assignments that are not copies: an ID minted, a nested
-// entity reduced to its identifier, a slice mapped through another converter, an expression that
-// is genuinely bespoke. Those are declared beside the conversion, with the reason, and the reason
-// is rendered into the generated source where a reader of the output meets it.
+// Fields are derived the same way. A destination field is answered by asking the two structs a
+// question — is there a field of this name, is this a pointer to what that one holds, is this the
+// identifier of something the source carries whole, is this a slice of another shape of the same
+// element — and a field that none of those answer fails the build. That is the property worth
+// having: a generated converter cannot forget a field, and the symptom of a forgotten copy is
+// otherwise a column that is empty for reasons nobody can reconstruct months later.
 //
-// Conversions this vocabulary cannot express stay hand-written in the same package, beside the
-// generated file. See converters_manual.go in each domain for what that is and why.
+// What is left is per-field knowledge no convention encodes: a field the source genuinely cannot
+// answer, an expression particular to one entity. Those are in exceptions.go, each with its
+// reason, and each reason is rendered into the generated source. Conversions whose bodies are not
+// field assignments at all are listed there too, and stay hand-written in converters_manual.go
+// beside the generated file.
 package main
 
 import (
+	goerrors "errors"
 	"fmt"
 	"log"
 	"os"
@@ -29,26 +36,14 @@ import (
 const domainDir = "internal/domain"
 
 // generatedFileName is the file each domain's converters package gets. One file per package rather
-// than one per entity, because the split by entity is a convention of the hand-written corpus and
-// a generated tree does not need it: nobody navigates generated source by filename.
+// than one per entity: the split by entity was a convention of the hand-written corpus, and nobody
+// navigates generated source by filename.
 const generatedFileName = "converters_generated.go"
 
-// domainConversions is one domain package's declared conversions.
+// domainConversions is one domain package's conversions, as enumerated.
 type domainConversions struct {
-	// Domain is the directory under internal/domain, which is also the domain package's name.
-	Domain string
-	// Conversions are declared in the order they are rendered, so the generated file's order
-	// is a decision in the declaration rather than a property of a map iteration.
+	Domain      string
 	Conversions []*Conversion
-}
-
-// registered is every domain's declarations, populated by the per-domain files' init functions.
-var registered []*domainConversions
-
-// register records a domain's conversions. It is called from an init in each declaration file,
-// which is what lets a domain be added by adding one file.
-func register(domain string, conversions []*Conversion) {
-	registered = append(registered, &domainConversions{Domain: domain, Conversions: conversions})
 }
 
 func main() {
@@ -62,21 +57,42 @@ func main() {
 	}
 }
 
-// generate plans and writes every registered domain.
+// generate enumerates, plans and writes every domain that has a converters package.
 func generate(root string) error {
 	index, err := buildStructIndex(filepath.Join(root, domainDir))
 	if err != nil {
 		return err
 	}
 
-	for _, declarations := range registered {
-		rendered, renderErr := renderDomain(index, declarations)
+	domains, err := domainsWithConverters(filepath.Join(root, domainDir))
+	if err != nil {
+		return err
+	}
+
+	// Every domain is attempted before anything is reported, for the same reason every field
+	// is: the answer to "what does this need me to decide" should take one run to get.
+	var (
+		failures []error
+		written  = map[string][]byte{}
+	)
+
+	for _, domain := range domains {
+		rendered, renderErr := renderDomain(index, enumerate(index, domain))
 		if renderErr != nil {
-			return renderErr
+			failures = append(failures, renderErr)
+
+			continue
 		}
 
-		path := filepath.Join(root, domainDir, declarations.Domain, "converters", generatedFileName)
-		if err = os.WriteFile(path, rendered, 0o0600); err != nil {
+		written[generatedPath(domain)] = rendered
+	}
+
+	if len(failures) > 0 {
+		return goerrors.Join(failures...)
+	}
+
+	for path, rendered := range written {
+		if err = os.WriteFile(filepath.Join(root, path), rendered, 0o0600); err != nil {
 			return errors.Wrapf(err, "writing %s", path)
 		}
 	}
@@ -84,33 +100,101 @@ func generate(root string) error {
 	return nil
 }
 
-// renderDomain plans every conversion of one domain and renders the file it belongs in.
-func renderDomain(index *structIndex, declarations *domainConversions) ([]byte, error) {
-	if len(declarations.Conversions) == 0 {
-		return nil, errors.Newf("domain %s registered no conversions", declarations.Domain)
+// domainsWithConverters lists the domains that have a converters package.
+//
+// The set is read from the tree rather than declared, for the same reason the conversions are: a
+// domain that grows a converters package gets its conversions by having one, and a list would be
+// one more thing to forget.
+func domainsWithConverters(root string) ([]string, error) {
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return nil, errors.Wrapf(err, "reading %s", root)
 	}
 
-	resolver := &planner{index: index, domain: declarations.Domain, pkg: declarations.Domain}
+	var domains []string
 
-	seen := map[string]struct{}{}
-	plans := make([]*plan, 0, len(declarations.Conversions))
-
-	for _, conversion := range declarations.Conversions {
-		if _, duplicate := seen[conversion.Name]; duplicate {
-			return nil, errors.Newf("%s is declared twice in %s", conversion.Name, declarations.Domain)
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
 		}
 
-		seen[conversion.Name] = struct{}{}
+		if _, statErr := os.Stat(filepath.Join(root, entry.Name(), "converters")); statErr != nil {
+			continue
+		}
 
+		domains = append(domains, entry.Name())
+	}
+
+	return domains, nil
+}
+
+// enumerate is the whole specification of which conversions exist: every entity a domain declares,
+// crossed with every shape rule whose two types that entity has.
+func enumerate(index *structIndex, domain string) *domainConversions {
+	enumerated := &domainConversions{Domain: domain}
+
+	for _, typeName := range index.TypeNames(domain) {
+		entityName, isEntity := entityOf(typeName)
+		if !isEntity {
+			continue
+		}
+
+		for shapeIndex, shape := range conversionShapes {
+			from := shape.From.typeName(entityName)
+			to := shape.To.typeName(entityName)
+
+			if !index.Declares(domain, from) || !index.Declares(domain, to) {
+				continue
+			}
+
+			name := conversionName(from, to)
+			if _, manual := handWritten[name]; manual {
+				continue
+			}
+
+			enumerated.Conversions = append(enumerated.Conversions, &Conversion{
+				Entity:     entityName,
+				From:       from,
+				To:         to,
+				Name:       name,
+				Fields:     fieldExceptions[name],
+				shapeIndex: shapeIndex,
+			})
+		}
+	}
+
+	sortConversions(enumerated.Conversions)
+
+	return enumerated
+}
+
+// renderDomain plans every conversion of one domain and renders the file it belongs in.
+func renderDomain(index *structIndex, enumerated *domainConversions) ([]byte, error) {
+	if len(enumerated.Conversions) == 0 {
+		return nil, errors.Newf("domain %s enumerated no conversions", enumerated.Domain)
+	}
+
+	resolver := &planner{index: index, domain: enumerated.Domain}
+	plans := make([]*plan, 0, len(enumerated.Conversions))
+
+	var unplanned []error
+
+	for _, conversion := range enumerated.Conversions {
 		resolved, err := resolver.Plan(conversion)
 		if err != nil {
-			return nil, err
+			unplanned = append(unplanned, err)
+
+			continue
 		}
 
 		plans = append(plans, resolved)
 	}
 
-	return render(declarations.Domain, plans)
+	if len(unplanned) > 0 {
+		return nil, goerrors.Join(unplanned...)
+	}
+
+	return render(enumerated.Domain, plans)
 }
 
 // generatedPath is where a domain's generated file lives, relative to the backend root. The

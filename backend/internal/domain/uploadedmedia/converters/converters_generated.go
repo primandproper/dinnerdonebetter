@@ -4,6 +4,8 @@ package converters
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+
+	"github.com/primandproper/platform-go/v11/identifiers"
 )
 
 // ConvertUploadedMediaToUploadedMediaCreationRequestInput builds an UploadedMediaCreationRequestInput from an UploadedMedia.
@@ -11,6 +13,16 @@ func ConvertUploadedMediaToUploadedMediaCreationRequestInput(x *uploadedmedia.Up
 	return &uploadedmedia.UploadedMediaCreationRequestInput{
 		StoragePath: x.StoragePath,
 		MimeType:    x.MimeType,
+	}
+}
+
+// ConvertUploadedMediaToUploadedMediaDatabaseCreationInput builds an UploadedMediaDatabaseCreationInput from an UploadedMedia.
+func ConvertUploadedMediaToUploadedMediaDatabaseCreationInput(x *uploadedmedia.UploadedMedia) *uploadedmedia.UploadedMediaDatabaseCreationInput {
+	return &uploadedmedia.UploadedMediaDatabaseCreationInput{
+		ID:            x.ID,
+		StoragePath:   x.StoragePath,
+		MimeType:      x.MimeType,
+		CreatedByUser: x.CreatedByUser,
 	}
 }
 
@@ -22,12 +34,14 @@ func ConvertUploadedMediaToUploadedMediaUpdateRequestInput(x *uploadedmedia.Uplo
 	}
 }
 
-// ConvertUploadedMediaToUploadedMediaDatabaseCreationInput builds an UploadedMediaDatabaseCreationInput from an UploadedMedia.
-func ConvertUploadedMediaToUploadedMediaDatabaseCreationInput(x *uploadedmedia.UploadedMedia) *uploadedmedia.UploadedMediaDatabaseCreationInput {
+// ConvertUploadedMediaCreationRequestInputToUploadedMediaDatabaseCreationInput builds an UploadedMediaDatabaseCreationInput from an UploadedMediaCreationRequestInput.
+func ConvertUploadedMediaCreationRequestInputToUploadedMediaDatabaseCreationInput(x *uploadedmedia.UploadedMediaCreationRequestInput) *uploadedmedia.UploadedMediaDatabaseCreationInput {
 	return &uploadedmedia.UploadedMediaDatabaseCreationInput{
-		ID:            x.ID,
-		StoragePath:   x.StoragePath,
-		MimeType:      x.MimeType,
-		CreatedByUser: x.CreatedByUser,
+		ID:          identifiers.New(),
+		StoragePath: x.StoragePath,
+		MimeType:    x.MimeType,
+
+		// CreatedByUser is left unset. Comes from the authenticated session rather than
+		// the request body, so the manager stamps it after this.
 	}
 }

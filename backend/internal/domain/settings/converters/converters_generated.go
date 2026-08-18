@@ -8,70 +8,86 @@ import (
 	"github.com/primandproper/platform-go/v11/identifiers"
 )
 
-// ConvertServiceSettingConfigurationToServiceSettingConfigurationUpdateRequestInput builds a ServiceSettingConfigurationUpdateRequestInput from a ServiceSettingConfiguration.
-func ConvertServiceSettingConfigurationToServiceSettingConfigurationUpdateRequestInput(input *settings.ServiceSettingConfiguration) *settings.ServiceSettingConfigurationUpdateRequestInput {
-	return &settings.ServiceSettingConfigurationUpdateRequestInput{
-		Value:            &input.Value,
-		Notes:            &input.Notes,
-		ServiceSettingID: &input.ServiceSetting.ID,
-	}
-}
-
-// ConvertServiceSettingConfigurationToServiceSettingConfigurationCreationRequestInput builds a ServiceSettingConfigurationCreationRequestInput from a ServiceSettingConfiguration.
-func ConvertServiceSettingConfigurationToServiceSettingConfigurationCreationRequestInput(input *settings.ServiceSettingConfiguration) *settings.ServiceSettingConfigurationCreationRequestInput {
-	return &settings.ServiceSettingConfigurationCreationRequestInput{
-		Value:            input.Value,
-		Notes:            input.Notes,
-		ServiceSettingID: input.ServiceSetting.ID,
-	}
-}
-
-// ConvertServiceSettingConfigurationToServiceSettingConfigurationDatabaseCreationInput builds a ServiceSettingConfigurationDatabaseCreationInput from a ServiceSettingConfiguration.
-func ConvertServiceSettingConfigurationToServiceSettingConfigurationDatabaseCreationInput(input *settings.ServiceSettingConfiguration) *settings.ServiceSettingConfigurationDatabaseCreationInput {
-	return &settings.ServiceSettingConfigurationDatabaseCreationInput{
-		ID:               input.ID,
-		Value:            input.Value,
-		Notes:            input.Notes,
-		ServiceSettingID: input.ServiceSetting.ID,
-		BelongsToUser:    input.BelongsToUser,
-		BelongsToAccount: input.BelongsToAccount,
-	}
-}
-
-// ConvertServiceSettingCreationRequestInputToServiceSettingDatabaseCreationInput builds a ServiceSettingDatabaseCreationInput from a ServiceSettingCreationRequestInput.
-func ConvertServiceSettingCreationRequestInputToServiceSettingDatabaseCreationInput(input *settings.ServiceSettingCreationRequestInput) *settings.ServiceSettingDatabaseCreationInput {
-	return &settings.ServiceSettingDatabaseCreationInput{
-		DefaultValue: input.DefaultValue,
-		ID:           identifiers.New(),
-		Name:         input.Name,
-		Type:         input.Type,
-		Description:  input.Description,
-		Enumeration:  input.Enumeration,
-		AdminsOnly:   input.AdminsOnly,
-	}
-}
-
 // ConvertServiceSettingToServiceSettingCreationRequestInput builds a ServiceSettingCreationRequestInput from a ServiceSetting.
-func ConvertServiceSettingToServiceSettingCreationRequestInput(input *settings.ServiceSetting) *settings.ServiceSettingCreationRequestInput {
+func ConvertServiceSettingToServiceSettingCreationRequestInput(x *settings.ServiceSetting) *settings.ServiceSettingCreationRequestInput {
 	return &settings.ServiceSettingCreationRequestInput{
-		DefaultValue: input.DefaultValue,
-		Name:         input.Name,
-		Type:         input.Type,
-		Description:  input.Description,
-		Enumeration:  input.Enumeration,
-		AdminsOnly:   input.AdminsOnly,
+		DefaultValue: x.DefaultValue,
+		Name:         x.Name,
+		Type:         x.Type,
+		Description:  x.Description,
+		Enumeration:  x.Enumeration,
+		AdminsOnly:   x.AdminsOnly,
 	}
 }
 
 // ConvertServiceSettingToServiceSettingDatabaseCreationInput builds a ServiceSettingDatabaseCreationInput from a ServiceSetting.
-func ConvertServiceSettingToServiceSettingDatabaseCreationInput(input *settings.ServiceSetting) *settings.ServiceSettingDatabaseCreationInput {
+func ConvertServiceSettingToServiceSettingDatabaseCreationInput(x *settings.ServiceSetting) *settings.ServiceSettingDatabaseCreationInput {
 	return &settings.ServiceSettingDatabaseCreationInput{
-		DefaultValue: input.DefaultValue,
-		ID:           input.ID,
-		Name:         input.Name,
-		Type:         input.Type,
-		Description:  input.Description,
-		Enumeration:  input.Enumeration,
-		AdminsOnly:   input.AdminsOnly,
+		DefaultValue: x.DefaultValue,
+		ID:           x.ID,
+		Name:         x.Name,
+		Type:         x.Type,
+		Description:  x.Description,
+		Enumeration:  x.Enumeration,
+		AdminsOnly:   x.AdminsOnly,
+	}
+}
+
+// ConvertServiceSettingCreationRequestInputToServiceSettingDatabaseCreationInput builds a ServiceSettingDatabaseCreationInput from a ServiceSettingCreationRequestInput.
+func ConvertServiceSettingCreationRequestInputToServiceSettingDatabaseCreationInput(x *settings.ServiceSettingCreationRequestInput) *settings.ServiceSettingDatabaseCreationInput {
+	return &settings.ServiceSettingDatabaseCreationInput{
+		DefaultValue: x.DefaultValue,
+		ID:           identifiers.New(),
+		Name:         x.Name,
+		Type:         x.Type,
+		Description:  x.Description,
+		Enumeration:  x.Enumeration,
+		AdminsOnly:   x.AdminsOnly,
+	}
+}
+
+// ConvertServiceSettingConfigurationToServiceSettingConfigurationCreationRequestInput builds a ServiceSettingConfigurationCreationRequestInput from a ServiceSettingConfiguration.
+func ConvertServiceSettingConfigurationToServiceSettingConfigurationCreationRequestInput(x *settings.ServiceSettingConfiguration) *settings.ServiceSettingConfigurationCreationRequestInput {
+	return &settings.ServiceSettingConfigurationCreationRequestInput{
+		Value:            x.Value,
+		Notes:            x.Notes,
+		ServiceSettingID: x.ServiceSetting.ID,
+	}
+}
+
+// ConvertServiceSettingConfigurationToServiceSettingConfigurationDatabaseCreationInput builds a ServiceSettingConfigurationDatabaseCreationInput from a ServiceSettingConfiguration.
+func ConvertServiceSettingConfigurationToServiceSettingConfigurationDatabaseCreationInput(x *settings.ServiceSettingConfiguration) *settings.ServiceSettingConfigurationDatabaseCreationInput {
+	return &settings.ServiceSettingConfigurationDatabaseCreationInput{
+		ID:               x.ID,
+		Value:            x.Value,
+		Notes:            x.Notes,
+		ServiceSettingID: x.ServiceSetting.ID,
+		BelongsToUser:    x.BelongsToUser,
+		BelongsToAccount: x.BelongsToAccount,
+	}
+}
+
+// ConvertServiceSettingConfigurationToServiceSettingConfigurationUpdateRequestInput builds a ServiceSettingConfigurationUpdateRequestInput from a ServiceSettingConfiguration.
+func ConvertServiceSettingConfigurationToServiceSettingConfigurationUpdateRequestInput(x *settings.ServiceSettingConfiguration) *settings.ServiceSettingConfigurationUpdateRequestInput {
+	return &settings.ServiceSettingConfigurationUpdateRequestInput{
+		Value:            &x.Value,
+		Notes:            &x.Notes,
+		ServiceSettingID: &x.ServiceSetting.ID,
+	}
+}
+
+// ConvertServiceSettingConfigurationCreationRequestInputToServiceSettingConfigurationDatabaseCreationInput builds a ServiceSettingConfigurationDatabaseCreationInput from a ServiceSettingConfigurationCreationRequestInput.
+func ConvertServiceSettingConfigurationCreationRequestInputToServiceSettingConfigurationDatabaseCreationInput(x *settings.ServiceSettingConfigurationCreationRequestInput) *settings.ServiceSettingConfigurationDatabaseCreationInput {
+	return &settings.ServiceSettingConfigurationDatabaseCreationInput{
+		ID:               identifiers.New(),
+		Value:            x.Value,
+		Notes:            x.Notes,
+		ServiceSettingID: x.ServiceSettingID,
+
+		// BelongsToUser is left unset. Comes from the authenticated session rather than
+		// the request body, so the manager stamps it after this.
+
+		// BelongsToAccount is left unset. Comes from the authenticated session rather than
+		// the request body, so the manager stamps it after this.
 	}
 }

@@ -62,10 +62,7 @@ import (
 func renderConversion(domain string, resolved *plan) string {
 	conversion := resolved.Conversion
 
-	doc := conversion.Doc
-	if doc == "" {
-		doc = fmt.Sprintf("builds %s from %s.", article(conversion.To), article(conversion.From.Type))
-	}
+	doc := fmt.Sprintf("builds %s from %s.", article(conversion.To), article(conversion.From))
 
 	var out strings.Builder
 
@@ -87,7 +84,8 @@ func renderConversion(domain string, resolved *plan) string {
 		fmt.Fprintf(&out, "// %s\n", line)
 	}
 
-	fmt.Fprintf(&out, "func %s(%s) *%s.%s {\n", conversion.Name, renderParams(domain, conversion), domain, conversion.To)
+	fmt.Fprintf(&out, "func %s(%s *%s.%s) *%s.%s {\n",
+		conversion.Name, sourceParam, domain, conversion.From, domain, conversion.To)
 
 	for _, statement := range resolved.Prelude {
 		out.WriteString(statement)
@@ -165,16 +163,4 @@ func article(name string) string {
 	}
 
 	return "a " + name
-}
-
-// renderParams writes the parameter list. The source is always a pointer to a domain type; the
-// extra parameters are written as declared, and qualified only when they name one.
-func renderParams(domain string, conversion *Conversion) string {
-	params := []string{fmt.Sprintf("%s *%s.%s", conversion.From.Name, domain, conversion.From.Type)}
-
-	for _, extra := range conversion.Extra {
-		params = append(params, fmt.Sprintf("%s %s", extra.Name, extra.Type))
-	}
-
-	return strings.Join(params, ", ")
 }

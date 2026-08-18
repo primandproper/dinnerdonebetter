@@ -8,33 +8,6 @@ import (
 	"github.com/primandproper/platform-go/v11/identifiers"
 )
 
-// ConvertIssueReportToIssueReportUpdateRequestInput builds an IssueReportUpdateRequestInput from an IssueReport.
-func ConvertIssueReportToIssueReportUpdateRequestInput(x *issuereports.IssueReport) *issuereports.IssueReportUpdateRequestInput {
-	return &issuereports.IssueReportUpdateRequestInput{
-		IssueType:        &x.IssueType,
-		Details:          &x.Details,
-		RelevantTable:    &x.RelevantTable,
-		RelevantRecordID: &x.RelevantRecordID,
-	}
-}
-
-// ConvertIssueReportCreationRequestInputToIssueReportDatabaseCreationInput builds an IssueReportDatabaseCreationInput from an IssueReportCreationRequestInput.
-func ConvertIssueReportCreationRequestInputToIssueReportDatabaseCreationInput(x *issuereports.IssueReportCreationRequestInput, userID string, accountID string) *issuereports.IssueReportDatabaseCreationInput {
-	return &issuereports.IssueReportDatabaseCreationInput{
-		ID:               identifiers.New(),
-		IssueType:        x.IssueType,
-		Details:          x.Details,
-		RelevantTable:    x.RelevantTable,
-		RelevantRecordID: x.RelevantRecordID,
-		// Comes from the session rather than the request body, so the manager stamps it
-		// after this.
-		CreatedByUser: userID,
-		// Comes from the session rather than the request body, so the manager stamps it
-		// after this.
-		BelongsToAccount: accountID,
-	}
-}
-
 // ConvertIssueReportToIssueReportCreationRequestInput builds an IssueReportCreationRequestInput from an IssueReport.
 func ConvertIssueReportToIssueReportCreationRequestInput(x *issuereports.IssueReport) *issuereports.IssueReportCreationRequestInput {
 	return &issuereports.IssueReportCreationRequestInput{
@@ -55,5 +28,32 @@ func ConvertIssueReportToIssueReportDatabaseCreationInput(x *issuereports.IssueR
 		RelevantRecordID: x.RelevantRecordID,
 		CreatedByUser:    x.CreatedByUser,
 		BelongsToAccount: x.BelongsToAccount,
+	}
+}
+
+// ConvertIssueReportToIssueReportUpdateRequestInput builds an IssueReportUpdateRequestInput from an IssueReport.
+func ConvertIssueReportToIssueReportUpdateRequestInput(x *issuereports.IssueReport) *issuereports.IssueReportUpdateRequestInput {
+	return &issuereports.IssueReportUpdateRequestInput{
+		IssueType:        &x.IssueType,
+		Details:          &x.Details,
+		RelevantTable:    &x.RelevantTable,
+		RelevantRecordID: &x.RelevantRecordID,
+	}
+}
+
+// ConvertIssueReportCreationRequestInputToIssueReportDatabaseCreationInput builds an IssueReportDatabaseCreationInput from an IssueReportCreationRequestInput.
+func ConvertIssueReportCreationRequestInputToIssueReportDatabaseCreationInput(x *issuereports.IssueReportCreationRequestInput) *issuereports.IssueReportDatabaseCreationInput {
+	return &issuereports.IssueReportDatabaseCreationInput{
+		ID:               identifiers.New(),
+		IssueType:        x.IssueType,
+		Details:          x.Details,
+		RelevantTable:    x.RelevantTable,
+		RelevantRecordID: x.RelevantRecordID,
+
+		// CreatedByUser is left unset. Comes from the authenticated session rather than
+		// the request body, so the manager stamps it after this.
+
+		// BelongsToAccount is left unset. Comes from the authenticated session rather than
+		// the request body, so the manager stamps it after this.
 	}
 }
