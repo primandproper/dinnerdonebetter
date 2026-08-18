@@ -13,8 +13,12 @@ import (
 func BuildFakeMealPlanOption() *types.MealPlanOption {
 	option := fake.BuildFakeRecord[types.MealPlanOption]()
 
-	// An option nobody has chosen yet, which is what voting decides.
+	// An option nobody has chosen yet, which is what voting decides. TieBroken is
+	// pinned for a second reason as well: there is no tie_broken column anywhere in the
+	// schema, so the field cannot survive a write and reads back false regardless. A
+	// random value here fails every round-trip assertion about half the time.
 	option.Chosen = false
+	option.TieBroken = false
 	option.AssignedCook = pointer.To(fake.BuildFakeID())
 
 	// The meal on offer, without its components: an option is read alongside every other

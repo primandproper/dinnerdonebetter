@@ -19,6 +19,13 @@ func BuildFakeRecipe() *mealplanning.Recipe {
 	recipe.EligibleForMeals = true
 	recipe.YieldsComponentType = "main"
 
+	// Unapproved, to agree with the status above — but also because there is no
+	// seal_of_approval column anywhere in the schema, so the field cannot survive a
+	// write and read back as anything but false. A random value here fails every
+	// round-trip assertion about half the time, on whichever recipe-building test the
+	// shuffle happens to run first. See the note in the commit that added this line.
+	recipe.SealOfApproval = false
+
 	// A portion range rather than two independent numbers.
 	recipe.MinEstimatedPortions = float32(fake.BuildFakeNumber())
 	recipe.MaxEstimatedPortions = pointer.To(recipe.MinEstimatedPortions + float32(fake.BuildFakeNumber()))
