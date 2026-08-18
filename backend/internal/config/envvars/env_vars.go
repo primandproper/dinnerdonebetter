@@ -2579,10 +2579,6 @@ const (
 	// to override `APIServiceConfig.Services.Payments.RevenueCat.WebhookAuthHeader`.
 	ServicePaymentsRevenuecatWebhookAuthHeaderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_PAYMENTS_REVENUECAT_WEBHOOK_AUTH_HEADER"
 
-	// ServicePaymentsInitEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Services.Payments.RevenueCat`.
-	ServicePaymentsInitEnvVarKey = "DINNER_DONE_BETTER_SERVICE_PAYMENTS_init"
-
 	// ServiceUploadedMediaUploadsDebugEnvVarKey is the environment variable name to set to
 	// override `APIServiceConfig.Services.UploadedMedia.Uploads.Debug`.
 	ServiceUploadedMediaUploadsDebugEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_DEBUG"
