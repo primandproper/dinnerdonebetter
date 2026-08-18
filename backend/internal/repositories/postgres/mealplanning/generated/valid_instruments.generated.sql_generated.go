@@ -14,7 +14,10 @@ import (
 )
 
 const archiveValidInstrument = `-- name: ArchiveValidInstrument :execrows
-UPDATE valid_instruments SET archived_at = NOW() WHERE archived_at IS NULL AND id = $1
+UPDATE valid_instruments SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
 `
 
 func (q *Queries) ArchiveValidInstrument(ctx context.Context, db DBTX, id string) (int64, error) {
@@ -166,7 +169,7 @@ SELECT
 	valid_instruments.archived_at
 FROM valid_instruments
 WHERE valid_instruments.archived_at IS NULL
-AND valid_instruments.id = $1
+	AND valid_instruments.id = $1
 `
 
 type GetValidInstrumentRow struct {

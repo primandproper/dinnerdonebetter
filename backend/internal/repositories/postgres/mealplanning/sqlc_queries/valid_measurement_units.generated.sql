@@ -1,6 +1,3 @@
--- name: ArchiveValidMeasurementUnit :execrows
-UPDATE valid_measurement_units SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
-
 -- name: CreateValidMeasurementUnit :exec
 INSERT INTO valid_measurement_units (
 	id,
@@ -26,6 +23,26 @@ INSERT INTO valid_measurement_units (
 	sqlc.arg(plural_name)
 );
 
+-- name: GetValidMeasurementUnit :one
+SELECT
+	valid_measurement_units.id,
+	valid_measurement_units.name,
+	valid_measurement_units.description,
+	valid_measurement_units.volumetric,
+	valid_measurement_units.icon_path,
+	valid_measurement_units.universal,
+	valid_measurement_units.metric,
+	valid_measurement_units.imperial,
+	valid_measurement_units.slug,
+	valid_measurement_units.plural_name,
+	valid_measurement_units.last_indexed_at,
+	valid_measurement_units.created_at,
+	valid_measurement_units.last_updated_at,
+	valid_measurement_units.archived_at
+FROM valid_measurement_units
+WHERE valid_measurement_units.archived_at IS NULL
+	AND valid_measurement_units.id = sqlc.arg(id);
+
 -- name: CheckValidMeasurementUnitExistence :one
 SELECT EXISTS (
 	SELECT valid_measurement_units.id
@@ -33,6 +50,35 @@ SELECT EXISTS (
 	WHERE valid_measurement_units.archived_at IS NULL
 		AND valid_measurement_units.id = sqlc.arg(id)
 );
+
+-- name: UpdateValidMeasurementUnit :execrows
+UPDATE valid_measurement_units SET
+	name = sqlc.arg(name),
+	description = sqlc.arg(description),
+	volumetric = sqlc.arg(volumetric),
+	icon_path = sqlc.arg(icon_path),
+	universal = sqlc.arg(universal),
+	metric = sqlc.arg(metric),
+	imperial = sqlc.arg(imperial),
+	slug = sqlc.arg(slug),
+	plural_name = sqlc.arg(plural_name),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveValidMeasurementUnit :execrows
+UPDATE valid_measurement_units SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ScanValidMeasurementUnitIDsForReindex :many
+SELECT valid_measurement_units.id
+FROM valid_measurement_units
+WHERE valid_measurement_units.archived_at IS NULL
+	AND valid_measurement_units.id COLLATE "C" > sqlc.arg(cursor)
+ORDER BY valid_measurement_units.id COLLATE "C"
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
 -- name: GetValidMeasurementUnits :many
 SELECT
@@ -149,14 +195,6 @@ GROUP BY valid_measurement_units.id
 ORDER BY valid_measurement_units.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
--- name: ScanValidMeasurementUnitIDsForReindex :many
-SELECT valid_measurement_units.id
-FROM valid_measurement_units
-WHERE valid_measurement_units.archived_at IS NULL
-	AND valid_measurement_units.id COLLATE "C" > sqlc.arg(cursor)
-ORDER BY valid_measurement_units.id COLLATE "C"
-LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
 -- name: GetValidMeasurementUnitsNeedingIndexing :many
 SELECT valid_measurement_units.id
 FROM valid_measurement_units
@@ -165,26 +203,6 @@ WHERE valid_measurement_units.archived_at IS NULL
 	valid_measurement_units.last_indexed_at IS NULL
 	OR valid_measurement_units.last_indexed_at < NOW() - '24 hours'::INTERVAL
 );
-
--- name: GetValidMeasurementUnit :one
-SELECT
-	valid_measurement_units.id,
-	valid_measurement_units.name,
-	valid_measurement_units.description,
-	valid_measurement_units.volumetric,
-	valid_measurement_units.icon_path,
-	valid_measurement_units.universal,
-	valid_measurement_units.metric,
-	valid_measurement_units.imperial,
-	valid_measurement_units.slug,
-	valid_measurement_units.plural_name,
-	valid_measurement_units.last_indexed_at,
-	valid_measurement_units.created_at,
-	valid_measurement_units.last_updated_at,
-	valid_measurement_units.archived_at
-FROM valid_measurement_units
-WHERE valid_measurement_units.archived_at IS NULL
-AND valid_measurement_units.id = sqlc.arg(id);
 
 -- name: GetRandomValidMeasurementUnit :one
 SELECT
@@ -348,21 +366,6 @@ WHERE
 	AND valid_measurement_units.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_measurement_units.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateValidMeasurementUnit :execrows
-UPDATE valid_measurement_units SET
-	name = sqlc.arg(name),
-	description = sqlc.arg(description),
-	volumetric = sqlc.arg(volumetric),
-	icon_path = sqlc.arg(icon_path),
-	universal = sqlc.arg(universal),
-	metric = sqlc.arg(metric),
-	imperial = sqlc.arg(imperial),
-	slug = sqlc.arg(slug),
-	plural_name = sqlc.arg(plural_name),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);
 
 -- name: UpdateValidMeasurementUnitLastIndexedAt :execrows
 UPDATE valid_measurement_units SET last_indexed_at = NOW() WHERE id = sqlc.arg(id) AND archived_at IS NULL;

@@ -14,7 +14,10 @@ import (
 )
 
 const archiveValidIngredient = `-- name: ArchiveValidIngredient :execrows
-UPDATE valid_ingredients SET archived_at = NOW() WHERE archived_at IS NULL AND id = $1
+UPDATE valid_ingredients SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
 `
 
 func (q *Queries) ArchiveValidIngredient(ctx context.Context, db DBTX, id string) (int64, error) {
@@ -374,7 +377,7 @@ SELECT
 	valid_ingredients.archived_at
 FROM valid_ingredients
 WHERE valid_ingredients.archived_at IS NULL
-AND valid_ingredients.id = $1
+	AND valid_ingredients.id = $1
 `
 
 type GetValidIngredientRow struct {

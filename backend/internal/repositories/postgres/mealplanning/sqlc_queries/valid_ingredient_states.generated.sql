@@ -1,6 +1,3 @@
--- name: ArchiveValidIngredientState :execrows
-UPDATE valid_ingredient_states SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
-
 -- name: CreateValidIngredientState :exec
 INSERT INTO valid_ingredient_states (
 	id,
@@ -20,6 +17,23 @@ INSERT INTO valid_ingredient_states (
 	sqlc.arg(attribute_type)
 );
 
+-- name: GetValidIngredientState :one
+SELECT
+	valid_ingredient_states.id,
+	valid_ingredient_states.name,
+	valid_ingredient_states.past_tense,
+	valid_ingredient_states.slug,
+	valid_ingredient_states.description,
+	valid_ingredient_states.icon_path,
+	valid_ingredient_states.attribute_type,
+	valid_ingredient_states.last_indexed_at,
+	valid_ingredient_states.created_at,
+	valid_ingredient_states.last_updated_at,
+	valid_ingredient_states.archived_at
+FROM valid_ingredient_states
+WHERE valid_ingredient_states.archived_at IS NULL
+	AND valid_ingredient_states.id = sqlc.arg(id);
+
 -- name: CheckValidIngredientStateExistence :one
 SELECT EXISTS (
 	SELECT valid_ingredient_states.id
@@ -27,6 +41,32 @@ SELECT EXISTS (
 	WHERE valid_ingredient_states.archived_at IS NULL
 		AND valid_ingredient_states.id = sqlc.arg(id)
 );
+
+-- name: UpdateValidIngredientState :execrows
+UPDATE valid_ingredient_states SET
+	name = sqlc.arg(name),
+	past_tense = sqlc.arg(past_tense),
+	slug = sqlc.arg(slug),
+	description = sqlc.arg(description),
+	icon_path = sqlc.arg(icon_path),
+	attribute_type = sqlc.arg(attribute_type),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveValidIngredientState :execrows
+UPDATE valid_ingredient_states SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ScanValidIngredientStateIDsForReindex :many
+SELECT valid_ingredient_states.id
+FROM valid_ingredient_states
+WHERE valid_ingredient_states.archived_at IS NULL
+	AND valid_ingredient_states.id COLLATE "C" > sqlc.arg(cursor)
+ORDER BY valid_ingredient_states.id COLLATE "C"
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
 -- name: GetValidIngredientStates :many
 SELECT
@@ -82,14 +122,6 @@ GROUP BY valid_ingredient_states.id
 ORDER BY valid_ingredient_states.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
--- name: ScanValidIngredientStateIDsForReindex :many
-SELECT valid_ingredient_states.id
-FROM valid_ingredient_states
-WHERE valid_ingredient_states.archived_at IS NULL
-	AND valid_ingredient_states.id COLLATE "C" > sqlc.arg(cursor)
-ORDER BY valid_ingredient_states.id COLLATE "C"
-LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
 -- name: GetValidIngredientStatesNeedingIndexing :many
 SELECT valid_ingredient_states.id
 FROM valid_ingredient_states
@@ -98,23 +130,6 @@ WHERE valid_ingredient_states.archived_at IS NULL
 	valid_ingredient_states.last_indexed_at IS NULL
 	OR valid_ingredient_states.last_indexed_at < NOW() - '24 hours'::INTERVAL
 );
-
--- name: GetValidIngredientState :one
-SELECT
-	valid_ingredient_states.id,
-	valid_ingredient_states.name,
-	valid_ingredient_states.past_tense,
-	valid_ingredient_states.slug,
-	valid_ingredient_states.description,
-	valid_ingredient_states.icon_path,
-	valid_ingredient_states.attribute_type,
-	valid_ingredient_states.last_indexed_at,
-	valid_ingredient_states.created_at,
-	valid_ingredient_states.last_updated_at,
-	valid_ingredient_states.archived_at
-FROM valid_ingredient_states
-WHERE valid_ingredient_states.archived_at IS NULL
-AND valid_ingredient_states.id = sqlc.arg(id);
 
 -- name: GetValidIngredientStatesWithIDs :many
 SELECT
@@ -185,18 +200,6 @@ WHERE valid_ingredient_states.archived_at IS NULL
 	AND valid_ingredient_states.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_ingredient_states.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateValidIngredientState :execrows
-UPDATE valid_ingredient_states SET
-	name = sqlc.arg(name),
-	past_tense = sqlc.arg(past_tense),
-	slug = sqlc.arg(slug),
-	description = sqlc.arg(description),
-	icon_path = sqlc.arg(icon_path),
-	attribute_type = sqlc.arg(attribute_type),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);
 
 -- name: UpdateValidIngredientStateLastIndexedAt :execrows
 UPDATE valid_ingredient_states SET last_indexed_at = NOW() WHERE id = sqlc.arg(id) AND archived_at IS NULL;
