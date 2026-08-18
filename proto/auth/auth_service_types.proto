@@ -42,14 +42,16 @@ message ExchangeTokenResponse {
   google.protobuf.Timestamp expires_utc = 6;
 }
 
-message GetActiveAccountRequest {}
+message GetActiveAccountRequest {
+}
 
 message GetActiveAccountResponse {
   common.ResponseDetails response_details = 1;
   identity.Account result = 2;
 }
 
-message GetAuthStatusRequest {}
+message GetAuthStatusRequest {
+}
 
 message GetAuthStatusResponse {
   common.ResponseDetails response_details = 1;
@@ -215,7 +217,8 @@ message EvaluateStringFeatureFlagResponse {
   string value = 2;
 }
 
-message BeginPasskeyRegistrationRequest {}
+message BeginPasskeyRegistrationRequest {
+}
 
 message BeginPasskeyRegistrationResponse {
   common.ResponseDetails response_details = 1;
@@ -248,14 +251,16 @@ message FinishPasskeyAuthenticationRequest {
   string username = 3;
 }
 
-message GetSelfRequest {}
+message GetSelfRequest {
+}
 
 message GetSelfResponse {
   common.ResponseDetails response_details = 1;
   identity.User result = 2;
 }
 
-message ListPasskeysRequest {}
+message ListPasskeysRequest {
+}
 
 message ListPasskeysResponse {
   common.ResponseDetails response_details = 1;
@@ -295,13 +300,15 @@ message RevokeSessionResponse {
   common.ResponseDetails response_details = 1;
 }
 
-message RevokeAllOtherSessionsRequest {}
+message RevokeAllOtherSessionsRequest {
+}
 
 message RevokeAllOtherSessionsResponse {
   common.ResponseDetails response_details = 1;
 }
 
-message RevokeCurrentSessionRequest {}
+message RevokeCurrentSessionRequest {
+}
 
 message RevokeCurrentSessionResponse {
   common.ResponseDetails response_details = 1;

@@ -116,7 +116,8 @@ message RotateWebhookSecretResponse {
   string secret = 2;
 }
 
-message GetWebhookEventTypesRequest {}
+message GetWebhookEventTypesRequest {
+}
 
 message GetWebhookEventTypesResponse {
   common.ResponseDetails response_details = 1;

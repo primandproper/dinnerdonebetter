@@ -8,7 +8,8 @@ import "filtering.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy";
 
-message AggregateUserDataReportRequest {}
+message AggregateUserDataReportRequest {
+}
 
 message AggregateUserDataReportResponse {
   common.ResponseDetails response_details = 1;
@@ -19,7 +20,8 @@ message AggregateUserDataReportResponse {
   DataPrivacyRequest request = 2;
 }
 
-message DestroyAllUserDataRequest {}
+message DestroyAllUserDataRequest {
+}
 
 message DestroyAllUserDataResponse {
   common.ResponseDetails response_details = 1;

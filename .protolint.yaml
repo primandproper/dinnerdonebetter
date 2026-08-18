@@ -1,0 +1,29 @@
+# Configuration for protolint (github.com/yoheimuta/protolint), which formats the
+# .proto files under proto/ via `make format_proto`. Generation stays on protoc.
+#
+# Every rule removed below is removed because enforcing it would change the
+# *content* of the protos, and therefore the generated Go, Swift, and TypeScript
+# that the rest of the repo compiles against. The formatter is here to normalize
+# whitespace, not to rename anything.
+lint:
+  rules:
+    remove:
+      # protolint wraps at 80 columns and its fixer cannot rewrap; every one of the
+      # ~420 findings is a doc comment or an rpc signature that would have to be
+      # rewritten by hand, and comment text is copied verbatim into the generated
+      # doc comments. buf format had no line-length opinion either.
+      - MAX_LINE_LENGTH
+      # Wants `VESSEL_SHAPE_*` renamed to `VALID_VESSEL_SHAPE_*` to match the
+      # enclosing enum. The enum value names are wire-visible and appear in the
+      # generated Go/Swift/TS identifiers; renaming them is a breaking change, not
+      # a formatting one.
+      - ENUM_FIELD_NAMES_PREFIX
+      # Wants every zero value suffixed `_UNSPECIFIED`. These enums deliberately
+      # give element 0 a real meaning (MEAL_PLAN_STATUS_AWAITING_VOTES, and so on)
+      # to mirror the database enums they are generated against, so adding an
+      # UNSPECIFIED member would renumber every value.
+      - ENUM_FIELD_NAMES_ZERO_VALUE_END_WITH
+      # Wants `repeated ... created` to become `createds` and `enumeration` to
+      # become `enumerations`. The first is not English, and both are field names
+      # that map onto existing Go struct fields and JSON keys.
+      - REPEATED_FIELD_NAMES_PLURALIZED

@@ -121,7 +121,8 @@ Deploy pipeline (see [docs/deployment.md](docs/deployment.md)):
 ## Protobuf and code generation
 
 - **Source:** `proto/` — per-domain `.proto` files (e.g. `mealplanning/`, `auth/`, `identity/`).
-- **Generate:** `make proto` (format with buf, then `proto_golang` and `proto_swift`). For the frontend API client: `make proto_typescript` (outputs to `frontend/packages/api-client/src`).
+- **Format:** `make format_proto` runs `protolint lint -fix proto/` out of a pinned container. `make check_proto_format` is the same thing without the fixer, and is what the `proto formatting` workflow runs on pull requests. The rules the repo turns off, and why, are in [.protolint.yaml](.protolint.yaml).
+- **Generate:** `make proto` (format, then `proto_golang` and `proto_swift`). For the frontend API client: `make proto_typescript` (outputs to `frontend/packages/api-client/src`).
 - **Output:** Go → `backend/internal/grpc`, Swift → `ios/ios/Generated`, TypeScript → `frontend/packages/api-client/src`.
 
 Requires `protoc`, `protoc-gen-go`, `protoc-gen-go-grpc`, and for Swift `protoc-gen-swift` and `protoc-gen-grpc-swift`. The root Makefile has `ensure_*` targets; see `make proto` and [Makefile](Makefile) around the `PROTO_*` variables.

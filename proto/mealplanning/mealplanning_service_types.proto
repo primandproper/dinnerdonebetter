@@ -601,28 +601,32 @@ message CreateValidVesselResponse {
   ValidVessel result = 2;
 }
 
-message GetRandomValidIngredientRequest {}
+message GetRandomValidIngredientRequest {
+}
 
 message GetRandomValidIngredientResponse {
   common.ResponseDetails response_details = 1;
   ValidIngredient result = 2;
 }
 
-message GetRandomValidInstrumentRequest {}
+message GetRandomValidInstrumentRequest {
+}
 
 message GetRandomValidInstrumentResponse {
   common.ResponseDetails response_details = 1;
   ValidInstrument result = 2;
 }
 
-message GetRandomValidPreparationRequest {}
+message GetRandomValidPreparationRequest {
+}
 
 message GetRandomValidPreparationResponse {
   common.ResponseDetails response_details = 1;
   ValidPreparation result = 2;
 }
 
-message GetRandomValidVesselRequest {}
+message GetRandomValidVesselRequest {
+}
 
 message GetRandomValidVesselResponse {
   common.ResponseDetails response_details = 1;
@@ -919,7 +923,8 @@ message GetValidMeasurementUnitConversionsForIngredientsResponse {
   repeated ValidMeasurementUnitConversion results = 2;
 }
 
-message GetMeasurementUnitConversionMismatchesRequest {}
+message GetMeasurementUnitConversionMismatchesRequest {
+}
 
 message GetMeasurementUnitConversionMismatchesResponse {
   common.ResponseDetails response_details = 1;
@@ -2888,20 +2893,23 @@ message ArchiveRecipeListItemResponse {
   common.ResponseDetails response_details = 1;
 }
 
-message RunFinalizeMealPlanWorkerRequest {}
+message RunFinalizeMealPlanWorkerRequest {
+}
 
 message RunFinalizeMealPlanWorkerResponse {
   common.ResponseDetails response_details = 1;
   uint32 finalized = 2;
 }
 
-message RunMealPlanGroceryListInitializerWorkerRequest {}
+message RunMealPlanGroceryListInitializerWorkerRequest {
+}
 
 message RunMealPlanGroceryListInitializerWorkerResponse {
   common.ResponseDetails response_details = 1;
 }
 
-message RunMealPlanTaskCreatorWorkerRequest {}
+message RunMealPlanTaskCreatorWorkerRequest {
+}
 
 message RunMealPlanTaskCreatorWorkerResponse {
   common.ResponseDetails response_details = 1;
