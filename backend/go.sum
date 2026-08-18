@@ -793,8 +793,8 @@ github.com/prashantv/gostub v1.1.0 h1:BTyx3RfQjRHnUWaGF9oQos79AlQ5k8WNktv7VGvVH4
 github.com/prashantv/gostub v1.1.0/go.mod h1:A5zLQHz7ieHGG7is6LLXLz7I8+3LZzsrV0P1IAHhP5U=
 github.com/pressly/goose/v3 v3.27.3 h1:pIglVHjw99r4e/hDHHwbl9vfOsDMqUokfkXo6+n/RxA=
 github.com/pressly/goose/v3 v3.27.3/go.mod h1:Dag+xpV6o20HR2LFY1j0q6MDwc3f7vPUFDA77R+0yGY=
-github.com/primandproper/platform-go/v11 v11.0.0 h1:vCQ4FAMpF7ir530GxMIvxvW9+F7wPCeNAzbiMHhI+vA=
-github.com/primandproper/platform-go/v11 v11.0.0/go.mod h1:F+JIp4sO67E6l8cRY/mr5QNr6No5lOcTem124VdpEDE=
+github.com/primandproper/platform-go/v11 v11.1.0 h1:APWpVsKQ2qD5Q3pajkshOM1OkjIyF1jYRS0t8F6XCvc=
+github.com/primandproper/platform-go/v11 v11.1.0/go.mod h1:F+JIp4sO67E6l8cRY/mr5QNr6No5lOcTem124VdpEDE=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
 github.com/pusher/pusher-http-go/v5 v5.1.1 h1:ZLUGdLA8yXMvByafIkS47nvuXOHrYmlh4bsQvuZnYVQ=
 github.com/pusher/pusher-http-go/v5 v5.1.1/go.mod h1:Ibji4SGoUDtOy7CVRhCiEpgy+n5Xv6hSL/QqYOhmWW8=
