@@ -17,6 +17,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
@@ -113,7 +114,7 @@ func buildDeliveryHarness(t *testing.T) (*repository, *events.Emitter, *webhooks
 	writer, err := outbox.NewWriter(dialect.Postgres)
 	require.NoError(t, err)
 
-	emitter := events.NewEmitter(writer, "data_changes", dispatcher)
+	emitter := events.NewEmitter(writer, "data_changes", dispatcher, indexevents.SideEffect)
 	require.NotNil(t, emitter)
 
 	repo := ProvideWebhooksRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditRepo, pgc, emitter, dispatcher)

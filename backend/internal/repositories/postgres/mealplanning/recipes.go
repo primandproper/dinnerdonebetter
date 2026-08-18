@@ -11,9 +11,7 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipevalidator"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v10/database"
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -1074,7 +1072,7 @@ func (q *repository) CreateRecipe(ctx context.Context, input *mealplanning.Recip
 		// rows it describes.
 		if emitErr := q.events.Emit(ctx, tx, logger, mealplanning.RecipeCreatedServiceEventType, "", map[string]any{
 			mealplanningkeys.RecipeIDKey: input.ID,
-		}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, input.ID)); emitErr != nil {
+		}); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
@@ -1261,7 +1259,7 @@ func (q *repository) UpdateRecipe(ctx context.Context, updated *mealplanning.Rec
 		logger.Info("recipe updated")
 
 		return nil
-	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, updated.ID))
+	})
 }
 
 // UpdateRecipeStatus updates a particular recipe's status exclusively.
@@ -1293,7 +1291,7 @@ func (q *repository) UpdateRecipeStatus(ctx context.Context, recipeID, newStatus
 		}
 
 		return nil
-	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, recipeID))
+	})
 }
 
 // MarkRecipeAsIndexed updates a particular recipe's last_indexed_at value.
@@ -1474,7 +1472,7 @@ func (q *repository) ArchiveRecipe(ctx context.Context, recipeID, userID string)
 		}
 
 		return nil
-	}, events.WithIndexDelete(mealplanningindexing.IndexTypeRecipes, recipeID))
+	})
 }
 
 // AddRecipeImage adds an uploaded media image to a recipe.

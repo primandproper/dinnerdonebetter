@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
@@ -66,7 +67,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 
 	// A real emitter, so the tests exercise the same path production does: the event is
 	// another statement in the repository's transaction.
-	outboxWriter, err := outbox.NewWriter(dialect.Postgres, outbox.WithWriterLogger(loggingnoop.NewLogger()))
+	outboxWriter, err := outbox.NewWriter(dialect.Postgres, outbox.WithWriterLogger(loggingnoop.NewLogger()), outbox.WithWriterSideEffect(indexevents.SideEffectName, indexevents.SideEffect))
 	require.NoError(t, err)
 
 	c := ProvideMealPlanningRepository(
@@ -75,7 +76,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 		auditLogEntryRepo,
 		identitiesRepo,
 		pgc,
-		events.NewEmitter(outboxWriter, testDataChangesTopic, nil),
+		events.NewEmitter(outboxWriter, testDataChangesTopic, nil, indexevents.SideEffect),
 	)
 
 	return c.(*repository), auditLogEntryRepo

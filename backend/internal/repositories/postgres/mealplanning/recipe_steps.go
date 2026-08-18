@@ -7,9 +7,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v10/database"
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -623,11 +622,12 @@ func (q *repository) createRecipeStep(ctx context.Context, db database.SQLQueryE
 // document: the indexed subset holds each step's preparation name and the names of its
 // ingredients, instruments and vessels.
 //
-// This enqueues the index event alone rather than going through withEvent, because there is no
+// This derives the index event alone rather than going through withEvent, because there is no
 // recipe_step_created data change event to attach it to. The constant existed and put the event
 // in the generated webhook catalog, where it was subscribable and could never fire; it was
 // removed rather than made to fire, because a step creation reaches subscribers as the recipe
-// event that accompanies it.
+// event that accompanies it. That still holds, so this passes a trigger rather than an event
+// type — it reads out of the same table as everything else and puts nothing on the wire.
 func (q *repository) CreateRecipeStep(ctx context.Context, input *mealplanning.RecipeStepDatabaseCreationInput) (*mealplanning.RecipeStep, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
@@ -644,7 +644,9 @@ func (q *repository) CreateRecipeStep(ctx context.Context, input *mealplanning.R
 			return createErr
 		}
 
-		return q.events.EmitIndex(ctx, tx, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, input.BelongsToRecipe))
+		return q.events.EmitIndex(ctx, tx, indexevents.RecipeStepCreatedIndexTrigger, map[string]any{
+			mealplanningkeys.RecipeIDKey: input.BelongsToRecipe,
+		})
 	}); err != nil {
 		return nil, err
 	}
@@ -684,7 +686,7 @@ func (q *repository) UpdateRecipeStep(ctx context.Context, updated *mealplanning
 		})
 
 		return updateErr
-	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, updated.BelongsToRecipe)); err != nil {
+	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step")
 	}
 
@@ -727,7 +729,7 @@ func (q *repository) ArchiveRecipeStep(ctx context.Context, recipeID, recipeStep
 		}
 
 		return nil
-	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, recipeID)); err != nil {
+	}); err != nil {
 		return err
 	}
 

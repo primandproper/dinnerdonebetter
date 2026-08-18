@@ -1,6 +1,7 @@
 package events
 
 import (
+	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 
@@ -21,6 +22,11 @@ func RegisterOutboxEmitter(i do.Injector) {
 	do.Provide[*outbox.Writer](i, func(i do.Injector) (*outbox.Writer, error) {
 		return outbox.NewWriter(
 			dialect.Postgres,
+			// Every write to this outbox owes the search index an event, so the index event is
+			// registered here rather than passed per call. A repository method that changes an
+			// indexed row cannot fail to produce one by omitting an option it was never asked
+			// about; see internal/indexevents for which writes feed which index.
+			outbox.WithWriterSideEffect(indexevents.SideEffectName, indexevents.SideEffect),
 			outbox.WithWriterLogger(do.MustInvoke[logging.Logger](i)),
 			outbox.WithWriterTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			outbox.WithWriterMetricsProvider(do.MustInvoke[metrics.Provider](i)),
@@ -46,6 +52,8 @@ func RegisterOutboxEmitter(i do.Injector) {
 		}
 
 		// NewEmitter returns nil for an empty topic, and a nil Emitter emits nothing.
-		return NewEmitter(do.MustInvoke[*outbox.Writer](i), topic, dispatcher), nil
+		// The same effect the writer was registered with, so EmitIndex derives from the same
+		// table rather than a second copy of it.
+		return NewEmitter(do.MustInvoke[*outbox.Writer](i), topic, dispatcher, indexevents.SideEffect), nil
 	})
 }

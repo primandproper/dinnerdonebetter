@@ -6,9 +6,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v10/database"
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -538,7 +536,7 @@ func (q *repository) CreateRecipeStepIngredient(ctx context.Context, recipeID st
 		created, createErr = q.createRecipeStepIngredient(ctx, tx, input)
 
 		return createErr
-	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, recipeID)); err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
@@ -599,7 +597,7 @@ func (q *repository) UpdateRecipeStepIngredient(ctx context.Context, recipeID st
 		})
 
 		return updateErr
-	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, recipeID)); err != nil {
+	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe step ingredient")
 	}
 
@@ -645,7 +643,7 @@ func (q *repository) ArchiveRecipeStepIngredient(ctx context.Context, recipeID, 
 		}
 
 		return nil
-	}, events.WithIndexUpsert(mealplanningindexing.IndexTypeRecipes, recipeID)); err != nil {
+	}); err != nil {
 		return err
 	}
 

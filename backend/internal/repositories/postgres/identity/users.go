@@ -13,9 +13,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
-	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
 	"github.com/primandproper/platform-go/v10/database"
 	platformerrors "github.com/primandproper/platform-go/v10/errors"
@@ -682,7 +680,7 @@ func (r *repository) CreateUser(ctx context.Context, input *identity.UserDatabas
 			identitykeys.AccountIDKey:                  account.ID,
 			identitykeys.UserIDKey:                     input.ID,
 			identitykeys.UserEmailVerificationTokenKey: token,
-		}, events.WithIndexUpsert(identityindexing.IndexTypeUsers, input.ID)); emitErr != nil {
+		}); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
@@ -848,7 +846,7 @@ func (r *repository) UpdateUserUsername(ctx context.Context, userID, newUsername
 		// rows it describes.
 		if emitErr := r.events.Emit(ctx, tx, logger, identity.UsernameChangedEventType, "", map[string]any{
 			identitykeys.UserIDKey: userID,
-		}, events.WithIndexUpsert(identityindexing.IndexTypeUsers, userID)); emitErr != nil {
+		}); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
@@ -910,7 +908,7 @@ func (r *repository) UpdateUserEmailAddress(ctx context.Context, userID, newEmai
 		// rows it describes.
 		if emitErr := r.events.Emit(ctx, tx, logger, identity.EmailAddressChangedEventType, "", map[string]any{
 			identitykeys.UserIDKey: userID,
-		}, events.WithIndexUpsert(identityindexing.IndexTypeUsers, userID)); emitErr != nil {
+		}); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
@@ -981,7 +979,7 @@ func (r *repository) UpdateUserDetails(ctx context.Context, userID string, input
 		// rows it describes.
 		if emitErr := r.events.Emit(ctx, tx, logger, identity.UserDetailsChangedEventType, "", map[string]any{
 			identitykeys.UserIDKey: userID,
-		}, events.WithIndexUpsert(identityindexing.IndexTypeUsers, userID)); emitErr != nil {
+		}); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
@@ -1287,7 +1285,7 @@ func (r *repository) ArchiveUser(ctx context.Context, userID string) error {
 		// rows it describes.
 		if emitErr := r.events.Emit(ctx, tx, logger, identity.UserArchivedServiceEventType, "", map[string]any{
 			identitykeys.UserIDKey: userID,
-		}, events.WithIndexDelete(identityindexing.IndexTypeUsers, userID)); emitErr != nil {
+		}); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
 		}
 
