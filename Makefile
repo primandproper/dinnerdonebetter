@@ -10,8 +10,8 @@ CONTAINER_RUNNER      := docker
 RUN_CONTAINER         := $(CONTAINER_RUNNER) run --rm --volume $(PWD):$(PWD) --workdir=$(PWD)
 RUN_CONTAINER_AS_USER := $(CONTAINER_RUNNER) run --rm --volume $(PWD):$(PWD) --workdir=$(PWD) --user $(MYSELF):$(MY_GROUP)
 
-PROTOBUF_FORMAT       := bufbuild/buf:1.70.0
-FORMAT_PROTOBUFS      := $(RUN_CONTAINER) $(PROTOBUF_FORMAT)
+PROTOBUF_FORMAT       := yoheimuta/protolint:0.57.0
+FORMAT_PROTOBUFS      := $(RUN_CONTAINER_AS_USER) $(PROTOBUF_FORMAT)
 ARTIFACTS_DIR         := artifacts
 
 # Exclude monolithic proto/X/X.proto files (they're duplicates of the split files)
@@ -181,7 +181,13 @@ full_prod_deploy: deploy_prod_infra deploy_prod_software verify_prod
 
 .PHONY: format_proto
 format_proto:
-	$(FORMAT_PROTOBUFS) format proto --write
+	$(FORMAT_PROTOBUFS) lint -fix proto/
+
+# check_proto_format is format_proto without the fixer: it reports what would change
+# and exits non-zero, which is what CI runs.
+.PHONY: check_proto_format
+check_proto_format:
+	$(FORMAT_PROTOBUFS) lint proto/
 
 .PHONY: proto_golang
 proto_golang: ensure_protoc_installed ensure_protoc-gen-go_installed ensure_protoc-gen-go-grpc_installed

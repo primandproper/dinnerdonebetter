@@ -1,0 +1,24 @@
+---
+on:
+  pull_request:
+    paths:
+      - proto/**/*.proto
+      - .protolint.yaml
+      - Makefile
+      - .github/workflows/proto_formatting.yaml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+name: proto formatting
+jobs:
+  protolint:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: check formatting
+        run: make check_proto_format
