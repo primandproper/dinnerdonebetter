@@ -147,6 +147,31 @@ func TestLoadConfigFromEnvironment(T *testing.T) {
 		assert.False(t, actual.Meta.Debug)
 	})
 
+	// Config.RevenueCat is a nil pointer that the JSON config omits entirely, so the env
+	// overlay only reaches it because the field is tagged env:",init". Without that option
+	// the pointer stays nil and REVENUECAT_ variables have no struct to write into.
+	T.Run("populates an omitted pointer sub-config from the environment", func(t *testing.T) {
+		cfg := &APIServiceConfig{}
+		cfgBytes, err := json.Marshal(cfg)
+		require.NoError(t, err)
+		require.NotContains(t, string(cfgBytes), "revenueCat")
+
+		configFilepath := t.TempDir() + "/config.json"
+		require.NoError(t, os.WriteFile(configFilepath, cfgBytes, 0o0644))
+
+		t.Setenv(ConfigurationFilePathEnvVarKey, configFilepath)
+		t.Setenv(envvars.ServicePaymentsRevenuecatAPIKeyEnvVarKey, "example_api_key")
+		t.Setenv(envvars.ServicePaymentsRevenuecatWebhookAuthHeaderEnvVarKey, "example_auth_header")
+
+		actual, err := LoadConfigFromEnvironment[APIServiceConfig]()
+		require.NoError(t, err)
+		require.NotNil(t, actual)
+
+		require.NotNil(t, actual.Services.Payments.RevenueCat)
+		assert.Equal(t, "example_api_key", actual.Services.Payments.RevenueCat.APIKey)
+		assert.Equal(t, "example_auth_header", actual.Services.Payments.RevenueCat.WebhookAuthHeader)
+	})
+
 	T.Run("with invalid config file", func(t *testing.T) {
 		t.Setenv(ConfigurationFilePathEnvVarKey, "/nonexistent/path")
 

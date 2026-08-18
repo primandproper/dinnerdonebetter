@@ -11,7 +11,7 @@ import (
 // RevenueCat stays ours: mobile in-app purchases aren't something capitalism models, and
 // its webhooks are a different shape entirely.
 type Config struct {
-	RevenueCat *RevenueCatConfig    `env:"init"              envPrefix:"REVENUECAT_"    json:"revenueCat,omitempty"`
+	RevenueCat *RevenueCatConfig    `env:",init"             envPrefix:"REVENUECAT_"    json:"revenueCat,omitempty"`
 	Capitalism capitalismcfg.Config `envPrefix:"CAPITALISM_" json:"capitalism,omitzero"`
 }
 
