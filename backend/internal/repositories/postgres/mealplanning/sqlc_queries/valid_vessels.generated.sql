@@ -1,6 +1,3 @@
--- name: ArchiveValidVessel :execrows
-UPDATE valid_vessels SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
-
 -- name: CreateValidVessel :exec
 INSERT INTO valid_vessels (
 	id,
@@ -43,6 +40,40 @@ SELECT EXISTS (
 	WHERE valid_vessels.archived_at IS NULL
 		AND valid_vessels.id = sqlc.arg(id)
 );
+
+-- name: UpdateValidVessel :execrows
+UPDATE valid_vessels SET
+	name = sqlc.arg(name),
+	plural_name = sqlc.arg(plural_name),
+	description = sqlc.arg(description),
+	icon_path = sqlc.arg(icon_path),
+	usable_for_storage = sqlc.arg(usable_for_storage),
+	slug = sqlc.arg(slug),
+	display_in_summary_lists = sqlc.arg(display_in_summary_lists),
+	include_in_generated_instructions = sqlc.arg(include_in_generated_instructions),
+	capacity = sqlc.arg(capacity),
+	capacity_unit = sqlc.arg(capacity_unit),
+	width_in_millimeters = sqlc.arg(width_in_millimeters),
+	length_in_millimeters = sqlc.arg(length_in_millimeters),
+	height_in_millimeters = sqlc.arg(height_in_millimeters),
+	shape = sqlc.arg(shape),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveValidVessel :execrows
+UPDATE valid_vessels SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ScanValidVesselIDsForReindex :many
+SELECT valid_vessels.id
+FROM valid_vessels
+WHERE valid_vessels.archived_at IS NULL
+	AND valid_vessels.id COLLATE "C" > sqlc.arg(cursor)
+ORDER BY valid_vessels.id COLLATE "C"
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
 -- name: GetValidVessels :many
 SELECT
@@ -104,14 +135,6 @@ WHERE
 	AND valid_vessels.id > COALESCE(sqlc.narg(cursor), '')
 GROUP BY valid_vessels.id
 ORDER BY valid_vessels.id ASC
-LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: ScanValidVesselIDsForReindex :many
-SELECT valid_vessels.id
-FROM valid_vessels
-WHERE valid_vessels.archived_at IS NULL
-	AND valid_vessels.id COLLATE "C" > sqlc.arg(cursor)
-ORDER BY valid_vessels.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
 -- name: GetValidVesselIDsNeedingIndexing :many
@@ -303,26 +326,6 @@ WHERE valid_vessels.archived_at IS NULL
 	AND valid_vessels.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_vessels.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateValidVessel :execrows
-UPDATE valid_vessels SET
-	name = sqlc.arg(name),
-	plural_name = sqlc.arg(plural_name),
-	description = sqlc.arg(description),
-	icon_path = sqlc.arg(icon_path),
-	usable_for_storage = sqlc.arg(usable_for_storage),
-	slug = sqlc.arg(slug),
-	display_in_summary_lists = sqlc.arg(display_in_summary_lists),
-	include_in_generated_instructions = sqlc.arg(include_in_generated_instructions),
-	capacity = sqlc.arg(capacity),
-	capacity_unit = sqlc.arg(capacity_unit),
-	width_in_millimeters = sqlc.arg(width_in_millimeters),
-	length_in_millimeters = sqlc.arg(length_in_millimeters),
-	height_in_millimeters = sqlc.arg(height_in_millimeters),
-	shape = sqlc.arg(shape),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);
 
 -- name: UpdateValidVesselLastIndexedAt :execrows
 UPDATE valid_vessels SET last_indexed_at = NOW() WHERE id = sqlc.arg(id) AND archived_at IS NULL;

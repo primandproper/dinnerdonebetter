@@ -1,13 +1,3 @@
--- name: ArchiveValidIngredientGroup :execrows
-UPDATE valid_ingredient_groups SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
-
--- name: ArchiveValidIngredientGroupMember :execrows
-UPDATE valid_ingredient_group_members SET
-	archived_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id)
-	AND belongs_to_group = sqlc.arg(belongs_to_group);
-
 -- name: CreateValidIngredientGroup :exec
 INSERT INTO valid_ingredient_groups (
 	id,
@@ -21,6 +11,49 @@ INSERT INTO valid_ingredient_groups (
 	sqlc.arg(slug)
 );
 
+-- name: GetValidIngredientGroup :one
+SELECT
+	valid_ingredient_groups.id,
+	valid_ingredient_groups.name,
+	valid_ingredient_groups.description,
+	valid_ingredient_groups.slug,
+	valid_ingredient_groups.created_at,
+	valid_ingredient_groups.last_updated_at,
+	valid_ingredient_groups.archived_at
+FROM valid_ingredient_groups
+WHERE valid_ingredient_groups.archived_at IS NULL
+	AND valid_ingredient_groups.id = sqlc.arg(id);
+
+-- name: CheckValidIngredientGroupExistence :one
+SELECT EXISTS (
+	SELECT valid_ingredient_groups.id
+	FROM valid_ingredient_groups
+	WHERE valid_ingredient_groups.archived_at IS NULL
+		AND valid_ingredient_groups.id = sqlc.arg(id)
+);
+
+-- name: UpdateValidIngredientGroup :execrows
+UPDATE valid_ingredient_groups SET
+	name = sqlc.arg(name),
+	description = sqlc.arg(description),
+	slug = sqlc.arg(slug),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveValidIngredientGroup :execrows
+UPDATE valid_ingredient_groups SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveValidIngredientGroupMember :execrows
+UPDATE valid_ingredient_group_members SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_group = sqlc.arg(belongs_to_group);
+
 -- name: CreateValidIngredientGroupMember :exec
 INSERT INTO valid_ingredient_group_members (
 	id,
@@ -30,14 +63,6 @@ INSERT INTO valid_ingredient_group_members (
 	sqlc.arg(id),
 	sqlc.arg(belongs_to_group),
 	sqlc.arg(valid_ingredient)
-);
-
--- name: CheckValidIngredientGroupExistence :one
-SELECT EXISTS (
-	SELECT valid_ingredient_groups.id
-	FROM valid_ingredient_groups
-	WHERE valid_ingredient_groups.archived_at IS NULL
-		AND valid_ingredient_groups.id = sqlc.arg(id)
 );
 
 -- name: GetValidIngredientGroups :many
@@ -143,19 +168,6 @@ WHERE
 	AND valid_ingredient_group_members.archived_at IS NULL
 	AND valid_ingredient_group_members.belongs_to_group = sqlc.arg(belongs_to_group);
 
--- name: GetValidIngredientGroup :one
-SELECT
-	valid_ingredient_groups.id,
-	valid_ingredient_groups.name,
-	valid_ingredient_groups.description,
-	valid_ingredient_groups.slug,
-	valid_ingredient_groups.created_at,
-	valid_ingredient_groups.last_updated_at,
-	valid_ingredient_groups.archived_at
-FROM valid_ingredient_groups
-WHERE valid_ingredient_groups.archived_at IS NULL
-AND valid_ingredient_groups.id = sqlc.arg(id);
-
 -- name: SearchForValidIngredientGroups :many
 SELECT
 	valid_ingredient_groups.id,
@@ -220,12 +232,3 @@ SELECT
 FROM valid_ingredient_groups
 WHERE valid_ingredient_groups.archived_at IS NULL
 	AND valid_ingredient_groups.id = ANY(sqlc.arg(ids)::text[]);
-
--- name: UpdateValidIngredientGroup :execrows
-UPDATE valid_ingredient_groups SET
-	name = sqlc.arg(name),
-	description = sqlc.arg(description),
-	slug = sqlc.arg(slug),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);
