@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/platform-go/v11/observability/tracing"
 	searchsync "github.com/primandproper/platform-go/v11/search/sync"
 	syncsource "github.com/primandproper/platform-go/v11/search/sync/source"
+	textsearch "github.com/primandproper/platform-go/v11/search/text"
 )
 
 // o11yName names the loggers, spans and metrics of the search sync sources built here. It
@@ -29,9 +30,13 @@ func UserSource(repo identity.Repository) (*syncsource.Source[identity.User, Use
 //
 // It replaces the scheduler that used to publish an index request for every user a sampler
 // thought looked stale. The events now come from the transactions that changed the rows.
+//
+// index is a textsearch.IndexManager rather than a UserTextSearcher because syncing never
+// reads, and because what the consumer hands it is the indexstamp.Stamper wrapping the
+// searcher rather than the searcher itself.
 func NewUserSyncer(
 	repo identity.Repository,
-	index UserTextSearcher,
+	index textsearch.IndexManager,
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	metricsProvider metrics.Provider,

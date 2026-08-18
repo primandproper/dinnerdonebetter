@@ -1,6 +1,8 @@
 package datachangemessagehandler
 
 import (
+	"context"
+
 	"github.com/primandproper/platform-go/v11/jobs"
 )
 
@@ -13,9 +15,16 @@ import (
 // belongs to is where it came from.
 //
 // Handle is the Syncer's own jobs.Handler. Concurrency, retry with backoff, dead-lettering and
-// draining shutdown all belong to the jobs.Pool that runs it, which is why there is nothing
+// draining shutdown all belong to the jobs.Pool that runs it, which is why there is so little
 // else on this type.
+//
+// Close is the one thing the Pool cannot own: the Syncer writes through an indexstamp.Stamper,
+// whose buffer holds the last interval's worth of last_indexed_at stamps in memory and owns a
+// goroutine to flush them. It is closed after the pools drain, so a document indexed by a
+// handler that was still running at shutdown is stamped rather than dropped. A nil Close is a
+// syncer with nothing to shut down, which is what the tests build.
 type SearchSyncer struct {
 	Handle jobs.Handler
+	Close  func(ctx context.Context) error
 	Topic  string
 }

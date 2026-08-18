@@ -292,6 +292,36 @@ func TestAsyncDataChangeMessageHandler_Close(T *testing.T) {
 
 		assert.NoError(t, buildTestPoolsHandler(t, &msgqueuemock.ConsumerProviderMock{}).Close(t.Context()))
 	})
+
+	T.Run("closes each syncer's stamper", func(t *testing.T) {
+		t.Parallel()
+
+		handler := buildTestPoolsHandler(t, &msgqueuemock.ConsumerProviderMock{})
+
+		var closed int
+		handler.searchSyncers[0].Close = func(context.Context) error {
+			closed++
+
+			return nil
+		}
+
+		require.NoError(t, handler.Close(t.Context()))
+
+		// The stamper holds the last interval's last_indexed_at writes in memory, so a
+		// shutdown that does not close it drops them.
+		assert.Equal(t, 1, closed)
+	})
+
+	T.Run("with a stamper that will not close", func(t *testing.T) {
+		t.Parallel()
+
+		handler := buildTestPoolsHandler(t, &msgqueuemock.ConsumerProviderMock{})
+
+		expected := errors.New("blah")
+		handler.searchSyncers[0].Close = func(context.Context) error { return expected }
+
+		assert.ErrorIs(t, handler.Close(t.Context()), expected)
+	})
 }
 
 func TestNewPoolGroup(T *testing.T) {

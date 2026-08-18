@@ -2,6 +2,7 @@ package datachangemessagehandler
 
 import (
 	"context"
+	"errors"
 
 	"github.com/primandproper/platform-go/v11/jobs"
 )
@@ -41,11 +42,11 @@ func (a *AsyncDataChangeMessageHandler) poolSpecs() []jobs.PoolSpec {
 	// index-type field. platform-go keys an index event by its topic, so the fan-out that used
 	// to happen inside a handler happens here instead — which also means one index's backlog no
 	// longer sits behind another's, and a poison message dead-letters for its own index alone.
-	for _, syncer := range a.searchSyncers {
+	for i := range a.searchSyncers {
 		specs = append(specs, jobs.PoolSpec{
-			Topic:   syncer.Topic,
+			Topic:   a.searchSyncers[i].Topic,
 			Config:  &a.poolsConfig.SearchIndexRequests,
-			Handler: syncer.Handle,
+			Handler: a.searchSyncers[i].Handle,
 		})
 	}
 
@@ -81,6 +82,22 @@ func (a *AsyncDataChangeMessageHandler) Start(ctx context.Context) error {
 
 // Close stops every pool and waits for in-flight handlers to drain. The context bounds the wait;
 // when it expires the pools cancel their workers and Close reports why.
+//
+// The search syncers are closed afterwards rather than alongside, because closing one flushes
+// the last_indexed_at stamps its buffer is holding and a handler that was still running would
+// otherwise have its stamp arrive after the flush. Their errors are joined onto the pools'
+// rather than swallowed: losing a stamp costs only an observation, but losing it silently
+// costs the ability to tell that from a consumer that stopped indexing.
 func (a *AsyncDataChangeMessageHandler) Close(ctx context.Context) error {
-	return a.poolGroup.Close(ctx)
+	err := a.poolGroup.Close(ctx)
+
+	for i := range a.searchSyncers {
+		if a.searchSyncers[i].Close == nil {
+			continue
+		}
+
+		err = errors.Join(err, a.searchSyncers[i].Close(ctx))
+	}
+
+	return err
 }
