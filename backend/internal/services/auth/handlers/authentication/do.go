@@ -35,8 +35,6 @@ func RegisterAuthHTTPService(i do.Injector) {
 		return ProvideOAuth2ServerImplementation(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[identitymanager.IdentityDataManager](i),
-			do.MustInvoke[authn.Authenticator](i),
 			do.MustInvoke[tokens.Issuer](i),
 			do.MustInvoke[*manage.Manager](i),
 		), nil

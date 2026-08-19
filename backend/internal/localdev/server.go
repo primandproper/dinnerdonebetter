@@ -336,6 +336,101 @@ func AllInOne(ctx context.Context, cfg *config.APIServiceConfig, initFuncs ...Da
 	return server, nil
 }
 
+// NewOAuth2ConfigForTestServer builds the OAuth2 config the integration suite and localdev
+// drive the authorization code flow with. The redirect URL is the HTTP server's own address:
+// nothing is listening for the redirect, because the code is read off the Location header of
+// the 302 rather than followed.
+func NewOAuth2ConfigForTestServer(clientID, clientSecret, httpServerAddress string) *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		Scopes:       []string{"anything"}, // TODO: This should be nil-able
+		RedirectURL:  httpServerAddress,
+		Endpoint: oauth2.Endpoint{
+			AuthStyle: oauth2.AuthStyleInParams,
+			AuthURL:   httpServerAddress + "/oauth2/authorize",
+			TokenURL:  httpServerAddress + "/oauth2/token",
+		},
+	}
+}
+
+// NewNonRedirectingHTTPClient returns an HTTP client that hands the caller the 302 instead of
+// following it. The authorization code lives on that response's Location header, and the
+// redirect target is not a real endpoint.
+func NewNonRedirectingHTTPClient() (*http.Client, error) {
+	httpClient, err := httpclient.NewHTTPClient(httpclient.WithTracing(true))
+	if err != nil {
+		return nil, fmt.Errorf("building http client: %w", err)
+	}
+
+	httpClient.CheckRedirect = func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+
+	return httpClient, nil
+}
+
+// exchangeAuthorizationCodeWithJWT runs the full authorization code flow against the API
+// server: GET /oauth2/authorize authenticated with the caller's JWT, read the code off the
+// redirect, then POST /oauth2/token to exchange it.
+//
+// PKCE is S256, and deliberately not configurable. The `plain` method this used to send is
+// accepted by today's server but not by the OAuth 2.1 server replacing it, and a helper that
+// could still choose `plain` is a helper that eventually would.
+func exchangeAuthorizationCodeWithJWT(ctx context.Context, oauth2Config *oauth2.Config, jwt string) (*oauth2.Token, error) {
+	state, err := random.GenerateBase64EncodedString(ctx, 32)
+	if err != nil {
+		return nil, fmt.Errorf("generating state: %w", err)
+	}
+
+	verifier := oauth2.GenerateVerifier()
+
+	authCodeURL := oauth2Config.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, authCodeURL, http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("creating auth request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+jwt)
+
+	httpClient, err := NewNonRedirectingHTTPClient()
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := httpClient.Do(req) //nolint:gosec // G704: authCodeURL from OAuth config (httpServerAddress), not user-controlled
+	if err != nil {
+		return nil, fmt.Errorf("fetching OAuth2 code: %w", err)
+	}
+	defer func() {
+		if err = res.Body.Close(); err != nil {
+			log.Println("failed to close oauth2 response body", err)
+		}
+	}()
+
+	rl, err := res.Location()
+	if err != nil {
+		return nil, fmt.Errorf("getting location from response: %w", err)
+	}
+
+	if returnedState := rl.Query().Get("state"); returnedState != state {
+		return nil, fmt.Errorf("state mismatch on oauth2 redirect: sent %q, got %q", state, returnedState)
+	}
+
+	code := rl.Query().Get("code")
+	if code == "" {
+		return nil, fmt.Errorf("code not returned from oauth2 redirect")
+	}
+
+	oauth2Token, err := oauth2Config.Exchange(ctx, code, oauth2.VerifierOption(verifier))
+	if err != nil {
+		return nil, fmt.Errorf("exchanging OAuth2 code: %w", err)
+	}
+
+	return oauth2Token, nil
+}
+
 func BuildInsecureOAuthedGRPCClient(
 	ctx context.Context,
 	createdClientID,
@@ -344,77 +439,11 @@ func BuildInsecureOAuthedGRPCClient(
 	grpcServerAddress,
 	token string,
 ) (client.Client, error) {
-	state, err := random.GenerateBase64EncodedString(ctx, 32)
+	oauth2Config := NewOAuth2ConfigForTestServer(createdClientID, createdClientSecret, httpTestServerAddress)
+
+	oauth2Token, err := exchangeAuthorizationCodeWithJWT(ctx, oauth2Config, token)
 	if err != nil {
-		return nil, fmt.Errorf("generating state: %w", err)
-	}
-
-	oauth2Config := oauth2.Config{
-		ClientID:     createdClientID,
-		ClientSecret: createdClientSecret,
-		Scopes:       []string{"anything"}, // TODO: This should be nil-able
-		RedirectURL:  httpTestServerAddress,
-		Endpoint: oauth2.Endpoint{
-			AuthStyle: oauth2.AuthStyleInParams,
-			AuthURL:   httpTestServerAddress + "/oauth2/authorize",
-			TokenURL:  httpTestServerAddress + "/oauth2/token",
-		},
-	}
-
-	authCodeURL := oauth2Config.AuthCodeURL(
-		state,
-		oauth2.SetAuthURLParam("code_challenge_method", "plain"),
-	)
-
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodGet,
-		authCodeURL,
-		http.NoBody,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get oauth2 code: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Location", "localhost")
-
-	httpClient, err := httpclient.NewHTTPClient(httpclient.WithTracing(true))
-	if err != nil {
-		return nil, fmt.Errorf("building http client: %w", err)
-	}
-
-	httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
-
-	res, err := httpClient.Do(req) //nolint:gosec // G704: authCodeURL from OAuth config (httpTestServerAddress), not user-controlled
-	if err != nil {
-		return nil, fmt.Errorf("failed to get oauth2 code: %w", err)
-	}
-	defer func() {
-		if err = res.Body.Close(); err != nil {
-			log.Println("failed to close oauth2 response body", err)
-		}
-	}()
-
-	const (
-		codeKey = "code"
-	)
-
-	rl, err := res.Location()
-	if err != nil {
-		return nil, fmt.Errorf("getting location value from response: %w", err)
-	}
-
-	code := rl.Query().Get(codeKey)
-	if code == "" {
-		return nil, fmt.Errorf("code not returned from oauth2 redirect")
-	}
-
-	oauth2Token, err := oauth2Config.Exchange(ctx, code)
-	if err != nil {
-		return nil, fmt.Errorf("exchanging OAuth2 code: %w", err)
+		return nil, err
 	}
 
 	opts := []grpc.DialOption{
@@ -484,69 +513,5 @@ func FetchOAuth2TokenForUser(
 		return nil, fmt.Errorf("fetching JWT for OAuth2 exchange: %w", err)
 	}
 
-	state, err := random.GenerateBase64EncodedString(ctx, 32)
-	if err != nil {
-		return nil, fmt.Errorf("generating state: %w", err)
-	}
-
-	oauth2Config := oauth2.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		Scopes:       []string{"anything"},
-		RedirectURL:  httpServerAddress,
-		Endpoint: oauth2.Endpoint{
-			AuthStyle: oauth2.AuthStyleInParams,
-			AuthURL:   httpServerAddress + "/oauth2/authorize",
-			TokenURL:  httpServerAddress + "/oauth2/token",
-		},
-	}
-
-	authCodeURL := oauth2Config.AuthCodeURL(
-		state,
-		oauth2.SetAuthURLParam("code_challenge_method", "plain"),
-	)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, authCodeURL, http.NoBody)
-	if err != nil {
-		return nil, fmt.Errorf("creating auth request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+jwt)
-	req.Header.Set("Location", "localhost")
-
-	httpClient, err := httpclient.NewHTTPClient(httpclient.WithTracing(true))
-	if err != nil {
-		return nil, fmt.Errorf("building http client: %w", err)
-	}
-
-	httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
-
-	res, err := httpClient.Do(req) //nolint:gosec // G704: authCodeURL from OAuth config
-	if err != nil {
-		return nil, fmt.Errorf("fetching OAuth2 code: %w", err)
-	}
-	defer func() {
-		if err = res.Body.Close(); err != nil {
-			log.Println("failed to close oauth2 response body", err)
-		}
-	}()
-
-	rl, err := res.Location()
-	if err != nil {
-		return nil, fmt.Errorf("getting location from response: %w", err)
-	}
-
-	code := rl.Query().Get("code")
-	if code == "" {
-		return nil, fmt.Errorf("code not returned from oauth2 redirect")
-	}
-
-	oauth2Token, err := oauth2Config.Exchange(ctx, code)
-	if err != nil {
-		return nil, fmt.Errorf("exchanging OAuth2 code: %w", err)
-	}
-
-	return oauth2Token, nil
+	return exchangeAuthorizationCodeWithJWT(ctx, NewOAuth2ConfigForTestServer(clientID, clientSecret, httpServerAddress), jwt)
 }
