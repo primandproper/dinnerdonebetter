@@ -72,7 +72,7 @@ Authentication in this app is **convoluted by design**: there are several ways t
 - **Admin web app**: Same routes
 - **gRPC**: `BeginPasskeyAuthentication`, `FinishPasskeyAuthentication`
 
-**Implementation**: [`internal/authentication/webauthn/service.go`](backend/internal/authentication/webauthn/service.go), [`internal/services/auth/handlers/passkey/handlers.go`](backend/internal/services/auth/handlers/passkey/handlers.go)
+**Implementation**: [`internal/authentication/webauthn/service.go`](backend/internal/authentication/webauthn/service.go), [`frontend/consumer/src/routes/auth/passkey/`](frontend/consumer/src/routes/auth/passkey/)
 
 **Where the ceremony lives**: the ceremony itself — issuing the challenge, storing it between the
 two requests, verifying the response against it — is platform's
@@ -212,7 +212,7 @@ Tokens issued before session management (without a `sid` claim) continue to work
 | Auth interceptor                              | `internal/services/auth/grpc/interceptors/authn_interceptor.go`                     |
 | OAuth2 server                                 | `internal/services/auth/handlers/authentication/oauth2.go`                          |
 | OAuth2 token store                            | `internal/services/auth/handlers/authentication/oauth2_token_store.go`              |
-| Passkey HTTP handlers                         | `internal/services/auth/handlers/passkey/handlers.go`                               |
+| Passkey HTTP endpoints (web)                  | `frontend/consumer/src/routes/auth/passkey/`                                        |
 | Web app auth middleware                       | `internal/platform/webappauth/middleware.go`                                        |
 | Client builder (OAuth2 + JWT)                 | `internal/platform/webappauth/client_builder.go`                                    |
 | gRPC client (OAuth2, Bearer)                  | `pkg/client/client.go`                                                              |
