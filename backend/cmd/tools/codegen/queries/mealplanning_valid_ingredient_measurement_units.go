@@ -68,29 +68,28 @@ func buildValidIngredientMeasurementUnitsQueries(database string) []*Query {
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validIngredientMeasurementUnitsTableName, true, true, []string{}),
-						buildTotalCountSelect(validIngredientMeasurementUnitsTableName, true, []string{}),
+						querygen.FilterCountSelect(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns, []string{}),
+						querygen.TotalCountSelect(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns, []string{}),
 						validIngredientMeasurementUnitsTableName,
-						validMeasurementUnitsTableName, validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitsTableName, idColumn,
-						validIngredientsTableName, validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientsTableName, idColumn,
-						validIngredientMeasurementUnitsTableName, archivedAtColumn,
-						validMeasurementUnitsTableName, archivedAtColumn,
-						validIngredientsTableName, archivedAtColumn,
-						validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientIDColumn,
-						buildFilterConditions(
-							validIngredientMeasurementUnitsTableName,
-							true,
-							false,
+						validMeasurementUnitsTableName,
+						validIngredientMeasurementUnitsTableName,
+						validMeasurementUnitIDColumn,
+						validMeasurementUnitsTableName,
+						idColumn,
+						validIngredientsTableName,
+						validIngredientMeasurementUnitsTableName,
+						validIngredientIDColumn,
+						validIngredientsTableName,
+						idColumn,
+						querygen.FilterConditions(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns,
+							"valid_measurement_units.archived_at IS NULL",
+							"valid_ingredients.archived_at IS NULL",
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientIDColumn),
 						),
-						buildCursorLimitClause(validIngredientMeasurementUnitsTableName),
+						querygen.CursorLimitClause(validIngredientMeasurementUnitsTableName),
 					)),
 				},
 				{
@@ -105,25 +104,28 @@ WHERE
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validIngredientMeasurementUnitsTableName, true, true, []string{}),
-						buildTotalCountSelect(validIngredientMeasurementUnitsTableName, true, []string{}),
+						querygen.FilterCountSelect(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns, []string{}),
+						querygen.TotalCountSelect(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns, []string{}),
 						validIngredientMeasurementUnitsTableName,
-						validMeasurementUnitsTableName, validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitsTableName, idColumn,
-						validIngredientsTableName, validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientsTableName, idColumn,
-						validIngredientMeasurementUnitsTableName, archivedAtColumn,
-						validMeasurementUnitsTableName, archivedAtColumn,
-						validIngredientsTableName, archivedAtColumn,
-						validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitIDColumn,
-						buildFilterConditions(validIngredientMeasurementUnitsTableName, true, false),
-						buildCursorLimitClause(validIngredientMeasurementUnitsTableName),
+						validMeasurementUnitsTableName,
+						validIngredientMeasurementUnitsTableName,
+						validMeasurementUnitIDColumn,
+						validMeasurementUnitsTableName,
+						idColumn,
+						validIngredientsTableName,
+						validIngredientMeasurementUnitsTableName,
+						validIngredientIDColumn,
+						validIngredientsTableName,
+						idColumn,
+						querygen.FilterConditions(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns,
+							"valid_measurement_units.archived_at IS NULL",
+							"valid_ingredients.archived_at IS NULL",
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitIDColumn),
+						),
+						querygen.CursorLimitClause(validIngredientMeasurementUnitsTableName),
 					)),
 				},
 				{
@@ -138,23 +140,27 @@ WHERE
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validIngredientMeasurementUnitsTableName, true, true, []string{}),
-						buildTotalCountSelect(validIngredientMeasurementUnitsTableName, true, []string{}),
+						querygen.FilterCountSelect(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns, []string{}),
+						querygen.TotalCountSelect(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns, []string{}),
 						validIngredientMeasurementUnitsTableName,
-						validMeasurementUnitsTableName, validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitsTableName, idColumn,
-						validIngredientsTableName, validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientsTableName, idColumn,
-						validIngredientMeasurementUnitsTableName, archivedAtColumn,
-						validMeasurementUnitsTableName, archivedAtColumn,
-						validIngredientsTableName, archivedAtColumn,
-						buildFilterConditions(validIngredientMeasurementUnitsTableName, true, false),
-						buildCursorLimitClause(validIngredientMeasurementUnitsTableName),
+						validMeasurementUnitsTableName,
+						validIngredientMeasurementUnitsTableName,
+						validMeasurementUnitIDColumn,
+						validMeasurementUnitsTableName,
+						idColumn,
+						validIngredientsTableName,
+						validIngredientMeasurementUnitsTableName,
+						validIngredientIDColumn,
+						validIngredientsTableName,
+						idColumn,
+						querygen.FilterConditions(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns,
+							"valid_measurement_units.archived_at IS NULL",
+							"valid_ingredients.archived_at IS NULL",
+						),
+						querygen.CursorLimitClause(validIngredientMeasurementUnitsTableName),
 					)),
 				},
 				{

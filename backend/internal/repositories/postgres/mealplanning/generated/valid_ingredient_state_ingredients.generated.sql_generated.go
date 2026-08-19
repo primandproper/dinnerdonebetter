@@ -353,9 +353,7 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_state_ingredients.id)
 		FROM valid_ingredient_state_ingredients
-		WHERE valid_ingredient_state_ingredients.archived_at IS NULL
-			AND
-			valid_ingredient_state_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_ingredient_state_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_ingredient_state_ingredients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_state_ingredients.last_updated_at IS NULL
@@ -365,21 +363,17 @@ SELECT
 				valid_ingredient_state_ingredients.last_updated_at IS NULL
 				OR valid_ingredient_state_ingredients.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredient_state_ingredients.id)
 		FROM valid_ingredient_state_ingredients
-		WHERE valid_ingredient_state_ingredients.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
 	) AS total_count
 FROM valid_ingredient_state_ingredients
 	JOIN valid_ingredients ON valid_ingredient_state_ingredients.valid_ingredient = valid_ingredients.id
 	JOIN valid_ingredient_states ON valid_ingredient_state_ingredients.valid_ingredient_state = valid_ingredient_states.id
-WHERE
-	valid_ingredient_state_ingredients.archived_at IS NULL
-	AND valid_ingredients.archived_at IS NULL
-	AND valid_ingredient_states.archived_at IS NULL
-	AND valid_ingredient_state_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_ingredient_state_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_ingredient_state_ingredients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_state_ingredients.last_updated_at IS NULL
@@ -389,6 +383,9 @@ WHERE
 		valid_ingredient_state_ingredients.last_updated_at IS NULL
 		OR valid_ingredient_state_ingredients.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
+	AND valid_ingredients.archived_at IS NULL
+	AND valid_ingredient_states.archived_at IS NULL
 	AND valid_ingredient_state_ingredients.id > COALESCE($6, '')
 ORDER BY valid_ingredient_state_ingredients.id ASC
 LIMIT COALESCE($7, 50)
@@ -619,9 +616,7 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_state_ingredients.id)
 		FROM valid_ingredient_state_ingredients
-		WHERE valid_ingredient_state_ingredients.archived_at IS NULL
-			AND
-			valid_ingredient_state_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_ingredient_state_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_ingredient_state_ingredients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_state_ingredients.last_updated_at IS NULL
@@ -631,22 +626,17 @@ SELECT
 				valid_ingredient_state_ingredients.last_updated_at IS NULL
 				OR valid_ingredient_state_ingredients.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredient_state_ingredients.id)
 		FROM valid_ingredient_state_ingredients
-		WHERE valid_ingredient_state_ingredients.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
 	) AS total_count
 FROM valid_ingredient_state_ingredients
 	JOIN valid_ingredients ON valid_ingredient_state_ingredients.valid_ingredient = valid_ingredients.id
 	JOIN valid_ingredient_states ON valid_ingredient_state_ingredients.valid_ingredient_state = valid_ingredient_states.id
-WHERE
-	valid_ingredient_state_ingredients.archived_at IS NULL
-	AND valid_ingredients.archived_at IS NULL
-	AND valid_ingredient_states.archived_at IS NULL
-	AND valid_ingredient_state_ingredients.valid_ingredient = $6
-	AND valid_ingredient_state_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_ingredient_state_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_ingredient_state_ingredients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_state_ingredients.last_updated_at IS NULL
@@ -656,6 +646,10 @@ WHERE
 		valid_ingredient_state_ingredients.last_updated_at IS NULL
 		OR valid_ingredient_state_ingredients.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
+	AND valid_ingredients.archived_at IS NULL
+	AND valid_ingredient_states.archived_at IS NULL
+	AND valid_ingredient_state_ingredients.valid_ingredient = $6
 	AND valid_ingredient_state_ingredients.id > COALESCE($7, '')
 ORDER BY valid_ingredient_state_ingredients.id ASC
 LIMIT COALESCE($8, 50)
@@ -888,9 +882,7 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_state_ingredients.id)
 		FROM valid_ingredient_state_ingredients
-		WHERE valid_ingredient_state_ingredients.archived_at IS NULL
-			AND
-			valid_ingredient_state_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_ingredient_state_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_ingredient_state_ingredients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_state_ingredients.last_updated_at IS NULL
@@ -900,22 +892,17 @@ SELECT
 				valid_ingredient_state_ingredients.last_updated_at IS NULL
 				OR valid_ingredient_state_ingredients.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredient_state_ingredients.id)
 		FROM valid_ingredient_state_ingredients
-		WHERE valid_ingredient_state_ingredients.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
 	) AS total_count
 FROM valid_ingredient_state_ingredients
 	JOIN valid_ingredients ON valid_ingredient_state_ingredients.valid_ingredient = valid_ingredients.id
 	JOIN valid_ingredient_states ON valid_ingredient_state_ingredients.valid_ingredient_state = valid_ingredient_states.id
-WHERE
-	valid_ingredient_state_ingredients.archived_at IS NULL
-	AND valid_ingredients.archived_at IS NULL
-	AND valid_ingredient_states.archived_at IS NULL
-	AND valid_ingredient_state_ingredients.valid_ingredient_state = $6
-	AND valid_ingredient_state_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_ingredient_state_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_ingredient_state_ingredients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_state_ingredients.last_updated_at IS NULL
@@ -925,6 +912,10 @@ WHERE
 		valid_ingredient_state_ingredients.last_updated_at IS NULL
 		OR valid_ingredient_state_ingredients.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
+	AND valid_ingredients.archived_at IS NULL
+	AND valid_ingredient_states.archived_at IS NULL
+	AND valid_ingredient_state_ingredients.valid_ingredient_state = $6
 	AND valid_ingredient_state_ingredients.id > COALESCE($7, '')
 ORDER BY valid_ingredient_state_ingredients.id ASC
 LIMIT COALESCE($8, 50)

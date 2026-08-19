@@ -259,18 +259,18 @@ WHERE %s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(mealPlansColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", mealPlansTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(mealPlansTableName, true, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlansTableName, belongsToAccountColumn, belongsToAccountColumn)),
-						buildTotalCountSelect(mealPlansTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlansTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						querygen.FilterCountSelect(mealPlansTableName, mealPlansColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlansTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						querygen.TotalCountSelect(mealPlansTableName, mealPlansColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlansTableName, belongsToAccountColumn, belongsToAccountColumn)),
 						mealPlansTableName,
-						mealPlansTableName, archivedAtColumn,
-						buildFilterConditions(mealPlansTableName, true, true, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlansTableName, belongsToAccountColumn, belongsToAccountColumn)),
-						buildCursorLimitClause(mealPlansTableName),
+						querygen.FilterConditions(mealPlansTableName, mealPlansColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlansTableName, belongsToAccountColumn, belongsToAccountColumn),
+						),
+						querygen.CursorLimitClause(mealPlansTableName),
 					)),
 				},
 				{

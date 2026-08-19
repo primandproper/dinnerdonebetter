@@ -269,10 +269,8 @@ SELECT
 		SELECT COUNT(valid_preparation_instruments.id)
 		FROM valid_preparation_instruments
 		JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
-	JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-		WHERE valid_preparation_instruments.archived_at IS NULL
-			AND
-			valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
+		WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
@@ -282,7 +280,7 @@ SELECT
 				valid_preparation_instruments.last_updated_at IS NULL
 				OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
 			AND valid_preparations.archived_at IS NULL
 	) AS filtered_count,
@@ -290,19 +288,15 @@ SELECT
 		SELECT COUNT(valid_preparation_instruments.id)
 		FROM valid_preparation_instruments
 		JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
-	JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-		WHERE valid_preparation_instruments.archived_at IS NULL
+		JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
+		WHERE (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
 			AND valid_preparations.archived_at IS NULL
 	) AS total_count
 FROM valid_preparation_instruments
 	JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
 	JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-WHERE
-	valid_preparation_instruments.archived_at IS NULL
-	AND valid_instruments.archived_at IS NULL
-	AND valid_preparations.archived_at IS NULL
-	AND valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
@@ -312,7 +306,9 @@ WHERE
 		valid_preparation_instruments.last_updated_at IS NULL
 		OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
+	AND valid_instruments.archived_at IS NULL
+	AND valid_preparations.archived_at IS NULL
 	AND valid_preparation_instruments.id > COALESCE($6, '')
 GROUP BY
 	valid_preparation_instruments.id,
@@ -663,10 +659,8 @@ SELECT
 		SELECT COUNT(valid_preparation_instruments.id)
 		FROM valid_preparation_instruments
 		JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
-	JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-		WHERE valid_preparation_instruments.archived_at IS NULL
-			AND
-			valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
+		WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
@@ -676,7 +670,7 @@ SELECT
 				valid_preparation_instruments.last_updated_at IS NULL
 				OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
 			AND valid_preparations.archived_at IS NULL
 			AND valid_preparation_instruments.valid_instrument_id = $6
@@ -685,8 +679,8 @@ SELECT
 		SELECT COUNT(valid_preparation_instruments.id)
 		FROM valid_preparation_instruments
 		JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
-	JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-		WHERE valid_preparation_instruments.archived_at IS NULL
+		JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
+		WHERE (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
 			AND valid_preparations.archived_at IS NULL
 			AND valid_preparation_instruments.valid_instrument_id = $6
@@ -694,12 +688,7 @@ SELECT
 FROM valid_preparation_instruments
 	JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
 	JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-WHERE
-	valid_preparation_instruments.archived_at IS NULL
-	AND valid_preparation_instruments.valid_instrument_id = $6
-	AND valid_instruments.archived_at IS NULL
-	AND valid_preparations.archived_at IS NULL
-	AND valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
@@ -709,7 +698,10 @@ WHERE
 		valid_preparation_instruments.last_updated_at IS NULL
 		OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
+	AND valid_preparation_instruments.valid_instrument_id = $6
+	AND valid_instruments.archived_at IS NULL
+	AND valid_preparations.archived_at IS NULL
 	AND valid_preparation_instruments.id > COALESCE($7, '')
 GROUP BY
 	valid_preparation_instruments.id,
@@ -899,10 +891,8 @@ SELECT
 		SELECT COUNT(valid_preparation_instruments.id)
 		FROM valid_preparation_instruments
 		JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
-	JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-		WHERE valid_preparation_instruments.archived_at IS NULL
-			AND
-			valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
+		WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
@@ -912,7 +902,7 @@ SELECT
 				valid_preparation_instruments.last_updated_at IS NULL
 				OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
 			AND valid_preparations.archived_at IS NULL
 			AND valid_preparation_instruments.valid_preparation_id = $6
@@ -921,8 +911,8 @@ SELECT
 		SELECT COUNT(valid_preparation_instruments.id)
 		FROM valid_preparation_instruments
 		JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
-	JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-		WHERE valid_preparation_instruments.archived_at IS NULL
+		JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
+		WHERE (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
 			AND valid_preparations.archived_at IS NULL
 			AND valid_preparation_instruments.valid_preparation_id = $6
@@ -930,12 +920,7 @@ SELECT
 FROM valid_preparation_instruments
 	JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
 	JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-WHERE
-	valid_preparation_instruments.archived_at IS NULL
-	AND valid_preparation_instruments.valid_preparation_id = $6
-	AND valid_instruments.archived_at IS NULL
-	AND valid_preparations.archived_at IS NULL
-	AND valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
@@ -945,7 +930,10 @@ WHERE
 		valid_preparation_instruments.last_updated_at IS NULL
 		OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
+	AND valid_preparation_instruments.valid_preparation_id = $6
+	AND valid_instruments.archived_at IS NULL
+	AND valid_preparations.archived_at IS NULL
 	AND valid_preparation_instruments.id > COALESCE($7, '')
 GROUP BY
 	valid_preparation_instruments.id,

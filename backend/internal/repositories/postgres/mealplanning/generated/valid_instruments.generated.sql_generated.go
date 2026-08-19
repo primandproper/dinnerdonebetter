@@ -227,9 +227,7 @@ SELECT
 	(
 		SELECT COUNT(valid_instruments.id)
 		FROM valid_instruments
-		WHERE valid_instruments.archived_at IS NULL
-			AND
-			valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_instruments.last_updated_at IS NULL
@@ -239,17 +237,15 @@ SELECT
 				valid_instruments.last_updated_at IS NULL
 				OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_instruments.id)
 		FROM valid_instruments
-		WHERE valid_instruments.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	) AS total_count
 FROM valid_instruments
-WHERE
-	valid_instruments.archived_at IS NULL
-	AND valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_instruments.last_updated_at IS NULL
@@ -259,7 +255,7 @@ WHERE
 		valid_instruments.last_updated_at IS NULL
 		OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	AND valid_instruments.id > COALESCE($6, '')
 GROUP BY valid_instruments.id
 ORDER BY valid_instruments.id ASC
@@ -516,9 +512,7 @@ SELECT
 	(
 		SELECT COUNT(valid_instruments.id)
 		FROM valid_instruments
-		WHERE valid_instruments.archived_at IS NULL
-			AND
-			valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_instruments.last_updated_at IS NULL
@@ -528,17 +522,15 @@ SELECT
 				valid_instruments.last_updated_at IS NULL
 				OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_instruments.id)
 		FROM valid_instruments
-		WHERE valid_instruments.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	) AS total_count
 FROM valid_instruments
-WHERE valid_instruments.archived_at IS NULL
-	AND valid_instruments.name ILIKE '%' || $6::text || '%'
-	AND valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_instruments.last_updated_at IS NULL
@@ -548,7 +540,8 @@ WHERE valid_instruments.archived_at IS NULL
 		valid_instruments.last_updated_at IS NULL
 		OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
+	AND valid_instruments.name ILIKE '%' || $6::text || '%'
 	AND valid_instruments.id > COALESCE($7, '')
 ORDER BY valid_instruments.id ASC
 LIMIT COALESCE($8, 50)
@@ -649,9 +642,7 @@ SELECT
 	(
 		SELECT COUNT(valid_instruments.id)
 		FROM valid_instruments
-		WHERE valid_instruments.archived_at IS NULL
-			AND
-			valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_instruments.last_updated_at IS NULL
@@ -661,19 +652,17 @@ SELECT
 				valid_instruments.last_updated_at IS NULL
 				OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 			AND valid_instruments.id NOT IN (SELECT valid_instrument_id FROM account_instrument_ownerships WHERE account_instrument_ownerships.belongs_to_account = $6 AND account_instrument_ownerships.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_instruments.id)
 		FROM valid_instruments
-		WHERE valid_instruments.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 			AND valid_instruments.id NOT IN (SELECT valid_instrument_id FROM account_instrument_ownerships WHERE account_instrument_ownerships.belongs_to_account = $6 AND account_instrument_ownerships.archived_at IS NULL)
 	) AS total_count
 FROM valid_instruments
-WHERE valid_instruments.archived_at IS NULL
-	AND valid_instruments.name ILIKE '%' || $7::text || '%'
-	AND valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_instruments.last_updated_at IS NULL
@@ -683,7 +672,8 @@ WHERE valid_instruments.archived_at IS NULL
 		valid_instruments.last_updated_at IS NULL
 		OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
+	AND valid_instruments.name ILIKE '%' || $7::text || '%'
 	AND valid_instruments.id NOT IN (SELECT valid_instrument_id FROM account_instrument_ownerships WHERE account_instrument_ownerships.belongs_to_account = $6 AND account_instrument_ownerships.archived_at IS NULL)
 	AND valid_instruments.id > COALESCE($8, '')
 ORDER BY valid_instruments.id ASC

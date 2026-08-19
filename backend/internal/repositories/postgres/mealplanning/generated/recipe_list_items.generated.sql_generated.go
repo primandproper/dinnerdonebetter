@@ -75,9 +75,7 @@ SELECT
 	(
 		SELECT COUNT(recipe_list_items.id)
 		FROM recipe_list_items
-		WHERE recipe_list_items.archived_at IS NULL
-			AND
-			recipe_list_items.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE recipe_list_items.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND recipe_list_items.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				recipe_list_items.last_updated_at IS NULL
@@ -87,17 +85,16 @@ SELECT
 				recipe_list_items.last_updated_at IS NULL
 				OR recipe_list_items.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipe_list_items.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR recipe_list_items.archived_at IS NULL)
 			AND recipe_list_items.belongs_to_recipe_list = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipe_list_items.id)
 		FROM recipe_list_items
-		WHERE recipe_list_items.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR recipe_list_items.archived_at IS NULL)
 	) AS total_count
 FROM recipe_list_items
-WHERE recipe_list_items.archived_at IS NULL
-	AND recipe_list_items.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE recipe_list_items.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND recipe_list_items.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipe_list_items.last_updated_at IS NULL
@@ -107,9 +104,9 @@ WHERE recipe_list_items.archived_at IS NULL
 		recipe_list_items.last_updated_at IS NULL
 		OR recipe_list_items.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR recipe_list_items.archived_at IS NULL)
 	AND recipe_list_items.belongs_to_recipe_list = $6
 	AND recipe_list_items.id > COALESCE($7, '')
-	AND recipe_list_items.belongs_to_recipe_list = $6
 ORDER BY recipe_list_items.id ASC
 LIMIT COALESCE($8, 50)
 `

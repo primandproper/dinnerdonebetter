@@ -461,9 +461,7 @@ SELECT
 	(
 		SELECT COUNT(meal_plans.id)
 		FROM meal_plans
-		WHERE meal_plans.archived_at IS NULL
-			AND
-			meal_plans.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE meal_plans.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND meal_plans.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meal_plans.last_updated_at IS NULL
@@ -473,18 +471,17 @@ SELECT
 				meal_plans.last_updated_at IS NULL
 				OR meal_plans.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meal_plans.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR meal_plans.archived_at IS NULL)
 			AND meal_plans.belongs_to_account = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(meal_plans.id)
 		FROM meal_plans
-		WHERE meal_plans.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR meal_plans.archived_at IS NULL)
 			AND meal_plans.belongs_to_account = $6
 	) AS total_count
 FROM meal_plans
-WHERE meal_plans.archived_at IS NULL
-	AND meal_plans.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE meal_plans.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND meal_plans.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meal_plans.last_updated_at IS NULL
@@ -494,7 +491,7 @@ WHERE meal_plans.archived_at IS NULL
 		meal_plans.last_updated_at IS NULL
 		OR meal_plans.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR meal_plans.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR meal_plans.archived_at IS NULL)
 	AND meal_plans.belongs_to_account = $6
 	AND meal_plans.id > COALESCE($7, '')
 ORDER BY meal_plans.id ASC

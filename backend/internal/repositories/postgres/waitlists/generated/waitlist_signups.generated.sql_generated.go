@@ -165,9 +165,7 @@ SELECT
 	(
 		SELECT COUNT(waitlist_signups.id)
 		FROM waitlist_signups
-		WHERE waitlist_signups.archived_at IS NULL
-			AND
-			waitlist_signups.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE waitlist_signups.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND waitlist_signups.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				waitlist_signups.last_updated_at IS NULL
@@ -177,19 +175,17 @@ SELECT
 				waitlist_signups.last_updated_at IS NULL
 				OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR waitlist_signups.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR waitlist_signups.archived_at IS NULL)
 			AND waitlist_signups.belongs_to_user = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(waitlist_signups.id)
 		FROM waitlist_signups
-		WHERE waitlist_signups.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR waitlist_signups.archived_at IS NULL)
 			AND waitlist_signups.belongs_to_user = $6
 	) AS total_count
 FROM waitlist_signups
-WHERE waitlist_signups.archived_at IS NULL
-	AND waitlist_signups.belongs_to_user = $6
-	AND waitlist_signups.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE waitlist_signups.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND waitlist_signups.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		waitlist_signups.last_updated_at IS NULL
@@ -199,6 +195,7 @@ WHERE waitlist_signups.archived_at IS NULL
 		waitlist_signups.last_updated_at IS NULL
 		OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR waitlist_signups.archived_at IS NULL)
 	AND waitlist_signups.belongs_to_user = $6
 	AND waitlist_signups.id > COALESCE($7, '')
 ORDER BY waitlist_signups.id ASC
@@ -285,9 +282,7 @@ SELECT
 	(
 		SELECT COUNT(waitlist_signups.id)
 		FROM waitlist_signups
-		WHERE waitlist_signups.archived_at IS NULL
-			AND
-			waitlist_signups.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE waitlist_signups.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND waitlist_signups.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				waitlist_signups.last_updated_at IS NULL
@@ -297,19 +292,17 @@ SELECT
 				waitlist_signups.last_updated_at IS NULL
 				OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR waitlist_signups.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR waitlist_signups.archived_at IS NULL)
 			AND waitlist_signups.belongs_to_waitlist = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(waitlist_signups.id)
 		FROM waitlist_signups
-		WHERE waitlist_signups.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR waitlist_signups.archived_at IS NULL)
 			AND waitlist_signups.belongs_to_waitlist = $6
 	) AS total_count
 FROM waitlist_signups
-WHERE waitlist_signups.archived_at IS NULL
-	AND waitlist_signups.belongs_to_waitlist = $6
-	AND waitlist_signups.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE waitlist_signups.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND waitlist_signups.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		waitlist_signups.last_updated_at IS NULL
@@ -319,6 +312,7 @@ WHERE waitlist_signups.archived_at IS NULL
 		waitlist_signups.last_updated_at IS NULL
 		OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR waitlist_signups.archived_at IS NULL)
 	AND waitlist_signups.belongs_to_waitlist = $6
 	AND waitlist_signups.id > COALESCE($7, '')
 ORDER BY waitlist_signups.id ASC

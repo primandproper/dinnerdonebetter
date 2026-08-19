@@ -131,9 +131,7 @@ SELECT
 	(
 		SELECT COUNT(comments.id)
 		FROM comments
-		WHERE comments.archived_at IS NULL
-			AND
-			comments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE comments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND comments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				comments.last_updated_at IS NULL
@@ -143,22 +141,19 @@ SELECT
 				comments.last_updated_at IS NULL
 				OR comments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
 			AND comments.target_type = $6
 			AND comments.referenced_id = $7
 	) AS filtered_count,
 	(
 		SELECT COUNT(comments.id)
 		FROM comments
-		WHERE comments.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
 			AND comments.target_type = $6
 			AND comments.referenced_id = $7
 	) AS total_count
 FROM comments
-WHERE comments.archived_at IS NULL
-	AND comments.target_type = $6
-	AND comments.referenced_id = $7
-	AND comments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE comments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND comments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		comments.last_updated_at IS NULL
@@ -168,7 +163,7 @@ WHERE comments.archived_at IS NULL
 		comments.last_updated_at IS NULL
 		OR comments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
 	AND comments.target_type = $6
 	AND comments.referenced_id = $7
 	AND comments.id > COALESCE($8, '')
@@ -261,9 +256,7 @@ SELECT
 	(
 		SELECT COUNT(comments.id)
 		FROM comments
-		WHERE comments.archived_at IS NULL
-			AND
-			comments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE comments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND comments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				comments.last_updated_at IS NULL
@@ -273,19 +266,17 @@ SELECT
 				comments.last_updated_at IS NULL
 				OR comments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
 			AND comments.belongs_to_user = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(comments.id)
 		FROM comments
-		WHERE comments.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
 			AND comments.belongs_to_user = $6
 	) AS total_count
 FROM comments
-WHERE comments.archived_at IS NULL
-	AND comments.belongs_to_user = $6
-	AND comments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE comments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND comments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		comments.last_updated_at IS NULL
@@ -295,7 +286,7 @@ WHERE comments.archived_at IS NULL
 		comments.last_updated_at IS NULL
 		OR comments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
 	AND comments.belongs_to_user = $6
 	AND comments.id > COALESCE($7, '')
 ORDER BY comments.id ASC

@@ -56,26 +56,19 @@ func buildValidInstrumentsQueries(database string) []*Query {
 	%s,
 	%s
 FROM %s
-WHERE
-	%s.%s IS NULL
-	%s
+WHERE %s
 GROUP BY %s.%s
 %s;`,
 						strings.Join(applyToEach(validInstrumentsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validInstrumentsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(validInstrumentsTableName, true, true, []string{}),
-						buildTotalCountSelect(validInstrumentsTableName, true, []string{}),
+						querygen.FilterCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{}),
+						querygen.TotalCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{}),
 						validInstrumentsTableName,
+						querygen.FilterConditions(validInstrumentsTableName, validInstrumentsColumns),
 						validInstrumentsTableName,
-						archivedAtColumn,
-						buildFilterConditions(
-							validInstrumentsTableName,
-							true,
-							true,
-						),
-						validInstrumentsTableName, idColumn,
-						buildCursorLimitClause(validInstrumentsTableName),
+						idColumn,
+						querygen.CursorLimitClause(validInstrumentsTableName),
 					)),
 				},
 				{
@@ -150,27 +143,18 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(validInstrumentsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validInstrumentsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(validInstrumentsTableName, true, true, []string{}),
-						buildTotalCountSelect(validInstrumentsTableName, true, []string{}),
+						querygen.FilterCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{}),
+						querygen.TotalCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{}),
 						validInstrumentsTableName,
-						validInstrumentsTableName,
-						archivedAtColumn,
-						validInstrumentsTableName,
-						nameColumn,
-						buildILIKEForArgument("name_query"),
-						buildFilterConditions(
-							validInstrumentsTableName,
-							true,
-							true,
+						querygen.FilterConditions(validInstrumentsTableName, validInstrumentsColumns,
+							fmt.Sprintf("%s.%s %s", validInstrumentsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						buildCursorLimitClause(validInstrumentsTableName),
+						querygen.CursorLimitClause(validInstrumentsTableName),
 					)),
 				},
 				{
@@ -183,30 +167,21 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(validInstrumentsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validInstrumentsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(validInstrumentsTableName, true, true, []string{},
+						querygen.FilterCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{},
 							validInstrumentsTableName+".id NOT IN (SELECT valid_instrument_id FROM account_instrument_ownerships WHERE account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id) AND account_instrument_ownerships.archived_at IS NULL)"),
-						buildTotalCountSelect(validInstrumentsTableName, true, []string{},
+						querygen.TotalCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{},
 							validInstrumentsTableName+".id NOT IN (SELECT valid_instrument_id FROM account_instrument_ownerships WHERE account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id) AND account_instrument_ownerships.archived_at IS NULL)"),
 						validInstrumentsTableName,
-						validInstrumentsTableName,
-						archivedAtColumn,
-						validInstrumentsTableName,
-						nameColumn,
-						buildILIKEForArgument("name_query"),
-						buildFilterConditions(
-							validInstrumentsTableName,
-							true,
-							true,
+						querygen.FilterConditions(validInstrumentsTableName, validInstrumentsColumns,
+							fmt.Sprintf("%s.%s %s", validInstrumentsTableName, nameColumn, buildILIKEForArgument("name_query")),
 							validInstrumentsTableName+".id NOT IN (SELECT valid_instrument_id FROM account_instrument_ownerships WHERE account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id) AND account_instrument_ownerships.archived_at IS NULL)",
 						),
-						buildCursorLimitClause(validInstrumentsTableName),
+						querygen.CursorLimitClause(validInstrumentsTableName),
 					)),
 				},
 			},

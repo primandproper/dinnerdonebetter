@@ -55,15 +55,16 @@ func buildPaymentsTransactionsQueries(database string) []*Query {
 	%s
 FROM %s
 WHERE %s
-	%s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(paymentTransactionsTableName, false, false, nil, accountCondition),
-						buildTotalCountSelect(paymentTransactionsTableName, false, nil, accountCondition),
+						querygen.FilterCountSelect(paymentTransactionsTableName, paymentTransactionsColumns, nil, accountCondition),
+						querygen.TotalCountSelect(paymentTransactionsTableName, paymentTransactionsColumns, nil, accountCondition),
 						paymentTransactionsTableName,
-						accountCondition,
-						buildFilterConditions(paymentTransactionsTableName, false, false, accountCondition),
-						buildCursorLimitClause(paymentTransactionsTableName),
+						querygen.FilterConditions(paymentTransactionsTableName, paymentTransactionsColumns,
+							accountCondition,
+							accountCondition,
+						),
+						querygen.CursorLimitClause(paymentTransactionsTableName),
 					)),
 				},
 			},

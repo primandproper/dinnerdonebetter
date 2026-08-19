@@ -60,17 +60,15 @@ func buildRecipeListsQueries(database string) []*Query {
 	%s
 FROM %s
 	LEFT JOIN %s ON %s.%s = %s.%s AND %s.%s IS NULL
-	WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(recipeListsTableName, true, true, []string{}),
-						buildTotalCountSelect(recipeListsTableName, true, []string{}),
+						querygen.FilterCountSelect(recipeListsTableName, recipeListsColumns, []string{}),
+						querygen.TotalCountSelect(recipeListsTableName, recipeListsColumns, []string{}),
 						recipeListsTableName,
 						recipeListItemsTableName, recipeListItemsTableName, "belongs_to_recipe_list", recipeListsTableName, idColumn, recipeListItemsTableName, archivedAtColumn,
-						recipeListsTableName, archivedAtColumn,
-						buildFilterConditions(recipeListsTableName, true, false),
-						buildCursorLimitClause(recipeListsTableName),
+						querygen.FilterConditions(recipeListsTableName, recipeListsColumns),
+						querygen.CursorLimitClause(recipeListsTableName),
 					)),
 				},
 			},

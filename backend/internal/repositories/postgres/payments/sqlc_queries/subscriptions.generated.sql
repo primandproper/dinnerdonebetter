@@ -77,9 +77,7 @@ SELECT
 	(
 		SELECT COUNT(subscriptions.id)
 		FROM subscriptions
-		WHERE subscriptions.archived_at IS NULL
-			AND
-			subscriptions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE subscriptions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND subscriptions.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				subscriptions.last_updated_at IS NULL
@@ -89,19 +87,17 @@ SELECT
 				subscriptions.last_updated_at IS NULL
 				OR subscriptions.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR subscriptions.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR subscriptions.archived_at IS NULL)
 			AND subscriptions.belongs_to_account = sqlc.arg(belongs_to_account)
 	) AS filtered_count,
 	(
 		SELECT COUNT(subscriptions.id)
 		FROM subscriptions
-		WHERE subscriptions.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR subscriptions.archived_at IS NULL)
 			AND subscriptions.belongs_to_account = sqlc.arg(belongs_to_account)
 	) AS total_count
 FROM subscriptions
-WHERE subscriptions.archived_at IS NULL
-	AND subscriptions.belongs_to_account = sqlc.arg(belongs_to_account)
-	AND subscriptions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE subscriptions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND subscriptions.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		subscriptions.last_updated_at IS NULL
@@ -111,6 +107,8 @@ WHERE subscriptions.archived_at IS NULL
 		subscriptions.last_updated_at IS NULL
 		OR subscriptions.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR subscriptions.archived_at IS NULL)
+	AND subscriptions.belongs_to_account = sqlc.arg(belongs_to_account)
 	AND subscriptions.belongs_to_account = sqlc.arg(belongs_to_account)
 	AND subscriptions.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY subscriptions.id ASC

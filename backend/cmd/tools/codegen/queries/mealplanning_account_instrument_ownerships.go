@@ -61,23 +61,28 @@ func buildAccountInstrumentOwnershipQueries(database string) []*Query {
 	%s
 FROM %s
 INNER JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	%s
+WHERE %s
 GROUP BY
 	%s.%s,
 	%s.%s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(accountInstrumentOwnershipsTableName, true, true, []string{}, "account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)"),
-						buildTotalCountSelect(accountInstrumentOwnershipsTableName, true, []string{}, "account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)"),
+						querygen.FilterCountSelect(accountInstrumentOwnershipsTableName, accountInstrumentOwnershipsColumns, []string{}, "account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)"),
+						querygen.TotalCountSelect(accountInstrumentOwnershipsTableName, accountInstrumentOwnershipsColumns, []string{}, "account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)"),
 						accountInstrumentOwnershipsTableName,
-						validInstrumentsTableName, accountInstrumentOwnershipsTableName, validInstrumentIDColumn, validInstrumentsTableName, idColumn,
-						accountInstrumentOwnershipsTableName, archivedAtColumn,
-						buildFilterConditions(accountInstrumentOwnershipsTableName, true, true, "account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)"),
-						accountInstrumentOwnershipsTableName, idColumn,
-						validInstrumentsTableName, idColumn,
-						buildCursorLimitClause(accountInstrumentOwnershipsTableName),
+						validInstrumentsTableName,
+						accountInstrumentOwnershipsTableName,
+						validInstrumentIDColumn,
+						validInstrumentsTableName,
+						idColumn,
+						querygen.FilterConditions(accountInstrumentOwnershipsTableName, accountInstrumentOwnershipsColumns,
+							"account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)",
+						),
+						accountInstrumentOwnershipsTableName,
+						idColumn,
+						validInstrumentsTableName,
+						idColumn,
+						querygen.CursorLimitClause(accountInstrumentOwnershipsTableName),
 					)),
 				},
 				{

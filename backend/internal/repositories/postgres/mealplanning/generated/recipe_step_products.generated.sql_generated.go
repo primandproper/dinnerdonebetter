@@ -331,9 +331,7 @@ SELECT
 	(
 		SELECT COUNT(recipe_step_products.id)
 		FROM recipe_step_products
-		WHERE recipe_step_products.archived_at IS NULL
-			AND
-			recipe_step_products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE recipe_step_products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND recipe_step_products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				recipe_step_products.last_updated_at IS NULL
@@ -343,7 +341,7 @@ SELECT
 				recipe_step_products.last_updated_at IS NULL
 				OR recipe_step_products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipe_step_products.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR recipe_step_products.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipe_step_products.id)
@@ -355,14 +353,7 @@ FROM recipe_step_products
 	JOIN recipe_steps ON recipe_step_products.belongs_to_recipe_step=recipe_steps.id
 	JOIN recipes ON recipe_steps.belongs_to_recipe=recipes.id
 	LEFT JOIN valid_measurement_units ON recipe_step_products.measurement_unit=valid_measurement_units.id
-WHERE recipe_step_products.archived_at IS NULL
-	AND recipe_step_products.belongs_to_recipe_step = $6
-	AND recipe_steps.archived_at IS NULL
-	AND recipe_steps.id = $6
-	AND recipe_steps.belongs_to_recipe = $7
-	AND recipes.archived_at IS NULL
-	AND recipes.id = $7
-	AND recipe_step_products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE recipe_step_products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND recipe_step_products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipe_step_products.last_updated_at IS NULL
@@ -372,7 +363,13 @@ WHERE recipe_step_products.archived_at IS NULL
 		recipe_step_products.last_updated_at IS NULL
 		OR recipe_step_products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR recipe_step_products.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR recipe_step_products.archived_at IS NULL)
+	AND recipe_step_products.belongs_to_recipe_step = $6
+	AND recipe_steps.archived_at IS NULL
+	AND recipe_steps.id = $6
+	AND recipe_steps.belongs_to_recipe = $7
+	AND recipes.archived_at IS NULL
+	AND recipes.id = $7
 	AND recipe_step_products.id > COALESCE($8, '')
 ORDER BY recipe_step_products.id ASC
 LIMIT COALESCE($9, 50)

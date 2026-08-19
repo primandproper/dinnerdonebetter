@@ -733,10 +733,8 @@ SELECT
 		SELECT COUNT(recipe_step_ingredients.id)
 		FROM recipe_step_ingredients
 		JOIN recipe_steps ON recipe_step_ingredients.belongs_to_recipe_step = recipe_steps.id
-	JOIN recipes ON recipe_steps.belongs_to_recipe = recipes.id
-		WHERE recipe_step_ingredients.archived_at IS NULL
-			AND
-			recipe_step_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		JOIN recipes ON recipe_steps.belongs_to_recipe = recipes.id
+		WHERE recipe_step_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND recipe_step_ingredients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				recipe_step_ingredients.last_updated_at IS NULL
@@ -746,7 +744,7 @@ SELECT
 				recipe_step_ingredients.last_updated_at IS NULL
 				OR recipe_step_ingredients.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipe_step_ingredients.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR recipe_step_ingredients.archived_at IS NULL)
 			AND recipes.id = $6
 			AND recipe_steps.id = $7
 			AND recipe_steps.belongs_to_recipe = $6
@@ -756,8 +754,8 @@ SELECT
 		SELECT COUNT(recipe_step_ingredients.id)
 		FROM recipe_step_ingredients
 		JOIN recipe_steps ON recipe_step_ingredients.belongs_to_recipe_step = recipe_steps.id
-	JOIN recipes ON recipe_steps.belongs_to_recipe = recipes.id
-		WHERE recipe_step_ingredients.archived_at IS NULL
+		JOIN recipes ON recipe_steps.belongs_to_recipe = recipes.id
+		WHERE (COALESCE($5, false)::boolean OR recipe_step_ingredients.archived_at IS NULL)
 			AND recipes.id = $6
 			AND recipe_steps.id = $7
 			AND recipe_steps.belongs_to_recipe = $6
@@ -768,13 +766,7 @@ FROM recipe_step_ingredients
 	JOIN recipes ON recipe_steps.belongs_to_recipe = recipes.id
 	LEFT JOIN valid_ingredients ON recipe_step_ingredients.ingredient_id = valid_ingredients.id
 	JOIN valid_measurement_units ON recipe_step_ingredients.measurement_unit = valid_measurement_units.id
-WHERE
-	recipe_step_ingredients.archived_at IS NULL
-	AND recipes.id = $6
-	AND recipe_steps.id = $7
-	AND recipe_steps.belongs_to_recipe = $6
-	AND recipe_step_ingredients.belongs_to_recipe_step = $7
-	AND recipe_step_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE recipe_step_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND recipe_step_ingredients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipe_step_ingredients.last_updated_at IS NULL
@@ -784,6 +776,11 @@ WHERE
 		recipe_step_ingredients.last_updated_at IS NULL
 		OR recipe_step_ingredients.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR recipe_step_ingredients.archived_at IS NULL)
+	AND recipes.id = $6
+	AND recipe_steps.id = $7
+	AND recipe_steps.belongs_to_recipe = $6
+	AND recipe_step_ingredients.belongs_to_recipe_step = $7
 	AND recipe_step_ingredients.id > COALESCE($8, '')
 ORDER BY recipe_step_ingredients.id ASC
 LIMIT COALESCE($9, 50)

@@ -57,26 +57,19 @@ func buildValidMeasurementUnitsQueries(database string) []*Query {
 	%s,
 	%s
 FROM %s
-WHERE
-	%s.%s IS NULL
-	%s
+WHERE %s
 GROUP BY %s.%s
 %s;`,
 						strings.Join(applyToEach(validMeasurementUnitsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validMeasurementUnitsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(validMeasurementUnitsTableName, true, true, []string{}),
-						buildTotalCountSelect(validMeasurementUnitsTableName, true, []string{}),
+						querygen.FilterCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
+						querygen.TotalCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
 						validMeasurementUnitsTableName,
+						querygen.FilterConditions(validMeasurementUnitsTableName, validMeasurementUnitsColumns),
 						validMeasurementUnitsTableName,
-						archivedAtColumn,
-						buildFilterConditions(
-							validMeasurementUnitsTableName,
-							true,
-							true,
-						),
-						validMeasurementUnitsTableName, idColumn,
-						buildCursorLimitClause(validMeasurementUnitsTableName),
+						idColumn,
+						querygen.CursorLimitClause(validMeasurementUnitsTableName),
 					)),
 				},
 				{
@@ -89,28 +82,21 @@ GROUP BY %s.%s
 	%s,
 	%s
 FROM %s
-WHERE
-    %s.%s = TRUE AND
-	%s.%s IS NULL
-	%s
+WHERE %s
 GROUP BY %s.%s
 %s;`,
 						strings.Join(applyToEach(validMeasurementUnitsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validMeasurementUnitsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(validMeasurementUnitsTableName, true, true, []string{}),
-						buildTotalCountSelect(validMeasurementUnitsTableName, true, []string{}),
+						querygen.FilterCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
+						querygen.TotalCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
 						validMeasurementUnitsTableName,
-						validMeasurementUnitsTableName, validMeasurementUnitsUniversalColumn,
-						validMeasurementUnitsTableName,
-						archivedAtColumn,
-						buildFilterConditions(
-							validMeasurementUnitsTableName,
-							true,
-							true,
+						querygen.FilterConditions(validMeasurementUnitsTableName, validMeasurementUnitsColumns,
+							fmt.Sprintf("%s.%s = TRUE", validMeasurementUnitsTableName, validMeasurementUnitsUniversalColumn),
 						),
-						validMeasurementUnitsTableName, idColumn,
-						buildCursorLimitClause(validMeasurementUnitsTableName),
+						validMeasurementUnitsTableName,
+						idColumn,
+						querygen.CursorLimitClause(validMeasurementUnitsTableName),
 					)),
 				},
 				{
@@ -185,27 +171,18 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(validMeasurementUnitsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validMeasurementUnitsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(validMeasurementUnitsTableName, true, true, []string{}),
-						buildTotalCountSelect(validMeasurementUnitsTableName, true, []string{}),
+						querygen.FilterCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
+						querygen.TotalCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
 						validMeasurementUnitsTableName,
-						validMeasurementUnitsTableName,
-						archivedAtColumn,
-						validMeasurementUnitsTableName,
-						nameColumn,
-						buildILIKEForArgument("name_query"),
-						buildFilterConditions(
-							validMeasurementUnitsTableName,
-							true,
-							true,
+						querygen.FilterConditions(validMeasurementUnitsTableName, validMeasurementUnitsColumns,
+							fmt.Sprintf("%s.%s %s", validMeasurementUnitsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						buildCursorLimitClause(validMeasurementUnitsTableName),
+						querygen.CursorLimitClause(validMeasurementUnitsTableName),
 					)),
 				},
 				{
@@ -220,15 +197,7 @@ WHERE %s.%s IS NULL
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	(
-		%s.%s = sqlc.arg(%s)
-		OR %s.%s = TRUE
-	)
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(validMeasurementUnitsColumns, func(i int, s string) string {
 							if i == 0 {
@@ -236,21 +205,28 @@ WHERE
 							}
 							return fmt.Sprintf("%s.%s", validMeasurementUnitsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(validMeasurementUnitsTableName, true, true, []string{}, ` (
+						querygen.FilterCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}, ` (
 				valid_ingredient_measurement_units.valid_ingredient_id = sqlc.arg(valid_ingredient_id)
 				OR valid_measurement_units.universal = true
 			)`),
-						buildTotalCountSelect(validMeasurementUnitsTableName, true, []string{}),
+						querygen.TotalCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
 						validMeasurementUnitsTableName,
-						validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitsTableName, idColumn,
-						validIngredientsTableName, validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientsTableName, idColumn,
-						validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientIDColumn,
-						validMeasurementUnitsTableName, validMeasurementUnitsUniversalColumn,
-						validMeasurementUnitsTableName, archivedAtColumn,
-						validIngredientsTableName, archivedAtColumn,
-						validIngredientMeasurementUnitsTableName, archivedAtColumn,
-						buildFilterConditions(validMeasurementUnitsTableName, true, false),
-						buildCursorLimitClause(validMeasurementUnitsTableName),
+						validIngredientMeasurementUnitsTableName,
+						validIngredientMeasurementUnitsTableName,
+						validMeasurementUnitIDColumn,
+						validMeasurementUnitsTableName,
+						idColumn,
+						validIngredientsTableName,
+						validIngredientMeasurementUnitsTableName,
+						validIngredientIDColumn,
+						validIngredientsTableName,
+						idColumn,
+						querygen.FilterConditions(validMeasurementUnitsTableName, validMeasurementUnitsColumns,
+							fmt.Sprintf("(\n\t\t%s.%s = sqlc.arg(%s)\n\t\tOR %s.%s = TRUE\n\t)", validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientIDColumn, validMeasurementUnitsTableName, validMeasurementUnitsUniversalColumn),
+							"valid_ingredients.archived_at IS NULL",
+							"valid_ingredient_measurement_units.archived_at IS NULL",
+						),
+						querygen.CursorLimitClause(validMeasurementUnitsTableName),
 					)),
 				},
 			},

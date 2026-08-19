@@ -511,9 +511,7 @@ SELECT
 	(
 		SELECT COUNT(meal_plan_options.id)
 		FROM meal_plan_options
-		WHERE meal_plan_options.archived_at IS NULL
-			AND
-			meal_plan_options.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE meal_plan_options.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND meal_plan_options.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meal_plan_options.last_updated_at IS NULL
@@ -523,26 +521,19 @@ SELECT
 				meal_plan_options.last_updated_at IS NULL
 				OR meal_plan_options.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meal_plan_options.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR meal_plan_options.archived_at IS NULL)
 			AND meal_plan_options.belongs_to_meal_plan_event = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(meal_plan_options.id)
 		FROM meal_plan_options
-		WHERE meal_plan_options.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR meal_plan_options.archived_at IS NULL)
 	) AS total_count
 FROM meal_plan_options
 	JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event = meal_plan_events.id
 	JOIN meal_plans ON meal_plan_events.belongs_to_meal_plan = meal_plans.id
 	JOIN meals ON meal_plan_options.meal_id = meals.id
-WHERE
-	meal_plan_options.archived_at IS NULL
-	AND meal_plan_options.belongs_to_meal_plan_event = $6
-	AND meal_plan_events.id = $6
-	AND meal_plan_events.belongs_to_meal_plan = $7
-	AND meal_plans.archived_at IS NULL
-	AND meal_plans.id = $7
-	AND meal_plan_options.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE meal_plan_options.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND meal_plan_options.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meal_plan_options.last_updated_at IS NULL
@@ -552,6 +543,11 @@ WHERE
 		meal_plan_options.last_updated_at IS NULL
 		OR meal_plan_options.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR meal_plan_options.archived_at IS NULL)
+	AND meal_plan_events.id = $6
+	AND meal_plan_events.belongs_to_meal_plan = $7
+	AND meal_plans.archived_at IS NULL
+	AND meal_plans.id = $7
 	AND meal_plan_options.belongs_to_meal_plan_event = $6
 	AND meal_plan_options.id > COALESCE($8, '')
 ORDER BY meal_plan_options.id ASC

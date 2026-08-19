@@ -345,9 +345,7 @@ SELECT
 	(
 		SELECT COUNT(valid_preparation_vessels.id)
 		FROM valid_preparation_vessels
-		WHERE valid_preparation_vessels.archived_at IS NULL
-			AND
-			valid_preparation_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_preparation_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_preparation_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_preparation_vessels.last_updated_at IS NULL
@@ -357,23 +355,18 @@ SELECT
 				valid_preparation_vessels.last_updated_at IS NULL
 				OR valid_preparation_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_preparation_vessels.id)
 		FROM valid_preparation_vessels
-		WHERE valid_preparation_vessels.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
 	) AS total_count
 FROM valid_preparation_vessels
 	JOIN valid_vessels ON valid_preparation_vessels.valid_vessel_id = valid_vessels.id
 	JOIN valid_preparations ON valid_preparation_vessels.valid_preparation_id = valid_preparations.id
 	LEFT JOIN valid_measurement_units ON valid_vessels.capacity_unit = valid_measurement_units.id
-WHERE
-	valid_preparation_vessels.archived_at IS NULL
-	AND valid_vessels.archived_at IS NULL
-	AND valid_preparations.archived_at IS NULL
-	AND valid_measurement_units.archived_at IS NULL
-	AND valid_preparation_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_preparation_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_preparation_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_vessels.last_updated_at IS NULL
@@ -383,6 +376,10 @@ WHERE
 		valid_preparation_vessels.last_updated_at IS NULL
 		OR valid_preparation_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
+	AND valid_vessels.archived_at IS NULL
+	AND valid_preparations.archived_at IS NULL
+	AND valid_measurement_units.archived_at IS NULL
 	AND valid_preparation_vessels.id > COALESCE($6, '')
 ORDER BY valid_preparation_vessels.id ASC
 LIMIT COALESCE($7, 50)
@@ -843,9 +840,7 @@ SELECT
 	(
 		SELECT COUNT(valid_preparation_vessels.id)
 		FROM valid_preparation_vessels
-		WHERE valid_preparation_vessels.archived_at IS NULL
-			AND
-			valid_preparation_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_preparation_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_preparation_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_preparation_vessels.last_updated_at IS NULL
@@ -855,24 +850,18 @@ SELECT
 				valid_preparation_vessels.last_updated_at IS NULL
 				OR valid_preparation_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_preparation_vessels.id)
 		FROM valid_preparation_vessels
-		WHERE valid_preparation_vessels.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
 	) AS total_count
 FROM valid_preparation_vessels
 	JOIN valid_vessels ON valid_preparation_vessels.valid_vessel_id = valid_vessels.id
 	JOIN valid_preparations ON valid_preparation_vessels.valid_preparation_id = valid_preparations.id
 	LEFT JOIN valid_measurement_units ON valid_vessels.capacity_unit = valid_measurement_units.id
-WHERE
-	valid_preparation_vessels.archived_at IS NULL
-	AND valid_vessels.archived_at IS NULL
-	AND valid_preparations.archived_at IS NULL
-	AND valid_measurement_units.archived_at IS NULL
-	AND valid_preparation_vessels.valid_preparation_id = $6
-	AND valid_preparation_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_preparation_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_preparation_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_vessels.last_updated_at IS NULL
@@ -882,6 +871,11 @@ WHERE
 		valid_preparation_vessels.last_updated_at IS NULL
 		OR valid_preparation_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
+	AND valid_vessels.archived_at IS NULL
+	AND valid_preparations.archived_at IS NULL
+	AND valid_measurement_units.archived_at IS NULL
+	AND valid_preparation_vessels.valid_preparation_id = $6
 	AND valid_preparation_vessels.id > COALESCE($7, '')
 ORDER BY valid_preparation_vessels.id ASC
 LIMIT COALESCE($8, 50)
@@ -1123,9 +1117,7 @@ SELECT
 	(
 		SELECT COUNT(valid_preparation_vessels.id)
 		FROM valid_preparation_vessels
-		WHERE valid_preparation_vessels.archived_at IS NULL
-			AND
-			valid_preparation_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_preparation_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_preparation_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_preparation_vessels.last_updated_at IS NULL
@@ -1135,24 +1127,18 @@ SELECT
 				valid_preparation_vessels.last_updated_at IS NULL
 				OR valid_preparation_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_preparation_vessels.id)
 		FROM valid_preparation_vessels
-		WHERE valid_preparation_vessels.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
 	) AS total_count
 FROM valid_preparation_vessels
 	JOIN valid_vessels ON valid_preparation_vessels.valid_vessel_id = valid_vessels.id
 	JOIN valid_preparations ON valid_preparation_vessels.valid_preparation_id = valid_preparations.id
 	LEFT JOIN valid_measurement_units ON valid_vessels.capacity_unit = valid_measurement_units.id
-WHERE
-	valid_preparation_vessels.archived_at IS NULL
-	AND valid_vessels.archived_at IS NULL
-	AND valid_preparations.archived_at IS NULL
-	AND valid_measurement_units.archived_at IS NULL
-	AND valid_preparation_vessels.valid_vessel_id = $6
-	AND valid_preparation_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_preparation_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_preparation_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_vessels.last_updated_at IS NULL
@@ -1162,6 +1148,11 @@ WHERE
 		valid_preparation_vessels.last_updated_at IS NULL
 		OR valid_preparation_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR valid_preparation_vessels.archived_at IS NULL)
+	AND valid_vessels.archived_at IS NULL
+	AND valid_preparations.archived_at IS NULL
+	AND valid_measurement_units.archived_at IS NULL
+	AND valid_preparation_vessels.valid_vessel_id = $6
 	AND valid_preparation_vessels.id > COALESCE($7, '')
 ORDER BY valid_preparation_vessels.id ASC
 LIMIT COALESCE($8, 50)

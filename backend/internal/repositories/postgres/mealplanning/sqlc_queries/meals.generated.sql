@@ -127,9 +127,7 @@ SELECT
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.archived_at IS NULL
-			AND
-			meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND meals.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meals.last_updated_at IS NULL
@@ -139,19 +137,17 @@ SELECT
 				meals.last_updated_at IS NULL
 				OR meals.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
 	) AS total_count
 FROM meals
 	LEFT JOIN meal_components ON meal_components.belongs_to_meal=meals.id AND meal_components.archived_at IS NULL
 		AND EXISTS (SELECT 1 FROM recipes WHERE recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL)
-WHERE
-	meals.archived_at IS NULL
-	AND meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND meals.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meals.last_updated_at IS NULL
@@ -161,7 +157,7 @@ WHERE
 		meals.last_updated_at IS NULL
 		OR meals.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
 	AND meals.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY meals.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -219,9 +215,7 @@ SELECT
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.archived_at IS NULL
-			AND
-			meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND meals.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meals.last_updated_at IS NULL
@@ -231,22 +225,19 @@ SELECT
 				meals.last_updated_at IS NULL
 				OR meals.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
 			AND meals.created_by_user = sqlc.arg(created_by_user)
 	) AS filtered_count,
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
 			AND meals.created_by_user = sqlc.arg(created_by_user)
 	) AS total_count
 FROM meals
 	LEFT JOIN meal_components ON meal_components.belongs_to_meal=meals.id AND meal_components.archived_at IS NULL
 		AND EXISTS (SELECT 1 FROM recipes WHERE recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL)
-WHERE
-	meals.archived_at IS NULL
-	AND meals.created_by_user = sqlc.arg(created_by_user)
-	AND meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND meals.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meals.last_updated_at IS NULL
@@ -256,7 +247,7 @@ WHERE
 		meals.last_updated_at IS NULL
 		OR meals.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
 	AND meals.created_by_user = sqlc.arg(created_by_user)
 	AND meals.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY meals.id ASC
@@ -286,9 +277,7 @@ SELECT
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.archived_at IS NULL
-			AND
-			meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND meals.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meals.last_updated_at IS NULL
@@ -298,21 +287,18 @@ SELECT
 				meals.last_updated_at IS NULL
 				OR meals.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
 	) AS total_count
 FROM meals
 	JOIN meal_components ON meal_components.belongs_to_meal=meals.id
 		AND meal_components.archived_at IS NULL
 		AND EXISTS (SELECT 1 FROM recipes WHERE recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL)
-WHERE
-	meals.archived_at IS NULL
-	AND meals.name ILIKE '%' || sqlc.arg(query)::text || '%'
-	AND meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND meals.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meals.last_updated_at IS NULL
@@ -322,7 +308,8 @@ WHERE
 		meals.last_updated_at IS NULL
 		OR meals.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
+	AND meals.name ILIKE '%' || sqlc.arg(query)::text || '%'
 	AND meals.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY meals.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

@@ -114,9 +114,7 @@ SELECT
 	(
 		SELECT COUNT(permissions.id)
 		FROM permissions
-		WHERE permissions.archived_at IS NULL
-			AND
-			permissions.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE permissions.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND permissions.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				permissions.last_updated_at IS NULL
@@ -126,16 +124,15 @@ SELECT
 				permissions.last_updated_at IS NULL
 				OR permissions.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR permissions.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR permissions.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(permissions.id)
 		FROM permissions
-		WHERE permissions.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR permissions.archived_at IS NULL)
 	) AS total_count
 FROM permissions
-WHERE permissions.archived_at IS NULL
-	AND permissions.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE permissions.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND permissions.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		permissions.last_updated_at IS NULL
@@ -145,7 +142,7 @@ WHERE permissions.archived_at IS NULL
 		permissions.last_updated_at IS NULL
 		OR permissions.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR permissions.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR permissions.archived_at IS NULL)
 	AND permissions.id > COALESCE($6, '')
 ORDER BY permissions.id ASC
 LIMIT COALESCE($7, 50)

@@ -159,19 +159,31 @@ FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(recipeStepCompletionConditionIngredientsTableName, true, true, []string{}, "recipe_step_completion_conditions.belongs_to_recipe_step = sqlc.arg(recipe_step_id)"),
-						buildTotalCountSelect(recipeStepCompletionConditionIngredientsTableName, true, []string{}),
+						querygen.FilterCountSelect(recipeStepCompletionConditionIngredientsTableName, recipeStepCompletionConditionIngredientsColumns, []string{}, "recipe_step_completion_conditions.belongs_to_recipe_step = sqlc.arg(recipe_step_id)"),
+						querygen.TotalCountSelect(recipeStepCompletionConditionIngredientsTableName, recipeStepCompletionConditionIngredientsColumns, []string{}),
 						recipeStepCompletionConditionIngredientsTableName,
-						recipeStepCompletionConditionsTableName, recipeStepCompletionConditionIngredientsTableName, belongsToRecipeStepCompletionConditionColumn, recipeStepCompletionConditionsTableName, idColumn,
-						recipeStepsTableName, recipeStepCompletionConditionsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
-						validIngredientStatesTableName, recipeStepCompletionConditionsTableName, ingredientStateColumn, validIngredientStatesTableName, idColumn,
-						recipeStepCompletionConditionsTableName, archivedAtColumn,
-						buildFilterConditions(recipeStepCompletionConditionsTableName, true, false, "recipe_step_completion_conditions.belongs_to_recipe_step = sqlc.arg(recipe_step_id)"),
-						buildCursorLimitClause(recipeStepCompletionConditionsTableName),
+						recipeStepCompletionConditionsTableName,
+						recipeStepCompletionConditionIngredientsTableName,
+						belongsToRecipeStepCompletionConditionColumn,
+						recipeStepCompletionConditionsTableName,
+						idColumn,
+						recipeStepsTableName,
+						recipeStepCompletionConditionsTableName,
+						belongsToRecipeStepColumn,
+						recipeStepsTableName,
+						idColumn,
+						validIngredientStatesTableName,
+						recipeStepCompletionConditionsTableName,
+						ingredientStateColumn,
+						validIngredientStatesTableName,
+						idColumn,
+						querygen.FilterConditions(recipeStepCompletionConditionsTableName, recipeStepCompletionConditionsColumns,
+							"recipe_step_completion_conditions.belongs_to_recipe_step = sqlc.arg(recipe_step_id)",
+						),
+						querygen.CursorLimitClause(recipeStepCompletionConditionsTableName),
 					)),
 				},
 				{

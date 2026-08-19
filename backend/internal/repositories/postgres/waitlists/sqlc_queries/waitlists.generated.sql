@@ -69,9 +69,7 @@ SELECT
 	(
 		SELECT COUNT(waitlists.id)
 		FROM waitlists
-		WHERE waitlists.archived_at IS NULL
-			AND
-			waitlists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE waitlists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND waitlists.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				waitlists.last_updated_at IS NULL
@@ -81,16 +79,15 @@ SELECT
 				waitlists.last_updated_at IS NULL
 				OR waitlists.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlists.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlists.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(waitlists.id)
 		FROM waitlists
-		WHERE waitlists.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlists.archived_at IS NULL)
 	) AS total_count
 FROM waitlists
-WHERE waitlists.archived_at IS NULL
-	AND waitlists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE waitlists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND waitlists.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		waitlists.last_updated_at IS NULL
@@ -100,6 +97,7 @@ WHERE waitlists.archived_at IS NULL
 		waitlists.last_updated_at IS NULL
 		OR waitlists.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlists.archived_at IS NULL)
 	AND waitlists.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY waitlists.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -116,9 +114,7 @@ SELECT
 	(
 		SELECT COUNT(waitlists.id)
 		FROM waitlists
-		WHERE waitlists.archived_at IS NULL
-			AND
-			waitlists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE waitlists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND waitlists.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				waitlists.last_updated_at IS NULL
@@ -128,19 +124,17 @@ SELECT
 				waitlists.last_updated_at IS NULL
 				OR waitlists.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlists.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlists.archived_at IS NULL)
 			AND waitlists.valid_until >= NOW()
 	) AS filtered_count,
 	(
 		SELECT COUNT(waitlists.id)
 		FROM waitlists
-		WHERE waitlists.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlists.archived_at IS NULL)
 			AND waitlists.valid_until >= NOW()
 	) AS total_count
 FROM waitlists
-WHERE waitlists.archived_at IS NULL
-	AND waitlists.valid_until >= NOW()
-	AND waitlists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE waitlists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND waitlists.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		waitlists.last_updated_at IS NULL
@@ -150,6 +144,7 @@ WHERE waitlists.archived_at IS NULL
 		waitlists.last_updated_at IS NULL
 		OR waitlists.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlists.archived_at IS NULL)
 	AND waitlists.valid_until >= NOW()
 	AND waitlists.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY waitlists.id ASC

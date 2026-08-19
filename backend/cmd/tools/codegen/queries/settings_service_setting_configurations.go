@@ -128,25 +128,22 @@ WHERE %s.%s IS NULL
 	%s
 FROM %s
 	JOIN %s ON %s.%s=%s.%s
-WHERE %s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(selectColumnsWithServiceSettingColumns, ",\n\t"),
-						buildFilterCountSelect(serviceSettingConfigurationsTableName, true, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn)),
-						buildTotalCountSelect(serviceSettingConfigurationsTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						querygen.FilterCountSelect(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						querygen.TotalCountSelect(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn)),
 						serviceSettingConfigurationsTableName,
-						serviceSettingsTableName, serviceSettingConfigurationsTableName, serviceSettingIDColumn, serviceSettingsTableName, idColumn,
-						serviceSettingsTableName, archivedAtColumn,
-						serviceSettingConfigurationsTableName, archivedAtColumn,
-						serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn,
-						buildFilterConditions(
-							serviceSettingConfigurationsTableName,
-							true,
-							true,
+						serviceSettingsTableName,
+						serviceSettingConfigurationsTableName,
+						serviceSettingIDColumn,
+						serviceSettingsTableName,
+						idColumn,
+						querygen.FilterConditions(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns,
+							"service_settings.archived_at IS NULL",
+							"service_setting_configurations.belongs_to_account = sqlc.arg(belongs_to_account)",
 						),
-						buildCursorLimitClause(serviceSettingConfigurationsTableName),
+						querygen.CursorLimitClause(serviceSettingConfigurationsTableName),
 					)),
 				},
 				{
@@ -160,25 +157,22 @@ WHERE %s.%s IS NULL
 	%s
 FROM %s
 	JOIN %s ON %s.%s=%s.%s
-WHERE %s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(selectColumnsWithServiceSettingColumns, ",\n\t"),
-						buildFilterCountSelect(serviceSettingConfigurationsTableName, true, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn)),
-						buildTotalCountSelect(serviceSettingConfigurationsTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn)),
+						querygen.FilterCountSelect(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn)),
+						querygen.TotalCountSelect(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn)),
 						serviceSettingConfigurationsTableName,
-						serviceSettingsTableName, serviceSettingConfigurationsTableName, serviceSettingIDColumn, serviceSettingsTableName, idColumn,
-						serviceSettingsTableName, archivedAtColumn,
-						serviceSettingConfigurationsTableName, archivedAtColumn,
-						serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn,
-						buildFilterConditions(
-							serviceSettingConfigurationsTableName,
-							true,
-							true,
+						serviceSettingsTableName,
+						serviceSettingConfigurationsTableName,
+						serviceSettingIDColumn,
+						serviceSettingsTableName,
+						idColumn,
+						querygen.FilterConditions(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns,
+							"service_settings.archived_at IS NULL",
+							"service_setting_configurations.belongs_to_user = sqlc.arg(belongs_to_user)",
 						),
-						buildCursorLimitClause(serviceSettingConfigurationsTableName),
+						querygen.CursorLimitClause(serviceSettingConfigurationsTableName),
 					)),
 				},
 			},

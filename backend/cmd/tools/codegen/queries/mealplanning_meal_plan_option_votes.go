@@ -136,17 +136,7 @@ FROM %s
 	JOIN %s ON %s.%s=%s.%s
 	JOIN %s ON %s.%s=%s.%s
 	JOIN %s ON %s.%s=%s.%s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 GROUP BY
 	%s.%s,
 	%s.%s,
@@ -156,28 +146,44 @@ GROUP BY
 						strings.Join(applyToEach(mealPlanOptionVotesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", mealPlanOptionVotesTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(mealPlanOptionVotesTableName, true, true, []string{}, "meal_plan_option_votes.belongs_to_meal_plan_option = sqlc.arg(meal_plan_option_id)"),
-						buildTotalCountSelect(mealPlanOptionVotesTableName, true, []string{}),
+						querygen.FilterCountSelect(mealPlanOptionVotesTableName, mealPlanOptionVotesColumns, []string{}, "meal_plan_option_votes.belongs_to_meal_plan_option = sqlc.arg(meal_plan_option_id)"),
+						querygen.TotalCountSelect(mealPlanOptionVotesTableName, mealPlanOptionVotesColumns, []string{}),
 						mealPlanOptionVotesTableName,
-						mealPlanOptionsTableName, mealPlanOptionVotesTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
-						mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
-						mealPlansTableName, mealPlanEventsTableName, belongsToMealPlanColumn, mealPlansTableName, idColumn,
-						mealPlanOptionVotesTableName, archivedAtColumn,
-						mealPlanOptionVotesTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn,
-						mealPlanOptionsTableName, archivedAtColumn,
-						mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventIDColumn,
-						mealPlanOptionsTableName, idColumn, mealPlanOptionIDColumn,
-						mealPlanEventsTableName, archivedAtColumn,
-						mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn,
-						mealPlanEventsTableName, idColumn, mealPlanEventIDColumn,
-						mealPlansTableName, archivedAtColumn,
-						mealPlansTableName, idColumn, mealPlanIDColumn,
-						buildFilterConditions(mealPlanOptionVotesTableName, true, false),
-						mealPlanOptionVotesTableName, idColumn,
-						mealPlanOptionsTableName, idColumn,
-						mealPlanEventsTableName, idColumn,
-						mealPlansTableName, idColumn,
-						buildCursorLimitClause(mealPlanOptionVotesTableName),
+						mealPlanOptionsTableName,
+						mealPlanOptionVotesTableName,
+						belongsToMealPlanOptionColumn,
+						mealPlanOptionsTableName,
+						idColumn,
+						mealPlanEventsTableName,
+						mealPlanOptionsTableName,
+						belongsToMealPlanEventColumn,
+						mealPlanEventsTableName,
+						idColumn,
+						mealPlansTableName,
+						mealPlanEventsTableName,
+						belongsToMealPlanColumn,
+						mealPlansTableName,
+						idColumn,
+						querygen.FilterConditions(mealPlanOptionVotesTableName, mealPlanOptionVotesColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanOptionVotesTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn),
+							"meal_plan_options.archived_at IS NULL",
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventIDColumn),
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanOptionsTableName, idColumn, mealPlanOptionIDColumn),
+							"meal_plan_events.archived_at IS NULL",
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn),
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, idColumn, mealPlanEventIDColumn),
+							"meal_plans.archived_at IS NULL",
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlansTableName, idColumn, mealPlanIDColumn),
+						),
+						mealPlanOptionVotesTableName,
+						idColumn,
+						mealPlanOptionsTableName,
+						idColumn,
+						mealPlanEventsTableName,
+						idColumn,
+						mealPlansTableName,
+						idColumn,
+						querygen.CursorLimitClause(mealPlanOptionVotesTableName),
 					)),
 				},
 				{

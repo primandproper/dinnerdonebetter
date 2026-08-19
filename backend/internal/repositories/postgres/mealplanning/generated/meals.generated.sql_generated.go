@@ -207,9 +207,7 @@ SELECT
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.archived_at IS NULL
-			AND
-			meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meals.last_updated_at IS NULL
@@ -219,19 +217,17 @@ SELECT
 				meals.last_updated_at IS NULL
 				OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	) AS total_count
 FROM meals
 	LEFT JOIN meal_components ON meal_components.belongs_to_meal=meals.id AND meal_components.archived_at IS NULL
 		AND EXISTS (SELECT 1 FROM recipes WHERE recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL)
-WHERE
-	meals.archived_at IS NULL
-	AND meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meals.last_updated_at IS NULL
@@ -241,7 +237,7 @@ WHERE
 		meals.last_updated_at IS NULL
 		OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	AND meals.id > COALESCE($6, '')
 ORDER BY meals.id ASC
 LIMIT COALESCE($7, 50)
@@ -459,9 +455,7 @@ SELECT
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.archived_at IS NULL
-			AND
-			meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meals.last_updated_at IS NULL
@@ -471,22 +465,19 @@ SELECT
 				meals.last_updated_at IS NULL
 				OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 			AND meals.created_by_user = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 			AND meals.created_by_user = $6
 	) AS total_count
 FROM meals
 	LEFT JOIN meal_components ON meal_components.belongs_to_meal=meals.id AND meal_components.archived_at IS NULL
 		AND EXISTS (SELECT 1 FROM recipes WHERE recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL)
-WHERE
-	meals.archived_at IS NULL
-	AND meals.created_by_user = $6
-	AND meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meals.last_updated_at IS NULL
@@ -496,7 +487,7 @@ WHERE
 		meals.last_updated_at IS NULL
 		OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	AND meals.created_by_user = $6
 	AND meals.id > COALESCE($7, '')
 ORDER BY meals.id ASC
@@ -795,9 +786,7 @@ SELECT
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.archived_at IS NULL
-			AND
-			meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meals.last_updated_at IS NULL
@@ -807,21 +796,18 @@ SELECT
 				meals.last_updated_at IS NULL
 				OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	) AS total_count
 FROM meals
 	JOIN meal_components ON meal_components.belongs_to_meal=meals.id
 		AND meal_components.archived_at IS NULL
 		AND EXISTS (SELECT 1 FROM recipes WHERE recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL)
-WHERE
-	meals.archived_at IS NULL
-	AND meals.name ILIKE '%' || $6::text || '%'
-	AND meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meals.last_updated_at IS NULL
@@ -831,7 +817,8 @@ WHERE
 		meals.last_updated_at IS NULL
 		OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
+	AND meals.name ILIKE '%' || $6::text || '%'
 	AND meals.id > COALESCE($7, '')
 ORDER BY meals.id ASC
 LIMIT COALESCE($8, 50)

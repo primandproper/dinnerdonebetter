@@ -67,24 +67,19 @@ func buildValidPreparationsQueries(database string) []*Query {
 	%s,
 	%s
 FROM %s
-WHERE
-	%s.%s IS NULL
-	%s
+WHERE %s
 GROUP BY %s.%s
 %s;`,
 						strings.Join(applyToEach(validPreparationsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validPreparationsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(validPreparationsTableName, true, true, []string{}),
-						buildTotalCountSelect(validPreparationsTableName, true, []string{}),
+						querygen.FilterCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
+						querygen.TotalCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
 						validPreparationsTableName,
-						validPreparationsTableName, archivedAtColumn,
-						buildFilterConditions(
-							validPreparationsTableName,
-							true,
-							true,
-						),
-						validPreparationsTableName, idColumn, buildCursorLimitClause(validPreparationsTableName),
+						querygen.FilterConditions(validPreparationsTableName, validPreparationsColumns),
+						validPreparationsTableName,
+						idColumn,
+						querygen.CursorLimitClause(validPreparationsTableName),
 					)),
 				},
 				{
@@ -151,27 +146,18 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(validPreparationsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validPreparationsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(validPreparationsTableName, true, true, []string{}),
-						buildTotalCountSelect(validPreparationsTableName, true, []string{}),
+						querygen.FilterCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
+						querygen.TotalCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
 						validPreparationsTableName,
-						validPreparationsTableName,
-						archivedAtColumn,
-						validPreparationsTableName,
-						nameColumn,
-						buildILIKEForArgument("name_query"),
-						buildFilterConditions(
-							validPreparationsTableName,
-							true,
-							true,
+						querygen.FilterConditions(validPreparationsTableName, validPreparationsColumns,
+							fmt.Sprintf("%s.%s %s", validPreparationsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						buildCursorLimitClause(validPreparationsTableName),
+						querygen.CursorLimitClause(validPreparationsTableName),
 					)),
 				},
 			},

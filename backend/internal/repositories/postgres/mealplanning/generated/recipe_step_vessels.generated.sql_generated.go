@@ -356,9 +356,7 @@ SELECT
 	(
 		SELECT COUNT(recipe_step_vessels.id)
 		FROM recipe_step_vessels
-		WHERE recipe_step_vessels.archived_at IS NULL
-			AND
-			recipe_step_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE recipe_step_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND recipe_step_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				recipe_step_vessels.last_updated_at IS NULL
@@ -368,26 +366,19 @@ SELECT
 				recipe_step_vessels.last_updated_at IS NULL
 				OR recipe_step_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipe_step_vessels.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR recipe_step_vessels.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipe_step_vessels.id)
 		FROM recipe_step_vessels
-		WHERE recipe_step_vessels.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR recipe_step_vessels.archived_at IS NULL)
 	) AS total_count
 FROM recipe_step_vessels
 	 LEFT JOIN valid_vessels ON recipe_step_vessels.valid_vessel_id=valid_vessels.id
 	 LEFT JOIN valid_measurement_units ON valid_vessels.capacity_unit=valid_measurement_units.id
 	 JOIN recipe_steps ON recipe_step_vessels.belongs_to_recipe_step=recipe_steps.id
 	 JOIN recipes ON recipe_steps.belongs_to_recipe=recipes.id
-WHERE recipe_step_vessels.archived_at IS NULL
-	AND recipe_step_vessels.belongs_to_recipe_step = $6
-	AND recipe_steps.belongs_to_recipe = $7
-	AND recipe_steps.archived_at IS NULL
-	AND recipe_steps.id = $6
-	AND recipes.archived_at IS NULL
-	AND recipes.id = $7
-	AND recipe_step_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE recipe_step_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND recipe_step_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipe_step_vessels.last_updated_at IS NULL
@@ -397,6 +388,13 @@ WHERE recipe_step_vessels.archived_at IS NULL
 		recipe_step_vessels.last_updated_at IS NULL
 		OR recipe_step_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR recipe_step_vessels.archived_at IS NULL)
+	AND recipe_step_vessels.belongs_to_recipe_step = $6
+	AND recipe_steps.belongs_to_recipe = $7
+	AND recipe_steps.archived_at IS NULL
+	AND recipe_steps.id = $6
+	AND recipes.archived_at IS NULL
+	AND recipes.id = $7
 	AND recipe_step_vessels.id > COALESCE($8, '')
 ORDER BY recipe_step_vessels.id ASC
 LIMIT COALESCE($9, 50)

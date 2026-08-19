@@ -67,25 +67,28 @@ func buildValidIngredientStateIngredientsQueries(database string) []*Query {
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validIngredientStateIngredientsTableName, true, true, []string{}),
-						buildTotalCountSelect(validIngredientStateIngredientsTableName, true, []string{}),
+						querygen.FilterCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
+						querygen.TotalCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
 						validIngredientStateIngredientsTableName,
-						validIngredientsTableName, validIngredientStateIngredientsTableName, validIngredientColumn, validIngredientsTableName, idColumn,
-						validIngredientStatesTableName, validIngredientStateIngredientsTableName, validIngredientStateColumn, validIngredientStatesTableName, idColumn,
-						validIngredientStateIngredientsTableName, archivedAtColumn,
-						validIngredientsTableName, archivedAtColumn,
-						validIngredientStatesTableName, archivedAtColumn,
-						validIngredientStateIngredientsTableName, validIngredientColumn, validIngredientColumn,
-						buildFilterConditions(validIngredientStateIngredientsTableName, true, false),
-						buildCursorLimitClause(validIngredientStateIngredientsTableName),
+						validIngredientsTableName,
+						validIngredientStateIngredientsTableName,
+						validIngredientColumn,
+						validIngredientsTableName,
+						idColumn,
+						validIngredientStatesTableName,
+						validIngredientStateIngredientsTableName,
+						validIngredientStateColumn,
+						validIngredientStatesTableName,
+						idColumn,
+						querygen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns,
+							"valid_ingredients.archived_at IS NULL",
+							"valid_ingredient_states.archived_at IS NULL",
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientStateIngredientsTableName, validIngredientColumn, validIngredientColumn),
+						),
+						querygen.CursorLimitClause(validIngredientStateIngredientsTableName),
 					)),
 				},
 				{
@@ -100,25 +103,28 @@ WHERE
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validIngredientStateIngredientsTableName, true, true, []string{}),
-						buildTotalCountSelect(validIngredientStateIngredientsTableName, true, []string{}),
+						querygen.FilterCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
+						querygen.TotalCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
 						validIngredientStateIngredientsTableName,
-						validIngredientsTableName, validIngredientStateIngredientsTableName, validIngredientColumn, validIngredientsTableName, idColumn,
-						validIngredientStatesTableName, validIngredientStateIngredientsTableName, validIngredientStateColumn, validIngredientStatesTableName, idColumn,
-						validIngredientStateIngredientsTableName, archivedAtColumn,
-						validIngredientsTableName, archivedAtColumn,
-						validIngredientStatesTableName, archivedAtColumn,
-						validIngredientStateIngredientsTableName, validIngredientStateColumn, validIngredientStateColumn,
-						buildFilterConditions(validIngredientStateIngredientsTableName, true, false),
-						buildCursorLimitClause(validIngredientStateIngredientsTableName),
+						validIngredientsTableName,
+						validIngredientStateIngredientsTableName,
+						validIngredientColumn,
+						validIngredientsTableName,
+						idColumn,
+						validIngredientStatesTableName,
+						validIngredientStateIngredientsTableName,
+						validIngredientStateColumn,
+						validIngredientStatesTableName,
+						idColumn,
+						querygen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns,
+							"valid_ingredients.archived_at IS NULL",
+							"valid_ingredient_states.archived_at IS NULL",
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientStateIngredientsTableName, validIngredientStateColumn, validIngredientStateColumn),
+						),
+						querygen.CursorLimitClause(validIngredientStateIngredientsTableName),
 					)),
 				},
 				{
@@ -133,23 +139,27 @@ WHERE
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validIngredientStateIngredientsTableName, true, true, []string{}),
-						buildTotalCountSelect(validIngredientStateIngredientsTableName, true, []string{}),
+						querygen.FilterCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
+						querygen.TotalCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
 						validIngredientStateIngredientsTableName,
-						validIngredientsTableName, validIngredientStateIngredientsTableName, validIngredientColumn, validIngredientsTableName, idColumn,
-						validIngredientStatesTableName, validIngredientStateIngredientsTableName, validIngredientStateColumn, validIngredientStatesTableName, idColumn,
-						validIngredientStateIngredientsTableName, archivedAtColumn,
-						validIngredientsTableName, archivedAtColumn,
-						validIngredientStatesTableName, archivedAtColumn,
-						buildFilterConditions(validIngredientStateIngredientsTableName, true, false),
-						buildCursorLimitClause(validIngredientStateIngredientsTableName),
+						validIngredientsTableName,
+						validIngredientStateIngredientsTableName,
+						validIngredientColumn,
+						validIngredientsTableName,
+						idColumn,
+						validIngredientStatesTableName,
+						validIngredientStateIngredientsTableName,
+						validIngredientStateColumn,
+						validIngredientStatesTableName,
+						idColumn,
+						querygen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns,
+							"valid_ingredients.archived_at IS NULL",
+							"valid_ingredient_states.archived_at IS NULL",
+						),
+						querygen.CursorLimitClause(validIngredientStateIngredientsTableName),
 					)),
 				},
 				{

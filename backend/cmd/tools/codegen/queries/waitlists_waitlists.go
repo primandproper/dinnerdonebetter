@@ -104,16 +104,14 @@ WHERE %s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(waitlistsTableName, true, true, nil),
-						buildTotalCountSelect(waitlistsTableName, true, nil),
+						querygen.FilterCountSelect(waitlistsTableName, waitlistsColumns, nil),
+						querygen.TotalCountSelect(waitlistsTableName, waitlistsColumns, nil),
 						waitlistsTableName,
-						waitlistsTableName, archivedAtColumn,
-						buildFilterConditions(waitlistsTableName, true, false),
-						buildCursorLimitClause(waitlistsTableName),
+						querygen.FilterConditions(waitlistsTableName, waitlistsColumns),
+						querygen.CursorLimitClause(waitlistsTableName),
 					)),
 				},
 				{
@@ -126,18 +124,16 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.valid_until >= %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(waitlistsTableName, true, true, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, currentTimeExpression)),
-						buildTotalCountSelect(waitlistsTableName, true, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, currentTimeExpression)),
+						querygen.FilterCountSelect(waitlistsTableName, waitlistsColumns, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, currentTimeExpression)),
+						querygen.TotalCountSelect(waitlistsTableName, waitlistsColumns, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, currentTimeExpression)),
 						waitlistsTableName,
-						waitlistsTableName, archivedAtColumn,
-						waitlistsTableName, currentTimeExpression,
-						buildFilterConditions(waitlistsTableName, true, false, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, currentTimeExpression)),
-						buildCursorLimitClause(waitlistsTableName),
+						querygen.FilterConditions(waitlistsTableName, waitlistsColumns,
+							fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, currentTimeExpression),
+						),
+						querygen.CursorLimitClause(waitlistsTableName),
 					)),
 				},
 			},

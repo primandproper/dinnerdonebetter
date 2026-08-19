@@ -325,24 +325,18 @@ WHERE %s.%s IS NULL
 	%s
 FROM %s
 	%s
-WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(usersColumns, func(_ int, s string) string {
 							return fmt.Sprintf("%s.%s", usersTableName, s)
 						}), ",\n\t"),
 						strings.Join(avatarJoinSelect("avatar"), ",\n\t"),
-						buildFilterCountSelect(usersTableName, true, true, []string{}),
-						buildTotalCountSelect(usersTableName, true, []string{}),
+						querygen.FilterCountSelect(usersTableName, usersColumns, []string{}),
+						querygen.TotalCountSelect(usersTableName, usersColumns, []string{}),
 						usersTableName,
 						avatarJoinClause,
-						usersTableName, archivedAtColumn,
-						buildFilterConditions(
-							usersTableName,
-							true,
-							true,
-						),
-						buildCursorLimitClause(usersTableName),
+						querygen.FilterConditions(usersTableName, usersColumns),
+						querygen.CursorLimitClause(usersTableName),
 					)),
 				},
 				{
@@ -358,21 +352,26 @@ WHERE %s.%s IS NULL
 FROM %s
 	%s
 JOIN %s ON %s.%s = %s.%s
-WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(usersColumns, func(_ int, s string) string {
 							return fmt.Sprintf("%s.%s", usersTableName, s)
 						}), ",\n\t"),
 						strings.Join(avatarJoinSelect("avatar"), ",\n\t"),
-						buildFilterCountSelect(usersTableName, true, true, nil),
-						buildTotalCountSelect(usersTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						querygen.FilterCountSelect(usersTableName, usersColumns, nil),
+						querygen.TotalCountSelect(usersTableName, usersColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToAccountColumn, belongsToAccountColumn)),
 						usersTableName,
 						avatarJoinClause,
-						accountUserMembershipsTableName, accountUserMembershipsTableName, belongsToUserColumn, usersTableName, idColumn,
-						usersTableName, archivedAtColumn,
-						buildFilterConditions(usersTableName, true, true, fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToAccountColumn, belongsToAccountColumn), fmt.Sprintf("%s.%s IS NULL", accountUserMembershipsTableName, archivedAtColumn)),
-						buildCursorLimitClause(usersTableName),
+						accountUserMembershipsTableName,
+						accountUserMembershipsTableName,
+						belongsToUserColumn,
+						usersTableName,
+						idColumn,
+						querygen.FilterConditions(usersTableName, usersColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToAccountColumn, belongsToAccountColumn),
+							fmt.Sprintf("%s.%s IS NULL", accountUserMembershipsTableName, archivedAtColumn),
+						),
+						querygen.CursorLimitClause(usersTableName),
 					)),
 				},
 				{
@@ -569,29 +568,20 @@ WHERE %s IS NULL
 	%s
 FROM %s
 	%s
-WHERE %s.%s IS NULL
-	AND %s.%s %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(usersColumns, func(_ int, s string) string {
 							return fmt.Sprintf("%s.%s", usersTableName, s)
 						}), ",\n\t"),
 						strings.Join(avatarJoinSelect("avatar"), ",\n\t"),
-						buildFilterCountSelect(usersTableName, true, true, []string{}),
-						buildTotalCountSelect(usersTableName, true, []string{}),
+						querygen.FilterCountSelect(usersTableName, usersColumns, []string{}),
+						querygen.TotalCountSelect(usersTableName, usersColumns, []string{}),
 						usersTableName,
 						avatarJoinClause,
-						usersTableName,
-						archivedAtColumn,
-						usersTableName,
-						usernameColumn,
-						buildILIKEForArgument(usernameColumn),
-						buildFilterConditions(
-							usersTableName,
-							true,
-							true,
+						querygen.FilterConditions(usersTableName, usersColumns,
+							fmt.Sprintf("%s.%s %s", usersTableName, usernameColumn, buildILIKEForArgument(usernameColumn)),
 						),
-						buildCursorLimitClause(usersTableName),
+						querygen.CursorLimitClause(usersTableName),
 					)),
 				},
 				{

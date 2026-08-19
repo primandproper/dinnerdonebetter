@@ -461,11 +461,9 @@ SELECT
 		SELECT COUNT(meal_plan_grocery_list_items.id)
 		FROM meal_plan_grocery_list_items
 		JOIN meal_plans ON meal_plan_grocery_list_items.belongs_to_meal_plan = meal_plans.id
-	JOIN valid_ingredients ON meal_plan_grocery_list_items.valid_ingredient = valid_ingredients.id
-	JOIN valid_measurement_units ON meal_plan_grocery_list_items.valid_measurement_unit = valid_measurement_units.id
-		WHERE meal_plan_grocery_list_items.archived_at IS NULL
-			AND
-			meal_plan_grocery_list_items.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		JOIN valid_ingredients ON meal_plan_grocery_list_items.valid_ingredient = valid_ingredients.id
+		JOIN valid_measurement_units ON meal_plan_grocery_list_items.valid_measurement_unit = valid_measurement_units.id
+		WHERE meal_plan_grocery_list_items.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND meal_plan_grocery_list_items.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meal_plan_grocery_list_items.last_updated_at IS NULL
@@ -475,7 +473,7 @@ SELECT
 				meal_plan_grocery_list_items.last_updated_at IS NULL
 				OR meal_plan_grocery_list_items.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meal_plan_grocery_list_items.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR meal_plan_grocery_list_items.archived_at IS NULL)
 			AND valid_measurement_units.archived_at IS NULL
 			AND valid_ingredients.archived_at IS NULL
 			AND meal_plans.archived_at IS NULL
@@ -486,9 +484,9 @@ SELECT
 		SELECT COUNT(meal_plan_grocery_list_items.id)
 		FROM meal_plan_grocery_list_items
 		JOIN meal_plans ON meal_plan_grocery_list_items.belongs_to_meal_plan = meal_plans.id
-	JOIN valid_ingredients ON meal_plan_grocery_list_items.valid_ingredient = valid_ingredients.id
-	JOIN valid_measurement_units ON meal_plan_grocery_list_items.valid_measurement_unit = valid_measurement_units.id
-		WHERE meal_plan_grocery_list_items.archived_at IS NULL
+		JOIN valid_ingredients ON meal_plan_grocery_list_items.valid_ingredient = valid_ingredients.id
+		JOIN valid_measurement_units ON meal_plan_grocery_list_items.valid_measurement_unit = valid_measurement_units.id
+		WHERE (COALESCE($5, false)::boolean OR meal_plan_grocery_list_items.archived_at IS NULL)
 			AND valid_measurement_units.archived_at IS NULL
 			AND valid_ingredients.archived_at IS NULL
 			AND meal_plans.archived_at IS NULL
@@ -499,8 +497,7 @@ FROM meal_plan_grocery_list_items
 	JOIN meal_plans ON meal_plan_grocery_list_items.belongs_to_meal_plan=meal_plans.id
 	JOIN valid_ingredients ON meal_plan_grocery_list_items.valid_ingredient=valid_ingredients.id
 	JOIN valid_measurement_units ON meal_plan_grocery_list_items.valid_measurement_unit=valid_measurement_units.id
-WHERE meal_plan_grocery_list_items.archived_at IS NULL
-	AND meal_plan_grocery_list_items.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE meal_plan_grocery_list_items.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND meal_plan_grocery_list_items.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meal_plan_grocery_list_items.last_updated_at IS NULL
@@ -510,7 +507,7 @@ WHERE meal_plan_grocery_list_items.archived_at IS NULL
 		meal_plan_grocery_list_items.last_updated_at IS NULL
 		OR meal_plan_grocery_list_items.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR meal_plan_grocery_list_items.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR meal_plan_grocery_list_items.archived_at IS NULL)
 	AND meal_plan_grocery_list_items.belongs_to_meal_plan = $6
 	AND valid_measurement_units.archived_at IS NULL
 	AND valid_ingredients.archived_at IS NULL
