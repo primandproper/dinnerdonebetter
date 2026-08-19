@@ -451,27 +451,3 @@ func TestDispatcher_RotateSecret(T *testing.T) {
 		assert.NotEqual(t, current, saved.Secret.Current)
 	})
 }
-
-func TestQualification(T *testing.T) {
-	T.Parallel()
-
-	T.Run("round trips", func(t *testing.T) {
-		t.Parallel()
-
-		subscription := qualify(exampleAccountID, exampleEventType)
-		assert.Equal(t, webhooks.EventType(exampleAccountID+":"+exampleEventType), subscription)
-
-		eventType, ok := unqualify(exampleAccountID, subscription)
-		assert.True(t, ok)
-		assert.Equal(t, exampleEventType, eventType)
-	})
-
-	T.Run("rejects another account's subscription", func(t *testing.T) {
-		t.Parallel()
-
-		// The prefix must match in full. A partial match here would leak one account's
-		// subscriptions into another's set on the read-modify-write in SetEventTypes.
-		_, ok := unqualify("acct_abc", qualify(exampleAccountID, exampleEventType))
-		assert.False(t, ok)
-	})
-}

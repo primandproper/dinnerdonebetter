@@ -13,6 +13,15 @@ const (
 
 type (
 	// PaymentTransaction represents an audit record of a payment attempt.
+	//
+	// It is not a duplicate of capitalism.PaymentIntentCreationInput, despite the overlap in
+	// vocabulary. That type is an argument to a provider call — CustomerID, IdempotencyKey, a
+	// currency and an amount, all of which are what Stripe needs to be asked for a payment
+	// intent — and it is gone once the call returns. This is the stored resource the attempt
+	// left behind: it belongs to an account, references a subscription or purchase of ours,
+	// carries the provider's ID as a foreign key rather than as its identity, and is read back
+	// by the API. Different layers, and nothing to fold together; see Subscription for the same
+	// distinction on the recurring side.
 	PaymentTransaction struct {
 		_                     struct{}  `json:"-"`
 		CreatedAt             time.Time `json:"createdAt"`

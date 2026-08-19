@@ -38,6 +38,27 @@ type (
 	// The signing secret is deliberately absent. It is returned once, from the call that creates
 	// or rotates it, and never read back: a secret an API will hand out on request is one an
 	// attacker with read access can hand out to themselves.
+	//
+	// # Divergence from webhooks.Endpoint
+	//
+	// The platform speaks of an Endpoint, which is deliberately general: it is a delivery target
+	// — a URL, a content type, a signing secret, and Events, a flat list of subscription strings
+	// — and it says nothing about whose it is, because tenancy depth is an application's
+	// decision. Ours is an account's webhook, and this type keeps that.
+	//
+	// Two fields are why both types exist, and neither survives a translation to Endpoint:
+	//
+	//   - BelongsToAccount is the filter on every read and write of this resource. Endpoint has
+	//     no owner to filter on, so the account travels inside the subscription string instead;
+	//     see webhookdispatch.qualify.
+	//   - TriggerConfigs are identified, individually archivable rows, and the API creates and
+	//     archives them one at a time. Endpoint.Events is a bare []string: it can express the
+	//     set, not the identity or the archival timestamp of any member of it.
+	//
+	// Deleting this type in favor of Endpoint would therefore not be an internal cleanup — it
+	// would drop the fields the permission model and the API surface are built on, and rename
+	// the rest, because the platform's JSON tags are not these. webhookdispatch/conversion.go
+	// is where the translation lives, and it is the only place it happens.
 	Webhook struct {
 		_ struct{} `json:"-"`
 
