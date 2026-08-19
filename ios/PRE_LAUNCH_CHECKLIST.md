@@ -360,7 +360,7 @@ Document what data is collected:
 - `backend/internal/build/services/api/http/http_routes.go` - AASA endpoint
 - `backend/internal/build/services/api/http/config.go` - Wire provider
 - `backend/deploy/environments/prod/kustomize/configs/api_service_config.json` - Prod API config (including AppleAppSiteAssociation)
-- `backend/cmd/tools/codegen/configs/localdev.go` - Local dev config
+- `backend/internal/config/environments/localdev.go` - Local dev config
 
 ---
 

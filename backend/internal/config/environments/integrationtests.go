@@ -1,4 +1,4 @@
-package main
+package environments
 
 import (
 	"encoding/base64"
@@ -43,7 +43,8 @@ import (
 	"github.com/primandproper/platform-go/v11/uploads/objectstorage"
 )
 
-func buildIntegrationTestsConfig() *config.APIServiceConfig {
+// BuildIntegrationTestsConfig returns the configuration the integration test environment runs with.
+func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 	uploadsConfig := uploadscfg.Config{
 		Debug: false,
 		Storage: objectstorage.Config{
