@@ -174,20 +174,6 @@ WHERE %s.%s IS NULL
 						buildCursorLimitClause(validPreparationsTableName),
 					)),
 				},
-				{
-					Annotation: QueryAnnotation{
-						Name: "UpdateValidPreparationLastIndexedAt",
-						Type: ExecRowsType,
-					},
-					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s = sqlc.arg(%s) AND %s IS NULL;`,
-						validPreparationsTableName,
-						lastIndexedAtColumn,
-						currentTimeExpression,
-						idColumn,
-						idColumn,
-						archivedAtColumn,
-					)),
-				},
 			},
 		)
 	default:

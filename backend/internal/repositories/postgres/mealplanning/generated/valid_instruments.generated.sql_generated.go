@@ -447,6 +447,20 @@ func (q *Queries) GetValidInstrumentsWithIDs(ctx context.Context, db DBTX, ids [
 	return items, nil
 }
 
+const markValidInstrumentsAsIndexed = `-- name: MarkValidInstrumentsAsIndexed :execrows
+UPDATE valid_instruments SET
+	last_indexed_at = NOW()
+WHERE id = ANY($1::text[])
+`
+
+func (q *Queries) MarkValidInstrumentsAsIndexed(ctx context.Context, db DBTX, ids []string) (int64, error) {
+	result, err := db.ExecContext(ctx, markValidInstrumentsAsIndexed, pq.Array(ids))
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const scanValidInstrumentIDsForReindex = `-- name: ScanValidInstrumentIDsForReindex :many
 SELECT valid_instruments.id
 FROM valid_instruments
@@ -794,18 +808,6 @@ func (q *Queries) UpdateValidInstrument(ctx context.Context, db DBTX, arg *Updat
 		arg.IncludeInGeneratedInstructions,
 		arg.ID,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
-const updateValidInstrumentLastIndexedAt = `-- name: UpdateValidInstrumentLastIndexedAt :execrows
-UPDATE valid_instruments SET last_indexed_at = NOW() WHERE id = $1 AND archived_at IS NULL
-`
-
-func (q *Queries) UpdateValidInstrumentLastIndexedAt(ctx context.Context, db DBTX, id string) (int64, error) {
-	result, err := db.ExecContext(ctx, updateValidInstrumentLastIndexedAt, id)
 	if err != nil {
 		return 0, err
 	}

@@ -120,7 +120,7 @@ func TestQuerier_Integration_ValidVessels(t *testing.T) {
 
 	// delete
 	for _, validVessel := range createdValidVessels {
-		assert.NoError(t, dbc.MarkValidVesselAsIndexed(ctx, validVessel.ID))
+		assert.NoError(t, dbc.MarkValidVesselsAsIndexed(ctx, []string{validVessel.ID}))
 		assert.NoError(t, dbc.ArchiveValidVessel(ctx, validVessel.ID))
 
 		var exists bool
@@ -238,16 +238,18 @@ func TestQuerier_ArchiveValidVessel(T *testing.T) {
 	})
 }
 
-func TestQuerier_MarkValidVesselAsIndexed(T *testing.T) {
+func TestQuerier_MarkValidVesselsAsIndexed(T *testing.T) {
 	T.Parallel()
 
-	T.Run("with invalid ID", func(t *testing.T) {
+	T.Run("with no ids", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.MarkValidVesselAsIndexed(ctx, ""))
+		// The client is inert, so a nil error is the assertion that nothing was
+		// executed: an empty flush must not reach the database at all.
+		assert.NoError(t, c.MarkValidVesselsAsIndexed(ctx, nil))
 	})
 }
 

@@ -690,24 +690,27 @@ func (q *repository) CreateMealComponent(ctx context.Context, querier database.S
 	return nil
 }
 
-// MarkMealAsIndexed updates a particular meal's last_indexed_at value.
-func (q *repository) MarkMealAsIndexed(ctx context.Context, mealID string) error {
+// MarkMealsAsIndexed stamps last_indexed_at on the rows behind the documents an index has taken.
+//
+// It is the write half of search/sync's Stamper: the ids arrive already coalesced and ordered
+// by the batching.Buffer the syncer stamps through, so this is one statement per flush rather
+// than one per document. It is deliberately not guarded on archived_at — the syncer applies a
+// vanished row as a delete and stamps nothing, and a row archived between apply and flush is
+// harmless to stamp.
+func (q *repository) MarkMealsAsIndexed(ctx context.Context, ids []string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealIDKey, mealID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealIDKey, mealID)
-
-	if _, err := q.generatedQuerier.UpdateMealLastIndexedAt(ctx, q.writeDB, mealID); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "marking meal as indexed")
+	if len(ids) == 0 {
+		return nil
 	}
 
-	logger.Info("meal marked as indexed")
+	logger := q.logger.Clone().WithValue("id_count", len(ids))
+	tracing.AttachToSpan(span, "id_count", len(ids))
+
+	if _, err := q.generatedQuerier.MarkMealsAsIndexed(ctx, q.writeDB, ids); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "marking meals as indexed")
+	}
 
 	return nil
 }

@@ -1137,6 +1137,20 @@ func (q *Queries) GetRecipesWithIDs(ctx context.Context, db DBTX, ids []string) 
 	return items, nil
 }
 
+const markRecipesAsIndexed = `-- name: MarkRecipesAsIndexed :execrows
+UPDATE recipes SET
+	last_indexed_at = NOW()
+WHERE id = ANY($1::text[])
+`
+
+func (q *Queries) MarkRecipesAsIndexed(ctx context.Context, db DBTX, ids []string) (int64, error) {
+	result, err := db.ExecContext(ctx, markRecipesAsIndexed, pq.Array(ids))
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const recipeSearch = `-- name: RecipeSearch :many
 SELECT
 	recipes.id,
@@ -1704,18 +1718,6 @@ func (q *Queries) UpdateRecipe(ctx context.Context, db DBTX, arg *UpdateRecipePa
 		arg.CreatedByUser,
 		arg.ID,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
-const updateRecipeLastIndexedAt = `-- name: UpdateRecipeLastIndexedAt :execrows
-UPDATE recipes SET last_indexed_at = NOW() WHERE id = $1 AND archived_at IS NULL
-`
-
-func (q *Queries) UpdateRecipeLastIndexedAt(ctx context.Context, db DBTX, id string) (int64, error) {
-	result, err := db.ExecContext(ctx, updateRecipeLastIndexedAt, id)
 	if err != nil {
 		return 0, err
 	}

@@ -129,7 +129,7 @@ type (
 		ValidMeasurementUnitsForIngredientID(ctx context.Context, validIngredientID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[ValidMeasurementUnit], error)
 		CreateValidMeasurementUnit(ctx context.Context, input *ValidMeasurementUnitDatabaseCreationInput) (*ValidMeasurementUnit, error)
 		UpdateValidMeasurementUnit(ctx context.Context, updated *ValidMeasurementUnit) error
-		MarkValidMeasurementUnitAsIndexed(ctx context.Context, validMeasurementUnitID string) error
+		MarkValidMeasurementUnitsAsIndexed(ctx context.Context, ids []string) error
 		ArchiveValidMeasurementUnit(ctx context.Context, validMeasurementUnitID string) error
 		ScanValidMeasurementUnitIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetValidMeasurementUnitsWithIDs(ctx context.Context, ids []string) ([]*ValidMeasurementUnit, error)

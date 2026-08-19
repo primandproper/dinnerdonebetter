@@ -422,16 +422,19 @@ WHERE %s IS NULL
 			},
 			{
 				Annotation: QueryAnnotation{
-					Name: "UpdateRecipeLastIndexedAt",
+					Name: "MarkRecipesAsIndexed",
 					Type: ExecRowsType,
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s = sqlc.arg(%s) AND %s IS NULL;`,
+				// Bulk, and named for what querygen emits, so migrating this table to
+				// StandardCRUD deletes this declaration without renaming anything.
+				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
+	%s = %s
+WHERE %s = ANY(sqlc.arg(%s)::text[]);`,
 					recipesTableName,
 					lastIndexedAtColumn,
 					currentTimeExpression,
 					idColumn,
-					idColumn,
-					archivedAtColumn,
+					idsArg,
 				)),
 			},
 		}

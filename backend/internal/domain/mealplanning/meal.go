@@ -127,7 +127,7 @@ type (
 		GetMealsCreatedByUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[Meal], error)
 		SearchForMeals(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[Meal], error)
 		CreateMeal(ctx context.Context, input *MealDatabaseCreationInput) (*Meal, error)
-		MarkMealAsIndexed(ctx context.Context, mealID string) error
+		MarkMealsAsIndexed(ctx context.Context, ids []string) error
 		ArchiveMeal(ctx context.Context, mealID, userID string) error
 		ScanMealIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetMealsWithIDs(ctx context.Context, ids []string) ([]*Meal, error)

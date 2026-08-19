@@ -82,6 +82,7 @@ type Querier interface {
 	MarkEmailAddressAsVerified(ctx context.Context, db DBTX, arg *MarkEmailAddressAsVerifiedParams) error
 	MarkTwoFactorSecretAsUnverified(ctx context.Context, db DBTX, arg *MarkTwoFactorSecretAsUnverifiedParams) error
 	MarkTwoFactorSecretAsVerified(ctx context.Context, db DBTX, id string) error
+	MarkUsersAsIndexed(ctx context.Context, db DBTX, ids []string) (int64, error)
 	RemoveUserFromAccount(ctx context.Context, db DBTX, arg *RemoveUserFromAccountParams) error
 	ScanUserIDsForReindex(ctx context.Context, db DBTX, arg *ScanUserIDsForReindexParams) ([]string, error)
 	SearchUsersByUsername(ctx context.Context, db DBTX, arg *SearchUsersByUsernameParams) ([]*SearchUsersByUsernameRow, error)
@@ -96,7 +97,6 @@ type Querier interface {
 	UpdateAccountWebhookEncryptionKey(ctx context.Context, db DBTX, arg *UpdateAccountWebhookEncryptionKeyParams) (int64, error)
 	UpdateUserDetails(ctx context.Context, db DBTX, arg *UpdateUserDetailsParams) (int64, error)
 	UpdateUserEmailAddress(ctx context.Context, db DBTX, arg *UpdateUserEmailAddressParams) (int64, error)
-	UpdateUserLastIndexedAt(ctx context.Context, db DBTX, id string) (int64, error)
 	UpdateUserPassword(ctx context.Context, db DBTX, arg *UpdateUserPasswordParams) (int64, error)
 	UpdateUserTwoFactorSecret(ctx context.Context, db DBTX, arg *UpdateUserTwoFactorSecretParams) (int64, error)
 	UpdateUserUsername(ctx context.Context, db DBTX, arg *UpdateUserUsernameParams) (int64, error)

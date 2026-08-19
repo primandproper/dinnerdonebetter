@@ -75,6 +75,11 @@ WHERE valid_vessels.archived_at IS NULL
 ORDER BY valid_vessels.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
+-- name: MarkValidVesselsAsIndexed :execrows
+UPDATE valid_vessels SET
+	last_indexed_at = NOW()
+WHERE id = ANY(sqlc.arg(ids)::text[]);
+
 -- name: GetValidVessels :many
 SELECT
 	valid_vessels.id,
@@ -326,6 +331,3 @@ WHERE valid_vessels.archived_at IS NULL
 	AND valid_vessels.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_vessels.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateValidVesselLastIndexedAt :execrows
-UPDATE valid_vessels SET last_indexed_at = NOW() WHERE id = sqlc.arg(id) AND archived_at IS NULL;

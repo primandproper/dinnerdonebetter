@@ -151,20 +151,6 @@ WHERE %s.%s IS NULL
 						buildCursorLimitClause(validIngredientStatesTableName),
 					)),
 				},
-				{
-					Annotation: QueryAnnotation{
-						Name: "UpdateValidIngredientStateLastIndexedAt",
-						Type: ExecRowsType,
-					},
-					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s = sqlc.arg(%s) AND %s IS NULL;`,
-						validIngredientStatesTableName,
-						lastIndexedAtColumn,
-						currentTimeExpression,
-						idColumn,
-						idColumn,
-						archivedAtColumn,
-					)),
-				},
 			},
 		)
 	default:

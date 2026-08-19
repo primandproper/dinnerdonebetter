@@ -197,7 +197,7 @@ type (
 		MarkUserEmailAddressAsVerified(ctx context.Context, userID, token string) error
 		MarkUserEmailAddressAsUnverified(ctx context.Context, userID string) error
 		ScanUserIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
-		MarkUserAsIndexed(ctx context.Context, userID string) error
+		MarkUsersAsIndexed(ctx context.Context, ids []string) error
 	}
 )
 

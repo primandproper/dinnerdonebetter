@@ -2,8 +2,10 @@ package integration
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"hash/fnv"
+	"io"
 	"reflect"
 	"sort"
 	"strconv"
@@ -449,4 +451,24 @@ func diffMaps(a, b map[string]string) map[string][2]string {
 		}
 	}
 	return diff
+}
+
+// requireStreamSend asserts that sending on a client stream did not fail, treating io.EOF as
+// success.
+//
+// gRPC reports a stream the server has already finished as io.EOF from Send, not as the status:
+// "the stream is done, ask CloseAndRecv why". A test that provokes an immediate rejection — an
+// unauthenticated upload, where the interceptor answers before the first message is read — is
+// therefore racing. If the rejection lands first, Send returns io.EOF; if the send lands first,
+// Send succeeds and the rejection arrives at CloseAndRecv. Both are the server behaving
+// correctly, and only CloseAndRecv can tell the test which error it actually got, so the
+// assertion belongs there rather than here.
+func requireStreamSend(t *testing.T, err error) {
+	t.Helper()
+
+	if errors.Is(err, io.EOF) {
+		return
+	}
+
+	require.NoError(t, err)
 }

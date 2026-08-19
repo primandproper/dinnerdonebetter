@@ -106,7 +106,7 @@ type (
 		SearchForValidIngredientStates(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[ValidIngredientState], error)
 		CreateValidIngredientState(ctx context.Context, input *ValidIngredientStateDatabaseCreationInput) (*ValidIngredientState, error)
 		UpdateValidIngredientState(ctx context.Context, updated *ValidIngredientState) error
-		MarkValidIngredientStateAsIndexed(ctx context.Context, validIngredientState string) error
+		MarkValidIngredientStatesAsIndexed(ctx context.Context, ids []string) error
 		ArchiveValidIngredientState(ctx context.Context, validIngredientState string) error
 		ScanValidIngredientStateIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetValidIngredientStatesWithIDs(ctx context.Context, ids []string) ([]*ValidIngredientState, error)

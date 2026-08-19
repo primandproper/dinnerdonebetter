@@ -863,6 +863,20 @@ func (q *Queries) GetValidIngredientsWithIDs(ctx context.Context, db DBTX, ids [
 	return items, nil
 }
 
+const markValidIngredientsAsIndexed = `-- name: MarkValidIngredientsAsIndexed :execrows
+UPDATE valid_ingredients SET
+	last_indexed_at = NOW()
+WHERE id = ANY($1::text[])
+`
+
+func (q *Queries) MarkValidIngredientsAsIndexed(ctx context.Context, db DBTX, ids []string) (int64, error) {
+	result, err := db.ExecContext(ctx, markValidIngredientsAsIndexed, pq.Array(ids))
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const scanValidIngredientIDsForReindex = `-- name: ScanValidIngredientIDsForReindex :many
 SELECT valid_ingredients.id
 FROM valid_ingredients
@@ -1389,18 +1403,6 @@ func (q *Queries) UpdateValidIngredient(ctx context.Context, db DBTX, arg *Updat
 		arg.IsHeat,
 		arg.ID,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
-const updateValidIngredientLastIndexedAt = `-- name: UpdateValidIngredientLastIndexedAt :execrows
-UPDATE valid_ingredients SET last_indexed_at = NOW() WHERE id = $1 AND archived_at IS NULL
-`
-
-func (q *Queries) UpdateValidIngredientLastIndexedAt(ctx context.Context, db DBTX, id string) (int64, error) {
-	result, err := db.ExecContext(ctx, updateValidIngredientLastIndexedAt, id)
 	if err != nil {
 		return 0, err
 	}

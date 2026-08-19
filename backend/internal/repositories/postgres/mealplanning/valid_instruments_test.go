@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"testing"
+	"time"
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
@@ -93,7 +94,7 @@ func TestQuerier_Integration_ValidInstruments(t *testing.T) {
 
 	// delete
 	for _, validInstrument := range createdValidInstruments {
-		assert.NoError(t, dbc.MarkValidInstrumentAsIndexed(ctx, validInstrument.ID))
+		assert.NoError(t, dbc.MarkValidInstrumentsAsIndexed(ctx, []string{validInstrument.ID}))
 		assert.NoError(t, dbc.ArchiveValidInstrument(ctx, validInstrument.ID))
 
 		var exists bool
@@ -196,17 +197,51 @@ func TestQuerier_ArchiveValidInstrument(T *testing.T) {
 	})
 }
 
-func TestQuerier_MarkValidInstrumentAsIndexed(T *testing.T) {
+func TestQuerier_MarkValidInstrumentsAsIndexed(T *testing.T) {
 	T.Parallel()
 
-	T.Run("with invalid ID", func(t *testing.T) {
+	T.Run("with no ids", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.MarkValidInstrumentAsIndexed(ctx, ""))
+		// The client is inert, so a nil error is the assertion that nothing was
+		// executed: an empty flush must not reach the database at all.
+		assert.NoError(t, c.MarkValidInstrumentsAsIndexed(ctx, nil))
 	})
+
+	T.Run("stamps every id in one flush", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		dbc, _ := buildDatabaseClientForTest(t)
+
+		first := createValidInstrumentForTest(t, ctx, fakes.BuildFakeValidInstrument(), dbc)
+		second := createValidInstrumentForTest(t, ctx, fakes.BuildFakeValidInstrument(), dbc)
+		untouched := createValidInstrumentForTest(t, ctx, fakes.BuildFakeValidInstrument(), dbc)
+
+		// A freshly written row has never been indexed, which is what makes the stamp
+		// below observable rather than a value that was already there.
+		assert.Nil(t, lastIndexedAtForTest(t, ctx, dbc, first.ID))
+
+		require.NoError(t, dbc.MarkValidInstrumentsAsIndexed(ctx, []string{first.ID, second.ID}))
+
+		assert.NotNil(t, lastIndexedAtForTest(t, ctx, dbc, first.ID))
+		assert.NotNil(t, lastIndexedAtForTest(t, ctx, dbc, second.ID))
+		assert.Nil(t, lastIndexedAtForTest(t, ctx, dbc, untouched.ID))
+	})
+}
+
+// lastIndexedAtForTest reads the column directly, because nothing else can: last_indexed_at is
+// database-owned, so it is on no domain type and no generated read returns it.
+func lastIndexedAtForTest(t *testing.T, ctx context.Context, dbc *repository, id string) *time.Time {
+	t.Helper()
+
+	var stampedAt *time.Time
+	require.NoError(t, dbc.readDB.QueryRowContext(ctx, "SELECT last_indexed_at FROM valid_instruments WHERE id = $1", id).Scan(&stampedAt))
+
+	return stampedAt
 }
 
 func TestQuerier_Integration_ValidInstruments_CursorBasedPagination(t *testing.T) {

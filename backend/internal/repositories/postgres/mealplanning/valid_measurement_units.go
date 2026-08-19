@@ -450,24 +450,27 @@ func (q *repository) UpdateValidMeasurementUnit(ctx context.Context, updated *ty
 	return nil
 }
 
-// MarkValidMeasurementUnitAsIndexed updates a particular valid measurement unit's last_indexed_at value.
-func (q *repository) MarkValidMeasurementUnitAsIndexed(ctx context.Context, validMeasurementUnitID string) error {
+// MarkValidMeasurementUnitsAsIndexed stamps last_indexed_at on the rows behind the documents an index has taken.
+//
+// It is the write half of search/sync's Stamper: the ids arrive already coalesced and ordered
+// by the batching.Buffer the syncer stamps through, so this is one statement per flush rather
+// than one per document. It is deliberately not guarded on archived_at — the syncer applies a
+// vanished row as a delete and stamps nothing, and a row archived between apply and flush is
+// harmless to stamp.
+func (q *repository) MarkValidMeasurementUnitsAsIndexed(ctx context.Context, ids []string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validMeasurementUnitID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
-
-	if _, err := q.generatedQuerier.UpdateValidMeasurementUnitLastIndexedAt(ctx, q.writeDB, validMeasurementUnitID); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "marking valid measurement unit as indexed")
+	if len(ids) == 0 {
+		return nil
 	}
 
-	logger.Info("valid measurement unit marked as indexed")
+	logger := q.logger.Clone().WithValue("id_count", len(ids))
+	tracing.AttachToSpan(span, "id_count", len(ids))
+
+	if _, err := q.generatedQuerier.MarkValidMeasurementUnitsAsIndexed(ctx, q.writeDB, ids); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "marking valid measurement units as indexed")
+	}
 
 	return nil
 }

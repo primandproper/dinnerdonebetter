@@ -106,7 +106,7 @@ func TestQuerier_Integration_ValidMeasurementUnits(t *testing.T) {
 
 	// delete
 	for _, validMeasurementUnit := range createdValidMeasurementUnits {
-		assert.NoError(t, dbc.MarkValidMeasurementUnitAsIndexed(ctx, validMeasurementUnit.ID))
+		assert.NoError(t, dbc.MarkValidMeasurementUnitsAsIndexed(ctx, []string{validMeasurementUnit.ID}))
 		assert.NoError(t, dbc.ArchiveValidMeasurementUnit(ctx, validMeasurementUnit.ID))
 
 		var exists bool
@@ -225,16 +225,18 @@ func TestQuerier_ArchiveValidMeasurementUnit(T *testing.T) {
 	})
 }
 
-func TestQuerier_MarkValidMeasurementUnitAsIndexed(T *testing.T) {
+func TestQuerier_MarkValidMeasurementUnitsAsIndexed(T *testing.T) {
 	T.Parallel()
 
-	T.Run("with invalid MealPlanTaskID", func(t *testing.T) {
+	T.Run("with no ids", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.MarkValidMeasurementUnitAsIndexed(ctx, ""))
+		// The client is inert, so a nil error is the assertion that nothing was
+		// executed: an empty flush must not reach the database at all.
+		assert.NoError(t, c.MarkValidMeasurementUnitsAsIndexed(ctx, nil))
 	})
 }
 

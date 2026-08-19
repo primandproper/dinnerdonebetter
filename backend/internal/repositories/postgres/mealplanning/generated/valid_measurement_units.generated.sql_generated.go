@@ -599,6 +599,20 @@ func (q *Queries) GetValidMeasurementUnitsWithIDs(ctx context.Context, db DBTX, 
 	return items, nil
 }
 
+const markValidMeasurementUnitsAsIndexed = `-- name: MarkValidMeasurementUnitsAsIndexed :execrows
+UPDATE valid_measurement_units SET
+	last_indexed_at = NOW()
+WHERE id = ANY($1::text[])
+`
+
+func (q *Queries) MarkValidMeasurementUnitsAsIndexed(ctx context.Context, db DBTX, ids []string) (int64, error) {
+	result, err := db.ExecContext(ctx, markValidMeasurementUnitsAsIndexed, pq.Array(ids))
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const scanValidMeasurementUnitIDsForReindex = `-- name: ScanValidMeasurementUnitIDsForReindex :many
 SELECT valid_measurement_units.id
 FROM valid_measurement_units
@@ -961,18 +975,6 @@ func (q *Queries) UpdateValidMeasurementUnit(ctx context.Context, db DBTX, arg *
 		arg.PluralName,
 		arg.ID,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
-const updateValidMeasurementUnitLastIndexedAt = `-- name: UpdateValidMeasurementUnitLastIndexedAt :execrows
-UPDATE valid_measurement_units SET last_indexed_at = NOW() WHERE id = $1 AND archived_at IS NULL
-`
-
-func (q *Queries) UpdateValidMeasurementUnitLastIndexedAt(ctx context.Context, db DBTX, id string) (int64, error) {
-	result, err := db.ExecContext(ctx, updateValidMeasurementUnitLastIndexedAt, id)
 	if err != nil {
 		return 0, err
 	}

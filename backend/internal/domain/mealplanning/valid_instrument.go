@@ -115,7 +115,7 @@ type (
 		SearchForValidInstrumentsNotOwnedByAccount(ctx context.Context, accountID, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[ValidInstrument], error)
 		CreateValidInstrument(ctx context.Context, input *ValidInstrumentDatabaseCreationInput) (*ValidInstrument, error)
 		UpdateValidInstrument(ctx context.Context, updated *ValidInstrument) error
-		MarkValidInstrumentAsIndexed(ctx context.Context, validInstrumentID string) error
+		MarkValidInstrumentsAsIndexed(ctx context.Context, ids []string) error
 		ArchiveValidInstrument(ctx context.Context, validInstrumentID string) error
 		ScanValidInstrumentIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetValidInstrumentsWithIDs(ctx context.Context, ids []string) ([]*ValidInstrument, error)

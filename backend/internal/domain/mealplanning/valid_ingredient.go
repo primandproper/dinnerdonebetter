@@ -247,7 +247,7 @@ type (
 		SearchForValidIngredientsForPreparation(ctx context.Context, preparationID, query string, filter *filtering.QueryFilter) (x *filtering.QueryFilteredResult[ValidIngredient], err error)
 		CreateValidIngredient(ctx context.Context, input *ValidIngredientDatabaseCreationInput) (*ValidIngredient, error)
 		UpdateValidIngredient(ctx context.Context, updated *ValidIngredient) error
-		MarkValidIngredientAsIndexed(ctx context.Context, validIngredientID string) error
+		MarkValidIngredientsAsIndexed(ctx context.Context, ids []string) error
 		ArchiveValidIngredient(ctx context.Context, validIngredientID string) error
 		ScanValidIngredientIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetValidIngredientsWithIDs(ctx context.Context, ids []string) ([]*ValidIngredient, error)

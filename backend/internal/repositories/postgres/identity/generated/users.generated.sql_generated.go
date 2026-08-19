@@ -1470,6 +1470,20 @@ func (q *Queries) MarkTwoFactorSecretAsVerified(ctx context.Context, db DBTX, id
 	return err
 }
 
+const markUsersAsIndexed = `-- name: MarkUsersAsIndexed :execrows
+UPDATE users SET
+	last_indexed_at = NOW()
+WHERE id = ANY($1::text[])
+`
+
+func (q *Queries) MarkUsersAsIndexed(ctx context.Context, db DBTX, ids []string) (int64, error) {
+	result, err := db.ExecContext(ctx, markUsersAsIndexed, pq.Array(ids))
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const scanUserIDsForReindex = `-- name: ScanUserIDsForReindex :many
 SELECT users.id
 FROM users
@@ -1733,18 +1747,6 @@ type UpdateUserEmailAddressParams struct {
 
 func (q *Queries) UpdateUserEmailAddress(ctx context.Context, db DBTX, arg *UpdateUserEmailAddressParams) (int64, error) {
 	result, err := db.ExecContext(ctx, updateUserEmailAddress, arg.EmailAddress, arg.ID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
-const updateUserLastIndexedAt = `-- name: UpdateUserLastIndexedAt :execrows
-UPDATE users SET last_indexed_at = NOW() WHERE id = $1 AND archived_at IS NULL
-`
-
-func (q *Queries) UpdateUserLastIndexedAt(ctx context.Context, db DBTX, id string) (int64, error) {
-	result, err := db.ExecContext(ctx, updateUserLastIndexedAt, id)
 	if err != nil {
 		return 0, err
 	}

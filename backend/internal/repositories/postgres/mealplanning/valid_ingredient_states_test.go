@@ -89,7 +89,7 @@ func TestQuerier_Integration_ValidIngredientStates(t *testing.T) {
 
 	// delete
 	for _, validIngredientState := range createdValidIngredientStates {
-		assert.NoError(t, dbc.MarkValidIngredientStateAsIndexed(ctx, validIngredientState.ID))
+		assert.NoError(t, dbc.MarkValidIngredientStatesAsIndexed(ctx, []string{validIngredientState.ID}))
 		assert.NoError(t, dbc.ArchiveValidIngredientState(ctx, validIngredientState.ID))
 
 		var exists bool
@@ -192,16 +192,18 @@ func TestQuerier_ArchiveValidIngredientState(T *testing.T) {
 	})
 }
 
-func TestQuerier_MarkValidIngredientStateAsIndexed(T *testing.T) {
+func TestQuerier_MarkValidIngredientStatesAsIndexed(T *testing.T) {
 	T.Parallel()
 
-	T.Run("with invalid ID", func(t *testing.T) {
+	T.Run("with no ids", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.MarkValidIngredientStateAsIndexed(ctx, ""))
+		// The client is inert, so a nil error is the assertion that nothing was
+		// executed: an empty flush must not reach the database at all.
+		assert.NoError(t, c.MarkValidIngredientStatesAsIndexed(ctx, nil))
 	})
 }
 

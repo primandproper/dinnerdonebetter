@@ -666,6 +666,20 @@ func (q *Queries) GetValidVesselsWithIDs(ctx context.Context, db DBTX, ids []str
 	return items, nil
 }
 
+const markValidVesselsAsIndexed = `-- name: MarkValidVesselsAsIndexed :execrows
+UPDATE valid_vessels SET
+	last_indexed_at = NOW()
+WHERE id = ANY($1::text[])
+`
+
+func (q *Queries) MarkValidVesselsAsIndexed(ctx context.Context, db DBTX, ids []string) (int64, error) {
+	result, err := db.ExecContext(ctx, markValidVesselsAsIndexed, pq.Array(ids))
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const scanValidVesselIDsForReindex = `-- name: ScanValidVesselIDsForReindex :many
 SELECT valid_vessels.id
 FROM valid_vessels
@@ -911,18 +925,6 @@ func (q *Queries) UpdateValidVessel(ctx context.Context, db DBTX, arg *UpdateVal
 		arg.Shape,
 		arg.ID,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
-const updateValidVesselLastIndexedAt = `-- name: UpdateValidVesselLastIndexedAt :execrows
-UPDATE valid_vessels SET last_indexed_at = NOW() WHERE id = $1 AND archived_at IS NULL
-`
-
-func (q *Queries) UpdateValidVesselLastIndexedAt(ctx context.Context, db DBTX, id string) (int64, error) {
-	result, err := db.ExecContext(ctx, updateValidVesselLastIndexedAt, id)
 	if err != nil {
 		return 0, err
 	}

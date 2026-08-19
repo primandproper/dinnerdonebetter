@@ -492,24 +492,27 @@ func (q *repository) UpdateValidVessel(ctx context.Context, updated *types.Valid
 	return nil
 }
 
-// MarkValidVesselAsIndexed updates a particular valid vessel's last_indexed_at value.
-func (q *repository) MarkValidVesselAsIndexed(ctx context.Context, validVesselID string) error {
+// MarkValidVesselsAsIndexed stamps last_indexed_at on the rows behind the documents an index has taken.
+//
+// It is the write half of search/sync's Stamper: the ids arrive already coalesced and ordered
+// by the batching.Buffer the syncer stamps through, so this is one statement per flush rather
+// than one per document. It is deliberately not guarded on archived_at — the syncer applies a
+// vanished row as a delete and stamps nothing, and a row archived between apply and flush is
+// harmless to stamp.
+func (q *repository) MarkValidVesselsAsIndexed(ctx context.Context, ids []string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validVesselID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.ValidVesselIDKey, validVesselID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, validVesselID)
-
-	if _, err := q.generatedQuerier.UpdateValidVesselLastIndexedAt(ctx, q.writeDB, validVesselID); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "marking valid vessel as indexed")
+	if len(ids) == 0 {
+		return nil
 	}
 
-	logger.Info("valid vessel marked as indexed")
+	logger := q.logger.Clone().WithValue("id_count", len(ids))
+	tracing.AttachToSpan(span, "id_count", len(ids))
+
+	if _, err := q.generatedQuerier.MarkValidVesselsAsIndexed(ctx, q.writeDB, ids); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "marking valid vessels as indexed")
+	}
 
 	return nil
 }

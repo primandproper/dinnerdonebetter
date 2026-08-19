@@ -80,6 +80,11 @@ WHERE valid_measurement_units.archived_at IS NULL
 ORDER BY valid_measurement_units.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
+-- name: MarkValidMeasurementUnitsAsIndexed :execrows
+UPDATE valid_measurement_units SET
+	last_indexed_at = NOW()
+WHERE id = ANY(sqlc.arg(ids)::text[]);
+
 -- name: GetValidMeasurementUnits :many
 SELECT
 	valid_measurement_units.id,
@@ -366,6 +371,3 @@ WHERE
 	AND valid_measurement_units.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_measurement_units.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateValidMeasurementUnitLastIndexedAt :execrows
-UPDATE valid_measurement_units SET last_indexed_at = NOW() WHERE id = sqlc.arg(id) AND archived_at IS NULL;
