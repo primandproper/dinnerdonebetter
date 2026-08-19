@@ -46,6 +46,15 @@ func init() {
 
 type (
 	// UploadedMedia represents a media file uploaded by a user.
+	//
+	// It is not a duplicate of platform-go's uploads types. Those — ObjectInfo, Attributes —
+	// are blob-store descriptors: what the bucket says about a path, produced by the store and
+	// owned by it. This is the application's record that a user put something there, and it
+	// holds what the bucket cannot know: who uploaded it, when this application accepted it,
+	// and whether it has since been archived. StoragePath is the join between the two, and the
+	// direction of that join is the point — the row references the object, and the object has
+	// never heard of the row. The platform's uploader is consumed directly wherever a file is
+	// actually written; see internal/services/mealplanning/grpc/image_uploads.go.
 	UploadedMedia struct {
 		_             struct{}   `json:"-"`
 		CreatedAt     time.Time  `json:"createdAt"`

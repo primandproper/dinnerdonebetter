@@ -32,6 +32,15 @@ func init() {
 
 type (
 	// UserNotification represents a user notification.
+	//
+	// It is not a duplicate of platform-go's notifications/mobile, despite the shared word.
+	// That package is push delivery: it hands a title and a body to APNs or FCM and is done,
+	// and this application consumes it directly, unwrapped, in
+	// internal/functions/datachangemessagehandler. This is an in-app resource — a row that
+	// belongs to a user, carries a Status the user moves between unread, read, and dismissed,
+	// and is listed and updated through the API. A push has no status to move and no row to
+	// list. Nothing to merge; they are two ways of telling someone something, and an event
+	// often does both.
 	UserNotification struct {
 		_ struct{} `json:"-"`
 
