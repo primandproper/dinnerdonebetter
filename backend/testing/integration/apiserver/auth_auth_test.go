@@ -645,7 +645,7 @@ func TestAuth_InvalidateToken(T *testing.T) {
 		form.Set("client_id", createdClientID)
 		form.Set("client_secret", createdClientSecret)
 
-		revokeReq, err := http.NewRequestWithContext(ctx, http.MethodPost, httpTestServerAddress+"/oauth2/revoke", strings.NewReader(form.Encode()))
+		revokeReq, err := http.NewRequestWithContext(ctx, http.MethodPost, httpTestServerAddress+"/revoke", strings.NewReader(form.Encode()))
 		require.NoError(t, err)
 		revokeReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 

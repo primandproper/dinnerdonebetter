@@ -53,6 +53,11 @@ public struct Oauth_OAuth2Client: Sendable {
 
   public var clientSecret: String = String()
 
+  /// The exact addresses this client may receive an authorization code at, compared byte for
+  /// byte by the authorization server. A client registers what it will actually send as
+  /// redirect_uri, ports and trailing slashes included.
+  public var redirectUris: [String] = []
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -61,129 +66,13 @@ public struct Oauth_OAuth2Client: Sendable {
   fileprivate var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 }
 
-public struct Oauth_OAuth2ClientToken: @unchecked Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var refreshCreatedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _storage._refreshCreatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_uniqueStorage()._refreshCreatedAt = newValue}
-  }
-  /// Returns true if `refreshCreatedAt` has been explicitly set.
-  public var hasRefreshCreatedAt: Bool {return _storage._refreshCreatedAt != nil}
-  /// Clears the value of `refreshCreatedAt`. Subsequent reads from it will return its default value.
-  public mutating func clearRefreshCreatedAt() {_uniqueStorage()._refreshCreatedAt = nil}
-
-  public var accessCreatedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _storage._accessCreatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_uniqueStorage()._accessCreatedAt = newValue}
-  }
-  /// Returns true if `accessCreatedAt` has been explicitly set.
-  public var hasAccessCreatedAt: Bool {return _storage._accessCreatedAt != nil}
-  /// Clears the value of `accessCreatedAt`. Subsequent reads from it will return its default value.
-  public mutating func clearAccessCreatedAt() {_uniqueStorage()._accessCreatedAt = nil}
-
-  public var codeCreatedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _storage._codeCreatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_uniqueStorage()._codeCreatedAt = newValue}
-  }
-  /// Returns true if `codeCreatedAt` has been explicitly set.
-  public var hasCodeCreatedAt: Bool {return _storage._codeCreatedAt != nil}
-  /// Clears the value of `codeCreatedAt`. Subsequent reads from it will return its default value.
-  public mutating func clearCodeCreatedAt() {_uniqueStorage()._codeCreatedAt = nil}
-
-  public var redirectUri: String {
-    get {return _storage._redirectUri}
-    set {_uniqueStorage()._redirectUri = newValue}
-  }
-
-  public var scope: String {
-    get {return _storage._scope}
-    set {_uniqueStorage()._scope = newValue}
-  }
-
-  public var code: String {
-    get {return _storage._code}
-    set {_uniqueStorage()._code = newValue}
-  }
-
-  public var codeChallenge: String {
-    get {return _storage._codeChallenge}
-    set {_uniqueStorage()._codeChallenge = newValue}
-  }
-
-  public var codeChallengeMethod: String {
-    get {return _storage._codeChallengeMethod}
-    set {_uniqueStorage()._codeChallengeMethod = newValue}
-  }
-
-  public var belongsToUser: String {
-    get {return _storage._belongsToUser}
-    set {_uniqueStorage()._belongsToUser = newValue}
-  }
-
-  public var access: String {
-    get {return _storage._access}
-    set {_uniqueStorage()._access = newValue}
-  }
-
-  public var clientID: String {
-    get {return _storage._clientID}
-    set {_uniqueStorage()._clientID = newValue}
-  }
-
-  public var refresh: String {
-    get {return _storage._refresh}
-    set {_uniqueStorage()._refresh = newValue}
-  }
-
-  public var id: String {
-    get {return _storage._id}
-    set {_uniqueStorage()._id = newValue}
-  }
-
-  public var codeExpiresAt: SwiftProtobuf.Google_Protobuf_Duration {
-    get {return _storage._codeExpiresAt ?? SwiftProtobuf.Google_Protobuf_Duration()}
-    set {_uniqueStorage()._codeExpiresAt = newValue}
-  }
-  /// Returns true if `codeExpiresAt` has been explicitly set.
-  public var hasCodeExpiresAt: Bool {return _storage._codeExpiresAt != nil}
-  /// Clears the value of `codeExpiresAt`. Subsequent reads from it will return its default value.
-  public mutating func clearCodeExpiresAt() {_uniqueStorage()._codeExpiresAt = nil}
-
-  public var accessExpiresAt: SwiftProtobuf.Google_Protobuf_Duration {
-    get {return _storage._accessExpiresAt ?? SwiftProtobuf.Google_Protobuf_Duration()}
-    set {_uniqueStorage()._accessExpiresAt = newValue}
-  }
-  /// Returns true if `accessExpiresAt` has been explicitly set.
-  public var hasAccessExpiresAt: Bool {return _storage._accessExpiresAt != nil}
-  /// Clears the value of `accessExpiresAt`. Subsequent reads from it will return its default value.
-  public mutating func clearAccessExpiresAt() {_uniqueStorage()._accessExpiresAt = nil}
-
-  public var refreshExpiresAt: SwiftProtobuf.Google_Protobuf_Duration {
-    get {return _storage._refreshExpiresAt ?? SwiftProtobuf.Google_Protobuf_Duration()}
-    set {_uniqueStorage()._refreshExpiresAt = newValue}
-  }
-  /// Returns true if `refreshExpiresAt` has been explicitly set.
-  public var hasRefreshExpiresAt: Bool {return _storage._refreshExpiresAt != nil}
-  /// Clears the value of `refreshExpiresAt`. Subsequent reads from it will return its default value.
-  public mutating func clearRefreshExpiresAt() {_uniqueStorage()._refreshExpiresAt = nil}
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
-
-  fileprivate var _storage = _StorageClass.defaultInstance
-}
-
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
 fileprivate let _protobuf_package = "oauth"
 
 extension Oauth_OAuth2Client: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".OAuth2Client"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}archived_at\0\u{1}name\0\u{1}description\0\u{3}client_id\0\u{1}id\0\u{3}client_secret\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}archived_at\0\u{1}name\0\u{1}description\0\u{3}client_id\0\u{1}id\0\u{3}client_secret\0\u{3}redirect_uris\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -198,6 +87,7 @@ extension Oauth_OAuth2Client: SwiftProtobuf.Message, SwiftProtobuf._MessageImple
       case 5: try { try decoder.decodeSingularStringField(value: &self.clientID) }()
       case 6: try { try decoder.decodeSingularStringField(value: &self.id) }()
       case 7: try { try decoder.decodeSingularStringField(value: &self.clientSecret) }()
+      case 8: try { try decoder.decodeRepeatedStringField(value: &self.redirectUris) }()
       default: break
       }
     }
@@ -229,6 +119,9 @@ extension Oauth_OAuth2Client: SwiftProtobuf.Message, SwiftProtobuf._MessageImple
     if !self.clientSecret.isEmpty {
       try visitor.visitSingularStringField(value: self.clientSecret, fieldNumber: 7)
     }
+    if !self.redirectUris.isEmpty {
+      try visitor.visitRepeatedStringField(value: self.redirectUris, fieldNumber: 8)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -240,181 +133,7 @@ extension Oauth_OAuth2Client: SwiftProtobuf.Message, SwiftProtobuf._MessageImple
     if lhs.clientID != rhs.clientID {return false}
     if lhs.id != rhs.id {return false}
     if lhs.clientSecret != rhs.clientSecret {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension Oauth_OAuth2ClientToken: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".OAuth2ClientToken"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}refresh_created_at\0\u{3}access_created_at\0\u{3}code_created_at\0\u{3}redirect_uri\0\u{1}scope\0\u{1}code\0\u{3}code_challenge\0\u{3}code_challenge_method\0\u{3}belongs_to_user\0\u{1}access\0\u{3}client_id\0\u{1}refresh\0\u{1}id\0\u{3}code_expires_at\0\u{3}access_expires_at\0\u{3}refresh_expires_at\0")
-
-  fileprivate class _StorageClass {
-    var _refreshCreatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-    var _accessCreatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-    var _codeCreatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-    var _redirectUri: String = String()
-    var _scope: String = String()
-    var _code: String = String()
-    var _codeChallenge: String = String()
-    var _codeChallengeMethod: String = String()
-    var _belongsToUser: String = String()
-    var _access: String = String()
-    var _clientID: String = String()
-    var _refresh: String = String()
-    var _id: String = String()
-    var _codeExpiresAt: SwiftProtobuf.Google_Protobuf_Duration? = nil
-    var _accessExpiresAt: SwiftProtobuf.Google_Protobuf_Duration? = nil
-    var _refreshExpiresAt: SwiftProtobuf.Google_Protobuf_Duration? = nil
-
-      // This property is used as the initial default value for new instances of the type.
-      // The type itself is protecting the reference to its storage via CoW semantics.
-      // This will force a copy to be made of this reference when the first mutation occurs;
-      // hence, it is safe to mark this as `nonisolated(unsafe)`.
-      static nonisolated(unsafe) let defaultInstance = _StorageClass()
-
-    private init() {}
-
-    init(copying source: _StorageClass) {
-      _refreshCreatedAt = source._refreshCreatedAt
-      _accessCreatedAt = source._accessCreatedAt
-      _codeCreatedAt = source._codeCreatedAt
-      _redirectUri = source._redirectUri
-      _scope = source._scope
-      _code = source._code
-      _codeChallenge = source._codeChallenge
-      _codeChallengeMethod = source._codeChallengeMethod
-      _belongsToUser = source._belongsToUser
-      _access = source._access
-      _clientID = source._clientID
-      _refresh = source._refresh
-      _id = source._id
-      _codeExpiresAt = source._codeExpiresAt
-      _accessExpiresAt = source._accessExpiresAt
-      _refreshExpiresAt = source._refreshExpiresAt
-    }
-  }
-
-  fileprivate mutating func _uniqueStorage() -> _StorageClass {
-    if !isKnownUniquelyReferenced(&_storage) {
-      _storage = _StorageClass(copying: _storage)
-    }
-    return _storage
-  }
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    _ = _uniqueStorage()
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      while let fieldNumber = try decoder.nextFieldNumber() {
-        // The use of inline closures is to circumvent an issue where the compiler
-        // allocates stack space for every case branch when no optimizations are
-        // enabled. https://github.com/apple/swift-protobuf/issues/1034
-        switch fieldNumber {
-        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._refreshCreatedAt) }()
-        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._accessCreatedAt) }()
-        case 3: try { try decoder.decodeSingularMessageField(value: &_storage._codeCreatedAt) }()
-        case 4: try { try decoder.decodeSingularStringField(value: &_storage._redirectUri) }()
-        case 5: try { try decoder.decodeSingularStringField(value: &_storage._scope) }()
-        case 6: try { try decoder.decodeSingularStringField(value: &_storage._code) }()
-        case 7: try { try decoder.decodeSingularStringField(value: &_storage._codeChallenge) }()
-        case 8: try { try decoder.decodeSingularStringField(value: &_storage._codeChallengeMethod) }()
-        case 9: try { try decoder.decodeSingularStringField(value: &_storage._belongsToUser) }()
-        case 10: try { try decoder.decodeSingularStringField(value: &_storage._access) }()
-        case 11: try { try decoder.decodeSingularStringField(value: &_storage._clientID) }()
-        case 12: try { try decoder.decodeSingularStringField(value: &_storage._refresh) }()
-        case 13: try { try decoder.decodeSingularStringField(value: &_storage._id) }()
-        case 14: try { try decoder.decodeSingularMessageField(value: &_storage._codeExpiresAt) }()
-        case 15: try { try decoder.decodeSingularMessageField(value: &_storage._accessExpiresAt) }()
-        case 16: try { try decoder.decodeSingularMessageField(value: &_storage._refreshExpiresAt) }()
-        default: break
-        }
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every if/case branch local when no optimizations
-      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-      // https://github.com/apple/swift-protobuf/issues/1182
-      try { if let v = _storage._refreshCreatedAt {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-      } }()
-      try { if let v = _storage._accessCreatedAt {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-      } }()
-      try { if let v = _storage._codeCreatedAt {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
-      } }()
-      if !_storage._redirectUri.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._redirectUri, fieldNumber: 4)
-      }
-      if !_storage._scope.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._scope, fieldNumber: 5)
-      }
-      if !_storage._code.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._code, fieldNumber: 6)
-      }
-      if !_storage._codeChallenge.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._codeChallenge, fieldNumber: 7)
-      }
-      if !_storage._codeChallengeMethod.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._codeChallengeMethod, fieldNumber: 8)
-      }
-      if !_storage._belongsToUser.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._belongsToUser, fieldNumber: 9)
-      }
-      if !_storage._access.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._access, fieldNumber: 10)
-      }
-      if !_storage._clientID.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._clientID, fieldNumber: 11)
-      }
-      if !_storage._refresh.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._refresh, fieldNumber: 12)
-      }
-      if !_storage._id.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._id, fieldNumber: 13)
-      }
-      try { if let v = _storage._codeExpiresAt {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 14)
-      } }()
-      try { if let v = _storage._accessExpiresAt {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 15)
-      } }()
-      try { if let v = _storage._refreshExpiresAt {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 16)
-      } }()
-    }
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Oauth_OAuth2ClientToken, rhs: Oauth_OAuth2ClientToken) -> Bool {
-    if lhs._storage !== rhs._storage {
-      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
-        let _storage = _args.0
-        let rhs_storage = _args.1
-        if _storage._refreshCreatedAt != rhs_storage._refreshCreatedAt {return false}
-        if _storage._accessCreatedAt != rhs_storage._accessCreatedAt {return false}
-        if _storage._codeCreatedAt != rhs_storage._codeCreatedAt {return false}
-        if _storage._redirectUri != rhs_storage._redirectUri {return false}
-        if _storage._scope != rhs_storage._scope {return false}
-        if _storage._code != rhs_storage._code {return false}
-        if _storage._codeChallenge != rhs_storage._codeChallenge {return false}
-        if _storage._codeChallengeMethod != rhs_storage._codeChallengeMethod {return false}
-        if _storage._belongsToUser != rhs_storage._belongsToUser {return false}
-        if _storage._access != rhs_storage._access {return false}
-        if _storage._clientID != rhs_storage._clientID {return false}
-        if _storage._refresh != rhs_storage._refresh {return false}
-        if _storage._id != rhs_storage._id {return false}
-        if _storage._codeExpiresAt != rhs_storage._codeExpiresAt {return false}
-        if _storage._accessExpiresAt != rhs_storage._accessExpiresAt {return false}
-        if _storage._refreshExpiresAt != rhs_storage._refreshExpiresAt {return false}
-        return true
-      }
-      if !storagesAreEqual {return false}
-    }
+    if lhs.redirectUris != rhs.redirectUris {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

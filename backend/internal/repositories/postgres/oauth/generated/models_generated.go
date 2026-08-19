@@ -15,6 +15,7 @@ type Oauth2Clients struct {
 	Description  string
 	ClientID     string
 	ClientSecret string
+	RedirectUris []string
 	CreatedAt    time.Time
 	ArchivedAt   sql.NullTime
 }

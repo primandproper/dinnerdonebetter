@@ -25,6 +25,7 @@ var oauth2ClientsColumns = []string{
 	descriptionColumn,
 	clientIDColumn,
 	"client_secret",
+	"redirect_uris",
 	createdAtColumn,
 	archivedAtColumn,
 }

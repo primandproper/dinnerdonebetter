@@ -7,6 +7,7 @@ import (
 	"github.com/primandproper/platform-go/v11/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
 
 // TablePrefix namespaces the platform authorization server's four tables,
@@ -15,15 +16,15 @@ import (
 //
 // A prefix rather than the platform's empty default, and here the collision is
 // not hypothetical: the platform's first table is named oauth2_clients, which is
-// exactly the name 00004_oauth.sql already created for the go-oauth2 server this
-// repository still runs. Its DDL says CREATE TABLE IF NOT EXISTS, so against our
-// database the platform's schema would be a silent no-op followed by a store
-// reading columns that are not there.
+// exactly the name 00004_oauth.sql gives the client registry below. Its DDL says
+// CREATE TABLE IF NOT EXISTS, so against our database the platform's schema would
+// be a silent no-op followed by a store reading columns that are not there.
 //
-// The two servers therefore coexist during the migration rather than by accident,
-// and the prefix stays right afterwards: when the API server moves onto these
-// tables too, ddb_oauth2_clients is still the name, and the unprefixed pair goes
-// away with the go-oauth2 dependency.
+// The prefix was introduced so the two authorization servers could coexist during
+// the migration. Both are the platform's now, and it stays: oauth2_clients is the
+// administered registry — listed, permissioned, archived, audited — and
+// ddb_oauth2_clients is the authorization server's own, which this deployment does
+// not write to at all. Two tables of one name, for two different jobs.
 const TablePrefix = "ddb"
 
 const (
@@ -48,36 +49,44 @@ type (
 		ClientID     string     `json:"clientID"`
 		ID           string     `json:"id"`
 		ClientSecret string     `json:"clientSecret"`
+		// RedirectURIs are the exact addresses this client may receive an authorization
+		// code at, compared byte for byte. A client registers what it will actually send
+		// as redirect_uri, ports and trailing slashes included, because that is the string
+		// the comparison is against.
+		RedirectURIs []string `json:"redirectURIs"`
 	}
 
 	// OAuth2ClientCreationRequestInput is a struct for use when creating OAuth2 clients.
 	OAuth2ClientCreationRequestInput struct {
 		_ struct{} `json:"-"`
 
-		Name        string `json:"name"`
-		Description string `json:"description"`
+		Name         string   `json:"name"`
+		Description  string   `json:"description"`
+		RedirectURIs []string `json:"redirectURIs"`
 	}
 
 	// OAuth2ClientDatabaseCreationInput is a struct for use when creating OAuth2 clients.
 	OAuth2ClientDatabaseCreationInput struct {
 		_ struct{} `json:"-"`
 
-		ID           string `json:"-"`
-		Name         string `json:"-"`
-		Description  string `json:"-"`
-		ClientID     string `json:"-"`
-		ClientSecret string `json:"-"`
+		ID           string   `json:"-"`
+		Name         string   `json:"-"`
+		Description  string   `json:"-"`
+		ClientID     string   `json:"-"`
+		ClientSecret string   `json:"-"`
+		RedirectURIs []string `json:"-"`
 	}
 
 	// OAuth2ClientCreationResponse is a struct for informing users of what their OAuth2 client's secret key is.
 	OAuth2ClientCreationResponse struct {
 		_ struct{} `json:"-"`
 
-		ClientID     string `json:"clientID"`
-		ClientSecret string `json:"clientSecret"`
-		Name         string `json:"name"`
-		Description  string `json:"description"`
-		ID           string `json:"id"`
+		ClientID     string   `json:"clientID"`
+		ClientSecret string   `json:"clientSecret"`
+		Name         string   `json:"name"`
+		Description  string   `json:"description"`
+		ID           string   `json:"id"`
+		RedirectURIs []string `json:"redirectURIs"`
 	}
 
 	// OAuth2ClientDataManager handles OAuth2 clients.
@@ -91,8 +100,14 @@ type (
 )
 
 // ValidateWithContext validates an APICreationInput.
+//
+// At least one redirect URI is required, and that is not a formality. The authorization
+// server matches redirect_uri byte for byte against this list, so a client registered
+// without one can authenticate at /token and still never complete an authorization
+// request — a failure that surfaces at first use rather than at registration.
 func (x *OAuth2ClientCreationRequestInput) ValidateWithContext(ctx context.Context) error {
 	return validation.ValidateStructWithContext(ctx, x,
 		validation.Field(&x.Name, validation.Required),
+		validation.Field(&x.RedirectURIs, validation.Required, validation.Each(is.RequestURI)),
 	)
 }

@@ -25,8 +25,12 @@ import (
 // The platform's DDL says CREATE TABLE IF NOT EXISTS, so without the prefix this
 // migration would be a silent no-op against a table with entirely different columns,
 // and the authorization server would fail on its first registration rather than at
-// migration time. With the prefix there is nothing to collide with, and the
-// go-oauth2 server keeps running on its own tables until #1288 retires it.
+// migration time.
+//
+// The prefix outlived the coexistence it was introduced for. Both authorization
+// servers are the platform's now, but oauth2_clients is still ours — the administered
+// client registry, with a listing endpoint, permissions and an audit trail behind it —
+// so the two tables of that name still have to be two tables.
 func TestQuerier_Migrate_OAuth2ServerTables(T *testing.T) {
 	T.Parallel()
 
@@ -55,14 +59,14 @@ func TestQuerier_Migrate_OAuth2ServerTables(T *testing.T) {
 			assert.Equal(t, 1, count, "missing %s", ddboauth.TablePrefix+table)
 		}
 
-		// And the go-oauth2 server's table is still its own. `client_secret` is a
-		// column only the legacy shape has — the platform's clients table stores a
-		// `secret_hash` — so finding it here proves the two did not merge.
-		var legacySecret int
+		// And the client registry is still its own table. `client_secret` is a column
+		// only our shape has — the platform's clients table stores a `secret_hash` — so
+		// finding it here proves the two did not merge.
+		var registrySecret int
 		require.NoError(t, db.QueryRowContext(ctx,
 			`SELECT COUNT(*) FROM information_schema.columns
-			 WHERE table_name = 'oauth2_clients' AND column_name = 'client_secret'`).Scan(&legacySecret))
-		assert.Equal(t, 1, legacySecret, "the go-oauth2 clients table must be untouched")
+			 WHERE table_name = 'oauth2_clients' AND column_name = 'client_secret'`).Scan(&registrySecret))
+		assert.Equal(t, 1, registrySecret, "the client registry table must be untouched")
 
 		var platformSecret int
 		require.NoError(t, db.QueryRowContext(ctx,

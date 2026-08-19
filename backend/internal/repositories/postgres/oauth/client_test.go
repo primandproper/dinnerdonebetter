@@ -13,7 +13,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	encryptioncfg "github.com/primandproper/platform-go/v11/cryptography/encryption/config"
 	"github.com/primandproper/platform-go/v11/database"
 	databasecfg "github.com/primandproper/platform-go/v11/database/config"
 	mockdatabase "github.com/primandproper/platform-go/v11/database/mock"
@@ -77,8 +76,6 @@ func buildInertClientForTest(t *testing.T) *repository {
 			MaxPingAttempts: 10,
 			PingWaitPeriod:  time.Second,
 		},
-		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
-		OAuth2TokenEncryptionKey: "blahblahblahblahblahblahblahblah",
 	}
 
 	c := ProvideOAuthRepository(t.Context(), loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, config, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})

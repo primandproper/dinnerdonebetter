@@ -4,13 +4,15 @@ INSERT INTO oauth2_clients (
 	name,
 	description,
 	client_id,
-	client_secret
+	client_secret,
+	redirect_uris
 ) VALUES (
 	sqlc.arg(id),
 	sqlc.arg(name),
 	sqlc.arg(description),
 	sqlc.arg(client_id),
-	sqlc.arg(client_secret)
+	sqlc.arg(client_secret),
+	sqlc.arg(redirect_uris)
 );
 
 -- name: GetOAuth2ClientByDatabaseID :one
@@ -20,6 +22,7 @@ SELECT
 	oauth2_clients.description,
 	oauth2_clients.client_id,
 	oauth2_clients.client_secret,
+	oauth2_clients.redirect_uris,
 	oauth2_clients.created_at,
 	oauth2_clients.archived_at
 FROM oauth2_clients
@@ -39,6 +42,7 @@ SELECT
 	oauth2_clients.description,
 	oauth2_clients.client_id,
 	oauth2_clients.client_secret,
+	oauth2_clients.redirect_uris,
 	oauth2_clients.created_at,
 	oauth2_clients.archived_at
 FROM oauth2_clients
@@ -52,6 +56,7 @@ SELECT
 	oauth2_clients.description,
 	oauth2_clients.client_id,
 	oauth2_clients.client_secret,
+	oauth2_clients.redirect_uris,
 	oauth2_clients.created_at,
 	oauth2_clients.archived_at,
 	(

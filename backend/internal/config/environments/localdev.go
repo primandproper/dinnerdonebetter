@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
+	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	authservice "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
@@ -17,6 +18,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
 	analyticscfg "github.com/primandproper/platform-go/v11/analytics/config"
+	oauth2servercfg "github.com/primandproper/platform-go/v11/authentication/oauth2server/config"
+	oauth2database "github.com/primandproper/platform-go/v11/authentication/oauth2server/database"
 	tokenscfg "github.com/primandproper/platform-go/v11/authentication/tokens/config"
 	platformwebauthn "github.com/primandproper/platform-go/v11/authentication/webauthn"
 	webauthncfg "github.com/primandproper/platform-go/v11/authentication/webauthn/config"
@@ -56,6 +59,11 @@ import (
 const (
 	dockerComposeWorkerQueueAddress = "worker_queue:6379"
 	localOAuth2TokenEncryptionKey   = debugCookieHashKey
+
+	// localAPIPublicURL is where the local API server answers: the OAuth2 issuer, the
+	// resource an access token names, and the address a registered client redirects to.
+	// http is accepted here because the host is loopback.
+	localAPIPublicURL = "http://localhost:9000"
 
 	// localDisclosureArtifactEncryptionKey encrypts user data disclosure artifacts locally. It
 	// is a throwaway: nothing outside a developer machine is written with it.
@@ -279,8 +287,6 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 				ReadConnection:  localdevPostgresDBConnectionDetails,
 				WriteConnection: localdevPostgresDBConnectionDetails,
 			},
-			Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
-			OAuth2TokenEncryptionKey: localOAuth2TokenEncryptionKey,
 		},
 		Observability: localObservabilityConfig(),
 		// Written out rather than left to the fallback in ProvidePasskeyConfig, so that a
@@ -312,11 +318,23 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 				},
 			},
 			Auth: authservice.Config{
-				OAuth2: authservice.OAuth2Config{
-					Domain:               "http://localhost:9000",
-					AccessTokenLifespan:  time.Hour,
-					RefreshTokenLifespan: time.Hour,
-					Debug:                false,
+				OAuth2: oauth2servercfg.Config{
+					Provider: oauth2servercfg.ProviderDatabase,
+					// The table prefix has to be the one migration 33 created the tables
+					// under: a prefix that differs between the DDL and the store is a
+					// server that comes up clean and cannot find a table.
+					Database: oauth2database.Config{TablePrefix: ddboauth.TablePrefix},
+					Issuer:   localAPIPublicURL,
+					// The audience every access token carries, and the identifier the gRPC
+					// interceptor checks a presented token against. Named explicitly rather
+					// than defaulted so that a token minted for the MCP server — which
+					// shares this database, and therefore this store — is not spendable
+					// here.
+					Resources: []string{localAPIPublicURL},
+					// Zero, so the store starts no sweeper of its own. `ddb job db-cleaner`
+					// calls Sweep instead: one pass for the fleet rather than one per
+					// replica, each running the same full-table delete on its own timer.
+					SweepInterval: 0,
 				},
 				Debug:                 true,
 				EnableUserSignup:      true,

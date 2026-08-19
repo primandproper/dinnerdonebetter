@@ -38,11 +38,6 @@
 		}
 	},
 	"database": {
-		"encryption": {
-			"provider": "aes",
-			"currentKeyID": "v1"
-		},
-		"oauth2TokenEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
 		"provider": "postgres",
 		"readConnection": {
 			"username": "dbuser",
@@ -68,5 +63,11 @@
 		"debug": true,
 		"logQueries": true,
 		"runMigrations": true
+	},
+	"oauth2": {
+		"provider": "database",
+		"database": {
+			"tablePrefix": "ddb"
+		}
 	}
 }

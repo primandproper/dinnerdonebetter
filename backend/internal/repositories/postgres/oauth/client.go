@@ -8,8 +8,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth/generated"
 
-	"github.com/primandproper/platform-go/v11/cryptography/encryption"
-	encryptioncfg "github.com/primandproper/platform-go/v11/cryptography/encryption/config"
 	"github.com/primandproper/platform-go/v11/database"
 	"github.com/primandproper/platform-go/v11/observability/logging"
 	"github.com/primandproper/platform-go/v11/observability/tracing"
@@ -19,55 +17,36 @@ const (
 	o11yName = "oauth_db_client"
 )
 
-// repository is the oauth2 client and token repo implemenation.
+// repository is the oauth2 client registry's repo implementation.
+//
+// It holds no cryptography of its own any more. It used to encrypt the code, access and
+// refresh columns of oauth2_client_tokens and keep an HMAC blind index beside each; those
+// records are the platform authorization server's now, and it stores a SHA-256 digest of
+// each credential rather than a reversible copy — so there is nothing here to decrypt.
 type repository struct {
 	database.Client
-	tracer                   tracing.Tracer
-	logger                   logging.Logger
-	generatedQuerier         generated.Querier
-	auditLogEntryRepo        audit.Repository
-	oauth2ClientTokenEncDec  encryption.EncryptorDecryptor
-	readDB                   database.SQLQueryExecutor
-	writeDB                  database.SQLQueryExecutor
-	oauth2ClientTokenHashKey []byte
+	tracer            tracing.Tracer
+	logger            logging.Logger
+	generatedQuerier  generated.Querier
+	auditLogEntryRepo audit.Repository
+	readDB            database.SQLQueryExecutor
 }
 
 // ProvideOAuthRepository provides a new repository.
 func ProvideOAuthRepository(
-	ctx context.Context,
+	_ context.Context,
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	auditLogEntryRepo audit.Repository,
-	cfg *dbcfg.Config,
+	_ *dbcfg.Config,
 	client database.Client,
 ) oauth.Repository {
-	// One key, named by the configured current key ID. v10's keyring decrypts under whichever
-	// key a ciphertext names, so rotating means adding the new key here and pointing
-	// CurrentKeyID at it — the old ciphertexts keep opening under the key they name.
-	encDec, err := encryptioncfg.NewKeyring(
-		ctx,
-		&cfg.Encryption,
-		encryption.Keyset{
-			encryption.KeyID(cfg.Encryption.CurrentKeyID): encryption.MasterKey(cfg.OAuth2TokenEncryptionKey),
-		},
-		encryptioncfg.WithLogger(logger),
-		encryptioncfg.WithTracerProvider(tracerProvider),
-	)
-	if err != nil {
-		return nil
+	return &repository{
+		Client:            client,
+		readDB:            client.Reader(),
+		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
+		generatedQuerier:  generated.New(),
+		auditLogEntryRepo: auditLogEntryRepo,
+		logger:            logging.NewNamedLogger(logger, o11yName),
 	}
-
-	c := &repository{
-		Client:                   client,
-		readDB:                   client.Reader(),
-		writeDB:                  client.Writer(),
-		tracer:                   tracing.NewNamedTracer(tracerProvider, o11yName),
-		generatedQuerier:         generated.New(),
-		auditLogEntryRepo:        auditLogEntryRepo,
-		oauth2ClientTokenEncDec:  encDec,
-		oauth2ClientTokenHashKey: []byte(cfg.OAuth2TokenEncryptionKey),
-		logger:                   logging.NewNamedLogger(logger, o11yName),
-	}
-
-	return c
 }

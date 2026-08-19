@@ -69,12 +69,18 @@ The system uses token-based authentication with JWT and PASETO support (PASETO i
 
 ### OAuth2 Integration
 
-The system implements OAuth2 for service authentication:
+The system runs an OAuth 2.1 authorization server for service authentication:
 
-- **Authorization Endpoint**: `/oauth2/authorize`
-- **Token Endpoint**: `/oauth2/token`
+- **Discovery**: `GET /.well-known/oauth-authorization-server`
+- **Authorization Endpoint**: `GET|POST /authorize` — a GET renders the login form, a POST
+  authenticates (either a session JWT in an `Authorization` header, or posted credentials)
+- **Token Endpoint**: `POST /token`
+- **Revocation Endpoint**: `POST /revoke`
 - Clients authenticate via `Authorization` header in gRPC requests
-- HTTP endpoints only support OAuth2 flow (legacy HTTP auth routes should be deprecated)
+- HTTP endpoints only support the OAuth2 flow (legacy HTTP auth routes should be deprecated)
+
+See [`backend/docs/auth-flow.md`](../backend/docs/auth-flow.md) for what the server enforces —
+byte-exact redirect URIs, mandatory S256 PKCE, refresh rotation with reuse detection.
 
 **OAuth2 Implementation**: [`pkg/client/client.go:WithOAuth2Credentials`](pkg/client/client.go)
 

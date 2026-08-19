@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package oauth;
 
-import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth";
@@ -15,23 +14,8 @@ message OAuth2Client {
   string client_id = 5;
   string id = 6;
   string client_secret = 7;
-}
-
-message OAuth2ClientToken {
-  google.protobuf.Timestamp refresh_created_at = 1;
-  google.protobuf.Timestamp access_created_at = 2;
-  google.protobuf.Timestamp code_created_at = 3;
-  string redirect_uri = 4;
-  string scope = 5;
-  string code = 6;
-  string code_challenge = 7;
-  string code_challenge_method = 8;
-  string belongs_to_user = 9;
-  string access = 10;
-  string client_id = 11;
-  string refresh = 12;
-  string id = 13;
-  google.protobuf.Duration code_expires_at = 14;
-  google.protobuf.Duration access_expires_at = 15;
-  google.protobuf.Duration refresh_expires_at = 16;
+  // The exact addresses this client may receive an authorization code at, compared byte for
+  // byte by the authorization server. A client registers what it will actually send as
+  // redirect_uri, ports and trailing slashes included.
+  repeated string redirect_uris = 8;
 }

@@ -6,7 +6,6 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
-import { Duration } from '../google/protobuf/duration';
 import { Timestamp } from '../google/protobuf/timestamp';
 
 export const protobufPackage = 'oauth';
@@ -19,25 +18,12 @@ export interface OAuth2Client {
   clientId: string;
   id: string;
   clientSecret: string;
-}
-
-export interface OAuth2ClientToken {
-  refreshCreatedAt: Date | undefined;
-  accessCreatedAt: Date | undefined;
-  codeCreatedAt: Date | undefined;
-  redirectUri: string;
-  scope: string;
-  code: string;
-  codeChallenge: string;
-  codeChallengeMethod: string;
-  belongsToUser: string;
-  access: string;
-  clientId: string;
-  refresh: string;
-  id: string;
-  codeExpiresAt: Duration | undefined;
-  accessExpiresAt: Duration | undefined;
-  refreshExpiresAt: Duration | undefined;
+  /**
+   * The exact addresses this client may receive an authorization code at, compared byte for
+   * byte by the authorization server. A client registers what it will actually send as
+   * redirect_uri, ports and trailing slashes included.
+   */
+  redirectUris: string[];
 }
 
 function createBaseOAuth2Client(): OAuth2Client {
@@ -49,6 +35,7 @@ function createBaseOAuth2Client(): OAuth2Client {
     clientId: '',
     id: '',
     clientSecret: '',
+    redirectUris: [],
   };
 }
 
@@ -74,6 +61,9 @@ export const OAuth2Client: MessageFns<OAuth2Client> = {
     }
     if (message.clientSecret !== '') {
       writer.uint32(58).string(message.clientSecret);
+    }
+    for (const v of message.redirectUris) {
+      writer.uint32(66).string(v!);
     }
     return writer;
   },
@@ -141,6 +131,14 @@ export const OAuth2Client: MessageFns<OAuth2Client> = {
           message.clientSecret = reader.string();
           continue;
         }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.redirectUris.push(reader.string());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -175,6 +173,11 @@ export const OAuth2Client: MessageFns<OAuth2Client> = {
         : isSet(object.client_secret)
           ? globalThis.String(object.client_secret)
           : '',
+      redirectUris: globalThis.Array.isArray(object?.redirectUris)
+        ? object.redirectUris.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.redirect_uris)
+          ? object.redirect_uris.map((e: any) => globalThis.String(e))
+          : [],
     };
   },
 
@@ -201,6 +204,9 @@ export const OAuth2Client: MessageFns<OAuth2Client> = {
     if (message.clientSecret !== '') {
       obj.clientSecret = message.clientSecret;
     }
+    if (message.redirectUris?.length) {
+      obj.redirectUris = message.redirectUris;
+    }
     return obj;
   },
 
@@ -216,376 +222,7 @@ export const OAuth2Client: MessageFns<OAuth2Client> = {
     message.clientId = object.clientId ?? '';
     message.id = object.id ?? '';
     message.clientSecret = object.clientSecret ?? '';
-    return message;
-  },
-};
-
-function createBaseOAuth2ClientToken(): OAuth2ClientToken {
-  return {
-    refreshCreatedAt: undefined,
-    accessCreatedAt: undefined,
-    codeCreatedAt: undefined,
-    redirectUri: '',
-    scope: '',
-    code: '',
-    codeChallenge: '',
-    codeChallengeMethod: '',
-    belongsToUser: '',
-    access: '',
-    clientId: '',
-    refresh: '',
-    id: '',
-    codeExpiresAt: undefined,
-    accessExpiresAt: undefined,
-    refreshExpiresAt: undefined,
-  };
-}
-
-export const OAuth2ClientToken: MessageFns<OAuth2ClientToken> = {
-  encode(message: OAuth2ClientToken, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.refreshCreatedAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.refreshCreatedAt), writer.uint32(10).fork()).join();
-    }
-    if (message.accessCreatedAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.accessCreatedAt), writer.uint32(18).fork()).join();
-    }
-    if (message.codeCreatedAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.codeCreatedAt), writer.uint32(26).fork()).join();
-    }
-    if (message.redirectUri !== '') {
-      writer.uint32(34).string(message.redirectUri);
-    }
-    if (message.scope !== '') {
-      writer.uint32(42).string(message.scope);
-    }
-    if (message.code !== '') {
-      writer.uint32(50).string(message.code);
-    }
-    if (message.codeChallenge !== '') {
-      writer.uint32(58).string(message.codeChallenge);
-    }
-    if (message.codeChallengeMethod !== '') {
-      writer.uint32(66).string(message.codeChallengeMethod);
-    }
-    if (message.belongsToUser !== '') {
-      writer.uint32(74).string(message.belongsToUser);
-    }
-    if (message.access !== '') {
-      writer.uint32(82).string(message.access);
-    }
-    if (message.clientId !== '') {
-      writer.uint32(90).string(message.clientId);
-    }
-    if (message.refresh !== '') {
-      writer.uint32(98).string(message.refresh);
-    }
-    if (message.id !== '') {
-      writer.uint32(106).string(message.id);
-    }
-    if (message.codeExpiresAt !== undefined) {
-      Duration.encode(message.codeExpiresAt, writer.uint32(114).fork()).join();
-    }
-    if (message.accessExpiresAt !== undefined) {
-      Duration.encode(message.accessExpiresAt, writer.uint32(122).fork()).join();
-    }
-    if (message.refreshExpiresAt !== undefined) {
-      Duration.encode(message.refreshExpiresAt, writer.uint32(130).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): OAuth2ClientToken {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOAuth2ClientToken();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.refreshCreatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.accessCreatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.codeCreatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
-
-          message.redirectUri = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
-            break;
-          }
-
-          message.scope = reader.string();
-          continue;
-        }
-        case 6: {
-          if (tag !== 50) {
-            break;
-          }
-
-          message.code = reader.string();
-          continue;
-        }
-        case 7: {
-          if (tag !== 58) {
-            break;
-          }
-
-          message.codeChallenge = reader.string();
-          continue;
-        }
-        case 8: {
-          if (tag !== 66) {
-            break;
-          }
-
-          message.codeChallengeMethod = reader.string();
-          continue;
-        }
-        case 9: {
-          if (tag !== 74) {
-            break;
-          }
-
-          message.belongsToUser = reader.string();
-          continue;
-        }
-        case 10: {
-          if (tag !== 82) {
-            break;
-          }
-
-          message.access = reader.string();
-          continue;
-        }
-        case 11: {
-          if (tag !== 90) {
-            break;
-          }
-
-          message.clientId = reader.string();
-          continue;
-        }
-        case 12: {
-          if (tag !== 98) {
-            break;
-          }
-
-          message.refresh = reader.string();
-          continue;
-        }
-        case 13: {
-          if (tag !== 106) {
-            break;
-          }
-
-          message.id = reader.string();
-          continue;
-        }
-        case 14: {
-          if (tag !== 114) {
-            break;
-          }
-
-          message.codeExpiresAt = Duration.decode(reader, reader.uint32());
-          continue;
-        }
-        case 15: {
-          if (tag !== 122) {
-            break;
-          }
-
-          message.accessExpiresAt = Duration.decode(reader, reader.uint32());
-          continue;
-        }
-        case 16: {
-          if (tag !== 130) {
-            break;
-          }
-
-          message.refreshExpiresAt = Duration.decode(reader, reader.uint32());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): OAuth2ClientToken {
-    return {
-      refreshCreatedAt: isSet(object.refreshCreatedAt)
-        ? fromJsonTimestamp(object.refreshCreatedAt)
-        : isSet(object.refresh_created_at)
-          ? fromJsonTimestamp(object.refresh_created_at)
-          : undefined,
-      accessCreatedAt: isSet(object.accessCreatedAt)
-        ? fromJsonTimestamp(object.accessCreatedAt)
-        : isSet(object.access_created_at)
-          ? fromJsonTimestamp(object.access_created_at)
-          : undefined,
-      codeCreatedAt: isSet(object.codeCreatedAt)
-        ? fromJsonTimestamp(object.codeCreatedAt)
-        : isSet(object.code_created_at)
-          ? fromJsonTimestamp(object.code_created_at)
-          : undefined,
-      redirectUri: isSet(object.redirectUri)
-        ? globalThis.String(object.redirectUri)
-        : isSet(object.redirect_uri)
-          ? globalThis.String(object.redirect_uri)
-          : '',
-      scope: isSet(object.scope) ? globalThis.String(object.scope) : '',
-      code: isSet(object.code) ? globalThis.String(object.code) : '',
-      codeChallenge: isSet(object.codeChallenge)
-        ? globalThis.String(object.codeChallenge)
-        : isSet(object.code_challenge)
-          ? globalThis.String(object.code_challenge)
-          : '',
-      codeChallengeMethod: isSet(object.codeChallengeMethod)
-        ? globalThis.String(object.codeChallengeMethod)
-        : isSet(object.code_challenge_method)
-          ? globalThis.String(object.code_challenge_method)
-          : '',
-      belongsToUser: isSet(object.belongsToUser)
-        ? globalThis.String(object.belongsToUser)
-        : isSet(object.belongs_to_user)
-          ? globalThis.String(object.belongs_to_user)
-          : '',
-      access: isSet(object.access) ? globalThis.String(object.access) : '',
-      clientId: isSet(object.clientId)
-        ? globalThis.String(object.clientId)
-        : isSet(object.client_id)
-          ? globalThis.String(object.client_id)
-          : '',
-      refresh: isSet(object.refresh) ? globalThis.String(object.refresh) : '',
-      id: isSet(object.id) ? globalThis.String(object.id) : '',
-      codeExpiresAt: isSet(object.codeExpiresAt)
-        ? Duration.fromJSON(object.codeExpiresAt)
-        : isSet(object.code_expires_at)
-          ? Duration.fromJSON(object.code_expires_at)
-          : undefined,
-      accessExpiresAt: isSet(object.accessExpiresAt)
-        ? Duration.fromJSON(object.accessExpiresAt)
-        : isSet(object.access_expires_at)
-          ? Duration.fromJSON(object.access_expires_at)
-          : undefined,
-      refreshExpiresAt: isSet(object.refreshExpiresAt)
-        ? Duration.fromJSON(object.refreshExpiresAt)
-        : isSet(object.refresh_expires_at)
-          ? Duration.fromJSON(object.refresh_expires_at)
-          : undefined,
-    };
-  },
-
-  toJSON(message: OAuth2ClientToken): unknown {
-    const obj: any = {};
-    if (message.refreshCreatedAt !== undefined) {
-      obj.refreshCreatedAt = message.refreshCreatedAt.toISOString();
-    }
-    if (message.accessCreatedAt !== undefined) {
-      obj.accessCreatedAt = message.accessCreatedAt.toISOString();
-    }
-    if (message.codeCreatedAt !== undefined) {
-      obj.codeCreatedAt = message.codeCreatedAt.toISOString();
-    }
-    if (message.redirectUri !== '') {
-      obj.redirectUri = message.redirectUri;
-    }
-    if (message.scope !== '') {
-      obj.scope = message.scope;
-    }
-    if (message.code !== '') {
-      obj.code = message.code;
-    }
-    if (message.codeChallenge !== '') {
-      obj.codeChallenge = message.codeChallenge;
-    }
-    if (message.codeChallengeMethod !== '') {
-      obj.codeChallengeMethod = message.codeChallengeMethod;
-    }
-    if (message.belongsToUser !== '') {
-      obj.belongsToUser = message.belongsToUser;
-    }
-    if (message.access !== '') {
-      obj.access = message.access;
-    }
-    if (message.clientId !== '') {
-      obj.clientId = message.clientId;
-    }
-    if (message.refresh !== '') {
-      obj.refresh = message.refresh;
-    }
-    if (message.id !== '') {
-      obj.id = message.id;
-    }
-    if (message.codeExpiresAt !== undefined) {
-      obj.codeExpiresAt = Duration.toJSON(message.codeExpiresAt);
-    }
-    if (message.accessExpiresAt !== undefined) {
-      obj.accessExpiresAt = Duration.toJSON(message.accessExpiresAt);
-    }
-    if (message.refreshExpiresAt !== undefined) {
-      obj.refreshExpiresAt = Duration.toJSON(message.refreshExpiresAt);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<OAuth2ClientToken>, I>>(base?: I): OAuth2ClientToken {
-    return OAuth2ClientToken.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<OAuth2ClientToken>, I>>(object: I): OAuth2ClientToken {
-    const message = createBaseOAuth2ClientToken();
-    message.refreshCreatedAt = object.refreshCreatedAt ?? undefined;
-    message.accessCreatedAt = object.accessCreatedAt ?? undefined;
-    message.codeCreatedAt = object.codeCreatedAt ?? undefined;
-    message.redirectUri = object.redirectUri ?? '';
-    message.scope = object.scope ?? '';
-    message.code = object.code ?? '';
-    message.codeChallenge = object.codeChallenge ?? '';
-    message.codeChallengeMethod = object.codeChallengeMethod ?? '';
-    message.belongsToUser = object.belongsToUser ?? '';
-    message.access = object.access ?? '';
-    message.clientId = object.clientId ?? '';
-    message.refresh = object.refresh ?? '';
-    message.id = object.id ?? '';
-    message.codeExpiresAt =
-      object.codeExpiresAt !== undefined && object.codeExpiresAt !== null
-        ? Duration.fromPartial(object.codeExpiresAt)
-        : undefined;
-    message.accessExpiresAt =
-      object.accessExpiresAt !== undefined && object.accessExpiresAt !== null
-        ? Duration.fromPartial(object.accessExpiresAt)
-        : undefined;
-    message.refreshExpiresAt =
-      object.refreshExpiresAt !== undefined && object.refreshExpiresAt !== null
-        ? Duration.fromPartial(object.refreshExpiresAt)
-        : undefined;
+    message.redirectUris = object.redirectUris?.map((e) => e) || [];
     return message;
   },
 };

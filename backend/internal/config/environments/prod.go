@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
+	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	authservice "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
@@ -20,6 +21,8 @@ import (
 
 	analyticscfg "github.com/primandproper/platform-go/v11/analytics/config"
 	analyticsposthog "github.com/primandproper/platform-go/v11/analytics/posthog"
+	oauth2servercfg "github.com/primandproper/platform-go/v11/authentication/oauth2server/config"
+	oauth2database "github.com/primandproper/platform-go/v11/authentication/oauth2server/database"
 	tokenscfg "github.com/primandproper/platform-go/v11/authentication/tokens/config"
 	platformwebauthn "github.com/primandproper/platform-go/v11/authentication/webauthn"
 	webauthncfg "github.com/primandproper/platform-go/v11/authentication/webauthn/config"
@@ -62,10 +65,13 @@ const (
 	prodMediaBucket           = "media.dinnerdonebetter.com"
 	prodUserDataBucket        = "userdata.dinnerdonebetter.com"
 	prodOtelCollectorEndpoint = "otel-collector-svc.prod.svc.cluster.local:4317"
-	prodOAuth2Domain          = branding.ConsumerWebAppURL
-	prodTokensAudience        = "https://http-api.dinnerdonebetter.com" //nolint:gosec // G101: audience URL, not a credential
-	iosTeamID                 = "K8R2Q5UWQS"
-	iosBundleID               = "com.dinnerdonebetter.ios"
+	// prodAPIPublicURL is where this API server answers. It is the OAuth2 issuer, the
+	// resource an access token names, and the audience a session JWT is minted for — one
+	// address under three protocol names, so it is spelled once.
+	prodAPIPublicURL   = "https://http-api.dinnerdonebetter.com"
+	prodTokensAudience = prodAPIPublicURL
+	iosTeamID          = "K8R2Q5UWQS"
+	iosBundleID        = "com.dinnerdonebetter.ios"
 )
 
 // BuildProdConfig returns the configuration the production environment runs with.
@@ -207,8 +213,6 @@ func BuildProdConfig() *config.APIServiceConfig {
 					DisableSSL: false,
 				},
 			},
-			Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
-			OAuth2TokenEncryptionKey: "",
 		},
 		Observability: prodObservabilityConfig,
 		Email: emailcfg.Config{
@@ -322,11 +326,28 @@ func BuildProdConfig() *config.APIServiceConfig {
 				},
 			},
 			Auth: authservice.Config{
-				OAuth2: authservice.OAuth2Config{
-					Domain:               prodOAuth2Domain,
-					AccessTokenLifespan:  time.Hour,
-					RefreshTokenLifespan: time.Hour,
-					Debug:                false,
+				OAuth2: oauth2servercfg.Config{
+					Provider: oauth2servercfg.ProviderDatabase,
+					// The table prefix has to be the one migration 33 created the tables
+					// under: a prefix that differs between the DDL and the store is a
+					// server that comes up clean and cannot find a table.
+					Database: oauth2database.Config{TablePrefix: ddboauth.TablePrefix},
+					// The issuer is this API server's own public address, not the web app's.
+					// Every endpoint in the discovery document is derived from it, and a
+					// client compares it against the "iss" on an authorization response — so
+					// naming the consumer web app here, as the redirect-domain setting this
+					// replaces did, would advertise four addresses nothing is listening at.
+					Issuer: prodAPIPublicURL,
+					// The audience every access token carries, and the identifier the gRPC
+					// interceptor checks a presented token against. Named explicitly rather
+					// than defaulted so that a token minted for the MCP server — which
+					// shares this database, and therefore this store — is not spendable
+					// here.
+					Resources: []string{prodAPIPublicURL},
+					// Zero, so the store starts no sweeper of its own. `ddb job db-cleaner`
+					// calls Sweep instead: one pass for the fleet rather than one per
+					// replica, each running the same full-table delete on its own timer.
+					SweepInterval: 0,
 				},
 				Debug:                 false,
 				EnableUserSignup:      true,

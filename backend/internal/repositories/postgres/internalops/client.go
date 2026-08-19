@@ -16,7 +16,6 @@ const (
 type repository struct {
 	database.Client
 	tracer           tracing.Tracer
-	logger           logging.Logger
 	generatedQuerier generated.Querier
 	readDB           database.SQLQueryExecutor
 	writeDB          database.SQLQueryExecutor
@@ -30,7 +29,6 @@ func ProvideInternalOpsRepository(logger logging.Logger, tracerProvider tracing.
 		writeDB:          client.Writer(),
 		tracer:           tracing.NewNamedTracer(tracerProvider, o11yName),
 		generatedQuerier: generated.New(),
-		logger:           logging.NewNamedLogger(logger, o11yName),
 	}
 
 	return c

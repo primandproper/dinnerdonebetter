@@ -180,10 +180,6 @@
 		"minimumPasswordLength": 8
 	},
 	"database": {
-		"encryption": {
-			"provider": "aes",
-			"currentKeyID": "v1"
-		},
 		"provider": "postgres",
 		"readConnection": {
 			"username": "api_db_user",
@@ -253,9 +249,14 @@
 				"base64EncodedSigningKey": "SEVSRUlTQTMyQ0hBUlNFQ1JFVFdISUNISVNNQURFVVA="
 			},
 			"oauth2": {
-				"domain": "https://dinnerdonebetter.com",
-				"accessTokenLifespan": 3600000000000,
-				"refreshTokenLifespan": 3600000000000
+				"provider": "database",
+				"issuer": "https://http-api.dinnerdonebetter.com",
+				"database": {
+					"tablePrefix": "ddb"
+				},
+				"resources": [
+					"https://http-api.dinnerdonebetter.com"
+				]
 			},
 			"jwtLifetime": 300000000000,
 			"enableUserSignup": true,

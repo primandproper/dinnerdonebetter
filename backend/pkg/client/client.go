@@ -25,6 +25,7 @@ import (
 	waitlistsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 
+	"github.com/primandproper/platform-go/v11/authentication/oauth2server"
 	"github.com/primandproper/platform-go/v11/httpclient"
 	"github.com/primandproper/platform-go/v11/random"
 
@@ -162,8 +163,8 @@ func WithOAuth2Credentials(
 		RedirectURL:  authServerAddress,
 		Endpoint: oauth2.Endpoint{
 			AuthStyle: oauth2.AuthStyleInParams,
-			AuthURL:   authServerAddress + "/oauth2/authorize",
-			TokenURL:  authServerAddress + "/oauth2/token",
+			AuthURL:   authServerAddress + oauth2server.PathAuthorize,
+			TokenURL:  authServerAddress + oauth2server.PathToken,
 		},
 	}
 
@@ -175,9 +176,13 @@ func WithOAuth2Credentials(
 		oauth2.S256ChallengeOption(pkceVerifier),
 	)
 
+	// POST rather than GET: the authorization server renders a login form on GET — the answer
+	// for a browser arriving without a session — and runs the authenticator that reads this
+	// bearer token only on POST. The authorization parameters stay in the query string on both,
+	// so the request that issues the code is the one that was validated.
 	req, err := http.NewRequestWithContext(
 		ctx,
-		http.MethodGet,
+		http.MethodPost,
 		authCodeURL,
 		http.NoBody,
 	)
@@ -186,6 +191,7 @@ func WithOAuth2Credentials(
 	}
 
 	req.Header.Set("Authorization", "Bearer "+authToken)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	c, err := httpclient.NewHTTPClient(httpclient.WithTracing(true))
 	if err != nil {

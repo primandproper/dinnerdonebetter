@@ -146,11 +146,6 @@
 		}
 	},
 	"database": {
-		"encryption": {
-			"provider": "aes",
-			"currentKeyID": "v1"
-		},
-		"oauth2TokenEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
 		"provider": "postgres",
 		"readConnection": {
 			"username": "dbuser",

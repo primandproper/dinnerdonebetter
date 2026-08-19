@@ -94,7 +94,7 @@ func buildTestEnforcer(t *testing.T) *grpc.UnaryServerInterceptor {
 
 	enforcer, err := ProvideAuthorizationEnforcer(
 		perms,
-		interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, perms),
+		interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, "", nil, perms),
 		loggingnoop.NewLogger(),
 		metricsnoop.NewMetricsProvider(),
 		true,

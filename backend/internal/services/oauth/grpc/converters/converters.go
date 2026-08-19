@@ -8,15 +8,17 @@ import (
 
 func ConvertGRPCOAuth2ClientCreationRequestInputToOAuth2ClientCreationRequestInput(input *oauthsvc.OAuth2ClientCreationRequestInput) *oauth.OAuth2ClientCreationRequestInput {
 	return &oauth.OAuth2ClientCreationRequestInput{
-		Name:        input.Name,
-		Description: input.Description,
+		Name:         input.Name,
+		Description:  input.Description,
+		RedirectURIs: input.RedirectUris,
 	}
 }
 
 func ConvertOAuth2ClientCreationRequestInputToGRPCOAuth2ClientCreationRequestInput(input *oauth.OAuth2ClientCreationRequestInput) *oauthsvc.OAuth2ClientCreationRequestInput {
 	return &oauthsvc.OAuth2ClientCreationRequestInput{
-		Name:        input.Name,
-		Description: input.Description,
+		Name:         input.Name,
+		Description:  input.Description,
+		RedirectUris: input.RedirectURIs,
 	}
 }
 
@@ -29,6 +31,7 @@ func ConvertOAuth2ClientToGRPCOAuth2Client(client *oauth.OAuth2Client) *oauthsvc
 		ClientId:     client.ClientID,
 		Id:           client.ID,
 		ClientSecret: client.ClientSecret,
+		RedirectUris: client.RedirectURIs,
 	}
 }
 
@@ -41,5 +44,6 @@ func ConvertGRPCOAuth2ClientToOAuth2Client(client *oauthsvc.OAuth2Client) *oauth
 		ClientID:     client.ClientId,
 		ID:           client.Id,
 		ClientSecret: client.ClientSecret,
+		RedirectURIs: client.RedirectUris,
 	}
 }
