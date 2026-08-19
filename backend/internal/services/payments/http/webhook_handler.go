@@ -45,6 +45,13 @@ func NewWebhookHandler(
 // It hands the whole request to the provider's processor rather than reading the body here:
 // each provider signs a different part of a request, and only its own processor knows which.
 // What comes back is domain data, which is all the payments manager is given.
+//
+// That is also why this stays a raw handler rather than becoming a typed route. routing.RawBody
+// would preserve the bytes — it reads the body whole and parses nothing — but bytes are not what
+// this handler passes on. PaymentProcessor.HandleWebhook takes the request, and Stripe's verifier
+// reads the signature header and the body off it together; a typed route would have to hand that
+// verifier a request rebuilt from the parts the router bound, which is not the one the client sent.
+// The bound a typed route would have brought with it is applied at registration instead.
 func (h *WebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	ctx, span := h.tracer.StartSpan(r.Context())
 	defer span.End()

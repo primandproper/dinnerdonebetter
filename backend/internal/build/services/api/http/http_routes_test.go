@@ -3,16 +3,23 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
+	paymentswebhook "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
 
 	"github.com/primandproper/platform-go/v11/encoding"
 	"github.com/primandproper/platform-go/v11/healthcheck"
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v11/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
 	"github.com/primandproper/platform-go/v11/routing"
 	"github.com/primandproper/platform-go/v11/routing/backends/chi"
+	routingcfg "github.com/primandproper/platform-go/v11/routing/config"
 	"github.com/primandproper/platform-go/v11/version"
 
 	"github.com/stretchr/testify/assert"
@@ -122,5 +129,243 @@ func Test_registerOpsRoutes(T *testing.T) {
 		var body version.Info
 		require.NoError(t, json.Unmarshal(res.Body.Bytes(), &body))
 		assert.Equal(t, version.Get(), body)
+	})
+}
+
+// stubAuthService records whether the OAuth2 handlers the router mounts were reached, which is
+// what a body refused before the handler runs has to be checked against.
+type stubAuthService struct {
+	reached bool
+}
+
+func (s *stubAuthService) AuthorizeHandler(res http.ResponseWriter, req *http.Request) {
+	s.serve(res, req)
+}
+
+func (s *stubAuthService) TokenHandler(res http.ResponseWriter, req *http.Request) {
+	s.serve(res, req)
+}
+
+func (s *stubAuthService) RevokeHandler(res http.ResponseWriter, req *http.Request) {
+	s.serve(res, req)
+}
+
+// serve reads the body the way the real OAuth2 handlers do, so a bound that only takes effect on
+// the read is still visible to a test.
+func (s *stubAuthService) serve(res http.ResponseWriter, req *http.Request) {
+	s.reached = true
+
+	if _, err := io.ReadAll(req.Body); err != nil {
+		res.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	res.WriteHeader(http.StatusOK)
+}
+
+// stubProcessorRegistry records whether the payments webhook handler got as far as resolving a
+// processor. It answers no to every provider: reaching the lookup at all is the signal.
+type stubProcessorRegistry struct {
+	consulted bool
+}
+
+func (r *stubProcessorRegistry) GetProcessor(string) (payments.PaymentProcessor, bool) {
+	r.consulted = true
+
+	return nil, false
+}
+
+func buildAPIRouter(t *testing.T, authService *stubAuthService, registry *stubProcessorRegistry) http.Handler {
+	t.Helper()
+
+	logger := loggingnoop.NewLogger()
+	tracerProvider := tracingnoop.NewTracerProvider()
+
+	// The webhook handler is built with no payments manager: every request this test sends is
+	// either refused before it runs or turned away at the processor lookup, both of which come
+	// before the manager is touched.
+	router, err := ProvideAPIRouter(
+		t.Context(),
+		routingcfg.Config{
+			Provider: routingcfg.ProviderChi,
+			Chi:      &chi.Config{ServiceName: t.Name(), SilenceRouteLogging: true},
+		},
+		logger,
+		tracerProvider,
+		metricsnoop.NewMetricsProvider(),
+		authService,
+		paymentswebhook.NewWebhookHandler(logger, tracerProvider, nil, registry),
+		&stubRegistry{result: &healthcheck.Result{Status: healthcheck.StatusUp}},
+	)
+	require.NoError(t, err)
+
+	return router.Handler()
+}
+
+func postTo(t *testing.T, handler http.Handler, path, body string) *httptest.ResponseRecorder {
+	t.Helper()
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, path, strings.NewReader(body))
+	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, req)
+
+	return res
+}
+
+func Test_ProvideAPIRouter_requestBodyBound(T *testing.T) {
+	T.Parallel()
+
+	T.Run("an OAuth2 request within the bound reaches its handler", func(t *testing.T) {
+		t.Parallel()
+
+		authService := &stubAuthService{}
+
+		res := postTo(t, buildAPIRouter(t, authService, &stubProcessorRegistry{}), "/oauth2/token", "grant_type=authorization_code")
+
+		assert.Equal(t, http.StatusOK, res.Code)
+		assert.True(t, authService.reached)
+	})
+
+	T.Run("an oversized OAuth2 request is refused before its handler runs", func(t *testing.T) {
+		t.Parallel()
+
+		authService := &stubAuthService{}
+
+		res := postTo(t, buildAPIRouter(t, authService, &stubProcessorRegistry{}), "/oauth2/token", strings.Repeat("x", maxRequestBodyBytes+1))
+
+		// 413 rather than 400: a client told its request was malformed sends the same one again.
+		assert.Equal(t, http.StatusRequestEntityTooLarge, res.Code)
+		assert.False(t, authService.reached)
+	})
+
+	T.Run("a payments webhook within the bound reaches its handler", func(t *testing.T) {
+		t.Parallel()
+
+		registry := &stubProcessorRegistry{}
+
+		res := postTo(t, buildAPIRouter(t, &stubAuthService{}, registry), "/api/payments/webhooks/stripe", `{"type":"test"}`)
+
+		// The stub registry knows no providers, so the handler's own answer is a 400 — which is
+		// only reachable by running.
+		assert.Equal(t, http.StatusBadRequest, res.Code)
+		assert.True(t, registry.consulted)
+	})
+
+	T.Run("an oversized payments webhook is refused before its handler runs", func(t *testing.T) {
+		t.Parallel()
+
+		registry := &stubProcessorRegistry{}
+
+		res := postTo(t, buildAPIRouter(t, &stubAuthService{}, registry), "/api/payments/webhooks/stripe", strings.Repeat("x", maxRequestBodyBytes+1))
+
+		// Signature verification reads the body, so a body nobody has to hold is one nobody has
+		// to verify.
+		assert.Equal(t, http.StatusRequestEntityTooLarge, res.Code)
+		assert.False(t, registry.consulted)
+	})
+}
+
+func Test_limitRequestBody(T *testing.T) {
+	T.Parallel()
+
+	// echoBody reports what the wrapped handler saw: the bytes it managed to read, and the error
+	// that stopped it.
+	echoBody := func(read *int, readErr *error) http.Handler {
+		return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+			body, err := io.ReadAll(req.Body)
+			*read, *readErr = len(body), err
+
+			res.WriteHeader(http.StatusOK)
+		})
+	}
+
+	T.Run("a body within the bound is handed over whole", func(t *testing.T) {
+		t.Parallel()
+
+		var (
+			read    int
+			readErr error
+		)
+
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader("hello"))
+		res := httptest.NewRecorder()
+		limitRequestBody(16)(echoBody(&read, &readErr)).ServeHTTP(res, req)
+
+		assert.Equal(t, http.StatusOK, res.Code)
+		assert.Equal(t, 5, read)
+		assert.NoError(t, readErr)
+	})
+
+	T.Run("a body exactly at the bound is handed over whole", func(t *testing.T) {
+		t.Parallel()
+
+		var (
+			read    int
+			readErr error
+		)
+
+		// The bound is what a request may carry, not what it must stay under: an off-by-one here
+		// rejects the largest legitimate request a client was told it could send.
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(strings.Repeat("x", 16)))
+		res := httptest.NewRecorder()
+		limitRequestBody(16)(echoBody(&read, &readErr)).ServeHTTP(res, req)
+
+		assert.Equal(t, http.StatusOK, res.Code)
+		assert.Equal(t, 16, read)
+		assert.NoError(t, readErr)
+	})
+
+	T.Run("a body declaring itself over the bound never reaches the handler", func(t *testing.T) {
+		t.Parallel()
+
+		var (
+			read    int
+			readErr error
+		)
+
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(strings.Repeat("x", 17)))
+		res := httptest.NewRecorder()
+		limitRequestBody(16)(echoBody(&read, &readErr)).ServeHTTP(res, req)
+
+		assert.Equal(t, http.StatusRequestEntityTooLarge, res.Code)
+		assert.Zero(t, read)
+		assert.NoError(t, readErr)
+	})
+
+	T.Run("a body declaring no length is cut off at the bound", func(t *testing.T) {
+		t.Parallel()
+
+		var (
+			read    int
+			readErr error
+		)
+
+		// Chunked, or lying: there is no length to check up front, so the handler runs and the
+		// read is what fails.
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(strings.Repeat("x", 64)))
+		req.ContentLength = -1
+		res := httptest.NewRecorder()
+		limitRequestBody(16)(echoBody(&read, &readErr)).ServeHTTP(res, req)
+
+		var tooLarge *http.MaxBytesError
+		require.ErrorAs(t, readErr, &tooLarge)
+		assert.Equal(t, int64(16), tooLarge.Limit)
+	})
+
+	T.Run("a request with no body at all passes through", func(t *testing.T) {
+		t.Parallel()
+
+		var (
+			read    int
+			readErr error
+		)
+
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", http.NoBody)
+		res := httptest.NewRecorder()
+		limitRequestBody(16)(echoBody(&read, &readErr)).ServeHTTP(res, req)
+
+		assert.Equal(t, http.StatusOK, res.Code)
+		assert.Zero(t, read)
+		assert.NoError(t, readErr)
 	})
 }

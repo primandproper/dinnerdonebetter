@@ -133,7 +133,6 @@ require (
 	github.com/google/go-tpm v0.9.8 // indirect
 	github.com/google/renameio/v2 v2.0.2 // indirect
 	github.com/google/wire v0.7.0 // indirect
-	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
