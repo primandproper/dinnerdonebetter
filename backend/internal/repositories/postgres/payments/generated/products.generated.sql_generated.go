@@ -28,7 +28,7 @@ SELECT EXISTS (
 	SELECT products.id
 	FROM products
 	WHERE products.archived_at IS NULL
-	AND products.id = $1
+		AND products.id = $1
 )
 `
 
@@ -101,7 +101,7 @@ SELECT
 	products.archived_at
 FROM products
 WHERE products.archived_at IS NULL
-AND products.id = $1
+	AND products.id = $1
 `
 
 func (q *Queries) GetProduct(ctx context.Context, db DBTX, id string) (*Products, error) {

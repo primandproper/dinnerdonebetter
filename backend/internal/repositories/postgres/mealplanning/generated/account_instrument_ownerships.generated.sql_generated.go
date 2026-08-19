@@ -343,7 +343,7 @@ UPDATE account_instrument_ownerships SET
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
 	AND id = $4
-	AND account_instrument_ownerships.belongs_to_account = $5
+	AND belongs_to_account = $5
 `
 
 type UpdateAccountInstrumentOwnershipParams struct {

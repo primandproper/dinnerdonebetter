@@ -132,7 +132,7 @@ SELECT
 		SELECT COUNT(oauth2_clients.id)
 		FROM oauth2_clients
 		WHERE oauth2_clients.archived_at IS NULL
-			AND oauth2_clients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+				AND oauth2_clients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND oauth2_clients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 					AND (NOT COALESCE($3, false)::boolean OR oauth2_clients.archived_at IS NULL)
 			AND oauth2_clients.id > COALESCE($4, '')

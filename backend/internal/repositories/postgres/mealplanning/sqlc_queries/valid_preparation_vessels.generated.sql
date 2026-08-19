@@ -1,6 +1,3 @@
--- name: ArchiveValidPreparationVessel :execrows
-UPDATE valid_preparation_vessels SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
-
 -- name: CreateValidPreparationVessel :exec
 INSERT INTO valid_preparation_vessels (
 	id,
@@ -21,6 +18,21 @@ SELECT EXISTS (
 	WHERE valid_preparation_vessels.archived_at IS NULL
 		AND valid_preparation_vessels.id = sqlc.arg(id)
 );
+
+-- name: UpdateValidPreparationVessel :execrows
+UPDATE valid_preparation_vessels SET
+	notes = sqlc.arg(notes),
+	valid_preparation_id = sqlc.arg(valid_preparation_id),
+	valid_vessel_id = sqlc.arg(valid_vessel_id),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveValidPreparationVessel :execrows
+UPDATE valid_preparation_vessels SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
 
 -- name: GetValidPreparationVesselsForPreparation :many
 SELECT
@@ -499,12 +511,3 @@ SELECT EXISTS(
 	AND valid_preparation_id = sqlc.arg(valid_preparation_id)
 	AND archived_at IS NULL
 );
-
--- name: UpdateValidPreparationVessel :execrows
-UPDATE valid_preparation_vessels SET
-	notes = sqlc.arg(notes),
-	valid_preparation_id = sqlc.arg(valid_preparation_id),
-	valid_vessel_id = sqlc.arg(valid_vessel_id),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);

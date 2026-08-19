@@ -47,13 +47,6 @@ UPDATE valid_ingredient_groups SET
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
--- name: ArchiveValidIngredientGroupMember :execrows
-UPDATE valid_ingredient_group_members SET
-	archived_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id)
-	AND belongs_to_group = sqlc.arg(belongs_to_group);
-
 -- name: CreateValidIngredientGroupMember :exec
 INSERT INTO valid_ingredient_group_members (
 	id,
@@ -64,6 +57,13 @@ INSERT INTO valid_ingredient_group_members (
 	sqlc.arg(belongs_to_group),
 	sqlc.arg(valid_ingredient)
 );
+
+-- name: ArchiveValidIngredientGroupMember :execrows
+UPDATE valid_ingredient_group_members SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_group = sqlc.arg(belongs_to_group);
 
 -- name: GetValidIngredientGroups :many
 SELECT

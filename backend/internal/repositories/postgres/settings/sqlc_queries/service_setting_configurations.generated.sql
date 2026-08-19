@@ -1,9 +1,3 @@
--- name: ArchiveServiceSettingConfiguration :execrows
-UPDATE service_setting_configurations SET
-	archived_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);
-
 -- name: CreateServiceSettingConfiguration :exec
 INSERT INTO service_setting_configurations (
 	id,
@@ -28,6 +22,23 @@ SELECT EXISTS (
 	WHERE service_setting_configurations.archived_at IS NULL
 		AND service_setting_configurations.id = sqlc.arg(id)
 );
+
+-- name: UpdateServiceSettingConfiguration :execrows
+UPDATE service_setting_configurations SET
+	value = sqlc.arg(value),
+	notes = sqlc.arg(notes),
+	service_setting_id = sqlc.arg(service_setting_id),
+	belongs_to_user = sqlc.arg(belongs_to_user),
+	belongs_to_account = sqlc.arg(belongs_to_account),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveServiceSettingConfiguration :execrows
+UPDATE service_setting_configurations SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
 
 -- name: GetServiceSettingConfigurationByID :one
 SELECT
@@ -236,14 +247,3 @@ WHERE service_settings.archived_at IS NULL
 	AND service_setting_configurations.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY service_setting_configurations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateServiceSettingConfiguration :execrows
-UPDATE service_setting_configurations SET
-	value = sqlc.arg(value),
-	notes = sqlc.arg(notes),
-	service_setting_id = sqlc.arg(service_setting_id),
-	belongs_to_user = sqlc.arg(belongs_to_user),
-	belongs_to_account = sqlc.arg(belongs_to_account),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);

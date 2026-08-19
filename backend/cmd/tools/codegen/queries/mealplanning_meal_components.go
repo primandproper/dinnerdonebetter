@@ -1,10 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"strings"
-
-	"github.com/cristalhq/builq"
+	"github.com/primandproper/platform-go/v11/database/querygen"
 )
 
 const (
@@ -31,27 +28,10 @@ func buildMealComponentsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		insertColumns := filterForInsert(mealComponentsColumns)
-
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateMealComponent",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					mealComponentsTableName,
-					strings.Join(insertColumns, ",\n\t"),
-					strings.Join(applyToEach(insertColumns, func(i int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-		}
+		return querygen.StandardCRUD(mealComponentsTableName, mealComponentsColumns,
+			querygen.WithEntity("MealComponent", "MealComponents"),
+			querygen.WithOmitted(querygen.ArchiveQuery, querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
+		)
 	default:
 		return nil
 	}

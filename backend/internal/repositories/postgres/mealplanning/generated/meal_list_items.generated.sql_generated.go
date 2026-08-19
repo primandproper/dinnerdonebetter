@@ -12,16 +12,20 @@ import (
 )
 
 const archiveMealListItem = `-- name: ArchiveMealListItem :execrows
-UPDATE meal_list_items SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_meal_list = $1 AND id = $2
+UPDATE meal_list_items SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
+	AND belongs_to_meal_list = $2
 `
 
 type ArchiveMealListItemParams struct {
-	BelongsToMealList string
 	ID                string
+	BelongsToMealList string
 }
 
 func (q *Queries) ArchiveMealListItem(ctx context.Context, db DBTX, arg *ArchiveMealListItemParams) (int64, error) {
-	result, err := db.ExecContext(ctx, archiveMealListItem, arg.BelongsToMealList, arg.ID)
+	result, err := db.ExecContext(ctx, archiveMealListItem, arg.ID, arg.BelongsToMealList)
 	if err != nil {
 		return 0, err
 	}
@@ -207,23 +211,23 @@ UPDATE meal_list_items SET
 	notes = $2,
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
-	AND belongs_to_meal_list = $3
-	AND id = $4
+	AND id = $3
+	AND belongs_to_meal_list = $4
 `
 
 type UpdateMealListItemParams struct {
 	MealID            string
 	Notes             string
-	BelongsToMealList string
 	ID                string
+	BelongsToMealList string
 }
 
 func (q *Queries) UpdateMealListItem(ctx context.Context, db DBTX, arg *UpdateMealListItemParams) (int64, error) {
 	result, err := db.ExecContext(ctx, updateMealListItem,
 		arg.MealID,
 		arg.Notes,
-		arg.BelongsToMealList,
 		arg.ID,
+		arg.BelongsToMealList,
 	)
 	if err != nil {
 		return 0, err

@@ -11,6 +11,19 @@ INSERT INTO uploaded_media (
 	sqlc.arg(created_by_user)
 );
 
+-- name: GetUploadedMedia :one
+SELECT
+	uploaded_media.id,
+	uploaded_media.storage_path,
+	uploaded_media.mime_type,
+	uploaded_media.created_at,
+	uploaded_media.last_updated_at,
+	uploaded_media.archived_at,
+	uploaded_media.created_by_user
+FROM uploaded_media
+WHERE uploaded_media.archived_at IS NULL
+	AND uploaded_media.id = sqlc.arg(id);
+
 -- name: UpdateUploadedMedia :execrows
 UPDATE uploaded_media SET
 	storage_path = sqlc.arg(storage_path),
@@ -25,19 +38,6 @@ UPDATE uploaded_media SET
 	archived_at = NOW()
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
-
--- name: GetUploadedMedia :one
-SELECT
-	uploaded_media.id,
-	uploaded_media.storage_path,
-	uploaded_media.mime_type,
-	uploaded_media.created_at,
-	uploaded_media.last_updated_at,
-	uploaded_media.archived_at,
-	uploaded_media.created_by_user
-FROM uploaded_media
-WHERE uploaded_media.archived_at IS NULL
-	AND uploaded_media.id = sqlc.arg(id);
 
 -- name: CheckUploadedMediaExistence :one
 SELECT EXISTS(

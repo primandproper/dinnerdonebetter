@@ -12,16 +12,20 @@ import (
 )
 
 const archiveMealPlanOptionVote = `-- name: ArchiveMealPlanOptionVote :execrows
-UPDATE meal_plan_option_votes SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_meal_plan_option = $1 AND id = $2
+UPDATE meal_plan_option_votes SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
+	AND belongs_to_meal_plan_option = $2
 `
 
 type ArchiveMealPlanOptionVoteParams struct {
-	BelongsToMealPlanOption string
 	ID                      string
+	BelongsToMealPlanOption string
 }
 
 func (q *Queries) ArchiveMealPlanOptionVote(ctx context.Context, db DBTX, arg *ArchiveMealPlanOptionVoteParams) (int64, error) {
-	result, err := db.ExecContext(ctx, archiveMealPlanOptionVote, arg.BelongsToMealPlanOption, arg.ID)
+	result, err := db.ExecContext(ctx, archiveMealPlanOptionVote, arg.ID, arg.BelongsToMealPlanOption)
 	if err != nil {
 		return 0, err
 	}
@@ -377,8 +381,8 @@ UPDATE meal_plan_option_votes SET
 	by_user = $4,
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
-	AND belongs_to_meal_plan_option = $5
-	AND id = $6
+	AND id = $5
+	AND belongs_to_meal_plan_option = $6
 `
 
 type UpdateMealPlanOptionVoteParams struct {
@@ -386,8 +390,8 @@ type UpdateMealPlanOptionVoteParams struct {
 	Abstain                 bool
 	Notes                   string
 	ByUser                  string
-	BelongsToMealPlanOption string
 	ID                      string
+	BelongsToMealPlanOption string
 }
 
 func (q *Queries) UpdateMealPlanOptionVote(ctx context.Context, db DBTX, arg *UpdateMealPlanOptionVoteParams) (int64, error) {
@@ -396,8 +400,8 @@ func (q *Queries) UpdateMealPlanOptionVote(ctx context.Context, db DBTX, arg *Up
 		arg.Abstain,
 		arg.Notes,
 		arg.ByUser,
-		arg.BelongsToMealPlanOption,
 		arg.ID,
+		arg.BelongsToMealPlanOption,
 	)
 	if err != nil {
 		return 0, err

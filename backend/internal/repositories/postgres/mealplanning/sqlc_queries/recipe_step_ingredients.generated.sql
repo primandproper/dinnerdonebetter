@@ -1,6 +1,3 @@
--- name: ArchiveRecipeStepIngredient :execrows
-UPDATE recipe_step_ingredients SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step) AND id = sqlc.arg(id);
-
 -- name: CreateRecipeStepIngredient :exec
 INSERT INTO recipe_step_ingredients (
 	id,
@@ -41,6 +38,36 @@ INSERT INTO recipe_step_ingredients (
 	sqlc.arg(recipe_step_product_recipe_id),
 	sqlc.arg(belongs_to_recipe_step)
 );
+
+-- name: UpdateRecipeStepIngredient :execrows
+UPDATE recipe_step_ingredients SET
+	name = sqlc.arg(name),
+	optional = sqlc.arg(optional),
+	ingredient_id = sqlc.arg(ingredient_id),
+	measurement_unit = sqlc.arg(measurement_unit),
+	minimum_quantity_value = sqlc.arg(minimum_quantity_value),
+	maximum_quantity_value = sqlc.arg(maximum_quantity_value),
+	quantity_notes = sqlc.arg(quantity_notes),
+	recipe_step_product_id = sqlc.arg(recipe_step_product_id),
+	ingredient_notes = sqlc.arg(ingredient_notes),
+	index = sqlc.arg(index),
+	option_index = sqlc.arg(option_index),
+	to_taste = sqlc.arg(to_taste),
+	product_percentage_to_use = sqlc.arg(product_percentage_to_use),
+	vessel_index = sqlc.arg(vessel_index),
+	scale_factor = sqlc.arg(scale_factor),
+	recipe_step_product_recipe_id = sqlc.arg(recipe_step_product_recipe_id),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step);
+
+-- name: ArchiveRecipeStepIngredient :execrows
+UPDATE recipe_step_ingredients SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step);
 
 -- name: CheckRecipeStepIngredientExistence :one
 SELECT EXISTS (
@@ -362,26 +389,3 @@ WHERE recipe_step_ingredients.archived_at IS NULL
 	AND recipe_steps.id = sqlc.arg(recipe_step_id)
 	AND recipes.archived_at IS NULL
 	AND recipes.id = sqlc.arg(recipe_id);
-
--- name: UpdateRecipeStepIngredient :execrows
-UPDATE recipe_step_ingredients SET
-	name = sqlc.arg(name),
-	optional = sqlc.arg(optional),
-	ingredient_id = sqlc.arg(ingredient_id),
-	measurement_unit = sqlc.arg(measurement_unit),
-	minimum_quantity_value = sqlc.arg(minimum_quantity_value),
-	maximum_quantity_value = sqlc.arg(maximum_quantity_value),
-	quantity_notes = sqlc.arg(quantity_notes),
-	recipe_step_product_id = sqlc.arg(recipe_step_product_id),
-	ingredient_notes = sqlc.arg(ingredient_notes),
-	index = sqlc.arg(index),
-	option_index = sqlc.arg(option_index),
-	to_taste = sqlc.arg(to_taste),
-	product_percentage_to_use = sqlc.arg(product_percentage_to_use),
-	vessel_index = sqlc.arg(vessel_index),
-	scale_factor = sqlc.arg(scale_factor),
-	recipe_step_product_recipe_id = sqlc.arg(recipe_step_product_recipe_id),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step)
-	AND id = sqlc.arg(id);

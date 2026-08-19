@@ -1,6 +1,3 @@
--- name: ArchiveRecipeStepProduct :execrows
-UPDATE recipe_step_products SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step) AND id = sqlc.arg(id);
-
 -- name: CreateRecipeStepProduct :exec
 INSERT INTO recipe_step_products (
 	id,
@@ -43,6 +40,37 @@ INSERT INTO recipe_step_products (
 	sqlc.arg(contained_in_vessel_index),
 	sqlc.arg(belongs_to_recipe_step)
 );
+
+-- name: UpdateRecipeStepProduct :execrows
+UPDATE recipe_step_products SET
+	name = sqlc.arg(name),
+	type = sqlc.arg(type),
+	measurement_unit = sqlc.arg(measurement_unit),
+	minimum_measurement_quantity_value = sqlc.arg(minimum_measurement_quantity_value),
+	maximum_measurement_quantity_value = sqlc.arg(maximum_measurement_quantity_value),
+	minimum_item_quantity_value = sqlc.arg(minimum_item_quantity_value),
+	maximum_item_quantity_value = sqlc.arg(maximum_item_quantity_value),
+	quantity_notes = sqlc.arg(quantity_notes),
+	compostable = sqlc.arg(compostable),
+	maximum_storage_duration_in_seconds = sqlc.arg(maximum_storage_duration_in_seconds),
+	minimum_storage_temperature_in_celsius = sqlc.arg(minimum_storage_temperature_in_celsius),
+	maximum_storage_temperature_in_celsius = sqlc.arg(maximum_storage_temperature_in_celsius),
+	storage_instructions = sqlc.arg(storage_instructions),
+	is_liquid = sqlc.arg(is_liquid),
+	is_waste = sqlc.arg(is_waste),
+	index = sqlc.arg(index),
+	contained_in_vessel_index = sqlc.arg(contained_in_vessel_index),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step);
+
+-- name: ArchiveRecipeStepProduct :execrows
+UPDATE recipe_step_products SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step);
 
 -- name: CheckRecipeStepProductExistence :one
 SELECT EXISTS (
@@ -165,7 +193,7 @@ SELECT
 		SELECT COUNT(recipe_step_products.id)
 		FROM recipe_step_products
 		WHERE recipe_step_products.archived_at IS NULL
-			AND recipe_step_products.belongs_to_recipe_step = sqlc.arg(recipe_step_id)
+				AND recipe_step_products.belongs_to_recipe_step = sqlc.arg(recipe_step_id)
 	) AS total_count
 FROM recipe_step_products
 	JOIN recipe_steps ON recipe_step_products.belongs_to_recipe_step=recipe_steps.id
@@ -242,27 +270,3 @@ WHERE recipe_step_products.archived_at IS NULL
 	AND recipe_steps.id = sqlc.arg(recipe_step_id)
 	AND recipes.archived_at IS NULL
 	AND recipes.id = sqlc.arg(recipe_id);
-
--- name: UpdateRecipeStepProduct :execrows
-UPDATE recipe_step_products SET
-	name = sqlc.arg(name),
-	type = sqlc.arg(type),
-	measurement_unit = sqlc.arg(measurement_unit),
-	minimum_measurement_quantity_value = sqlc.arg(minimum_measurement_quantity_value),
-	maximum_measurement_quantity_value = sqlc.arg(maximum_measurement_quantity_value),
-	minimum_item_quantity_value = sqlc.arg(minimum_item_quantity_value),
-	maximum_item_quantity_value = sqlc.arg(maximum_item_quantity_value),
-	quantity_notes = sqlc.arg(quantity_notes),
-	compostable = sqlc.arg(compostable),
-	maximum_storage_duration_in_seconds = sqlc.arg(maximum_storage_duration_in_seconds),
-	minimum_storage_temperature_in_celsius = sqlc.arg(minimum_storage_temperature_in_celsius),
-	maximum_storage_temperature_in_celsius = sqlc.arg(maximum_storage_temperature_in_celsius),
-	storage_instructions = sqlc.arg(storage_instructions),
-	is_liquid = sqlc.arg(is_liquid),
-	is_waste = sqlc.arg(is_waste),
-	index = sqlc.arg(index),
-	contained_in_vessel_index = sqlc.arg(contained_in_vessel_index),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step)
-	AND id = sqlc.arg(id);

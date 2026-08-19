@@ -1,9 +1,3 @@
--- name: DeleteMealPlanGroceryListItems :exec
-DELETE FROM meal_plan_grocery_list_items WHERE id = ANY(sqlc.arg(ids)::text[]);
-
--- name: ArchiveMealPlanGroceryListItem :execrows
-UPDATE meal_plan_grocery_list_items SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
-
 -- name: CreateMealPlanGroceryListItem :exec
 INSERT INTO meal_plan_grocery_list_items (
 	id,
@@ -42,6 +36,37 @@ INSERT INTO meal_plan_grocery_list_items (
 	sqlc.arg(ingredient_index),
 	sqlc.arg(option_index)
 );
+
+-- name: UpdateMealPlanGroceryListItem :execrows
+UPDATE meal_plan_grocery_list_items SET
+	belongs_to_meal_plan = sqlc.arg(belongs_to_meal_plan),
+	valid_ingredient = sqlc.arg(valid_ingredient),
+	valid_measurement_unit = sqlc.arg(valid_measurement_unit),
+	minimum_quantity_needed = sqlc.arg(minimum_quantity_needed),
+	maximum_quantity_needed = sqlc.arg(maximum_quantity_needed),
+	quantity_purchased = sqlc.arg(quantity_purchased),
+	purchased_measurement_unit = sqlc.arg(purchased_measurement_unit),
+	purchased_upc = sqlc.arg(purchased_upc),
+	purchase_price = sqlc.arg(purchase_price),
+	status_explanation = sqlc.arg(status_explanation),
+	status = sqlc.arg(status),
+	belongs_to_meal_plan_option = sqlc.arg(belongs_to_meal_plan_option),
+	recipe_id = sqlc.arg(recipe_id),
+	recipe_step_id = sqlc.arg(recipe_step_id),
+	ingredient_index = sqlc.arg(ingredient_index),
+	option_index = sqlc.arg(option_index),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveMealPlanGroceryListItem :execrows
+UPDATE meal_plan_grocery_list_items SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: DeleteMealPlanGroceryListItems :exec
+DELETE FROM meal_plan_grocery_list_items WHERE id = ANY(sqlc.arg(ids)::text[]);
 
 -- name: CheckMealPlanGroceryListItemExistence :one
 SELECT EXISTS (
@@ -274,25 +299,3 @@ WHERE meal_plan_grocery_list_items.archived_at IS NULL
 	AND valid_ingredients.archived_at IS NULL
 	AND meal_plan_grocery_list_items.id = sqlc.arg(meal_plan_grocery_list_item_id)
 	AND meal_plan_grocery_list_items.belongs_to_meal_plan = sqlc.arg(meal_plan_id);
-
--- name: UpdateMealPlanGroceryListItem :execrows
-UPDATE meal_plan_grocery_list_items SET
-	belongs_to_meal_plan = sqlc.arg(belongs_to_meal_plan),
-	valid_ingredient = sqlc.arg(valid_ingredient),
-	valid_measurement_unit = sqlc.arg(valid_measurement_unit),
-	minimum_quantity_needed = sqlc.arg(minimum_quantity_needed),
-	maximum_quantity_needed = sqlc.arg(maximum_quantity_needed),
-	quantity_purchased = sqlc.arg(quantity_purchased),
-	purchased_measurement_unit = sqlc.arg(purchased_measurement_unit),
-	purchased_upc = sqlc.arg(purchased_upc),
-	purchase_price = sqlc.arg(purchase_price),
-	status_explanation = sqlc.arg(status_explanation),
-	status = sqlc.arg(status),
-	belongs_to_meal_plan_option = sqlc.arg(belongs_to_meal_plan_option),
-	recipe_id = sqlc.arg(recipe_id),
-	recipe_step_id = sqlc.arg(recipe_step_id),
-	ingredient_index = sqlc.arg(ingredient_index),
-	option_index = sqlc.arg(option_index),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);

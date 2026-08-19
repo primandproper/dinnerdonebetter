@@ -24,6 +24,12 @@ FROM user_roles
 WHERE user_roles.archived_at IS NULL
 	AND user_roles.id = sqlc.arg(id);
 
+-- name: ArchiveUserRole :execrows
+UPDATE user_roles SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
 -- name: GetUserRoleByName :one
 SELECT
 	user_roles.id,
@@ -84,6 +90,3 @@ WHERE user_roles.archived_at IS NULL
 	AND user_roles.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY user_roles.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: ArchiveUserRole :execrows
-UPDATE user_roles SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);

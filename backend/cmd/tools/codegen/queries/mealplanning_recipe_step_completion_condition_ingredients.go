@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/primandproper/platform-go/v11/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -30,8 +33,6 @@ func buildRecipeStepCompletionConditionIngredientsQueries(database string) []*Qu
 	switch database {
 	case postgres:
 
-		insertColumns := filterForInsert(recipeStepCompletionConditionIngredientsColumns)
-
 		fullSelectColumns := append(
 			applyToEach(recipeStepCompletionConditionIngredientsColumns, func(i int, s string) string {
 				return fmt.Sprintf("%s.%s as %s_%s", recipeStepCompletionConditionIngredientsTableName, s, strings.TrimSuffix(recipeStepCompletionConditionIngredientsTableName, "s"), s)
@@ -41,30 +42,18 @@ func buildRecipeStepCompletionConditionIngredientsQueries(database string) []*Qu
 			})...,
 		)
 
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateRecipeStepCompletionConditionIngredient",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					recipeStepCompletionConditionIngredientsTableName,
-					strings.Join(insertColumns, ",\n\t"),
-					strings.Join(applyToEach(insertColumns, func(i int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetAllRecipeStepCompletionConditionIngredientsForRecipeCompletionIDs",
-					Type: ManyType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+		return slices.Concat(
+			querygen.StandardCRUD(recipeStepCompletionConditionIngredientsTableName, recipeStepCompletionConditionIngredientsColumns,
+				querygen.WithEntity("RecipeStepCompletionConditionIngredient", "RecipeStepCompletionConditionIngredients"),
+				querygen.WithOmitted(querygen.ArchiveQuery, querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
+			),
+			[]*Query{
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetAllRecipeStepCompletionConditionIngredientsForRecipeCompletionIDs",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
@@ -73,17 +62,18 @@ WHERE %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s = ANY(sqlc.arg(ids)::text[])
 	AND %s.%s IS NULL;`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					recipeStepCompletionConditionIngredientsTableName,
-					recipeStepCompletionConditionsTableName, recipeStepCompletionConditionIngredientsTableName, belongsToRecipeStepCompletionConditionColumn, recipeStepCompletionConditionsTableName, idColumn,
-					validIngredientStatesTableName, recipeStepCompletionConditionsTableName, ingredientStateColumn, validIngredientStatesTableName, idColumn,
-					recipeStepCompletionConditionsTableName, archivedAtColumn,
-					recipeStepCompletionConditionIngredientsTableName, archivedAtColumn,
-					recipeStepCompletionConditionIngredientsTableName, belongsToRecipeStepCompletionConditionColumn,
-					validIngredientStatesTableName, archivedAtColumn,
-				)),
+						strings.Join(fullSelectColumns, ",\n\t"),
+						recipeStepCompletionConditionIngredientsTableName,
+						recipeStepCompletionConditionsTableName, recipeStepCompletionConditionIngredientsTableName, belongsToRecipeStepCompletionConditionColumn, recipeStepCompletionConditionsTableName, idColumn,
+						validIngredientStatesTableName, recipeStepCompletionConditionsTableName, ingredientStateColumn, validIngredientStatesTableName, idColumn,
+						recipeStepCompletionConditionsTableName, archivedAtColumn,
+						recipeStepCompletionConditionIngredientsTableName, archivedAtColumn,
+						recipeStepCompletionConditionIngredientsTableName, belongsToRecipeStepCompletionConditionColumn,
+						validIngredientStatesTableName, archivedAtColumn,
+					)),
+				},
 			},
-		}
+		)
 	default:
 		return nil
 	}

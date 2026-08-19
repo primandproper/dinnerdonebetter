@@ -1,6 +1,3 @@
--- name: ArchiveRecipeStepVessel :execrows
-UPDATE recipe_step_vessels SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step) AND id = sqlc.arg(id);
-
 -- name: CreateRecipeStepVessel :exec
 INSERT INTO recipe_step_vessels (
 	id,
@@ -31,6 +28,13 @@ INSERT INTO recipe_step_vessels (
 	sqlc.arg(option_index),
 	sqlc.arg(scale_factor)
 );
+
+-- name: ArchiveRecipeStepVessel :execrows
+UPDATE recipe_step_vessels SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step);
 
 -- name: CheckRecipeStepVesselExistence :one
 SELECT EXISTS (

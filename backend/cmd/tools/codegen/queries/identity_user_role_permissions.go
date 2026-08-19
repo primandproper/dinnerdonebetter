@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/primandproper/platform-go/v11/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -30,59 +33,48 @@ func buildUserRolePermissionsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateUserRolePermission",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					userRolePermissionsTableName,
-					strings.Join(filterForInsert(userRolePermissionsColumns), ",\n\t"),
-					strings.Join(applyToEach(filterForInsert(userRolePermissionsColumns), func(i int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetUserRolePermissionsForRole",
-					Type: ManyType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+		return slices.Concat(
+			querygen.StandardCRUD(userRolePermissionsTableName, userRolePermissionsColumns,
+				querygen.WithEntity("UserRolePermission", "UserRolePermissions"),
+				querygen.WithOmitted(querygen.ArchiveQuery, querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
+			),
+			[]*Query{
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetUserRolePermissionsForRole",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 WHERE %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(applyToEach(userRolePermissionsColumns, func(i int, s string) string {
-						return fmt.Sprintf("%s.%s", userRolePermissionsTableName, s)
-					}), ",\n\t"),
-					userRolePermissionsTableName,
-					userRolePermissionsTableName, archivedAtColumn,
-					userRolePermissionsTableName, roleIDColumn, roleIDColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "ArchiveUserRolePermission",
-					Type: ExecType,
+						strings.Join(applyToEach(userRolePermissionsColumns, func(i int, s string) string {
+							return fmt.Sprintf("%s.%s", userRolePermissionsTableName, s)
+						}), ",\n\t"),
+						userRolePermissionsTableName,
+						userRolePermissionsTableName, archivedAtColumn,
+						userRolePermissionsTableName, roleIDColumn, roleIDColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s
+				{
+					Annotation: QueryAnnotation{
+						Name: "ArchiveUserRolePermission",
+						Type: ExecType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
-					userRolePermissionsTableName,
-					archivedAtColumn, currentTimeExpression,
-					archivedAtColumn,
-					roleIDColumn, roleIDColumn,
-					permissionIDColumn, permissionIDColumn,
-				)),
+						userRolePermissionsTableName,
+						archivedAtColumn, currentTimeExpression,
+						archivedAtColumn,
+						roleIDColumn, roleIDColumn,
+						permissionIDColumn, permissionIDColumn,
+					)),
+				},
 			},
-		}
+		)
 	default:
 		return nil
 	}

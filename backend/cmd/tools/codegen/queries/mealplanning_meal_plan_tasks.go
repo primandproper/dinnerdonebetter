@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/primandproper/platform-go/v11/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -38,8 +41,6 @@ var mealPlanTasksColumns = []string{
 func buildMealPlanTasksQueries(database string) []*Query {
 	switch database {
 	case postgres:
-
-		insertColumns := filterForInsert(mealPlanTasksColumns, mealPlanTaskCompletedAtColumn, mealPlanTaskNotificationSentAtColumn)
 
 		fullSelectColumns := mergeColumns(
 			applyToEach(mealPlanTasksColumns, func(i int, s string) string {
@@ -87,64 +88,53 @@ func buildMealPlanTasksQueries(database string) []*Query {
 			1,
 		)
 
-		return []*Query{
-			{
-				// Compensation for the finalization saga's task creation step. It deletes
-				// rather than archives because this table has no archived_at: a task is
-				// derived from the plan's chosen options and is regenerated wholesale when
-				// the step runs again, so a tombstone would be a row nothing could ever read.
-				//
-				// The IDs come from the saga's own state, so it only ever removes what that
-				// instance created — not whatever else happens to hang off the plan.
-				Annotation: QueryAnnotation{
-					Name: "DeleteMealPlanTasks",
-					Type: ExecType,
+		return slices.Concat(
+			querygen.StandardCRUD(mealPlanTasksTableName, mealPlanTasksColumns,
+				querygen.WithEntity("MealPlanTask", "MealPlanTasks"),
+				querygen.WithDatabaseOwned(mealPlanTaskCompletedAtColumn, mealPlanTaskNotificationSentAtColumn),
+				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
+			),
+			[]*Query{
+				{
+					// Compensation for the finalization saga's task creation step. It deletes
+					// rather than archives because this table has no archived_at: a task is
+					// derived from the plan's chosen options and is regenerated wholesale when
+					// the step runs again, so a tombstone would be a row nothing could ever read.
+					//
+					// The IDs come from the saga's own state, so it only ever removes what that
+					// instance created — not whatever else happens to hang off the plan.
+					Annotation: QueryAnnotation{
+						Name: "DeleteMealPlanTasks",
+						Type: ExecType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`DELETE FROM %s WHERE %s = ANY(sqlc.arg(ids)::text[]);`,
+						mealPlanTasksTableName,
+						idColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`DELETE FROM %s WHERE %s = ANY(sqlc.arg(ids)::text[]);`,
-					mealPlanTasksTableName,
-					idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "ChangeMealPlanTaskStatus",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
+				{
+					Annotation: QueryAnnotation{
+						Name: "ChangeMealPlanTaskStatus",
+						Type: ExecType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
 	%s = sqlc.arg(%s),
 	%s = sqlc.arg(%s),
 	%s = sqlc.arg(%s)
 WHERE %s = sqlc.arg(%s);`,
-					mealPlanTasksTableName,
-					mealPlanTaskCompletedAtColumn, mealPlanTaskCompletedAtColumn,
-					mealPlanTaskStatusExplanationColumn, mealPlanTaskStatusExplanationColumn,
-					mealPlanTaskStatusColumn, mealPlanTaskStatusColumn,
-					idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateMealPlanTask",
-					Type: ExecType,
+						mealPlanTasksTableName,
+						mealPlanTaskCompletedAtColumn, mealPlanTaskCompletedAtColumn,
+						mealPlanTaskStatusExplanationColumn, mealPlanTaskStatusExplanationColumn,
+						mealPlanTaskStatusColumn, mealPlanTaskStatusColumn,
+						idColumn, idColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					mealPlanTasksTableName,
-					strings.Join(insertColumns, ",\n\t"),
-					strings.Join(applyToEach(insertColumns, func(i int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CheckMealPlanTaskExistence",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS (
+				{
+					Annotation: QueryAnnotation{
+						Name: "CheckMealPlanTaskExistence",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS (
 	SELECT %s.%s
 	FROM %s
 		FULL OUTER JOIN %s ON %s.%s=%s.%s
@@ -155,23 +145,23 @@ WHERE %s = sqlc.arg(%s);`,
 		AND %s.%s IS NULL
 		AND %s.%s = sqlc.arg(%s)
 );`,
-					mealPlanTasksTableName, idColumn,
-					mealPlanTasksTableName,
-					mealPlanOptionsTableName, mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
-					mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
-					mealPlansTableName, mealPlanEventsTableName, belongsToMealPlanColumn, mealPlansTableName, idColumn,
-					mealPlanTasksTableName, mealPlanTaskCompletedAtColumn,
-					mealPlansTableName, idColumn, mealPlanIDColumn,
-					mealPlansTableName, archivedAtColumn,
-					mealPlanTasksTableName, idColumn, mealPlanTaskIDColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetMealPlanTask",
-					Type: OneType,
+						mealPlanTasksTableName, idColumn,
+						mealPlanTasksTableName,
+						mealPlanOptionsTableName, mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
+						mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
+						mealPlansTableName, mealPlanEventsTableName, belongsToMealPlanColumn, mealPlansTableName, idColumn,
+						mealPlanTasksTableName, mealPlanTaskCompletedAtColumn,
+						mealPlansTableName, idColumn, mealPlanIDColumn,
+						mealPlansTableName, archivedAtColumn,
+						mealPlanTasksTableName, idColumn, mealPlanTaskIDColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetMealPlanTask",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	JOIN %s ON %s.%s=%s.%s
@@ -187,29 +177,29 @@ WHERE %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					mealPlanTasksTableName,
-					mealPlanOptionsTableName, mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
-					mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
-					mealPlansTableName, mealPlanEventsTableName, belongsToMealPlanColumn, mealPlansTableName, idColumn,
-					mealsTableName, mealPlanOptionsTableName, mealIDColumn, mealsTableName, idColumn,
-					recipePrepTasksTableName, mealPlanTasksTableName, belongsToRecipePrepTaskColumn, recipePrepTasksTableName, idColumn,
-					recipePrepTaskStepsTableName, recipePrepTaskStepsTableName, belongsToRecipePrepTaskColumn, recipePrepTasksTableName, idColumn,
-					recipeStepsTableName, recipePrepTaskStepsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
-					mealPlanOptionsTableName, archivedAtColumn,
-					mealPlanEventsTableName, archivedAtColumn,
-					mealPlansTableName, archivedAtColumn,
-					mealsTableName, archivedAtColumn,
-					recipeStepsTableName, archivedAtColumn,
-					mealPlanTasksTableName, idColumn, mealPlanTaskIDColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "ListAllMealPlanTasksByMealPlan",
-					Type: ManyType,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						mealPlanTasksTableName,
+						mealPlanOptionsTableName, mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
+						mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
+						mealPlansTableName, mealPlanEventsTableName, belongsToMealPlanColumn, mealPlansTableName, idColumn,
+						mealsTableName, mealPlanOptionsTableName, mealIDColumn, mealsTableName, idColumn,
+						recipePrepTasksTableName, mealPlanTasksTableName, belongsToRecipePrepTaskColumn, recipePrepTasksTableName, idColumn,
+						recipePrepTaskStepsTableName, recipePrepTaskStepsTableName, belongsToRecipePrepTaskColumn, recipePrepTasksTableName, idColumn,
+						recipeStepsTableName, recipePrepTaskStepsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
+						mealPlanOptionsTableName, archivedAtColumn,
+						mealPlanEventsTableName, archivedAtColumn,
+						mealPlansTableName, archivedAtColumn,
+						mealsTableName, archivedAtColumn,
+						recipeStepsTableName, archivedAtColumn,
+						mealPlanTasksTableName, idColumn, mealPlanTaskIDColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "ListAllMealPlanTasksByMealPlan",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	JOIN %s ON %s.%s=%s.%s
@@ -225,29 +215,29 @@ WHERE %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					mealPlanTasksTableName,
-					mealPlanOptionsTableName, mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
-					mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
-					mealPlansTableName, mealPlanEventsTableName, belongsToMealPlanColumn, mealPlansTableName, idColumn,
-					mealsTableName, mealPlanOptionsTableName, mealIDColumn, mealsTableName, idColumn,
-					recipePrepTasksTableName, mealPlanTasksTableName, belongsToRecipePrepTaskColumn, recipePrepTasksTableName, idColumn,
-					recipePrepTaskStepsTableName, recipePrepTaskStepsTableName, belongsToRecipePrepTaskColumn, recipePrepTasksTableName, idColumn,
-					recipeStepsTableName, recipePrepTaskStepsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
-					mealPlanOptionsTableName, archivedAtColumn,
-					mealPlanEventsTableName, archivedAtColumn,
-					mealPlansTableName, archivedAtColumn,
-					mealsTableName, archivedAtColumn,
-					recipeStepsTableName, archivedAtColumn,
-					mealPlansTableName, idColumn, mealPlanIDColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "ListIncompleteMealPlanTasksByMealPlanOption",
-					Type: ManyType,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						mealPlanTasksTableName,
+						mealPlanOptionsTableName, mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
+						mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
+						mealPlansTableName, mealPlanEventsTableName, belongsToMealPlanColumn, mealPlansTableName, idColumn,
+						mealsTableName, mealPlanOptionsTableName, mealIDColumn, mealsTableName, idColumn,
+						recipePrepTasksTableName, mealPlanTasksTableName, belongsToRecipePrepTaskColumn, recipePrepTasksTableName, idColumn,
+						recipePrepTaskStepsTableName, recipePrepTaskStepsTableName, belongsToRecipePrepTaskColumn, recipePrepTasksTableName, idColumn,
+						recipeStepsTableName, recipePrepTaskStepsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
+						mealPlanOptionsTableName, archivedAtColumn,
+						mealPlanEventsTableName, archivedAtColumn,
+						mealPlansTableName, archivedAtColumn,
+						mealsTableName, archivedAtColumn,
+						recipeStepsTableName, archivedAtColumn,
+						mealPlansTableName, idColumn, mealPlanIDColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "ListIncompleteMealPlanTasksByMealPlanOption",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	 FULL OUTER JOIN %s ON %s.%s=%s.%s
@@ -257,66 +247,66 @@ FROM %s
 	 JOIN %s ON %s.%s=%s.%s
 WHERE %s.%s = sqlc.arg(%s)
 AND %s.%s IS NULL;`,
-					strings.Join(completeSelectColumns, ",\n\t"),
-					mealPlanTasksTableName,
-					mealPlanOptionsTableName, mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
-					mealPlansTableName, mealPlanOptionsTableName, belongsToMealPlanColumn, mealPlansTableName, idColumn,
-					mealsTableName, mealPlanOptionsTableName, mealIDColumn, mealsTableName, idColumn,
-					recipeStepsTableName, mealPlanTasksTableName, satisfiesRecipeStepColumn, recipeStepsTableName, idColumn,
-					validPreparationsTableName, recipeStepsTableName, preparationIDColumn, validPreparationsTableName, idColumn,
-					mealPlanTasksTableName, belongsToMealPlanOptionColumn, belongsToMealPlanOptionColumn,
-					mealPlanTasksTableName, mealPlanTaskCompletedAtColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "MealPlanTaskNotificationHasBeenSent",
-					Type: OneType,
+						strings.Join(completeSelectColumns, ",\n\t"),
+						mealPlanTasksTableName,
+						mealPlanOptionsTableName, mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
+						mealPlansTableName, mealPlanOptionsTableName, belongsToMealPlanColumn, mealPlansTableName, idColumn,
+						mealsTableName, mealPlanOptionsTableName, mealIDColumn, mealsTableName, idColumn,
+						recipeStepsTableName, mealPlanTasksTableName, satisfiesRecipeStepColumn, recipeStepsTableName, idColumn,
+						validPreparationsTableName, recipeStepsTableName, preparationIDColumn, validPreparationsTableName, idColumn,
+						mealPlanTasksTableName, belongsToMealPlanOptionColumn, belongsToMealPlanOptionColumn,
+						mealPlanTasksTableName, mealPlanTaskCompletedAtColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT %s.%s IS NOT NULL
+				{
+					Annotation: QueryAnnotation{
+						Name: "MealPlanTaskNotificationHasBeenSent",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT %s.%s IS NOT NULL
 FROM %s
 WHERE %s.%s = sqlc.arg(%s);`,
-					mealPlanTasksTableName, mealPlanTaskNotificationSentAtColumn,
-					mealPlanTasksTableName,
-					mealPlanTasksTableName, idColumn, mealPlanTaskIDColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "MarkMealPlanTaskNotificationSent",
-					Type: ExecType,
+						mealPlanTasksTableName, mealPlanTaskNotificationSentAtColumn,
+						mealPlanTasksTableName,
+						mealPlanTasksTableName, idColumn, mealPlanTaskIDColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s
+				{
+					Annotation: QueryAnnotation{
+						Name: "MarkMealPlanTaskNotificationSent",
+						Type: ExecType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s
 WHERE %s = sqlc.arg(%s);`,
-					mealPlanTasksTableName,
-					mealPlanTaskNotificationSentAtColumn, currentTimeExpression,
-					idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "ClearMealPlanTaskNotificationSentForEvent",
-					Type: ExecType,
+						mealPlanTasksTableName,
+						mealPlanTaskNotificationSentAtColumn, currentTimeExpression,
+						idColumn, idColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = NULL
+				{
+					Annotation: QueryAnnotation{
+						Name: "ClearMealPlanTaskNotificationSentForEvent",
+						Type: ExecType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = NULL
 FROM %s
 WHERE %s.%s = %s.%s
 	AND %s.%s = sqlc.arg(%s)
 	AND %s.%s IS NULL;`,
-					mealPlanTasksTableName,
-					mealPlanTaskNotificationSentAtColumn,
-					mealPlanOptionsTableName,
-					mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
-					mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventIDColumn,
-					mealPlanTasksTableName, mealPlanTaskCompletedAtColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetMealPlanTaskIDsThatNeedNotification",
-					Type: ManyType,
+						mealPlanTasksTableName,
+						mealPlanTaskNotificationSentAtColumn,
+						mealPlanOptionsTableName,
+						mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
+						mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventIDColumn,
+						mealPlanTasksTableName, mealPlanTaskCompletedAtColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT %s.%s
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetMealPlanTaskIDsThatNeedNotification",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT %s.%s
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
@@ -327,40 +317,41 @@ WHERE %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s > %s;`,
-					mealPlanTasksTableName, idColumn,
-					mealPlanTasksTableName,
-					mealPlanOptionsTableName, mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
-					mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
-					mealPlansTableName, mealPlanEventsTableName, belongsToMealPlanColumn, mealPlansTableName, idColumn,
-					mealPlanTasksTableName, mealPlanTaskCompletedAtColumn,
-					mealPlanTasksTableName, mealPlanTaskNotificationSentAtColumn,
-					mealPlanOptionsTableName, archivedAtColumn,
-					mealPlanEventsTableName, archivedAtColumn,
-					mealPlansTableName, archivedAtColumn,
-					mealPlanEventsTableName, "starts_at",
-					currentTimeExpression,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetMealPlanTaskAccountID",
-					Type: OneType,
+						mealPlanTasksTableName, idColumn,
+						mealPlanTasksTableName,
+						mealPlanOptionsTableName, mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
+						mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
+						mealPlansTableName, mealPlanEventsTableName, belongsToMealPlanColumn, mealPlansTableName, idColumn,
+						mealPlanTasksTableName, mealPlanTaskCompletedAtColumn,
+						mealPlanTasksTableName, mealPlanTaskNotificationSentAtColumn,
+						mealPlanOptionsTableName, archivedAtColumn,
+						mealPlanEventsTableName, archivedAtColumn,
+						mealPlansTableName, archivedAtColumn,
+						mealPlanEventsTableName, "starts_at",
+						currentTimeExpression,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT %s.%s
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetMealPlanTaskAccountID",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT %s.%s
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
 WHERE %s.%s = sqlc.arg(%s);`,
-					mealPlansTableName, belongsToAccountColumn,
-					mealPlanTasksTableName,
-					mealPlanOptionsTableName, mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
-					mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
-					mealPlansTableName, mealPlanEventsTableName, belongsToMealPlanColumn, mealPlansTableName, idColumn,
-					mealPlanTasksTableName, idColumn, mealPlanTaskIDColumn,
-				)),
+						mealPlansTableName, belongsToAccountColumn,
+						mealPlanTasksTableName,
+						mealPlanOptionsTableName, mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
+						mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
+						mealPlansTableName, mealPlanEventsTableName, belongsToMealPlanColumn, mealPlansTableName, idColumn,
+						mealPlanTasksTableName, idColumn, mealPlanTaskIDColumn,
+					)),
+				},
 			},
-		}
+		)
 	default:
 		return nil
 	}

@@ -1,10 +1,3 @@
--- name: ArchiveWebhook :execrows
-UPDATE webhooks SET
-	archived_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id)
-	AND belongs_to_account = sqlc.arg(belongs_to_account);
-
 -- name: CreateWebhook :exec
 INSERT INTO webhooks (
 	id,
@@ -23,6 +16,13 @@ INSERT INTO webhooks (
 	sqlc.arg(created_by_user),
 	sqlc.arg(belongs_to_account)
 );
+
+-- name: ArchiveWebhook :execrows
+UPDATE webhooks SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_account = sqlc.arg(belongs_to_account);
 
 -- name: CheckWebhookExistence :one
 SELECT EXISTS(

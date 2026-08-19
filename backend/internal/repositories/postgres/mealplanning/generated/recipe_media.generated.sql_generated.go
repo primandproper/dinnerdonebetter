@@ -12,7 +12,10 @@ import (
 )
 
 const archiveRecipeMedia = `-- name: ArchiveRecipeMedia :execrows
-UPDATE recipe_media SET archived_at = NOW() WHERE archived_at IS NULL AND id = $1
+UPDATE recipe_media SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
 `
 
 func (q *Queries) ArchiveRecipeMedia(ctx context.Context, db DBTX, id string) (int64, error) {

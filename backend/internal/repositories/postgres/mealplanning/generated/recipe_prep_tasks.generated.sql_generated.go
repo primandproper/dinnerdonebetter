@@ -12,7 +12,10 @@ import (
 )
 
 const archiveRecipePrepTask = `-- name: ArchiveRecipePrepTask :execrows
-UPDATE recipe_prep_tasks SET archived_at = NOW() WHERE archived_at IS NULL AND id = $1
+UPDATE recipe_prep_tasks SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
 `
 
 func (q *Queries) ArchiveRecipePrepTask(ctx context.Context, db DBTX, id string) (int64, error) {

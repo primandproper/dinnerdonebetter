@@ -1,6 +1,3 @@
--- name: ArchiveSubscription :execrows
-UPDATE subscriptions SET archived_at = NOW(), last_updated_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
-
 -- name: CreateSubscription :exec
 INSERT INTO subscriptions (
 	id,
@@ -34,7 +31,20 @@ SELECT
 	subscriptions.archived_at
 FROM subscriptions
 WHERE subscriptions.archived_at IS NULL
-AND subscriptions.id = sqlc.arg(id);
+	AND subscriptions.id = sqlc.arg(id);
+
+-- name: UpdateSubscription :execrows
+UPDATE subscriptions SET
+	external_subscription_id = sqlc.arg(external_subscription_id),
+	status = sqlc.arg(status),
+	current_period_start = sqlc.arg(current_period_start),
+	current_period_end = sqlc.arg(current_period_end),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveSubscription :execrows
+UPDATE subscriptions SET archived_at = NOW(), last_updated_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
 
 -- name: GetSubscriptionByExternalID :one
 SELECT
@@ -105,16 +115,6 @@ WHERE subscriptions.archived_at IS NULL
 	AND subscriptions.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY subscriptions.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateSubscription :execrows
-UPDATE subscriptions SET
-	external_subscription_id = sqlc.arg(external_subscription_id),
-	status = sqlc.arg(status),
-	current_period_start = sqlc.arg(current_period_start),
-	current_period_end = sqlc.arg(current_period_end),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);
 
 -- name: UpdateSubscriptionStatus :execrows
 UPDATE subscriptions SET status = sqlc.arg(status), last_updated_at = NOW()

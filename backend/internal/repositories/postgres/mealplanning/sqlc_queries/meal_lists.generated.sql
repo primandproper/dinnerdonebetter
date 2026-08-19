@@ -1,6 +1,3 @@
--- name: ArchiveMealList :execrows
-UPDATE meal_lists SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_user = sqlc.arg(belongs_to_user) AND id = sqlc.arg(id);
-
 -- name: CreateMealList :exec
 INSERT INTO meal_lists (
 	id,
@@ -13,6 +10,22 @@ INSERT INTO meal_lists (
 	sqlc.arg(description),
 	sqlc.arg(belongs_to_user)
 );
+
+-- name: UpdateMealList :execrows
+UPDATE meal_lists SET
+	name = sqlc.arg(name),
+	description = sqlc.arg(description),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_user = sqlc.arg(belongs_to_user);
+
+-- name: ArchiveMealList :execrows
+UPDATE meal_lists SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_user = sqlc.arg(belongs_to_user);
 
 -- name: GetMealLists :many
 SELECT
@@ -71,12 +84,3 @@ FROM meal_lists
 	AND meal_lists.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY meal_lists.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateMealList :execrows
-UPDATE meal_lists SET
-	name = sqlc.arg(name),
-	description = sqlc.arg(description),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND belongs_to_user = sqlc.arg(belongs_to_user)
-	AND id = sqlc.arg(id);

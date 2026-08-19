@@ -12,16 +12,20 @@ import (
 )
 
 const archiveRecipeStepVessel = `-- name: ArchiveRecipeStepVessel :execrows
-UPDATE recipe_step_vessels SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_recipe_step = $1 AND id = $2
+UPDATE recipe_step_vessels SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
+	AND belongs_to_recipe_step = $2
 `
 
 type ArchiveRecipeStepVesselParams struct {
-	BelongsToRecipeStep string
 	ID                  string
+	BelongsToRecipeStep string
 }
 
 func (q *Queries) ArchiveRecipeStepVessel(ctx context.Context, db DBTX, arg *ArchiveRecipeStepVesselParams) (int64, error) {
-	result, err := db.ExecContext(ctx, archiveRecipeStepVessel, arg.BelongsToRecipeStep, arg.ID)
+	result, err := db.ExecContext(ctx, archiveRecipeStepVessel, arg.ID, arg.BelongsToRecipeStep)
 	if err != nil {
 		return 0, err
 	}

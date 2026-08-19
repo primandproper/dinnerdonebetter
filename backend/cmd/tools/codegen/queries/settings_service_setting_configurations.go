@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/primandproper/platform-go/v11/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -34,8 +37,6 @@ func buildServiceSettingConfigurationQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		insertColumns := filterForInsert(serviceSettingConfigurationsColumns)
-
 		selectColumnsWithServiceSettingColumns := mergeColumns(
 			applyToEach(filterFromSlice(serviceSettingConfigurationsColumns, "service_setting_id"), func(i int, s string) string {
 				return fmt.Sprintf("%s.%s", serviceSettingConfigurationsTableName, s)
@@ -46,84 +47,38 @@ func buildServiceSettingConfigurationQueries(database string) []*Query {
 			3,
 		)
 
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "ArchiveServiceSettingConfiguration",
-					Type: ExecRowsType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
-	%s = %s
-WHERE %s IS NULL
-	AND %s = sqlc.arg(%s);`,
-					serviceSettingConfigurationsTableName,
-					archivedAtColumn,
-					currentTimeExpression,
-					archivedAtColumn,
-					idColumn,
-					idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateServiceSettingConfiguration",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					serviceSettingConfigurationsTableName,
-					strings.Join(insertColumns, ",\n\t"),
-					strings.Join(applyToEach(insertColumns, func(_ int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CheckServiceSettingConfigurationExistence",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS (
-	SELECT %s.%s
-	FROM %s
-	WHERE %s.%s IS NULL
-		AND %s.%s = sqlc.arg(%s)
-);`,
-					serviceSettingConfigurationsTableName, idColumn,
-					serviceSettingConfigurationsTableName,
-					serviceSettingConfigurationsTableName, archivedAtColumn,
-					serviceSettingConfigurationsTableName, idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetServiceSettingConfigurationByID",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+		return slices.Concat(
+			querygen.StandardCRUD(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns,
+				querygen.WithEntity("ServiceSettingConfiguration", "ServiceSettingConfigurations"),
+				querygen.WithOmitted(querygen.GetQuery, querygen.ListQuery),
+			),
+			[]*Query{
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetServiceSettingConfigurationByID",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	JOIN %s ON %s.%s=%s.%s
 WHERE %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(selectColumnsWithServiceSettingColumns, ",\n\t"),
-					serviceSettingConfigurationsTableName,
-					serviceSettingsTableName, serviceSettingConfigurationsTableName, serviceSettingIDColumn, serviceSettingsTableName, idColumn,
-					serviceSettingsTableName, archivedAtColumn,
-					serviceSettingConfigurationsTableName, archivedAtColumn,
-					serviceSettingConfigurationsTableName, idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetServiceSettingConfigurationForAccountBySettingName",
-					Type: OneType,
+						strings.Join(selectColumnsWithServiceSettingColumns, ",\n\t"),
+						serviceSettingConfigurationsTableName,
+						serviceSettingsTableName, serviceSettingConfigurationsTableName, serviceSettingIDColumn, serviceSettingsTableName, idColumn,
+						serviceSettingsTableName, archivedAtColumn,
+						serviceSettingConfigurationsTableName, archivedAtColumn,
+						serviceSettingConfigurationsTableName, idColumn, idColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetServiceSettingConfigurationForAccountBySettingName",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	JOIN %s ON %s.%s=%s.%s
@@ -131,21 +86,21 @@ WHERE %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(selectColumnsWithServiceSettingColumns, ",\n\t"),
-					serviceSettingConfigurationsTableName,
-					serviceSettingsTableName, serviceSettingConfigurationsTableName, serviceSettingIDColumn, serviceSettingsTableName, idColumn,
-					serviceSettingsTableName, archivedAtColumn,
-					serviceSettingConfigurationsTableName, archivedAtColumn,
-					serviceSettingsTableName, nameColumn, nameColumn,
-					serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetServiceSettingConfigurationForUserBySettingName",
-					Type: OneType,
+						strings.Join(selectColumnsWithServiceSettingColumns, ",\n\t"),
+						serviceSettingConfigurationsTableName,
+						serviceSettingsTableName, serviceSettingConfigurationsTableName, serviceSettingIDColumn, serviceSettingsTableName, idColumn,
+						serviceSettingsTableName, archivedAtColumn,
+						serviceSettingConfigurationsTableName, archivedAtColumn,
+						serviceSettingsTableName, nameColumn, nameColumn,
+						serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetServiceSettingConfigurationForUserBySettingName",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	JOIN %s ON %s.%s=%s.%s
@@ -153,21 +108,21 @@ WHERE %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(selectColumnsWithServiceSettingColumns, ",\n\t"),
-					serviceSettingConfigurationsTableName,
-					serviceSettingsTableName, serviceSettingConfigurationsTableName, serviceSettingIDColumn, serviceSettingsTableName, idColumn,
-					serviceSettingsTableName, archivedAtColumn,
-					serviceSettingConfigurationsTableName, archivedAtColumn,
-					serviceSettingsTableName, nameColumn, nameColumn,
-					serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetServiceSettingConfigurationsForAccount",
-					Type: ManyType,
+						strings.Join(selectColumnsWithServiceSettingColumns, ",\n\t"),
+						serviceSettingConfigurationsTableName,
+						serviceSettingsTableName, serviceSettingConfigurationsTableName, serviceSettingIDColumn, serviceSettingsTableName, idColumn,
+						serviceSettingsTableName, archivedAtColumn,
+						serviceSettingConfigurationsTableName, archivedAtColumn,
+						serviceSettingsTableName, nameColumn, nameColumn,
+						serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetServiceSettingConfigurationsForAccount",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -178,28 +133,28 @@ WHERE %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 	%s
 %s;`,
-					strings.Join(selectColumnsWithServiceSettingColumns, ",\n\t"),
-					buildFilterCountSelect(serviceSettingConfigurationsTableName, true, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn)),
-					buildTotalCountSelect(serviceSettingConfigurationsTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn)),
-					serviceSettingConfigurationsTableName,
-					serviceSettingsTableName, serviceSettingConfigurationsTableName, serviceSettingIDColumn, serviceSettingsTableName, idColumn,
-					serviceSettingsTableName, archivedAtColumn,
-					serviceSettingConfigurationsTableName, archivedAtColumn,
-					serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn,
-					buildFilterConditions(
+						strings.Join(selectColumnsWithServiceSettingColumns, ",\n\t"),
+						buildFilterCountSelect(serviceSettingConfigurationsTableName, true, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						buildTotalCountSelect(serviceSettingConfigurationsTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn)),
 						serviceSettingConfigurationsTableName,
-						true,
-						true,
-					),
-					buildCursorLimitClause(serviceSettingConfigurationsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetServiceSettingConfigurationsForUser",
-					Type: ManyType,
+						serviceSettingsTableName, serviceSettingConfigurationsTableName, serviceSettingIDColumn, serviceSettingsTableName, idColumn,
+						serviceSettingsTableName, archivedAtColumn,
+						serviceSettingConfigurationsTableName, archivedAtColumn,
+						serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn,
+						buildFilterConditions(
+							serviceSettingConfigurationsTableName,
+							true,
+							true,
+						),
+						buildCursorLimitClause(serviceSettingConfigurationsTableName),
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetServiceSettingConfigurationsForUser",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -210,42 +165,24 @@ WHERE %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 	%s
 %s;`,
-					strings.Join(selectColumnsWithServiceSettingColumns, ",\n\t"),
-					buildFilterCountSelect(serviceSettingConfigurationsTableName, true, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn)),
-					buildTotalCountSelect(serviceSettingConfigurationsTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn)),
-					serviceSettingConfigurationsTableName,
-					serviceSettingsTableName, serviceSettingConfigurationsTableName, serviceSettingIDColumn, serviceSettingsTableName, idColumn,
-					serviceSettingsTableName, archivedAtColumn,
-					serviceSettingConfigurationsTableName, archivedAtColumn,
-					serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn,
-					buildFilterConditions(
+						strings.Join(selectColumnsWithServiceSettingColumns, ",\n\t"),
+						buildFilterCountSelect(serviceSettingConfigurationsTableName, true, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn)),
+						buildTotalCountSelect(serviceSettingConfigurationsTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn)),
 						serviceSettingConfigurationsTableName,
-						true,
-						true,
-					),
-					buildCursorLimitClause(serviceSettingConfigurationsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "UpdateServiceSettingConfiguration",
-					Type: ExecRowsType,
+						serviceSettingsTableName, serviceSettingConfigurationsTableName, serviceSettingIDColumn, serviceSettingsTableName, idColumn,
+						serviceSettingsTableName, archivedAtColumn,
+						serviceSettingConfigurationsTableName, archivedAtColumn,
+						serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn,
+						buildFilterConditions(
+							serviceSettingConfigurationsTableName,
+							true,
+							true,
+						),
+						buildCursorLimitClause(serviceSettingConfigurationsTableName),
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
-	%s,
-	%s = %s
-WHERE %s IS NULL
-	AND %s = sqlc.arg(%s);`,
-					serviceSettingConfigurationsTableName,
-					strings.Join(applyToEach(filterForUpdate(serviceSettingConfigurationsColumns), func(i int, s string) string {
-						return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
-					}), ",\n\t"),
-					lastUpdatedAtColumn, currentTimeExpression,
-					archivedAtColumn,
-					idColumn, idColumn,
-				)),
 			},
-		}
+		)
 	default:
 		return nil
 	}

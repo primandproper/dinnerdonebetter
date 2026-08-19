@@ -1,6 +1,3 @@
--- name: ArchiveRecipeStepCompletionCondition :execrows
-UPDATE recipe_step_completion_conditions SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step) AND id = sqlc.arg(id);
-
 -- name: CreateRecipeStepCompletionCondition :exec
 INSERT INTO recipe_step_completion_conditions (
 	id,
@@ -15,6 +12,19 @@ INSERT INTO recipe_step_completion_conditions (
 	sqlc.arg(belongs_to_recipe_step),
 	sqlc.arg(ingredient_state)
 );
+
+-- name: UpdateRecipeStepCompletionCondition :execrows
+UPDATE recipe_step_completion_conditions SET
+	optional = sqlc.arg(optional),
+	notes = sqlc.arg(notes),
+	belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step),
+	ingredient_state = sqlc.arg(ingredient_state),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveRecipeStepCompletionCondition :execrows
+UPDATE recipe_step_completion_conditions SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step) AND id = sqlc.arg(id);
 
 -- name: CheckRecipeStepCompletionConditionExistence :one
 SELECT EXISTS (
@@ -186,13 +196,3 @@ WHERE recipe_step_completion_conditions.archived_at IS NULL
 	AND recipe_steps.id = sqlc.arg(recipe_step_id)
 	AND recipes.archived_at IS NULL
 	AND recipes.id = sqlc.arg(recipe_id);
-
--- name: UpdateRecipeStepCompletionCondition :execrows
-UPDATE recipe_step_completion_conditions SET
-	optional = sqlc.arg(optional),
-	notes = sqlc.arg(notes),
-	belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step),
-	ingredient_state = sqlc.arg(ingredient_state),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);

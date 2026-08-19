@@ -11,6 +11,19 @@ INSERT INTO waitlists (
 	sqlc.arg(valid_until)
 );
 
+-- name: GetWaitlist :one
+SELECT
+	waitlists.id,
+	waitlists.name,
+	waitlists.description,
+	waitlists.valid_until,
+	waitlists.created_at,
+	waitlists.last_updated_at,
+	waitlists.archived_at
+FROM waitlists
+WHERE waitlists.archived_at IS NULL
+	AND waitlists.id = sqlc.arg(id);
+
 -- name: UpdateWaitlist :execrows
 UPDATE waitlists SET
 	name = sqlc.arg(name),
@@ -26,19 +39,6 @@ UPDATE waitlists SET
 	archived_at = NOW()
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
-
--- name: GetWaitlist :one
-SELECT
-	waitlists.id,
-	waitlists.name,
-	waitlists.description,
-	waitlists.valid_until,
-	waitlists.created_at,
-	waitlists.last_updated_at,
-	waitlists.archived_at
-FROM waitlists
-WHERE waitlists.archived_at IS NULL
-	AND waitlists.id = sqlc.arg(id);
 
 -- name: CheckWaitlistExistence :one
 SELECT EXISTS(

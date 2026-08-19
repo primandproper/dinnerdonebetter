@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/primandproper/platform-go/v11/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -44,11 +47,6 @@ func buildAccountInvitationsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		insertColumns := filterForInsert(accountInvitationsColumns,
-			"status",
-			"status_note",
-		)
-
 		userWithAvatarColumns := append(
 			applyToEach(usersColumns, func(i int, s string) string {
 				return fmt.Sprintf("%s.%s as user_%s", usersTableName, s, s)
@@ -68,79 +66,51 @@ func buildAccountInvitationsQueries(database string) []*Query {
 			1,
 		)
 
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "AttachAccountInvitationsToUserID",
-					Type: ExecRowsType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
+		return slices.Concat(
+			querygen.StandardCRUD(accountInvitationsTableName, accountInvitationsColumns,
+				querygen.WithEntity("AccountInvitation", "AccountInvitations"),
+				querygen.WithDatabaseOwned("status", accountInvitationsStatusNoteColumn),
+				querygen.WithOmitted(querygen.ArchiveQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
+			),
+			[]*Query{
+				{
+					Annotation: QueryAnnotation{
+						Name: "AttachAccountInvitationsToUserID",
+						Type: ExecRowsType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
 	%s = sqlc.arg(%s),
 	%s = %s
 WHERE %s IS NULL
 	AND %s = LOWER(sqlc.arg(%s));`,
-					accountInvitationsTableName,
-					toUserColumn, toUserColumn,
-					lastUpdatedAtColumn, currentTimeExpression,
-					archivedAtColumn,
-					toEmailColumn, toEmailColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateAccountInvitation",
-					Type: ExecType,
+						accountInvitationsTableName,
+						toUserColumn, toUserColumn,
+						lastUpdatedAtColumn, currentTimeExpression,
+						archivedAtColumn,
+						toEmailColumn, toEmailColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					accountInvitationsTableName,
-					strings.Join(insertColumns, ",\n\t"),
-					strings.Join(applyToEach(insertColumns, func(_ int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "AssignInvitationsToUserByEmail",
-					Type: ExecRowsType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
+				{
+					Annotation: QueryAnnotation{
+						Name: "AssignInvitationsToUserByEmail",
+						Type: ExecRowsType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
 	%s = sqlc.arg(%s),
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
 	AND %s = LOWER(sqlc.arg(%s))`,
-					accountInvitationsTableName,
-					toUserColumn, toUserColumn,
-					toEmailColumn, emailAddressColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CheckAccountInvitationExistence",
-					Type: OneType,
+						accountInvitationsTableName,
+						toUserColumn, toUserColumn,
+						toEmailColumn, emailAddressColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS (
-	SELECT %s.%s
-	FROM %s
-	WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-);`,
-					accountInvitationsTableName, idColumn,
-					accountInvitationsTableName,
-					accountInvitationsTableName, archivedAtColumn,
-					accountInvitationsTableName, idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetAccountInvitationByEmailAndToken",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetAccountInvitationByEmailAndToken",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
@@ -150,183 +120,184 @@ WHERE %s.%s IS NULL
 	AND %s.%s > %s
 	AND %s.%s = LOWER(sqlc.arg(%s))
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					accountInvitationsTableName,
-					accountsTableName, accountInvitationsTableName, destinationAccountColumn, accountsTableName, idColumn,
-					usersTableName, accountInvitationsTableName, fromUserColumn, usersTableName, idColumn,
-					avatarJoinClause,
-					accountInvitationsTableName, archivedAtColumn,
-					accountInvitationsTableName, accountInvitationsExpiresAtColumn, currentTimeExpression,
-					accountInvitationsTableName, toEmailColumn, toEmailColumn,
-					accountInvitationsTableName, accountInvitationsTokenColumn, accountInvitationsTokenColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetAccountInvitationByAccountAndID",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
-	%s
-FROM %s
-	JOIN %s ON %s.%s = %s.%s
-	JOIN %s ON %s.%s = %s.%s
-	%s
-WHERE %s.%s IS NULL
-	AND %s.%s > %s
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					accountInvitationsTableName,
-					accountsTableName, accountInvitationsTableName, destinationAccountColumn, accountsTableName, idColumn,
-					usersTableName, accountInvitationsTableName, fromUserColumn, usersTableName, idColumn,
-					avatarJoinClause,
-					accountInvitationsTableName, archivedAtColumn,
-					accountInvitationsTableName, accountInvitationsExpiresAtColumn, currentTimeExpression,
-					accountInvitationsTableName, destinationAccountColumn, destinationAccountColumn,
-					accountInvitationsTableName, idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetAccountInvitationByTokenAndID",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
-	%s
-FROM %s
-	JOIN %s ON %s.%s = %s.%s
-	JOIN %s ON %s.%s = %s.%s
-	%s
-WHERE %s.%s IS NULL
-	AND %s.%s > %s
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					accountInvitationsTableName,
-					accountsTableName, accountInvitationsTableName, destinationAccountColumn, accountsTableName, idColumn,
-					usersTableName, accountInvitationsTableName, fromUserColumn, usersTableName, idColumn,
-					avatarJoinClause,
-					accountInvitationsTableName, archivedAtColumn,
-					accountInvitationsTableName, accountInvitationsExpiresAtColumn, currentTimeExpression,
-					accountInvitationsTableName, accountInvitationsTokenColumn, accountInvitationsTokenColumn,
-					accountInvitationsTableName, idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetAccountInvitationByToken",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
-	%s
-FROM %s
-	JOIN %s ON %s.%s = %s.%s
-	JOIN %s ON %s.%s = %s.%s
-	%s
-WHERE %s.%s IS NULL
-	AND %s.%s > %s
-	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					accountInvitationsTableName,
-					accountsTableName, accountInvitationsTableName, destinationAccountColumn, accountsTableName, idColumn,
-					usersTableName, accountInvitationsTableName, fromUserColumn, usersTableName, idColumn,
-					avatarJoinClause,
-					accountInvitationsTableName, archivedAtColumn,
-					accountInvitationsTableName, accountInvitationsExpiresAtColumn, currentTimeExpression,
-					accountInvitationsTableName, accountInvitationsTokenColumn, accountInvitationsTokenColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetPendingInvitesFromUser",
-					Type: ManyType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
-	%s,
-	%s,
-	%s
-FROM %s
-	JOIN %s ON %s.%s = %s.%s
-	JOIN %s ON %s.%s = %s.%s
-	%s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s)
-	%s
-%s;`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					buildFilterCountSelect(accountInvitationsTableName, true, true, []string{}),
-					buildTotalCountSelect(accountInvitationsTableName, true, []string{}),
-					accountInvitationsTableName,
-					accountsTableName, accountInvitationsTableName, destinationAccountColumn, accountsTableName, idColumn,
-					usersTableName, accountInvitationsTableName, fromUserColumn, usersTableName, idColumn,
-					avatarJoinClause,
-					accountInvitationsTableName, archivedAtColumn,
-					accountInvitationsTableName, fromUserColumn, fromUserColumn,
-					accountInvitationsTableName, accountInvitationsStatusColumn, accountInvitationsStatusColumn,
-					buildFilterConditions(accountInvitationsTableName, true, false),
-					buildCursorLimitClause(accountInvitationsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetPendingInvitesForUser",
-					Type: ManyType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
-	%s,
-	%s,
-	%s
-FROM %s
-	JOIN %s ON %s.%s = %s.%s
-	JOIN %s ON %s.%s = %s.%s
-	%s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s)
-	%s
-%s;`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					buildFilterCountSelect(accountInvitationsTableName, true, true, []string{}),
-					buildTotalCountSelect(accountInvitationsTableName, true, []string{}),
-					accountInvitationsTableName,
-					accountsTableName, accountInvitationsTableName, destinationAccountColumn, accountsTableName, idColumn,
-					usersTableName, accountInvitationsTableName, fromUserColumn, usersTableName, idColumn,
-					avatarJoinClause,
-					accountInvitationsTableName, archivedAtColumn,
-					accountInvitationsTableName, toUserColumn, toUserColumn,
-					accountInvitationsTableName, accountInvitationsStatusColumn, accountInvitationsStatusColumn,
-					buildFilterConditions(
+						strings.Join(fullSelectColumns, ",\n\t"),
 						accountInvitationsTableName,
-						true,
-						true,
-					),
-					buildCursorLimitClause(accountInvitationsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "SetAccountInvitationStatus",
-					Type: ExecType,
+						accountsTableName, accountInvitationsTableName, destinationAccountColumn, accountsTableName, idColumn,
+						usersTableName, accountInvitationsTableName, fromUserColumn, usersTableName, idColumn,
+						avatarJoinClause,
+						accountInvitationsTableName, archivedAtColumn,
+						accountInvitationsTableName, accountInvitationsExpiresAtColumn, currentTimeExpression,
+						accountInvitationsTableName, toEmailColumn, toEmailColumn,
+						accountInvitationsTableName, accountInvitationsTokenColumn, accountInvitationsTokenColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetAccountInvitationByAccountAndID",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+	%s
+FROM %s
+	JOIN %s ON %s.%s = %s.%s
+	JOIN %s ON %s.%s = %s.%s
+	%s
+WHERE %s.%s IS NULL
+	AND %s.%s > %s
+	AND %s.%s = sqlc.arg(%s)
+	AND %s.%s = sqlc.arg(%s);`,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						accountInvitationsTableName,
+						accountsTableName, accountInvitationsTableName, destinationAccountColumn, accountsTableName, idColumn,
+						usersTableName, accountInvitationsTableName, fromUserColumn, usersTableName, idColumn,
+						avatarJoinClause,
+						accountInvitationsTableName, archivedAtColumn,
+						accountInvitationsTableName, accountInvitationsExpiresAtColumn, currentTimeExpression,
+						accountInvitationsTableName, destinationAccountColumn, destinationAccountColumn,
+						accountInvitationsTableName, idColumn, idColumn,
+					)),
+				},
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetAccountInvitationByTokenAndID",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+	%s
+FROM %s
+	JOIN %s ON %s.%s = %s.%s
+	JOIN %s ON %s.%s = %s.%s
+	%s
+WHERE %s.%s IS NULL
+	AND %s.%s > %s
+	AND %s.%s = sqlc.arg(%s)
+	AND %s.%s = sqlc.arg(%s);`,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						accountInvitationsTableName,
+						accountsTableName, accountInvitationsTableName, destinationAccountColumn, accountsTableName, idColumn,
+						usersTableName, accountInvitationsTableName, fromUserColumn, usersTableName, idColumn,
+						avatarJoinClause,
+						accountInvitationsTableName, archivedAtColumn,
+						accountInvitationsTableName, accountInvitationsExpiresAtColumn, currentTimeExpression,
+						accountInvitationsTableName, accountInvitationsTokenColumn, accountInvitationsTokenColumn,
+						accountInvitationsTableName, idColumn, idColumn,
+					)),
+				},
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetAccountInvitationByToken",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+	%s
+FROM %s
+	JOIN %s ON %s.%s = %s.%s
+	JOIN %s ON %s.%s = %s.%s
+	%s
+WHERE %s.%s IS NULL
+	AND %s.%s > %s
+	AND %s.%s = sqlc.arg(%s);`,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						accountInvitationsTableName,
+						accountsTableName, accountInvitationsTableName, destinationAccountColumn, accountsTableName, idColumn,
+						usersTableName, accountInvitationsTableName, fromUserColumn, usersTableName, idColumn,
+						avatarJoinClause,
+						accountInvitationsTableName, archivedAtColumn,
+						accountInvitationsTableName, accountInvitationsExpiresAtColumn, currentTimeExpression,
+						accountInvitationsTableName, accountInvitationsTokenColumn, accountInvitationsTokenColumn,
+					)),
+				},
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetPendingInvitesFromUser",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+	%s,
+	%s,
+	%s
+FROM %s
+	JOIN %s ON %s.%s = %s.%s
+	JOIN %s ON %s.%s = %s.%s
+	%s
+WHERE %s.%s IS NULL
+	AND %s.%s = sqlc.arg(%s)
+	AND %s.%s = sqlc.arg(%s)
+	%s
+%s;`,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						buildFilterCountSelect(accountInvitationsTableName, true, true, []string{}),
+						buildTotalCountSelect(accountInvitationsTableName, true, []string{}),
+						accountInvitationsTableName,
+						accountsTableName, accountInvitationsTableName, destinationAccountColumn, accountsTableName, idColumn,
+						usersTableName, accountInvitationsTableName, fromUserColumn, usersTableName, idColumn,
+						avatarJoinClause,
+						accountInvitationsTableName, archivedAtColumn,
+						accountInvitationsTableName, fromUserColumn, fromUserColumn,
+						accountInvitationsTableName, accountInvitationsStatusColumn, accountInvitationsStatusColumn,
+						buildFilterConditions(accountInvitationsTableName, true, false),
+						buildCursorLimitClause(accountInvitationsTableName),
+					)),
+				},
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetPendingInvitesForUser",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+	%s,
+	%s,
+	%s
+FROM %s
+	JOIN %s ON %s.%s = %s.%s
+	JOIN %s ON %s.%s = %s.%s
+	%s
+WHERE %s.%s IS NULL
+	AND %s.%s = sqlc.arg(%s)
+	AND %s.%s = sqlc.arg(%s)
+	%s
+%s;`,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						buildFilterCountSelect(accountInvitationsTableName, true, true, []string{}),
+						buildTotalCountSelect(accountInvitationsTableName, true, []string{}),
+						accountInvitationsTableName,
+						accountsTableName, accountInvitationsTableName, destinationAccountColumn, accountsTableName, idColumn,
+						usersTableName, accountInvitationsTableName, fromUserColumn, usersTableName, idColumn,
+						avatarJoinClause,
+						accountInvitationsTableName, archivedAtColumn,
+						accountInvitationsTableName, toUserColumn, toUserColumn,
+						accountInvitationsTableName, accountInvitationsStatusColumn, accountInvitationsStatusColumn,
+						buildFilterConditions(
+							accountInvitationsTableName,
+							true,
+							true,
+						),
+						buildCursorLimitClause(accountInvitationsTableName),
+					)),
+				},
+				{
+					Annotation: QueryAnnotation{
+						Name: "SetAccountInvitationStatus",
+						Type: ExecType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
 	%s = sqlc.arg(%s),
 	%s = sqlc.arg(%s),
 	%s = %s,
 	%s = %s
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
-					accountInvitationsTableName,
-					accountInvitationsStatusColumn, accountInvitationsStatusColumn,
-					accountInvitationsStatusNoteColumn, accountInvitationsStatusNoteColumn,
-					lastUpdatedAtColumn, currentTimeExpression,
-					archivedAtColumn, currentTimeExpression,
-					archivedAtColumn,
-					idColumn, idColumn,
-				)),
+						accountInvitationsTableName,
+						accountInvitationsStatusColumn, accountInvitationsStatusColumn,
+						accountInvitationsStatusNoteColumn, accountInvitationsStatusNoteColumn,
+						lastUpdatedAtColumn, currentTimeExpression,
+						archivedAtColumn, currentTimeExpression,
+						archivedAtColumn,
+						idColumn, idColumn,
+					)),
+				},
 			},
-		}
+		)
 	default:
 		return nil
 	}

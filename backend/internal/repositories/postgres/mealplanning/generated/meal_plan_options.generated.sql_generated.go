@@ -15,17 +15,17 @@ const archiveMealPlanOption = `-- name: ArchiveMealPlanOption :execrows
 UPDATE meal_plan_options SET
 	archived_at = NOW()
 WHERE archived_at IS NULL
-	AND belongs_to_meal_plan_event = $1
-	AND id = $2
+	AND id = $1
+	AND belongs_to_meal_plan_event = $2
 `
 
 type ArchiveMealPlanOptionParams struct {
-	BelongsToMealPlanEvent sql.NullString
 	ID                     string
+	BelongsToMealPlanEvent sql.NullString
 }
 
 func (q *Queries) ArchiveMealPlanOption(ctx context.Context, db DBTX, arg *ArchiveMealPlanOptionParams) (int64, error) {
-	result, err := db.ExecContext(ctx, archiveMealPlanOption, arg.BelongsToMealPlanEvent, arg.ID)
+	result, err := db.ExecContext(ctx, archiveMealPlanOption, arg.ID, arg.BelongsToMealPlanEvent)
 	if err != nil {
 		return 0, err
 	}

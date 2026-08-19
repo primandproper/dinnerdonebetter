@@ -1,10 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"strings"
-
-	"github.com/cristalhq/builq"
+	"github.com/primandproper/platform-go/v11/database/querygen"
 )
 
 const (
@@ -28,27 +25,10 @@ func buildRecipePrepTaskStepsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		insertColumns := filterForInsert(recipePrepTaskStepsColumns)
-
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateRecipePrepTaskStep",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					recipePrepTaskStepsTableName,
-					strings.Join(insertColumns, ",\n\t"),
-					strings.Join(applyToEach(insertColumns, func(i int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-		}
+		return querygen.StandardCRUD(recipePrepTaskStepsTableName, recipePrepTaskStepsColumns,
+			querygen.WithEntity("RecipePrepTaskStep", "RecipePrepTaskSteps"),
+			querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
+		)
 	default:
 		return nil
 	}

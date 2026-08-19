@@ -1,6 +1,3 @@
--- name: ArchiveValidPrepTaskConfig :execrows
-UPDATE valid_prep_task_configs SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
-
 -- name: CreateValidPrepTaskConfig :exec
 INSERT INTO valid_prep_task_configs (
 	id,
@@ -35,6 +32,28 @@ SELECT EXISTS (
 	WHERE valid_prep_task_configs.archived_at IS NULL
 		AND valid_prep_task_configs.id = sqlc.arg(id)
 );
+
+-- name: UpdateValidPrepTaskConfig :execrows
+UPDATE valid_prep_task_configs SET
+	valid_ingredient_id = sqlc.arg(valid_ingredient_id),
+	valid_preparation_id = sqlc.arg(valid_preparation_id),
+	minimum_storage_duration_in_seconds = sqlc.arg(minimum_storage_duration_in_seconds),
+	maximum_storage_duration_in_seconds = sqlc.narg(maximum_storage_duration_in_seconds),
+	storage_container_type = sqlc.arg(storage_container_type),
+	minimum_storage_temperature_in_celsius = sqlc.narg(minimum_storage_temperature_in_celsius),
+	maximum_storage_temperature_in_celsius = sqlc.narg(maximum_storage_temperature_in_celsius),
+	storage_instructions = sqlc.arg(storage_instructions),
+	notes = sqlc.arg(notes),
+	source = sqlc.arg(source),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveValidPrepTaskConfig :execrows
+UPDATE valid_prep_task_configs SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
 
 -- name: GetValidPrepTaskConfigsForIngredient :many
 SELECT
@@ -592,19 +611,3 @@ WHERE
 	AND valid_ingredients.archived_at IS NULL
 	AND valid_preparations.archived_at IS NULL
 	AND valid_prep_task_configs.id = sqlc.arg(id);
-
--- name: UpdateValidPrepTaskConfig :execrows
-UPDATE valid_prep_task_configs SET
-	valid_ingredient_id = sqlc.arg(valid_ingredient_id),
-	valid_preparation_id = sqlc.arg(valid_preparation_id),
-	minimum_storage_duration_in_seconds = sqlc.arg(minimum_storage_duration_in_seconds),
-	maximum_storage_duration_in_seconds = sqlc.narg(maximum_storage_duration_in_seconds),
-	storage_container_type = sqlc.arg(storage_container_type),
-	minimum_storage_temperature_in_celsius = sqlc.narg(minimum_storage_temperature_in_celsius),
-	maximum_storage_temperature_in_celsius = sqlc.narg(maximum_storage_temperature_in_celsius),
-	storage_instructions = sqlc.arg(storage_instructions),
-	notes = sqlc.arg(notes),
-	source = sqlc.arg(source),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);

@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/primandproper/platform-go/v11/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -33,8 +36,6 @@ func buildValidIngredientMeasurementUnitsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		insertColumns := filterForInsert(validIngredientMeasurementUnitsColumns)
-
 		fullSelectColumns := mergeColumns(
 			applyToEach(filterFromSlice(validIngredientMeasurementUnitsColumns, "valid_ingredient_id", "valid_measurement_unit_id"), func(i int, s string) string {
 				return fmt.Sprintf("%s.%s as valid_ingredient_measurement_unit_%s", validIngredientMeasurementUnitsTableName, s, s)
@@ -49,61 +50,18 @@ func buildValidIngredientMeasurementUnitsQueries(database string) []*Query {
 			2,
 		)
 
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "ArchiveValidIngredientMeasurementUnit",
-					Type: ExecRowsType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s IS NULL AND %s = sqlc.arg(%s);`,
-					validIngredientMeasurementUnitsTableName,
-					archivedAtColumn,
-					currentTimeExpression,
-					archivedAtColumn,
-					idColumn,
-					idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateValidIngredientMeasurementUnit",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					validIngredientMeasurementUnitsTableName,
-					strings.Join(insertColumns, ",\n\t"),
-					strings.Join(applyToEach(insertColumns, func(i int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CheckValidIngredientMeasurementUnitExistence",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS (
-	SELECT %s.%s
-	FROM %s
-	WHERE %s.%s IS NULL
-		AND %s.%s = sqlc.arg(%s)
-);`,
-					validIngredientMeasurementUnitsTableName, idColumn,
-					validIngredientMeasurementUnitsTableName,
-					validIngredientMeasurementUnitsTableName, archivedAtColumn,
-					validIngredientMeasurementUnitsTableName, idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetValidIngredientMeasurementUnitsForIngredient",
-					Type: ManyType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+		return slices.Concat(
+			querygen.StandardCRUD(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns,
+				querygen.WithEntity("ValidIngredientMeasurementUnit", "ValidIngredientMeasurementUnits"),
+				querygen.WithOmitted(querygen.GetQuery, querygen.ListQuery),
+			),
+			[]*Query{
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetValidIngredientMeasurementUnitsForIngredient",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -117,30 +75,30 @@ WHERE
 	AND %s.%s = sqlc.arg(%s)
 	%s
 %s;`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					buildFilterCountSelect(validIngredientMeasurementUnitsTableName, true, true, []string{}),
-					buildTotalCountSelect(validIngredientMeasurementUnitsTableName, true, []string{}),
-					validIngredientMeasurementUnitsTableName,
-					validMeasurementUnitsTableName, validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitsTableName, idColumn,
-					validIngredientsTableName, validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientsTableName, idColumn,
-					validIngredientMeasurementUnitsTableName, archivedAtColumn,
-					validMeasurementUnitsTableName, archivedAtColumn,
-					validIngredientsTableName, archivedAtColumn,
-					validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientIDColumn,
-					buildFilterConditions(
+						strings.Join(fullSelectColumns, ",\n\t"),
+						buildFilterCountSelect(validIngredientMeasurementUnitsTableName, true, true, []string{}),
+						buildTotalCountSelect(validIngredientMeasurementUnitsTableName, true, []string{}),
 						validIngredientMeasurementUnitsTableName,
-						true,
-						false,
-					),
-					buildCursorLimitClause(validIngredientMeasurementUnitsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetValidIngredientMeasurementUnitsForMeasurementUnit",
-					Type: ManyType,
+						validMeasurementUnitsTableName, validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitsTableName, idColumn,
+						validIngredientsTableName, validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientsTableName, idColumn,
+						validIngredientMeasurementUnitsTableName, archivedAtColumn,
+						validMeasurementUnitsTableName, archivedAtColumn,
+						validIngredientsTableName, archivedAtColumn,
+						validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientIDColumn,
+						buildFilterConditions(
+							validIngredientMeasurementUnitsTableName,
+							true,
+							false,
+						),
+						buildCursorLimitClause(validIngredientMeasurementUnitsTableName),
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetValidIngredientMeasurementUnitsForMeasurementUnit",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -154,26 +112,26 @@ WHERE
 	AND %s.%s = sqlc.arg(%s)
 	%s
 %s;`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					buildFilterCountSelect(validIngredientMeasurementUnitsTableName, true, true, []string{}),
-					buildTotalCountSelect(validIngredientMeasurementUnitsTableName, true, []string{}),
-					validIngredientMeasurementUnitsTableName,
-					validMeasurementUnitsTableName, validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitsTableName, idColumn,
-					validIngredientsTableName, validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientsTableName, idColumn,
-					validIngredientMeasurementUnitsTableName, archivedAtColumn,
-					validMeasurementUnitsTableName, archivedAtColumn,
-					validIngredientsTableName, archivedAtColumn,
-					validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitIDColumn,
-					buildFilterConditions(validIngredientMeasurementUnitsTableName, true, false),
-					buildCursorLimitClause(validIngredientMeasurementUnitsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetValidIngredientMeasurementUnits",
-					Type: ManyType,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						buildFilterCountSelect(validIngredientMeasurementUnitsTableName, true, true, []string{}),
+						buildTotalCountSelect(validIngredientMeasurementUnitsTableName, true, []string{}),
+						validIngredientMeasurementUnitsTableName,
+						validMeasurementUnitsTableName, validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitsTableName, idColumn,
+						validIngredientsTableName, validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientsTableName, idColumn,
+						validIngredientMeasurementUnitsTableName, archivedAtColumn,
+						validMeasurementUnitsTableName, archivedAtColumn,
+						validIngredientsTableName, archivedAtColumn,
+						validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitIDColumn,
+						buildFilterConditions(validIngredientMeasurementUnitsTableName, true, false),
+						buildCursorLimitClause(validIngredientMeasurementUnitsTableName),
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetValidIngredientMeasurementUnits",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -186,25 +144,25 @@ WHERE
 	AND %s.%s IS NULL
 	%s
 %s;`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					buildFilterCountSelect(validIngredientMeasurementUnitsTableName, true, true, []string{}),
-					buildTotalCountSelect(validIngredientMeasurementUnitsTableName, true, []string{}),
-					validIngredientMeasurementUnitsTableName,
-					validMeasurementUnitsTableName, validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitsTableName, idColumn,
-					validIngredientsTableName, validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientsTableName, idColumn,
-					validIngredientMeasurementUnitsTableName, archivedAtColumn,
-					validMeasurementUnitsTableName, archivedAtColumn,
-					validIngredientsTableName, archivedAtColumn,
-					buildFilterConditions(validIngredientMeasurementUnitsTableName, true, false),
-					buildCursorLimitClause(validIngredientMeasurementUnitsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetValidIngredientMeasurementUnit",
-					Type: OneType,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						buildFilterCountSelect(validIngredientMeasurementUnitsTableName, true, true, []string{}),
+						buildTotalCountSelect(validIngredientMeasurementUnitsTableName, true, []string{}),
+						validIngredientMeasurementUnitsTableName,
+						validMeasurementUnitsTableName, validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitsTableName, idColumn,
+						validIngredientsTableName, validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientsTableName, idColumn,
+						validIngredientMeasurementUnitsTableName, archivedAtColumn,
+						validMeasurementUnitsTableName, archivedAtColumn,
+						validIngredientsTableName, archivedAtColumn,
+						buildFilterConditions(validIngredientMeasurementUnitsTableName, true, false),
+						buildCursorLimitClause(validIngredientMeasurementUnitsTableName),
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetValidIngredientMeasurementUnit",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
@@ -214,22 +172,22 @@ WHERE
 	AND %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					validIngredientMeasurementUnitsTableName,
-					validMeasurementUnitsTableName, validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitsTableName, idColumn,
-					validIngredientsTableName, validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientsTableName, idColumn,
-					validIngredientMeasurementUnitsTableName, archivedAtColumn,
-					validMeasurementUnitsTableName, archivedAtColumn,
-					validIngredientsTableName, archivedAtColumn,
-					validIngredientMeasurementUnitsTableName, idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetValidIngredientMeasurementUnitsByIDs",
-					Type: ManyType,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						validIngredientMeasurementUnitsTableName,
+						validMeasurementUnitsTableName, validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitsTableName, idColumn,
+						validIngredientsTableName, validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientsTableName, idColumn,
+						validIngredientMeasurementUnitsTableName, archivedAtColumn,
+						validMeasurementUnitsTableName, archivedAtColumn,
+						validIngredientsTableName, archivedAtColumn,
+						validIngredientMeasurementUnitsTableName, idColumn, idColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetValidIngredientMeasurementUnitsByIDs",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
@@ -239,57 +197,37 @@ WHERE
 	AND %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s = ANY(sqlc.arg(ids)::text[]);`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					validIngredientMeasurementUnitsTableName,
-					validMeasurementUnitsTableName, validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitsTableName, idColumn,
-					validIngredientsTableName, validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientsTableName, idColumn,
-					validIngredientMeasurementUnitsTableName, archivedAtColumn,
-					validMeasurementUnitsTableName, archivedAtColumn,
-					validIngredientsTableName, archivedAtColumn,
-					validIngredientMeasurementUnitsTableName, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "ValidIngredientMeasurementUnitPairIsValid",
-					Type: OneType,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						validIngredientMeasurementUnitsTableName,
+						validMeasurementUnitsTableName, validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitsTableName, idColumn,
+						validIngredientsTableName, validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientsTableName, idColumn,
+						validIngredientMeasurementUnitsTableName, archivedAtColumn,
+						validMeasurementUnitsTableName, archivedAtColumn,
+						validIngredientsTableName, archivedAtColumn,
+						validIngredientMeasurementUnitsTableName, idColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS(
+				{
+					Annotation: QueryAnnotation{
+						Name: "ValidIngredientMeasurementUnitPairIsValid",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS(
 	SELECT %s
 	FROM %s
 	WHERE %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s)
 	AND %s IS NULL
 );`,
-					idColumn,
-					validIngredientMeasurementUnitsTableName,
-					validMeasurementUnitIDColumn, validMeasurementUnitIDColumn,
-					validIngredientIDColumn, validIngredientIDColumn,
-					archivedAtColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "UpdateValidIngredientMeasurementUnit",
-					Type: ExecRowsType,
+						idColumn,
+						validIngredientMeasurementUnitsTableName,
+						validMeasurementUnitIDColumn, validMeasurementUnitIDColumn,
+						validIngredientIDColumn, validIngredientIDColumn,
+						archivedAtColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
-	%s,
-	%s = %s
-WHERE %s IS NULL
-	AND %s = sqlc.arg(%s);`,
-					validIngredientMeasurementUnitsTableName,
-					strings.Join(applyToEach(filterForUpdate(validIngredientMeasurementUnitsColumns), func(i int, s string) string {
-						return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
-					}), ",\n\t"),
-					lastUpdatedAtColumn,
-					currentTimeExpression,
-					archivedAtColumn,
-					idColumn,
-					idColumn,
-				)),
 			},
-		}
+		)
 	default:
 		return nil
 	}

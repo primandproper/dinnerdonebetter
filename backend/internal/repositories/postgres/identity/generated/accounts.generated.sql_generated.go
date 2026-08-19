@@ -507,8 +507,8 @@ UPDATE accounts SET
 	longitude = $10,
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
-	AND belongs_to_user = $11
-	AND id = $12
+	AND id = $11
+	AND belongs_to_user = $12
 `
 
 type UpdateAccountParams struct {
@@ -522,8 +522,8 @@ type UpdateAccountParams struct {
 	Country       string
 	Latitude      sql.NullString
 	Longitude     sql.NullString
-	BelongsToUser string
 	ID            string
+	BelongsToUser string
 }
 
 func (q *Queries) UpdateAccount(ctx context.Context, db DBTX, arg *UpdateAccountParams) (int64, error) {
@@ -538,8 +538,8 @@ func (q *Queries) UpdateAccount(ctx context.Context, db DBTX, arg *UpdateAccount
 		arg.Country,
 		arg.Latitude,
 		arg.Longitude,
-		arg.BelongsToUser,
 		arg.ID,
+		arg.BelongsToUser,
 	)
 	if err != nil {
 		return 0, err

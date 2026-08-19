@@ -21,6 +21,12 @@ FROM permissions
 WHERE permissions.archived_at IS NULL
 	AND permissions.id = sqlc.arg(id);
 
+-- name: ArchivePermission :execrows
+UPDATE permissions SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
 -- name: GetPermissionByName :one
 SELECT
 	permissions.id,
@@ -79,6 +85,3 @@ WHERE permissions.archived_at IS NULL
 	AND permissions.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY permissions.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: ArchivePermission :execrows
-UPDATE permissions SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);

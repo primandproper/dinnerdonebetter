@@ -1,6 +1,3 @@
--- name: ArchiveRecipeList :execrows
-UPDATE recipe_lists SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_user = sqlc.arg(belongs_to_user) AND id = sqlc.arg(id);
-
 -- name: CreateRecipeList :exec
 INSERT INTO recipe_lists (
 	id,
@@ -13,6 +10,22 @@ INSERT INTO recipe_lists (
 	sqlc.arg(description),
 	sqlc.arg(belongs_to_user)
 );
+
+-- name: UpdateRecipeList :execrows
+UPDATE recipe_lists SET
+	name = sqlc.arg(name),
+	description = sqlc.arg(description),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_user = sqlc.arg(belongs_to_user);
+
+-- name: ArchiveRecipeList :execrows
+UPDATE recipe_lists SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_user = sqlc.arg(belongs_to_user);
 
 -- name: GetRecipeLists :many
 SELECT
@@ -68,12 +81,3 @@ FROM recipe_lists
 	AND recipe_lists.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY recipe_lists.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateRecipeList :execrows
-UPDATE recipe_lists SET
-	name = sqlc.arg(name),
-	description = sqlc.arg(description),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND belongs_to_user = sqlc.arg(belongs_to_user)
-	AND id = sqlc.arg(id);

@@ -68,7 +68,7 @@ SELECT
 	purchases.archived_at
 FROM purchases
 WHERE purchases.archived_at IS NULL
-AND purchases.id = $1
+	AND purchases.id = $1
 `
 
 func (q *Queries) GetPurchase(ctx context.Context, db DBTX, id string) (*Purchases, error) {

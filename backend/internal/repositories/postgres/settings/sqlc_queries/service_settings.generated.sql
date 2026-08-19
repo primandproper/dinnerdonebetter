@@ -1,6 +1,3 @@
--- name: ArchiveServiceSetting :execrows
-UPDATE service_settings SET archived_at = NOW() WHERE id = sqlc.arg(id);
-
 -- name: CreateServiceSetting :exec
 INSERT INTO service_settings (
 	id,
@@ -20,13 +17,32 @@ INSERT INTO service_settings (
 	sqlc.arg(admins_only)
 );
 
+-- name: GetServiceSetting :one
+SELECT
+	service_settings.id,
+	service_settings.name,
+	service_settings.type,
+	service_settings.description,
+	service_settings.default_value,
+	service_settings.enumeration,
+	service_settings.admins_only,
+	service_settings.created_at,
+	service_settings.last_updated_at,
+	service_settings.archived_at
+FROM service_settings
+WHERE service_settings.archived_at IS NULL
+	AND service_settings.id = sqlc.arg(id);
+
 -- name: CheckServiceSettingExistence :one
 SELECT EXISTS (
 	SELECT service_settings.id
 	FROM service_settings
 	WHERE service_settings.archived_at IS NULL
-	AND service_settings.id = sqlc.arg(id)
+		AND service_settings.id = sqlc.arg(id)
 );
+
+-- name: ArchiveServiceSetting :execrows
+UPDATE service_settings SET archived_at = NOW() WHERE id = sqlc.arg(id);
 
 -- name: GetServiceSettings :many
 SELECT
@@ -78,22 +94,6 @@ WHERE service_settings.archived_at IS NULL
 	AND service_settings.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY service_settings.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: GetServiceSetting :one
-SELECT
-	service_settings.id,
-	service_settings.name,
-	service_settings.type,
-	service_settings.description,
-	service_settings.default_value,
-	service_settings.enumeration,
-	service_settings.admins_only,
-	service_settings.created_at,
-	service_settings.last_updated_at,
-	service_settings.archived_at
-FROM service_settings
-WHERE service_settings.archived_at IS NULL
-	AND service_settings.id = sqlc.arg(id);
 
 -- name: SearchForServiceSettings :many
 SELECT
