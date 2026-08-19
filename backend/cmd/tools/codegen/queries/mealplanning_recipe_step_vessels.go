@@ -228,10 +228,10 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 						recipeStepVesselsTableName,
-						strings.Join(applyToEach(filterForUpdate(recipeStepVesselsColumns), func(i int, s string) string {
+						strings.Join(applyToEach(querygen.ForUpdate(recipeStepVesselsColumns), func(i int, s string) string {
 							return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
 						}), ",\n\t"),
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						belongsToRecipeStepColumn, belongsToRecipeStepColumn,
 						idColumn, idColumn,

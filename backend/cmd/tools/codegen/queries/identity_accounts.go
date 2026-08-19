@@ -68,8 +68,8 @@ func buildAccountsQueries(database string) []*Query {
 ) VALUES (
 	%s
 );`,
-						strings.Join(filterForInsert(accountUserMembershipsColumns, "default_account"), ",\n\t"),
-						strings.Join(applyToEach(filterForInsert(accountUserMembershipsColumns, "default_account"), func(_ int, s string) string {
+						strings.Join(querygen.ForInsert(accountUserMembershipsColumns, "default_account"), ",\n\t"),
+						strings.Join(applyToEach(querygen.ForInsert(accountUserMembershipsColumns, "default_account"), func(_ int, s string) string {
 							return fmt.Sprintf("sqlc.arg(%s)", s)
 						}), ",\n\t"),
 					)),
@@ -87,9 +87,9 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						accountsTableName,
 						lastUpdatedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						archivedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						archivedAtColumn,
 						belongsToUserColumn,
 						belongsToUserColumn,
@@ -183,7 +183,7 @@ WHERE %s
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						accountsTableName,
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -201,7 +201,7 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						accountsTableName,
 						webhookHMACSecretColumn, webhookHMACSecretColumn,
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						belongsToUserColumn, belongsToUserColumn,
 						idColumn, idColumn,

@@ -86,7 +86,7 @@ func buildUpdateAccountMembershipsQuery(ownershipColumn string, nowColumns []str
 
 	addendum := ""
 	for _, col := range nowColumns {
-		addendum = fmt.Sprintf(",\n\t%s = %s", col, currentTimeExpression)
+		addendum = fmt.Sprintf(",\n\t%s = %s", col, querygen.NowExpression)
 	}
 
 	builder := updateQueryBuilder.Addf(
@@ -96,7 +96,7 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 		accountUserMembershipsTableName,
 		archivedAtColumn,
-		currentTimeExpression,
+		querygen.NowExpression,
 		addendum,
 		archivedAtColumn,
 		ownershipColumn,
@@ -111,7 +111,7 @@ func buildUserUpdateQuery(columnName string, nowColumns []string) string {
 
 	addendum := ""
 	for _, col := range nowColumns {
-		addendum = fmt.Sprintf(",\n\t%s = %s", col, currentTimeExpression)
+		addendum = fmt.Sprintf(",\n\t%s = %s", col, querygen.NowExpression)
 	}
 
 	builder := updateQueryBuilder.Addf(
@@ -121,7 +121,7 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 		usersTableName,
 		columnName,
-		currentTimeExpression,
+		querygen.NowExpression,
 		addendum,
 		archivedAtColumn,
 		idColumn,
@@ -427,7 +427,7 @@ WHERE %s.%s IS NULL
 						usersTableName,
 						usersTableName, archivedAtColumn,
 						usersTableName, lastIndexedAtColumn,
-						usersTableName, lastIndexedAtColumn, currentTimeExpression,
+						usersTableName, lastIndexedAtColumn, querygen.NowExpression,
 					)),
 				},
 				{
@@ -491,8 +491,8 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 						usersTableName,
-						emailAddressVerifiedAtColumn, currentTimeExpression,
-						lastUpdatedAtColumn, currentTimeExpression,
+						emailAddressVerifiedAtColumn, querygen.NowExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						emailAddressVerifiedAtColumn,
 						idColumn, idColumn,
@@ -512,7 +512,7 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						usersTableName,
 						emailAddressVerifiedAtColumn,
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						emailAddressVerifiedAtColumn,
 						idColumn, idColumn,
@@ -533,7 +533,7 @@ WHERE %s IS NULL
 						twoFactorSecretVerifiedAtColumn,
 						twoFactorSecretColumn, twoFactorSecretColumn,
 						lastUpdatedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						archivedAtColumn,
 						idColumn,
 						idColumn,
@@ -550,8 +550,8 @@ WHERE %s IS NULL
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						usersTableName,
-						twoFactorSecretVerifiedAtColumn, currentTimeExpression,
-						lastUpdatedAtColumn, currentTimeExpression,
+						twoFactorSecretVerifiedAtColumn, querygen.NowExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -600,7 +600,7 @@ WHERE %s IS NULL
 						firstNameColumn, firstNameColumn,
 						lastNameColumn, lastNameColumn,
 						birthdayColumn, birthdayColumn,
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -620,7 +620,7 @@ WHERE %s IS NULL
 						emailAddressColumn, emailAddressColumn,
 						emailAddressVerifiedAtColumn,
 						lastUpdatedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -640,8 +640,8 @@ WHERE %s IS NULL
 						usersTableName,
 						hashedPasswordColumn, hashedPasswordColumn,
 						requiresPasswordChangeColumn,
-						passwordLastChangedAtColumn, currentTimeExpression,
-						lastUpdatedAtColumn, currentTimeExpression,
+						passwordLastChangedAtColumn, querygen.NowExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -660,7 +660,7 @@ WHERE %s IS NULL
 						usersTableName,
 						twoFactorSecretVerifiedAtColumn,
 						twoFactorSecretColumn, twoFactorSecretColumn,
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -677,7 +677,7 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						usersTableName,
 						usernameColumn, usernameColumn,
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),

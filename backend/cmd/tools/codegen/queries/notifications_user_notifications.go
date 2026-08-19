@@ -36,7 +36,7 @@ func buildUserNotificationQueries(database string) []*Query {
 	case postgres:
 
 		fullSelectColumns := applyToEach(userNotificationsColumns, func(_ int, s string) string {
-			return fullColumnName(userNotificationsTableName, s)
+			return querygen.Qualify(userNotificationsTableName, s)
 		})
 
 		return slices.Concat(
@@ -126,10 +126,10 @@ WHERE %s
 	%s = %s
 WHERE %s = sqlc.arg(%s);`,
 						userNotificationsTableName,
-						strings.Join(applyToEach(filterForUpdate(userNotificationsColumns, contentColumn, belongsToUserColumn), func(i int, s string) string {
+						strings.Join(applyToEach(querygen.ForUpdate(userNotificationsColumns, contentColumn, belongsToUserColumn), func(i int, s string) string {
 							return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
 						}), ",\n\t"),
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						idColumn, idColumn,
 					)),
 				},

@@ -39,7 +39,7 @@ func buildMealPlanRecipeOptionSelectionsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		insertColumns := filterForInsert(mealPlanRecipeOptionSelectionsColumns)
+		insertColumns := querygen.ForInsert(mealPlanRecipeOptionSelectionsColumns)
 
 		return []*Query{
 			{
@@ -66,7 +66,7 @@ func buildMealPlanRecipeOptionSelectionsQueries(database string) []*Query {
 					selectedOptionIndexColumn,
 					selectedOptionIndexColumn,
 					lastUpdatedAtColumn,
-					currentTimeExpression,
+					querygen.NowExpression,
 				)),
 			},
 			{
@@ -169,10 +169,10 @@ WHERE %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 					mealPlanRecipeOptionSelectionsTableName,
-					strings.Join(applyToEach(filterForUpdate(mealPlanRecipeOptionSelectionsColumns, belongsToMealPlanOptionColumn, recipeStepIDColumn, ingredientIndexColumn, selectionTypeColumn), func(i int, s string) string {
+					strings.Join(applyToEach(querygen.ForUpdate(mealPlanRecipeOptionSelectionsColumns, belongsToMealPlanOptionColumn, recipeStepIDColumn, ingredientIndexColumn, selectionTypeColumn), func(i int, s string) string {
 						return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
 					}), ",\n\t"),
-					lastUpdatedAtColumn, currentTimeExpression,
+					lastUpdatedAtColumn, querygen.NowExpression,
 					belongsToMealPlanOptionColumn, mealPlanOptionIDColumn,
 					recipeStepIDColumn, recipeStepIDColumn,
 					ingredientIndexColumn, ingredientIndexColumn,
@@ -191,7 +191,7 @@ WHERE %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 					mealPlanRecipeOptionSelectionsTableName,
-					archivedAtColumn, currentTimeExpression,
+					archivedAtColumn, querygen.NowExpression,
 					belongsToMealPlanOptionColumn, mealPlanOptionIDColumn,
 					recipeStepIDColumn, recipeStepIDColumn,
 					ingredientIndexColumn, ingredientIndexColumn,

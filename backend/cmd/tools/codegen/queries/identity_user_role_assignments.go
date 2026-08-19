@@ -50,7 +50,7 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 						userRoleAssignmentsTableName,
-						archivedAtColumn, currentTimeExpression,
+						archivedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 						userIDColumn, userIDColumn,
@@ -66,7 +66,7 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 						userRoleAssignmentsTableName,
-						archivedAtColumn, currentTimeExpression,
+						archivedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						userIDColumn, userIDColumn,
 						accountIDColumn, accountIDColumn,

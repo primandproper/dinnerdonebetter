@@ -121,7 +121,7 @@ WHERE %s.%s IS NULL
 						lastIndexedAtColumn,
 						validIngredientsTableName,
 						lastIndexedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 					)),
 				},
 				{

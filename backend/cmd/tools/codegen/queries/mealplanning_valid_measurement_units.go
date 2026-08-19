@@ -120,7 +120,7 @@ WHERE %s.%s IS NULL
 						lastIndexedAtColumn,
 						validMeasurementUnitsTableName,
 						lastIndexedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 					)),
 				},
 				{

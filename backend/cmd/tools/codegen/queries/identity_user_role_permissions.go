@@ -67,7 +67,7 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 						userRolePermissionsTableName,
-						archivedAtColumn, currentTimeExpression,
+						archivedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						roleIDColumn, roleIDColumn,
 						permissionIDColumn, permissionIDColumn,

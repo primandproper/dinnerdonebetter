@@ -36,7 +36,7 @@ func buildPaymentsProductsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 		fullSelectColumns := applyToEach(productsColumns, func(_ int, s string) string {
-			return fullColumnName(productsTableName, s)
+			return querygen.Qualify(productsTableName, s)
 		})
 
 		return slices.Concat(
@@ -52,8 +52,8 @@ func buildPaymentsProductsQueries(database string) []*Query {
 					},
 					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s, %s = %s WHERE %s IS NULL AND %s = sqlc.arg(%s);`,
 						productsTableName,
-						archivedAtColumn, currentTimeExpression,
-						lastUpdatedAtColumn, currentTimeExpression,
+						archivedAtColumn, querygen.NowExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),

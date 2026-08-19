@@ -258,11 +258,11 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 						mealPlanOptionsTableName,
-						strings.Join(applyToEach(filterForUpdate(mealPlanOptionsColumns, mealPlanOptionsChosenColumn, mealPlanOptionsTiebrokenColumn, belongsToMealPlanEventColumn), func(i int, s string) string {
+						strings.Join(applyToEach(querygen.ForUpdate(mealPlanOptionsColumns, mealPlanOptionsChosenColumn, mealPlanOptionsTiebrokenColumn, belongsToMealPlanEventColumn), func(i int, s string) string {
 							return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
 						}), ",\n\t"),
 						lastUpdatedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						archivedAtColumn,
 						belongsToMealPlanEventColumn, mealPlanEventIDColumn,
 						idColumn, mealPlanOptionIDColumn,

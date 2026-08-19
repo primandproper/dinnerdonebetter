@@ -279,7 +279,7 @@ WHERE %s.%s = sqlc.arg(%s);`,
 					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s
 WHERE %s = sqlc.arg(%s);`,
 						mealPlanTasksTableName,
-						mealPlanTaskNotificationSentAtColumn, currentTimeExpression,
+						mealPlanTaskNotificationSentAtColumn, querygen.NowExpression,
 						idColumn, idColumn,
 					)),
 				},
@@ -328,7 +328,7 @@ WHERE %s.%s IS NULL
 						mealPlanEventsTableName, archivedAtColumn,
 						mealPlansTableName, archivedAtColumn,
 						mealPlanEventsTableName, "starts_at",
-						currentTimeExpression,
+						querygen.NowExpression,
 					)),
 				},
 				{

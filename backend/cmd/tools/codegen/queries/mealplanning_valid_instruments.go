@@ -92,7 +92,7 @@ WHERE %s.%s IS NULL
 						lastIndexedAtColumn,
 						validInstrumentsTableName,
 						lastIndexedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 					)),
 				},
 				{

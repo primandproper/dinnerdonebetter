@@ -88,7 +88,7 @@ WHERE %s.%s IS NULL
 						lastIndexedAtColumn,
 						validIngredientStatesTableName,
 						lastIndexedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 					)),
 				},
 				{
