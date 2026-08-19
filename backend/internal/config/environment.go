@@ -581,8 +581,8 @@ func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) err
 		// The authorization server the MCP server runs. Two fields are absent on purpose:
 		// Issuer and Resources are the server's own public URL, which only the deployment
 		// knows — it arrives as MCP_BASE_URL — so rendering a guess here would produce a
-		// discovery document pointing somewhere nothing is listening. mcpserver.Run fills
-		// both from that URL.
+		// discovery document pointing somewhere nothing is listening. mcpserver.NewService
+		// fills both from that URL.
 		//
 		// The table prefix is not optional in the same way. It has to be the one migration
 		// 33 created the tables under, and a prefix that differs between the DDL and the

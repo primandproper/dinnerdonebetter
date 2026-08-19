@@ -3,8 +3,6 @@ package mcpserver
 import (
 	"context"
 	"fmt"
-	"log"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,20 +11,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	mcpbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/mcp"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 
 	"github.com/primandproper/platform-go/v11/authentication/oauth2server"
-	oauth2servercfg "github.com/primandproper/platform-go/v11/authentication/oauth2server/config"
-	"github.com/primandproper/platform-go/v11/authentication/totp"
-	"github.com/primandproper/platform-go/v11/database"
 	"github.com/primandproper/platform-go/v11/encoding"
 	"github.com/primandproper/platform-go/v11/observability"
 	"github.com/primandproper/platform-go/v11/routing"
@@ -35,7 +27,6 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/samber/do/v2"
 )
 
 const (
@@ -52,6 +43,11 @@ const (
 	DefaultBaseURL = "http://localhost:8888"
 
 	defaultPort = 8888
+
+	// shutdownTimeout bounds the drain: how long in-flight requests have to finish once
+	// the server has been told to stop, and how long the container has to release its
+	// database pool afterwards.
+	shutdownTimeout = 30 * time.Second
 )
 
 // ValidTransports returns every transport Run accepts.
@@ -76,14 +72,39 @@ func Run(ctx context.Context, transport, baseURL string) error {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
-	pillars, err := cfg.Observability.NewPillars(ctx)
+	svc, err := NewService(ctx, cfg, baseURL)
 	if err != nil {
-		return fmt.Errorf("creating observability pillars: %w", err)
+		return err
 	}
-	logger := pillars.Logger
 
-	if err = cfg.ValidateWithContext(ctx); err != nil {
-		return fmt.Errorf("validating config: %w", err)
+	logger := svc.pillars.Logger
+
+	// Whichever transport serves, the container's database pool is released on the way
+	// out. What this replaced was a goroutine that called os.Exit on a signal, which
+	// released nothing, reported nothing, and could not be run inside a test process at
+	// all — the first thing in the way of ever exercising this server as a server.
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), shutdownTimeout)
+		defer cancel()
+
+		if shutdownErr := svc.Shutdown(shutdownCtx); shutdownErr != nil {
+			logger.Error("shutting down MCP service", shutdownErr)
+		}
+	}()
+
+	logger.WithValue("transport", transport).Info("serving MCP server")
+
+	if transport == TransportStdio {
+		if err = svc.ServeStdio(ctx); err != nil {
+			return fmt.Errorf("serving MCP server via stdio: %w", err)
+		}
+
+		return nil
+	}
+
+	handler, err := svc.Handler(ctx, transport)
+	if err != nil {
+		return err
 	}
 
 	port := cfg.HTTPServer.Port
@@ -91,73 +112,14 @@ func Run(ctx context.Context, transport, baseURL string) error {
 		port = defaultPort
 	}
 
-	// Build DI container with repositories and auth.
-	injector := mcpbuild.BuildInjector(ctx, cfg)
-
-	mealplanningRepo := do.MustInvoke[mealplanning.Repository](injector)
-	webhooksRepo := do.MustInvoke[webhooks.Repository](injector)
-	waitlistRepo := do.MustInvoke[*waitlistsrepo.Repository](injector)
-	issueReportsRepo := do.MustInvoke[issuereports.Repository](injector)
-	identityRepo := do.MustInvoke[identity.Repository](injector)
-	authenticator := do.MustInvoke[authentication.Authenticator](injector)
-	totpVerifier := do.MustInvoke[totp.Verifier](injector)
-	dbClient := do.MustInvoke[database.Client](injector)
-
-	// The authorization server this process runs. Its records live in the four
-	// ddb_oauth2_* tables rather than in this process's memory, which is what makes
-	// a second replica and a restart survivable: an authorization code issued by one
-	// replica is redeemed at whichever one serves /token, and a registered MCP client
-	// outlives a deploy.
-	//
-	// Issuer and Resources default to this server's own public URL rather than being
-	// rendered into the config file, because only the deployment knows it — it arrives
-	// as MCP_BASE_URL. They are the same string by default on purpose: the issuer names
-	// the authorization server, the resource names the protected resource, and here
-	// they are one process.
-	//
-	// Both defer to a configured value rather than overwriting it, so that
-	// DINNER_DONE_BETTER_OAUTH2_ISSUER and _RESOURCES mean what the generated env var
-	// constants say they mean. A deployment fronting this server at a different issuer
-	// is the case that needs them.
-	if cfg.OAuth2.Issuer == "" {
-		cfg.OAuth2.Issuer = baseURL
+	srv := &http.Server{
+		Addr:              fmt.Sprintf(":%d", port),
+		Handler:           handler,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
-	if len(cfg.OAuth2.Resources) == 0 {
-		cfg.OAuth2.Resources = []string{baseURL}
-	}
-
-	authServer, err := oauth2servercfg.NewServer(ctx, &cfg.OAuth2, dbClient,
-		&subjectAuthenticator{
-			identityRepo:  identityRepo,
-			authenticator: authenticator,
-			totpVerifier:  totpVerifier,
-		},
-		oauth2servercfg.WithPillars(pillars),
-		oauth2servercfg.WithServerOptions(oauth2server.WithLoginRenderer(newLoginRenderer(logger))),
-	)
-	if err != nil {
-		return fmt.Errorf("building authorization server: %w", err)
-	}
-
-	// The RFC 9728 document, published by the resource server rather than by the
-	// authorization server — they are the same process here, but the document is
-	// what tells a client with no token where to go, so it is mounted separately.
-	resourceMetadata, err := oauth2server.NewResourceMetadata(baseURL, []string{baseURL},
-		oauth2server.WithResourceName(fmt.Sprintf("%s MCP Server", branding.CompanyName)),
-	)
-	if err != nil {
-		return fmt.Errorf("building protected resource metadata: %w", err)
-	}
-
-	helper := &mcpToolManager{
-		mealplanningRepo: mealplanningRepo,
-		webhooksRepo:     webhooksRepo,
-		waitlistsRepo:    waitlistRepo,
-		issueReportsRepo: issueReportsRepo,
-	}
-	server := helper.setupServer()
-
-	log.Printf("serving now with transport: %s", transport)
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(
@@ -167,69 +129,29 @@ func Run(ctx context.Context, transport, baseURL string) error {
 		syscall.SIGQUIT,
 		syscall.SIGTERM,
 	)
+	defer signal.Stop(signalChan)
 
+	serveErrors := make(chan error, 1)
 	go func() {
-		<-signalChan
-		os.Exit(0)
+		serveErrors <- srv.ListenAndServe()
 	}()
 
-	switch transport {
-	case TransportStdio:
-		if err = server.Run(ctx, &mcp.StdioTransport{}); err != nil {
-			logger.Error("serving MCP server via stdio", err)
-			return err
-		}
-	case TransportSSE:
-		sseHandler := mcp.NewSSEHandler(func(request *http.Request) *mcp.Server {
-			return server
-		}, &mcp.SSEOptions{})
+	select {
+	case err = <-serveErrors:
+		// ErrServerClosed cannot arrive here — nothing has called Shutdown yet — so
+		// whatever this is, the server stopped serving on its own.
+		return fmt.Errorf("serving MCP server over %s: %w", transport, err)
+	case sig := <-signalChan:
+		logger.WithValue("signal", sig.String()).Info("stopping MCP server")
+	case <-ctx.Done():
+		logger.Info("stopping MCP server: context canceled")
+	}
 
-		router, routerErr := buildRouter(ctx, sseHandler, authServer, resourceMetadata, pillars, &cfg.Routing, baseURL)
-		if routerErr != nil {
-			return fmt.Errorf("building router: %w", routerErr)
-		}
+	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), shutdownTimeout)
+	defer cancel()
 
-		srv := &http.Server{
-			Addr:              fmt.Sprintf(":%d", port),
-			Handler:           router.Handler(),
-			ReadTimeout:       15 * time.Second,
-			WriteTimeout:      15 * time.Second,
-			IdleTimeout:       60 * time.Second,
-			ReadHeaderTimeout: 5 * time.Second,
-		}
-		if err = srv.ListenAndServe(); err != nil {
-			logger.Error("starting MCP server via SSE", err)
-			return err
-		}
-	case TransportHTTP:
-		handlerOpts := &mcp.StreamableHTTPOptions{
-			Stateless:      true,
-			JSONResponse:   true,
-			Logger:         slog.New(&slog.JSONHandler{}),
-			EventStore:     mcp.NewMemoryEventStore(nil),
-			SessionTimeout: 0,
-		}
-		streamHandler := mcp.NewStreamableHTTPHandler(func(request *http.Request) *mcp.Server {
-			return server
-		}, handlerOpts)
-
-		router, routerErr := buildRouter(ctx, streamHandler, authServer, resourceMetadata, pillars, &cfg.Routing, baseURL)
-		if routerErr != nil {
-			return fmt.Errorf("building router: %w", routerErr)
-		}
-
-		srv := &http.Server{
-			Addr:              fmt.Sprintf(":%d", port),
-			Handler:           router.Handler(),
-			ReadTimeout:       15 * time.Second,
-			WriteTimeout:      15 * time.Second,
-			IdleTimeout:       60 * time.Second,
-			ReadHeaderTimeout: 5 * time.Second,
-		}
-		if err = srv.ListenAndServe(); err != nil {
-			logger.Error("starting MCP server via HTTP", err)
-			return err
-		}
+	if err = srv.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("shutting down HTTP server: %w", err)
 	}
 
 	return nil
