@@ -1,17 +1,12 @@
 package authentication
 
 import (
-	"context"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
-	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
-	oauthkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/keys"
 
 	"github.com/primandproper/platform-go/v11/authentication/tokens"
 	"github.com/primandproper/platform-go/v11/observability"
@@ -52,8 +47,6 @@ func ProvideOAuth2ClientManager(
 func ProvideOAuth2ServerImplementation(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
-	identityDataManager identitymanager.IdentityDataManager,
-	authenticator authentication.Authenticator,
 	tokenIssuer tokens.Issuer,
 	manager *manage.Manager,
 ) *server.Server {
@@ -80,7 +73,12 @@ func ProvideOAuth2ServerImplementation(
 	oauth2Server.AccessTokenExpHandler = AccessTokenExpHandler(logger)
 	oauth2Server.ClientScopeHandler = ClientScopeHandler(logger)
 	oauth2Server.UserAuthorizationHandler = buildUserAuthorizationHandler(tracer, logger, tokenIssuer)
-	oauth2Server.PasswordAuthorizationHandler = buildPasswordAuthorizationHandler(logger, authenticator, identityDataManager)
+	// No PasswordAuthorizationHandler: the password grant is absent from AllowedGrantTypes above,
+	// so GetAccessToken rejects it — but ValidationTokenRequest runs the handler first, which meant
+	// POST /oauth2/token was verifying usernames and passwords against the database for a grant it
+	// could never issue a token for. The library's default returns access_denied without touching
+	// anything. See TestAuth_OAuth2PasswordGrant.
+	//
 	// this allows GET requests to retrieve tokens
 	oauth2Server.SetAllowGetAccessRequest(true)
 	oauth2Server.ClientInfoHandler = buildClientInfoHandler()
@@ -152,31 +150,6 @@ func buildClientInfoHandler() func(*http.Request) (string, string, error) {
 		}
 
 		return clientID, clientSecret, nil
-	}
-}
-
-func buildPasswordAuthorizationHandler(logger logging.Logger, authenticator authentication.Authenticator, dataManager identitymanager.IdentityDataManager) func(context.Context, string, string, string) (string, error) {
-	return func(ctx context.Context, clientID, username, password string) (userID string, err error) {
-		l := logger.WithValue(oauthkeys.OAuth2ClientIDKey, clientID).WithValue(identitykeys.UsernameKey, username)
-		l.Info("PasswordAuthorizationHandler invoked")
-
-		user, err := dataManager.GetUserByUsername(ctx, username)
-		if err != nil {
-			return "", errors.New("invalid username or password")
-		}
-
-		matches, err := authenticator.PasswordMatches(ctx, user.HashedPassword, password)
-		if err != nil {
-			l.Error("validating credentials", err)
-			return "", errors.New("invalid username or password")
-		}
-
-		if !matches {
-			l.Info("invalid credentials")
-			return "", errors.New("invalid username or password")
-		}
-
-		return user.ID, nil
 	}
 }
 

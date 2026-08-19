@@ -72,7 +72,7 @@ func ProvideService(
 		totpVerifier:         totpVerifier,
 		tracer:               tracing.NewNamedTracer(tracerProvider, serviceName),
 		dataChangesPublisher: dataChangesPublisher,
-		oauth2Server:         ProvideOAuth2ServerImplementation(logger, tracerProvider, identityDataManager, authenticator, signer, manager),
+		oauth2Server:         ProvideOAuth2ServerImplementation(logger, tracerProvider, signer, manager),
 		oauthRepo:            oauthRepo,
 	}
 
