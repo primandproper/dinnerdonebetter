@@ -13,7 +13,21 @@ Monorepo for a meal planning application built as a reusable service template.
 
 ## Template Philosophy
 
-This repo serves dual purposes: a working meal planning app and a reusable service template. The platform framework (database, cache, observability, messaging, etc.) lives in a separate repo at `github.com/primandproper/platform-go/v2` and is imported as a dependency. `internal/domain/mealplanning` is the example domain built on top. Someone should be able to fork this and swap the meal planning domain for their own without modifying core infrastructure.
+This repo serves dual purposes: a working meal planning app and a reusable service template. The platform framework (database, cache, observability, messaging, etc.) lives in a separate repo at `github.com/primandproper/platform-go/v11` and is imported as a dependency. `internal/domain/mealplanning` is the example domain built on top. Someone should be able to fork this and swap the meal planning domain for their own without modifying core infrastructure.
+
+## Deployment Status
+
+**Nothing is deployed.** No instance of this service runs anywhere, and there are zero downstream
+consumers. Backwards-incompatible changes — schema, proto and gRPC surface, wire formats, stored
+data — cost nothing in compatibility terms, so prefer the change that leaves the better end state
+over the one that preserves the current one.
+
+Two things this does *not* license:
+
+- **platform-go is versioned separately** and is a reusable framework in its own right. A change
+  that has to happen there still needs a release and a version bump here, and that sequencing is a
+  real constraint on work in this repo regardless of what is deployed.
+- **Editing an already-applied migration is not free**, just cheap — see `backend/docs/migrations.md`.
 
 ## Cross-Cutting Commands
 

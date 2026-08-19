@@ -26,7 +26,7 @@ Never edit files in `*/generated/` directories. Modify the generators in `cmd/to
 
 ## Architecture
 
-The platform framework (database, cache, observability, messaging, uploads, search, encoding, etc.) is an external dependency at `github.com/primandproper/platform-go/v2`. Application code lives under `internal/`:
+The platform framework (database, cache, observability, messaging, uploads, search, encoding, etc.) is an external dependency at `github.com/primandproper/platform-go/v11`. Application code lives under `internal/`:
 
 | Layer              | Path                       | Role                                                      |
 |--------------------|----------------------------|-----------------------------------------------------------|
