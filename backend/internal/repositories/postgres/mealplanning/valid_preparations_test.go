@@ -87,7 +87,7 @@ func TestQuerier_Integration_ValidPreparations(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, whatever)
 
-	require.NoError(t, dbc.MarkValidPreparationAsIndexed(ctx, updatedValidPreparation.ID))
+	require.NoError(t, dbc.MarkValidPreparationsAsIndexed(ctx, []string{updatedValidPreparation.ID}))
 
 	randomPreparation, err := dbc.GetRandomValidPreparation(ctx)
 	require.NoError(t, err)
@@ -212,16 +212,18 @@ func TestQuerier_ArchiveValidPreparation(T *testing.T) {
 	})
 }
 
-func TestQuerier_MarkValidPreparationAsIndexed(T *testing.T) {
+func TestQuerier_MarkValidPreparationsAsIndexed(T *testing.T) {
 	T.Parallel()
 
-	T.Run("with invalid MealPlanTaskID", func(t *testing.T) {
+	T.Run("with no ids", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.MarkValidPreparationAsIndexed(ctx, ""))
+		// The client is inert, so a nil error is the assertion that nothing was
+		// executed: an empty flush must not reach the database at all.
+		assert.NoError(t, c.MarkValidPreparationsAsIndexed(ctx, nil))
 	})
 }
 

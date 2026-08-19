@@ -623,5 +623,7 @@ UPDATE recipes SET
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
--- name: UpdateRecipeLastIndexedAt :execrows
-UPDATE recipes SET last_indexed_at = NOW() WHERE id = sqlc.arg(id) AND archived_at IS NULL;
+-- name: MarkRecipesAsIndexed :execrows
+UPDATE recipes SET
+	last_indexed_at = NOW()
+WHERE id = ANY(sqlc.arg(ids)::text[]);

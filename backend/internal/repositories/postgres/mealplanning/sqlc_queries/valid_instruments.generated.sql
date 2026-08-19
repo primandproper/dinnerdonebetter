@@ -76,6 +76,11 @@ WHERE valid_instruments.archived_at IS NULL
 ORDER BY valid_instruments.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
+-- name: MarkValidInstrumentsAsIndexed :execrows
+UPDATE valid_instruments SET
+	last_indexed_at = NOW()
+WHERE id = ANY(sqlc.arg(ids)::text[]);
+
 -- name: GetValidInstruments :many
 SELECT
 	valid_instruments.id,
@@ -291,6 +296,3 @@ WHERE valid_instruments.archived_at IS NULL
 	AND valid_instruments.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_instruments.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateValidInstrumentLastIndexedAt :execrows
-UPDATE valid_instruments SET last_indexed_at = NOW() WHERE id = sqlc.arg(id) AND archived_at IS NULL;

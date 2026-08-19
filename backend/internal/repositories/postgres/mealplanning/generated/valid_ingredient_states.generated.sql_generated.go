@@ -364,6 +364,20 @@ func (q *Queries) GetValidIngredientStatesWithIDs(ctx context.Context, db DBTX, 
 	return items, nil
 }
 
+const markValidIngredientStatesAsIndexed = `-- name: MarkValidIngredientStatesAsIndexed :execrows
+UPDATE valid_ingredient_states SET
+	last_indexed_at = NOW()
+WHERE id = ANY($1::text[])
+`
+
+func (q *Queries) MarkValidIngredientStatesAsIndexed(ctx context.Context, db DBTX, ids []string) (int64, error) {
+	result, err := db.ExecContext(ctx, markValidIngredientStatesAsIndexed, pq.Array(ids))
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const scanValidIngredientStateIDsForReindex = `-- name: ScanValidIngredientStateIDsForReindex :many
 SELECT valid_ingredient_states.id
 FROM valid_ingredient_states
@@ -561,18 +575,6 @@ func (q *Queries) UpdateValidIngredientState(ctx context.Context, db DBTX, arg *
 		arg.AttributeType,
 		arg.ID,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
-const updateValidIngredientStateLastIndexedAt = `-- name: UpdateValidIngredientStateLastIndexedAt :execrows
-UPDATE valid_ingredient_states SET last_indexed_at = NOW() WHERE id = $1 AND archived_at IS NULL
-`
-
-func (q *Queries) UpdateValidIngredientStateLastIndexedAt(ctx context.Context, db DBTX, id string) (int64, error) {
-	result, err := db.ExecContext(ctx, updateValidIngredientStateLastIndexedAt, id)
 	if err != nil {
 		return 0, err
 	}

@@ -209,20 +209,6 @@ WHERE %s.%s IS NULL
 						buildCursorLimitClause(validInstrumentsTableName),
 					)),
 				},
-				{
-					Annotation: QueryAnnotation{
-						Name: "UpdateValidInstrumentLastIndexedAt",
-						Type: ExecRowsType,
-					},
-					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s = sqlc.arg(%s) AND %s IS NULL;`,
-						validInstrumentsTableName,
-						lastIndexedAtColumn,
-						currentTimeExpression,
-						idColumn,
-						idColumn,
-						archivedAtColumn,
-					)),
-				},
 			},
 		)
 	default:

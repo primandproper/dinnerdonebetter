@@ -250,7 +250,7 @@ func TestQuerier_Integration_Recipes(t *testing.T) {
 
 	// delete
 	for _, recipe := range createdRecipes {
-		assert.NoError(t, dbc.MarkRecipeAsIndexed(ctx, recipe.ID))
+		assert.NoError(t, dbc.MarkRecipesAsIndexed(ctx, []string{recipe.ID}))
 		assert.NoError(t, dbc.ArchiveRecipe(ctx, recipe.ID, user.ID))
 
 		var exists bool
@@ -718,16 +718,18 @@ func Test_findCreatedRecipeStepProductsForInstruments(T *testing.T) {
 	})
 }
 
-func TestQuerier_MarkRecipeAsIndexed(T *testing.T) {
+func TestQuerier_MarkRecipesAsIndexed(T *testing.T) {
 	T.Parallel()
 
-	T.Run("with invalid MealPlanTaskID", func(t *testing.T) {
+	T.Run("with no ids", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.MarkRecipeAsIndexed(ctx, ""))
+		// The client is inert, so a nil error is the assertion that nothing was
+		// executed: an empty flush must not reach the database at all.
+		assert.NoError(t, c.MarkRecipesAsIndexed(ctx, nil))
 	})
 }
 

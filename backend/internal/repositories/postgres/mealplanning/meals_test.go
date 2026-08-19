@@ -269,16 +269,18 @@ func TestQuerier_ArchiveMeal(T *testing.T) {
 	})
 }
 
-func TestQuerier_MarkMealAsIndexed(T *testing.T) {
+func TestQuerier_MarkMealsAsIndexed(T *testing.T) {
 	T.Parallel()
 
-	T.Run("with invalid ID", func(t *testing.T) {
+	T.Run("with no ids", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.MarkMealAsIndexed(ctx, ""))
+		// The client is inert, so a nil error is the assertion that nothing was
+		// executed: an empty flush must not reach the database at all.
+		assert.NoError(t, c.MarkMealsAsIndexed(ctx, nil))
 	})
 }
 

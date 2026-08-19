@@ -5,6 +5,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/primandproper/platform-go/v11/database/querygen"
+
 	"github.com/cristalhq/builq"
 )
 
@@ -23,6 +25,11 @@ const (
 	lastIndexedAtColumn    = "last_indexed_at"
 	belongsToAccountColumn = "belongs_to_account"
 	belongsToUserColumn    = "belongs_to_user"
+
+	// idsArg is querygen's name for the id-list argument of a bulk stamp, taken from
+	// there rather than spelled again so the hand-written stamps below match the
+	// generated ones exactly.
+	idsArg = querygen.IDsArg
 
 	includeArchivedArg = "include_archived"
 	cursorArg          = "cursor"

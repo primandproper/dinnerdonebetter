@@ -2,6 +2,7 @@ package indexing
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/indexstamp"
 
 	"github.com/primandproper/platform-go/v11/observability/logging"
 	"github.com/primandproper/platform-go/v11/observability/metrics"
@@ -32,6 +33,7 @@ func UserSource(repo identity.Repository) (*syncsource.Source[identity.User, Use
 func NewUserSyncer(
 	repo identity.Repository,
 	index UserTextSearcher,
+	stamps *indexstamp.Buffer,
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	metricsProvider metrics.Provider,
@@ -41,10 +43,19 @@ func NewUserSyncer(
 		return nil, err
 	}
 
-	return syncsource.NewSyncer(src, index, o11yOptions(logger, tracerProvider, metricsProvider)...)
+	opts := append(
+		o11yOptions(logger, tracerProvider, metricsProvider),
+		syncsource.WithSyncerOptions(searchsync.WithSyncerStamper(stamps)),
+	)
+
+	return syncsource.NewSyncer(src, index, opts...)
 }
 
 // NewUserReindexer builds the reindex backstop for the users index.
+//
+// It is given no stamper on purpose. A reindex writes every document there is, so stamping it
+// would make last_indexed_at read as when the last rebuild ran rather than how current each
+// document is — which is the question the column exists to answer.
 func NewUserReindexer(
 	repo identity.Repository,
 	index UserTextSearcher,

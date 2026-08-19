@@ -160,7 +160,7 @@ func TestQuerier_Integration_Users(t *testing.T) {
 	assert.NotEmpty(t, userIDs)
 	assert.NoError(t, err)
 
-	assert.NoError(t, dbc.MarkUserAsIndexed(ctx, firstUser.ID))
+	assert.NoError(t, dbc.MarkUsersAsIndexed(ctx, []string{firstUser.ID}))
 
 	token, err := dbc.GetEmailAddressVerificationTokenForUser(ctx, firstUser.ID)
 	require.NoError(t, err)
@@ -302,16 +302,18 @@ func TestQuerier_SearchForUsersByUsername(T *testing.T) {
 	})
 }
 
-func TestQuerier_MarkUserAsIndexed(T *testing.T) {
+func TestQuerier_MarkUsersAsIndexed(T *testing.T) {
 	T.Parallel()
 
-	T.Run("with invalid ID", func(t *testing.T) {
+	T.Run("with no ids", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.MarkUserAsIndexed(ctx, ""))
+		// The client is inert, so a nil error is the assertion that nothing was
+		// executed: an empty flush must not reach the database at all.
+		assert.NoError(t, c.MarkUsersAsIndexed(ctx, nil))
 	})
 }
 

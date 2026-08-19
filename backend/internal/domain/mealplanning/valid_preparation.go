@@ -138,7 +138,7 @@ type (
 		SearchForValidPreparations(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[ValidPreparation], error)
 		CreateValidPreparation(ctx context.Context, input *ValidPreparationDatabaseCreationInput) (*ValidPreparation, error)
 		UpdateValidPreparation(ctx context.Context, updated *ValidPreparation) error
-		MarkValidPreparationAsIndexed(ctx context.Context, validPreparationID string) error
+		MarkValidPreparationsAsIndexed(ctx context.Context, ids []string) error
 		ArchiveValidPreparation(ctx context.Context, validPreparationID string) error
 		ScanValidPreparationIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetValidPreparationsWithIDs(ctx context.Context, ids []string) ([]*ValidPreparation, error)

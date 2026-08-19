@@ -544,24 +544,27 @@ func (r *repository) ScanUserIDsForReindex(ctx context.Context, after string, li
 	return results, nil
 }
 
-// MarkUserAsIndexed updates a particular user's last_indexed_at value.
-func (r *repository) MarkUserAsIndexed(ctx context.Context, userID string) error {
+// MarkUsersAsIndexed stamps last_indexed_at on the rows behind the documents an index has taken.
+//
+// It is the write half of search/sync's Stamper: the ids arrive already coalesced and ordered
+// by the batching.Buffer the syncer stamps through, so this is one statement per flush rather
+// than one per document. It is deliberately not guarded on archived_at — the syncer applies a
+// vanished row as a delete and stamps nothing, and a row archived between apply and flush is
+// harmless to stamp.
+func (r *repository) MarkUsersAsIndexed(ctx context.Context, ids []string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := r.logger.Clone()
-
-	if userID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
-
-	if _, err := r.generatedQuerier.UpdateUserLastIndexedAt(ctx, r.writeDB, userID); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "marking user as indexed")
+	if len(ids) == 0 {
+		return nil
 	}
 
-	logger.Info("user marked as indexed")
+	logger := r.logger.Clone().WithValue("id_count", len(ids))
+	tracing.AttachToSpan(span, "id_count", len(ids))
+
+	if _, err := r.generatedQuerier.MarkUsersAsIndexed(ctx, r.writeDB, ids); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "marking users as indexed")
+	}
 
 	return nil
 }

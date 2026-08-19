@@ -130,9 +130,6 @@ var _ identity.Repository = &RepositoryMock{}
 //			MarkAccountAsUserDefaultFunc: func(ctx context.Context, userID string, accountID string) error {
 //				panic("mock out the MarkAccountAsUserDefault method")
 //			},
-//			MarkUserAsIndexedFunc: func(ctx context.Context, userID string) error {
-//				panic("mock out the MarkUserAsIndexed method")
-//			},
 //			MarkUserEmailAddressAsUnverifiedFunc: func(ctx context.Context, userID string) error {
 //				panic("mock out the MarkUserEmailAddressAsUnverified method")
 //			},
@@ -144,6 +141,9 @@ var _ identity.Repository = &RepositoryMock{}
 //			},
 //			MarkUserTwoFactorSecretAsVerifiedFunc: func(ctx context.Context, userID string) error {
 //				panic("mock out the MarkUserTwoFactorSecretAsVerified method")
+//			},
+//			MarkUsersAsIndexedFunc: func(ctx context.Context, ids []string) error {
+//				panic("mock out the MarkUsersAsIndexed method")
 //			},
 //			ModifyUserPermissionsFunc: func(ctx context.Context, accountID string, userID string, input *identity.ModifyUserPermissionsInput) error {
 //				panic("mock out the ModifyUserPermissions method")
@@ -311,9 +311,6 @@ type RepositoryMock struct {
 	// MarkAccountAsUserDefaultFunc mocks the MarkAccountAsUserDefault method.
 	MarkAccountAsUserDefaultFunc func(ctx context.Context, userID string, accountID string) error
 
-	// MarkUserAsIndexedFunc mocks the MarkUserAsIndexed method.
-	MarkUserAsIndexedFunc func(ctx context.Context, userID string) error
-
 	// MarkUserEmailAddressAsUnverifiedFunc mocks the MarkUserEmailAddressAsUnverified method.
 	MarkUserEmailAddressAsUnverifiedFunc func(ctx context.Context, userID string) error
 
@@ -325,6 +322,9 @@ type RepositoryMock struct {
 
 	// MarkUserTwoFactorSecretAsVerifiedFunc mocks the MarkUserTwoFactorSecretAsVerified method.
 	MarkUserTwoFactorSecretAsVerifiedFunc func(ctx context.Context, userID string) error
+
+	// MarkUsersAsIndexedFunc mocks the MarkUsersAsIndexed method.
+	MarkUsersAsIndexedFunc func(ctx context.Context, ids []string) error
 
 	// ModifyUserPermissionsFunc mocks the ModifyUserPermissions method.
 	ModifyUserPermissionsFunc func(ctx context.Context, accountID string, userID string, input *identity.ModifyUserPermissionsInput) error
@@ -661,13 +661,6 @@ type RepositoryMock struct {
 			// AccountID is the accountID argument value.
 			AccountID string
 		}
-		// MarkUserAsIndexed holds details about calls to the MarkUserAsIndexed method.
-		MarkUserAsIndexed []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// UserID is the userID argument value.
-			UserID string
-		}
 		// MarkUserEmailAddressAsUnverified holds details about calls to the MarkUserEmailAddressAsUnverified method.
 		MarkUserEmailAddressAsUnverified []struct {
 			// Ctx is the ctx argument value.
@@ -699,6 +692,13 @@ type RepositoryMock struct {
 			Ctx context.Context
 			// UserID is the userID argument value.
 			UserID string
+		}
+		// MarkUsersAsIndexed holds details about calls to the MarkUsersAsIndexed method.
+		MarkUsersAsIndexed []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Ids is the ids argument value.
+			Ids []string
 		}
 		// ModifyUserPermissions holds details about calls to the ModifyUserPermissions method.
 		ModifyUserPermissions []struct {
@@ -904,11 +904,11 @@ type RepositoryMock struct {
 	lockGetWebAuthnCredentialByCredentialID     sync.RWMutex
 	lockGetWebAuthnCredentialsForUser           sync.RWMutex
 	lockMarkAccountAsUserDefault                sync.RWMutex
-	lockMarkUserAsIndexed                       sync.RWMutex
 	lockMarkUserEmailAddressAsUnverified        sync.RWMutex
 	lockMarkUserEmailAddressAsVerified          sync.RWMutex
 	lockMarkUserTwoFactorSecretAsUnverified     sync.RWMutex
 	lockMarkUserTwoFactorSecretAsVerified       sync.RWMutex
+	lockMarkUsersAsIndexed                      sync.RWMutex
 	lockModifyUserPermissions                   sync.RWMutex
 	lockRejectAccountInvitation                 sync.RWMutex
 	lockRemoveUserFromAccount                   sync.RWMutex
@@ -2257,42 +2257,6 @@ func (mock *RepositoryMock) MarkAccountAsUserDefaultCalls() []struct {
 	return calls
 }
 
-// MarkUserAsIndexed calls MarkUserAsIndexedFunc.
-func (mock *RepositoryMock) MarkUserAsIndexed(ctx context.Context, userID string) error {
-	if mock.MarkUserAsIndexedFunc == nil {
-		panic("RepositoryMock.MarkUserAsIndexedFunc: method is nil but Repository.MarkUserAsIndexed was just called")
-	}
-	callInfo := struct {
-		Ctx    context.Context
-		UserID string
-	}{
-		Ctx:    ctx,
-		UserID: userID,
-	}
-	mock.lockMarkUserAsIndexed.Lock()
-	mock.calls.MarkUserAsIndexed = append(mock.calls.MarkUserAsIndexed, callInfo)
-	mock.lockMarkUserAsIndexed.Unlock()
-	return mock.MarkUserAsIndexedFunc(ctx, userID)
-}
-
-// MarkUserAsIndexedCalls gets all the calls that were made to MarkUserAsIndexed.
-// Check the length with:
-//
-//	len(mockedRepository.MarkUserAsIndexedCalls())
-func (mock *RepositoryMock) MarkUserAsIndexedCalls() []struct {
-	Ctx    context.Context
-	UserID string
-} {
-	var calls []struct {
-		Ctx    context.Context
-		UserID string
-	}
-	mock.lockMarkUserAsIndexed.RLock()
-	calls = mock.calls.MarkUserAsIndexed
-	mock.lockMarkUserAsIndexed.RUnlock()
-	return calls
-}
-
 // MarkUserEmailAddressAsUnverified calls MarkUserEmailAddressAsUnverifiedFunc.
 func (mock *RepositoryMock) MarkUserEmailAddressAsUnverified(ctx context.Context, userID string) error {
 	if mock.MarkUserEmailAddressAsUnverifiedFunc == nil {
@@ -2442,6 +2406,42 @@ func (mock *RepositoryMock) MarkUserTwoFactorSecretAsVerifiedCalls() []struct {
 	mock.lockMarkUserTwoFactorSecretAsVerified.RLock()
 	calls = mock.calls.MarkUserTwoFactorSecretAsVerified
 	mock.lockMarkUserTwoFactorSecretAsVerified.RUnlock()
+	return calls
+}
+
+// MarkUsersAsIndexed calls MarkUsersAsIndexedFunc.
+func (mock *RepositoryMock) MarkUsersAsIndexed(ctx context.Context, ids []string) error {
+	if mock.MarkUsersAsIndexedFunc == nil {
+		panic("RepositoryMock.MarkUsersAsIndexedFunc: method is nil but Repository.MarkUsersAsIndexed was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		Ids []string
+	}{
+		Ctx: ctx,
+		Ids: ids,
+	}
+	mock.lockMarkUsersAsIndexed.Lock()
+	mock.calls.MarkUsersAsIndexed = append(mock.calls.MarkUsersAsIndexed, callInfo)
+	mock.lockMarkUsersAsIndexed.Unlock()
+	return mock.MarkUsersAsIndexedFunc(ctx, ids)
+}
+
+// MarkUsersAsIndexedCalls gets all the calls that were made to MarkUsersAsIndexed.
+// Check the length with:
+//
+//	len(mockedRepository.MarkUsersAsIndexedCalls())
+func (mock *RepositoryMock) MarkUsersAsIndexedCalls() []struct {
+	Ctx context.Context
+	Ids []string
+} {
+	var calls []struct {
+		Ctx context.Context
+		Ids []string
+	}
+	mock.lockMarkUsersAsIndexed.RLock()
+	calls = mock.calls.MarkUsersAsIndexed
+	mock.lockMarkUsersAsIndexed.RUnlock()
 	return calls
 }
 

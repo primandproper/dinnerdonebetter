@@ -116,6 +116,11 @@ WHERE valid_preparations.archived_at IS NULL
 ORDER BY valid_preparations.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
+-- name: MarkValidPreparationsAsIndexed :execrows
+UPDATE valid_preparations SET
+	last_indexed_at = NOW()
+WHERE id = ANY(sqlc.arg(ids)::text[]);
+
 -- name: GetValidPreparations :many
 SELECT
 	valid_preparations.id,
@@ -313,6 +318,3 @@ WHERE valid_preparations.archived_at IS NULL
 	AND valid_preparations.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_preparations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateValidPreparationLastIndexedAt :execrows
-UPDATE valid_preparations SET last_indexed_at = NOW() WHERE id = sqlc.arg(id) AND archived_at IS NULL;

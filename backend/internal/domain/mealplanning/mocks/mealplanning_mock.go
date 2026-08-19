@@ -641,32 +641,32 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			InitializeMealPlanGroceryListFunc: func(ctx context.Context, mealPlanID string, accountID string, inputs []*mealplanning.MealPlanGroceryListItemDatabaseCreationInput) ([]*mealplanning.MealPlanGroceryListItem, error) {
 //				panic("mock out the InitializeMealPlanGroceryList method")
 //			},
-//			MarkMealAsIndexedFunc: func(ctx context.Context, mealID string) error {
-//				panic("mock out the MarkMealAsIndexed method")
-//			},
 //			MarkMealPlanTaskNotificationSentFunc: func(ctx context.Context, mealPlanTaskID string) error {
 //				panic("mock out the MarkMealPlanTaskNotificationSent method")
 //			},
-//			MarkRecipeAsIndexedFunc: func(ctx context.Context, recipeID string) error {
-//				panic("mock out the MarkRecipeAsIndexed method")
+//			MarkMealsAsIndexedFunc: func(ctx context.Context, ids []string) error {
+//				panic("mock out the MarkMealsAsIndexed method")
 //			},
-//			MarkValidIngredientAsIndexedFunc: func(ctx context.Context, validIngredientID string) error {
-//				panic("mock out the MarkValidIngredientAsIndexed method")
+//			MarkRecipesAsIndexedFunc: func(ctx context.Context, ids []string) error {
+//				panic("mock out the MarkRecipesAsIndexed method")
 //			},
-//			MarkValidIngredientStateAsIndexedFunc: func(ctx context.Context, validIngredientState string) error {
-//				panic("mock out the MarkValidIngredientStateAsIndexed method")
+//			MarkValidIngredientStatesAsIndexedFunc: func(ctx context.Context, ids []string) error {
+//				panic("mock out the MarkValidIngredientStatesAsIndexed method")
 //			},
-//			MarkValidInstrumentAsIndexedFunc: func(ctx context.Context, validInstrumentID string) error {
-//				panic("mock out the MarkValidInstrumentAsIndexed method")
+//			MarkValidIngredientsAsIndexedFunc: func(ctx context.Context, ids []string) error {
+//				panic("mock out the MarkValidIngredientsAsIndexed method")
 //			},
-//			MarkValidMeasurementUnitAsIndexedFunc: func(ctx context.Context, validMeasurementUnitID string) error {
-//				panic("mock out the MarkValidMeasurementUnitAsIndexed method")
+//			MarkValidInstrumentsAsIndexedFunc: func(ctx context.Context, ids []string) error {
+//				panic("mock out the MarkValidInstrumentsAsIndexed method")
 //			},
-//			MarkValidPreparationAsIndexedFunc: func(ctx context.Context, validPreparationID string) error {
-//				panic("mock out the MarkValidPreparationAsIndexed method")
+//			MarkValidMeasurementUnitsAsIndexedFunc: func(ctx context.Context, ids []string) error {
+//				panic("mock out the MarkValidMeasurementUnitsAsIndexed method")
 //			},
-//			MarkValidVesselAsIndexedFunc: func(ctx context.Context, validVesselID string) error {
-//				panic("mock out the MarkValidVesselAsIndexed method")
+//			MarkValidPreparationsAsIndexedFunc: func(ctx context.Context, ids []string) error {
+//				panic("mock out the MarkValidPreparationsAsIndexed method")
+//			},
+//			MarkValidVesselsAsIndexedFunc: func(ctx context.Context, ids []string) error {
+//				panic("mock out the MarkValidVesselsAsIndexed method")
 //			},
 //			MealExistsFunc: func(ctx context.Context, mealID string) (bool, error) {
 //				panic("mock out the MealExists method")
@@ -1590,32 +1590,32 @@ type RepositoryMock struct {
 	// InitializeMealPlanGroceryListFunc mocks the InitializeMealPlanGroceryList method.
 	InitializeMealPlanGroceryListFunc func(ctx context.Context, mealPlanID string, accountID string, inputs []*mealplanning.MealPlanGroceryListItemDatabaseCreationInput) ([]*mealplanning.MealPlanGroceryListItem, error)
 
-	// MarkMealAsIndexedFunc mocks the MarkMealAsIndexed method.
-	MarkMealAsIndexedFunc func(ctx context.Context, mealID string) error
-
 	// MarkMealPlanTaskNotificationSentFunc mocks the MarkMealPlanTaskNotificationSent method.
 	MarkMealPlanTaskNotificationSentFunc func(ctx context.Context, mealPlanTaskID string) error
 
-	// MarkRecipeAsIndexedFunc mocks the MarkRecipeAsIndexed method.
-	MarkRecipeAsIndexedFunc func(ctx context.Context, recipeID string) error
+	// MarkMealsAsIndexedFunc mocks the MarkMealsAsIndexed method.
+	MarkMealsAsIndexedFunc func(ctx context.Context, ids []string) error
 
-	// MarkValidIngredientAsIndexedFunc mocks the MarkValidIngredientAsIndexed method.
-	MarkValidIngredientAsIndexedFunc func(ctx context.Context, validIngredientID string) error
+	// MarkRecipesAsIndexedFunc mocks the MarkRecipesAsIndexed method.
+	MarkRecipesAsIndexedFunc func(ctx context.Context, ids []string) error
 
-	// MarkValidIngredientStateAsIndexedFunc mocks the MarkValidIngredientStateAsIndexed method.
-	MarkValidIngredientStateAsIndexedFunc func(ctx context.Context, validIngredientState string) error
+	// MarkValidIngredientStatesAsIndexedFunc mocks the MarkValidIngredientStatesAsIndexed method.
+	MarkValidIngredientStatesAsIndexedFunc func(ctx context.Context, ids []string) error
 
-	// MarkValidInstrumentAsIndexedFunc mocks the MarkValidInstrumentAsIndexed method.
-	MarkValidInstrumentAsIndexedFunc func(ctx context.Context, validInstrumentID string) error
+	// MarkValidIngredientsAsIndexedFunc mocks the MarkValidIngredientsAsIndexed method.
+	MarkValidIngredientsAsIndexedFunc func(ctx context.Context, ids []string) error
 
-	// MarkValidMeasurementUnitAsIndexedFunc mocks the MarkValidMeasurementUnitAsIndexed method.
-	MarkValidMeasurementUnitAsIndexedFunc func(ctx context.Context, validMeasurementUnitID string) error
+	// MarkValidInstrumentsAsIndexedFunc mocks the MarkValidInstrumentsAsIndexed method.
+	MarkValidInstrumentsAsIndexedFunc func(ctx context.Context, ids []string) error
 
-	// MarkValidPreparationAsIndexedFunc mocks the MarkValidPreparationAsIndexed method.
-	MarkValidPreparationAsIndexedFunc func(ctx context.Context, validPreparationID string) error
+	// MarkValidMeasurementUnitsAsIndexedFunc mocks the MarkValidMeasurementUnitsAsIndexed method.
+	MarkValidMeasurementUnitsAsIndexedFunc func(ctx context.Context, ids []string) error
 
-	// MarkValidVesselAsIndexedFunc mocks the MarkValidVesselAsIndexed method.
-	MarkValidVesselAsIndexedFunc func(ctx context.Context, validVesselID string) error
+	// MarkValidPreparationsAsIndexedFunc mocks the MarkValidPreparationsAsIndexed method.
+	MarkValidPreparationsAsIndexedFunc func(ctx context.Context, ids []string) error
+
+	// MarkValidVesselsAsIndexedFunc mocks the MarkValidVesselsAsIndexed method.
+	MarkValidVesselsAsIndexedFunc func(ctx context.Context, ids []string) error
 
 	// MealExistsFunc mocks the MealExists method.
 	MealExistsFunc func(ctx context.Context, mealID string) (bool, error)
@@ -3614,13 +3614,6 @@ type RepositoryMock struct {
 			// Inputs is the inputs argument value.
 			Inputs []*mealplanning.MealPlanGroceryListItemDatabaseCreationInput
 		}
-		// MarkMealAsIndexed holds details about calls to the MarkMealAsIndexed method.
-		MarkMealAsIndexed []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// MealID is the mealID argument value.
-			MealID string
-		}
 		// MarkMealPlanTaskNotificationSent holds details about calls to the MarkMealPlanTaskNotificationSent method.
 		MarkMealPlanTaskNotificationSent []struct {
 			// Ctx is the ctx argument value.
@@ -3628,54 +3621,61 @@ type RepositoryMock struct {
 			// MealPlanTaskID is the mealPlanTaskID argument value.
 			MealPlanTaskID string
 		}
-		// MarkRecipeAsIndexed holds details about calls to the MarkRecipeAsIndexed method.
-		MarkRecipeAsIndexed []struct {
+		// MarkMealsAsIndexed holds details about calls to the MarkMealsAsIndexed method.
+		MarkMealsAsIndexed []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// RecipeID is the recipeID argument value.
-			RecipeID string
+			// Ids is the ids argument value.
+			Ids []string
 		}
-		// MarkValidIngredientAsIndexed holds details about calls to the MarkValidIngredientAsIndexed method.
-		MarkValidIngredientAsIndexed []struct {
+		// MarkRecipesAsIndexed holds details about calls to the MarkRecipesAsIndexed method.
+		MarkRecipesAsIndexed []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ValidIngredientID is the validIngredientID argument value.
-			ValidIngredientID string
+			// Ids is the ids argument value.
+			Ids []string
 		}
-		// MarkValidIngredientStateAsIndexed holds details about calls to the MarkValidIngredientStateAsIndexed method.
-		MarkValidIngredientStateAsIndexed []struct {
+		// MarkValidIngredientStatesAsIndexed holds details about calls to the MarkValidIngredientStatesAsIndexed method.
+		MarkValidIngredientStatesAsIndexed []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ValidIngredientState is the validIngredientState argument value.
-			ValidIngredientState string
+			// Ids is the ids argument value.
+			Ids []string
 		}
-		// MarkValidInstrumentAsIndexed holds details about calls to the MarkValidInstrumentAsIndexed method.
-		MarkValidInstrumentAsIndexed []struct {
+		// MarkValidIngredientsAsIndexed holds details about calls to the MarkValidIngredientsAsIndexed method.
+		MarkValidIngredientsAsIndexed []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ValidInstrumentID is the validInstrumentID argument value.
-			ValidInstrumentID string
+			// Ids is the ids argument value.
+			Ids []string
 		}
-		// MarkValidMeasurementUnitAsIndexed holds details about calls to the MarkValidMeasurementUnitAsIndexed method.
-		MarkValidMeasurementUnitAsIndexed []struct {
+		// MarkValidInstrumentsAsIndexed holds details about calls to the MarkValidInstrumentsAsIndexed method.
+		MarkValidInstrumentsAsIndexed []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ValidMeasurementUnitID is the validMeasurementUnitID argument value.
-			ValidMeasurementUnitID string
+			// Ids is the ids argument value.
+			Ids []string
 		}
-		// MarkValidPreparationAsIndexed holds details about calls to the MarkValidPreparationAsIndexed method.
-		MarkValidPreparationAsIndexed []struct {
+		// MarkValidMeasurementUnitsAsIndexed holds details about calls to the MarkValidMeasurementUnitsAsIndexed method.
+		MarkValidMeasurementUnitsAsIndexed []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ValidPreparationID is the validPreparationID argument value.
-			ValidPreparationID string
+			// Ids is the ids argument value.
+			Ids []string
 		}
-		// MarkValidVesselAsIndexed holds details about calls to the MarkValidVesselAsIndexed method.
-		MarkValidVesselAsIndexed []struct {
+		// MarkValidPreparationsAsIndexed holds details about calls to the MarkValidPreparationsAsIndexed method.
+		MarkValidPreparationsAsIndexed []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ValidVesselID is the validVesselID argument value.
-			ValidVesselID string
+			// Ids is the ids argument value.
+			Ids []string
+		}
+		// MarkValidVesselsAsIndexed holds details about calls to the MarkValidVesselsAsIndexed method.
+		MarkValidVesselsAsIndexed []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Ids is the ids argument value.
+			Ids []string
 		}
 		// MealExists holds details about calls to the MealExists method.
 		MealExists []struct {
@@ -4709,15 +4709,15 @@ type RepositoryMock struct {
 	lockGetValidVessels                                      sync.RWMutex
 	lockGetValidVesselsWithIDs                               sync.RWMutex
 	lockInitializeMealPlanGroceryList                        sync.RWMutex
-	lockMarkMealAsIndexed                                    sync.RWMutex
 	lockMarkMealPlanTaskNotificationSent                     sync.RWMutex
-	lockMarkRecipeAsIndexed                                  sync.RWMutex
-	lockMarkValidIngredientAsIndexed                         sync.RWMutex
-	lockMarkValidIngredientStateAsIndexed                    sync.RWMutex
-	lockMarkValidInstrumentAsIndexed                         sync.RWMutex
-	lockMarkValidMeasurementUnitAsIndexed                    sync.RWMutex
-	lockMarkValidPreparationAsIndexed                        sync.RWMutex
-	lockMarkValidVesselAsIndexed                             sync.RWMutex
+	lockMarkMealsAsIndexed                                   sync.RWMutex
+	lockMarkRecipesAsIndexed                                 sync.RWMutex
+	lockMarkValidIngredientStatesAsIndexed                   sync.RWMutex
+	lockMarkValidIngredientsAsIndexed                        sync.RWMutex
+	lockMarkValidInstrumentsAsIndexed                        sync.RWMutex
+	lockMarkValidMeasurementUnitsAsIndexed                   sync.RWMutex
+	lockMarkValidPreparationsAsIndexed                       sync.RWMutex
+	lockMarkValidVesselsAsIndexed                            sync.RWMutex
 	lockMealExists                                           sync.RWMutex
 	lockMealExistsAsOptionInEvent                            sync.RWMutex
 	lockMealExistsInMealList                                 sync.RWMutex
@@ -12747,42 +12747,6 @@ func (mock *RepositoryMock) InitializeMealPlanGroceryListCalls() []struct {
 	return calls
 }
 
-// MarkMealAsIndexed calls MarkMealAsIndexedFunc.
-func (mock *RepositoryMock) MarkMealAsIndexed(ctx context.Context, mealID string) error {
-	if mock.MarkMealAsIndexedFunc == nil {
-		panic("RepositoryMock.MarkMealAsIndexedFunc: method is nil but Repository.MarkMealAsIndexed was just called")
-	}
-	callInfo := struct {
-		Ctx    context.Context
-		MealID string
-	}{
-		Ctx:    ctx,
-		MealID: mealID,
-	}
-	mock.lockMarkMealAsIndexed.Lock()
-	mock.calls.MarkMealAsIndexed = append(mock.calls.MarkMealAsIndexed, callInfo)
-	mock.lockMarkMealAsIndexed.Unlock()
-	return mock.MarkMealAsIndexedFunc(ctx, mealID)
-}
-
-// MarkMealAsIndexedCalls gets all the calls that were made to MarkMealAsIndexed.
-// Check the length with:
-//
-//	len(mockedRepository.MarkMealAsIndexedCalls())
-func (mock *RepositoryMock) MarkMealAsIndexedCalls() []struct {
-	Ctx    context.Context
-	MealID string
-} {
-	var calls []struct {
-		Ctx    context.Context
-		MealID string
-	}
-	mock.lockMarkMealAsIndexed.RLock()
-	calls = mock.calls.MarkMealAsIndexed
-	mock.lockMarkMealAsIndexed.RUnlock()
-	return calls
-}
-
 // MarkMealPlanTaskNotificationSent calls MarkMealPlanTaskNotificationSentFunc.
 func (mock *RepositoryMock) MarkMealPlanTaskNotificationSent(ctx context.Context, mealPlanTaskID string) error {
 	if mock.MarkMealPlanTaskNotificationSentFunc == nil {
@@ -12819,255 +12783,291 @@ func (mock *RepositoryMock) MarkMealPlanTaskNotificationSentCalls() []struct {
 	return calls
 }
 
-// MarkRecipeAsIndexed calls MarkRecipeAsIndexedFunc.
-func (mock *RepositoryMock) MarkRecipeAsIndexed(ctx context.Context, recipeID string) error {
-	if mock.MarkRecipeAsIndexedFunc == nil {
-		panic("RepositoryMock.MarkRecipeAsIndexedFunc: method is nil but Repository.MarkRecipeAsIndexed was just called")
+// MarkMealsAsIndexed calls MarkMealsAsIndexedFunc.
+func (mock *RepositoryMock) MarkMealsAsIndexed(ctx context.Context, ids []string) error {
+	if mock.MarkMealsAsIndexedFunc == nil {
+		panic("RepositoryMock.MarkMealsAsIndexedFunc: method is nil but Repository.MarkMealsAsIndexed was just called")
 	}
 	callInfo := struct {
-		Ctx      context.Context
-		RecipeID string
+		Ctx context.Context
+		Ids []string
 	}{
-		Ctx:      ctx,
-		RecipeID: recipeID,
+		Ctx: ctx,
+		Ids: ids,
 	}
-	mock.lockMarkRecipeAsIndexed.Lock()
-	mock.calls.MarkRecipeAsIndexed = append(mock.calls.MarkRecipeAsIndexed, callInfo)
-	mock.lockMarkRecipeAsIndexed.Unlock()
-	return mock.MarkRecipeAsIndexedFunc(ctx, recipeID)
+	mock.lockMarkMealsAsIndexed.Lock()
+	mock.calls.MarkMealsAsIndexed = append(mock.calls.MarkMealsAsIndexed, callInfo)
+	mock.lockMarkMealsAsIndexed.Unlock()
+	return mock.MarkMealsAsIndexedFunc(ctx, ids)
 }
 
-// MarkRecipeAsIndexedCalls gets all the calls that were made to MarkRecipeAsIndexed.
+// MarkMealsAsIndexedCalls gets all the calls that were made to MarkMealsAsIndexed.
 // Check the length with:
 //
-//	len(mockedRepository.MarkRecipeAsIndexedCalls())
-func (mock *RepositoryMock) MarkRecipeAsIndexedCalls() []struct {
-	Ctx      context.Context
-	RecipeID string
+//	len(mockedRepository.MarkMealsAsIndexedCalls())
+func (mock *RepositoryMock) MarkMealsAsIndexedCalls() []struct {
+	Ctx context.Context
+	Ids []string
 } {
 	var calls []struct {
-		Ctx      context.Context
-		RecipeID string
+		Ctx context.Context
+		Ids []string
 	}
-	mock.lockMarkRecipeAsIndexed.RLock()
-	calls = mock.calls.MarkRecipeAsIndexed
-	mock.lockMarkRecipeAsIndexed.RUnlock()
+	mock.lockMarkMealsAsIndexed.RLock()
+	calls = mock.calls.MarkMealsAsIndexed
+	mock.lockMarkMealsAsIndexed.RUnlock()
 	return calls
 }
 
-// MarkValidIngredientAsIndexed calls MarkValidIngredientAsIndexedFunc.
-func (mock *RepositoryMock) MarkValidIngredientAsIndexed(ctx context.Context, validIngredientID string) error {
-	if mock.MarkValidIngredientAsIndexedFunc == nil {
-		panic("RepositoryMock.MarkValidIngredientAsIndexedFunc: method is nil but Repository.MarkValidIngredientAsIndexed was just called")
+// MarkRecipesAsIndexed calls MarkRecipesAsIndexedFunc.
+func (mock *RepositoryMock) MarkRecipesAsIndexed(ctx context.Context, ids []string) error {
+	if mock.MarkRecipesAsIndexedFunc == nil {
+		panic("RepositoryMock.MarkRecipesAsIndexedFunc: method is nil but Repository.MarkRecipesAsIndexed was just called")
 	}
 	callInfo := struct {
-		Ctx               context.Context
-		ValidIngredientID string
+		Ctx context.Context
+		Ids []string
 	}{
-		Ctx:               ctx,
-		ValidIngredientID: validIngredientID,
+		Ctx: ctx,
+		Ids: ids,
 	}
-	mock.lockMarkValidIngredientAsIndexed.Lock()
-	mock.calls.MarkValidIngredientAsIndexed = append(mock.calls.MarkValidIngredientAsIndexed, callInfo)
-	mock.lockMarkValidIngredientAsIndexed.Unlock()
-	return mock.MarkValidIngredientAsIndexedFunc(ctx, validIngredientID)
+	mock.lockMarkRecipesAsIndexed.Lock()
+	mock.calls.MarkRecipesAsIndexed = append(mock.calls.MarkRecipesAsIndexed, callInfo)
+	mock.lockMarkRecipesAsIndexed.Unlock()
+	return mock.MarkRecipesAsIndexedFunc(ctx, ids)
 }
 
-// MarkValidIngredientAsIndexedCalls gets all the calls that were made to MarkValidIngredientAsIndexed.
+// MarkRecipesAsIndexedCalls gets all the calls that were made to MarkRecipesAsIndexed.
 // Check the length with:
 //
-//	len(mockedRepository.MarkValidIngredientAsIndexedCalls())
-func (mock *RepositoryMock) MarkValidIngredientAsIndexedCalls() []struct {
-	Ctx               context.Context
-	ValidIngredientID string
+//	len(mockedRepository.MarkRecipesAsIndexedCalls())
+func (mock *RepositoryMock) MarkRecipesAsIndexedCalls() []struct {
+	Ctx context.Context
+	Ids []string
 } {
 	var calls []struct {
-		Ctx               context.Context
-		ValidIngredientID string
+		Ctx context.Context
+		Ids []string
 	}
-	mock.lockMarkValidIngredientAsIndexed.RLock()
-	calls = mock.calls.MarkValidIngredientAsIndexed
-	mock.lockMarkValidIngredientAsIndexed.RUnlock()
+	mock.lockMarkRecipesAsIndexed.RLock()
+	calls = mock.calls.MarkRecipesAsIndexed
+	mock.lockMarkRecipesAsIndexed.RUnlock()
 	return calls
 }
 
-// MarkValidIngredientStateAsIndexed calls MarkValidIngredientStateAsIndexedFunc.
-func (mock *RepositoryMock) MarkValidIngredientStateAsIndexed(ctx context.Context, validIngredientState string) error {
-	if mock.MarkValidIngredientStateAsIndexedFunc == nil {
-		panic("RepositoryMock.MarkValidIngredientStateAsIndexedFunc: method is nil but Repository.MarkValidIngredientStateAsIndexed was just called")
+// MarkValidIngredientStatesAsIndexed calls MarkValidIngredientStatesAsIndexedFunc.
+func (mock *RepositoryMock) MarkValidIngredientStatesAsIndexed(ctx context.Context, ids []string) error {
+	if mock.MarkValidIngredientStatesAsIndexedFunc == nil {
+		panic("RepositoryMock.MarkValidIngredientStatesAsIndexedFunc: method is nil but Repository.MarkValidIngredientStatesAsIndexed was just called")
 	}
 	callInfo := struct {
-		Ctx                  context.Context
-		ValidIngredientState string
+		Ctx context.Context
+		Ids []string
 	}{
-		Ctx:                  ctx,
-		ValidIngredientState: validIngredientState,
+		Ctx: ctx,
+		Ids: ids,
 	}
-	mock.lockMarkValidIngredientStateAsIndexed.Lock()
-	mock.calls.MarkValidIngredientStateAsIndexed = append(mock.calls.MarkValidIngredientStateAsIndexed, callInfo)
-	mock.lockMarkValidIngredientStateAsIndexed.Unlock()
-	return mock.MarkValidIngredientStateAsIndexedFunc(ctx, validIngredientState)
+	mock.lockMarkValidIngredientStatesAsIndexed.Lock()
+	mock.calls.MarkValidIngredientStatesAsIndexed = append(mock.calls.MarkValidIngredientStatesAsIndexed, callInfo)
+	mock.lockMarkValidIngredientStatesAsIndexed.Unlock()
+	return mock.MarkValidIngredientStatesAsIndexedFunc(ctx, ids)
 }
 
-// MarkValidIngredientStateAsIndexedCalls gets all the calls that were made to MarkValidIngredientStateAsIndexed.
+// MarkValidIngredientStatesAsIndexedCalls gets all the calls that were made to MarkValidIngredientStatesAsIndexed.
 // Check the length with:
 //
-//	len(mockedRepository.MarkValidIngredientStateAsIndexedCalls())
-func (mock *RepositoryMock) MarkValidIngredientStateAsIndexedCalls() []struct {
-	Ctx                  context.Context
-	ValidIngredientState string
+//	len(mockedRepository.MarkValidIngredientStatesAsIndexedCalls())
+func (mock *RepositoryMock) MarkValidIngredientStatesAsIndexedCalls() []struct {
+	Ctx context.Context
+	Ids []string
 } {
 	var calls []struct {
-		Ctx                  context.Context
-		ValidIngredientState string
+		Ctx context.Context
+		Ids []string
 	}
-	mock.lockMarkValidIngredientStateAsIndexed.RLock()
-	calls = mock.calls.MarkValidIngredientStateAsIndexed
-	mock.lockMarkValidIngredientStateAsIndexed.RUnlock()
+	mock.lockMarkValidIngredientStatesAsIndexed.RLock()
+	calls = mock.calls.MarkValidIngredientStatesAsIndexed
+	mock.lockMarkValidIngredientStatesAsIndexed.RUnlock()
 	return calls
 }
 
-// MarkValidInstrumentAsIndexed calls MarkValidInstrumentAsIndexedFunc.
-func (mock *RepositoryMock) MarkValidInstrumentAsIndexed(ctx context.Context, validInstrumentID string) error {
-	if mock.MarkValidInstrumentAsIndexedFunc == nil {
-		panic("RepositoryMock.MarkValidInstrumentAsIndexedFunc: method is nil but Repository.MarkValidInstrumentAsIndexed was just called")
+// MarkValidIngredientsAsIndexed calls MarkValidIngredientsAsIndexedFunc.
+func (mock *RepositoryMock) MarkValidIngredientsAsIndexed(ctx context.Context, ids []string) error {
+	if mock.MarkValidIngredientsAsIndexedFunc == nil {
+		panic("RepositoryMock.MarkValidIngredientsAsIndexedFunc: method is nil but Repository.MarkValidIngredientsAsIndexed was just called")
 	}
 	callInfo := struct {
-		Ctx               context.Context
-		ValidInstrumentID string
+		Ctx context.Context
+		Ids []string
 	}{
-		Ctx:               ctx,
-		ValidInstrumentID: validInstrumentID,
+		Ctx: ctx,
+		Ids: ids,
 	}
-	mock.lockMarkValidInstrumentAsIndexed.Lock()
-	mock.calls.MarkValidInstrumentAsIndexed = append(mock.calls.MarkValidInstrumentAsIndexed, callInfo)
-	mock.lockMarkValidInstrumentAsIndexed.Unlock()
-	return mock.MarkValidInstrumentAsIndexedFunc(ctx, validInstrumentID)
+	mock.lockMarkValidIngredientsAsIndexed.Lock()
+	mock.calls.MarkValidIngredientsAsIndexed = append(mock.calls.MarkValidIngredientsAsIndexed, callInfo)
+	mock.lockMarkValidIngredientsAsIndexed.Unlock()
+	return mock.MarkValidIngredientsAsIndexedFunc(ctx, ids)
 }
 
-// MarkValidInstrumentAsIndexedCalls gets all the calls that were made to MarkValidInstrumentAsIndexed.
+// MarkValidIngredientsAsIndexedCalls gets all the calls that were made to MarkValidIngredientsAsIndexed.
 // Check the length with:
 //
-//	len(mockedRepository.MarkValidInstrumentAsIndexedCalls())
-func (mock *RepositoryMock) MarkValidInstrumentAsIndexedCalls() []struct {
-	Ctx               context.Context
-	ValidInstrumentID string
+//	len(mockedRepository.MarkValidIngredientsAsIndexedCalls())
+func (mock *RepositoryMock) MarkValidIngredientsAsIndexedCalls() []struct {
+	Ctx context.Context
+	Ids []string
 } {
 	var calls []struct {
-		Ctx               context.Context
-		ValidInstrumentID string
+		Ctx context.Context
+		Ids []string
 	}
-	mock.lockMarkValidInstrumentAsIndexed.RLock()
-	calls = mock.calls.MarkValidInstrumentAsIndexed
-	mock.lockMarkValidInstrumentAsIndexed.RUnlock()
+	mock.lockMarkValidIngredientsAsIndexed.RLock()
+	calls = mock.calls.MarkValidIngredientsAsIndexed
+	mock.lockMarkValidIngredientsAsIndexed.RUnlock()
 	return calls
 }
 
-// MarkValidMeasurementUnitAsIndexed calls MarkValidMeasurementUnitAsIndexedFunc.
-func (mock *RepositoryMock) MarkValidMeasurementUnitAsIndexed(ctx context.Context, validMeasurementUnitID string) error {
-	if mock.MarkValidMeasurementUnitAsIndexedFunc == nil {
-		panic("RepositoryMock.MarkValidMeasurementUnitAsIndexedFunc: method is nil but Repository.MarkValidMeasurementUnitAsIndexed was just called")
+// MarkValidInstrumentsAsIndexed calls MarkValidInstrumentsAsIndexedFunc.
+func (mock *RepositoryMock) MarkValidInstrumentsAsIndexed(ctx context.Context, ids []string) error {
+	if mock.MarkValidInstrumentsAsIndexedFunc == nil {
+		panic("RepositoryMock.MarkValidInstrumentsAsIndexedFunc: method is nil but Repository.MarkValidInstrumentsAsIndexed was just called")
 	}
 	callInfo := struct {
-		Ctx                    context.Context
-		ValidMeasurementUnitID string
+		Ctx context.Context
+		Ids []string
 	}{
-		Ctx:                    ctx,
-		ValidMeasurementUnitID: validMeasurementUnitID,
+		Ctx: ctx,
+		Ids: ids,
 	}
-	mock.lockMarkValidMeasurementUnitAsIndexed.Lock()
-	mock.calls.MarkValidMeasurementUnitAsIndexed = append(mock.calls.MarkValidMeasurementUnitAsIndexed, callInfo)
-	mock.lockMarkValidMeasurementUnitAsIndexed.Unlock()
-	return mock.MarkValidMeasurementUnitAsIndexedFunc(ctx, validMeasurementUnitID)
+	mock.lockMarkValidInstrumentsAsIndexed.Lock()
+	mock.calls.MarkValidInstrumentsAsIndexed = append(mock.calls.MarkValidInstrumentsAsIndexed, callInfo)
+	mock.lockMarkValidInstrumentsAsIndexed.Unlock()
+	return mock.MarkValidInstrumentsAsIndexedFunc(ctx, ids)
 }
 
-// MarkValidMeasurementUnitAsIndexedCalls gets all the calls that were made to MarkValidMeasurementUnitAsIndexed.
+// MarkValidInstrumentsAsIndexedCalls gets all the calls that were made to MarkValidInstrumentsAsIndexed.
 // Check the length with:
 //
-//	len(mockedRepository.MarkValidMeasurementUnitAsIndexedCalls())
-func (mock *RepositoryMock) MarkValidMeasurementUnitAsIndexedCalls() []struct {
-	Ctx                    context.Context
-	ValidMeasurementUnitID string
+//	len(mockedRepository.MarkValidInstrumentsAsIndexedCalls())
+func (mock *RepositoryMock) MarkValidInstrumentsAsIndexedCalls() []struct {
+	Ctx context.Context
+	Ids []string
 } {
 	var calls []struct {
-		Ctx                    context.Context
-		ValidMeasurementUnitID string
+		Ctx context.Context
+		Ids []string
 	}
-	mock.lockMarkValidMeasurementUnitAsIndexed.RLock()
-	calls = mock.calls.MarkValidMeasurementUnitAsIndexed
-	mock.lockMarkValidMeasurementUnitAsIndexed.RUnlock()
+	mock.lockMarkValidInstrumentsAsIndexed.RLock()
+	calls = mock.calls.MarkValidInstrumentsAsIndexed
+	mock.lockMarkValidInstrumentsAsIndexed.RUnlock()
 	return calls
 }
 
-// MarkValidPreparationAsIndexed calls MarkValidPreparationAsIndexedFunc.
-func (mock *RepositoryMock) MarkValidPreparationAsIndexed(ctx context.Context, validPreparationID string) error {
-	if mock.MarkValidPreparationAsIndexedFunc == nil {
-		panic("RepositoryMock.MarkValidPreparationAsIndexedFunc: method is nil but Repository.MarkValidPreparationAsIndexed was just called")
+// MarkValidMeasurementUnitsAsIndexed calls MarkValidMeasurementUnitsAsIndexedFunc.
+func (mock *RepositoryMock) MarkValidMeasurementUnitsAsIndexed(ctx context.Context, ids []string) error {
+	if mock.MarkValidMeasurementUnitsAsIndexedFunc == nil {
+		panic("RepositoryMock.MarkValidMeasurementUnitsAsIndexedFunc: method is nil but Repository.MarkValidMeasurementUnitsAsIndexed was just called")
 	}
 	callInfo := struct {
-		Ctx                context.Context
-		ValidPreparationID string
+		Ctx context.Context
+		Ids []string
 	}{
-		Ctx:                ctx,
-		ValidPreparationID: validPreparationID,
+		Ctx: ctx,
+		Ids: ids,
 	}
-	mock.lockMarkValidPreparationAsIndexed.Lock()
-	mock.calls.MarkValidPreparationAsIndexed = append(mock.calls.MarkValidPreparationAsIndexed, callInfo)
-	mock.lockMarkValidPreparationAsIndexed.Unlock()
-	return mock.MarkValidPreparationAsIndexedFunc(ctx, validPreparationID)
+	mock.lockMarkValidMeasurementUnitsAsIndexed.Lock()
+	mock.calls.MarkValidMeasurementUnitsAsIndexed = append(mock.calls.MarkValidMeasurementUnitsAsIndexed, callInfo)
+	mock.lockMarkValidMeasurementUnitsAsIndexed.Unlock()
+	return mock.MarkValidMeasurementUnitsAsIndexedFunc(ctx, ids)
 }
 
-// MarkValidPreparationAsIndexedCalls gets all the calls that were made to MarkValidPreparationAsIndexed.
+// MarkValidMeasurementUnitsAsIndexedCalls gets all the calls that were made to MarkValidMeasurementUnitsAsIndexed.
 // Check the length with:
 //
-//	len(mockedRepository.MarkValidPreparationAsIndexedCalls())
-func (mock *RepositoryMock) MarkValidPreparationAsIndexedCalls() []struct {
-	Ctx                context.Context
-	ValidPreparationID string
+//	len(mockedRepository.MarkValidMeasurementUnitsAsIndexedCalls())
+func (mock *RepositoryMock) MarkValidMeasurementUnitsAsIndexedCalls() []struct {
+	Ctx context.Context
+	Ids []string
 } {
 	var calls []struct {
-		Ctx                context.Context
-		ValidPreparationID string
+		Ctx context.Context
+		Ids []string
 	}
-	mock.lockMarkValidPreparationAsIndexed.RLock()
-	calls = mock.calls.MarkValidPreparationAsIndexed
-	mock.lockMarkValidPreparationAsIndexed.RUnlock()
+	mock.lockMarkValidMeasurementUnitsAsIndexed.RLock()
+	calls = mock.calls.MarkValidMeasurementUnitsAsIndexed
+	mock.lockMarkValidMeasurementUnitsAsIndexed.RUnlock()
 	return calls
 }
 
-// MarkValidVesselAsIndexed calls MarkValidVesselAsIndexedFunc.
-func (mock *RepositoryMock) MarkValidVesselAsIndexed(ctx context.Context, validVesselID string) error {
-	if mock.MarkValidVesselAsIndexedFunc == nil {
-		panic("RepositoryMock.MarkValidVesselAsIndexedFunc: method is nil but Repository.MarkValidVesselAsIndexed was just called")
+// MarkValidPreparationsAsIndexed calls MarkValidPreparationsAsIndexedFunc.
+func (mock *RepositoryMock) MarkValidPreparationsAsIndexed(ctx context.Context, ids []string) error {
+	if mock.MarkValidPreparationsAsIndexedFunc == nil {
+		panic("RepositoryMock.MarkValidPreparationsAsIndexedFunc: method is nil but Repository.MarkValidPreparationsAsIndexed was just called")
 	}
 	callInfo := struct {
-		Ctx           context.Context
-		ValidVesselID string
+		Ctx context.Context
+		Ids []string
 	}{
-		Ctx:           ctx,
-		ValidVesselID: validVesselID,
+		Ctx: ctx,
+		Ids: ids,
 	}
-	mock.lockMarkValidVesselAsIndexed.Lock()
-	mock.calls.MarkValidVesselAsIndexed = append(mock.calls.MarkValidVesselAsIndexed, callInfo)
-	mock.lockMarkValidVesselAsIndexed.Unlock()
-	return mock.MarkValidVesselAsIndexedFunc(ctx, validVesselID)
+	mock.lockMarkValidPreparationsAsIndexed.Lock()
+	mock.calls.MarkValidPreparationsAsIndexed = append(mock.calls.MarkValidPreparationsAsIndexed, callInfo)
+	mock.lockMarkValidPreparationsAsIndexed.Unlock()
+	return mock.MarkValidPreparationsAsIndexedFunc(ctx, ids)
 }
 
-// MarkValidVesselAsIndexedCalls gets all the calls that were made to MarkValidVesselAsIndexed.
+// MarkValidPreparationsAsIndexedCalls gets all the calls that were made to MarkValidPreparationsAsIndexed.
 // Check the length with:
 //
-//	len(mockedRepository.MarkValidVesselAsIndexedCalls())
-func (mock *RepositoryMock) MarkValidVesselAsIndexedCalls() []struct {
-	Ctx           context.Context
-	ValidVesselID string
+//	len(mockedRepository.MarkValidPreparationsAsIndexedCalls())
+func (mock *RepositoryMock) MarkValidPreparationsAsIndexedCalls() []struct {
+	Ctx context.Context
+	Ids []string
 } {
 	var calls []struct {
-		Ctx           context.Context
-		ValidVesselID string
+		Ctx context.Context
+		Ids []string
 	}
-	mock.lockMarkValidVesselAsIndexed.RLock()
-	calls = mock.calls.MarkValidVesselAsIndexed
-	mock.lockMarkValidVesselAsIndexed.RUnlock()
+	mock.lockMarkValidPreparationsAsIndexed.RLock()
+	calls = mock.calls.MarkValidPreparationsAsIndexed
+	mock.lockMarkValidPreparationsAsIndexed.RUnlock()
+	return calls
+}
+
+// MarkValidVesselsAsIndexed calls MarkValidVesselsAsIndexedFunc.
+func (mock *RepositoryMock) MarkValidVesselsAsIndexed(ctx context.Context, ids []string) error {
+	if mock.MarkValidVesselsAsIndexedFunc == nil {
+		panic("RepositoryMock.MarkValidVesselsAsIndexedFunc: method is nil but Repository.MarkValidVesselsAsIndexed was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		Ids []string
+	}{
+		Ctx: ctx,
+		Ids: ids,
+	}
+	mock.lockMarkValidVesselsAsIndexed.Lock()
+	mock.calls.MarkValidVesselsAsIndexed = append(mock.calls.MarkValidVesselsAsIndexed, callInfo)
+	mock.lockMarkValidVesselsAsIndexed.Unlock()
+	return mock.MarkValidVesselsAsIndexedFunc(ctx, ids)
+}
+
+// MarkValidVesselsAsIndexedCalls gets all the calls that were made to MarkValidVesselsAsIndexed.
+// Check the length with:
+//
+//	len(mockedRepository.MarkValidVesselsAsIndexedCalls())
+func (mock *RepositoryMock) MarkValidVesselsAsIndexedCalls() []struct {
+	Ctx context.Context
+	Ids []string
+} {
+	var calls []struct {
+		Ctx context.Context
+		Ids []string
+	}
+	mock.lockMarkValidVesselsAsIndexed.RLock()
+	calls = mock.calls.MarkValidVesselsAsIndexed
+	mock.lockMarkValidVesselsAsIndexed.RUnlock()
 	return calls
 }
 

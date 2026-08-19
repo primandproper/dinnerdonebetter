@@ -451,24 +451,27 @@ func (q *repository) UpdateValidPreparation(ctx context.Context, updated *mealpl
 	return nil
 }
 
-// MarkValidPreparationAsIndexed updates a particular valid preparation's last_indexed_at value.
-func (q *repository) MarkValidPreparationAsIndexed(ctx context.Context, validPreparationID string) error {
+// MarkValidPreparationsAsIndexed stamps last_indexed_at on the rows behind the documents an index has taken.
+//
+// It is the write half of search/sync's Stamper: the ids arrive already coalesced and ordered
+// by the batching.Buffer the syncer stamps through, so this is one statement per flush rather
+// than one per document. It is deliberately not guarded on archived_at — the syncer applies a
+// vanished row as a delete and stamps nothing, and a row archived between apply and flush is
+// harmless to stamp.
+func (q *repository) MarkValidPreparationsAsIndexed(ctx context.Context, ids []string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validPreparationID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.ValidPreparationIDKey, validPreparationID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, validPreparationID)
-
-	if _, err := q.generatedQuerier.UpdateValidPreparationLastIndexedAt(ctx, q.writeDB, validPreparationID); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "marking valid preparation as indexed")
+	if len(ids) == 0 {
+		return nil
 	}
 
-	logger.Info("valid preparation marked as indexed")
+	logger := q.logger.Clone().WithValue("id_count", len(ids))
+	tracing.AttachToSpan(span, "id_count", len(ids))
+
+	if _, err := q.generatedQuerier.MarkValidPreparationsAsIndexed(ctx, q.writeDB, ids); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "marking valid preparations as indexed")
+	}
 
 	return nil
 }

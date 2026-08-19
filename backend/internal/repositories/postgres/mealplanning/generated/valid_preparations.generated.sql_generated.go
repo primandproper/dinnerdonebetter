@@ -607,6 +607,20 @@ func (q *Queries) GetValidPreparationsWithIDs(ctx context.Context, db DBTX, ids 
 	return items, nil
 }
 
+const markValidPreparationsAsIndexed = `-- name: MarkValidPreparationsAsIndexed :execrows
+UPDATE valid_preparations SET
+	last_indexed_at = NOW()
+WHERE id = ANY($1::text[])
+`
+
+func (q *Queries) MarkValidPreparationsAsIndexed(ctx context.Context, db DBTX, ids []string) (int64, error) {
+	result, err := db.ExecContext(ctx, markValidPreparationsAsIndexed, pq.Array(ids))
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const scanValidPreparationIDsForReindex = `-- name: ScanValidPreparationIDsForReindex :many
 SELECT valid_preparations.id
 FROM valid_preparations
@@ -876,18 +890,6 @@ func (q *Queries) UpdateValidPreparation(ctx context.Context, db DBTX, arg *Upda
 		arg.MaximumVesselCount,
 		arg.ID,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
-const updateValidPreparationLastIndexedAt = `-- name: UpdateValidPreparationLastIndexedAt :execrows
-UPDATE valid_preparations SET last_indexed_at = NOW() WHERE id = $1 AND archived_at IS NULL
-`
-
-func (q *Queries) UpdateValidPreparationLastIndexedAt(ctx context.Context, db DBTX, id string) (int64, error) {
-	result, err := db.ExecContext(ctx, updateValidPreparationLastIndexedAt, id)
 	if err != nil {
 		return 0, err
 	}

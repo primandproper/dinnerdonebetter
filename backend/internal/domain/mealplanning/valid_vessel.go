@@ -161,7 +161,7 @@ type (
 		SearchForValidVessels(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[ValidVessel], error)
 		CreateValidVessel(ctx context.Context, input *ValidVesselDatabaseCreationInput) (*ValidVessel, error)
 		UpdateValidVessel(ctx context.Context, updated *ValidVessel) error
-		MarkValidVesselAsIndexed(ctx context.Context, validVesselID string) error
+		MarkValidVesselsAsIndexed(ctx context.Context, ids []string) error
 		ArchiveValidVessel(ctx context.Context, validVesselID string) error
 		ScanValidVesselIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetValidVesselsWithIDs(ctx context.Context, ids []string) ([]*ValidVessel, error)

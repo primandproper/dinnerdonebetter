@@ -105,7 +105,16 @@ func runAsyncMessages(ctx context.Context, cfg *config.AsyncMessageHandlerConfig
 	drainCtx, cancelDrain := context.WithTimeout(ctx, 30*time.Second)
 	defer cancelDrain()
 
-	return dataChangeMessageHandler.Close(drainCtx)
+	closeErr := dataChangeMessageHandler.Close(drainCtx)
+
+	// Then retire the container, which is what flushes the search syncers' stamp buffers. It
+	// happens after the drain rather than beside it: a buffer closed while handlers are still
+	// applying documents would lose the stamps for the last ones through.
+	if report := injector.ShutdownWithContext(drainCtx); report != nil && !report.Succeed {
+		return errors.Join(closeErr, report)
+	}
+
+	return closeErr
 }
 
 func workerSchedulerCmd() *cobra.Command {

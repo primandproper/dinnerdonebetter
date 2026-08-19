@@ -720,6 +720,20 @@ func (q *Queries) GetMealsWithIDs(ctx context.Context, db DBTX, ids []string) ([
 	return items, nil
 }
 
+const markMealsAsIndexed = `-- name: MarkMealsAsIndexed :execrows
+UPDATE meals SET
+	last_indexed_at = NOW()
+WHERE id = ANY($1::text[])
+`
+
+func (q *Queries) MarkMealsAsIndexed(ctx context.Context, db DBTX, ids []string) (int64, error) {
+	result, err := db.ExecContext(ctx, markMealsAsIndexed, pq.Array(ids))
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const scanMealIDsForReindex = `-- name: ScanMealIDsForReindex :many
 SELECT meals.id
 FROM meals
@@ -910,16 +924,4 @@ func (q *Queries) SearchForMeals(ctx context.Context, db DBTX, arg *SearchForMea
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateMealLastIndexedAt = `-- name: UpdateMealLastIndexedAt :execrows
-UPDATE meals SET last_indexed_at = NOW() WHERE id = $1 AND archived_at IS NULL
-`
-
-func (q *Queries) UpdateMealLastIndexedAt(ctx context.Context, db DBTX, id string) (int64, error) {
-	result, err := db.ExecContext(ctx, updateMealLastIndexedAt, id)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
 }

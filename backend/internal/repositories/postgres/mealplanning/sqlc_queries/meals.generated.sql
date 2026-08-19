@@ -327,5 +327,7 @@ WHERE
 ORDER BY meals.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
--- name: UpdateMealLastIndexedAt :execrows
-UPDATE meals SET last_indexed_at = NOW() WHERE id = sqlc.arg(id) AND archived_at IS NULL;
+-- name: MarkMealsAsIndexed :execrows
+UPDATE meals SET
+	last_indexed_at = NOW()
+WHERE id = ANY(sqlc.arg(ids)::text[]);

@@ -68,6 +68,11 @@ WHERE valid_ingredient_states.archived_at IS NULL
 ORDER BY valid_ingredient_states.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
+-- name: MarkValidIngredientStatesAsIndexed :execrows
+UPDATE valid_ingredient_states SET
+	last_indexed_at = NOW()
+WHERE id = ANY(sqlc.arg(ids)::text[]);
+
 -- name: GetValidIngredientStates :many
 SELECT
 	valid_ingredient_states.id,
@@ -200,6 +205,3 @@ WHERE valid_ingredient_states.archived_at IS NULL
 	AND valid_ingredient_states.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_ingredient_states.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateValidIngredientStateLastIndexedAt :execrows
-UPDATE valid_ingredient_states SET last_indexed_at = NOW() WHERE id = sqlc.arg(id) AND archived_at IS NULL;

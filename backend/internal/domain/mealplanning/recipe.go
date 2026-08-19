@@ -141,7 +141,7 @@ type (
 		CreateRecipe(ctx context.Context, input *RecipeDatabaseCreationInput) (*Recipe, error)
 		UpdateRecipe(ctx context.Context, updated *Recipe) error
 		UpdateRecipeStatus(ctx context.Context, recipeID, newStatus string) error
-		MarkRecipeAsIndexed(ctx context.Context, recipeID string) error
+		MarkRecipesAsIndexed(ctx context.Context, ids []string) error
 		ArchiveRecipe(ctx context.Context, recipeID, userID string) error
 		ScanRecipeIDsForReindex(ctx context.Context, after string, limit int) ([]string, error)
 		GetRecipesWithIDs(ctx context.Context, ids []string) ([]*Recipe, error)
