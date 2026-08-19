@@ -49,7 +49,9 @@ func (m *mealPlanningManager) CreateRecipeList(ctx context.Context, userID strin
 	recipeListID := identifiers.New()
 	var items []*types.RecipeListItemDatabaseCreationInput
 	for _, item := range input.Items {
-		items = append(items, converters.ConvertRecipeListItemCreationRequestInputToRecipeListItemDatabaseCreationInput(item, recipeListID))
+		converted := converters.ConvertRecipeListItemCreationRequestInputToRecipeListItemDatabaseCreationInput(item)
+		converted.BelongsToRecipeList = recipeListID
+		items = append(items, converted)
 	}
 
 	dbInput := &types.RecipeListDatabaseCreationInput{

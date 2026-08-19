@@ -29,7 +29,7 @@ func createOAuth2ClientForTest(t *testing.T) *oauth.OAuth2Client {
 	ctx := t.Context()
 
 	exampleOAuth2Client := fakes.BuildFakeOAuth2Client()
-	exampleOAuth2ClientInput := converters.ConvertOAuth2ClientToOAuth2ClientCreationInput(exampleOAuth2Client)
+	exampleOAuth2ClientInput := converters.ConvertOAuth2ClientToOAuth2ClientCreationRequestInput(exampleOAuth2Client)
 	created, err := adminClient.CreateOAuth2Client(ctx, &oauthsvc.CreateOAuth2ClientRequest{
 		Input: grpcconverters.ConvertOAuth2ClientCreationRequestInputToGRPCOAuth2ClientCreationRequestInput(exampleOAuth2ClientInput),
 	})

@@ -77,7 +77,7 @@ func main() {
 					Name:          "Admin Household",
 					BelongsToUser: adminUserID,
 				}
-				account, accountErr := repo.CreateAccount(ctx, identityconverters.ConvertAccountCreationInputToAccountDatabaseCreationInput(accountInput))
+				account, accountErr := repo.CreateAccount(ctx, identityconverters.ConvertAccountCreationRequestInputToAccountDatabaseCreationInput(accountInput))
 				if accountErr != nil {
 					return fmt.Errorf("failed to create account for admin user: %w", accountErr)
 				}
