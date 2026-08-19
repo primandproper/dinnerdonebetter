@@ -78,5 +78,11 @@
 	"http": {
 		"startupDeadline": 60000000000,
 		"port": 8000
+	},
+	"oauth2": {
+		"provider": "database",
+		"database": {
+			"tablePrefix": "ddb"
+		}
 	}
 }

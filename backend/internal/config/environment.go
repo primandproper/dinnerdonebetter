@@ -9,9 +9,12 @@ import (
 
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
 	"github.com/primandproper/platform-go/v11/audit"
 	auditcfg "github.com/primandproper/platform-go/v11/audit/config"
+	oauth2servercfg "github.com/primandproper/platform-go/v11/authentication/oauth2server/config"
+	oauth2database "github.com/primandproper/platform-go/v11/authentication/oauth2server/database"
 	platformconfig "github.com/primandproper/platform-go/v11/config"
 	"github.com/primandproper/platform-go/v11/database/dialect"
 	distributedlockcfg "github.com/primandproper/platform-go/v11/distributedlock/config"
@@ -575,6 +578,19 @@ func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) err
 		Routing:       mcpRouting,
 		Meta:          s.RootConfig.Meta,
 		HTTPServer:    mcpHTTPServer,
+		// The authorization server the MCP server runs. Two fields are absent on purpose:
+		// Issuer and Resources are the server's own public URL, which only the deployment
+		// knows — it arrives as MCP_BASE_URL — so rendering a guess here would produce a
+		// discovery document pointing somewhere nothing is listening. mcpserver.Run fills
+		// both from that URL.
+		//
+		// The table prefix is not optional in the same way. It has to be the one migration
+		// 33 created the tables under, and a prefix that differs between the DDL and the
+		// store is a server that comes up clean and cannot find a table.
+		OAuth2: oauth2servercfg.Config{
+			Provider: oauth2servercfg.ProviderDatabase,
+			Database: oauth2database.Config{TablePrefix: ddboauth.TablePrefix},
+		},
 	}
 
 	// RenderJSONFiles validates every environment it is handed before writing any of that

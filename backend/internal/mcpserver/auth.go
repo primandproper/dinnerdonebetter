@@ -2,305 +2,228 @@ package mcpserver
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
-	"fmt"
+	"errors"
+	"html/template"
 	"net/http"
-	"sync"
-	"time"
+	"slices"
+
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+
+	"github.com/primandproper/platform-go/v11/authentication/oauth2server"
+	"github.com/primandproper/platform-go/v11/authentication/totp"
+	"github.com/primandproper/platform-go/v11/observability/logging"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 )
 
-const (
-	authCodeLifetime     = 5 * time.Minute
-	accessTokenLifetime  = 24 * time.Hour
-	refreshTokenLifetime = 7 * 24 * time.Hour
-	cleanupInterval      = 10 * time.Minute
-)
+// claimAccountID is the Subject claim carrying the account a token acts on behalf of.
+//
+// It is the one thing beside the user ID that every tool handler needs, and it is
+// resolved once at /authorize rather than per request. Subject.Claims is
+// map[string]string by construction, so it round-trips through the store as the
+// same Go type it went in as.
+const claimAccountID = "account_id"
 
-// authCodeEntry stores a pending authorization code.
-type authCodeEntry struct {
-	expiresAt     time.Time
-	userID        string
-	accountID     string
-	codeChallenge string
-	redirectURI   string
-	clientID      string
+// accessDeniedMessage is what a failed sign-in says, whichever half was wrong.
+//
+// Deliberately uninformative: "no such user" and "wrong password" as separate
+// answers make this form an account enumeration oracle, and the endpoint is
+// public. It also does not distinguish "not an admin" from "does not exist",
+// because who holds an admin account is not something an anonymous caller
+// should be able to probe for.
+const accessDeniedMessage = "Access denied. Admin credentials required."
+
+// subjectAuthenticator identifies the human at /authorize.
+//
+// This is the seam the platform's authorization server deliberately does not
+// fill, and everything application-shaped about MCP authentication lives here:
+// the account must be an admin, it must not be banned, the password is argon2,
+// and TOTP is checked when the user has verified a secret. The protocol around
+// it — PKCE, redirect URI matching, code redemption, token rotation — is the
+// platform's.
+type subjectAuthenticator struct {
+	identityRepo  identity.Repository
+	authenticator authentication.Authenticator
+	totpVerifier  totp.Verifier
 }
 
-// accessTokenEntry maps an MCP access token to a user.
-type accessTokenEntry struct {
-	expiresAt time.Time
-	userID    string
-	accountID string
-}
+var _ oauth2server.SubjectAuthenticator = (*subjectAuthenticator)(nil)
 
-// refreshTokenEntry stores data needed to issue new access tokens.
-type refreshTokenEntry struct {
-	expiresAt time.Time
-	userID    string
-	accountID string
-}
+// AuthenticateSubject implements oauth2server.SubjectAuthenticator.
+//
+// Every refusal is a *oauth2server.LoginError, which re-renders the form with a
+// message rather than failing the authorization request: the human is still
+// there and can try again. A broken identity store returns a plain error
+// instead, because retrying a form against a database that is down produces a
+// user who tries four times and then files a support ticket.
+func (a *subjectAuthenticator) AuthenticateSubject(ctx context.Context, req *http.Request) (*oauth2server.Subject, error) {
+	username := req.FormValue("username")
+	password := req.FormValue("password")
+	totpToken := req.FormValue("totp_token")
 
-// registeredClient stores a dynamically registered OAuth2 client.
-type registeredClient struct {
-	createdAt    time.Time
-	clientID     string
-	clientSecret string
-	clientName   string
-	redirectURIs []string
-}
-
-// tokenStore manages all auth state for the MCP server's OAuth2 authorization server.
-type tokenStore struct {
-	authCodes     map[string]*authCodeEntry
-	accessTokens  map[string]*accessTokenEntry
-	refreshTokens map[string]*refreshTokenEntry
-	clients       map[string]*registeredClient
-	mu            sync.RWMutex
-}
-
-func newTokenStore() *tokenStore {
-	return &tokenStore{
-		authCodes:     make(map[string]*authCodeEntry),
-		accessTokens:  make(map[string]*accessTokenEntry),
-		refreshTokens: make(map[string]*refreshTokenEntry),
-		clients:       make(map[string]*registeredClient),
+	// Admin-only, and the lookup is what enforces it: there is no non-admin
+	// branch to fall through to.
+	user, err := a.identityRepo.GetAdminUserByUsername(ctx, username)
+	if err != nil || user == nil {
+		return nil, oauth2server.NewLoginError(accessDeniedMessage, err)
 	}
-}
 
-// startCleanupLoop periodically evicts expired entries.
-func (ts *tokenStore) startCleanupLoop(ctx context.Context) {
-	ticker := time.NewTicker(cleanupInterval)
-	go func() {
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				ts.evictExpired()
+	if user.IsBanned() {
+		return nil, oauth2server.NewLoginError("Access denied. Account is banned.", nil)
+	}
+
+	matches, err := a.authenticator.PasswordMatches(ctx, user.HashedPassword, password)
+	if err != nil || !matches {
+		return nil, oauth2server.NewLoginError(accessDeniedMessage, err)
+	}
+
+	if user.TwoFactorSecretVerifiedAt != nil {
+		if verifyErr := a.totpVerifier.Verify(ctx, user.TwoFactorSecret, totpToken); verifyErr != nil {
+			if errors.Is(verifyErr, totp.ErrCodeRequired) {
+				return nil, oauth2server.NewLoginError("TOTP code is required.", verifyErr)
 			}
-		}
-	}()
-}
 
-func (ts *tokenStore) evictExpired() {
-	now := time.Now()
-	ts.mu.Lock()
-	defer ts.mu.Unlock()
-
-	for k, v := range ts.authCodes {
-		if now.After(v.expiresAt) {
-			delete(ts.authCodes, k)
+			return nil, oauth2server.NewLoginError(accessDeniedMessage, verifyErr)
 		}
 	}
-	for k, v := range ts.accessTokens {
-		if now.After(v.expiresAt) {
-			delete(ts.accessTokens, k)
-		}
-	}
-	for k, v := range ts.refreshTokens {
-		if now.After(v.expiresAt) {
-			delete(ts.refreshTokens, k)
-		}
-	}
-}
 
-// verifyToken implements auth.TokenVerifier for the MCP SDK's RequireBearerToken middleware.
-func (ts *tokenStore) verifyToken(_ context.Context, token string, _ *http.Request) (*auth.TokenInfo, error) {
-	ts.mu.RLock()
-	entry, ok := ts.accessTokens[token]
-	ts.mu.RUnlock()
-
-	if !ok {
-		return nil, fmt.Errorf("%w: unknown token", auth.ErrInvalidToken)
-	}
-	if time.Now().After(entry.expiresAt) {
-		return nil, fmt.Errorf("%w: token expired", auth.ErrInvalidToken)
+	// Not a LoginError. The credentials were right and the account still has no
+	// resolvable default account, which is a broken record rather than a wrong
+	// password — re-rendering the form would ask the human to fix it by typing.
+	accountID, err := a.identityRepo.GetDefaultAccountIDForUser(ctx, user.ID)
+	if err != nil {
+		return nil, err
 	}
 
-	return &auth.TokenInfo{
-		UserID:     entry.userID,
-		Expiration: entry.expiresAt,
-		Extra:      map[string]any{"raw_token": token},
+	return &oauth2server.Subject{
+		ID:     user.ID,
+		Claims: map[string]string{claimAccountID: accountID},
 	}, nil
 }
 
-// userContextForToken returns the user ID and account ID associated with an MCP access token.
-func (ts *tokenStore) userContextForToken(token string) (userID, accountID string, err error) {
-	ts.mu.RLock()
-	entry, ok := ts.accessTokens[token]
-	ts.mu.RUnlock()
+// loginTemplateData is what the login form renders from: the platform's view of
+// the authorization request, plus the one thing branding owns.
+type loginTemplateData struct {
+	_ struct{} `json:"-"`
 
-	if !ok {
-		return "", "", fmt.Errorf("no entry for token")
-	}
-	if time.Now().After(entry.expiresAt) {
-		return "", "", fmt.Errorf("token expired")
-	}
+	CompanyName string
 
-	return entry.userID, entry.accountID, nil
+	oauth2server.LoginView
 }
 
-// createAuthCode stores an authorization code that can be exchanged for tokens.
-func (ts *tokenStore) createAuthCode(userID, accountID, codeChallenge, redirectURI, clientID string) (string, error) {
-	code, err := generateOpaqueToken(32)
-	if err != nil {
-		return "", fmt.Errorf("generating auth code: %w", err)
-	}
+// loginTemplate draws the sign-in form.
+//
+// html/template rather than concatenation, because ClientName is whatever an
+// anonymous /register call said it was — a renderer that builds this by hand is
+// choosing to be an XSS.
+var loginTemplate = template.Must(template.New("login").Parse(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.CompanyName}} — Sign In</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .card { background: white; border-radius: 12px; padding: 2rem; width: 100%; max-width: 400px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; text-align: center; }
+        .client { font-size: 0.875rem; color: #666; text-align: center; margin-bottom: 1.5rem; }
+        label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem; color: #333; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 0.625rem; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; margin-bottom: 1rem; }
+        input:focus { outline: none; border-color: #4a90d9; box-shadow: 0 0 0 2px rgba(74,144,217,0.2); }
+        button { width: 100%; padding: 0.75rem; background: #4a90d9; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: 500; cursor: pointer; }
+        button:hover { background: #3a7bc8; }
+        .error { background: #fee; color: #c33; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.875rem; }
+        .scopes { font-size: 0.8125rem; color: #666; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Sign In</h1>
+        {{with .ClientName}}<p class="client">to continue to {{.}}</p>{{end}}
+        {{with .Error}}<div class="error">{{.}}</div>{{end}}
+        {{with .Scopes}}<p class="scopes">Requested access: {{range $i, $s := .}}{{if $i}}, {{end}}{{$s}}{{end}}</p>{{end}}
+        <form method="POST" action="{{.Action}}">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required autofocus>
 
-	ts.mu.Lock()
-	ts.authCodes[code] = &authCodeEntry{
-		userID:        userID,
-		accountID:     accountID,
-		codeChallenge: codeChallenge,
-		redirectURI:   redirectURI,
-		clientID:      clientID,
-		expiresAt:     time.Now().Add(authCodeLifetime),
-	}
-	ts.mu.Unlock()
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
 
-	return code, nil
+            <label for="totp_token">TOTP Code</label>
+            <input type="text" id="totp_token" name="totp_token" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*">
+
+            <button type="submit">Sign In</button>
+        </form>
+    </div>
+</body>
+</html>`))
+
+// newLoginRenderer draws the platform's login form in this application's brand.
+//
+// The authorization parameters are not hidden form fields here: Action is the
+// /authorize URL with the original query string intact, so the POST is
+// validated against exactly the same request the GET was. That is what makes
+// carrying them in the form unnecessary rather than merely redundant.
+func newLoginRenderer(logger logging.Logger) oauth2server.LoginRenderer {
+	return oauth2server.LoginRendererFunc(func(ctx context.Context, res http.ResponseWriter, view oauth2server.LoginView) {
+		res.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+		// A renderer owns the status, and a re-render with a message is the
+		// answer to a refused credential.
+		if view.Error != "" {
+			res.WriteHeader(http.StatusUnauthorized)
+		}
+
+		if err := loginTemplate.Execute(res, &loginTemplateData{
+			LoginView:   view,
+			CompanyName: branding.CompanyName,
+		}); err != nil {
+			logging.EnsureLogger(logger).WithValue("client_name", view.ClientName).Error("rendering MCP login form", err)
+		}
+	})
 }
 
-// exchangeCode validates an authorization code and PKCE verifier, and returns MCP access and refresh tokens.
-func (ts *tokenStore) exchangeCode(_ context.Context, code, codeVerifier, clientID, redirectURI string) (accessToken, refreshToken string, expiresIn int, err error) {
-	ts.mu.Lock()
-	entry, ok := ts.authCodes[code]
-	if ok {
-		delete(ts.authCodes, code) // one-time use
-	}
-	ts.mu.Unlock()
+// newTokenVerifier adapts the authorization server to the MCP SDK's bearer
+// middleware.
+//
+// Two things happen here that the SDK cannot do for us. The lookup is the whole
+// point of an opaque access token — a revoked token stops working on the next
+// request rather than at the end of its lifetime — and the audience check is the
+// one RFC 8707 leaves to the resource server: a token minted for somewhere else
+// must not be spendable here, and no authorization server can make that
+// determination on our behalf.
+func newTokenVerifier(srv *oauth2server.Server, resource string) auth.TokenVerifier {
+	return func(ctx context.Context, token string, _ *http.Request) (*auth.TokenInfo, error) {
+		accessToken, err := srv.Authenticate(ctx, token)
+		if err != nil {
+			return nil, errors.Join(auth.ErrInvalidToken, err)
+		}
 
-	if !ok {
-		return "", "", 0, fmt.Errorf("invalid authorization code")
-	}
-	if time.Now().After(entry.expiresAt) {
-		return "", "", 0, fmt.Errorf("authorization code expired")
-	}
-	if entry.clientID != clientID {
-		return "", "", 0, fmt.Errorf("client_id mismatch")
-	}
-	if entry.redirectURI != redirectURI {
-		return "", "", 0, fmt.Errorf("redirect_uri mismatch")
-	}
+		// An empty audience is a token no resource was named for, which this
+		// server does not refuse: a client that sends no RFC 8707 resource
+		// parameter gets one, and refusing those would make every such client
+		// unable to sign in. What must not be accepted is an audience naming
+		// somewhere that is not here — that token was minted for another
+		// resource server and arriving at this one is the replay resource
+		// indicators exist to stop.
+		if len(accessToken.Audience) > 0 && !slices.Contains(accessToken.Audience, resource) {
+			return nil, errors.Join(auth.ErrInvalidToken, errWrongAudience)
+		}
 
-	// Validate PKCE S256: SHA256(code_verifier) == code_challenge
-	if !validatePKCES256(codeVerifier, entry.codeChallenge) {
-		return "", "", 0, fmt.Errorf("PKCE verification failed")
+		return &auth.TokenInfo{
+			UserID:     accessToken.Subject.ID,
+			Scopes:     accessToken.Scopes,
+			Expiration: accessToken.ExpiresAt,
+			Extra:      map[string]any{claimAccountID: accessToken.Subject.Claims[claimAccountID]},
+		}, nil
 	}
-
-	// Generate opaque tokens.
-	accessToken, err = generateOpaqueToken(32)
-	if err != nil {
-		return "", "", 0, fmt.Errorf("generating access token: %w", err)
-	}
-	refreshToken, err = generateOpaqueToken(32)
-	if err != nil {
-		return "", "", 0, fmt.Errorf("generating refresh token: %w", err)
-	}
-
-	now := time.Now()
-	ts.mu.Lock()
-	ts.accessTokens[accessToken] = &accessTokenEntry{
-		userID:    entry.userID,
-		accountID: entry.accountID,
-		expiresAt: now.Add(accessTokenLifetime),
-	}
-	ts.refreshTokens[refreshToken] = &refreshTokenEntry{
-		userID:    entry.userID,
-		accountID: entry.accountID,
-		expiresAt: now.Add(refreshTokenLifetime),
-	}
-	ts.mu.Unlock()
-
-	return accessToken, refreshToken, int(accessTokenLifetime.Seconds()), nil
 }
 
-// refreshAccessToken uses a refresh token to issue new tokens.
-func (ts *tokenStore) refreshAccessToken(_ context.Context, oldRefreshToken string) (accessToken, refreshToken string, expiresIn int, err error) {
-	ts.mu.Lock()
-	entry, ok := ts.refreshTokens[oldRefreshToken]
-	if ok {
-		delete(ts.refreshTokens, oldRefreshToken) // one-time use
-	}
-	ts.mu.Unlock()
-
-	if !ok {
-		return "", "", 0, fmt.Errorf("invalid refresh token")
-	}
-	if time.Now().After(entry.expiresAt) {
-		return "", "", 0, fmt.Errorf("refresh token expired")
-	}
-
-	accessToken, err = generateOpaqueToken(32)
-	if err != nil {
-		return "", "", 0, fmt.Errorf("generating access token: %w", err)
-	}
-	refreshToken, err = generateOpaqueToken(32)
-	if err != nil {
-		return "", "", 0, fmt.Errorf("generating refresh token: %w", err)
-	}
-
-	now := time.Now()
-	ts.mu.Lock()
-	ts.accessTokens[accessToken] = &accessTokenEntry{
-		userID:    entry.userID,
-		accountID: entry.accountID,
-		expiresAt: now.Add(accessTokenLifetime),
-	}
-	ts.refreshTokens[refreshToken] = &refreshTokenEntry{
-		userID:    entry.userID,
-		accountID: entry.accountID,
-		expiresAt: now.Add(refreshTokenLifetime),
-	}
-	ts.mu.Unlock()
-
-	return accessToken, refreshToken, int(accessTokenLifetime.Seconds()), nil
-}
-
-// registerClient performs dynamic client registration (RFC 7591).
-func (ts *tokenStore) registerClient(redirectURIs []string, clientName string) (*registeredClient, error) {
-	id, err := generateOpaqueToken(16)
-	if err != nil {
-		return nil, fmt.Errorf("generating client_id: %w", err)
-	}
-	secret, err := generateOpaqueToken(32)
-	if err != nil {
-		return nil, fmt.Errorf("generating client_secret: %w", err)
-	}
-
-	rc := &registeredClient{
-		clientID:     id,
-		clientSecret: secret,
-		redirectURIs: redirectURIs,
-		clientName:   clientName,
-		createdAt:    time.Now(),
-	}
-
-	ts.mu.Lock()
-	ts.clients[id] = rc
-	ts.mu.Unlock()
-
-	return rc, nil
-}
-
-// generateOpaqueToken generates a cryptographically random hex-encoded token.
-func generateOpaqueToken(nBytes int) (string, error) {
-	b := make([]byte, nBytes)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
-}
-
-// validatePKCES256 checks that SHA256(base64url(code_verifier)) == code_challenge.
-func validatePKCES256(codeVerifier, codeChallenge string) bool {
-	h := sha256.Sum256([]byte(codeVerifier))
-	computed := base64.RawURLEncoding.EncodeToString(h[:])
-	return computed == codeChallenge
-}
+// errWrongAudience is the refusal the store cannot make. Expiry and revocation
+// are already its answer — GetAccessToken returns ErrExpired rather than an
+// inactive token — so this is the only condition left for the resource server to
+// check for itself.
+var errWrongAudience = errors.New("token audience does not name this resource server")

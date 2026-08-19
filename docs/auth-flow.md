@@ -156,6 +156,31 @@ Clients that use OAuth2 (e.g. web app via `WithOAuth2Credentials`) follow this f
 - `POST /oauth2/token` — token exchange
 - `POST /oauth2/revoke` — token revocation
 
+## The MCP server's authorization server
+
+There are currently **two** OAuth 2.0 authorization servers in this repository, and everything
+above describes only the API server's. The MCP server (`ddb serve mcp`) runs a second one, and
+they are not the same implementation:
+
+|                     | API server                                    | MCP server                                     |
+|---------------------|-----------------------------------------------|------------------------------------------------|
+| Implementation      | `github.com/go-oauth2/oauth2/v4`              | `platform-go` `authentication/oauth2server`    |
+| Endpoints           | `/oauth2/authorize`, `/oauth2/token`, …       | `/authorize`, `/token`, `/register`, `/revoke` |
+| Tables              | `oauth2_clients`, `oauth2_client_tokens`      | `ddb_oauth2_*` (four of them)                  |
+| Who the subject is  | a JWT the client already holds                | a username, argon2 password, and TOTP          |
+| Client registration | pre-registered                                | RFC 7591 dynamic, open, 90-day expiry          |
+| PKCE                | S256 or `plain`                               | S256, mandatory                                |
+| Access token        | opaque, 24h                                   | opaque, 15m, revocable immediately             |
+
+The MCP side is documented in [`backend/docs/mcp-usage-guide.md`](backend/docs/mcp-usage-guide.md).
+
+This split is deliberate but temporary: [#1288](https://github.com/primandproper/dinnerdonebetter/issues/1288)
+moves the API server onto `oauth2server` too, at which point there is one implementation, one
+set of tables, and `go-oauth2/oauth2/v4` leaves `go.mod`. The two processes will then share the
+Store rather than each running their own server — `oauth2server` ships no RFC 7662 introspection
+endpoint, so a resource server either shares the Store or lives in the same process, and both of
+these reach the same Postgres.
+
 ## Session Context
 
 After auth, handlers receive `sessions.ContextData` in the request context. It contains:

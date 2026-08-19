@@ -23,7 +23,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 
+	"github.com/primandproper/platform-go/v11/authentication/oauth2server"
+	oauth2servercfg "github.com/primandproper/platform-go/v11/authentication/oauth2server/config"
 	"github.com/primandproper/platform-go/v11/authentication/totp"
+	"github.com/primandproper/platform-go/v11/database"
 	"github.com/primandproper/platform-go/v11/encoding"
 	"github.com/primandproper/platform-go/v11/observability"
 	"github.com/primandproper/platform-go/v11/routing"
@@ -98,13 +101,55 @@ func Run(ctx context.Context, transport, baseURL string) error {
 	identityRepo := do.MustInvoke[identity.Repository](injector)
 	authenticator := do.MustInvoke[authentication.Authenticator](injector)
 	totpVerifier := do.MustInvoke[totp.Verifier](injector)
+	dbClient := do.MustInvoke[database.Client](injector)
 
-	// Create token store for per-user auth.
-	tokens := newTokenStore()
-	tokens.startCleanupLoop(ctx)
+	// The authorization server this process runs. Its records live in the four
+	// ddb_oauth2_* tables rather than in this process's memory, which is what makes
+	// a second replica and a restart survivable: an authorization code issued by one
+	// replica is redeemed at whichever one serves /token, and a registered MCP client
+	// outlives a deploy.
+	//
+	// Issuer and Resources default to this server's own public URL rather than being
+	// rendered into the config file, because only the deployment knows it — it arrives
+	// as MCP_BASE_URL. They are the same string by default on purpose: the issuer names
+	// the authorization server, the resource names the protected resource, and here
+	// they are one process.
+	//
+	// Both defer to a configured value rather than overwriting it, so that
+	// DINNER_DONE_BETTER_OAUTH2_ISSUER and _RESOURCES mean what the generated env var
+	// constants say they mean. A deployment fronting this server at a different issuer
+	// is the case that needs them.
+	if cfg.OAuth2.Issuer == "" {
+		cfg.OAuth2.Issuer = baseURL
+	}
+	if len(cfg.OAuth2.Resources) == 0 {
+		cfg.OAuth2.Resources = []string{baseURL}
+	}
+
+	authServer, err := oauth2servercfg.NewServer(ctx, &cfg.OAuth2, dbClient,
+		&subjectAuthenticator{
+			identityRepo:  identityRepo,
+			authenticator: authenticator,
+			totpVerifier:  totpVerifier,
+		},
+		oauth2servercfg.WithPillars(pillars),
+		oauth2servercfg.WithServerOptions(oauth2server.WithLoginRenderer(newLoginRenderer(logger))),
+	)
+	if err != nil {
+		return fmt.Errorf("building authorization server: %w", err)
+	}
+
+	// The RFC 9728 document, published by the resource server rather than by the
+	// authorization server — they are the same process here, but the document is
+	// what tells a client with no token where to go, so it is mounted separately.
+	resourceMetadata, err := oauth2server.NewResourceMetadata(baseURL, []string{baseURL},
+		oauth2server.WithResourceName(fmt.Sprintf("%s MCP Server", branding.CompanyName)),
+	)
+	if err != nil {
+		return fmt.Errorf("building protected resource metadata: %w", err)
+	}
 
 	helper := &mcpToolManager{
-		tokens:           tokens,
 		mealplanningRepo: mealplanningRepo,
 		webhooksRepo:     webhooksRepo,
 		waitlistsRepo:    waitlistRepo,
@@ -139,7 +184,7 @@ func Run(ctx context.Context, transport, baseURL string) error {
 			return server
 		}, &mcp.SSEOptions{})
 
-		router, routerErr := buildRouter(ctx, sseHandler, tokens, pillars, &cfg.Routing, baseURL, identityRepo, authenticator, totpVerifier)
+		router, routerErr := buildRouter(ctx, sseHandler, authServer, resourceMetadata, pillars, &cfg.Routing, baseURL)
 		if routerErr != nil {
 			return fmt.Errorf("building router: %w", routerErr)
 		}
@@ -168,7 +213,7 @@ func Run(ctx context.Context, transport, baseURL string) error {
 			return server
 		}, handlerOpts)
 
-		router, routerErr := buildRouter(ctx, streamHandler, tokens, pillars, &cfg.Routing, baseURL, identityRepo, authenticator, totpVerifier)
+		router, routerErr := buildRouter(ctx, streamHandler, authServer, resourceMetadata, pillars, &cfg.Routing, baseURL)
 		if routerErr != nil {
 			return fmt.Errorf("building router: %w", routerErr)
 		}
@@ -191,7 +236,7 @@ func Run(ctx context.Context, transport, baseURL string) error {
 }
 
 // buildRouter creates a router with OAuth2 routes (unauthenticated) and the MCP handler (authenticated).
-func buildRouter(ctx context.Context, mcpHandler http.Handler, tokens *tokenStore, pillars *observability.Pillars, routingCfg *routingcfg.Config, baseURL string, identityRepo identity.Repository, authenticator authentication.Authenticator, totpVerifier totp.Verifier) (*routing.Router, error) {
+func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth2server.Server, resourceMetadata *oauth2server.ResourceMetadata, pillars *observability.Pillars, routingCfg *routingcfg.Config, baseURL string) (*routing.Router, error) {
 	encoder := encoding.NewServerEncoderDecoder(encoding.ContentTypeJSON, encoding.WithLogger(pillars.Logger), encoding.WithTracerProvider(pillars.TracerProvider))
 
 	router, err := routingcfg.NewRouter(ctx, routingCfg, encoder, routingcfg.WithPillars(pillars))
@@ -213,14 +258,16 @@ func buildRouter(ctx context.Context, mcpHandler http.Handler, tokens *tokenStor
 		}))
 	})
 
-	// Register OAuth2 routes (no auth middleware — these handle authentication themselves).
-	registerOAuth2Routes(router, tokens, baseURL, identityRepo, authenticator, totpVerifier)
+	// The six authorization server endpoints, plus the protected resource document.
+	// No auth middleware: these are how a caller gets a token in the first place.
+	authServer.Mount(router)
+	resourceMetadata.Mount(router)
 
 	// Wrap the MCP handler with bearer token auth middleware. The MCP transport
 	// serves multiple methods (GET for streaming, POST for messages, DELETE to
 	// terminate a session), so register the handler for each.
-	authMiddleware := auth.RequireBearerToken(tokens.verifyToken, &auth.RequireBearerTokenOptions{
-		ResourceMetadataURL: baseURL + "/.well-known/oauth-protected-resource",
+	authMiddleware := auth.RequireBearerToken(newTokenVerifier(authServer, baseURL), &auth.RequireBearerTokenOptions{
+		ResourceMetadataURL: baseURL + oauth2server.PathProtectedResourceMetadata,
 	})
 	mcpWrapped := authMiddleware(mcpHandler)
 	for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodDelete} {
@@ -235,7 +282,6 @@ func buildRouter(ctx context.Context, mcpHandler http.Handler, tokens *tokenStor
 }
 
 type mcpToolManager struct {
-	tokens           *tokenStore
 	mealplanningRepo mealplanning.Repository
 	webhooksRepo     webhooks.Repository
 	waitlistsRepo    *waitlistsrepo.Repository
@@ -243,16 +289,21 @@ type mcpToolManager struct {
 }
 
 // userFromRequest resolves the authenticated user's account from the MCP request's auth token.
+//
+// The account is read off the token rather than looked up again: it was resolved
+// once at /authorize and travels in the access token's Subject claims, so a tool
+// call costs the one store read the bearer middleware already made.
 func (h *mcpToolManager) userFromRequest(req *mcp.CallToolRequest) (accountID string, err error) {
 	if req.Extra == nil || req.Extra.TokenInfo == nil {
 		return "", fmt.Errorf("not authenticated")
 	}
-	rawToken, ok := req.Extra.TokenInfo.Extra["raw_token"].(string)
-	if !ok || rawToken == "" {
-		return "", fmt.Errorf("bearer token not found in request")
+
+	accountID, ok := req.Extra.TokenInfo.Extra[claimAccountID].(string)
+	if !ok || accountID == "" {
+		return "", fmt.Errorf("no account on token")
 	}
-	_, accountID, err = h.tokens.userContextForToken(rawToken)
-	return accountID, err
+
+	return accountID, nil
 }
 
 func (h *mcpToolManager) setupServer() *mcp.Server {

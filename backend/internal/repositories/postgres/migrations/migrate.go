@@ -7,8 +7,10 @@ import (
 
 	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
+	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
 	auditmigrations "github.com/primandproper/platform-go/v11/audit/migrations"
+	oauth2migrations "github.com/primandproper/platform-go/v11/authentication/oauth2server/database/migrations"
 	webauthndatabase "github.com/primandproper/platform-go/v11/authentication/webauthn/database"
 	webauthnmigrations "github.com/primandproper/platform-go/v11/authentication/webauthn/database/migrations"
 	"github.com/primandproper/platform-go/v11/database/dialect"
@@ -54,6 +56,7 @@ const (
 	meteringMigrationVersion    = 30
 	operationsMigrationVersion  = 31
 	webauthnMigrationVersion    = 32
+	oauth2MigrationVersion      = 33
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -125,6 +128,15 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, err
 	}
 
+	// And the authorization server's four tables — registered clients, authorization codes,
+	// access tokens, and refresh tokens. They are created together because the store that
+	// reads them is one interface, and a deployment holding three of the four has a server
+	// that fails at whichever step the missing one serves.
+	oauth2DDL, err := oauth2migrations.SQL(dialect.Postgres, ddboauth.TablePrefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "rendering oauth2 server migration")
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -138,6 +150,7 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithGeneratedMigration(meteringMigrationVersion, "create_metering_tables", meteringDDL),
 		migrate.WithGeneratedMigration(operationsMigrationVersion, "create_operations_table", operationsDDL),
 		migrate.WithGeneratedMigration(webauthnMigrationVersion, "create_webauthn_sessions_table", webauthnDDL),
+		migrate.WithGeneratedMigration(oauth2MigrationVersion, "create_oauth2_server_tables", oauth2DDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
