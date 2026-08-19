@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/primandproper/platform-go/v11/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -29,8 +32,6 @@ func buildValidPreparationVesselsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		insertColumns := filterForInsert(validPreparationVesselsColumns)
-
 		fullSelectColumns := append(
 			mergeColumns(
 				applyToEach(filterFromSlice(validPreparationVesselsColumns, "valid_preparation_id", "valid_vessel_id"), func(i int, s string) string {
@@ -52,61 +53,18 @@ func buildValidPreparationVesselsQueries(database string) []*Query {
 			)...,
 		)
 
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "ArchiveValidPreparationVessel",
-					Type: ExecRowsType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s IS NULL AND %s = sqlc.arg(%s);`,
-					validPreparationVesselsTableName,
-					archivedAtColumn,
-					currentTimeExpression,
-					archivedAtColumn,
-					idColumn,
-					idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateValidPreparationVessel",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					validPreparationVesselsTableName,
-					strings.Join(insertColumns, ",\n\t"),
-					strings.Join(applyToEach(insertColumns, func(i int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CheckValidPreparationVesselExistence",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS (
-	SELECT %s.%s
-	FROM %s
-	WHERE %s.%s IS NULL
-		AND %s.%s = sqlc.arg(%s)
-);`,
-					validPreparationVesselsTableName, idColumn,
-					validPreparationVesselsTableName,
-					validPreparationVesselsTableName, archivedAtColumn,
-					validPreparationVesselsTableName, idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetValidPreparationVesselsForPreparation",
-					Type: ManyType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+		return slices.Concat(
+			querygen.StandardCRUD(validPreparationVesselsTableName, validPreparationVesselsColumns,
+				querygen.WithEntity("ValidPreparationVessel", "ValidPreparationVessels"),
+				querygen.WithOmitted(querygen.GetQuery, querygen.ListQuery),
+			),
+			[]*Query{
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetValidPreparationVesselsForPreparation",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -122,28 +80,28 @@ WHERE
 	AND %s.%s = sqlc.arg(%s)
 	%s
 %s;`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					buildFilterCountSelect(validPreparationVesselsTableName, true, true, []string{}),
-					buildTotalCountSelect(validPreparationVesselsTableName, true, []string{}),
-					validPreparationVesselsTableName,
-					validVesselsTableName, validPreparationVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
-					validPreparationsTableName, validPreparationVesselsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
-					validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
-					validPreparationVesselsTableName, archivedAtColumn,
-					validVesselsTableName, archivedAtColumn,
-					validPreparationsTableName, archivedAtColumn,
-					validMeasurementUnitsTableName, archivedAtColumn,
-					validPreparationVesselsTableName, validPreparationIDColumn, idColumn,
-					buildFilterConditions(validPreparationVesselsTableName, true, false),
-					buildCursorLimitClause(validPreparationVesselsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetValidPreparationVesselsForVessel",
-					Type: ManyType,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						buildFilterCountSelect(validPreparationVesselsTableName, true, true, []string{}),
+						buildTotalCountSelect(validPreparationVesselsTableName, true, []string{}),
+						validPreparationVesselsTableName,
+						validVesselsTableName, validPreparationVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
+						validPreparationsTableName, validPreparationVesselsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
+						validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
+						validPreparationVesselsTableName, archivedAtColumn,
+						validVesselsTableName, archivedAtColumn,
+						validPreparationsTableName, archivedAtColumn,
+						validMeasurementUnitsTableName, archivedAtColumn,
+						validPreparationVesselsTableName, validPreparationIDColumn, idColumn,
+						buildFilterConditions(validPreparationVesselsTableName, true, false),
+						buildCursorLimitClause(validPreparationVesselsTableName),
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetValidPreparationVesselsForVessel",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -159,29 +117,29 @@ WHERE
 	AND %s.%s = sqlc.arg(%s)
 	%s
 %s;`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					buildFilterCountSelect(validPreparationVesselsTableName, true, true, []string{}),
-					buildTotalCountSelect(validPreparationVesselsTableName, true, []string{}),
-					validPreparationVesselsTableName,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						buildFilterCountSelect(validPreparationVesselsTableName, true, true, []string{}),
+						buildTotalCountSelect(validPreparationVesselsTableName, true, []string{}),
+						validPreparationVesselsTableName,
 
-					validVesselsTableName, validPreparationVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
-					validPreparationsTableName, validPreparationVesselsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
-					validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
-					validPreparationVesselsTableName, archivedAtColumn,
-					validVesselsTableName, archivedAtColumn,
-					validPreparationsTableName, archivedAtColumn,
-					validMeasurementUnitsTableName, archivedAtColumn,
-					validPreparationVesselsTableName, validVesselIDColumn, idColumn,
-					buildFilterConditions(validPreparationVesselsTableName, true, false),
-					buildCursorLimitClause(validPreparationVesselsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetValidPreparationVessels",
-					Type: ManyType,
+						validVesselsTableName, validPreparationVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
+						validPreparationsTableName, validPreparationVesselsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
+						validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
+						validPreparationVesselsTableName, archivedAtColumn,
+						validVesselsTableName, archivedAtColumn,
+						validPreparationsTableName, archivedAtColumn,
+						validMeasurementUnitsTableName, archivedAtColumn,
+						validPreparationVesselsTableName, validVesselIDColumn, idColumn,
+						buildFilterConditions(validPreparationVesselsTableName, true, false),
+						buildCursorLimitClause(validPreparationVesselsTableName),
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetValidPreparationVessels",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -196,27 +154,27 @@ WHERE
 	AND %s.%s IS NULL
 	%s
 %s;`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					buildFilterCountSelect(validPreparationVesselsTableName, true, true, []string{}),
-					buildTotalCountSelect(validPreparationVesselsTableName, true, []string{}),
-					validPreparationVesselsTableName,
-					validVesselsTableName, validPreparationVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
-					validPreparationsTableName, validPreparationVesselsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
-					validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
-					validPreparationVesselsTableName, archivedAtColumn,
-					validVesselsTableName, archivedAtColumn,
-					validPreparationsTableName, archivedAtColumn,
-					validMeasurementUnitsTableName, archivedAtColumn,
-					buildFilterConditions(validPreparationVesselsTableName, true, false),
-					buildCursorLimitClause(validPreparationVesselsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetValidPreparationVessel",
-					Type: OneType,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						buildFilterCountSelect(validPreparationVesselsTableName, true, true, []string{}),
+						buildTotalCountSelect(validPreparationVesselsTableName, true, []string{}),
+						validPreparationVesselsTableName,
+						validVesselsTableName, validPreparationVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
+						validPreparationsTableName, validPreparationVesselsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
+						validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
+						validPreparationVesselsTableName, archivedAtColumn,
+						validVesselsTableName, archivedAtColumn,
+						validPreparationsTableName, archivedAtColumn,
+						validMeasurementUnitsTableName, archivedAtColumn,
+						buildFilterConditions(validPreparationVesselsTableName, true, false),
+						buildCursorLimitClause(validPreparationVesselsTableName),
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetValidPreparationVessel",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
@@ -228,24 +186,24 @@ WHERE
 	AND %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					validPreparationVesselsTableName,
-					validVesselsTableName, validPreparationVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
-					validPreparationsTableName, validPreparationVesselsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
-					validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
-					validPreparationVesselsTableName, archivedAtColumn,
-					validVesselsTableName, archivedAtColumn,
-					validPreparationsTableName, archivedAtColumn,
-					validMeasurementUnitsTableName, archivedAtColumn,
-					validPreparationVesselsTableName, idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetValidPreparationVesselsByIDs",
-					Type: ManyType,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						validPreparationVesselsTableName,
+						validVesselsTableName, validPreparationVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
+						validPreparationsTableName, validPreparationVesselsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
+						validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
+						validPreparationVesselsTableName, archivedAtColumn,
+						validVesselsTableName, archivedAtColumn,
+						validPreparationsTableName, archivedAtColumn,
+						validMeasurementUnitsTableName, archivedAtColumn,
+						validPreparationVesselsTableName, idColumn, idColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetValidPreparationVesselsByIDs",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
@@ -257,61 +215,41 @@ WHERE
 	AND %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s = ANY(sqlc.arg(ids)::text[]);`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					validPreparationVesselsTableName,
-					validVesselsTableName, validPreparationVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
-					validPreparationsTableName, validPreparationVesselsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
-					validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
-					validPreparationVesselsTableName, archivedAtColumn,
-					validVesselsTableName, archivedAtColumn,
-					validPreparationsTableName, archivedAtColumn,
-					validMeasurementUnitsTableName, archivedAtColumn,
-					validPreparationVesselsTableName, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "ValidPreparationVesselPairIsValid",
-					Type: OneType,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						validPreparationVesselsTableName,
+						validVesselsTableName, validPreparationVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
+						validPreparationsTableName, validPreparationVesselsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
+						validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
+						validPreparationVesselsTableName, archivedAtColumn,
+						validVesselsTableName, archivedAtColumn,
+						validPreparationsTableName, archivedAtColumn,
+						validMeasurementUnitsTableName, archivedAtColumn,
+						validPreparationVesselsTableName, idColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS(
+				{
+					Annotation: QueryAnnotation{
+						Name: "ValidPreparationVesselPairIsValid",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS(
 	SELECT %s
 	FROM %s
 	WHERE %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s)
 	AND %s IS NULL
 );`,
-					idColumn,
-					validPreparationVesselsTableName,
-					validVesselIDColumn,
-					validVesselIDColumn,
-					validPreparationIDColumn,
-					validPreparationIDColumn,
-					archivedAtColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "UpdateValidPreparationVessel",
-					Type: ExecRowsType,
+						idColumn,
+						validPreparationVesselsTableName,
+						validVesselIDColumn,
+						validVesselIDColumn,
+						validPreparationIDColumn,
+						validPreparationIDColumn,
+						archivedAtColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
-	%s,
-	%s = %s
-WHERE %s IS NULL
-	AND %s = sqlc.arg(%s);`,
-					validPreparationVesselsTableName,
-					strings.Join(applyToEach(filterForUpdate(validPreparationVesselsColumns), func(i int, s string) string {
-						return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
-					}), ",\n\t"),
-					lastUpdatedAtColumn,
-					currentTimeExpression,
-					archivedAtColumn,
-					idColumn,
-					idColumn,
-				)),
 			},
-		}
+		)
 	default:
 		return nil
 	}

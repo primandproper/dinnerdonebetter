@@ -1,11 +1,3 @@
--- name: ArchiveComment :execrows
-UPDATE comments SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
-
--- name: ArchiveCommentsForReference :execrows
-UPDATE comments SET archived_at = NOW() WHERE archived_at IS NULL
-	AND target_type = sqlc.arg(target_type)
-	AND referenced_id = sqlc.arg(referenced_id);
-
 -- name: CreateComment :exec
 INSERT INTO comments (
 	id,
@@ -37,6 +29,17 @@ SELECT
 FROM comments
 WHERE comments.archived_at IS NULL
 	AND comments.id = sqlc.arg(id);
+
+-- name: ArchiveComment :execrows
+UPDATE comments SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveCommentsForReference :execrows
+UPDATE comments SET archived_at = NOW() WHERE archived_at IS NULL
+	AND target_type = sqlc.arg(target_type)
+	AND referenced_id = sqlc.arg(referenced_id);
 
 -- name: GetCommentsForReference :many
 SELECT

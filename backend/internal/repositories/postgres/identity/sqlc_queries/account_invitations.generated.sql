@@ -1,10 +1,3 @@
--- name: AttachAccountInvitationsToUserID :execrows
-UPDATE account_invitations SET
-	to_user = sqlc.arg(to_user),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND to_email = LOWER(sqlc.arg(to_email));
-
 -- name: CreateAccountInvitation :exec
 INSERT INTO account_invitations (
 	id,
@@ -28,20 +21,27 @@ INSERT INTO account_invitations (
 	sqlc.arg(expires_at)
 );
 
+-- name: CheckAccountInvitationExistence :one
+SELECT EXISTS (
+	SELECT account_invitations.id
+	FROM account_invitations
+	WHERE account_invitations.archived_at IS NULL
+		AND account_invitations.id = sqlc.arg(id)
+);
+
+-- name: AttachAccountInvitationsToUserID :execrows
+UPDATE account_invitations SET
+	to_user = sqlc.arg(to_user),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND to_email = LOWER(sqlc.arg(to_email));
+
 -- name: AssignInvitationsToUserByEmail :execrows
 UPDATE account_invitations SET
 	to_user = sqlc.arg(to_user),
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
 	AND to_email = LOWER(sqlc.arg(email_address));
-
--- name: CheckAccountInvitationExistence :one
-SELECT EXISTS (
-	SELECT account_invitations.id
-	FROM account_invitations
-	WHERE account_invitations.archived_at IS NULL
-	AND account_invitations.id = sqlc.arg(id)
-);
 
 -- name: GetAccountInvitationByEmailAndToken :one
 SELECT

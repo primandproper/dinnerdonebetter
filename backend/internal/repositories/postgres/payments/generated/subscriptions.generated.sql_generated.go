@@ -80,7 +80,7 @@ SELECT
 	subscriptions.archived_at
 FROM subscriptions
 WHERE subscriptions.archived_at IS NULL
-AND subscriptions.id = $1
+	AND subscriptions.id = $1
 `
 
 func (q *Queries) GetSubscription(ctx context.Context, db DBTX, id string) (*Subscriptions, error) {

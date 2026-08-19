@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/primandproper/platform-go/v11/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -46,83 +49,60 @@ func buildAccountsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		insertColumns := filterForInsert(accountsColumns)
-
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "AddToAccountDuringCreation",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO account_user_memberships (
+		return slices.Concat(
+			querygen.StandardCRUD(accountsTableName, accountsColumns,
+				querygen.WithEntity("Account", "Accounts"),
+				querygen.WithOwnership(belongsToUserColumn),
+				querygen.WithDatabaseOwned("payment_processor_customer_id", "subscription_plan_id", "time_zone", "last_payment_provider_sync_occurred_at"),
+				querygen.WithImmutable("billing_status", webhookHMACSecretColumn),
+				querygen.WithOmitted(querygen.ArchiveQuery, querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery),
+			),
+			[]*Query{
+				{
+					Annotation: QueryAnnotation{
+						Name: "AddToAccountDuringCreation",
+						Type: ExecType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO account_user_memberships (
 	%s
 ) VALUES (
 	%s
 );`,
-					strings.Join(filterForInsert(accountUserMembershipsColumns, "default_account"), ",\n\t"),
-					strings.Join(applyToEach(filterForInsert(accountUserMembershipsColumns, "default_account"), func(_ int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "ArchiveAccount",
-					Type: ExecRowsType,
+						strings.Join(filterForInsert(accountUserMembershipsColumns, "default_account"), ",\n\t"),
+						strings.Join(applyToEach(filterForInsert(accountUserMembershipsColumns, "default_account"), func(_ int, s string) string {
+							return fmt.Sprintf("sqlc.arg(%s)", s)
+						}), ",\n\t"),
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
+				{
+					Annotation: QueryAnnotation{
+						Name: "ArchiveAccount",
+						Type: ExecRowsType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
 	%s = %s,
 	%s = %s
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
-					accountsTableName,
-					lastUpdatedAtColumn,
-					currentTimeExpression,
-					archivedAtColumn,
-					currentTimeExpression,
-					archivedAtColumn,
-					belongsToUserColumn,
-					belongsToUserColumn,
-					idColumn,
-					idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateAccount",
-					Type: ExecType,
+						accountsTableName,
+						lastUpdatedAtColumn,
+						currentTimeExpression,
+						archivedAtColumn,
+						currentTimeExpression,
+						archivedAtColumn,
+						belongsToUserColumn,
+						belongsToUserColumn,
+						idColumn,
+						idColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					accountsTableName,
-					strings.Join(filterForInsert(
-						insertColumns,
-						"time_zone",
-						"payment_processor_customer_id",
-						"last_payment_provider_sync_occurred_at",
-						"subscription_plan_id",
-					), ",\n\t"),
-					strings.Join(applyToEach(filterForInsert(
-						insertColumns,
-						"time_zone",
-						"payment_processor_customer_id",
-						"last_payment_provider_sync_occurred_at",
-						"subscription_plan_id",
-					), func(_ int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetAccountByIDWithMemberships",
-					Type: ManyType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetAccountByIDWithMemberships",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
@@ -131,39 +111,39 @@ FROM %s
 WHERE %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(append(
-						append(
+						strings.Join(append(
 							append(
-								applyToEach(accountsColumns, func(_ int, s string) string {
-									return fmt.Sprintf("%s.%s", accountsTableName, s)
-								}),
-								applyToEach(usersColumns, func(_ int, s string) string {
-									return fmt.Sprintf("%s.%s as user_%s", usersTableName, s, s)
+								append(
+									applyToEach(accountsColumns, func(_ int, s string) string {
+										return fmt.Sprintf("%s.%s", accountsTableName, s)
+									}),
+									applyToEach(usersColumns, func(_ int, s string) string {
+										return fmt.Sprintf("%s.%s as user_%s", usersTableName, s, s)
+									})...,
+								),
+								applyToEach(avatarJoinSelect("user_avatar"), func(_ int, s string) string {
+									return s
 								})...,
 							),
-							applyToEach(avatarJoinSelect("user_avatar"), func(_ int, s string) string {
-								return s
+							applyToEach(accountUserMembershipsColumns, func(_ int, s string) string {
+								return fmt.Sprintf("%s.%s as membership_%s", accountUserMembershipsTableName, s, s)
 							})...,
-						),
-						applyToEach(accountUserMembershipsColumns, func(_ int, s string) string {
-							return fmt.Sprintf("%s.%s as membership_%s", accountUserMembershipsTableName, s, s)
-						})...,
-					), ",\n\t"),
-					accountsTableName,
-					accountUserMembershipsTableName, accountUserMembershipsTableName, belongsToAccountColumn, accountsTableName, idColumn,
-					usersTableName, accountUserMembershipsTableName, belongsToUserColumn, usersTableName, idColumn,
-					avatarJoinClause,
-					accountsTableName, archivedAtColumn,
-					accountUserMembershipsTableName, archivedAtColumn,
-					accountsTableName, idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetAccountsForUser",
-					Type: ManyType,
+						), ",\n\t"),
+						accountsTableName,
+						accountUserMembershipsTableName, accountUserMembershipsTableName, belongsToAccountColumn, accountsTableName, idColumn,
+						usersTableName, accountUserMembershipsTableName, belongsToUserColumn, usersTableName, idColumn,
+						avatarJoinClause,
+						accountsTableName, archivedAtColumn,
+						accountUserMembershipsTableName, archivedAtColumn,
+						accountsTableName, idColumn, idColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetAccountsForUser",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -173,64 +153,25 @@ WHERE %s.%s IS NULL
 	AND %s.%s IS NULL
 	%s
 %s;`,
-					strings.Join(applyToEach(accountsColumns, func(_ int, s string) string {
-						return fmt.Sprintf("%s.%s", accountsTableName, s)
-					}), ",\n\t"),
-					buildFilterCountSelect(accountsTableName, true, true, nil),
-					buildTotalCountSelect(accountsTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToUserColumn, belongsToUserColumn)),
-					accountsTableName,
-					accountUserMembershipsTableName, accountUserMembershipsTableName, belongsToAccountColumn, accountsTableName, idColumn,
-					accountsTableName, archivedAtColumn,
-					accountUserMembershipsTableName, archivedAtColumn,
-					buildFilterConditions(accountsTableName, true, false, fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToUserColumn, belongsToUserColumn)),
-					buildCursorLimitClause(accountsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "UpdateAccount",
-					Type: ExecRowsType,
+						strings.Join(applyToEach(accountsColumns, func(_ int, s string) string {
+							return fmt.Sprintf("%s.%s", accountsTableName, s)
+						}), ",\n\t"),
+						buildFilterCountSelect(accountsTableName, true, true, nil),
+						buildTotalCountSelect(accountsTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToUserColumn, belongsToUserColumn)),
+						accountsTableName,
+						accountUserMembershipsTableName, accountUserMembershipsTableName, belongsToAccountColumn, accountsTableName, idColumn,
+						accountsTableName, archivedAtColumn,
+						accountUserMembershipsTableName, archivedAtColumn,
+						buildFilterConditions(accountsTableName, true, false, fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToUserColumn, belongsToUserColumn)),
+						buildCursorLimitClause(accountsTableName),
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
-	%s,
-	%s = %s
-WHERE %s IS NULL
-	AND %s = sqlc.arg(%s)
-	AND %s = sqlc.arg(%s);`,
-					accountsTableName,
-					strings.Join(
-						applyToEach(
-							filterForUpdate(
-								accountsColumns,
-								"billing_status",
-								"payment_processor_customer_id",
-								"subscription_plan_id",
-								belongsToUserColumn,
-								"time_zone",
-								"last_payment_provider_sync_occurred_at",
-								"webhook_hmac_secret",
-							),
-							func(_ int, s string) string {
-								return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
-							},
-						),
-						",\n\t",
-					),
-					lastUpdatedAtColumn,
-					currentTimeExpression,
-					archivedAtColumn,
-					belongsToUserColumn,
-					belongsToUserColumn,
-					idColumn,
-					idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "UpdateAccountBillingFields",
-					Type: ExecRowsType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
+				{
+					Annotation: QueryAnnotation{
+						Name: "UpdateAccountBillingFields",
+						Type: ExecRowsType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
 	billing_status = COALESCE(sqlc.narg(billing_status), billing_status),
 	subscription_plan_id = COALESCE(sqlc.narg(subscription_plan_id), subscription_plan_id),
 	payment_processor_customer_id = COALESCE(sqlc.narg(payment_processor_customer_id), payment_processor_customer_id),
@@ -238,32 +179,33 @@ WHERE %s IS NULL
 	%s = %s
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
-					accountsTableName,
-					lastUpdatedAtColumn, currentTimeExpression,
-					archivedAtColumn,
-					idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "UpdateAccountWebhookEncryptionKey",
-					Type: ExecRowsType,
+						accountsTableName,
+						lastUpdatedAtColumn, currentTimeExpression,
+						archivedAtColumn,
+						idColumn, idColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
+				{
+					Annotation: QueryAnnotation{
+						Name: "UpdateAccountWebhookEncryptionKey",
+						Type: ExecRowsType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
 	%s = sqlc.arg(%s),
 	%s = %s
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
-					accountsTableName,
-					webhookHMACSecretColumn, webhookHMACSecretColumn,
-					lastUpdatedAtColumn, currentTimeExpression,
-					archivedAtColumn,
-					belongsToUserColumn, belongsToUserColumn,
-					idColumn, idColumn,
-				)),
+						accountsTableName,
+						webhookHMACSecretColumn, webhookHMACSecretColumn,
+						lastUpdatedAtColumn, currentTimeExpression,
+						archivedAtColumn,
+						belongsToUserColumn, belongsToUserColumn,
+						idColumn, idColumn,
+					)),
+				},
 			},
-		}
+		)
 	default:
 		return nil
 	}

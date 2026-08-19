@@ -1558,14 +1558,14 @@ WHERE recipes.archived_at IS NULL
 		SELECT 1 FROM recipe_step_instruments rsi
 		JOIN recipe_steps rs ON rsi.belongs_to_recipe_step = rs.id
 		WHERE rs.belongs_to_recipe = recipes.id
-			AND rsi.archived_at IS NULL
-			AND rs.archived_at IS NULL
-			AND rsi.optional = false
-			AND rsi.instrument_id IS NOT NULL
-			AND rsi.instrument_id NOT IN (
-				SELECT valid_instrument_id FROM account_instrument_ownerships
-				WHERE belongs_to_account = $8 AND archived_at IS NULL
-			)
+				AND rsi.archived_at IS NULL
+				AND rs.archived_at IS NULL
+				AND rsi.optional = false
+				AND rsi.instrument_id IS NOT NULL
+				AND rsi.instrument_id NOT IN (
+					SELECT valid_instrument_id FROM account_instrument_ownerships
+					WHERE belongs_to_account = $8 AND archived_at IS NULL
+				)
 	)
 ORDER BY recipes.id ASC
 LIMIT COALESCE($9, 50)

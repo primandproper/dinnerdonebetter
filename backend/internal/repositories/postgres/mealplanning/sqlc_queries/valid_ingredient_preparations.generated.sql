@@ -1,6 +1,3 @@
--- name: ArchiveValidIngredientPreparation :execrows
-UPDATE valid_ingredient_preparations SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
-
 -- name: CreateValidIngredientPreparation :exec
 INSERT INTO valid_ingredient_preparations (
 	id,
@@ -21,6 +18,21 @@ SELECT EXISTS (
 	WHERE valid_ingredient_preparations.archived_at IS NULL
 		AND valid_ingredient_preparations.id = sqlc.arg(id)
 );
+
+-- name: UpdateValidIngredientPreparation :execrows
+UPDATE valid_ingredient_preparations SET
+	notes = sqlc.arg(notes),
+	valid_preparation_id = sqlc.arg(valid_preparation_id),
+	valid_ingredient_id = sqlc.arg(valid_ingredient_id),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveValidIngredientPreparation :execrows
+UPDATE valid_ingredient_preparations SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
 
 -- name: GetValidIngredientPreparationsForIngredient :many
 SELECT
@@ -636,12 +648,3 @@ WHERE
 	AND valid_ingredient_preparations.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_ingredient_preparations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateValidIngredientPreparation :execrows
-UPDATE valid_ingredient_preparations SET
-	notes = sqlc.arg(notes),
-	valid_preparation_id = sqlc.arg(valid_preparation_id),
-	valid_ingredient_id = sqlc.arg(valid_ingredient_id),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);

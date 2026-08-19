@@ -12,7 +12,10 @@ import (
 )
 
 const archivePermission = `-- name: ArchivePermission :execrows
-UPDATE permissions SET archived_at = NOW() WHERE archived_at IS NULL AND id = $1
+UPDATE permissions SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
 `
 
 func (q *Queries) ArchivePermission(ctx context.Context, db DBTX, id string) (int64, error) {

@@ -1,13 +1,3 @@
--- name: DeleteMealPlanTasks :exec
-DELETE FROM meal_plan_tasks WHERE id = ANY(sqlc.arg(ids)::text[]);
-
--- name: ChangeMealPlanTaskStatus :exec
-UPDATE meal_plan_tasks SET
-	completed_at = sqlc.arg(completed_at),
-	status_explanation = sqlc.arg(status_explanation),
-	status = sqlc.arg(status)
-WHERE id = sqlc.arg(id);
-
 -- name: CreateMealPlanTask :exec
 INSERT INTO meal_plan_tasks (
 	id,
@@ -26,6 +16,16 @@ INSERT INTO meal_plan_tasks (
 	sqlc.arg(belongs_to_recipe_prep_task),
 	sqlc.arg(assigned_to_user)
 );
+
+-- name: DeleteMealPlanTasks :exec
+DELETE FROM meal_plan_tasks WHERE id = ANY(sqlc.arg(ids)::text[]);
+
+-- name: ChangeMealPlanTaskStatus :exec
+UPDATE meal_plan_tasks SET
+	completed_at = sqlc.arg(completed_at),
+	status_explanation = sqlc.arg(status_explanation),
+	status = sqlc.arg(status)
+WHERE id = sqlc.arg(id);
 
 -- name: CheckMealPlanTaskExistence :one
 SELECT EXISTS (

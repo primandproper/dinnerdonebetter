@@ -12,16 +12,20 @@ import (
 )
 
 const archiveRecipeStepInstrument = `-- name: ArchiveRecipeStepInstrument :execrows
-UPDATE recipe_step_instruments SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_recipe_step = $1 AND id = $2
+UPDATE recipe_step_instruments SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
+	AND belongs_to_recipe_step = $2
 `
 
 type ArchiveRecipeStepInstrumentParams struct {
-	BelongsToRecipeStep string
 	ID                  string
+	BelongsToRecipeStep string
 }
 
 func (q *Queries) ArchiveRecipeStepInstrument(ctx context.Context, db DBTX, arg *ArchiveRecipeStepInstrumentParams) (int64, error) {
-	result, err := db.ExecContext(ctx, archiveRecipeStepInstrument, arg.BelongsToRecipeStep, arg.ID)
+	result, err := db.ExecContext(ctx, archiveRecipeStepInstrument, arg.ID, arg.BelongsToRecipeStep)
 	if err != nil {
 		return 0, err
 	}
@@ -569,8 +573,8 @@ UPDATE recipe_step_instruments SET
 	scale_factor = $11,
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
-	AND belongs_to_recipe_step = $12
-	AND id = $13
+	AND id = $12
+	AND belongs_to_recipe_step = $13
 `
 
 type UpdateRecipeStepInstrumentParams struct {
@@ -585,8 +589,8 @@ type UpdateRecipeStepInstrumentParams struct {
 	Index               int32
 	OptionIndex         int32
 	ScaleFactor         string
-	BelongsToRecipeStep string
 	ID                  string
+	BelongsToRecipeStep string
 }
 
 func (q *Queries) UpdateRecipeStepInstrument(ctx context.Context, db DBTX, arg *UpdateRecipeStepInstrumentParams) (int64, error) {
@@ -602,8 +606,8 @@ func (q *Queries) UpdateRecipeStepInstrument(ctx context.Context, db DBTX, arg *
 		arg.Index,
 		arg.OptionIndex,
 		arg.ScaleFactor,
-		arg.BelongsToRecipeStep,
 		arg.ID,
+		arg.BelongsToRecipeStep,
 	)
 	if err != nil {
 		return 0, err

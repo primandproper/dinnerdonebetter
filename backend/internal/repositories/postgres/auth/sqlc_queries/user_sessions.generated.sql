@@ -76,17 +76,17 @@ SELECT
 		SELECT COUNT(user_sessions.id)
 		FROM user_sessions
 		WHERE user_sessions.belongs_to_user = sqlc.arg(belongs_to_user)
-			AND user_sessions.revoked_at IS NULL
-			AND user_sessions.expires_at > NOW()
-			AND user_sessions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND user_sessions.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+				AND user_sessions.revoked_at IS NULL
+				AND user_sessions.expires_at > NOW()
+				AND user_sessions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+				AND user_sessions.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	) AS filtered_count,
 	(
 		SELECT COUNT(user_sessions.id)
 		FROM user_sessions
 		WHERE user_sessions.belongs_to_user = sqlc.arg(belongs_to_user)
-			AND user_sessions.revoked_at IS NULL
-			AND user_sessions.expires_at > NOW()
+				AND user_sessions.revoked_at IS NULL
+				AND user_sessions.expires_at > NOW()
 	) AS total_count
 FROM user_sessions
 WHERE user_sessions.belongs_to_user = sqlc.arg(belongs_to_user)

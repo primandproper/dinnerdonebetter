@@ -12,16 +12,20 @@ import (
 )
 
 const archiveRecipeStep = `-- name: ArchiveRecipeStep :execrows
-UPDATE recipe_steps SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_recipe = $1 AND id = $2
+UPDATE recipe_steps SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
+	AND belongs_to_recipe = $2
 `
 
 type ArchiveRecipeStepParams struct {
-	BelongsToRecipe string
 	ID              string
+	BelongsToRecipe string
 }
 
 func (q *Queries) ArchiveRecipeStep(ctx context.Context, db DBTX, arg *ArchiveRecipeStepParams) (int64, error) {
-	result, err := db.ExecContext(ctx, archiveRecipeStep, arg.BelongsToRecipe, arg.ID)
+	result, err := db.ExecContext(ctx, archiveRecipeStep, arg.ID, arg.BelongsToRecipe)
 	if err != nil {
 		return 0, err
 	}
@@ -621,8 +625,8 @@ UPDATE recipe_steps SET
 	start_timer_automatically = $11,
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
-	AND belongs_to_recipe = $12
-	AND id = $13
+	AND id = $12
+	AND belongs_to_recipe = $13
 `
 
 type UpdateRecipeStepParams struct {
@@ -637,8 +641,8 @@ type UpdateRecipeStepParams struct {
 	ConditionExpression           string
 	Optional                      bool
 	StartTimerAutomatically       bool
-	BelongsToRecipe               string
 	ID                            string
+	BelongsToRecipe               string
 }
 
 func (q *Queries) UpdateRecipeStep(ctx context.Context, db DBTX, arg *UpdateRecipeStepParams) (int64, error) {
@@ -654,8 +658,8 @@ func (q *Queries) UpdateRecipeStep(ctx context.Context, db DBTX, arg *UpdateReci
 		arg.ConditionExpression,
 		arg.Optional,
 		arg.StartTimerAutomatically,
-		arg.BelongsToRecipe,
 		arg.ID,
+		arg.BelongsToRecipe,
 	)
 	if err != nil {
 		return 0, err

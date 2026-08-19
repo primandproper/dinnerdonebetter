@@ -1,24 +1,5 @@
--- name: AcceptPrivacyPolicyForUser :exec
-UPDATE users SET
-	last_accepted_privacy_policy = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);
-
--- name: AcceptTermsOfServiceForUser :exec
-UPDATE users SET
-	last_accepted_terms_of_service = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);
-
--- name: ArchiveUser :execrows
-UPDATE users SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
-
--- name: DeleteUser :execrows
-DELETE FROM users WHERE id = sqlc.arg(id);
-
 -- name: CreateUser :exec
-INSERT INTO users
-(
+INSERT INTO users (
 	id,
 	username,
 	email_address,
@@ -47,6 +28,40 @@ INSERT INTO users
 	sqlc.arg(first_name),
 	sqlc.arg(last_name)
 );
+
+-- name: ArchiveUser :execrows
+UPDATE users SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ScanUserIDsForReindex :many
+SELECT users.id
+FROM users
+WHERE users.archived_at IS NULL
+	AND users.id COLLATE "C" > sqlc.arg(cursor)
+ORDER BY users.id COLLATE "C"
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
+
+-- name: MarkUsersAsIndexed :execrows
+UPDATE users SET
+	last_indexed_at = NOW()
+WHERE id = ANY(sqlc.arg(ids)::text[]);
+
+-- name: AcceptPrivacyPolicyForUser :exec
+UPDATE users SET
+	last_accepted_privacy_policy = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: AcceptTermsOfServiceForUser :exec
+UPDATE users SET
+	last_accepted_terms_of_service = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: DeleteUser :execrows
+DELETE FROM users WHERE id = sqlc.arg(id);
 
 -- name: GetAdminUserByUsername :one
 SELECT
@@ -428,14 +443,6 @@ FROM users
 WHERE users.archived_at IS NULL
 	AND users.id = sqlc.arg(id);
 
--- name: ScanUserIDsForReindex :many
-SELECT users.id
-FROM users
-WHERE users.archived_at IS NULL
-	AND users.id COLLATE "C" > sqlc.arg(cursor)
-ORDER BY users.id COLLATE "C"
-LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
 -- name: GetUserIDsNeedingIndexing :many
 SELECT users.id
 FROM users
@@ -637,11 +644,6 @@ UPDATE users SET
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
-
--- name: MarkUsersAsIndexed :execrows
-UPDATE users SET
-	last_indexed_at = NOW()
-WHERE id = ANY(sqlc.arg(ids)::text[]);
 
 -- name: UpdateUserPassword :execrows
 UPDATE users SET

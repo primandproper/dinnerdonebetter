@@ -12,16 +12,20 @@ import (
 )
 
 const archiveRecipeStepProduct = `-- name: ArchiveRecipeStepProduct :execrows
-UPDATE recipe_step_products SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_recipe_step = $1 AND id = $2
+UPDATE recipe_step_products SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
+	AND belongs_to_recipe_step = $2
 `
 
 type ArchiveRecipeStepProductParams struct {
-	BelongsToRecipeStep string
 	ID                  string
+	BelongsToRecipeStep string
 }
 
 func (q *Queries) ArchiveRecipeStepProduct(ctx context.Context, db DBTX, arg *ArchiveRecipeStepProductParams) (int64, error) {
-	result, err := db.ExecContext(ctx, archiveRecipeStepProduct, arg.BelongsToRecipeStep, arg.ID)
+	result, err := db.ExecContext(ctx, archiveRecipeStepProduct, arg.ID, arg.BelongsToRecipeStep)
 	if err != nil {
 		return 0, err
 	}
@@ -345,7 +349,7 @@ SELECT
 		SELECT COUNT(recipe_step_products.id)
 		FROM recipe_step_products
 		WHERE recipe_step_products.archived_at IS NULL
-			AND recipe_step_products.belongs_to_recipe_step = $6
+				AND recipe_step_products.belongs_to_recipe_step = $6
 	) AS total_count
 FROM recipe_step_products
 	JOIN recipe_steps ON recipe_step_products.belongs_to_recipe_step=recipe_steps.id
@@ -663,8 +667,8 @@ UPDATE recipe_step_products SET
 	contained_in_vessel_index = $17,
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
-	AND belongs_to_recipe_step = $18
-	AND id = $19
+	AND id = $18
+	AND belongs_to_recipe_step = $19
 `
 
 type UpdateRecipeStepProductParams struct {
@@ -685,8 +689,8 @@ type UpdateRecipeStepProductParams struct {
 	IsWaste                            bool
 	Index                              int32
 	ContainedInVesselIndex             sql.NullInt32
-	BelongsToRecipeStep                string
 	ID                                 string
+	BelongsToRecipeStep                string
 }
 
 func (q *Queries) UpdateRecipeStepProduct(ctx context.Context, db DBTX, arg *UpdateRecipeStepProductParams) (int64, error) {
@@ -708,8 +712,8 @@ func (q *Queries) UpdateRecipeStepProduct(ctx context.Context, db DBTX, arg *Upd
 		arg.IsWaste,
 		arg.Index,
 		arg.ContainedInVesselIndex,
-		arg.BelongsToRecipeStep,
 		arg.ID,
+		arg.BelongsToRecipeStep,
 	)
 	if err != nil {
 		return 0, err

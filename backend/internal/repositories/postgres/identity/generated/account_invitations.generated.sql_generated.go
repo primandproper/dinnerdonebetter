@@ -58,7 +58,7 @@ SELECT EXISTS (
 	SELECT account_invitations.id
 	FROM account_invitations
 	WHERE account_invitations.archived_at IS NULL
-	AND account_invitations.id = $1
+		AND account_invitations.id = $1
 )
 `
 

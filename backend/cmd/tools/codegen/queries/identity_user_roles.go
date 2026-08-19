@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/primandproper/platform-go/v11/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -31,66 +34,37 @@ func buildUserRolesQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateUserRole",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					userRolesTableName,
-					strings.Join(filterForInsert(userRolesColumns), ",\n\t"),
-					strings.Join(applyToEach(filterForInsert(userRolesColumns), func(i int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetUserRoleByID",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+		return slices.Concat(
+			querygen.StandardCRUD(userRolesTableName, userRolesColumns,
+				querygen.WithEntity("UserRole", "UserRoles"),
+				querygen.WithQueryName(querygen.GetQuery, "GetUserRoleByID"),
+				querygen.WithOmitted(querygen.ExistsQuery, querygen.ListQuery, querygen.UpdateQuery),
+			),
+			[]*Query{
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetUserRoleByName",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 WHERE %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(applyToEach(userRolesColumns, func(i int, s string) string {
-						return fmt.Sprintf("%s.%s", userRolesTableName, s)
-					}), ",\n\t"),
-					userRolesTableName,
-					userRolesTableName, archivedAtColumn,
-					userRolesTableName, idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetUserRoleByName",
-					Type: OneType,
+						strings.Join(applyToEach(userRolesColumns, func(i int, s string) string {
+							return fmt.Sprintf("%s.%s", userRolesTableName, s)
+						}), ",\n\t"),
+						userRolesTableName,
+						userRolesTableName, archivedAtColumn,
+						userRolesTableName, nameColumn, nameColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
-	%s
-FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(applyToEach(userRolesColumns, func(i int, s string) string {
-						return fmt.Sprintf("%s.%s", userRolesTableName, s)
-					}), ",\n\t"),
-					userRolesTableName,
-					userRolesTableName, archivedAtColumn,
-					userRolesTableName, nameColumn, nameColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetUserRoles",
-					Type: ManyType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetUserRoles",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -98,30 +72,19 @@ FROM %s
 WHERE %s.%s IS NULL
 	%s
 %s;`,
-					strings.Join(applyToEach(userRolesColumns, func(i int, s string) string {
-						return fmt.Sprintf("%s.%s", userRolesTableName, s)
-					}), ",\n\t"),
-					buildFilterCountSelect(userRolesTableName, true, true, []string{}),
-					buildTotalCountSelect(userRolesTableName, true, []string{}),
-					userRolesTableName,
-					userRolesTableName, archivedAtColumn,
-					buildFilterConditions(userRolesTableName, true, true),
-					buildCursorLimitClause(userRolesTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "ArchiveUserRole",
-					Type: ExecRowsType,
+						strings.Join(applyToEach(userRolesColumns, func(i int, s string) string {
+							return fmt.Sprintf("%s.%s", userRolesTableName, s)
+						}), ",\n\t"),
+						buildFilterCountSelect(userRolesTableName, true, true, []string{}),
+						buildTotalCountSelect(userRolesTableName, true, []string{}),
+						userRolesTableName,
+						userRolesTableName, archivedAtColumn,
+						buildFilterConditions(userRolesTableName, true, true),
+						buildCursorLimitClause(userRolesTableName),
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s IS NULL AND %s = sqlc.arg(%s);`,
-					userRolesTableName,
-					archivedAtColumn, currentTimeExpression,
-					archivedAtColumn,
-					idColumn, idColumn,
-				)),
 			},
-		}
+		)
 	default:
 		return nil
 	}

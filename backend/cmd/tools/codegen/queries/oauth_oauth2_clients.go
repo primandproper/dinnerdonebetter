@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/primandproper/platform-go/v11/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -29,91 +32,44 @@ var oauth2ClientsColumns = []string{
 func buildOAuth2ClientsQueries(database string) []*Query {
 	switch database {
 	case postgres:
-		insertColumns := filterForInsert(oauth2ClientsColumns)
 
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "ArchiveOAuth2Client",
-					Type: ExecRowsType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
-	%s = %s
-WHERE %s IS NULL
-	AND %s = sqlc.arg(%s);`,
-					oauth2ClientsTableName,
-					archivedAtColumn,
-					currentTimeExpression,
-					archivedAtColumn,
-					idColumn,
-					idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateOAuth2Client",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					oauth2ClientsTableName,
-					strings.Join(insertColumns, ",\n\t"),
-					strings.Join(applyToEach(insertColumns, func(_ int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetOAuth2ClientByClientID",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+		return slices.Concat(
+			querygen.StandardCRUD(oauth2ClientsTableName, oauth2ClientsColumns,
+				querygen.WithEntity("OAuth2Client", "OAuth2Clients"),
+				querygen.WithQueryName(querygen.GetQuery, "GetOAuth2ClientByDatabaseID"),
+				querygen.WithOmitted(querygen.ExistsQuery, querygen.ListQuery, querygen.UpdateQuery),
+			),
+			[]*Query{
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetOAuth2ClientByClientID",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 WHERE %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(applyToEach(oauth2ClientsColumns, func(_ int, s string) string {
-						return fmt.Sprintf("%s.%s", oauth2ClientsTableName, s)
-					}), ",\n\t"),
-					oauth2ClientsTableName,
-					oauth2ClientsTableName, archivedAtColumn,
-					oauth2ClientsTableName, clientIDColumn, clientIDColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetOAuth2ClientByDatabaseID",
-					Type: OneType,
+						strings.Join(applyToEach(oauth2ClientsColumns, func(_ int, s string) string {
+							return fmt.Sprintf("%s.%s", oauth2ClientsTableName, s)
+						}), ",\n\t"),
+						oauth2ClientsTableName,
+						oauth2ClientsTableName, archivedAtColumn,
+						oauth2ClientsTableName, clientIDColumn, clientIDColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
-	%s
-FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(applyToEach(oauth2ClientsColumns, func(_ int, s string) string {
-						return fmt.Sprintf("%s.%s", oauth2ClientsTableName, s)
-					}), ",\n\t"),
-					oauth2ClientsTableName,
-					oauth2ClientsTableName, archivedAtColumn,
-					oauth2ClientsTableName, idColumn, idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetOAuth2Clients",
-					Type: ManyType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetOAuth2Clients",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	(
 		SELECT COUNT(%s.%s)
 		FROM %s
 		WHERE %s.%s IS NULL
-			%s
+				%s
 	) as filtered_count,
 	%s
 FROM %s
@@ -121,32 +77,33 @@ WHERE %s.%s IS NULL
 	%s
 %s;
 `,
-					strings.Join(applyToEach(oauth2ClientsColumns, func(_ int, s string) string {
-						return fmt.Sprintf("%s.%s", oauth2ClientsTableName, s)
-					}), ",\n\t"),
-					oauth2ClientsTableName, idColumn,
-					oauth2ClientsTableName,
-					oauth2ClientsTableName, archivedAtColumn,
-					strings.Join(strings.Split(
+						strings.Join(applyToEach(oauth2ClientsColumns, func(_ int, s string) string {
+							return fmt.Sprintf("%s.%s", oauth2ClientsTableName, s)
+						}), ",\n\t"),
+						oauth2ClientsTableName, idColumn,
+						oauth2ClientsTableName,
+						oauth2ClientsTableName, archivedAtColumn,
+						strings.Join(strings.Split(
+							buildFilterConditions(
+								oauth2ClientsTableName,
+								false,
+								true,
+							), "\n"),
+							"\n\t\t",
+						),
+						buildTotalCountSelect(usersTableName, true, []string{}),
+						oauth2ClientsTableName,
+						oauth2ClientsTableName, archivedAtColumn,
 						buildFilterConditions(
 							oauth2ClientsTableName,
 							false,
 							true,
-						), "\n"),
-						"\n\t\t",
-					),
-					buildTotalCountSelect(usersTableName, true, []string{}),
-					oauth2ClientsTableName,
-					oauth2ClientsTableName, archivedAtColumn,
-					buildFilterConditions(
-						oauth2ClientsTableName,
-						false,
-						true,
-					),
-					buildCursorLimitClause(oauth2ClientsTableName),
-				)),
+						),
+						buildCursorLimitClause(oauth2ClientsTableName),
+					)),
+				},
 			},
-		}
+		)
 	default:
 		return nil
 	}

@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/primandproper/platform-go/v11/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -40,8 +43,6 @@ func buildRecipeStepVesselsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		insertColumns := filterForInsert(recipeStepVesselsColumns)
-
 		fullSelectColumns := mergeColumns(
 			applyToEach(filterFromSlice(recipeStepVesselsColumns, validVesselIDColumn), func(i int, s string) string {
 				return fmt.Sprintf("%s.%s", recipeStepVesselsTableName, s)
@@ -58,46 +59,19 @@ func buildRecipeStepVesselsQueries(database string) []*Query {
 			1,
 		)
 
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "ArchiveRecipeStepVessel",
-					Type: ExecRowsType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s IS NULL AND %s = sqlc.arg(%s) AND %s = sqlc.arg(%s);`,
-					recipeStepVesselsTableName,
-					archivedAtColumn,
-					currentTimeExpression,
-					archivedAtColumn,
-					belongsToRecipeStepColumn,
-					belongsToRecipeStepColumn,
-					idColumn,
-					idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateRecipeStepVessel",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					recipeStepVesselsTableName,
-					strings.Join(insertColumns, ",\n\t"),
-					strings.Join(applyToEach(insertColumns, func(i int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CheckRecipeStepVesselExistence",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS (
+		return slices.Concat(
+			querygen.StandardCRUD(recipeStepVesselsTableName, recipeStepVesselsColumns,
+				querygen.WithEntity("RecipeStepVessel", "RecipeStepVessels"),
+				querygen.WithOwnership(belongsToRecipeStepColumn),
+				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
+			),
+			[]*Query{
+				{
+					Annotation: QueryAnnotation{
+						Name: "CheckRecipeStepVesselExistence",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS (
 	SELECT %s.%s
 	FROM %s
 		JOIN %s ON %s.%s=%s.%s
@@ -111,26 +85,26 @@ func buildRecipeStepVesselsQueries(database string) []*Query {
 		AND %s.%s IS NULL
 		AND %s.%s = sqlc.arg(%s)
 );`,
-					recipeStepVesselsTableName, idColumn,
-					recipeStepVesselsTableName,
-					recipeStepsTableName, recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
-					recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
-					recipeStepVesselsTableName, archivedAtColumn,
-					recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
-					recipeStepVesselsTableName, idColumn, recipeStepVesselIDColumn,
-					recipeStepsTableName, archivedAtColumn,
-					recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
-					recipeStepsTableName, idColumn, recipeStepIDColumn,
-					recipesTableName, archivedAtColumn,
-					recipesTableName, idColumn, recipeIDColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetRecipeStepVesselsForRecipe",
-					Type: ManyType,
+						recipeStepVesselsTableName, idColumn,
+						recipeStepVesselsTableName,
+						recipeStepsTableName, recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
+						recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
+						recipeStepVesselsTableName, archivedAtColumn,
+						recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
+						recipeStepVesselsTableName, idColumn, recipeStepVesselIDColumn,
+						recipeStepsTableName, archivedAtColumn,
+						recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
+						recipeStepsTableName, idColumn, recipeStepIDColumn,
+						recipesTableName, archivedAtColumn,
+						recipesTableName, idColumn, recipeIDColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetRecipeStepVesselsForRecipe",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	LEFT JOIN %s ON %s.%s=%s.%s
@@ -142,25 +116,25 @@ WHERE %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 	AND %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					recipeStepVesselsTableName,
-					validVesselsTableName, recipeStepVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
-					validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
-					recipeStepsTableName, recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
-					recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
-					recipeStepVesselsTableName, archivedAtColumn,
-					recipeStepsTableName, archivedAtColumn,
-					recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
-					recipesTableName, archivedAtColumn,
-					recipesTableName, idColumn, recipeIDColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetRecipeStepVessel",
-					Type: OneType,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						recipeStepVesselsTableName,
+						validVesselsTableName, recipeStepVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
+						validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
+						recipeStepsTableName, recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
+						recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
+						recipeStepVesselsTableName, archivedAtColumn,
+						recipeStepsTableName, archivedAtColumn,
+						recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
+						recipesTableName, archivedAtColumn,
+						recipesTableName, idColumn, recipeIDColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetRecipeStepVessel",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	LEFT JOIN %s ON %s.%s=%s.%s
@@ -175,28 +149,28 @@ WHERE %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 	AND %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					recipeStepVesselsTableName,
-					validVesselsTableName, recipeStepVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
-					validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
-					recipeStepsTableName, recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
-					recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
-					recipeStepVesselsTableName, archivedAtColumn,
-					recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
-					recipeStepVesselsTableName, idColumn, recipeStepVesselIDColumn,
-					recipeStepsTableName, archivedAtColumn,
-					recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
-					recipeStepsTableName, idColumn, recipeStepIDColumn,
-					recipesTableName, archivedAtColumn,
-					recipesTableName, idColumn, recipeIDColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetRecipeStepVessels",
-					Type: ManyType,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						recipeStepVesselsTableName,
+						validVesselsTableName, recipeStepVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
+						validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
+						recipeStepsTableName, recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
+						recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
+						recipeStepVesselsTableName, archivedAtColumn,
+						recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
+						recipeStepVesselsTableName, idColumn, recipeStepVesselIDColumn,
+						recipeStepsTableName, archivedAtColumn,
+						recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
+						recipeStepsTableName, idColumn, recipeStepIDColumn,
+						recipesTableName, archivedAtColumn,
+						recipesTableName, idColumn, recipeIDColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetRecipeStepVessels",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -214,47 +188,48 @@ WHERE %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 	%s
 %s;`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					buildFilterCountSelect(recipeStepVesselsTableName, true, true, []string{}),
-					buildTotalCountSelect(recipeStepVesselsTableName, true, []string{}),
-					recipeStepVesselsTableName,
-					validVesselsTableName, recipeStepVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
-					validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
-					recipeStepsTableName, recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
-					recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
-					recipeStepVesselsTableName, archivedAtColumn,
-					recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
-					recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
-					recipeStepsTableName, archivedAtColumn,
-					recipeStepsTableName, idColumn, recipeStepIDColumn,
-					recipesTableName, archivedAtColumn,
-					recipesTableName, idColumn, recipeIDColumn,
-					buildFilterConditions(recipeStepVesselsTableName, true, false),
-					buildCursorLimitClause(recipeStepVesselsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "UpdateRecipeStepVessel",
-					Type: ExecRowsType,
+						strings.Join(fullSelectColumns, ",\n\t"),
+						buildFilterCountSelect(recipeStepVesselsTableName, true, true, []string{}),
+						buildTotalCountSelect(recipeStepVesselsTableName, true, []string{}),
+						recipeStepVesselsTableName,
+						validVesselsTableName, recipeStepVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
+						validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
+						recipeStepsTableName, recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
+						recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
+						recipeStepVesselsTableName, archivedAtColumn,
+						recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
+						recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
+						recipeStepsTableName, archivedAtColumn,
+						recipeStepsTableName, idColumn, recipeStepIDColumn,
+						recipesTableName, archivedAtColumn,
+						recipesTableName, idColumn, recipeIDColumn,
+						buildFilterConditions(recipeStepVesselsTableName, true, false),
+						buildCursorLimitClause(recipeStepVesselsTableName),
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
+				{
+					Annotation: QueryAnnotation{
+						Name: "UpdateRecipeStepVessel",
+						Type: ExecRowsType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
 	%s,
 	%s = %s
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
-					recipeStepVesselsTableName,
-					strings.Join(applyToEach(filterForUpdate(recipeStepVesselsColumns), func(i int, s string) string {
-						return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
-					}), ",\n\t"),
-					lastUpdatedAtColumn, currentTimeExpression,
-					archivedAtColumn,
-					belongsToRecipeStepColumn, belongsToRecipeStepColumn,
-					idColumn, idColumn,
-				)),
+						recipeStepVesselsTableName,
+						strings.Join(applyToEach(filterForUpdate(recipeStepVesselsColumns), func(i int, s string) string {
+							return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
+						}), ",\n\t"),
+						lastUpdatedAtColumn, currentTimeExpression,
+						archivedAtColumn,
+						belongsToRecipeStepColumn, belongsToRecipeStepColumn,
+						idColumn, idColumn,
+					)),
+				},
 			},
-		}
+		)
 	default:
 		return nil
 	}

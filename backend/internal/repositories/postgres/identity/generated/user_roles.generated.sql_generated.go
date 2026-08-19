@@ -12,7 +12,10 @@ import (
 )
 
 const archiveUserRole = `-- name: ArchiveUserRole :execrows
-UPDATE user_roles SET archived_at = NOW() WHERE archived_at IS NULL AND id = $1
+UPDATE user_roles SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
 `
 
 func (q *Queries) ArchiveUserRole(ctx context.Context, db DBTX, id string) (int64, error) {

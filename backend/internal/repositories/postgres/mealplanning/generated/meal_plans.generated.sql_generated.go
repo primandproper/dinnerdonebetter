@@ -12,16 +12,20 @@ import (
 )
 
 const archiveMealPlan = `-- name: ArchiveMealPlan :execrows
-UPDATE meal_plans SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_account = $1 AND id = $2
+UPDATE meal_plans SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
+	AND belongs_to_account = $2
 `
 
 type ArchiveMealPlanParams struct {
-	BelongsToAccount string
 	ID               string
+	BelongsToAccount string
 }
 
 func (q *Queries) ArchiveMealPlan(ctx context.Context, db DBTX, arg *ArchiveMealPlanParams) (int64, error) {
-	result, err := db.ExecContext(ctx, archiveMealPlan, arg.BelongsToAccount, arg.ID)
+	result, err := db.ExecContext(ctx, archiveMealPlan, arg.ID, arg.BelongsToAccount)
 	if err != nil {
 		return 0, err
 	}
@@ -291,8 +295,8 @@ SELECT
 	meal_plans.created_by_user
 FROM meal_plans
 WHERE meal_plans.archived_at IS NULL
-  AND meal_plans.id = $1
-  AND meal_plans.belongs_to_account = $2
+	AND meal_plans.id = $1
+	AND meal_plans.belongs_to_account = $2
 `
 
 type GetMealPlanParams struct {
@@ -631,16 +635,16 @@ UPDATE meal_plans SET
 	voting_deadline = $3,
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
-	AND belongs_to_account = $4
-	AND id = $5
+	AND id = $4
+	AND belongs_to_account = $5
 `
 
 type UpdateMealPlanParams struct {
 	Notes            string
 	Status           MealPlanStatus
 	VotingDeadline   time.Time
-	BelongsToAccount string
 	ID               string
+	BelongsToAccount string
 }
 
 func (q *Queries) UpdateMealPlan(ctx context.Context, db DBTX, arg *UpdateMealPlanParams) (int64, error) {
@@ -648,8 +652,8 @@ func (q *Queries) UpdateMealPlan(ctx context.Context, db DBTX, arg *UpdateMealPl
 		arg.Notes,
 		arg.Status,
 		arg.VotingDeadline,
-		arg.BelongsToAccount,
 		arg.ID,
+		arg.BelongsToAccount,
 	)
 	if err != nil {
 		return 0, err

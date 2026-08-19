@@ -1,22 +1,3 @@
--- name: AddToAccountDuringCreation :exec
-INSERT INTO account_user_memberships (
-	id,
-	belongs_to_account,
-	belongs_to_user
-) VALUES (
-	sqlc.arg(id),
-	sqlc.arg(belongs_to_account),
-	sqlc.arg(belongs_to_user)
-);
-
--- name: ArchiveAccount :execrows
-UPDATE accounts SET
-	last_updated_at = NOW(),
-	archived_at = NOW()
-WHERE archived_at IS NULL
-	AND belongs_to_user = sqlc.arg(belongs_to_user)
-	AND id = sqlc.arg(id);
-
 -- name: CreateAccount :exec
 INSERT INTO accounts (
 	id,
@@ -49,6 +30,42 @@ INSERT INTO accounts (
 	sqlc.arg(longitude),
 	sqlc.arg(webhook_hmac_secret)
 );
+
+-- name: UpdateAccount :execrows
+UPDATE accounts SET
+	name = sqlc.arg(name),
+	contact_phone = sqlc.arg(contact_phone),
+	address_line_1 = sqlc.arg(address_line_1),
+	address_line_2 = sqlc.arg(address_line_2),
+	city = sqlc.arg(city),
+	state = sqlc.arg(state),
+	zip_code = sqlc.arg(zip_code),
+	country = sqlc.arg(country),
+	latitude = sqlc.arg(latitude),
+	longitude = sqlc.arg(longitude),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_user = sqlc.arg(belongs_to_user);
+
+-- name: AddToAccountDuringCreation :exec
+INSERT INTO account_user_memberships (
+	id,
+	belongs_to_account,
+	belongs_to_user
+) VALUES (
+	sqlc.arg(id),
+	sqlc.arg(belongs_to_account),
+	sqlc.arg(belongs_to_user)
+);
+
+-- name: ArchiveAccount :execrows
+UPDATE accounts SET
+	last_updated_at = NOW(),
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND belongs_to_user = sqlc.arg(belongs_to_user)
+	AND id = sqlc.arg(id);
 
 -- name: GetAccountByIDWithMemberships :many
 SELECT
@@ -181,23 +198,6 @@ WHERE accounts.archived_at IS NULL
 	AND accounts.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY accounts.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateAccount :execrows
-UPDATE accounts SET
-	name = sqlc.arg(name),
-	contact_phone = sqlc.arg(contact_phone),
-	address_line_1 = sqlc.arg(address_line_1),
-	address_line_2 = sqlc.arg(address_line_2),
-	city = sqlc.arg(city),
-	state = sqlc.arg(state),
-	zip_code = sqlc.arg(zip_code),
-	country = sqlc.arg(country),
-	latitude = sqlc.arg(latitude),
-	longitude = sqlc.arg(longitude),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND belongs_to_user = sqlc.arg(belongs_to_user)
-	AND id = sqlc.arg(id);
 
 -- name: UpdateAccountBillingFields :execrows
 UPDATE accounts SET

@@ -1,6 +1,3 @@
--- name: ArchiveRecipeStep :execrows
-UPDATE recipe_steps SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_recipe = sqlc.arg(belongs_to_recipe) AND id = sqlc.arg(id);
-
 -- name: CreateRecipeStep :exec
 INSERT INTO recipe_steps (
 	id,
@@ -31,6 +28,31 @@ INSERT INTO recipe_steps (
 	sqlc.arg(start_timer_automatically),
 	sqlc.arg(belongs_to_recipe)
 );
+
+-- name: UpdateRecipeStep :execrows
+UPDATE recipe_steps SET
+	index = sqlc.arg(index),
+	preparation_id = sqlc.arg(preparation_id),
+	minimum_estimated_time_in_seconds = sqlc.arg(minimum_estimated_time_in_seconds),
+	maximum_estimated_time_in_seconds = sqlc.arg(maximum_estimated_time_in_seconds),
+	minimum_temperature_in_celsius = sqlc.arg(minimum_temperature_in_celsius),
+	maximum_temperature_in_celsius = sqlc.arg(maximum_temperature_in_celsius),
+	notes = sqlc.arg(notes),
+	explicit_instructions = sqlc.arg(explicit_instructions),
+	condition_expression = sqlc.arg(condition_expression),
+	optional = sqlc.arg(optional),
+	start_timer_automatically = sqlc.arg(start_timer_automatically),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_recipe = sqlc.arg(belongs_to_recipe);
+
+-- name: ArchiveRecipeStep :execrows
+UPDATE recipe_steps SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_recipe = sqlc.arg(belongs_to_recipe);
 
 -- name: CheckRecipeStepExistence :one
 SELECT EXISTS (
@@ -220,21 +242,3 @@ FROM recipe_steps
 	JOIN valid_preparations ON recipe_steps.preparation_id=valid_preparations.id
 WHERE recipe_steps.archived_at IS NULL
 	AND recipe_steps.id = sqlc.arg(id);
-
--- name: UpdateRecipeStep :execrows
-UPDATE recipe_steps SET
-	index = sqlc.arg(index),
-	preparation_id = sqlc.arg(preparation_id),
-	minimum_estimated_time_in_seconds = sqlc.arg(minimum_estimated_time_in_seconds),
-	maximum_estimated_time_in_seconds = sqlc.arg(maximum_estimated_time_in_seconds),
-	minimum_temperature_in_celsius = sqlc.arg(minimum_temperature_in_celsius),
-	maximum_temperature_in_celsius = sqlc.arg(maximum_temperature_in_celsius),
-	notes = sqlc.arg(notes),
-	explicit_instructions = sqlc.arg(explicit_instructions),
-	condition_expression = sqlc.arg(condition_expression),
-	optional = sqlc.arg(optional),
-	start_timer_automatically = sqlc.arg(start_timer_automatically),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND belongs_to_recipe = sqlc.arg(belongs_to_recipe)
-	AND id = sqlc.arg(id);

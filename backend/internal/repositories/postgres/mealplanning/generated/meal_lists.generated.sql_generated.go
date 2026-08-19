@@ -12,16 +12,20 @@ import (
 )
 
 const archiveMealList = `-- name: ArchiveMealList :execrows
-UPDATE meal_lists SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_user = $1 AND id = $2
+UPDATE meal_lists SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
+	AND belongs_to_user = $2
 `
 
 type ArchiveMealListParams struct {
-	BelongsToUser string
 	ID            string
+	BelongsToUser string
 }
 
 func (q *Queries) ArchiveMealList(ctx context.Context, db DBTX, arg *ArchiveMealListParams) (int64, error) {
-	result, err := db.ExecContext(ctx, archiveMealList, arg.BelongsToUser, arg.ID)
+	result, err := db.ExecContext(ctx, archiveMealList, arg.ID, arg.BelongsToUser)
 	if err != nil {
 		return 0, err
 	}
@@ -203,23 +207,23 @@ UPDATE meal_lists SET
 	description = $2,
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
-	AND belongs_to_user = $3
-	AND id = $4
+	AND id = $3
+	AND belongs_to_user = $4
 `
 
 type UpdateMealListParams struct {
 	Name          string
 	Description   string
-	BelongsToUser string
 	ID            string
+	BelongsToUser string
 }
 
 func (q *Queries) UpdateMealList(ctx context.Context, db DBTX, arg *UpdateMealListParams) (int64, error) {
 	result, err := db.ExecContext(ctx, updateMealList,
 		arg.Name,
 		arg.Description,
-		arg.BelongsToUser,
 		arg.ID,
+		arg.BelongsToUser,
 	)
 	if err != nil {
 		return 0, err

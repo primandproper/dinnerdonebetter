@@ -12,7 +12,10 @@ import (
 )
 
 const archiveComment = `-- name: ArchiveComment :execrows
-UPDATE comments SET archived_at = NOW() WHERE archived_at IS NULL AND id = $1
+UPDATE comments SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
 `
 
 func (q *Queries) ArchiveComment(ctx context.Context, db DBTX, id string) (int64, error) {

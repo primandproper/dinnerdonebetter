@@ -17,8 +17,8 @@ WHERE webhook_trigger_configs.archived_at IS NULL
 	AND webhook_trigger_configs.belongs_to_webhook IN (
 		SELECT webhooks.id FROM webhooks
 		WHERE webhooks.id = $2
-			AND webhooks.belongs_to_account = $3
-			AND webhooks.archived_at IS NULL
+				AND webhooks.belongs_to_account = $3
+				AND webhooks.archived_at IS NULL
 	)
 `
 

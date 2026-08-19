@@ -1,6 +1,3 @@
--- name: ArchiveMealPlan :execrows
-UPDATE meal_plans SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_account = sqlc.arg(belongs_to_account) AND id = sqlc.arg(id);
-
 -- name: CreateMealPlan :exec
 INSERT INTO meal_plans (
 	id,
@@ -17,6 +14,42 @@ INSERT INTO meal_plans (
 	sqlc.arg(belongs_to_account),
 	sqlc.arg(created_by_user)
 );
+
+-- name: GetMealPlan :one
+SELECT
+	meal_plans.id,
+	meal_plans.notes,
+	meal_plans.status,
+	meal_plans.voting_deadline,
+	meal_plans.grocery_list_initialized,
+	meal_plans.tasks_created,
+	meal_plans.election_method,
+	meal_plans.created_at,
+	meal_plans.last_updated_at,
+	meal_plans.archived_at,
+	meal_plans.belongs_to_account,
+	meal_plans.created_by_user
+FROM meal_plans
+WHERE meal_plans.archived_at IS NULL
+	AND meal_plans.id = sqlc.arg(id)
+	AND meal_plans.belongs_to_account = sqlc.arg(belongs_to_account);
+
+-- name: UpdateMealPlan :execrows
+UPDATE meal_plans SET
+	notes = sqlc.arg(notes),
+	status = sqlc.arg(status),
+	voting_deadline = sqlc.arg(voting_deadline),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_account = sqlc.arg(belongs_to_account);
+
+-- name: ArchiveMealPlan :execrows
+UPDATE meal_plans SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_account = sqlc.arg(belongs_to_account);
 
 -- name: CheckMealPlanExistence :one
 SELECT EXISTS (
@@ -96,25 +129,6 @@ UPDATE meal_plans SET
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
-
--- name: GetMealPlan :one
-SELECT
-	meal_plans.id,
-	meal_plans.notes,
-	meal_plans.status,
-	meal_plans.voting_deadline,
-	meal_plans.grocery_list_initialized,
-	meal_plans.tasks_created,
-	meal_plans.election_method,
-	meal_plans.created_at,
-	meal_plans.last_updated_at,
-	meal_plans.archived_at,
-	meal_plans.belongs_to_account,
-	meal_plans.created_by_user
-FROM meal_plans
-WHERE meal_plans.archived_at IS NULL
-  AND meal_plans.id = sqlc.arg(id)
-  AND meal_plans.belongs_to_account = sqlc.arg(belongs_to_account);
 
 -- name: GetMealPlansForAccount :many
 SELECT
@@ -228,14 +242,4 @@ UPDATE meal_plans SET
 	tasks_created = TRUE,
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);
-
--- name: UpdateMealPlan :execrows
-UPDATE meal_plans SET
-	notes = sqlc.arg(notes),
-	status = sqlc.arg(status),
-	voting_deadline = sqlc.arg(voting_deadline),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND belongs_to_account = sqlc.arg(belongs_to_account)
 	AND id = sqlc.arg(id);

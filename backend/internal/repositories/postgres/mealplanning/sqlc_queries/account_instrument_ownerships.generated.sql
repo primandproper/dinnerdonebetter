@@ -1,10 +1,3 @@
--- name: ArchiveAccountInstrumentOwnership :execrows
-UPDATE account_instrument_ownerships SET
-	archived_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id)
-	AND belongs_to_account = sqlc.arg(belongs_to_account);
-
 -- name: CreateAccountInstrumentOwnership :exec
 INSERT INTO account_instrument_ownerships (
 	id,
@@ -28,6 +21,23 @@ SELECT EXISTS (
 		AND account_instrument_ownerships.id = sqlc.arg(id)
 		AND account_instrument_ownerships.belongs_to_account = sqlc.arg(belongs_to_account)
 );
+
+-- name: UpdateAccountInstrumentOwnership :execrows
+UPDATE account_instrument_ownerships SET
+	notes = sqlc.arg(notes),
+	quantity = sqlc.arg(quantity),
+	valid_instrument_id = sqlc.arg(valid_instrument_id),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_account = sqlc.arg(belongs_to_account);
+
+-- name: ArchiveAccountInstrumentOwnership :execrows
+UPDATE account_instrument_ownerships SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_account = sqlc.arg(belongs_to_account);
 
 -- name: GetAccountInstrumentOwnerships :many
 SELECT
@@ -124,14 +134,4 @@ FROM account_instrument_ownerships
 INNER JOIN valid_instruments ON account_instrument_ownerships.valid_instrument_id = valid_instruments.id
 WHERE account_instrument_ownerships.archived_at IS NULL
 	AND account_instrument_ownerships.id = sqlc.arg(id)
-	AND account_instrument_ownerships.belongs_to_account = sqlc.arg(belongs_to_account);
-
--- name: UpdateAccountInstrumentOwnership :execrows
-UPDATE account_instrument_ownerships SET
-	notes = sqlc.arg(notes),
-	quantity = sqlc.arg(quantity),
-	valid_instrument_id = sqlc.arg(valid_instrument_id),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id)
 	AND account_instrument_ownerships.belongs_to_account = sqlc.arg(belongs_to_account);

@@ -1,6 +1,3 @@
--- name: ArchiveRecipeRating :execrows
-UPDATE recipe_ratings SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
-
 -- name: CreateRecipeRating :exec
 INSERT INTO recipe_ratings (
 	id,
@@ -24,6 +21,24 @@ INSERT INTO recipe_ratings (
 	sqlc.arg(created_by_user)
 );
 
+-- name: GetRecipeRating :one
+SELECT
+	recipe_ratings.id,
+	recipe_ratings.belongs_to_recipe,
+	recipe_ratings.taste,
+	recipe_ratings.difficulty,
+	recipe_ratings.cleanup,
+	recipe_ratings.instructions,
+	recipe_ratings.overall,
+	recipe_ratings.notes,
+	recipe_ratings.created_by_user,
+	recipe_ratings.created_at,
+	recipe_ratings.last_updated_at,
+	recipe_ratings.archived_at
+FROM recipe_ratings
+WHERE recipe_ratings.archived_at IS NULL
+	AND recipe_ratings.id = sqlc.arg(id);
+
 -- name: CheckRecipeRatingExistence :one
 SELECT EXISTS (
 	SELECT recipe_ratings.id
@@ -31,6 +46,25 @@ SELECT EXISTS (
 	WHERE recipe_ratings.archived_at IS NULL
 		AND recipe_ratings.id = sqlc.arg(id)
 );
+
+-- name: UpdateRecipeRating :execrows
+UPDATE recipe_ratings SET
+	belongs_to_recipe = sqlc.arg(belongs_to_recipe),
+	taste = sqlc.arg(taste),
+	difficulty = sqlc.arg(difficulty),
+	cleanup = sqlc.arg(cleanup),
+	instructions = sqlc.arg(instructions),
+	overall = sqlc.arg(overall),
+	notes = sqlc.arg(notes),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveRecipeRating :execrows
+UPDATE recipe_ratings SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
 
 -- name: GetRecipeRatingsForRecipe :many
 SELECT
@@ -149,34 +183,3 @@ WHERE
 GROUP BY recipe_ratings.id
 ORDER BY recipe_ratings.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: GetRecipeRating :one
-SELECT
-	recipe_ratings.id,
-	recipe_ratings.belongs_to_recipe,
-	recipe_ratings.taste,
-	recipe_ratings.difficulty,
-	recipe_ratings.cleanup,
-	recipe_ratings.instructions,
-	recipe_ratings.overall,
-	recipe_ratings.notes,
-	recipe_ratings.created_by_user,
-	recipe_ratings.created_at,
-	recipe_ratings.last_updated_at,
-	recipe_ratings.archived_at
-FROM recipe_ratings
-WHERE recipe_ratings.archived_at IS NULL
-	AND recipe_ratings.id = sqlc.arg(id);
-
--- name: UpdateRecipeRating :execrows
-UPDATE recipe_ratings SET
-	belongs_to_recipe = sqlc.arg(belongs_to_recipe),
-	taste = sqlc.arg(taste),
-	difficulty = sqlc.arg(difficulty),
-	cleanup = sqlc.arg(cleanup),
-	instructions = sqlc.arg(instructions),
-	overall = sqlc.arg(overall),
-	notes = sqlc.arg(notes),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);

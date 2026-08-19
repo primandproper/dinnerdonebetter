@@ -1,6 +1,3 @@
--- name: ArchiveValidIngredientStateIngredient :execrows
-UPDATE valid_ingredient_state_ingredients SET archived_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
-
 -- name: CreateValidIngredientStateIngredient :exec
 INSERT INTO valid_ingredient_state_ingredients (
 	id,
@@ -21,6 +18,21 @@ SELECT EXISTS (
 	WHERE valid_ingredient_state_ingredients.archived_at IS NULL
 		AND valid_ingredient_state_ingredients.id = sqlc.arg(id)
 );
+
+-- name: UpdateValidIngredientStateIngredient :execrows
+UPDATE valid_ingredient_state_ingredients SET
+	notes = sqlc.arg(notes),
+	valid_ingredient_state = sqlc.arg(valid_ingredient_state),
+	valid_ingredient = sqlc.arg(valid_ingredient),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveValidIngredientStateIngredient :execrows
+UPDATE valid_ingredient_state_ingredients SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
 
 -- name: GetValidIngredientStateIngredientsForIngredient :many
 SELECT
@@ -474,12 +486,3 @@ SELECT EXISTS(
 	AND valid_ingredient_state = sqlc.arg(valid_ingredient_state)
 	AND archived_at IS NULL
 );
-
--- name: UpdateValidIngredientStateIngredient :execrows
-UPDATE valid_ingredient_state_ingredients SET
-	notes = sqlc.arg(notes),
-	valid_ingredient_state = sqlc.arg(valid_ingredient_state),
-	valid_ingredient = sqlc.arg(valid_ingredient),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);

@@ -1,6 +1,3 @@
--- name: ArchiveRecipe :execrows
-UPDATE recipes SET archived_at = NOW() WHERE archived_at IS NULL AND created_by_user = sqlc.arg(created_by_user) AND id = sqlc.arg(id);
-
 -- name: CreateRecipe :exec
 INSERT INTO recipes (
 	id,
@@ -43,6 +40,24 @@ SELECT EXISTS (
 	WHERE recipes.archived_at IS NULL
 		AND recipes.id = sqlc.arg(id)
 );
+
+-- name: UpdateRecipeStatus :execrows
+UPDATE recipes SET
+	status = sqlc.arg(status),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ScanRecipeIDsForReindex :many
+SELECT recipes.id
+FROM recipes
+WHERE recipes.archived_at IS NULL
+	AND recipes.id COLLATE "C" > sqlc.arg(cursor)
+ORDER BY recipes.id COLLATE "C"
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
+
+-- name: ArchiveRecipe :execrows
+UPDATE recipes SET archived_at = NOW() WHERE archived_at IS NULL AND created_by_user = sqlc.arg(created_by_user) AND id = sqlc.arg(id);
 
 -- name: GetRecipeByID :many
 SELECT
@@ -557,24 +572,16 @@ WHERE recipes.archived_at IS NULL
 		SELECT 1 FROM recipe_step_instruments rsi
 		JOIN recipe_steps rs ON rsi.belongs_to_recipe_step = rs.id
 		WHERE rs.belongs_to_recipe = recipes.id
-			AND rsi.archived_at IS NULL
-			AND rs.archived_at IS NULL
-			AND rsi.optional = false
-			AND rsi.instrument_id IS NOT NULL
-			AND rsi.instrument_id NOT IN (
-				SELECT valid_instrument_id FROM account_instrument_ownerships
-				WHERE belongs_to_account = sqlc.arg(account_id) AND archived_at IS NULL
-			)
+				AND rsi.archived_at IS NULL
+				AND rs.archived_at IS NULL
+				AND rsi.optional = false
+				AND rsi.instrument_id IS NOT NULL
+				AND rsi.instrument_id NOT IN (
+					SELECT valid_instrument_id FROM account_instrument_ownerships
+					WHERE belongs_to_account = sqlc.arg(account_id) AND archived_at IS NULL
+				)
 	)
 ORDER BY recipes.id ASC
-LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: ScanRecipeIDsForReindex :many
-SELECT recipes.id
-FROM recipes
-WHERE recipes.archived_at IS NULL
-	AND recipes.id COLLATE "C" > sqlc.arg(cursor)
-ORDER BY recipes.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
 -- name: GetRecipesNeedingIndexing :many
@@ -614,13 +621,6 @@ UPDATE recipes SET
 	last_updated_at = NOW()
 WHERE archived_at IS NULL
 	AND created_by_user = sqlc.arg(created_by_user)
-	AND id = sqlc.arg(id);
-
--- name: UpdateRecipeStatus :execrows
-UPDATE recipes SET
-	status = sqlc.arg(status),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: MarkRecipesAsIndexed :execrows

@@ -38,7 +38,10 @@ func (q *Queries) AcceptTermsOfServiceForUser(ctx context.Context, db DBTX, id s
 }
 
 const archiveUser = `-- name: ArchiveUser :execrows
-UPDATE users SET archived_at = NOW() WHERE archived_at IS NULL AND id = $1
+UPDATE users SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
 `
 
 func (q *Queries) ArchiveUser(ctx context.Context, db DBTX, id string) (int64, error) {
@@ -50,8 +53,7 @@ func (q *Queries) ArchiveUser(ctx context.Context, db DBTX, id string) (int64, e
 }
 
 const createUser = `-- name: CreateUser :exec
-INSERT INTO users
-(
+INSERT INTO users (
 	id,
 	username,
 	email_address,

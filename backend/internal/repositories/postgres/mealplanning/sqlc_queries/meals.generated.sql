@@ -1,6 +1,3 @@
--- name: ArchiveMeal :execrows
-UPDATE meals SET archived_at = NOW() WHERE archived_at IS NULL AND created_by_user = sqlc.arg(created_by_user) AND id = sqlc.arg(id);
-
 -- name: CreateMeal :exec
 INSERT INTO meals (
 	id,
@@ -27,6 +24,17 @@ SELECT EXISTS (
 	WHERE meals.archived_at IS NULL
 		AND meals.id = sqlc.arg(id)
 );
+
+-- name: ScanMealIDsForReindex :many
+SELECT meals.id
+FROM meals
+WHERE meals.archived_at IS NULL
+	AND meals.id COLLATE "C" > sqlc.arg(cursor)
+ORDER BY meals.id COLLATE "C"
+LIMIT COALESCE(sqlc.narg(result_limit), 50);
+
+-- name: ArchiveMeal :execrows
+UPDATE meals SET archived_at = NOW() WHERE archived_at IS NULL AND created_by_user = sqlc.arg(created_by_user) AND id = sqlc.arg(id);
 
 -- name: GetMealsByCreatorAndName :many
 SELECT
@@ -57,14 +65,6 @@ WHERE meals.archived_at IS NULL
 	AND meals.created_by_user = sqlc.arg(created_by_user)
 	AND meals.name = sqlc.arg(name)
 ORDER BY meals.id ASC, meal_components.id ASC;
-
--- name: ScanMealIDsForReindex :many
-SELECT meals.id
-FROM meals
-WHERE meals.archived_at IS NULL
-	AND meals.id COLLATE "C" > sqlc.arg(cursor)
-ORDER BY meals.id COLLATE "C"
-LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
 -- name: GetMealsNeedingIndexing :many
 SELECT meals.id

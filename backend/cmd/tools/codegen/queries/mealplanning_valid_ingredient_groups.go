@@ -32,8 +32,6 @@ func buildValidIngredientGroupsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		groupMemberInsertColumns := filterForInsert(validIngredientGroupMembersColumns)
-
 		fullMemberSelectColumns := mergeColumns(
 			applyToEach(filterFromSlice(validIngredientGroupMembersColumns, "valid_ingredient"), func(i int, s string) string {
 				return fmt.Sprintf("%s.%s", validIngredientGroupMembersTableName, s)
@@ -49,41 +47,12 @@ func buildValidIngredientGroupsQueries(database string) []*Query {
 				querygen.WithEntity("ValidIngredientGroup", "ValidIngredientGroups"),
 				querygen.WithOmitted(querygen.ListQuery),
 			),
+			querygen.StandardCRUD(validIngredientGroupMembersTableName, validIngredientGroupMembersColumns,
+				querygen.WithEntity("ValidIngredientGroupMember", "ValidIngredientGroupMembers"),
+				querygen.WithOwnership(belongsToGroupColumn),
+				querygen.WithOmitted(querygen.GetQuery, querygen.ExistsQuery, querygen.ListQuery, querygen.UpdateQuery),
+			),
 			[]*Query{
-				{
-					Annotation: QueryAnnotation{
-						Name: "ArchiveValidIngredientGroupMember",
-						Type: ExecRowsType,
-					},
-					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
-	%s = %s
-WHERE %s IS NULL
-	AND %s = sqlc.arg(%s)
-	AND %s = sqlc.arg(%s);`,
-						validIngredientGroupMembersTableName,
-						archivedAtColumn, currentTimeExpression,
-						archivedAtColumn,
-						idColumn, idColumn,
-						belongsToGroupColumn, belongsToGroupColumn,
-					)),
-				},
-				{
-					Annotation: QueryAnnotation{
-						Name: "CreateValidIngredientGroupMember",
-						Type: ExecType,
-					},
-					Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-						validIngredientGroupMembersTableName,
-						strings.Join(groupMemberInsertColumns, ",\n\t"),
-						strings.Join(applyToEach(groupMemberInsertColumns, func(i int, s string) string {
-							return fmt.Sprintf("sqlc.arg(%s)", s)
-						}), ",\n\t"),
-					)),
-				},
 				{
 					Annotation: QueryAnnotation{
 						Name: "GetValidIngredientGroups",

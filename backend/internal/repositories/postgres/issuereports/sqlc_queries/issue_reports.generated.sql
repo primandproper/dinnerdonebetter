@@ -17,6 +17,22 @@ INSERT INTO issue_reports (
 	sqlc.arg(belongs_to_account)
 );
 
+-- name: GetIssueReport :one
+SELECT
+	issue_reports.id,
+	issue_reports.issue_type,
+	issue_reports.details,
+	issue_reports.relevant_table,
+	issue_reports.relevant_record_id,
+	issue_reports.created_at,
+	issue_reports.last_updated_at,
+	issue_reports.archived_at,
+	issue_reports.created_by_user,
+	issue_reports.belongs_to_account
+FROM issue_reports
+WHERE issue_reports.archived_at IS NULL
+	AND issue_reports.id = sqlc.arg(id);
+
 -- name: UpdateIssueReport :execrows
 UPDATE issue_reports SET
 	issue_type = sqlc.arg(issue_type),
@@ -33,22 +49,6 @@ UPDATE issue_reports SET
 	archived_at = NOW()
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
-
--- name: GetIssueReport :one
-SELECT
-	issue_reports.id,
-	issue_reports.issue_type,
-	issue_reports.details,
-	issue_reports.relevant_table,
-	issue_reports.relevant_record_id,
-	issue_reports.created_at,
-	issue_reports.last_updated_at,
-	issue_reports.archived_at,
-	issue_reports.created_by_user,
-	issue_reports.belongs_to_account
-FROM issue_reports
-WHERE issue_reports.archived_at IS NULL
-	AND issue_reports.id = sqlc.arg(id);
 
 -- name: CheckIssueReportExistence :one
 SELECT EXISTS(

@@ -1,6 +1,3 @@
--- name: ArchiveProduct :execrows
-UPDATE products SET archived_at = NOW(), last_updated_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
-
 -- name: CreateProduct :exec
 INSERT INTO products (
 	id,
@@ -22,14 +19,6 @@ INSERT INTO products (
 	sqlc.arg(external_product_id)
 );
 
--- name: CheckProductExistence :one
-SELECT EXISTS (
-	SELECT products.id
-	FROM products
-	WHERE products.archived_at IS NULL
-	AND products.id = sqlc.arg(id)
-);
-
 -- name: GetProduct :one
 SELECT
 	products.id,
@@ -45,7 +34,31 @@ SELECT
 	products.archived_at
 FROM products
 WHERE products.archived_at IS NULL
-AND products.id = sqlc.arg(id);
+	AND products.id = sqlc.arg(id);
+
+-- name: CheckProductExistence :one
+SELECT EXISTS (
+	SELECT products.id
+	FROM products
+	WHERE products.archived_at IS NULL
+		AND products.id = sqlc.arg(id)
+);
+
+-- name: UpdateProduct :execrows
+UPDATE products SET
+	name = sqlc.arg(name),
+	description = sqlc.arg(description),
+	kind = sqlc.arg(kind),
+	amount_cents = sqlc.arg(amount_cents),
+	currency = sqlc.arg(currency),
+	billing_interval_months = sqlc.arg(billing_interval_months),
+	external_product_id = sqlc.arg(external_product_id),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id);
+
+-- name: ArchiveProduct :execrows
+UPDATE products SET archived_at = NOW(), last_updated_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
 
 -- name: GetProductByExternalID :one
 SELECT
@@ -168,16 +181,3 @@ WHERE products.archived_at IS NULL
 	AND products.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY products.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateProduct :execrows
-UPDATE products SET
-	name = sqlc.arg(name),
-	description = sqlc.arg(description),
-	kind = sqlc.arg(kind),
-	amount_cents = sqlc.arg(amount_cents),
-	currency = sqlc.arg(currency),
-	billing_interval_months = sqlc.arg(billing_interval_months),
-	external_product_id = sqlc.arg(external_product_id),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND id = sqlc.arg(id);

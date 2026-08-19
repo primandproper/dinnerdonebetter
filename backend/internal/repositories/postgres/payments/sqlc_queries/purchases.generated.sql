@@ -31,7 +31,7 @@ SELECT
 	purchases.archived_at
 FROM purchases
 WHERE purchases.archived_at IS NULL
-AND purchases.id = sqlc.arg(id);
+	AND purchases.id = sqlc.arg(id);
 
 -- name: GetPurchasesForAccount :many
 SELECT

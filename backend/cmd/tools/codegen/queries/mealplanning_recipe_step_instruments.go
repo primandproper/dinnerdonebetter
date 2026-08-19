@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/primandproper/platform-go/v11/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -41,8 +44,6 @@ func buildRecipeStepInstrumentsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		insertColumns := filterForInsert(recipeStepInstrumentsColumns)
-
 		fullSelectColumn := mergeColumns(
 			applyToEach(filterFromSlice(recipeStepInstrumentsColumns, instrumentIDColumn, measurementUnitColumn), func(i int, s string) string {
 				return fmt.Sprintf("%s.%s", recipeStepInstrumentsTableName, s)
@@ -53,46 +54,19 @@ func buildRecipeStepInstrumentsQueries(database string) []*Query {
 			1,
 		)
 
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "ArchiveRecipeStepInstrument",
-					Type: ExecRowsType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s IS NULL AND %s = sqlc.arg(%s) AND %s = sqlc.arg(%s);`,
-					recipeStepInstrumentsTableName,
-					archivedAtColumn,
-					currentTimeExpression,
-					archivedAtColumn,
-					belongsToRecipeStepColumn,
-					belongsToRecipeStepColumn,
-					idColumn,
-					idColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreateRecipeStepInstrument",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					recipeStepInstrumentsTableName,
-					strings.Join(insertColumns, ",\n\t"),
-					strings.Join(applyToEach(insertColumns, func(i int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "CheckRecipeStepInstrumentExistence",
-					Type: OneType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS (
+		return slices.Concat(
+			querygen.StandardCRUD(recipeStepInstrumentsTableName, recipeStepInstrumentsColumns,
+				querygen.WithEntity("RecipeStepInstrument", "RecipeStepInstruments"),
+				querygen.WithOwnership(belongsToRecipeStepColumn),
+				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery),
+			),
+			[]*Query{
+				{
+					Annotation: QueryAnnotation{
+						Name: "CheckRecipeStepInstrumentExistence",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS (
 	SELECT %s.%s
 	FROM %s
 		JOIN %s ON %s.%s=%s.%s
@@ -106,26 +80,26 @@ func buildRecipeStepInstrumentsQueries(database string) []*Query {
 		AND %s.%s IS NULL
 		AND %s.%s = sqlc.arg(%s)
 );`,
-					recipeStepInstrumentsTableName, idColumn,
-					recipeStepInstrumentsTableName,
-					recipeStepsTableName, recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
-					recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
-					recipeStepInstrumentsTableName, archivedAtColumn,
-					recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
-					recipeStepInstrumentsTableName, idColumn, recipeStepInstrumentIDColumn,
-					recipeStepsTableName, archivedAtColumn,
-					recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
-					recipeStepsTableName, idColumn, recipeStepIDColumn,
-					recipesTableName, archivedAtColumn,
-					recipesTableName, idColumn, recipeIDColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetRecipeStepInstrumentsForRecipe",
-					Type: ManyType,
+						recipeStepInstrumentsTableName, idColumn,
+						recipeStepInstrumentsTableName,
+						recipeStepsTableName, recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
+						recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
+						recipeStepInstrumentsTableName, archivedAtColumn,
+						recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
+						recipeStepInstrumentsTableName, idColumn, recipeStepInstrumentIDColumn,
+						recipeStepsTableName, archivedAtColumn,
+						recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
+						recipeStepsTableName, idColumn, recipeStepIDColumn,
+						recipesTableName, archivedAtColumn,
+						recipesTableName, idColumn, recipeIDColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetRecipeStepInstrumentsForRecipe",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	LEFT JOIN %s ON %s.%s=%s.%s
@@ -136,24 +110,24 @@ WHERE %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 	AND %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(fullSelectColumn, ",\n\t"),
-					recipeStepInstrumentsTableName,
-					validInstrumentsTableName, recipeStepInstrumentsTableName, instrumentIDColumn, validInstrumentsTableName, idColumn,
-					recipeStepsTableName, recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
-					recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
-					recipeStepInstrumentsTableName, archivedAtColumn,
-					recipeStepsTableName, archivedAtColumn,
-					recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
-					recipesTableName, archivedAtColumn,
-					recipesTableName, idColumn, recipeIDColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetRecipeStepInstrument",
-					Type: OneType,
+						strings.Join(fullSelectColumn, ",\n\t"),
+						recipeStepInstrumentsTableName,
+						validInstrumentsTableName, recipeStepInstrumentsTableName, instrumentIDColumn, validInstrumentsTableName, idColumn,
+						recipeStepsTableName, recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
+						recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
+						recipeStepInstrumentsTableName, archivedAtColumn,
+						recipeStepsTableName, archivedAtColumn,
+						recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
+						recipesTableName, archivedAtColumn,
+						recipesTableName, idColumn, recipeIDColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetRecipeStepInstrument",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s
 FROM %s
 	LEFT JOIN %s ON %s.%s=%s.%s
@@ -167,27 +141,27 @@ WHERE %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 	AND %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s);`,
-					strings.Join(fullSelectColumn, ",\n\t"),
-					recipeStepInstrumentsTableName,
-					validInstrumentsTableName, recipeStepInstrumentsTableName, instrumentIDColumn, validInstrumentsTableName, idColumn,
-					recipeStepsTableName, recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
-					recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
-					recipeStepInstrumentsTableName, archivedAtColumn,
-					recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
-					recipeStepInstrumentsTableName, idColumn, recipeStepInstrumentIDColumn,
-					recipeStepsTableName, archivedAtColumn,
-					recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
-					recipeStepsTableName, idColumn, recipeStepIDColumn,
-					recipesTableName, archivedAtColumn,
-					recipesTableName, idColumn, recipeIDColumn,
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetRecipeStepInstruments",
-					Type: ManyType,
+						strings.Join(fullSelectColumn, ",\n\t"),
+						recipeStepInstrumentsTableName,
+						validInstrumentsTableName, recipeStepInstrumentsTableName, instrumentIDColumn, validInstrumentsTableName, idColumn,
+						recipeStepsTableName, recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
+						recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
+						recipeStepInstrumentsTableName, archivedAtColumn,
+						recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
+						recipeStepInstrumentsTableName, idColumn, recipeStepInstrumentIDColumn,
+						recipeStepsTableName, archivedAtColumn,
+						recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
+						recipeStepsTableName, idColumn, recipeStepIDColumn,
+						recipesTableName, archivedAtColumn,
+						recipesTableName, idColumn, recipeIDColumn,
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetRecipeStepInstruments",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -205,46 +179,26 @@ WHERE
 	AND %s.%s = sqlc.arg(%s)
 	%s
 %s;`,
-					strings.Join(fullSelectColumn, ",\n\t"),
-					buildFilterCountSelect(recipeStepInstrumentsTableName, true, true, nil),
-					buildTotalCountSelect(recipeStepInstrumentsTableName, true, []string{}),
-					recipeStepInstrumentsTableName,
-					validInstrumentsTableName, recipeStepInstrumentsTableName, instrumentIDColumn, validInstrumentsTableName, idColumn,
-					recipeStepsTableName, recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
-					recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
-					recipeStepInstrumentsTableName, archivedAtColumn,
-					recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
-					recipeStepsTableName, archivedAtColumn,
-					recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
-					recipeStepsTableName, idColumn, recipeStepIDColumn,
-					recipesTableName, archivedAtColumn,
-					recipesTableName, idColumn, recipeIDColumn,
-					buildFilterConditions(recipeStepInstrumentsTableName, true, false),
-					buildCursorLimitClause(recipeStepInstrumentsTableName),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "UpdateRecipeStepInstrument",
-					Type: ExecRowsType,
+						strings.Join(fullSelectColumn, ",\n\t"),
+						buildFilterCountSelect(recipeStepInstrumentsTableName, true, true, nil),
+						buildTotalCountSelect(recipeStepInstrumentsTableName, true, []string{}),
+						recipeStepInstrumentsTableName,
+						validInstrumentsTableName, recipeStepInstrumentsTableName, instrumentIDColumn, validInstrumentsTableName, idColumn,
+						recipeStepsTableName, recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
+						recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
+						recipeStepInstrumentsTableName, archivedAtColumn,
+						recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
+						recipeStepsTableName, archivedAtColumn,
+						recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
+						recipeStepsTableName, idColumn, recipeStepIDColumn,
+						recipesTableName, archivedAtColumn,
+						recipesTableName, idColumn, recipeIDColumn,
+						buildFilterConditions(recipeStepInstrumentsTableName, true, false),
+						buildCursorLimitClause(recipeStepInstrumentsTableName),
+					)),
 				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET
-	%s,
-	%s = %s
-WHERE %s IS NULL
-	AND %s = sqlc.arg(%s)
-	AND %s = sqlc.arg(%s);`,
-					recipeStepInstrumentsTableName,
-					strings.Join(applyToEach(filterForUpdate(recipeStepInstrumentsColumns, belongsToRecipeStepColumn), func(i int, s string) string {
-						return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
-					}), ",\n\t"),
-					lastUpdatedAtColumn, currentTimeExpression,
-					archivedAtColumn,
-					belongsToRecipeStepColumn, belongsToRecipeStepColumn,
-					idColumn, idColumn,
-				)),
 			},
-		}
+		)
 	default:
 		return nil
 	}

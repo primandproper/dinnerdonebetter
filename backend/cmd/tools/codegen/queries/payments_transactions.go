@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/primandproper/platform-go/v11/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -30,36 +33,23 @@ var paymentTransactionsColumns = []string{
 func buildPaymentsTransactionsQueries(database string) []*Query {
 	switch database {
 	case postgres:
-		insertColumns := filterForInsert(paymentTransactionsColumns)
 		fullSelectColumns := applyToEach(paymentTransactionsColumns, func(_ int, s string) string {
 			return fullColumnName(paymentTransactionsTableName, s)
 		})
 		accountCondition := fmt.Sprintf("%s.%s = sqlc.arg(%s)", paymentTransactionsTableName, belongsToAccountColumn, belongsToAccountColumn)
 
-		return []*Query{
-			{
-				Annotation: QueryAnnotation{
-					Name: "CreatePaymentTransaction",
-					Type: ExecType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`INSERT INTO %s (
-	%s
-) VALUES (
-	%s
-);`,
-					paymentTransactionsTableName,
-					strings.Join(insertColumns, ",\n\t"),
-					strings.Join(applyToEach(insertColumns, func(_ int, s string) string {
-						return fmt.Sprintf("sqlc.arg(%s)", s)
-					}), ",\n\t"),
-				)),
-			},
-			{
-				Annotation: QueryAnnotation{
-					Name: "GetPaymentTransactionsForAccount",
-					Type: ManyType,
-				},
-				Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+		return slices.Concat(
+			querygen.StandardCRUD(paymentTransactionsTableName, paymentTransactionsColumns,
+				querygen.WithEntity("PaymentTransaction", "PaymentTransactions"),
+				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
+			),
+			[]*Query{
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetPaymentTransactionsForAccount",
+						Type: ManyType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
@@ -67,16 +57,17 @@ FROM %s
 WHERE %s
 	%s
 %s;`,
-					strings.Join(fullSelectColumns, ",\n\t"),
-					buildFilterCountSelect(paymentTransactionsTableName, false, false, nil, accountCondition),
-					buildTotalCountSelect(paymentTransactionsTableName, false, nil, accountCondition),
-					paymentTransactionsTableName,
-					accountCondition,
-					buildFilterConditions(paymentTransactionsTableName, false, false, accountCondition),
-					buildCursorLimitClause(paymentTransactionsTableName),
-				)),
+						strings.Join(fullSelectColumns, ",\n\t"),
+						buildFilterCountSelect(paymentTransactionsTableName, false, false, nil, accountCondition),
+						buildTotalCountSelect(paymentTransactionsTableName, false, nil, accountCondition),
+						paymentTransactionsTableName,
+						accountCondition,
+						buildFilterConditions(paymentTransactionsTableName, false, false, accountCondition),
+						buildCursorLimitClause(paymentTransactionsTableName),
+					)),
+				},
 			},
-		}
+		)
 	default:
 		return nil
 	}

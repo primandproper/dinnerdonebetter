@@ -14,7 +14,10 @@ import (
 )
 
 const archiveValidPreparationInstrument = `-- name: ArchiveValidPreparationInstrument :execrows
-UPDATE valid_preparation_instruments SET archived_at = NOW() WHERE archived_at IS NULL AND id = $1
+UPDATE valid_preparation_instruments SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
 `
 
 func (q *Queries) ArchiveValidPreparationInstrument(ctx context.Context, db DBTX, id string) (int64, error) {

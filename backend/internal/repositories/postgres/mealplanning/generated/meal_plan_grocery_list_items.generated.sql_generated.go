@@ -14,7 +14,10 @@ import (
 )
 
 const archiveMealPlanGroceryListItem = `-- name: ArchiveMealPlanGroceryListItem :execrows
-UPDATE meal_plan_grocery_list_items SET archived_at = NOW() WHERE archived_at IS NULL AND id = $1
+UPDATE meal_plan_grocery_list_items SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = $1
 `
 
 func (q *Queries) ArchiveMealPlanGroceryListItem(ctx context.Context, db DBTX, id string) (int64, error) {

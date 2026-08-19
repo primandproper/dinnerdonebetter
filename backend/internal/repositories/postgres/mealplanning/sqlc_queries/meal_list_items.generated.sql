@@ -1,15 +1,3 @@
--- name: CheckMealInMealList :one
-SELECT EXISTS (
-	SELECT meal_list_items.id
-	FROM meal_list_items
-	WHERE meal_list_items.archived_at IS NULL
-		AND meal_list_items.belongs_to_meal_list = sqlc.arg(belongs_to_meal_list)
-		AND meal_list_items.meal_id = sqlc.arg(meal_id)
-);
-
--- name: ArchiveMealListItem :execrows
-UPDATE meal_list_items SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_meal_list = sqlc.arg(belongs_to_meal_list) AND id = sqlc.arg(id);
-
 -- name: CreateMealListItem :exec
 INSERT INTO meal_list_items (
 	id,
@@ -21,6 +9,31 @@ INSERT INTO meal_list_items (
 	sqlc.arg(meal_id),
 	sqlc.arg(notes),
 	sqlc.arg(belongs_to_meal_list)
+);
+
+-- name: UpdateMealListItem :execrows
+UPDATE meal_list_items SET
+	meal_id = sqlc.arg(meal_id),
+	notes = sqlc.arg(notes),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_meal_list = sqlc.arg(belongs_to_meal_list);
+
+-- name: ArchiveMealListItem :execrows
+UPDATE meal_list_items SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_meal_list = sqlc.arg(belongs_to_meal_list);
+
+-- name: CheckMealInMealList :one
+SELECT EXISTS (
+	SELECT meal_list_items.id
+	FROM meal_list_items
+	WHERE meal_list_items.archived_at IS NULL
+		AND meal_list_items.belongs_to_meal_list = sqlc.arg(belongs_to_meal_list)
+		AND meal_list_items.meal_id = sqlc.arg(meal_id)
 );
 
 -- name: GetMealListItems :many
@@ -74,12 +87,3 @@ WHERE meal_list_items.archived_at IS NULL
 	AND meal_list_items.belongs_to_meal_list = sqlc.arg(meal_list_id)
 ORDER BY meal_list_items.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateMealListItem :execrows
-UPDATE meal_list_items SET
-	meal_id = sqlc.arg(meal_id),
-	notes = sqlc.arg(notes),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND belongs_to_meal_list = sqlc.arg(belongs_to_meal_list)
-	AND id = sqlc.arg(id);

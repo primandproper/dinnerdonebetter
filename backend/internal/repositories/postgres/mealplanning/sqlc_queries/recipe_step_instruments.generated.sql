@@ -1,6 +1,3 @@
--- name: ArchiveRecipeStepInstrument :execrows
-UPDATE recipe_step_instruments SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step) AND id = sqlc.arg(id);
-
 -- name: CreateRecipeStepInstrument :exec
 INSERT INTO recipe_step_instruments (
 	id,
@@ -31,6 +28,31 @@ INSERT INTO recipe_step_instruments (
 	sqlc.arg(scale_factor),
 	sqlc.arg(belongs_to_recipe_step)
 );
+
+-- name: UpdateRecipeStepInstrument :execrows
+UPDATE recipe_step_instruments SET
+	instrument_id = sqlc.arg(instrument_id),
+	recipe_step_product_id = sqlc.arg(recipe_step_product_id),
+	name = sqlc.arg(name),
+	notes = sqlc.arg(notes),
+	preference_rank = sqlc.arg(preference_rank),
+	optional = sqlc.arg(optional),
+	minimum_quantity = sqlc.arg(minimum_quantity),
+	maximum_quantity = sqlc.arg(maximum_quantity),
+	index = sqlc.arg(index),
+	option_index = sqlc.arg(option_index),
+	scale_factor = sqlc.arg(scale_factor),
+	last_updated_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step);
+
+-- name: ArchiveRecipeStepInstrument :execrows
+UPDATE recipe_step_instruments SET
+	archived_at = NOW()
+WHERE archived_at IS NULL
+	AND id = sqlc.arg(id)
+	AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step);
 
 -- name: CheckRecipeStepInstrumentExistence :one
 SELECT EXISTS (
@@ -208,21 +230,3 @@ WHERE
 	AND recipe_step_instruments.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY recipe_step_instruments.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
-
--- name: UpdateRecipeStepInstrument :execrows
-UPDATE recipe_step_instruments SET
-	instrument_id = sqlc.arg(instrument_id),
-	recipe_step_product_id = sqlc.arg(recipe_step_product_id),
-	name = sqlc.arg(name),
-	notes = sqlc.arg(notes),
-	preference_rank = sqlc.arg(preference_rank),
-	optional = sqlc.arg(optional),
-	minimum_quantity = sqlc.arg(minimum_quantity),
-	maximum_quantity = sqlc.arg(maximum_quantity),
-	index = sqlc.arg(index),
-	option_index = sqlc.arg(option_index),
-	scale_factor = sqlc.arg(scale_factor),
-	last_updated_at = NOW()
-WHERE archived_at IS NULL
-	AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step)
-	AND id = sqlc.arg(id);
