@@ -35,7 +35,7 @@ func buildWaitlistSignupsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 		fullSelectColumns := applyToEach(waitlistSignupColumns, func(_ int, s string) string {
-			return fullColumnName(waitlistSignupsTableName, s)
+			return querygen.Qualify(waitlistSignupsTableName, s)
 		})
 
 		return slices.Concat(
@@ -57,8 +57,8 @@ func buildWaitlistSignupsQueries(database string) []*Query {
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						waitlistSignupsTableName,
-						lastUpdatedAtColumn, currentTimeExpression,
-						archivedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
+						archivedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),

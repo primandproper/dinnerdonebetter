@@ -39,10 +39,10 @@ func buildWebhooksQueries(database string) []*Query {
 
 		fullSelectColumns := mergeColumns(
 			applyToEach(webhooksColumns, func(_ int, s string) string {
-				return fullColumnName(webhooksTableName, s)
+				return querygen.Qualify(webhooksTableName, s)
 			}),
 			applyToEach(webhookTriggerConfigsColumns, func(_ int, s string) string {
-				return fullColumnName(webhookTriggerConfigsTableName, s)
+				return querygen.Qualify(webhookTriggerConfigsTableName, s)
 			}),
 			5,
 		)

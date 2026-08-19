@@ -51,7 +51,7 @@ func buildCommentsQueries(database string) []*Query {
 	AND %s = sqlc.arg(referenced_id);`,
 						commentsTableName,
 						archivedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						archivedAtColumn,
 						"target_type",
 						"referenced_id",
@@ -124,10 +124,10 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 						commentsTableName,
-						strings.Join(applyToEach(filterForUpdate(commentsColumns, "target_type", "referenced_id", belongsToUserColumn, "parent_comment_id"), func(i int, s string) string {
+						strings.Join(applyToEach(querygen.ForUpdate(commentsColumns, "target_type", "referenced_id", belongsToUserColumn, "parent_comment_id"), func(i int, s string) string {
 							return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
 						}), ",\n\t"),
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 						belongsToUserColumn, belongsToUserColumn,

@@ -32,7 +32,7 @@ func buildWaitlistsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 		fullSelectColumns := applyToEach(waitlistsColumns, func(_ int, s string) string {
-			return fullColumnName(waitlistsTableName, s)
+			return querygen.Qualify(waitlistsTableName, s)
 		})
 
 		return slices.Concat(
@@ -52,8 +52,8 @@ func buildWaitlistsQueries(database string) []*Query {
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						waitlistsTableName,
-						lastUpdatedAtColumn, currentTimeExpression,
-						archivedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
+						archivedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -91,7 +91,7 @@ WHERE %s IS NULL
 						waitlistsTableName,
 						waitlistsTableName, archivedAtColumn,
 						waitlistsTableName, idColumn, idColumn,
-						waitlistsTableName, currentTimeExpression,
+						waitlistsTableName, querygen.NowExpression,
 					)),
 				},
 				{
@@ -127,11 +127,11 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(waitlistsTableName, waitlistsColumns, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, currentTimeExpression)),
-						querygen.TotalCountSelect(waitlistsTableName, waitlistsColumns, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, currentTimeExpression)),
+						querygen.FilterCountSelect(waitlistsTableName, waitlistsColumns, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, querygen.NowExpression)),
+						querygen.TotalCountSelect(waitlistsTableName, waitlistsColumns, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, querygen.NowExpression)),
 						waitlistsTableName,
 						querygen.FilterConditions(waitlistsTableName, waitlistsColumns,
-							fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, currentTimeExpression),
+							fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, querygen.NowExpression),
 						),
 						querygen.CursorLimitClause(waitlistsTableName),
 					)),

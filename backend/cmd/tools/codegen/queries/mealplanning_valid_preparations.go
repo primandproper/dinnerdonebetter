@@ -98,7 +98,7 @@ WHERE %s.%s IS NULL
 						validPreparationsTableName,
 						validPreparationsTableName, archivedAtColumn,
 						validPreparationsTableName, lastIndexedAtColumn,
-						validPreparationsTableName, lastIndexedAtColumn, currentTimeExpression,
+						validPreparationsTableName, lastIndexedAtColumn, querygen.NowExpression,
 					)),
 				},
 				{

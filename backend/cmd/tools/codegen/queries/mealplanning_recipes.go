@@ -83,7 +83,7 @@ func buildRecipesQueries(database string) []*Query {
 					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s IS NULL AND %s = sqlc.arg(%s) AND %s = sqlc.arg(%s);`,
 						recipesTableName,
 						archivedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						archivedAtColumn,
 						createdByUserColumn,
 						createdByUserColumn,
@@ -298,7 +298,7 @@ WHERE %s.%s IS NULL
 						recipesTableName,
 						recipesTableName, archivedAtColumn,
 						recipesTableName, lastIndexedAtColumn,
-						recipesTableName, lastIndexedAtColumn, currentTimeExpression,
+						recipesTableName, lastIndexedAtColumn, querygen.NowExpression,
 					)),
 				},
 				{
@@ -337,10 +337,10 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 						recipesTableName,
-						strings.Join(applyToEach(filterForUpdate(recipesColumns, statusColumn, lastValidatedAtColumn, createdByUserColumn), func(i int, s string) string {
+						strings.Join(applyToEach(querygen.ForUpdate(recipesColumns, statusColumn, lastValidatedAtColumn, createdByUserColumn), func(i int, s string) string {
 							return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
 						}), ",\n\t"),
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						createdByUserColumn, createdByUserColumn,
 						idColumn, idColumn,
@@ -358,7 +358,7 @@ WHERE %s IS NULL
 WHERE %s = ANY(sqlc.arg(%s)::text[]);`,
 						recipesTableName,
 						lastIndexedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						idColumn,
 						idsArg,
 					)),

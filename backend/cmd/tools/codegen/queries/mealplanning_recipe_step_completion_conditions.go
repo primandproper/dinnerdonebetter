@@ -66,7 +66,7 @@ func buildRecipeStepCompletionConditionQueries(database string) []*Query {
 					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s IS NULL AND %s = sqlc.arg(%s) AND %s = sqlc.arg(%s);`,
 						recipeStepCompletionConditionsTableName,
 						archivedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						archivedAtColumn,
 						belongsToRecipeStepColumn,
 						belongsToRecipeStepColumn,

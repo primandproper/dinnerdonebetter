@@ -149,11 +149,11 @@ WHERE
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						mealPlanEventsTableName,
-						strings.Join(applyToEach(filterForUpdate(mealPlanEventsColumns), func(i int, s string) string {
+						strings.Join(applyToEach(querygen.ForUpdate(mealPlanEventsColumns), func(i int, s string) string {
 							return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
 						}), ",\n\t"),
 						lastUpdatedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						archivedAtColumn,
 						idColumn,
 						idColumn,

@@ -35,7 +35,7 @@ func buildPaymentsPurchasesQueries(database string) []*Query {
 	switch database {
 	case postgres:
 		fullSelectColumns := applyToEach(purchasesColumns, func(_ int, s string) string {
-			return fullColumnName(purchasesTableName, s)
+			return querygen.Qualify(purchasesTableName, s)
 		})
 		accountCondition := fmt.Sprintf("%s.%s = sqlc.arg(%s)", purchasesTableName, belongsToAccountColumn, belongsToAccountColumn)
 

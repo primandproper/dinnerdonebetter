@@ -49,7 +49,7 @@ func buildServiceSettingQueries(database string) []*Query {
 					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s = sqlc.arg(%s);`,
 						serviceSettingsTableName,
 						archivedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						idColumn,
 						idColumn,
 					)),

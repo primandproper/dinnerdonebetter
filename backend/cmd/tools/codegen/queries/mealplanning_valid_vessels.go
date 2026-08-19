@@ -110,7 +110,7 @@ WHERE %s.%s IS NULL
 						lastIndexedAtColumn,
 						validVesselsTableName,
 						lastIndexedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 					)),
 				},
 				{

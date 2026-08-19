@@ -36,7 +36,7 @@ func buildPaymentsSubscriptionsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 		fullSelectColumns := applyToEach(subscriptionsColumns, func(_ int, s string) string {
-			return fullColumnName(subscriptionsTableName, s)
+			return querygen.Qualify(subscriptionsTableName, s)
 		})
 		accountCondition := fmt.Sprintf("%s.%s = sqlc.arg(%s)", subscriptionsTableName, belongsToAccountColumn, belongsToAccountColumn)
 
@@ -54,8 +54,8 @@ func buildPaymentsSubscriptionsQueries(database string) []*Query {
 					},
 					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s, %s = %s WHERE %s IS NULL AND %s = sqlc.arg(%s);`,
 						subscriptionsTableName,
-						archivedAtColumn, currentTimeExpression,
-						lastUpdatedAtColumn, currentTimeExpression,
+						archivedAtColumn, querygen.NowExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -107,7 +107,7 @@ WHERE %s
 					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET status = sqlc.arg(status), %s = %s
 WHERE %s IS NULL AND %s = sqlc.arg(%s);`,
 						subscriptionsTableName,
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),

@@ -39,7 +39,7 @@ func buildIssueReportsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 		fullSelectColumns := applyToEach(issueReportsColumns, func(_ int, s string) string {
-			return fullColumnName(issueReportsTableName, s)
+			return querygen.Qualify(issueReportsTableName, s)
 		})
 
 		return slices.Concat(
@@ -60,8 +60,8 @@ func buildIssueReportsQueries(database string) []*Query {
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						issueReportsTableName,
-						lastUpdatedAtColumn, currentTimeExpression,
-						archivedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
+						archivedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),

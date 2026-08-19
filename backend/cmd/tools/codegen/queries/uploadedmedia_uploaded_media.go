@@ -34,7 +34,7 @@ func buildUploadedMediaQueries(database string) []*Query {
 	switch database {
 	case postgres:
 		fullSelectColumns := applyToEach(uploadedMediaColumns, func(_ int, s string) string {
-			return fullColumnName(uploadedMediaTableName, s)
+			return querygen.Qualify(uploadedMediaTableName, s)
 		})
 
 		return slices.Concat(
@@ -55,8 +55,8 @@ func buildUploadedMediaQueries(database string) []*Query {
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						uploadedMediaTableName,
-						lastUpdatedAtColumn, currentTimeExpression,
-						archivedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
+						archivedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),

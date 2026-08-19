@@ -60,8 +60,8 @@ func buildAccountUserMembershipsQueries(database string) []*Query {
 	%s
 );`,
 						accountUserMembershipsTableName,
-						strings.Join(filterForInsert(accountUserMembershipsColumns), ",\n\t"),
-						strings.Join(applyToEach(filterForInsert(accountUserMembershipsColumns), func(i int, s string) string {
+						strings.Join(querygen.ForInsert(accountUserMembershipsColumns), ",\n\t"),
+						strings.Join(applyToEach(querygen.ForInsert(accountUserMembershipsColumns), func(i int, s string) string {
 							return fmt.Sprintf("sqlc.arg(%s)", s)
 						}), ",\n\t"),
 					)),
@@ -130,7 +130,7 @@ WHERE %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 	AND %s.%s = sqlc.arg(%s);`,
 						accountUserMembershipsTableName,
-						archivedAtColumn, currentTimeExpression,
+						archivedAtColumn, querygen.NowExpression,
 						defaultAccountColumn,
 						accountUserMembershipsTableName, archivedAtColumn,
 						accountUserMembershipsTableName, belongsToAccountColumn, belongsToAccountColumn,
