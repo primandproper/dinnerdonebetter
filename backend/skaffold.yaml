@@ -37,6 +37,11 @@ profiles:
       kustomize:
         paths:
           - deploy/environments/localdev/kustomize
+        # The localdev configMapGenerator reads ../config_files/ — the same generated JSON
+        # docker-compose mounts — instead of a second rendered copy under kustomize/.
+        buildArgs:
+          - --load-restrictor
+          - LoadRestrictionsNone
 
     deploy:
       kubeContext: docker-desktop

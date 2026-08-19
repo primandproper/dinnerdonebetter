@@ -62,34 +62,38 @@ labels:
       app.kubernetes.io/name: dinner-done-better-backend
       deployed_by: skaffold
 
-# Config files are symlinked from ../config_files/ to avoid duplication
-# K8s-specific hostnames are injected via env var patches above
+# The config files are the ones docker-compose mounts, read straight out of
+# ../config_files/ rather than copied here — the JSON is identical either way, because the
+# K8s-specific hostnames are injected via the env var patches above and never rendered
+# into the file. Reaching outside the kustomization root needs
+# `--load-restrictor LoadRestrictionsNone`, which skaffold.yaml passes; this kustomization
+# is already not relocatable, by way of the ../../../kustomize/components resources above.
 configMapGenerator:
   - name: dinner-done-better-service-api-config
     namespace: localdev
     files:
-      - config.json=configs/api_service_config.json
+      - config.json=../config_files/api_service_config.json
 
   - name: dinner-done-better-job-db-cleaner-config
     namespace: localdev
     files:
-      - config.json=configs/job_db_cleaner_config.json
+      - config.json=../config_files/job_db_cleaner_config.json
 
   - name: dinner-done-better-job-email-deliverability-test-config
     namespace: localdev
     files:
-      - config.json=configs/job_email_deliverability_test_config.json
+      - config.json=../config_files/job_email_deliverability_test_config.json
 
   - name: dinner-done-better-scheduler-config
     namespace: localdev
     files:
-      - config.json=configs/scheduler_config.json
+      - config.json=../config_files/scheduler_config.json
 
   # Uncomment to enable MCP server deployment
   # - name: dinner-done-better-mcp-server-config
   #   namespace: localdev
   #   files:
-  #     - config.json=configs/mcp_server_config.json
+  #     - config.json=../config_files/mcp_server_config.json
 
 generatorOptions:
   disableNameSuffixHash: true

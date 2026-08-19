@@ -550,9 +550,11 @@ func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) err
 		// pointer and both configs address one chi.Config: the two writes below land on the API
 		// server's routing config too, renaming its service and turning on localhost CORS.
 		//
-		// Nothing repairs that afterwards. EnableCORSForLocalhost in particular survived only
-		// because localdev — the one config set rendered twice, from a RootConfig shared between
-		// config_files and kustomize/configs — asks for true anyway.
+		// Nothing repairs that afterwards, and RootConfig belongs to the caller, so the write
+		// outlives Render. Back when the generator rendered localdev twice from one RootConfig,
+		// the second pass read the corrupted value and got away with it only because localdev
+		// asks for EnableCORSForLocalhost true anyway. Every environment renders once now, but
+		// the builders are exported and callable from anywhere, so the clone stays.
 		chiConfig := *mcpRouting.Chi
 		chiConfig.ServiceName = mcpConfigObservabilityServiceName
 		// MCP clients (e.g. the MCP inspector) run in browsers on localhost,
