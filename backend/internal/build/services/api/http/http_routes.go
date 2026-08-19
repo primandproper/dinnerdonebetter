@@ -17,6 +17,15 @@ import (
 	"github.com/primandproper/platform-go/v11/version"
 )
 
+// maxRequestBodyBytes bounds the request body of every route this router serves.
+//
+// Nothing between the socket and a handler's read forms an opinion about how much to take: net/http
+// bounds headers and not bodies, so without this the ceiling is whatever a client cares to send. The
+// number is the platform's own default for an unparsed body, and it is generous for what this router
+// actually serves — an OAuth2 form post and a payment provider's webhook event, neither of which is
+// within three orders of magnitude of it. The bulk API is gRPC and is bounded there.
+const maxRequestBodyBytes = 1 << 20 // 1 MiB
+
 func ProvideAPIRouter(
 	ctx context.Context,
 	routingConfig routingcfg.Config,
@@ -33,6 +42,7 @@ func ProvideAPIRouter(
 		routingcfg.WithLogger(logger),
 		routingcfg.WithTracerProvider(tracerProvider),
 		routingcfg.WithMetricsProvider(metricsProvider),
+		routingcfg.WithRouterOptions(routing.WithDefaultMaxRequestBody(maxRequestBodyBytes)),
 	)
 	if err != nil {
 		return nil, err
@@ -40,14 +50,17 @@ func ProvideAPIRouter(
 
 	registerOpsRoutes(router, healthRegistry)
 
+	// The raw routes below carry limitRequestBody because the Router-wide bound does not reach
+	// them: it is applied where a request is decoded into a typed input, and these are registered
+	// with Handle precisely because they are not.
 	router.Group("/oauth2", func(userRouter *routing.Router) {
-		userRouter.Handle(http.MethodGet, "/authorize", http.HandlerFunc(authService.AuthorizeHandler))
-		userRouter.Handle(http.MethodPost, "/token", http.HandlerFunc(authService.TokenHandler))
-		userRouter.Handle(http.MethodPost, "/revoke", http.HandlerFunc(authService.RevokeHandler))
+		userRouter.Handle(http.MethodGet, "/authorize", http.HandlerFunc(authService.AuthorizeHandler), limitRequestBody(maxRequestBodyBytes))
+		userRouter.Handle(http.MethodPost, "/token", http.HandlerFunc(authService.TokenHandler), limitRequestBody(maxRequestBodyBytes))
+		userRouter.Handle(http.MethodPost, "/revoke", http.HandlerFunc(authService.RevokeHandler), limitRequestBody(maxRequestBodyBytes))
 	})
 
 	router.Group("/api/payments/webhooks", func(paymentsRouter *routing.Router) {
-		paymentsRouter.Handle(http.MethodPost, "/{provider}", http.HandlerFunc(paymentsWebhookHandler.Handle))
+		paymentsRouter.Handle(http.MethodPost, "/{provider}", http.HandlerFunc(paymentsWebhookHandler.Handle), limitRequestBody(maxRequestBodyBytes))
 	})
 
 	if err = router.Err(); err != nil {
@@ -97,4 +110,34 @@ func registerOpsRoutes(router *routing.Router, healthRegistry healthcheck.Regist
 			return version.Get(), nil
 		}, routing.WithEnvelope(false))
 	})
+}
+
+// limitRequestBody bounds a raw handler's request body the way WithDefaultMaxRequestBody bounds a
+// typed route's.
+//
+// The two need saying separately because the Router's bound lives in the binding step — the one that
+// turns a request into a typed input — and a route registered with Handle has no such step. Its
+// handler is given the request and does its own reading, so a bound stated at the Router is a bound
+// those routes never see. They are also the ones most worth bounding: every one of them is public
+// and unauthenticated.
+//
+// A body that declares itself over the limit is refused before the handler runs, and refused with a
+// 413 rather than a 400, because that is the only one of the two a client can act on: told 400, it
+// sends the same document again. A body that declares nothing — chunked, or lying about its length —
+// is cut off at the limit instead, and the handler fails on the read it was always going to do.
+func limitRequestBody(limit int64) routing.Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+			if req.ContentLength > limit {
+				http.Error(res, "request body too large", http.StatusRequestEntityTooLarge)
+				return
+			}
+
+			if req.Body != nil {
+				req.Body = http.MaxBytesReader(res, req.Body, limit)
+			}
+
+			next.ServeHTTP(res, req)
+		})
+	}
 }
