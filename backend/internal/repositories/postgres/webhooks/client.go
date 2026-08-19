@@ -2,14 +2,14 @@ package webhooks
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
+	domainwebhooks "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks/generated"
 
 	"github.com/primandproper/platform-go/v11/database"
 	"github.com/primandproper/platform-go/v11/observability/logging"
 	"github.com/primandproper/platform-go/v11/observability/tracing"
+	"github.com/primandproper/platform-go/v11/webhooks"
 )
 
 const (
@@ -24,12 +24,16 @@ type repository struct {
 	generatedQuerier  generated.Querier
 	auditLogEntryRepo audit.Repository
 	events            *events.Emitter
-	// dispatcher owns the delivery side of a webhook: the endpoint, its signing secret, and
-	// its subscriptions. It is required rather than optional, because a webhook that is stored
-	// and not registered is one the account was told exists and that will never fire.
-	dispatcher *webhookdispatch.Dispatcher
-	readDB     database.SQLQueryExecutor
-	writeDB    database.SQLQueryExecutor
+	// dispatcher registers endpoints and fans events out to them. It is required rather than
+	// optional, because a webhook that is stored and not registered is one the account was
+	// told exists and that will never fire.
+	dispatcher webhooks.Dispatcher
+	// endpoints is the same store the dispatcher was built over, held for the two endpoint
+	// operations Dispatcher does not offer: replacing a subscription set, and retiring an
+	// endpoint. See endpoints.go.
+	endpoints webhooks.Store
+	readDB    database.SQLQueryExecutor
+	writeDB   database.SQLQueryExecutor
 }
 
 // ProvideWebhooksRepository provides a new repository.
@@ -39,8 +43,9 @@ func ProvideWebhooksRepository(
 	auditLogEntryRepo audit.Repository,
 	client database.Client,
 	eventEmitter *events.Emitter,
-	dispatcher *webhookdispatch.Dispatcher,
-) webhooks.Repository {
+	dispatcher webhooks.Dispatcher,
+	endpoints webhooks.Store,
+) domainwebhooks.Repository {
 	c := &repository{
 		Client:            client,
 		readDB:            client.Reader(),
@@ -50,6 +55,7 @@ func ProvideWebhooksRepository(
 		auditLogEntryRepo: auditLogEntryRepo,
 		events:            eventEmitter,
 		dispatcher:        dispatcher,
+		endpoints:         endpoints,
 		logger:            logging.NewNamedLogger(logger, o11yName),
 	}
 

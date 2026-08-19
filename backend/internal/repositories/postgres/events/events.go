@@ -26,18 +26,20 @@ import (
 	"encoding/json"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 
 	"github.com/primandproper/platform-go/v11/database"
 	platformerrors "github.com/primandproper/platform-go/v11/errors"
 	"github.com/primandproper/platform-go/v11/observability/logging"
 	"github.com/primandproper/platform-go/v11/outbox"
+	"github.com/primandproper/platform-go/v11/tenancy"
+	"github.com/primandproper/platform-go/v11/webhooks"
 )
 
 // Emitter enqueues data change events into the outbox and fans them out to webhooks.
 type Emitter struct {
 	writer     *outbox.Writer
-	dispatcher *webhookdispatch.Dispatcher
+	dispatcher webhooks.Dispatcher
 	// sideEffect is the same effect registered on the writer, kept so EmitIndex can run it
 	// over a message it never enqueues. See index_events.go.
 	sideEffect outbox.SideEffect
@@ -52,7 +54,7 @@ type Emitter struct {
 //
 // The dispatcher is separately optional and separately nil-safe, for the same reason at a
 // different granularity: a process with an outbox but no webhook tables still emits events.
-func NewEmitter(writer *outbox.Writer, topic string, dispatcher *webhookdispatch.Dispatcher, sideEffect outbox.SideEffect) *Emitter {
+func NewEmitter(writer *outbox.Writer, topic string, dispatcher webhooks.Dispatcher, sideEffect outbox.SideEffect) *Emitter {
 	if writer == nil || topic == "" {
 		return nil
 	}
@@ -151,6 +153,33 @@ func (e *Emitter) Emit(ctx context.Context, q database.SQLQueryExecutor, logger 
 // is the same trade the outbox already makes one line above, and for the same reason — the
 // alternative is durable state and delivery diverging with nothing able to detect it.
 func (e *Emitter) dispatchWebhooks(ctx context.Context, q database.SQLQueryExecutor, msg *audit.DataChangeMessage, cfg *emitConfig) error {
+	// A process wired without webhooks still writes rows and emits events.
+	if e.dispatcher == nil {
+		return nil
+	}
+
+	// An event with no account belongs to no subscriber. Background jobs emit these, and
+	// tenancy.Of would refuse the empty identifier rather than quietly fanning out globally.
+	if msg.AccountID == "" {
+		return nil
+	}
+
+	// An event type that is not subscribable is skipped here, not handed to Dispatch.
+	//
+	// Two things land here. Most are the deliberate exclusions — sign-ins, two-factor changes,
+	// OAuth2 client lifecycle — which the application publishes and which no webhook may
+	// receive. The rest would be an event type nothing publishes, which is a programming error.
+	//
+	// Neither may fail the caller, which is why the catalog is consulted before Dispatch rather
+	// than letting Dispatch reject it. This runs inside the transaction that wrote the row the
+	// event describes, so an error here does not fail a webhook: it fails the meal plan.
+	// Registration is where a typo'd event type is caught, because that is where a human types
+	// one; a constant that drifts out of the catalog is caught by the catalog's own test, at
+	// build time rather than by taking down a write at runtime.
+	if !catalog.Known(msg.EventType) {
+		return nil
+	}
+
 	// The payload is the same *audit.DataChangeMessage the broker carries, marshaled once. A
 	// subscriber and a queue consumer therefore see byte-identical bodies, and the bytes signed
 	// are the bytes sent — re-marshaling between dispatch and delivery is exactly how a
@@ -160,5 +189,16 @@ func (e *Emitter) dispatchWebhooks(ctx context.Context, q database.SQLQueryExecu
 		return platformerrors.Wrap(err, "marshaling webhook payload")
 	}
 
-	return e.dispatcher.Dispatch(ctx, q, msg.AccountID, msg.EventType, cfg.orderingKey, payload)
+	return e.dispatcher.Dispatch(ctx, q, &webhooks.Delivery{
+		// The account is the delivery's tenant, and it bounds the fan-out: subscribers are
+		// resolved within it, so one account's meal_plan_created never reaches another
+		// account's endpoints.
+		Scope:     tenancy.Of(msg.AccountID),
+		EventType: webhooks.EventType(msg.EventType),
+		// The ordering key is not scoped. It is compared only against other dispatches for
+		// the same endpoint, and an endpoint belongs to one account, so the account would
+		// add nothing but width to an index that is already on the claim path.
+		OrderingKey: cfg.orderingKey,
+		Payload:     payload,
+	})
 }

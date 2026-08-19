@@ -48,17 +48,18 @@ type (
 	//
 	// Two fields are why both types exist, and neither survives a translation to Endpoint:
 	//
-	//   - BelongsToAccount is the filter on every read and write of this resource. Endpoint has
-	//     no owner to filter on, so the account travels inside the subscription string instead;
-	//     see webhookdispatch.qualify.
+	//   - BelongsToAccount is the filter on every read and write of this resource. Endpoint
+	//     names its tenant as a tenancy.Scope, which is the account and nothing else — it has
+	//     no room for the owning user, the name, or the archival timestamps beside it.
 	//   - TriggerConfigs are identified, individually archivable rows, and the API creates and
-	//     archives them one at a time. Endpoint.Events is a bare []string: it can express the
-	//     set, not the identity or the archival timestamp of any member of it.
+	//     archives them one at a time. Endpoint.Events is a flat list of event types: it can
+	//     express the set, not the identity or the archival timestamp of any member of it.
 	//
 	// Deleting this type in favor of Endpoint would therefore not be an internal cleanup — it
 	// would drop the fields the permission model and the API surface are built on, and rename
-	// the rest, because the platform's JSON tags are not these. webhookdispatch/conversion.go
-	// is where the translation lives, and it is the only place it happens.
+	// the rest, because the platform's JSON tags are not these.
+	// internal/repositories/postgres/webhooks/endpoints.go is where the translation lives, and
+	// it is the only place it happens.
 	Webhook struct {
 		_ struct{} `json:"-"`
 

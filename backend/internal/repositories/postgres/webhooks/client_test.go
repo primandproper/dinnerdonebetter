@@ -11,7 +11,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 
 	"github.com/primandproper/platform-go/v11/database"
 	mockdatabase "github.com/primandproper/platform-go/v11/database/mock"
@@ -19,6 +18,7 @@ import (
 	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
 	metricsnoop "github.com/primandproper/platform-go/v11/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v11/webhooks"
 	webhookscfg "github.com/primandproper/platform-go/v11/webhooks/config"
 
 	"github.com/stretchr/testify/require"
@@ -63,19 +63,23 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	store, err := webhookscfg.NewStore(ctx, &webhookscfg.Config{}, pgc)
 	require.NoError(t, err)
 
-	dispatcher, err := webhookdispatch.NewDispatcher(
+	dispatcher, err := webhookscfg.NewDispatcher(
+		ctx,
+		&webhookscfg.Config{},
 		store,
 		catalog.Catalog(),
-		loggingnoop.NewLogger(),
-		tracingnoop.NewTracerProvider(),
-		metricsnoop.NewMetricsProvider(),
+		webhookscfg.WithLogger(loggingnoop.NewLogger()),
+		webhookscfg.WithTracerProvider(tracingnoop.NewTracerProvider()),
+		webhookscfg.WithMetricsProvider(metricsnoop.NewMetricsProvider()),
 		// The fakes' URLs name domains that do not resolve, and resolving them is not what
-		// these tests are about. The policy itself is covered in the dispatcher's own tests.
-		webhookdispatch.WithURLChecker(func(context.Context, string) error { return nil }),
+		// these tests are about. The policy itself is platform-go's, and covered there.
+		webhookscfg.WithDispatcherOptions(
+			webhooks.WithDispatcherURLChecker(func(context.Context, string) error { return nil }),
+		),
 	)
 	require.NoError(t, err)
 
-	c := ProvideWebhooksRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil, dispatcher)
+	c := ProvideWebhooksRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil, dispatcher, store)
 
 	return c.(*repository), auditLogEntryRepo
 }
@@ -83,7 +87,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideWebhooksRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil, nil)
+	c := ProvideWebhooksRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil, nil, nil)
 
 	return c.(*repository)
 }
