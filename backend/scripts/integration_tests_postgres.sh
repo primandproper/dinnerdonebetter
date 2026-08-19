@@ -6,4 +6,9 @@ set -euo pipefail
 
 PACKAGE_PREFIX="${1:-github.com/primandproper/dinnerdonebetter/backend}"
 
-go test -v -count=1 "${PACKAGE_PREFIX}/testing/integration/apiserver"
+# One package at a time. Each suite stands up its own containers in an init function, and
+# two of them racing for host ports and Docker's resources is a startup failure presenting
+# as an unrelated test failure.
+go test -v -count=1 -p 1 \
+	"${PACKAGE_PREFIX}/testing/integration/apiserver" \
+	"${PACKAGE_PREFIX}/testing/integration/mcpserver"
