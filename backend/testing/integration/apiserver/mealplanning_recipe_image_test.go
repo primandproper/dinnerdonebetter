@@ -89,7 +89,7 @@ func TestUploadRecipeImage(T *testing.T) {
 				},
 			},
 		})
-		require.NoError(t, err)
+		requireStreamSend(t, err)
 
 		_, err = stream.CloseAndRecv()
 		assert.Error(t, err)
