@@ -24,7 +24,6 @@ import (
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
@@ -95,6 +94,9 @@ func BuildInjector(
 	settingsrepo.RegisterSettingsRepository(i)
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)
+	// This also registers the webhook Store and Dispatcher, which this process needs in both
+	// directions: dispatch happens inside the transaction that causes the event, and the meal
+	// plan finalizer emits events like any request does.
 	webhooksrepo.RegisterWebhooksRepository(i)
 
 	// The data privacy machinery: the bucket and cipher artifacts are written with, the
@@ -114,9 +116,8 @@ func BuildInjector(
 	operationscfg.RegisterService(i)
 	operationscfg.RegisterWorker(i)
 
-	// Dispatch happens inside the transaction that causes the event, so this process needs
-	// the webhook write side too — the meal plan finalizer emits events like any request does.
-	webhookdispatch.RegisterWebhookDispatch(i)
+	// The delivery side: the worker that claims the dispatch rows the write side above
+	// produces, signs them, and sends them.
 	RegisterWebhookWorker(i)
 	// Domain: mealplanning
 	events.RegisterOutboxEmitter(i)

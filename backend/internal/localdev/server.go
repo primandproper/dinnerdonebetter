@@ -32,7 +32,6 @@ import (
 	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
@@ -282,12 +281,19 @@ func WithWebhooksRepository(fn func(ctx context.Context, repo webhooks.Repositor
 			return err
 		}
 
-		dispatcher, err := webhookdispatch.NewDispatcher(store, catalog.Catalog(), logger, tracerProvider, nil)
+		dispatcher, err := webhookscfg.NewDispatcher(
+			ctx,
+			&webhookscfg.Config{},
+			store,
+			catalog.Catalog(),
+			webhookscfg.WithLogger(logger),
+			webhookscfg.WithTracerProvider(tracerProvider),
+		)
 		if err != nil {
 			return err
 		}
 
-		webhooksRepo := webhooksrepo.ProvideWebhooksRepository(logger, tracerProvider, auditLogRepo, dbClient, nil, dispatcher)
+		webhooksRepo := webhooksrepo.ProvideWebhooksRepository(logger, tracerProvider, auditLogRepo, dbClient, nil, dispatcher, store)
 		return fn(ctx, webhooksRepo, logger, tracerProvider)
 	}
 }

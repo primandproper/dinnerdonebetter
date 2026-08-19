@@ -3,13 +3,13 @@ package events
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 
 	"github.com/primandproper/platform-go/v11/database/dialect"
 	"github.com/primandproper/platform-go/v11/observability/logging"
 	"github.com/primandproper/platform-go/v11/observability/metrics"
 	"github.com/primandproper/platform-go/v11/observability/tracing"
 	"github.com/primandproper/platform-go/v11/outbox"
+	"github.com/primandproper/platform-go/v11/webhooks"
 
 	"github.com/samber/do/v2"
 )
@@ -43,12 +43,12 @@ func RegisterOutboxEmitter(i do.Injector) {
 			topic = queues.DataChangesTopicName
 		}
 
-		// The dispatcher is resolved leniently for the same reason the topic is: the MCP
-		// server and the one-shot CLI tools register repositories they only read through,
-		// and have no webhook tables to dispatch into. A nil dispatcher dispatches nothing.
-		dispatcher, err := do.Invoke[*webhookdispatch.Dispatcher](i)
-		if err != nil {
-			dispatcher = nil
+		// The dispatcher is resolved leniently for the same reason the topic is: a process
+		// that registers repositories it only reads through has no webhook tables to
+		// dispatch into. A nil dispatcher dispatches nothing.
+		var dispatcher webhooks.Dispatcher
+		if resolved, dispatcherErr := do.Invoke[webhooks.Dispatcher](i); dispatcherErr == nil {
+			dispatcher = resolved
 		}
 
 		// NewEmitter returns nil for an empty topic, and a nil Emitter emits nothing.

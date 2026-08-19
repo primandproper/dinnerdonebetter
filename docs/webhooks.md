@@ -30,18 +30,25 @@ can return the wrong answer.
 
 ### Tenancy
 
-platform-go's dispatcher has no tenant dimension — it delivers an event to every endpoint
-subscribed to that type, which is wrong when a webhook belongs to an account. The account
-therefore travels inside the subscription's event type:
+An endpoint belongs to an account, and that is a column: `webhooks_endpoints.scope` holds the
+account ID, as a `tenancy.Scope`. Every delivery carries the same scope, and `EndpointsForEvent`
+resolves subscribers within it — so one account's `meal_plan_created` never reaches another
+account's endpoints.
 
 ```text
-webhooks_subscriptions
-  endpoint_id  | event_type
-  wh_abc123    | acct_9f2:meal_plan_created
+webhooks_endpoints                     webhooks_subscriptions
+  id        | scope                      endpoint_id | event_type
+  wh_abc123 | acct_9f2                   wh_abc123   | meal_plan_created
 ```
 
-`EndpointsForEvent` is account-scoped by construction rather than by a filter someone can forget
-to apply. `internal/repositories/postgres/webhookdispatch` is the write side that does this.
+The event type stored against an endpoint is the plain catalog type — the same string the catalog
+holds, and the same one a subscriber reads out of `X-Platform-Event`.
+
+Registration and dispatch both go through platform-go's `webhooks.Dispatcher`, which is what
+applies the catalog gate and the SSRF policy. The write side is
+`internal/repositories/postgres/webhooks` (see `endpoints.go`); it reaches the `Store` directly
+for the two operations `Dispatcher` does not offer — replacing an endpoint's subscription set,
+and retiring it.
 
 ## Events
 

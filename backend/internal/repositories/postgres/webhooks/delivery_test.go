@@ -21,7 +21,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 
 	"github.com/primandproper/platform-go/v11/cryptography/requestsigning"
 	"github.com/primandproper/platform-go/v11/database"
@@ -98,13 +97,15 @@ func buildDeliveryHarness(t *testing.T) (*repository, *events.Emitter, *webhooks
 	// an endpoint accepted at one and refused at the other sits in the backlog until it dies.
 	allowLoopback := func(context.Context, string) error { return nil }
 
-	dispatcher, err := webhookdispatch.NewDispatcher(
+	dispatcher, err := webhookscfg.NewDispatcher(
+		ctx,
+		&webhookscfg.Config{},
 		store,
 		catalog.Catalog(),
-		loggingnoop.NewLogger(),
-		tracingnoop.NewTracerProvider(),
-		metricsnoop.NewMetricsProvider(),
-		webhookdispatch.WithURLChecker(allowLoopback),
+		webhookscfg.WithLogger(loggingnoop.NewLogger()),
+		webhookscfg.WithTracerProvider(tracingnoop.NewTracerProvider()),
+		webhookscfg.WithMetricsProvider(metricsnoop.NewMetricsProvider()),
+		webhookscfg.WithDispatcherOptions(webhooks.WithDispatcherURLChecker(allowLoopback)),
 	)
 	require.NoError(t, err)
 
@@ -117,7 +118,7 @@ func buildDeliveryHarness(t *testing.T) (*repository, *events.Emitter, *webhooks
 	emitter := events.NewEmitter(writer, "data_changes", dispatcher, indexevents.SideEffect)
 	require.NotNil(t, emitter)
 
-	repo := ProvideWebhooksRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditRepo, pgc, emitter, dispatcher)
+	repo := ProvideWebhooksRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditRepo, pgc, emitter, dispatcher, store)
 
 	workerCfg := &webhookscfg.Config{}
 	workerCfg.EnsureDefaults()
@@ -222,11 +223,13 @@ func TestIntegration_WebhookDelivery(t *testing.T) {
 	assert.Equal(t, account.ID, payload.AccountID)
 }
 
-// TestIntegration_WebhookDelivery_NotDeliveredToOtherAccounts is the tenancy property.
+// TestIntegration_WebhookDelivery_NotDeliveredToOtherAccounts is the tenancy property, end to
+// end.
 //
-// platform-go's dispatcher has no tenant dimension: it delivers an event to every endpoint
-// subscribed to that type. The account is carried inside the subscription's event type instead,
-// and this is what says that actually holds.
+// The endpoint carries the account as its scope and the delivery carries the same one, so
+// EndpointsForEvent resolves subscribers within one account. TestIntegration_WebhookEndpoint_Scope
+// asserts that on the rows; this asserts it on the wire, which is where getting it wrong would be
+// one account reading another's meal plans.
 func TestIntegration_WebhookDelivery_NotDeliveredToOtherAccounts(t *testing.T) {
 	ctx := t.Context()
 

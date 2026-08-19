@@ -8,7 +8,6 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	webhookkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks/generated"
 
 	"github.com/primandproper/platform-go/v11/database"
@@ -275,13 +274,7 @@ func (r *repository) CreateWebhook(ctx context.Context, input *types.WebhookData
 
 	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, x.ID)
 
-	secret, err := r.dispatcher.Register(ctx, &webhookdispatch.Registration{
-		ID:          x.ID,
-		AccountID:   x.BelongsToAccount,
-		URL:         x.URL,
-		ContentType: x.ContentType,
-		EventTypes:  x.EventTypes(),
-	})
+	secret, err := r.registerEndpoint(ctx, x)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "registering webhook delivery endpoint")
 	}
@@ -358,9 +351,10 @@ func (r *repository) ArchiveWebhook(ctx context.Context, webhookID, accountID st
 		identitykeys.AccountIDKey: accountID,
 	})
 
-	// Ownership is established before the endpoint is retired, because the endpoint store is
-	// not account-aware: it is keyed by the webhook's ID alone, and retiring one without
-	// checking would let anyone who knows an ID silence another account's webhook.
+	// Ownership is established before the endpoint is retired. The endpoint's scope makes
+	// silencing another account's webhook impossible on its own, but a caller naming a webhook
+	// that is not theirs should be told it does not exist rather than watch an archive succeed
+	// against nothing.
 	exists, err := r.WebhookExists(ctx, webhookID, accountID)
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "checking webhook existence")
@@ -370,7 +364,7 @@ func (r *repository) ArchiveWebhook(ctx context.Context, webhookID, accountID st
 		return sql.ErrNoRows
 	}
 
-	if err = r.dispatcher.Archive(ctx, webhookID); err != nil {
+	if err = r.archiveEndpoint(ctx, webhookID, accountID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving webhook delivery endpoint")
 	}
 
@@ -557,25 +551,18 @@ func (r *repository) RotateWebhookSecret(ctx context.Context, webhookID, account
 		identitykeys.AccountIDKey: accountID,
 	})
 
-	// The endpoint store is keyed by webhook ID alone and knows nothing about accounts, so
-	// ownership is established here. Without it, knowing an ID would be enough to roll another
-	// account's signing key and break every delivery to it.
-	//
-	// The full webhook is read rather than just its existence, because the endpoint may not
-	// exist yet: a webhook created before delivery worked has no endpoint, and rotating is how
-	// its owner adopts it. Registering one needs the URL, content type, and subscriptions.
+	// The full webhook is read rather than just its existence, for two reasons. It establishes
+	// ownership — the endpoint is read within the account's scope, so another account's is
+	// invisible either way, but a caller naming one should be told so rather than silently
+	// registering a second endpoint. And the endpoint may not exist yet: a webhook whose row
+	// committed and whose registration then failed has none, and rotating is how its owner
+	// adopts it. Registering one needs the URL, content type, and subscriptions.
 	webhook, err := r.GetWebhook(ctx, webhookID, accountID)
 	if err != nil {
 		return "", observability.PrepareAndLogError(err, logger, span, "reading webhook")
 	}
 
-	secret, err := r.dispatcher.RotateSecret(ctx, webhookID, &webhookdispatch.Registration{
-		ID:          webhook.ID,
-		AccountID:   webhook.BelongsToAccount,
-		URL:         webhook.URL,
-		ContentType: webhook.ContentType,
-		EventTypes:  webhook.EventTypes(),
-	})
+	secret, err := r.rotateEndpointSecret(ctx, webhook)
 	if err != nil {
 		return "", observability.PrepareAndLogError(err, logger, span, "rotating webhook signing secret")
 	}
@@ -589,6 +576,9 @@ func (r *repository) RotateWebhookSecret(ctx context.Context, webhookID, account
 // fan-out reads, so one of them has to be derived from the other. Deriving in this direction
 // means a subscription can never exist for an event the API does not show — the reverse would be
 // invisible to the account it delivers on behalf of.
+//
+// The webhook is re-read rather than taken from the caller, so what is written is every live
+// trigger config at this moment rather than the one the caller happened to change.
 func (r *repository) syncSubscriptions(ctx context.Context, webhookID, accountID string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
@@ -598,5 +588,5 @@ func (r *repository) syncSubscriptions(ctx context.Context, webhookID, accountID
 		return observability.PrepareError(err, span, "reading webhook for subscription sync")
 	}
 
-	return r.dispatcher.SetEventTypes(ctx, webhookID, accountID, webhook.EventTypes())
+	return r.setSubscriptions(ctx, webhook)
 }

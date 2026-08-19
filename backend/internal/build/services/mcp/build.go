@@ -11,7 +11,6 @@ import (
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 
 	databasecfg "github.com/primandproper/platform-go/v11/database/config"
@@ -50,7 +49,6 @@ func BuildInjector(ctx context.Context, cfg *config.MCPServiceConfig) *do.RootSc
 	identityrepo.RegisterIdentityRepository(i)
 	events.RegisterOutboxEmitter(i)
 	mealplanningrepo.RegisterMealPlanningRepository(i)
-	webhookdispatch.RegisterWebhookDispatch(i)
 	webhooksrepo.RegisterWebhooksRepository(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)
 	issuereportsrepo.RegisterIssueReportsRepository(i)

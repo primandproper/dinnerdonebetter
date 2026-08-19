@@ -17,7 +17,6 @@ import (
 	issue_reports "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhookdispatch"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
@@ -75,7 +74,6 @@ func BuildInjector(
 	identity.RegisterIdentityRepository(i)
 	issue_reports.RegisterIssueReportsRepository(i)
 	uploadedmedia.RegisterUploadedMediaRepository(i)
-	webhookdispatch.RegisterWebhookDispatch(i)
 	webhooks.RegisterWebhooksRepository(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
 
