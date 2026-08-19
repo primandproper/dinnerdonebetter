@@ -70,20 +70,19 @@ func buildMealListItemsQueries(database string) []*Query {
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	%s
-	AND %s.belongs_to_meal_list = sqlc.arg(%s)
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(mealListItemsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", mealListItemsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(mealListItemsTableName, true, true, []string{}, fmt.Sprintf("%s.belongs_to_meal_list = sqlc.arg(%s)", mealListItemsTableName, mealListIDColumn), fmt.Sprintf("EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.belongs_to_meal_list AND %s.%s = sqlc.arg(%s))", mealListsTableName, mealListsTableName, idColumn, mealListItemsTableName, mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
-						buildTotalCountSelect(mealListItemsTableName, true, []string{}),
+						querygen.FilterCountSelect(mealListItemsTableName, mealListItemsColumns, []string{}, fmt.Sprintf("%s.belongs_to_meal_list = sqlc.arg(%s)", mealListItemsTableName, mealListIDColumn), fmt.Sprintf("EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.belongs_to_meal_list AND %s.%s = sqlc.arg(%s))", mealListsTableName, mealListsTableName, idColumn, mealListItemsTableName, mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
+						querygen.TotalCountSelect(mealListItemsTableName, mealListItemsColumns, []string{}),
 						mealListItemsTableName,
-						mealListItemsTableName, archivedAtColumn,
-						buildFilterConditions(mealListItemsTableName, true, false, fmt.Sprintf("%s.belongs_to_meal_list = sqlc.arg(%s)", mealListItemsTableName, mealListIDColumn), fmt.Sprintf("EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.belongs_to_meal_list AND %s.%s = sqlc.arg(%s))", mealListsTableName, mealListsTableName, idColumn, mealListItemsTableName, mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
-						mealListItemsTableName, mealListIDColumn,
-						buildCursorLimitClause(mealListItemsTableName),
+						querygen.FilterConditions(mealListItemsTableName, mealListItemsColumns,
+							fmt.Sprintf("%s.belongs_to_meal_list = sqlc.arg(%s)", mealListItemsTableName, mealListIDColumn),
+							fmt.Sprintf("EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.belongs_to_meal_list AND %s.%s = sqlc.arg(%s))", mealListsTableName, mealListsTableName, idColumn, mealListItemsTableName, mealListsTableName, belongsToUserColumn, belongsToUserColumn),
+						),
+						querygen.CursorLimitClause(mealListItemsTableName),
 					)),
 				},
 			},

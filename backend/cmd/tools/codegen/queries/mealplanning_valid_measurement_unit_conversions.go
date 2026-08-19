@@ -77,34 +77,43 @@ FROM %s
 	JOIN %s AS %s_from ON %s.%s = %s_from.%s
 	JOIN %s AS %s_to ON %s.%s = %s_to.%s
 	LEFT JOIN %s ON %s.%s = %s.%s
-WHERE
-	(%s_from.%s = sqlc.arg(%s) OR %s_to.%s = sqlc.arg(%s))
-	AND %s.%s IS NULL
-	AND %s_from.%s IS NULL
-	AND %s_to.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validMeasurementUnitConversionsTableName, true, true, []string{
-							fmt.Sprintf("%s AS %s_from ON %s.%s = %s_from.%s", validMeasurementUnitsTableName, validMeasurementUnitsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsFromUnitColumn, validMeasurementUnitsTableName, idColumn),
-							fmt.Sprintf("%s AS %s_to ON %s.%s = %s_to.%s", validMeasurementUnitsTableName, validMeasurementUnitsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsToUnitColumn, validMeasurementUnitsTableName, idColumn),
-							fmt.Sprintf("%s ON %s.%s = %s.%s", validIngredientsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsOnlyForIngredientColumn, validIngredientsTableName, idColumn),
+						querygen.FilterCountSelect(validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsColumns, []string{
+							fmt.Sprintf("JOIN %s AS %s_from ON %s.%s = %s_from.%s", validMeasurementUnitsTableName, validMeasurementUnitsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsFromUnitColumn, validMeasurementUnitsTableName, idColumn),
+							fmt.Sprintf("JOIN %s AS %s_to ON %s.%s = %s_to.%s", validMeasurementUnitsTableName, validMeasurementUnitsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsToUnitColumn, validMeasurementUnitsTableName, idColumn),
+							fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", validIngredientsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsOnlyForIngredientColumn, validIngredientsTableName, idColumn),
 						}, fmt.Sprintf("(%s_from.%s = sqlc.arg(%s) OR %s_to.%s = sqlc.arg(%s))", validMeasurementUnitsTableName, idColumn, idColumn, validMeasurementUnitsTableName, idColumn, idColumn), fmt.Sprintf("%s_from.%s IS NULL", validMeasurementUnitsTableName, archivedAtColumn), fmt.Sprintf("%s_to.%s IS NULL", validMeasurementUnitsTableName, archivedAtColumn)),
-						buildTotalCountSelect(validMeasurementUnitConversionsTableName, true, []string{
-							fmt.Sprintf("%s AS %s_from ON %s.%s = %s_from.%s", validMeasurementUnitsTableName, validMeasurementUnitsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsFromUnitColumn, validMeasurementUnitsTableName, idColumn),
-							fmt.Sprintf("%s AS %s_to ON %s.%s = %s_to.%s", validMeasurementUnitsTableName, validMeasurementUnitsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsToUnitColumn, validMeasurementUnitsTableName, idColumn),
-							fmt.Sprintf("%s ON %s.%s = %s.%s", validIngredientsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsOnlyForIngredientColumn, validIngredientsTableName, idColumn),
+						querygen.TotalCountSelect(validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsColumns, []string{
+							fmt.Sprintf("JOIN %s AS %s_from ON %s.%s = %s_from.%s", validMeasurementUnitsTableName, validMeasurementUnitsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsFromUnitColumn, validMeasurementUnitsTableName, idColumn),
+							fmt.Sprintf("JOIN %s AS %s_to ON %s.%s = %s_to.%s", validMeasurementUnitsTableName, validMeasurementUnitsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsToUnitColumn, validMeasurementUnitsTableName, idColumn),
+							fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", validIngredientsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsOnlyForIngredientColumn, validIngredientsTableName, idColumn),
 						}, fmt.Sprintf("(%s_from.%s = sqlc.arg(%s) OR %s_to.%s = sqlc.arg(%s))", validMeasurementUnitsTableName, idColumn, idColumn, validMeasurementUnitsTableName, idColumn, idColumn), fmt.Sprintf("%s_from.%s IS NULL", validMeasurementUnitsTableName, archivedAtColumn), fmt.Sprintf("%s_to.%s IS NULL", validMeasurementUnitsTableName, archivedAtColumn)),
 						validMeasurementUnitConversionsTableName,
-						validMeasurementUnitsTableName, validMeasurementUnitsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsFromUnitColumn, validMeasurementUnitsTableName, idColumn,
-						validMeasurementUnitsTableName, validMeasurementUnitsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsToUnitColumn, validMeasurementUnitsTableName, idColumn,
-						validIngredientsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsOnlyForIngredientColumn, validIngredientsTableName, idColumn,
-						validMeasurementUnitsTableName, idColumn, idColumn, validMeasurementUnitsTableName, idColumn, idColumn,
-						validMeasurementUnitConversionsTableName, archivedAtColumn,
-						validMeasurementUnitsTableName, archivedAtColumn,
-						validMeasurementUnitsTableName, archivedAtColumn,
-						buildFilterConditions(validMeasurementUnitConversionsTableName, true, true),
-						buildCursorLimitClause(validMeasurementUnitConversionsTableName),
+						validMeasurementUnitsTableName,
+						validMeasurementUnitsTableName,
+						validMeasurementUnitConversionsTableName,
+						validMeasurementUnitConversionsFromUnitColumn,
+						validMeasurementUnitsTableName,
+						idColumn,
+						validMeasurementUnitsTableName,
+						validMeasurementUnitsTableName,
+						validMeasurementUnitConversionsTableName,
+						validMeasurementUnitConversionsToUnitColumn,
+						validMeasurementUnitsTableName,
+						idColumn,
+						validIngredientsTableName,
+						validMeasurementUnitConversionsTableName,
+						validMeasurementUnitConversionsOnlyForIngredientColumn,
+						validIngredientsTableName,
+						idColumn,
+						querygen.FilterConditions(validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsColumns,
+							"(valid_measurement_units_from.id = sqlc.arg(id) OR valid_measurement_units_to.id = sqlc.arg(id))",
+							"valid_measurement_units_from.archived_at IS NULL",
+							"valid_measurement_units_to.archived_at IS NULL",
+						),
+						querygen.CursorLimitClause(validMeasurementUnitConversionsTableName),
 					)),
 				},
 				{

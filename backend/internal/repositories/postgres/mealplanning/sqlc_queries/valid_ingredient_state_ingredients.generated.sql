@@ -96,9 +96,7 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_state_ingredients.id)
 		FROM valid_ingredient_state_ingredients
-		WHERE valid_ingredient_state_ingredients.archived_at IS NULL
-			AND
-			valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_ingredient_state_ingredients.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_state_ingredients.last_updated_at IS NULL
@@ -108,22 +106,17 @@ SELECT
 				valid_ingredient_state_ingredients.last_updated_at IS NULL
 				OR valid_ingredient_state_ingredients.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredient_state_ingredients.id)
 		FROM valid_ingredient_state_ingredients
-		WHERE valid_ingredient_state_ingredients.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
 	) AS total_count
 FROM valid_ingredient_state_ingredients
 	JOIN valid_ingredients ON valid_ingredient_state_ingredients.valid_ingredient = valid_ingredients.id
 	JOIN valid_ingredient_states ON valid_ingredient_state_ingredients.valid_ingredient_state = valid_ingredient_states.id
-WHERE
-	valid_ingredient_state_ingredients.archived_at IS NULL
-	AND valid_ingredients.archived_at IS NULL
-	AND valid_ingredient_states.archived_at IS NULL
-	AND valid_ingredient_state_ingredients.valid_ingredient = sqlc.arg(valid_ingredient)
-	AND valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_ingredient_state_ingredients.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_state_ingredients.last_updated_at IS NULL
@@ -133,6 +126,10 @@ WHERE
 		valid_ingredient_state_ingredients.last_updated_at IS NULL
 		OR valid_ingredient_state_ingredients.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
+	AND valid_ingredients.archived_at IS NULL
+	AND valid_ingredient_states.archived_at IS NULL
+	AND valid_ingredient_state_ingredients.valid_ingredient = sqlc.arg(valid_ingredient)
 	AND valid_ingredient_state_ingredients.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_ingredient_state_ingredients.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -199,9 +196,7 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_state_ingredients.id)
 		FROM valid_ingredient_state_ingredients
-		WHERE valid_ingredient_state_ingredients.archived_at IS NULL
-			AND
-			valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_ingredient_state_ingredients.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_state_ingredients.last_updated_at IS NULL
@@ -211,22 +206,17 @@ SELECT
 				valid_ingredient_state_ingredients.last_updated_at IS NULL
 				OR valid_ingredient_state_ingredients.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredient_state_ingredients.id)
 		FROM valid_ingredient_state_ingredients
-		WHERE valid_ingredient_state_ingredients.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
 	) AS total_count
 FROM valid_ingredient_state_ingredients
 	JOIN valid_ingredients ON valid_ingredient_state_ingredients.valid_ingredient = valid_ingredients.id
 	JOIN valid_ingredient_states ON valid_ingredient_state_ingredients.valid_ingredient_state = valid_ingredient_states.id
-WHERE
-	valid_ingredient_state_ingredients.archived_at IS NULL
-	AND valid_ingredients.archived_at IS NULL
-	AND valid_ingredient_states.archived_at IS NULL
-	AND valid_ingredient_state_ingredients.valid_ingredient_state = sqlc.arg(valid_ingredient_state)
-	AND valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_ingredient_state_ingredients.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_state_ingredients.last_updated_at IS NULL
@@ -236,6 +226,10 @@ WHERE
 		valid_ingredient_state_ingredients.last_updated_at IS NULL
 		OR valid_ingredient_state_ingredients.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
+	AND valid_ingredients.archived_at IS NULL
+	AND valid_ingredient_states.archived_at IS NULL
+	AND valid_ingredient_state_ingredients.valid_ingredient_state = sqlc.arg(valid_ingredient_state)
 	AND valid_ingredient_state_ingredients.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_ingredient_state_ingredients.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -302,9 +296,7 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_state_ingredients.id)
 		FROM valid_ingredient_state_ingredients
-		WHERE valid_ingredient_state_ingredients.archived_at IS NULL
-			AND
-			valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_ingredient_state_ingredients.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_state_ingredients.last_updated_at IS NULL
@@ -314,21 +306,17 @@ SELECT
 				valid_ingredient_state_ingredients.last_updated_at IS NULL
 				OR valid_ingredient_state_ingredients.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredient_state_ingredients.id)
 		FROM valid_ingredient_state_ingredients
-		WHERE valid_ingredient_state_ingredients.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
 	) AS total_count
 FROM valid_ingredient_state_ingredients
 	JOIN valid_ingredients ON valid_ingredient_state_ingredients.valid_ingredient = valid_ingredients.id
 	JOIN valid_ingredient_states ON valid_ingredient_state_ingredients.valid_ingredient_state = valid_ingredient_states.id
-WHERE
-	valid_ingredient_state_ingredients.archived_at IS NULL
-	AND valid_ingredients.archived_at IS NULL
-	AND valid_ingredient_states.archived_at IS NULL
-	AND valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_ingredient_state_ingredients.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_state_ingredients.last_updated_at IS NULL
@@ -338,6 +326,9 @@ WHERE
 		valid_ingredient_state_ingredients.last_updated_at IS NULL
 		OR valid_ingredient_state_ingredients.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
+	AND valid_ingredients.archived_at IS NULL
+	AND valid_ingredient_states.archived_at IS NULL
 	AND valid_ingredient_state_ingredients.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_ingredient_state_ingredients.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

@@ -66,18 +66,16 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(permissionsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", permissionsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(permissionsTableName, true, true, []string{}),
-						buildTotalCountSelect(permissionsTableName, true, []string{}),
+						querygen.FilterCountSelect(permissionsTableName, permissionsColumns, []string{}),
+						querygen.TotalCountSelect(permissionsTableName, permissionsColumns, []string{}),
 						permissionsTableName,
-						permissionsTableName, archivedAtColumn,
-						buildFilterConditions(permissionsTableName, true, true),
-						buildCursorLimitClause(permissionsTableName),
+						querygen.FilterConditions(permissionsTableName, permissionsColumns),
+						querygen.CursorLimitClause(permissionsTableName),
 					)),
 				},
 			},

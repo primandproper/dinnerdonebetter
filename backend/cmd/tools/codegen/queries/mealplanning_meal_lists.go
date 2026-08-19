@@ -60,17 +60,17 @@ func buildMealListsQueries(database string) []*Query {
 	%s
 FROM %s
 	LEFT JOIN %s ON %s.%s = %s.%s AND %s.%s IS NULL
-	WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(mealListsTableName, true, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
-						buildTotalCountSelect(mealListsTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
+						querygen.FilterCountSelect(mealListsTableName, mealListsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
+						querygen.TotalCountSelect(mealListsTableName, mealListsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
 						mealListsTableName,
 						mealListItemsTableName, mealListItemsTableName, "belongs_to_meal_list", mealListsTableName, idColumn, mealListItemsTableName, archivedAtColumn,
-						mealListsTableName, archivedAtColumn,
-						buildFilterConditions(mealListsTableName, true, false, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
-						buildCursorLimitClause(mealListsTableName),
+						querygen.FilterConditions(mealListsTableName, mealListsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealListsTableName, belongsToUserColumn, belongsToUserColumn),
+						),
+						querygen.CursorLimitClause(mealListsTableName),
 					)),
 				},
 			},

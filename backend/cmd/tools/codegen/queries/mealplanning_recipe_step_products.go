@@ -145,34 +145,43 @@ FROM %s
 	JOIN %s ON %s.%s=%s.%s
 	JOIN %s ON %s.%s=%s.%s
 	LEFT JOIN %s ON %s.%s=%s.%s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(recipeStepProductsTableName, true, true, nil),
-						recipeStepProductsTableName, idColumn,
+						querygen.FilterCountSelect(recipeStepProductsTableName, recipeStepProductsColumns, nil),
 						recipeStepProductsTableName,
-						recipeStepProductsTableName, archivedAtColumn,
-						recipeStepProductsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
+						idColumn,
 						recipeStepProductsTableName,
-						recipeStepsTableName, recipeStepProductsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
-						recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
-						validMeasurementUnitsTableName, recipeStepProductsTableName, measurementUnitColumn, validMeasurementUnitsTableName, idColumn,
-						recipeStepProductsTableName, archivedAtColumn,
-						recipeStepProductsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
-						recipeStepsTableName, archivedAtColumn,
-						recipeStepsTableName, idColumn, recipeStepIDColumn,
-						recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
-						recipesTableName, archivedAtColumn,
-						recipesTableName, idColumn, recipeIDColumn,
-						buildFilterConditions(recipeStepProductsTableName, true, true),
-						buildCursorLimitClause(recipeStepProductsTableName),
+						recipeStepProductsTableName,
+						archivedAtColumn,
+						recipeStepProductsTableName,
+						belongsToRecipeStepColumn,
+						recipeStepIDColumn,
+						recipeStepProductsTableName,
+						recipeStepsTableName,
+						recipeStepProductsTableName,
+						belongsToRecipeStepColumn,
+						recipeStepsTableName,
+						idColumn,
+						recipesTableName,
+						recipeStepsTableName,
+						belongsToRecipeColumn,
+						recipesTableName,
+						idColumn,
+						validMeasurementUnitsTableName,
+						recipeStepProductsTableName,
+						measurementUnitColumn,
+						validMeasurementUnitsTableName,
+						idColumn,
+						querygen.FilterConditions(recipeStepProductsTableName, recipeStepProductsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepProductsTableName, belongsToRecipeStepColumn, recipeStepIDColumn),
+							"recipe_steps.archived_at IS NULL",
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, idColumn, recipeStepIDColumn),
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn),
+							"recipes.archived_at IS NULL",
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, idColumn, recipeIDColumn),
+						),
+						querygen.CursorLimitClause(recipeStepProductsTableName),
 					)),
 				},
 				{

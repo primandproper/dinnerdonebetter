@@ -55,9 +55,7 @@ SELECT
 	(
 		SELECT COUNT(user_roles.id)
 		FROM user_roles
-		WHERE user_roles.archived_at IS NULL
-			AND
-			user_roles.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE user_roles.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND user_roles.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				user_roles.last_updated_at IS NULL
@@ -67,16 +65,15 @@ SELECT
 				user_roles.last_updated_at IS NULL
 				OR user_roles.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR user_roles.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR user_roles.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(user_roles.id)
 		FROM user_roles
-		WHERE user_roles.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR user_roles.archived_at IS NULL)
 	) AS total_count
 FROM user_roles
-WHERE user_roles.archived_at IS NULL
-	AND user_roles.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE user_roles.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND user_roles.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		user_roles.last_updated_at IS NULL
@@ -86,7 +83,7 @@ WHERE user_roles.archived_at IS NULL
 		user_roles.last_updated_at IS NULL
 		OR user_roles.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR user_roles.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR user_roles.archived_at IS NULL)
 	AND user_roles.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY user_roles.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

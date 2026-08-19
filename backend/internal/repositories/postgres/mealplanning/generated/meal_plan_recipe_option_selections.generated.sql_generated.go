@@ -150,9 +150,8 @@ SELECT
 		SELECT COUNT(meal_plan_recipe_option_selections.id)
 		FROM meal_plan_recipe_option_selections
 		JOIN meal_plan_options ON meal_plan_recipe_option_selections.belongs_to_meal_plan_option = meal_plan_options.id
-	JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event = meal_plan_events.id
-		WHERE
-			meal_plan_recipe_option_selections.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event = meal_plan_events.id
+		WHERE meal_plan_recipe_option_selections.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND meal_plan_recipe_option_selections.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meal_plan_recipe_option_selections.last_updated_at IS NULL
@@ -162,34 +161,48 @@ SELECT
 				meal_plan_recipe_option_selections.last_updated_at IS NULL
 				OR meal_plan_recipe_option_selections.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND meal_plan_events.belongs_to_meal_plan = $5 AND meal_plan_options.archived_at IS NULL AND meal_plan_events.archived_at IS NULL
+			AND (COALESCE($5, false)::boolean OR meal_plan_recipe_option_selections.archived_at IS NULL)
+			AND meal_plan_events.belongs_to_meal_plan = $6 AND meal_plan_options.archived_at IS NULL AND meal_plan_events.archived_at IS NULL
 	) AS filtered_count,
 	(
 		SELECT COUNT(meal_plan_recipe_option_selections.id)
 		FROM meal_plan_recipe_option_selections
 		JOIN meal_plan_options ON meal_plan_recipe_option_selections.belongs_to_meal_plan_option = meal_plan_options.id
-	JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event = meal_plan_events.id
-		WHERE
-			meal_plan_events.belongs_to_meal_plan = $5 AND meal_plan_options.archived_at IS NULL AND meal_plan_events.archived_at IS NULL
+		JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event = meal_plan_events.id
+		WHERE (COALESCE($5, false)::boolean OR meal_plan_recipe_option_selections.archived_at IS NULL)
+			AND meal_plan_events.belongs_to_meal_plan = $6 AND meal_plan_options.archived_at IS NULL AND meal_plan_events.archived_at IS NULL
 	) AS total_count
 FROM meal_plan_recipe_option_selections
 	JOIN meal_plan_options ON meal_plan_recipe_option_selections.belongs_to_meal_plan_option = meal_plan_options.id
 	JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event = meal_plan_events.id
-WHERE meal_plan_events.belongs_to_meal_plan = $5
+WHERE meal_plan_recipe_option_selections.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+	AND meal_plan_recipe_option_selections.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+	AND (
+		meal_plan_recipe_option_selections.last_updated_at IS NULL
+		OR meal_plan_recipe_option_selections.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+	)
+	AND (
+		meal_plan_recipe_option_selections.last_updated_at IS NULL
+		OR meal_plan_recipe_option_selections.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+	)
+	AND (COALESCE($5, false)::boolean OR meal_plan_recipe_option_selections.archived_at IS NULL)
+	AND meal_plan_events.belongs_to_meal_plan = $6
 	AND meal_plan_options.archived_at IS NULL
 	AND meal_plan_events.archived_at IS NULL
-	AND meal_plan_recipe_option_selections.archived_at IS NULL
+	AND meal_plan_recipe_option_selections.id > COALESCE($7, '')
 ORDER BY meal_plan_recipe_option_selections.id ASC
-LIMIT COALESCE($6, 50)
+LIMIT COALESCE($8, 50)
 `
 
 type GetMealPlanRecipeOptionSelectionsForMealPlanParams struct {
-	CreatedAfter  sql.NullTime
-	CreatedBefore sql.NullTime
-	UpdatedAfter  sql.NullTime
-	UpdatedBefore sql.NullTime
-	MealPlanID    string
-	ResultLimit   interface{}
+	CreatedAfter    sql.NullTime
+	CreatedBefore   sql.NullTime
+	UpdatedAfter    sql.NullTime
+	UpdatedBefore   sql.NullTime
+	IncludeArchived sql.NullBool
+	MealPlanID      string
+	Cursor          sql.NullString
+	ResultLimit     interface{}
 }
 
 type GetMealPlanRecipeOptionSelectionsForMealPlanRow struct {
@@ -213,7 +226,9 @@ func (q *Queries) GetMealPlanRecipeOptionSelectionsForMealPlan(ctx context.Conte
 		arg.CreatedBefore,
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
+		arg.IncludeArchived,
 		arg.MealPlanID,
+		arg.Cursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -265,8 +280,7 @@ SELECT
 	(
 		SELECT COUNT(meal_plan_recipe_option_selections.id)
 		FROM meal_plan_recipe_option_selections
-		WHERE
-			meal_plan_recipe_option_selections.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE meal_plan_recipe_option_selections.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND meal_plan_recipe_option_selections.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meal_plan_recipe_option_selections.last_updated_at IS NULL
@@ -276,17 +290,17 @@ SELECT
 				meal_plan_recipe_option_selections.last_updated_at IS NULL
 				OR meal_plan_recipe_option_selections.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND meal_plan_recipe_option_selections.belongs_to_meal_plan_option = $5
+			AND (COALESCE($5, false)::boolean OR meal_plan_recipe_option_selections.archived_at IS NULL)
+			AND meal_plan_recipe_option_selections.belongs_to_meal_plan_option = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(meal_plan_recipe_option_selections.id)
 		FROM meal_plan_recipe_option_selections
-		WHERE
-			meal_plan_recipe_option_selections.belongs_to_meal_plan_option = $5
+		WHERE (COALESCE($5, false)::boolean OR meal_plan_recipe_option_selections.archived_at IS NULL)
+			AND meal_plan_recipe_option_selections.belongs_to_meal_plan_option = $6
 	) AS total_count
 FROM meal_plan_recipe_option_selections
-WHERE belongs_to_meal_plan_option = $5
-	AND meal_plan_recipe_option_selections.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE meal_plan_recipe_option_selections.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND meal_plan_recipe_option_selections.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meal_plan_recipe_option_selections.last_updated_at IS NULL
@@ -296,10 +310,12 @@ WHERE belongs_to_meal_plan_option = $5
 		meal_plan_recipe_option_selections.last_updated_at IS NULL
 		OR meal_plan_recipe_option_selections.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-	AND meal_plan_recipe_option_selections.belongs_to_meal_plan_option = $5
-	AND meal_plan_recipe_option_selections.id > COALESCE($6, '')
+	AND (COALESCE($5, false)::boolean OR meal_plan_recipe_option_selections.archived_at IS NULL)
+	AND belongs_to_meal_plan_option = $6
+	AND meal_plan_recipe_option_selections.belongs_to_meal_plan_option = $6
+	AND meal_plan_recipe_option_selections.id > COALESCE($7, '')
 ORDER BY meal_plan_recipe_option_selections.id ASC
-LIMIT COALESCE($7, 50)
+LIMIT COALESCE($8, 50)
 `
 
 type GetMealPlanRecipeOptionSelectionsForMealPlanOptionParams struct {
@@ -307,6 +323,7 @@ type GetMealPlanRecipeOptionSelectionsForMealPlanOptionParams struct {
 	CreatedBefore    sql.NullTime
 	UpdatedAfter     sql.NullTime
 	UpdatedBefore    sql.NullTime
+	IncludeArchived  sql.NullBool
 	MealPlanOptionID string
 	Cursor           sql.NullString
 	ResultLimit      interface{}
@@ -333,6 +350,7 @@ func (q *Queries) GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx context
 		arg.CreatedBefore,
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
+		arg.IncludeArchived,
 		arg.MealPlanOptionID,
 		arg.Cursor,
 		arg.ResultLimit,

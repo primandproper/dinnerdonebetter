@@ -104,9 +104,7 @@ SELECT
 	(
 		SELECT COUNT(valid_measurement_units.id)
 		FROM valid_measurement_units
-		WHERE valid_measurement_units.archived_at IS NULL
-			AND
-			valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_measurement_units.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_measurement_units.last_updated_at IS NULL
@@ -116,17 +114,15 @@ SELECT
 				valid_measurement_units.last_updated_at IS NULL
 				OR valid_measurement_units.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_measurement_units.id)
 		FROM valid_measurement_units
-		WHERE valid_measurement_units.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS total_count
 FROM valid_measurement_units
-WHERE
-	valid_measurement_units.archived_at IS NULL
-	AND valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_measurement_units.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
@@ -136,7 +132,7 @@ WHERE
 		valid_measurement_units.last_updated_at IS NULL
 		OR valid_measurement_units.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	AND valid_measurement_units.id > COALESCE(sqlc.narg(cursor), '')
 GROUP BY valid_measurement_units.id
 ORDER BY valid_measurement_units.id ASC
@@ -161,9 +157,7 @@ SELECT
 	(
 		SELECT COUNT(valid_measurement_units.id)
 		FROM valid_measurement_units
-		WHERE valid_measurement_units.archived_at IS NULL
-			AND
-			valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_measurement_units.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_measurement_units.last_updated_at IS NULL
@@ -173,18 +167,15 @@ SELECT
 				valid_measurement_units.last_updated_at IS NULL
 				OR valid_measurement_units.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_measurement_units.id)
 		FROM valid_measurement_units
-		WHERE valid_measurement_units.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS total_count
 FROM valid_measurement_units
-WHERE
-    valid_measurement_units.universal = TRUE AND
-	valid_measurement_units.archived_at IS NULL
-	AND valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_measurement_units.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
@@ -194,7 +185,8 @@ WHERE
 		valid_measurement_units.last_updated_at IS NULL
 		OR valid_measurement_units.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
+	AND valid_measurement_units.universal = TRUE
 	AND valid_measurement_units.id > COALESCE(sqlc.narg(cursor), '')
 GROUP BY valid_measurement_units.id
 ORDER BY valid_measurement_units.id ASC
@@ -268,9 +260,7 @@ SELECT
 	(
 		SELECT COUNT(valid_measurement_units.id)
 		FROM valid_measurement_units
-		WHERE valid_measurement_units.archived_at IS NULL
-			AND
-			valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_measurement_units.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_measurement_units.last_updated_at IS NULL
@@ -280,17 +270,15 @@ SELECT
 				valid_measurement_units.last_updated_at IS NULL
 				OR valid_measurement_units.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_measurement_units.id)
 		FROM valid_measurement_units
-		WHERE valid_measurement_units.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS total_count
 FROM valid_measurement_units
-WHERE valid_measurement_units.archived_at IS NULL
-	AND valid_measurement_units.name ILIKE '%' || sqlc.arg(name_query)::text || '%'
-	AND valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_measurement_units.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
@@ -300,7 +288,8 @@ WHERE valid_measurement_units.archived_at IS NULL
 		valid_measurement_units.last_updated_at IS NULL
 		OR valid_measurement_units.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
+	AND valid_measurement_units.name ILIKE '%' || sqlc.arg(name_query)::text || '%'
 	AND valid_measurement_units.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_measurement_units.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -324,9 +313,7 @@ SELECT
 	(
 		SELECT COUNT(valid_measurement_units.id)
 		FROM valid_measurement_units
-		WHERE valid_measurement_units.archived_at IS NULL
-			AND
-			valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_measurement_units.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_measurement_units.last_updated_at IS NULL
@@ -336,29 +323,21 @@ SELECT
 				valid_measurement_units.last_updated_at IS NULL
 				OR valid_measurement_units.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
 			AND  (
-				valid_ingredient_measurement_units.valid_ingredient_id = sqlc.arg(valid_ingredient_id)
-				OR valid_measurement_units.universal = true
-			)
+							valid_ingredient_measurement_units.valid_ingredient_id = sqlc.arg(valid_ingredient_id)
+							OR valid_measurement_units.universal = true
+						)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_measurement_units.id)
 		FROM valid_measurement_units
-		WHERE valid_measurement_units.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS total_count
 FROM valid_measurement_units
 	JOIN valid_ingredient_measurement_units ON valid_ingredient_measurement_units.valid_measurement_unit_id = valid_measurement_units.id
 	JOIN valid_ingredients ON valid_ingredient_measurement_units.valid_ingredient_id = valid_ingredients.id
-WHERE
-	(
-		valid_ingredient_measurement_units.valid_ingredient_id = sqlc.arg(valid_ingredient_id)
-		OR valid_measurement_units.universal = TRUE
-	)
-	AND valid_measurement_units.archived_at IS NULL
-	AND valid_ingredients.archived_at IS NULL
-	AND valid_ingredient_measurement_units.archived_at IS NULL
-	AND valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_measurement_units.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
@@ -368,6 +347,13 @@ WHERE
 		valid_measurement_units.last_updated_at IS NULL
 		OR valid_measurement_units.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
+	AND (
+			valid_ingredient_measurement_units.valid_ingredient_id = sqlc.arg(valid_ingredient_id)
+			OR valid_measurement_units.universal = TRUE
+		)
+	AND valid_ingredients.archived_at IS NULL
+	AND valid_ingredient_measurement_units.archived_at IS NULL
 	AND valid_measurement_units.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_measurement_units.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

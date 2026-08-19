@@ -98,8 +98,7 @@ SELECT
 	(
 		SELECT COUNT(user_notifications.id)
 		FROM user_notifications
-		WHERE
-			user_notifications.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE user_notifications.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND user_notifications.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				user_notifications.last_updated_at IS NULL
@@ -115,13 +114,11 @@ SELECT
 	(
 		SELECT COUNT(user_notifications.id)
 		FROM user_notifications
-		WHERE
-			user_notifications.status != 'dismissed'
+		WHERE user_notifications.status != 'dismissed'
 			AND user_notifications.belongs_to_user = $5
 	) AS total_count
 FROM user_notifications
-WHERE user_notifications.status != 'dismissed'
-	AND user_notifications.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE user_notifications.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND user_notifications.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		user_notifications.last_updated_at IS NULL
@@ -131,6 +128,7 @@ WHERE user_notifications.status != 'dismissed'
 		user_notifications.last_updated_at IS NULL
 		OR user_notifications.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND user_notifications.status != 'dismissed'
 	AND user_notifications.belongs_to_user = $5
 	AND user_notifications.id > COALESCE($6, '')
 ORDER BY user_notifications.id ASC

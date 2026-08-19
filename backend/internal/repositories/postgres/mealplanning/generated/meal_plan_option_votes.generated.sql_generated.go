@@ -180,9 +180,7 @@ SELECT
 	(
 		SELECT COUNT(meal_plan_option_votes.id)
 		FROM meal_plan_option_votes
-		WHERE meal_plan_option_votes.archived_at IS NULL
-			AND
-			meal_plan_option_votes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE meal_plan_option_votes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND meal_plan_option_votes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meal_plan_option_votes.last_updated_at IS NULL
@@ -192,29 +190,19 @@ SELECT
 				meal_plan_option_votes.last_updated_at IS NULL
 				OR meal_plan_option_votes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meal_plan_option_votes.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR meal_plan_option_votes.archived_at IS NULL)
 			AND meal_plan_option_votes.belongs_to_meal_plan_option = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(meal_plan_option_votes.id)
 		FROM meal_plan_option_votes
-		WHERE meal_plan_option_votes.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR meal_plan_option_votes.archived_at IS NULL)
 	) AS total_count
 FROM meal_plan_option_votes
 	JOIN meal_plan_options ON meal_plan_option_votes.belongs_to_meal_plan_option=meal_plan_options.id
 	JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event=meal_plan_events.id
 	JOIN meal_plans ON meal_plan_events.belongs_to_meal_plan=meal_plans.id
-WHERE meal_plan_option_votes.archived_at IS NULL
-	AND meal_plan_option_votes.belongs_to_meal_plan_option = $6
-	AND meal_plan_options.archived_at IS NULL
-	AND meal_plan_options.belongs_to_meal_plan_event = $7
-	AND meal_plan_options.id = $6
-	AND meal_plan_events.archived_at IS NULL
-	AND meal_plan_events.belongs_to_meal_plan = $8
-	AND meal_plan_events.id = $7
-	AND meal_plans.archived_at IS NULL
-	AND meal_plans.id = $8
-	AND meal_plan_option_votes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE meal_plan_option_votes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND meal_plan_option_votes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meal_plan_option_votes.last_updated_at IS NULL
@@ -224,6 +212,16 @@ WHERE meal_plan_option_votes.archived_at IS NULL
 		meal_plan_option_votes.last_updated_at IS NULL
 		OR meal_plan_option_votes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR meal_plan_option_votes.archived_at IS NULL)
+	AND meal_plan_option_votes.belongs_to_meal_plan_option = $6
+	AND meal_plan_options.archived_at IS NULL
+	AND meal_plan_options.belongs_to_meal_plan_event = $7
+	AND meal_plan_options.id = $6
+	AND meal_plan_events.archived_at IS NULL
+	AND meal_plan_events.belongs_to_meal_plan = $8
+	AND meal_plan_events.id = $7
+	AND meal_plans.archived_at IS NULL
+	AND meal_plans.id = $8
 	AND meal_plan_option_votes.id > COALESCE($9, '')
 GROUP BY
 	meal_plan_option_votes.id,

@@ -97,9 +97,7 @@ SELECT
 	(
 		SELECT COUNT(meal_list_items.id)
 		FROM meal_list_items
-		WHERE meal_list_items.archived_at IS NULL
-			AND
-			meal_list_items.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE meal_list_items.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND meal_list_items.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meal_list_items.last_updated_at IS NULL
@@ -109,18 +107,17 @@ SELECT
 				meal_list_items.last_updated_at IS NULL
 				OR meal_list_items.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR meal_list_items.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR meal_list_items.archived_at IS NULL)
 			AND meal_list_items.belongs_to_meal_list = $6
 			AND EXISTS (SELECT 1 FROM meal_lists WHERE meal_lists.id = meal_list_items.belongs_to_meal_list AND meal_lists.belongs_to_user = $7)
 	) AS filtered_count,
 	(
 		SELECT COUNT(meal_list_items.id)
 		FROM meal_list_items
-		WHERE meal_list_items.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR meal_list_items.archived_at IS NULL)
 	) AS total_count
 FROM meal_list_items
-WHERE meal_list_items.archived_at IS NULL
-	AND meal_list_items.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE meal_list_items.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND meal_list_items.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meal_list_items.last_updated_at IS NULL
@@ -130,10 +127,10 @@ WHERE meal_list_items.archived_at IS NULL
 		meal_list_items.last_updated_at IS NULL
 		OR meal_list_items.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR meal_list_items.archived_at IS NULL)
 	AND meal_list_items.belongs_to_meal_list = $6
 	AND EXISTS (SELECT 1 FROM meal_lists WHERE meal_lists.id = meal_list_items.belongs_to_meal_list AND meal_lists.belongs_to_user = $7)
 	AND meal_list_items.id > COALESCE($8, '')
-	AND meal_list_items.belongs_to_meal_list = $6
 ORDER BY meal_list_items.id ASC
 LIMIT COALESCE($9, 50)
 `

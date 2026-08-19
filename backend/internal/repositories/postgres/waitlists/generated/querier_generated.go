@@ -9,28 +9,19 @@ import (
 )
 
 type Querier interface {
-	ArchiveIssueReport(ctx context.Context, db DBTX, id string) (int64, error)
 	ArchiveWaitlist(ctx context.Context, db DBTX, id string) (int64, error)
 	ArchiveWaitlistSignup(ctx context.Context, db DBTX, id string) (int64, error)
-	CheckIssueReportExistence(ctx context.Context, db DBTX, id string) (bool, error)
 	CheckWaitlistExistence(ctx context.Context, db DBTX, id string) (bool, error)
 	CheckWaitlistSignupExistence(ctx context.Context, db DBTX, arg *CheckWaitlistSignupExistenceParams) (bool, error)
-	CreateIssueReport(ctx context.Context, db DBTX, arg *CreateIssueReportParams) error
 	CreateWaitlist(ctx context.Context, db DBTX, arg *CreateWaitlistParams) error
 	CreateWaitlistSignup(ctx context.Context, db DBTX, arg *CreateWaitlistSignupParams) error
 	GetActiveWaitlists(ctx context.Context, db DBTX, arg *GetActiveWaitlistsParams) ([]*GetActiveWaitlistsRow, error)
-	GetIssueReport(ctx context.Context, db DBTX, id string) (*IssueReports, error)
-	GetIssueReports(ctx context.Context, db DBTX, arg *GetIssueReportsParams) ([]*GetIssueReportsRow, error)
-	GetIssueReportsForAccount(ctx context.Context, db DBTX, arg *GetIssueReportsForAccountParams) ([]*GetIssueReportsForAccountRow, error)
-	GetIssueReportsForRecord(ctx context.Context, db DBTX, arg *GetIssueReportsForRecordParams) ([]*GetIssueReportsForRecordRow, error)
-	GetIssueReportsForTable(ctx context.Context, db DBTX, arg *GetIssueReportsForTableParams) ([]*GetIssueReportsForTableRow, error)
 	GetWaitlist(ctx context.Context, db DBTX, id string) (*Waitlists, error)
 	GetWaitlistSignup(ctx context.Context, db DBTX, arg *GetWaitlistSignupParams) (*WaitlistSignups, error)
 	GetWaitlistSignupByID(ctx context.Context, db DBTX, id string) (*WaitlistSignups, error)
 	GetWaitlistSignupsForUser(ctx context.Context, db DBTX, arg *GetWaitlistSignupsForUserParams) ([]*GetWaitlistSignupsForUserRow, error)
 	GetWaitlistSignupsForWaitlist(ctx context.Context, db DBTX, arg *GetWaitlistSignupsForWaitlistParams) ([]*GetWaitlistSignupsForWaitlistRow, error)
 	GetWaitlists(ctx context.Context, db DBTX, arg *GetWaitlistsParams) ([]*GetWaitlistsRow, error)
-	UpdateIssueReport(ctx context.Context, db DBTX, arg *UpdateIssueReportParams) (int64, error)
 	UpdateWaitlist(ctx context.Context, db DBTX, arg *UpdateWaitlistParams) (int64, error)
 	UpdateWaitlistSignup(ctx context.Context, db DBTX, arg *UpdateWaitlistSignupParams) (int64, error)
 	WaitlistIsNotExpired(ctx context.Context, db DBTX, id string) (bool, error)

@@ -151,9 +151,7 @@ SELECT
 	(
 		SELECT COUNT(subscriptions.id)
 		FROM subscriptions
-		WHERE subscriptions.archived_at IS NULL
-			AND
-			subscriptions.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE subscriptions.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND subscriptions.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				subscriptions.last_updated_at IS NULL
@@ -163,19 +161,17 @@ SELECT
 				subscriptions.last_updated_at IS NULL
 				OR subscriptions.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR subscriptions.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR subscriptions.archived_at IS NULL)
 			AND subscriptions.belongs_to_account = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(subscriptions.id)
 		FROM subscriptions
-		WHERE subscriptions.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR subscriptions.archived_at IS NULL)
 			AND subscriptions.belongs_to_account = $6
 	) AS total_count
 FROM subscriptions
-WHERE subscriptions.archived_at IS NULL
-	AND subscriptions.belongs_to_account = $6
-	AND subscriptions.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE subscriptions.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND subscriptions.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		subscriptions.last_updated_at IS NULL
@@ -185,6 +181,8 @@ WHERE subscriptions.archived_at IS NULL
 		subscriptions.last_updated_at IS NULL
 		OR subscriptions.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR subscriptions.archived_at IS NULL)
+	AND subscriptions.belongs_to_account = $6
 	AND subscriptions.belongs_to_account = $6
 	AND subscriptions.id > COALESCE($7, '')
 ORDER BY subscriptions.id ASC

@@ -134,9 +134,7 @@ SELECT
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
 		FROM valid_prep_task_configs
-		WHERE valid_prep_task_configs.archived_at IS NULL
-			AND
-			valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_prep_task_configs.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_prep_task_configs.last_updated_at IS NULL
@@ -146,20 +144,17 @@ SELECT
 				valid_prep_task_configs.last_updated_at IS NULL
 				OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
 		FROM valid_prep_task_configs
-		WHERE valid_prep_task_configs.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS total_count
 FROM valid_prep_task_configs
 	JOIN valid_ingredients ON valid_prep_task_configs.valid_ingredient_id = valid_ingredients.id
 	JOIN valid_preparations ON valid_prep_task_configs.valid_preparation_id = valid_preparations.id
-WHERE
-	valid_prep_task_configs.archived_at IS NULL
-	AND valid_prep_task_configs.valid_ingredient_id = sqlc.arg(id)
-	AND valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_prep_task_configs.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_prep_task_configs.last_updated_at IS NULL
@@ -169,6 +164,8 @@ WHERE
 		valid_prep_task_configs.last_updated_at IS NULL
 		OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
+	AND valid_prep_task_configs.valid_ingredient_id = sqlc.arg(id)
 	AND valid_prep_task_configs.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_prep_task_configs.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -252,9 +249,7 @@ SELECT
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
 		FROM valid_prep_task_configs
-		WHERE valid_prep_task_configs.archived_at IS NULL
-			AND
-			valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_prep_task_configs.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_prep_task_configs.last_updated_at IS NULL
@@ -264,20 +259,17 @@ SELECT
 				valid_prep_task_configs.last_updated_at IS NULL
 				OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
 		FROM valid_prep_task_configs
-		WHERE valid_prep_task_configs.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS total_count
 FROM valid_prep_task_configs
 	JOIN valid_ingredients ON valid_prep_task_configs.valid_ingredient_id = valid_ingredients.id
 	JOIN valid_preparations ON valid_prep_task_configs.valid_preparation_id = valid_preparations.id
-WHERE
-	valid_prep_task_configs.archived_at IS NULL
-	AND valid_prep_task_configs.valid_preparation_id = sqlc.arg(id)
-	AND valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_prep_task_configs.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_prep_task_configs.last_updated_at IS NULL
@@ -287,6 +279,8 @@ WHERE
 		valid_prep_task_configs.last_updated_at IS NULL
 		OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
+	AND valid_prep_task_configs.valid_preparation_id = sqlc.arg(id)
 	AND valid_prep_task_configs.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_prep_task_configs.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -370,9 +364,7 @@ SELECT
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
 		FROM valid_prep_task_configs
-		WHERE valid_prep_task_configs.archived_at IS NULL
-			AND
-			valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_prep_task_configs.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_prep_task_configs.last_updated_at IS NULL
@@ -382,21 +374,17 @@ SELECT
 				valid_prep_task_configs.last_updated_at IS NULL
 				OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
 		FROM valid_prep_task_configs
-		WHERE valid_prep_task_configs.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS total_count
 FROM valid_prep_task_configs
 	JOIN valid_ingredients ON valid_prep_task_configs.valid_ingredient_id = valid_ingredients.id
 	JOIN valid_preparations ON valid_prep_task_configs.valid_preparation_id = valid_preparations.id
-WHERE
-	valid_prep_task_configs.archived_at IS NULL
-	AND valid_prep_task_configs.valid_ingredient_id = sqlc.arg(valid_ingredient_id)
-	AND valid_prep_task_configs.valid_preparation_id = sqlc.arg(valid_preparation_id)
-	AND valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_prep_task_configs.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_prep_task_configs.last_updated_at IS NULL
@@ -406,6 +394,9 @@ WHERE
 		valid_prep_task_configs.last_updated_at IS NULL
 		OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
+	AND valid_prep_task_configs.valid_ingredient_id = sqlc.arg(valid_ingredient_id)
+	AND valid_prep_task_configs.valid_preparation_id = sqlc.arg(valid_preparation_id)
 	AND valid_prep_task_configs.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_prep_task_configs.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -489,9 +480,7 @@ SELECT
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
 		FROM valid_prep_task_configs
-		WHERE valid_prep_task_configs.archived_at IS NULL
-			AND
-			valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_prep_task_configs.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_prep_task_configs.last_updated_at IS NULL
@@ -501,19 +490,17 @@ SELECT
 				valid_prep_task_configs.last_updated_at IS NULL
 				OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_prep_task_configs.id)
 		FROM valid_prep_task_configs
-		WHERE valid_prep_task_configs.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	) AS total_count
 FROM valid_prep_task_configs
 	JOIN valid_ingredients ON valid_prep_task_configs.valid_ingredient_id = valid_ingredients.id
 	JOIN valid_preparations ON valid_prep_task_configs.valid_preparation_id = valid_preparations.id
-WHERE
-	valid_prep_task_configs.archived_at IS NULL
-	AND valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_prep_task_configs.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_prep_task_configs.last_updated_at IS NULL
@@ -523,6 +510,7 @@ WHERE
 		valid_prep_task_configs.last_updated_at IS NULL
 		OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	AND valid_prep_task_configs.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY valid_prep_task_configs.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

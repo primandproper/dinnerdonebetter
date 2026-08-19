@@ -74,14 +74,11 @@ func buildValidPrepTaskConfigsQueries(database string) []*Query {
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validPrepTaskConfigsTableName, true, true, []string{}),
-						buildTotalCountSelect(validPrepTaskConfigsTableName, true, []string{}),
+						querygen.FilterCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
+						querygen.TotalCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
 						validPrepTaskConfigsTableName,
 						validIngredientsTableName,
 						validPrepTaskConfigsTableName,
@@ -93,13 +90,10 @@ WHERE
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						validPrepTaskConfigsTableName,
-						archivedAtColumn,
-						validPrepTaskConfigsTableName,
-						validIngredientIDColumn,
-						idColumn,
-						buildFilterConditions(validPrepTaskConfigsTableName, true, false),
-						buildCursorLimitClause(validPrepTaskConfigsTableName),
+						querygen.FilterConditions(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPrepTaskConfigsTableName, validIngredientIDColumn, idColumn),
+						),
+						querygen.CursorLimitClause(validPrepTaskConfigsTableName),
 					)),
 				},
 				{
@@ -114,14 +108,11 @@ WHERE
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validPrepTaskConfigsTableName, true, true, []string{}),
-						buildTotalCountSelect(validPrepTaskConfigsTableName, true, []string{}),
+						querygen.FilterCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
+						querygen.TotalCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
 						validPrepTaskConfigsTableName,
 						validIngredientsTableName,
 						validPrepTaskConfigsTableName,
@@ -133,13 +124,10 @@ WHERE
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						validPrepTaskConfigsTableName,
-						archivedAtColumn,
-						validPrepTaskConfigsTableName,
-						validPreparationIDColumn,
-						idColumn,
-						buildFilterConditions(validPrepTaskConfigsTableName, true, false),
-						buildCursorLimitClause(validPrepTaskConfigsTableName),
+						querygen.FilterConditions(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPrepTaskConfigsTableName, validPreparationIDColumn, idColumn),
+						),
+						querygen.CursorLimitClause(validPrepTaskConfigsTableName),
 					)),
 				},
 				{
@@ -154,15 +142,11 @@ WHERE
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validPrepTaskConfigsTableName, true, true, []string{}),
-						buildTotalCountSelect(validPrepTaskConfigsTableName, true, []string{}),
+						querygen.FilterCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
+						querygen.TotalCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
 						validPrepTaskConfigsTableName,
 						validIngredientsTableName,
 						validPrepTaskConfigsTableName,
@@ -174,16 +158,11 @@ WHERE
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						validPrepTaskConfigsTableName,
-						archivedAtColumn,
-						validPrepTaskConfigsTableName,
-						validIngredientIDColumn,
-						validIngredientIDColumn,
-						validPrepTaskConfigsTableName,
-						validPreparationIDColumn,
-						validPreparationIDColumn,
-						buildFilterConditions(validPrepTaskConfigsTableName, true, false),
-						buildCursorLimitClause(validPrepTaskConfigsTableName),
+						querygen.FilterConditions(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPrepTaskConfigsTableName, validIngredientIDColumn, validIngredientIDColumn),
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPrepTaskConfigsTableName, validPreparationIDColumn, validPreparationIDColumn),
+						),
+						querygen.CursorLimitClause(validPrepTaskConfigsTableName),
 					)),
 				},
 				{
@@ -198,13 +177,11 @@ WHERE
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validPrepTaskConfigsTableName, true, true, []string{}),
-						buildTotalCountSelect(validPrepTaskConfigsTableName, true, []string{}),
+						querygen.FilterCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
+						querygen.TotalCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
 						validPrepTaskConfigsTableName,
 						validIngredientsTableName,
 						validPrepTaskConfigsTableName,
@@ -216,10 +193,8 @@ WHERE
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						validPrepTaskConfigsTableName,
-						archivedAtColumn,
-						buildFilterConditions(validPrepTaskConfigsTableName, true, false),
-						buildCursorLimitClause(validPrepTaskConfigsTableName),
+						querygen.FilterConditions(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns),
+						querygen.CursorLimitClause(validPrepTaskConfigsTableName),
 					)),
 				},
 				{

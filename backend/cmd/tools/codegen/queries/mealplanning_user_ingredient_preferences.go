@@ -64,21 +64,22 @@ func buildUserIngredientPreferencesQueries(database string) []*Query {
 	%s
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(userIngredientPreferencesTableName, true, true, []string{}),
-						buildTotalCountSelect(userIngredientPreferencesTableName, true, []string{}),
+						querygen.FilterCountSelect(userIngredientPreferencesTableName, userIngredientPreferencesColumns, []string{}),
+						querygen.TotalCountSelect(userIngredientPreferencesTableName, userIngredientPreferencesColumns, []string{}),
 						userIngredientPreferencesTableName,
-						validIngredientsTableName, validIngredientsTableName, idColumn, userIngredientPreferencesTableName, userIngredientPreferencesIngredientColumn,
-						userIngredientPreferencesTableName, archivedAtColumn,
-						userIngredientPreferencesTableName, belongsToUserColumn, belongsToUserColumn,
-						validIngredientsTableName, archivedAtColumn,
-						buildFilterConditions(userIngredientPreferencesTableName, true, false),
-						buildCursorLimitClause(userIngredientPreferencesTableName),
+						validIngredientsTableName,
+						validIngredientsTableName,
+						idColumn,
+						userIngredientPreferencesTableName,
+						userIngredientPreferencesIngredientColumn,
+						querygen.FilterConditions(userIngredientPreferencesTableName, userIngredientPreferencesColumns,
+							"user_ingredient_preferences.belongs_to_user = sqlc.arg(belongs_to_user)",
+							"valid_ingredients.archived_at IS NULL",
+						),
+						querygen.CursorLimitClause(userIngredientPreferencesTableName),
 					)),
 				},
 				{

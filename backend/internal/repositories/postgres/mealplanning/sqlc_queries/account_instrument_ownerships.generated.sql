@@ -64,9 +64,7 @@ SELECT
 	(
 		SELECT COUNT(account_instrument_ownerships.id)
 		FROM account_instrument_ownerships
-		WHERE account_instrument_ownerships.archived_at IS NULL
-			AND
-			account_instrument_ownerships.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE account_instrument_ownerships.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND account_instrument_ownerships.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				account_instrument_ownerships.last_updated_at IS NULL
@@ -76,20 +74,18 @@ SELECT
 				account_instrument_ownerships.last_updated_at IS NULL
 				OR account_instrument_ownerships.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR account_instrument_ownerships.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR account_instrument_ownerships.archived_at IS NULL)
 			AND account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)
 	) AS filtered_count,
 	(
 		SELECT COUNT(account_instrument_ownerships.id)
 		FROM account_instrument_ownerships
-		WHERE account_instrument_ownerships.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR account_instrument_ownerships.archived_at IS NULL)
 			AND account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)
 	) AS total_count
 FROM account_instrument_ownerships
 INNER JOIN valid_instruments ON account_instrument_ownerships.valid_instrument_id = valid_instruments.id
-WHERE
-	account_instrument_ownerships.archived_at IS NULL
-	AND account_instrument_ownerships.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE account_instrument_ownerships.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND account_instrument_ownerships.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		account_instrument_ownerships.last_updated_at IS NULL
@@ -99,7 +95,7 @@ WHERE
 		account_instrument_ownerships.last_updated_at IS NULL
 		OR account_instrument_ownerships.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR account_instrument_ownerships.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR account_instrument_ownerships.archived_at IS NULL)
 	AND account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)
 	AND account_instrument_ownerships.id > COALESCE(sqlc.narg(cursor), '')
 GROUP BY

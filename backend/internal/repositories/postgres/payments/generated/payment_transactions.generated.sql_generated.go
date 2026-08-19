@@ -72,21 +72,19 @@ SELECT
 	(
 		SELECT COUNT(payment_transactions.id)
 		FROM payment_transactions
-		WHERE
-			payment_transactions.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE payment_transactions.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND payment_transactions.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND payment_transactions.belongs_to_account = $3
 	) AS filtered_count,
 	(
 		SELECT COUNT(payment_transactions.id)
 		FROM payment_transactions
-		WHERE
-			payment_transactions.belongs_to_account = $3
+		WHERE payment_transactions.belongs_to_account = $3
 	) AS total_count
 FROM payment_transactions
-WHERE payment_transactions.belongs_to_account = $3
-	AND payment_transactions.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE payment_transactions.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND payment_transactions.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+	AND payment_transactions.belongs_to_account = $3
 	AND payment_transactions.belongs_to_account = $3
 	AND payment_transactions.id > COALESCE($4, '')
 ORDER BY payment_transactions.id ASC

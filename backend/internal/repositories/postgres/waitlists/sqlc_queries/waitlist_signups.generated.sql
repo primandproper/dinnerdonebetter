@@ -78,9 +78,7 @@ SELECT
 	(
 		SELECT COUNT(waitlist_signups.id)
 		FROM waitlist_signups
-		WHERE waitlist_signups.archived_at IS NULL
-			AND
-			waitlist_signups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE waitlist_signups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND waitlist_signups.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				waitlist_signups.last_updated_at IS NULL
@@ -90,19 +88,17 @@ SELECT
 				waitlist_signups.last_updated_at IS NULL
 				OR waitlist_signups.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlist_signups.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlist_signups.archived_at IS NULL)
 			AND waitlist_signups.belongs_to_waitlist = sqlc.arg(belongs_to_waitlist)
 	) AS filtered_count,
 	(
 		SELECT COUNT(waitlist_signups.id)
 		FROM waitlist_signups
-		WHERE waitlist_signups.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlist_signups.archived_at IS NULL)
 			AND waitlist_signups.belongs_to_waitlist = sqlc.arg(belongs_to_waitlist)
 	) AS total_count
 FROM waitlist_signups
-WHERE waitlist_signups.archived_at IS NULL
-	AND waitlist_signups.belongs_to_waitlist = sqlc.arg(belongs_to_waitlist)
-	AND waitlist_signups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE waitlist_signups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND waitlist_signups.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		waitlist_signups.last_updated_at IS NULL
@@ -112,6 +108,7 @@ WHERE waitlist_signups.archived_at IS NULL
 		waitlist_signups.last_updated_at IS NULL
 		OR waitlist_signups.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlist_signups.archived_at IS NULL)
 	AND waitlist_signups.belongs_to_waitlist = sqlc.arg(belongs_to_waitlist)
 	AND waitlist_signups.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY waitlist_signups.id ASC
@@ -130,9 +127,7 @@ SELECT
 	(
 		SELECT COUNT(waitlist_signups.id)
 		FROM waitlist_signups
-		WHERE waitlist_signups.archived_at IS NULL
-			AND
-			waitlist_signups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE waitlist_signups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND waitlist_signups.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				waitlist_signups.last_updated_at IS NULL
@@ -142,19 +137,17 @@ SELECT
 				waitlist_signups.last_updated_at IS NULL
 				OR waitlist_signups.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlist_signups.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlist_signups.archived_at IS NULL)
 			AND waitlist_signups.belongs_to_user = sqlc.arg(belongs_to_user)
 	) AS filtered_count,
 	(
 		SELECT COUNT(waitlist_signups.id)
 		FROM waitlist_signups
-		WHERE waitlist_signups.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlist_signups.archived_at IS NULL)
 			AND waitlist_signups.belongs_to_user = sqlc.arg(belongs_to_user)
 	) AS total_count
 FROM waitlist_signups
-WHERE waitlist_signups.archived_at IS NULL
-	AND waitlist_signups.belongs_to_user = sqlc.arg(belongs_to_user)
-	AND waitlist_signups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE waitlist_signups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND waitlist_signups.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		waitlist_signups.last_updated_at IS NULL
@@ -164,6 +157,7 @@ WHERE waitlist_signups.archived_at IS NULL
 		waitlist_signups.last_updated_at IS NULL
 		OR waitlist_signups.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlist_signups.archived_at IS NULL)
 	AND waitlist_signups.belongs_to_user = sqlc.arg(belongs_to_user)
 	AND waitlist_signups.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY waitlist_signups.id ASC

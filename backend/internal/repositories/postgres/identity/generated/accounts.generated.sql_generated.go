@@ -360,9 +360,7 @@ SELECT
 	(
 		SELECT COUNT(accounts.id)
 		FROM accounts
-		WHERE accounts.archived_at IS NULL
-			AND
-			accounts.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE accounts.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND accounts.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				accounts.last_updated_at IS NULL
@@ -372,19 +370,17 @@ SELECT
 				accounts.last_updated_at IS NULL
 				OR accounts.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR accounts.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR accounts.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(accounts.id)
 		FROM accounts
-		WHERE accounts.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR accounts.archived_at IS NULL)
 			AND account_user_memberships.belongs_to_user = $6
 	) AS total_count
 FROM accounts
 JOIN account_user_memberships ON account_user_memberships.belongs_to_account = accounts.id
-WHERE accounts.archived_at IS NULL
-	AND account_user_memberships.archived_at IS NULL
-	AND accounts.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE accounts.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND accounts.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		accounts.last_updated_at IS NULL
@@ -394,6 +390,8 @@ WHERE accounts.archived_at IS NULL
 		accounts.last_updated_at IS NULL
 		OR accounts.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR accounts.archived_at IS NULL)
+	AND account_user_memberships.archived_at IS NULL
 	AND account_user_memberships.belongs_to_user = $6
 	AND accounts.id > COALESCE($7, '')
 ORDER BY accounts.id ASC

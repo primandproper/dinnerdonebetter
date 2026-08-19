@@ -152,25 +152,28 @@ WHERE %s.%s IS NULL
 FROM %s
 	LEFT JOIN %s ON %s.%s=%s.%s AND %s.%s IS NULL
 		AND EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.%s AND %s.%s IS NULL)
-WHERE
-	%s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(mealsTableName, true, true, []string{}),
-						buildTotalCountSelect(mealsTableName, true, []string{}),
+						querygen.FilterCountSelect(mealsTableName, mealsColumns, []string{}),
+						querygen.TotalCountSelect(mealsTableName, mealsColumns, []string{}),
 						mealsTableName,
-						mealComponentsTableName, mealComponentsTableName, belongsToMealColumn, mealsTableName, idColumn,
-						mealComponentsTableName, archivedAtColumn,
-						recipesTableName, recipesTableName, idColumn, mealComponentsTableName, recipeIDColumn,
-						recipesTableName, archivedAtColumn,
-						mealsTableName, archivedAtColumn,
-						buildFilterConditions(
-							mealsTableName,
-							true,
-							true,
-						),
-						buildCursorLimitClause(mealsTableName),
+						mealComponentsTableName,
+						mealComponentsTableName,
+						belongsToMealColumn,
+						mealsTableName,
+						idColumn,
+						mealComponentsTableName,
+						archivedAtColumn,
+						recipesTableName,
+						recipesTableName,
+						idColumn,
+						mealComponentsTableName,
+						recipeIDColumn,
+						recipesTableName,
+						archivedAtColumn,
+						querygen.FilterConditions(mealsTableName, mealsColumns),
+						querygen.CursorLimitClause(mealsTableName),
 					)),
 				},
 				{
@@ -210,23 +213,30 @@ ORDER BY %s.%s ASC;`,
 FROM %s
 	LEFT JOIN %s ON %s.%s=%s.%s AND %s.%s IS NULL
 		AND EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.%s AND %s.%s IS NULL)
-WHERE
-	%s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(mealsTableName, true, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealsTableName, createdByUserColumn, createdByUserColumn)),
-						buildTotalCountSelect(mealsTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealsTableName, createdByUserColumn, createdByUserColumn)),
+						querygen.FilterCountSelect(mealsTableName, mealsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealsTableName, createdByUserColumn, createdByUserColumn)),
+						querygen.TotalCountSelect(mealsTableName, mealsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealsTableName, createdByUserColumn, createdByUserColumn)),
 						mealsTableName,
-						mealComponentsTableName, mealComponentsTableName, belongsToMealColumn, mealsTableName, idColumn,
-						mealComponentsTableName, archivedAtColumn,
-						recipesTableName, recipesTableName, idColumn, mealComponentsTableName, recipeIDColumn,
-						recipesTableName, archivedAtColumn,
-						mealsTableName, archivedAtColumn,
-						mealsTableName, createdByUserColumn, createdByUserColumn,
-						buildFilterConditions(mealsTableName, true, true, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealsTableName, createdByUserColumn, createdByUserColumn)),
-						buildCursorLimitClause(mealsTableName),
+						mealComponentsTableName,
+						mealComponentsTableName,
+						belongsToMealColumn,
+						mealsTableName,
+						idColumn,
+						mealComponentsTableName,
+						archivedAtColumn,
+						recipesTableName,
+						recipesTableName,
+						idColumn,
+						mealComponentsTableName,
+						recipeIDColumn,
+						recipesTableName,
+						archivedAtColumn,
+						querygen.FilterConditions(mealsTableName, mealsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealsTableName, createdByUserColumn, createdByUserColumn),
+						),
+						querygen.CursorLimitClause(mealsTableName),
 					)),
 				},
 				{
@@ -242,27 +252,30 @@ FROM %s
 	JOIN %s ON %s.%s=%s.%s
 		AND %s.%s IS NULL
 		AND EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.%s AND %s.%s IS NULL)
-WHERE
-	%s.%s IS NULL
-	AND %s.%s %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(mealsTableName, true, true, []string{}),
-						buildTotalCountSelect(mealsTableName, true, []string{}),
+						querygen.FilterCountSelect(mealsTableName, mealsColumns, []string{}),
+						querygen.TotalCountSelect(mealsTableName, mealsColumns, []string{}),
 						mealsTableName,
-						mealComponentsTableName, mealComponentsTableName, belongsToMealColumn, mealsTableName, idColumn,
-						mealComponentsTableName, archivedAtColumn,
-						recipesTableName, recipesTableName, idColumn, mealComponentsTableName, recipeIDColumn,
-						recipesTableName, archivedAtColumn,
-						mealsTableName, archivedAtColumn,
-						mealsTableName, nameColumn, buildILIKEForArgument("query"),
-						buildFilterConditions(
-							mealsTableName,
-							true,
-							true,
+						mealComponentsTableName,
+						mealComponentsTableName,
+						belongsToMealColumn,
+						mealsTableName,
+						idColumn,
+						mealComponentsTableName,
+						archivedAtColumn,
+						recipesTableName,
+						recipesTableName,
+						idColumn,
+						mealComponentsTableName,
+						recipeIDColumn,
+						recipesTableName,
+						archivedAtColumn,
+						querygen.FilterConditions(mealsTableName, mealsColumns,
+							fmt.Sprintf("%s.%s %s", mealsTableName, nameColumn, buildILIKEForArgument("query")),
 						),
-						buildCursorLimitClause(mealsTableName),
+						querygen.CursorLimitClause(mealsTableName),
 					)),
 				},
 				{

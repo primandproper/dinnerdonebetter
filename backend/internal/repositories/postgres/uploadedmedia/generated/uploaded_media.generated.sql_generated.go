@@ -117,9 +117,7 @@ SELECT
 	(
 		SELECT COUNT(uploaded_media.id)
 		FROM uploaded_media
-		WHERE uploaded_media.archived_at IS NULL
-			AND
-			uploaded_media.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE uploaded_media.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND uploaded_media.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				uploaded_media.last_updated_at IS NULL
@@ -129,19 +127,17 @@ SELECT
 				uploaded_media.last_updated_at IS NULL
 				OR uploaded_media.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR uploaded_media.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR uploaded_media.archived_at IS NULL)
 			AND uploaded_media.created_by_user = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(uploaded_media.id)
 		FROM uploaded_media
-		WHERE uploaded_media.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR uploaded_media.archived_at IS NULL)
 			AND uploaded_media.created_by_user = $6
 	) AS total_count
 FROM uploaded_media
-WHERE uploaded_media.archived_at IS NULL
-	AND uploaded_media.created_by_user = $6
-	AND uploaded_media.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE uploaded_media.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND uploaded_media.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		uploaded_media.last_updated_at IS NULL
@@ -151,6 +147,7 @@ WHERE uploaded_media.archived_at IS NULL
 		uploaded_media.last_updated_at IS NULL
 		OR uploaded_media.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR uploaded_media.archived_at IS NULL)
 	AND uploaded_media.created_by_user = $6
 	AND uploaded_media.id > COALESCE($7, '')
 ORDER BY uploaded_media.id ASC

@@ -72,9 +72,7 @@ SELECT
 	(
 		SELECT COUNT(uploaded_media.id)
 		FROM uploaded_media
-		WHERE uploaded_media.archived_at IS NULL
-			AND
-			uploaded_media.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE uploaded_media.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND uploaded_media.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				uploaded_media.last_updated_at IS NULL
@@ -84,19 +82,17 @@ SELECT
 				uploaded_media.last_updated_at IS NULL
 				OR uploaded_media.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR uploaded_media.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR uploaded_media.archived_at IS NULL)
 			AND uploaded_media.created_by_user = sqlc.arg(created_by_user)
 	) AS filtered_count,
 	(
 		SELECT COUNT(uploaded_media.id)
 		FROM uploaded_media
-		WHERE uploaded_media.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR uploaded_media.archived_at IS NULL)
 			AND uploaded_media.created_by_user = sqlc.arg(created_by_user)
 	) AS total_count
 FROM uploaded_media
-WHERE uploaded_media.archived_at IS NULL
-	AND uploaded_media.created_by_user = sqlc.arg(created_by_user)
-	AND uploaded_media.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE uploaded_media.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND uploaded_media.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		uploaded_media.last_updated_at IS NULL
@@ -106,6 +102,7 @@ WHERE uploaded_media.archived_at IS NULL
 		uploaded_media.last_updated_at IS NULL
 		OR uploaded_media.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR uploaded_media.archived_at IS NULL)
 	AND uploaded_media.created_by_user = sqlc.arg(created_by_user)
 	AND uploaded_media.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY uploaded_media.id ASC

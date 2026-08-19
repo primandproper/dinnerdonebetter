@@ -127,9 +127,7 @@ SELECT
 	(
 		SELECT COUNT(user_roles.id)
 		FROM user_roles
-		WHERE user_roles.archived_at IS NULL
-			AND
-			user_roles.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE user_roles.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND user_roles.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				user_roles.last_updated_at IS NULL
@@ -139,16 +137,15 @@ SELECT
 				user_roles.last_updated_at IS NULL
 				OR user_roles.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR user_roles.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR user_roles.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(user_roles.id)
 		FROM user_roles
-		WHERE user_roles.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR user_roles.archived_at IS NULL)
 	) AS total_count
 FROM user_roles
-WHERE user_roles.archived_at IS NULL
-	AND user_roles.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE user_roles.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND user_roles.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		user_roles.last_updated_at IS NULL
@@ -158,7 +155,7 @@ WHERE user_roles.archived_at IS NULL
 		user_roles.last_updated_at IS NULL
 		OR user_roles.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR user_roles.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR user_roles.archived_at IS NULL)
 	AND user_roles.id > COALESCE($6, '')
 ORDER BY user_roles.id ASC
 LIMIT COALESCE($7, 50)

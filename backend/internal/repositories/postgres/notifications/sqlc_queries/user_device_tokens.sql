@@ -63,7 +63,7 @@ SELECT
 		SELECT COUNT(user_device_tokens.id)
 		FROM user_device_tokens
 		WHERE
-			user_device_tokens.archived_at IS NULL
+			(COALESCE(sqlc.narg(include_archived), false)::boolean OR user_device_tokens.archived_at IS NULL)
 			AND user_device_tokens.belongs_to_user = sqlc.arg(user_id)
 			AND (sqlc.narg(platform_filter)::TEXT IS NULL OR user_device_tokens.platform = sqlc.narg(platform_filter)::TEXT)
 			AND user_device_tokens.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
@@ -73,12 +73,12 @@ SELECT
 		SELECT COUNT(user_device_tokens.id)
 		FROM user_device_tokens
 		WHERE
-			user_device_tokens.archived_at IS NULL
+			(COALESCE(sqlc.narg(include_archived), false)::boolean OR user_device_tokens.archived_at IS NULL)
 			AND user_device_tokens.belongs_to_user = sqlc.arg(user_id)
 			AND (sqlc.narg(platform_filter)::TEXT IS NULL OR user_device_tokens.platform = sqlc.narg(platform_filter)::TEXT)
 	) AS total_count
 FROM user_device_tokens
-WHERE user_device_tokens.archived_at IS NULL
+WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR user_device_tokens.archived_at IS NULL)
 	AND user_device_tokens.belongs_to_user = sqlc.arg(user_id)
 	AND (sqlc.narg(platform_filter)::TEXT IS NULL OR user_device_tokens.platform = sqlc.narg(platform_filter)::TEXT)
 	AND user_device_tokens.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))

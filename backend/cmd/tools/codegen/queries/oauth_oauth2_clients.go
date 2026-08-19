@@ -65,41 +65,20 @@ WHERE %s.%s IS NULL
 					},
 					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
-	(
-		SELECT COUNT(%s.%s)
-		FROM %s
-		WHERE %s.%s IS NULL
-				%s
-	) as filtered_count,
+	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;
 `,
 						strings.Join(applyToEach(oauth2ClientsColumns, func(_ int, s string) string {
 							return fmt.Sprintf("%s.%s", oauth2ClientsTableName, s)
 						}), ",\n\t"),
-						oauth2ClientsTableName, idColumn,
+						querygen.FilterCountSelect(oauth2ClientsTableName, oauth2ClientsColumns, nil),
+						querygen.TotalCountSelect(oauth2ClientsTableName, oauth2ClientsColumns, nil),
 						oauth2ClientsTableName,
-						oauth2ClientsTableName, archivedAtColumn,
-						strings.Join(strings.Split(
-							buildFilterConditions(
-								oauth2ClientsTableName,
-								false,
-								true,
-							), "\n"),
-							"\n\t\t",
-						),
-						buildTotalCountSelect(usersTableName, true, []string{}),
-						oauth2ClientsTableName,
-						oauth2ClientsTableName, archivedAtColumn,
-						buildFilterConditions(
-							oauth2ClientsTableName,
-							false,
-							true,
-						),
-						buildCursorLimitClause(oauth2ClientsTableName),
+						querygen.FilterConditions(oauth2ClientsTableName, oauth2ClientsColumns),
+						querygen.CursorLimitClause(oauth2ClientsTableName),
 					)),
 				},
 			},

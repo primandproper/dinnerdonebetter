@@ -84,22 +84,27 @@ func buildWebhooksQueries(database string) []*Query {
 	%s
 FROM %s
 	LEFT JOIN %s ON %s.%s = %s.%s
-WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(webhooksTableName, true, true, []string{}, "webhooks.belongs_to_account = sqlc.arg(belongs_to_account)"),
-						buildTotalCountSelect(
+						querygen.FilterCountSelect(webhooksTableName, webhooksColumns, []string{}, "webhooks.belongs_to_account = sqlc.arg(belongs_to_account)"),
+						querygen.TotalCountSelect(
 							webhooksTableName,
-							true,
+							webhooksColumns,
 							nil,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", webhooksTableName, belongsToAccountColumn, belongsToAccountColumn),
 						),
 						webhooksTableName,
-						webhookTriggerConfigsTableName, webhooksTableName, idColumn, webhookTriggerConfigsTableName, belongsToWebhookColumn,
-						webhooksTableName, archivedAtColumn,
-						buildFilterConditions(webhooksTableName, true, true, fmt.Sprintf("%s.%s = sqlc.arg(%s)", webhooksTableName, belongsToAccountColumn, belongsToAccountColumn), fmt.Sprintf("%s.%s IS NULL", webhookTriggerConfigsTableName, archivedAtColumn)),
-						buildCursorLimitClause(webhooksTableName),
+						webhookTriggerConfigsTableName,
+						webhooksTableName,
+						idColumn,
+						webhookTriggerConfigsTableName,
+						belongsToWebhookColumn,
+						querygen.FilterConditions(webhooksTableName, webhooksColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", webhooksTableName, belongsToAccountColumn, belongsToAccountColumn),
+							fmt.Sprintf("%s.%s IS NULL", webhookTriggerConfigsTableName, archivedAtColumn),
+						),
+						querygen.CursorLimitClause(webhooksTableName),
 					)),
 				},
 				{

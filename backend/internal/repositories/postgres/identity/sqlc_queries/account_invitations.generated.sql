@@ -410,9 +410,7 @@ SELECT
 	(
 		SELECT COUNT(account_invitations.id)
 		FROM account_invitations
-		WHERE account_invitations.archived_at IS NULL
-			AND
-			account_invitations.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE account_invitations.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND account_invitations.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				account_invitations.last_updated_at IS NULL
@@ -422,22 +420,19 @@ SELECT
 				account_invitations.last_updated_at IS NULL
 				OR account_invitations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(account_invitations.id)
 		FROM account_invitations
-		WHERE account_invitations.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at IS NULL)
 	) AS total_count
 FROM account_invitations
 	JOIN accounts ON account_invitations.destination_account = accounts.id
 	JOIN users ON account_invitations.from_user = users.id
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
-WHERE account_invitations.archived_at IS NULL
-	AND account_invitations.from_user = sqlc.arg(from_user)
-	AND account_invitations.status = sqlc.arg(status)
-	AND account_invitations.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE account_invitations.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND account_invitations.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		account_invitations.last_updated_at IS NULL
@@ -447,6 +442,9 @@ WHERE account_invitations.archived_at IS NULL
 		account_invitations.last_updated_at IS NULL
 		OR account_invitations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at IS NULL)
+	AND account_invitations.from_user = sqlc.arg(from_user)
+	AND account_invitations.status = sqlc.arg(status)
 	AND account_invitations.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY account_invitations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -519,9 +517,7 @@ SELECT
 	(
 		SELECT COUNT(account_invitations.id)
 		FROM account_invitations
-		WHERE account_invitations.archived_at IS NULL
-			AND
-			account_invitations.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE account_invitations.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND account_invitations.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				account_invitations.last_updated_at IS NULL
@@ -531,22 +527,19 @@ SELECT
 				account_invitations.last_updated_at IS NULL
 				OR account_invitations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(account_invitations.id)
 		FROM account_invitations
-		WHERE account_invitations.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at IS NULL)
 	) AS total_count
 FROM account_invitations
 	JOIN accounts ON account_invitations.destination_account = accounts.id
 	JOIN users ON account_invitations.from_user = users.id
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
-WHERE account_invitations.archived_at IS NULL
-	AND account_invitations.to_user = sqlc.arg(to_user)
-	AND account_invitations.status = sqlc.arg(status)
-	AND account_invitations.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE account_invitations.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND account_invitations.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		account_invitations.last_updated_at IS NULL
@@ -556,7 +549,9 @@ WHERE account_invitations.archived_at IS NULL
 		account_invitations.last_updated_at IS NULL
 		OR account_invitations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at IS NULL)
+	AND account_invitations.to_user = sqlc.arg(to_user)
+	AND account_invitations.status = sqlc.arg(status)
 	AND account_invitations.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY account_invitations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

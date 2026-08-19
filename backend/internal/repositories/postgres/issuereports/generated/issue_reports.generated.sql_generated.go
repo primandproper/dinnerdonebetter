@@ -136,9 +136,7 @@ SELECT
 	(
 		SELECT COUNT(issue_reports.id)
 		FROM issue_reports
-		WHERE issue_reports.archived_at IS NULL
-			AND
-			issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND issue_reports.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				issue_reports.last_updated_at IS NULL
@@ -148,16 +146,15 @@ SELECT
 				issue_reports.last_updated_at IS NULL
 				OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(issue_reports.id)
 		FROM issue_reports
-		WHERE issue_reports.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 	) AS total_count
 FROM issue_reports
-WHERE issue_reports.archived_at IS NULL
-	AND issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND issue_reports.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		issue_reports.last_updated_at IS NULL
@@ -167,6 +164,7 @@ WHERE issue_reports.archived_at IS NULL
 		issue_reports.last_updated_at IS NULL
 		OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 	AND issue_reports.id > COALESCE($6, '')
 ORDER BY issue_reports.id ASC
 LIMIT COALESCE($7, 50)
@@ -256,9 +254,7 @@ SELECT
 	(
 		SELECT COUNT(issue_reports.id)
 		FROM issue_reports
-		WHERE issue_reports.archived_at IS NULL
-			AND
-			issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND issue_reports.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				issue_reports.last_updated_at IS NULL
@@ -268,19 +264,17 @@ SELECT
 				issue_reports.last_updated_at IS NULL
 				OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.belongs_to_account = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(issue_reports.id)
 		FROM issue_reports
-		WHERE issue_reports.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.belongs_to_account = $6
 	) AS total_count
 FROM issue_reports
-WHERE issue_reports.archived_at IS NULL
-	AND issue_reports.belongs_to_account = $6
-	AND issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND issue_reports.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		issue_reports.last_updated_at IS NULL
@@ -290,6 +284,7 @@ WHERE issue_reports.archived_at IS NULL
 		issue_reports.last_updated_at IS NULL
 		OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 	AND issue_reports.belongs_to_account = $6
 	AND issue_reports.id > COALESCE($7, '')
 ORDER BY issue_reports.id ASC
@@ -382,9 +377,7 @@ SELECT
 	(
 		SELECT COUNT(issue_reports.id)
 		FROM issue_reports
-		WHERE issue_reports.archived_at IS NULL
-			AND
-			issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND issue_reports.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				issue_reports.last_updated_at IS NULL
@@ -394,22 +387,19 @@ SELECT
 				issue_reports.last_updated_at IS NULL
 				OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.relevant_table = $6
 			AND issue_reports.relevant_record_id = $7
 	) AS filtered_count,
 	(
 		SELECT COUNT(issue_reports.id)
 		FROM issue_reports
-		WHERE issue_reports.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.relevant_table = $6
 			AND issue_reports.relevant_record_id = $7
 	) AS total_count
 FROM issue_reports
-WHERE issue_reports.archived_at IS NULL
-	AND issue_reports.relevant_table = $6
-	AND issue_reports.relevant_record_id = $7
-	AND issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND issue_reports.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		issue_reports.last_updated_at IS NULL
@@ -419,6 +409,7 @@ WHERE issue_reports.archived_at IS NULL
 		issue_reports.last_updated_at IS NULL
 		OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 	AND issue_reports.relevant_table = $6
 	AND issue_reports.relevant_record_id = $7
 	AND issue_reports.id > COALESCE($8, '')
@@ -514,9 +505,7 @@ SELECT
 	(
 		SELECT COUNT(issue_reports.id)
 		FROM issue_reports
-		WHERE issue_reports.archived_at IS NULL
-			AND
-			issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND issue_reports.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				issue_reports.last_updated_at IS NULL
@@ -526,19 +515,17 @@ SELECT
 				issue_reports.last_updated_at IS NULL
 				OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.relevant_table = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(issue_reports.id)
 		FROM issue_reports
-		WHERE issue_reports.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.relevant_table = $6
 	) AS total_count
 FROM issue_reports
-WHERE issue_reports.archived_at IS NULL
-	AND issue_reports.relevant_table = $6
-	AND issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE issue_reports.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND issue_reports.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		issue_reports.last_updated_at IS NULL
@@ -548,6 +535,7 @@ WHERE issue_reports.archived_at IS NULL
 		issue_reports.last_updated_at IS NULL
 		OR issue_reports.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR issue_reports.archived_at IS NULL)
 	AND issue_reports.relevant_table = $6
 	AND issue_reports.id > COALESCE($7, '')
 ORDER BY issue_reports.id ASC

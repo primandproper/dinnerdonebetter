@@ -312,9 +312,7 @@ SELECT
 	(
 		SELECT COUNT(user_ingredient_preferences.id)
 		FROM user_ingredient_preferences
-		WHERE user_ingredient_preferences.archived_at IS NULL
-			AND
-			user_ingredient_preferences.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE user_ingredient_preferences.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND user_ingredient_preferences.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				user_ingredient_preferences.last_updated_at IS NULL
@@ -324,19 +322,16 @@ SELECT
 				user_ingredient_preferences.last_updated_at IS NULL
 				OR user_ingredient_preferences.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR user_ingredient_preferences.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR user_ingredient_preferences.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(user_ingredient_preferences.id)
 		FROM user_ingredient_preferences
-		WHERE user_ingredient_preferences.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR user_ingredient_preferences.archived_at IS NULL)
 	) AS total_count
 FROM user_ingredient_preferences
 	JOIN valid_ingredients ON valid_ingredients.id = user_ingredient_preferences.ingredient
-WHERE user_ingredient_preferences.archived_at IS NULL
-	AND user_ingredient_preferences.belongs_to_user = $6
-	AND valid_ingredients.archived_at IS NULL
-	AND user_ingredient_preferences.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE user_ingredient_preferences.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND user_ingredient_preferences.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		user_ingredient_preferences.last_updated_at IS NULL
@@ -346,6 +341,9 @@ WHERE user_ingredient_preferences.archived_at IS NULL
 		user_ingredient_preferences.last_updated_at IS NULL
 		OR user_ingredient_preferences.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR user_ingredient_preferences.archived_at IS NULL)
+	AND user_ingredient_preferences.belongs_to_user = $6
+	AND valid_ingredients.archived_at IS NULL
 	AND user_ingredient_preferences.id > COALESCE($7, '')
 ORDER BY user_ingredient_preferences.id ASC
 LIMIT COALESCE($8, 50)

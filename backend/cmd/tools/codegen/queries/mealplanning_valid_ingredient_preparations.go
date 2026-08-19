@@ -66,14 +66,11 @@ func buildValidIngredientPreparationsQueries(database string) []*Query {
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validIngredientPreparationsTableName, true, true, []string{}),
-						buildTotalCountSelect(validIngredientPreparationsTableName, true, []string{}),
+						querygen.FilterCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
+						querygen.TotalCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
 						validIngredientPreparationsTableName,
 						validIngredientsTableName,
 						validIngredientPreparationsTableName,
@@ -85,13 +82,10 @@ WHERE
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						validIngredientPreparationsTableName,
-						archivedAtColumn,
-						validIngredientPreparationsTableName,
-						validIngredientIDColumn,
-						idColumn,
-						buildFilterConditions(validIngredientPreparationsTableName, true, false),
-						buildCursorLimitClause(validIngredientPreparationsTableName),
+						querygen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientPreparationsTableName, validIngredientIDColumn, idColumn),
+						),
+						querygen.CursorLimitClause(validIngredientPreparationsTableName),
 					)),
 				},
 				{
@@ -106,14 +100,11 @@ WHERE
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validIngredientPreparationsTableName, true, true, []string{}),
-						buildTotalCountSelect(validIngredientPreparationsTableName, true, []string{}),
+						querygen.FilterCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
+						querygen.TotalCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
 						validIngredientPreparationsTableName,
 						validIngredientsTableName,
 						validIngredientPreparationsTableName,
@@ -125,13 +116,10 @@ WHERE
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						validIngredientPreparationsTableName,
-						archivedAtColumn,
-						validIngredientPreparationsTableName,
-						validPreparationIDColumn,
-						idColumn,
-						buildFilterConditions(validIngredientPreparationsTableName, true, false),
-						buildCursorLimitClause(validIngredientPreparationsTableName),
+						querygen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientPreparationsTableName, validPreparationIDColumn, idColumn),
+						),
+						querygen.CursorLimitClause(validIngredientPreparationsTableName),
 					)),
 				},
 				{
@@ -146,13 +134,11 @@ WHERE
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validIngredientPreparationsTableName, true, true, []string{}),
-						buildTotalCountSelect(validIngredientPreparationsTableName, true, []string{}),
+						querygen.FilterCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
+						querygen.TotalCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
 						validIngredientPreparationsTableName,
 						validIngredientsTableName,
 						validIngredientPreparationsTableName,
@@ -164,10 +150,8 @@ WHERE
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						validIngredientPreparationsTableName,
-						archivedAtColumn,
-						buildFilterConditions(validIngredientPreparationsTableName, true, false),
-						buildCursorLimitClause(validIngredientPreparationsTableName),
+						querygen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns),
+						querygen.CursorLimitClause(validIngredientPreparationsTableName),
 					)),
 				},
 				{
@@ -278,17 +262,11 @@ WHERE
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validIngredientPreparationsTableName, true, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationsTableName, idColumn, idColumn)),
-						buildTotalCountSelect(validIngredientPreparationsTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationsTableName, idColumn, idColumn)),
+						querygen.FilterCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationsTableName, idColumn, idColumn)),
+						querygen.TotalCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationsTableName, idColumn, idColumn)),
 						validIngredientPreparationsTableName,
 						validIngredientsTableName,
 						validIngredientPreparationsTableName,
@@ -300,25 +278,13 @@ WHERE
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						validIngredientPreparationsTableName,
-						archivedAtColumn,
-						validIngredientsTableName,
-						archivedAtColumn,
-						validPreparationsTableName,
-						archivedAtColumn,
-						validPreparationsTableName,
-						idColumn,
-						idColumn,
-						validIngredientsTableName,
-						nameColumn,
-						buildILIKEForArgument("name_query"),
-						buildFilterConditions(
-							validIngredientPreparationsTableName,
-							true,
-							true,
+						querygen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns,
+							"valid_ingredients.archived_at IS NULL",
+							"valid_preparations.archived_at IS NULL",
+							fmt.Sprintf("%s.%s %s", validIngredientsTableName, nameColumn, buildILIKEForArgument("name_query")),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationsTableName, idColumn, idColumn),
 						),
-						buildCursorLimitClause(validIngredientPreparationsTableName),
+						querygen.CursorLimitClause(validIngredientPreparationsTableName),
 					)),
 				},
 			},

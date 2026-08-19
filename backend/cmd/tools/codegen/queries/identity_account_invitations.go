@@ -220,23 +220,28 @@ FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
 	%s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(accountInvitationsTableName, true, true, []string{}),
-						buildTotalCountSelect(accountInvitationsTableName, true, []string{}),
+						querygen.FilterCountSelect(accountInvitationsTableName, accountInvitationsColumns, []string{}),
+						querygen.TotalCountSelect(accountInvitationsTableName, accountInvitationsColumns, []string{}),
 						accountInvitationsTableName,
-						accountsTableName, accountInvitationsTableName, destinationAccountColumn, accountsTableName, idColumn,
-						usersTableName, accountInvitationsTableName, fromUserColumn, usersTableName, idColumn,
+						accountsTableName,
+						accountInvitationsTableName,
+						destinationAccountColumn,
+						accountsTableName,
+						idColumn,
+						usersTableName,
+						accountInvitationsTableName,
+						fromUserColumn,
+						usersTableName,
+						idColumn,
 						avatarJoinClause,
-						accountInvitationsTableName, archivedAtColumn,
-						accountInvitationsTableName, fromUserColumn, fromUserColumn,
-						accountInvitationsTableName, accountInvitationsStatusColumn, accountInvitationsStatusColumn,
-						buildFilterConditions(accountInvitationsTableName, true, false),
-						buildCursorLimitClause(accountInvitationsTableName),
+						querygen.FilterConditions(accountInvitationsTableName, accountInvitationsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountInvitationsTableName, fromUserColumn, fromUserColumn),
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountInvitationsTableName, accountInvitationsStatusColumn, accountInvitationsStatusColumn),
+						),
+						querygen.CursorLimitClause(accountInvitationsTableName),
 					)),
 				},
 				{
@@ -252,27 +257,28 @@ FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
 	%s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(accountInvitationsTableName, true, true, []string{}),
-						buildTotalCountSelect(accountInvitationsTableName, true, []string{}),
+						querygen.FilterCountSelect(accountInvitationsTableName, accountInvitationsColumns, []string{}),
+						querygen.TotalCountSelect(accountInvitationsTableName, accountInvitationsColumns, []string{}),
 						accountInvitationsTableName,
-						accountsTableName, accountInvitationsTableName, destinationAccountColumn, accountsTableName, idColumn,
-						usersTableName, accountInvitationsTableName, fromUserColumn, usersTableName, idColumn,
+						accountsTableName,
+						accountInvitationsTableName,
+						destinationAccountColumn,
+						accountsTableName,
+						idColumn,
+						usersTableName,
+						accountInvitationsTableName,
+						fromUserColumn,
+						usersTableName,
+						idColumn,
 						avatarJoinClause,
-						accountInvitationsTableName, archivedAtColumn,
-						accountInvitationsTableName, toUserColumn, toUserColumn,
-						accountInvitationsTableName, accountInvitationsStatusColumn, accountInvitationsStatusColumn,
-						buildFilterConditions(
-							accountInvitationsTableName,
-							true,
-							true,
+						querygen.FilterConditions(accountInvitationsTableName, accountInvitationsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountInvitationsTableName, toUserColumn, toUserColumn),
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountInvitationsTableName, accountInvitationsStatusColumn, accountInvitationsStatusColumn),
 						),
-						buildCursorLimitClause(accountInvitationsTableName),
+						querygen.CursorLimitClause(accountInvitationsTableName),
 					)),
 				},
 				{

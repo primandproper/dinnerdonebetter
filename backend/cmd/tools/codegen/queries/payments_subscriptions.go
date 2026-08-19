@@ -86,18 +86,17 @@ AND %s.%s = sqlc.arg(%s);`,
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(subscriptionsTableName, true, true, nil, accountCondition),
-						buildTotalCountSelect(subscriptionsTableName, true, nil, accountCondition),
+						querygen.FilterCountSelect(subscriptionsTableName, subscriptionsColumns, nil, accountCondition),
+						querygen.TotalCountSelect(subscriptionsTableName, subscriptionsColumns, nil, accountCondition),
 						subscriptionsTableName,
-						subscriptionsTableName, archivedAtColumn,
-						accountCondition,
-						buildFilterConditions(subscriptionsTableName, true, false, accountCondition),
-						buildCursorLimitClause(subscriptionsTableName),
+						querygen.FilterConditions(subscriptionsTableName, subscriptionsColumns,
+							accountCondition,
+							accountCondition,
+						),
+						querygen.CursorLimitClause(subscriptionsTableName),
 					)),
 				},
 				{

@@ -51,20 +51,18 @@ func buildRecipeListItemsQueries(database string) []*Query {
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	%s
-	AND %s.belongs_to_recipe_list = sqlc.arg(%s)
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(recipeListItemsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipeListItemsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(recipeListItemsTableName, true, true, []string{}, fmt.Sprintf("%s.belongs_to_recipe_list = sqlc.arg(%s)", recipeListItemsTableName, recipeListIDColumn)),
-						buildTotalCountSelect(recipeListItemsTableName, true, []string{}),
+						querygen.FilterCountSelect(recipeListItemsTableName, recipeListItemsColumns, []string{}, fmt.Sprintf("%s.belongs_to_recipe_list = sqlc.arg(%s)", recipeListItemsTableName, recipeListIDColumn)),
+						querygen.TotalCountSelect(recipeListItemsTableName, recipeListItemsColumns, []string{}),
 						recipeListItemsTableName,
-						recipeListItemsTableName, archivedAtColumn,
-						buildFilterConditions(recipeListItemsTableName, true, false, fmt.Sprintf("%s.belongs_to_recipe_list = sqlc.arg(%s)", recipeListItemsTableName, recipeListIDColumn)),
-						recipeListItemsTableName, recipeListIDColumn,
-						buildCursorLimitClause(recipeListItemsTableName),
+						querygen.FilterConditions(recipeListItemsTableName, recipeListItemsColumns,
+							fmt.Sprintf("%s.belongs_to_recipe_list = sqlc.arg(%s)", recipeListItemsTableName, recipeListIDColumn),
+						),
+						querygen.CursorLimitClause(recipeListItemsTableName),
 					)),
 				},
 			},

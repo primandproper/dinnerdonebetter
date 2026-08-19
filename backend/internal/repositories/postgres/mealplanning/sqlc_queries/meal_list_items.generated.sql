@@ -48,9 +48,7 @@ SELECT
 	(
 		SELECT COUNT(meal_list_items.id)
 		FROM meal_list_items
-		WHERE meal_list_items.archived_at IS NULL
-			AND
-			meal_list_items.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE meal_list_items.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND meal_list_items.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meal_list_items.last_updated_at IS NULL
@@ -60,18 +58,17 @@ SELECT
 				meal_list_items.last_updated_at IS NULL
 				OR meal_list_items.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_list_items.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_list_items.archived_at IS NULL)
 			AND meal_list_items.belongs_to_meal_list = sqlc.arg(meal_list_id)
 			AND EXISTS (SELECT 1 FROM meal_lists WHERE meal_lists.id = meal_list_items.belongs_to_meal_list AND meal_lists.belongs_to_user = sqlc.arg(belongs_to_user))
 	) AS filtered_count,
 	(
 		SELECT COUNT(meal_list_items.id)
 		FROM meal_list_items
-		WHERE meal_list_items.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_list_items.archived_at IS NULL)
 	) AS total_count
 FROM meal_list_items
-WHERE meal_list_items.archived_at IS NULL
-	AND meal_list_items.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE meal_list_items.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND meal_list_items.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meal_list_items.last_updated_at IS NULL
@@ -81,9 +78,9 @@ WHERE meal_list_items.archived_at IS NULL
 		meal_list_items.last_updated_at IS NULL
 		OR meal_list_items.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_list_items.archived_at IS NULL)
 	AND meal_list_items.belongs_to_meal_list = sqlc.arg(meal_list_id)
 	AND EXISTS (SELECT 1 FROM meal_lists WHERE meal_lists.id = meal_list_items.belongs_to_meal_list AND meal_lists.belongs_to_user = sqlc.arg(belongs_to_user))
 	AND meal_list_items.id > COALESCE(sqlc.narg(cursor), '')
-	AND meal_list_items.belongs_to_meal_list = sqlc.arg(meal_list_id)
 ORDER BY meal_list_items.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
