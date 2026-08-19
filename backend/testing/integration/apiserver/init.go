@@ -37,27 +37,32 @@ var (
 )
 
 // getFreePort asks the OS for a free open port that is ready to use.
-func getFreePort() (int, error) {
+// reservePort asks the OS for a free port and holds it until the caller releases it.
+//
+// It returns the listener rather than just the number because closing it here would be a
+// time-of-check-to-time-of-use bug, and not a theoretical one: the containers this suite starts
+// are mapped to host ports from the same ephemeral range the OS hands out here, so a Redis or
+// Postgres container can be given the exact port the server is about to bind. That is a startup
+// crash — "bind: address already in use" — presenting as an unrelated test failure.
+//
+// Holding the listener keeps the port out of that range until the server is ready for it.
+func reservePort() (*net.TCPListener, int, error) {
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
 	if err != nil {
-		return 0, err
+		return nil, 0, err
 	}
 
 	l, err := net.ListenTCP("tcp", addr)
 	if err != nil {
-		return 0, err
+		return nil, 0, err
 	}
 
 	tcpAddr, ok := l.Addr().(*net.TCPAddr)
 	if !ok {
-		return 0, errors.New("listener address is not TCP")
+		return nil, 0, errors.Join(errors.New("listener address is not TCP"), l.Close())
 	}
 
-	if err = l.Close(); err != nil {
-		return 0, err
-	}
-
-	return tcpAddr.Port, nil
+	return l, tcpAddr.Port, nil
 }
 
 func init() {
@@ -68,12 +73,13 @@ func init() {
 		log.Fatal(err)
 	}
 
-	// Use random ports to avoid conflicts with other running instances
-	httpPort, err := getFreePort()
+	// Random ports, to avoid conflicts with other running instances. The reservations are held
+	// until just before the server binds them — see reservePort.
+	httpReservation, httpPort, err := reservePort()
 	if err != nil {
 		log.Fatal(err)
 	}
-	grpcPort, err := getFreePort()
+	grpcReservation, grpcPort, err := reservePort()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -131,6 +137,12 @@ func init() {
 	// Never stopped: this process exits when the suite does, and a worker mid-pass at that
 	// point has nothing to drain to.
 	if _, err = localdev.StartSagaWorker(ctx, pillars.Logger, pillars.TracerProvider, databaseClient); err != nil {
+		log.Fatal(err)
+	}
+
+	// Release the reserved ports immediately before the server takes them. Everything that
+	// could have stolen one — every container this suite starts — has already been mapped.
+	if err = errors.Join(httpReservation.Close(), grpcReservation.Close()); err != nil {
 		log.Fatal(err)
 	}
 
