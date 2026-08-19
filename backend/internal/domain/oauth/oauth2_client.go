@@ -9,6 +9,23 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
+// TablePrefix namespaces the platform authorization server's four tables,
+// rendering ddb_oauth2_clients, ddb_oauth2_authorization_codes,
+// ddb_oauth2_access_tokens, and ddb_oauth2_refresh_tokens.
+//
+// A prefix rather than the platform's empty default, and here the collision is
+// not hypothetical: the platform's first table is named oauth2_clients, which is
+// exactly the name 00004_oauth.sql already created for the go-oauth2 server this
+// repository still runs. Its DDL says CREATE TABLE IF NOT EXISTS, so against our
+// database the platform's schema would be a silent no-op followed by a store
+// reading columns that are not there.
+//
+// The two servers therefore coexist during the migration rather than by accident,
+// and the prefix stays right afterwards: when the API server moves onto these
+// tables too, ddb_oauth2_clients is still the name, and the unprefixed pair goes
+// away with the go-oauth2 dependency.
+const TablePrefix = "ddb"
+
 const (
 	ClientIDSize     = 16
 	ClientSecretSize = 16

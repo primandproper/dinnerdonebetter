@@ -15,6 +15,7 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v11/analytics/config"
+	oauth2servercfg "github.com/primandproper/platform-go/v11/authentication/oauth2server/config"
 	platformconfig "github.com/primandproper/platform-go/v11/config"
 	emailcfg "github.com/primandproper/platform-go/v11/email/config"
 	"github.com/primandproper/platform-go/v11/encoding"
@@ -202,12 +203,13 @@ type (
 
 	// MCPServiceConfig configures an instance of the service. It is composed of all the other setting structs.
 	MCPServiceConfig struct {
-		_             struct{}             `json:"-"`
-		Database      dbcfg.Config         `envPrefix:"DATABASE_"      json:"database,omitzero"`
-		Routing       routingcfg.Config    `envPrefix:"ROUTING_"       json:"routing,omitzero"`
-		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability,omitzero"`
-		Meta          MetaSettings         `envPrefix:"META_"          json:"meta,omitzero"`
-		HTTPServer    http.Config          `envPrefix:"HTTP_"          json:"http,omitzero"`
+		_             struct{}               `json:"-"`
+		Database      dbcfg.Config           `envPrefix:"DATABASE_"      json:"database,omitzero"`
+		Routing       routingcfg.Config      `envPrefix:"ROUTING_"       json:"routing,omitzero"`
+		Observability observability.Config   `envPrefix:"OBSERVABILITY_" json:"observability,omitzero"`
+		Meta          MetaSettings           `envPrefix:"META_"          json:"meta,omitzero"`
+		HTTPServer    http.Config            `envPrefix:"HTTP_"          json:"http,omitzero"`
+		OAuth2        oauth2servercfg.Config `envPrefix:"OAUTH2_"        json:"oauth2,omitzero"`
 	}
 )
 
@@ -370,6 +372,7 @@ func (cfg *MCPServiceConfig) ValidateWithContext(ctx context.Context) error {
 		"Observability": cfg.Observability.ValidateWithContext,
 		"Routing":       cfg.Routing.ValidateWithContext,
 		"HTTPServer":    cfg.HTTPServer.ValidateWithContext,
+		"OAuth2":        cfg.OAuth2.ValidateWithContext,
 	}
 
 	for name, validator := range validators {
