@@ -11,17 +11,13 @@ import (
 func main() {
 	ctx := context.Background()
 
-	// localdev config is generated to two locations:
-	// - config_files/ for docker-compose usage
-	// - kustomize/configs/ for Kubernetes usage (hostnames overridden via env vars)
-	localdevConfig := environments.BuildLocalDevConfig()
-
 	envConfigs := map[string]*config.EnvironmentConfigSet{
+		// docker-compose and the localdev kustomization both read out of config_files/.
+		// The Kubernetes-specific hostnames are patched in as env vars
+		// (deploy/environments/localdev/kustomize/patches/) rather than rendered into the
+		// JSON, so there is nothing a second copy under kustomize/ could differ by.
 		"deploy/environments/localdev/config_files": {
-			RootConfig: localdevConfig,
-		},
-		"deploy/environments/localdev/kustomize/configs": {
-			RootConfig: localdevConfig,
+			RootConfig: environments.BuildLocalDevConfig(),
 		},
 		"deploy/environments/testing/config_files": {
 			APIServiceConfigPath: "integration-tests-config.json",

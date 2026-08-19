@@ -113,7 +113,7 @@ func TestEnvironmentConfigSet_Render(T *testing.T) {
 
 		// routingcfg.Config holds a *chi.Config, so the MCP server's copy of the routing config
 		// addresses the same struct. Without a clone its two writes land here as well, and the
-		// damage outlives the call: the one config set rendered twice shares this RootConfig.
+		// damage outlives the call — RootConfig belongs to whoever built it, not to Render.
 		assert.Equal(t, otelServiceName, rootConfig.Routing.Chi.ServiceName)
 		assert.False(t, rootConfig.Routing.Chi.EnableCORSForLocalhost)
 
