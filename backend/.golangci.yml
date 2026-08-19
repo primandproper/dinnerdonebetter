@@ -164,9 +164,6 @@ linters:
         path: cmd/tools/codegen
         text: 'rangeValCopy: each iteration copies'
       - linters:
-          - gosec
-        path: cmd/tools/codegen/configs/main.go
-      - linters:
           - gocritic
         text: 'captLocal: `T'' should not be capitalized'
       - linters:

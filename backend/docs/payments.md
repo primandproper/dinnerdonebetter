@@ -200,7 +200,7 @@ is how a deployment says it has chosen not to bill.
 | `DINNER_DONE_BETTER_SERVICE_PAYMENTS_REVENUECAT_WEBHOOK_AUTH_HEADER`   | Expected RevenueCat `Authorization` |
 
 All generated environment configs ship with `"provider": "noop"`; change it in
-`cmd/tools/codegen/configs/` and run `make configs`, never by editing the JSON.
+`internal/config/environments/` and run `make configs`, never by editing the JSON.
 
 The Stripe API key is optional: `capitalism` needs only the webhook secret for the inbound path,
 and refuses outbound operations without a key rather than failing at construction. RevenueCat has
