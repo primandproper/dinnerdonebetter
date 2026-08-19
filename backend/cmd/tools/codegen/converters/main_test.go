@@ -143,7 +143,7 @@ func TestExceptions(T *testing.T) {
 				continue
 			}
 
-			for _, line := range strings.Split(string(source), "\n") {
+			for line := range strings.SplitSeq(string(source), "\n") {
 				name, isFunc := strings.CutPrefix(line, "func ")
 				if !isFunc {
 					continue

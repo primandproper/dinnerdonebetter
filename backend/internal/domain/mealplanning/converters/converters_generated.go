@@ -1511,16 +1511,15 @@ func ConvertValidIngredientCreationRequestInputToValidIngredientDatabaseCreation
 
 // ConvertValidIngredientGroupToValidIngredientGroupCreationRequestInput builds a ValidIngredientGroupCreationRequestInput from a ValidIngredientGroup.
 func ConvertValidIngredientGroupToValidIngredientGroupCreationRequestInput(x *mealplanning.ValidIngredientGroup) *mealplanning.ValidIngredientGroupCreationRequestInput {
-	members := make([]*mealplanning.ValidIngredientGroupMemberCreationRequestInput, 0, len(x.Members))
-	for _, item := range x.Members {
-		members = append(members, ConvertValidIngredientGroupMemberToValidIngredientGroupMemberCreationRequestInput(item))
-	}
-
 	return &mealplanning.ValidIngredientGroupCreationRequestInput{
 		Name:        x.Name,
 		Slug:        x.Slug,
 		Description: x.Description,
-		Members:     members,
+
+		// Members is left unset. A stored group carries its members as rows that already
+		// name the ingredients they point at. Mapping them back into a creation request
+		// would make the request name ingredients the caller never asked to group, so the
+		// converter this replaced left them out and this one does too.
 	}
 }
 

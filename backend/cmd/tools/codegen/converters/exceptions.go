@@ -135,6 +135,9 @@ var fieldExceptions = map[string]map[string]Rule{
 	"ConvertUserIngredientPreferenceToUserIngredientPreferenceDatabaseCreationInput": {
 		"ValidIngredientGroupID": Skip(preferenceGroup),
 	},
+	"ConvertValidIngredientGroupToValidIngredientGroupCreationRequestInput": {
+		"Members": Skip("A stored group carries its members as rows that already name the ingredients they point at. Mapping them back into a creation request would make the request name ingredients the caller never asked to group, so the converter this replaced left them out and this one does too."),
+	},
 	"ConvertUserToUserDatabaseCreationInput": {
 		"AcceptedTOS":           Skip("Registration input. A stored User records neither the acceptance nor when it happened."),
 		"AcceptedPrivacyPolicy": Skip("Registration input; see AcceptedTOS."),
