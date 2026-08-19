@@ -1,4 +1,4 @@
-package main
+package environments
 
 import (
 	"encoding/base64"
@@ -71,8 +71,17 @@ var (
 		Port:       5432,
 		DisableSSL: true,
 	}
+)
 
-	localObservabilityConfig = observability.Config{
+// localObservabilityConfig returns localdev's observability configuration.
+//
+// A function rather than a package-level var, and likewise localRoutingConfig, because both
+// literals hold pointers — an *otelgrpc.Config here, a *chi.Config there — and a var would hand
+// every caller a configuration addressing one shared struct. Render writes a service name
+// through the routing one. Two builds of this environment are meant to be two independent
+// configurations, so each one gets its own.
+func localObservabilityConfig() observability.Config {
+	return observability.Config{
 		Logging: loggingcfg.Config{
 			ServiceName: otelServiceName,
 			Level:       logging.DebugLevel,
@@ -110,8 +119,11 @@ var (
 			},
 		},
 	}
+}
 
-	localRoutingConfig = routingcfg.Config{
+// localRoutingConfig returns localdev's routing configuration. See localObservabilityConfig.
+func localRoutingConfig() routingcfg.Config {
+	return routingcfg.Config{
 		Provider: routingcfg.ProviderChi,
 		Chi: &chi.Config{
 			ServiceName:            otelServiceName,
@@ -119,9 +131,10 @@ var (
 			SilenceRouteLogging:    false,
 		},
 	}
-)
+}
 
-func buildLocalDevConfig() *config.APIServiceConfig {
+// BuildLocalDevConfig returns the configuration the local development environment runs with.
+func BuildLocalDevConfig() *config.APIServiceConfig {
 	uploadsConfig := uploadscfg.Config{
 		Debug: true,
 		Storage: objectstorage.Config{
@@ -135,7 +148,7 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 
 	return &config.APIServiceConfig{
 		Webhooks:   buildWebhooksConfig(),
-		Routing:    localRoutingConfig,
+		Routing:    localRoutingConfig(),
 		Metering:   config.DefaultMeteringConfig(),
 		Operations: config.DefaultOperationsConfig(),
 		// Localdev has a Redis, so the record store is shared and the interceptor means
@@ -269,7 +282,7 @@ func buildLocalDevConfig() *config.APIServiceConfig {
 			Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 			OAuth2TokenEncryptionKey: localOAuth2TokenEncryptionKey,
 		},
-		Observability: localObservabilityConfig,
+		Observability: localObservabilityConfig(),
 		// Written out rather than left to the fallback in ProvidePasskeyConfig, so that a
 		// developer reading this file can see what a passkey ceremony is configured with —
 		// including that the ceremony store is the table here too. The in-memory store this

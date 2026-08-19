@@ -1,4 +1,4 @@
-package main
+package environments
 
 import (
 	"encoding/base64"
@@ -68,7 +68,8 @@ const (
 	iosBundleID               = "com.dinnerdonebetter.ios"
 )
 
-func buildProdConfig() *config.APIServiceConfig {
+// BuildProdConfig returns the configuration the production environment runs with.
+func BuildProdConfig() *config.APIServiceConfig {
 	gcpMediaStorage := objectstorage.Config{
 		Provider:     objectstorage.GCPCloudStorageProvider,
 		BucketName:   prodMediaBucket,

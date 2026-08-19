@@ -288,9 +288,7 @@ SELECT
 	(
 		SELECT COUNT(users.id)
 		FROM users
-		WHERE users.archived_at IS NULL
-			AND
-			users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				users.last_updated_at IS NULL
@@ -300,18 +298,17 @@ SELECT
 				users.last_updated_at IS NULL
 				OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(users.id)
 		FROM users
-		WHERE users.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	) AS total_count
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
-WHERE users.archived_at IS NULL
-	AND users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		users.last_updated_at IS NULL
@@ -321,7 +318,7 @@ WHERE users.archived_at IS NULL
 		users.last_updated_at IS NULL
 		OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	AND users.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY users.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -359,9 +356,7 @@ SELECT
 	(
 		SELECT COUNT(users.id)
 		FROM users
-		WHERE users.archived_at IS NULL
-			AND
-			users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				users.last_updated_at IS NULL
@@ -371,20 +366,19 @@ SELECT
 				users.last_updated_at IS NULL
 				OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(users.id)
 		FROM users
-		WHERE users.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 			AND account_user_memberships.belongs_to_account = sqlc.arg(belongs_to_account)
 	) AS total_count
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 JOIN account_user_memberships ON account_user_memberships.belongs_to_user = users.id
-WHERE users.archived_at IS NULL
-	AND users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		users.last_updated_at IS NULL
@@ -394,7 +388,7 @@ WHERE users.archived_at IS NULL
 		users.last_updated_at IS NULL
 		OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	AND account_user_memberships.belongs_to_account = sqlc.arg(belongs_to_account)
 	AND account_user_memberships.archived_at IS NULL
 	AND users.id > COALESCE(sqlc.narg(cursor), '')
@@ -589,9 +583,7 @@ SELECT
 	(
 		SELECT COUNT(users.id)
 		FROM users
-		WHERE users.archived_at IS NULL
-			AND
-			users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				users.last_updated_at IS NULL
@@ -601,19 +593,17 @@ SELECT
 				users.last_updated_at IS NULL
 				OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(users.id)
 		FROM users
-		WHERE users.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	) AS total_count
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
-WHERE users.archived_at IS NULL
-	AND users.username ILIKE '%' || sqlc.arg(username)::text || '%'
-	AND users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		users.last_updated_at IS NULL
@@ -623,7 +613,8 @@ WHERE users.archived_at IS NULL
 		users.last_updated_at IS NULL
 		OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
+	AND users.username ILIKE '%' || sqlc.arg(username)::text || '%'
 	AND users.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY users.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

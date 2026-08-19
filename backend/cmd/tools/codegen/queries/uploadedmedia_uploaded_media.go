@@ -34,7 +34,7 @@ func buildUploadedMediaQueries(database string) []*Query {
 	switch database {
 	case postgres:
 		fullSelectColumns := applyToEach(uploadedMediaColumns, func(_ int, s string) string {
-			return fullColumnName(uploadedMediaTableName, s)
+			return querygen.Qualify(uploadedMediaTableName, s)
 		})
 
 		return slices.Concat(
@@ -55,8 +55,8 @@ func buildUploadedMediaQueries(database string) []*Query {
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						uploadedMediaTableName,
-						lastUpdatedAtColumn, currentTimeExpression,
-						archivedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
+						archivedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -104,18 +104,16 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(uploadedMediaTableName, true, true, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", uploadedMediaTableName, createdByUserColumn, createdByUserColumn)),
-						buildTotalCountSelect(uploadedMediaTableName, true, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", uploadedMediaTableName, createdByUserColumn, createdByUserColumn)),
+						querygen.FilterCountSelect(uploadedMediaTableName, uploadedMediaColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", uploadedMediaTableName, createdByUserColumn, createdByUserColumn)),
+						querygen.TotalCountSelect(uploadedMediaTableName, uploadedMediaColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", uploadedMediaTableName, createdByUserColumn, createdByUserColumn)),
 						uploadedMediaTableName,
-						uploadedMediaTableName, archivedAtColumn,
-						uploadedMediaTableName, createdByUserColumn, createdByUserColumn,
-						buildFilterConditions(uploadedMediaTableName, true, false, fmt.Sprintf("%s.%s = sqlc.arg(%s)", uploadedMediaTableName, createdByUserColumn, createdByUserColumn)),
-						buildCursorLimitClause(uploadedMediaTableName),
+						querygen.FilterConditions(uploadedMediaTableName, uploadedMediaColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", uploadedMediaTableName, createdByUserColumn, createdByUserColumn),
+						),
+						querygen.CursorLimitClause(uploadedMediaTableName),
 					)),
 				},
 			},

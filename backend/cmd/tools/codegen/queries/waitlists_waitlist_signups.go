@@ -35,7 +35,7 @@ func buildWaitlistSignupsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 		fullSelectColumns := applyToEach(waitlistSignupColumns, func(_ int, s string) string {
-			return fullColumnName(waitlistSignupsTableName, s)
+			return querygen.Qualify(waitlistSignupsTableName, s)
 		})
 
 		return slices.Concat(
@@ -57,8 +57,8 @@ func buildWaitlistSignupsQueries(database string) []*Query {
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						waitlistSignupsTableName,
-						lastUpdatedAtColumn, currentTimeExpression,
-						archivedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
+						archivedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -110,18 +110,16 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(waitlistSignupsTableName, true, true, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn)),
-						buildTotalCountSelect(waitlistSignupsTableName, true, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn)),
+						querygen.FilterCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn)),
+						querygen.TotalCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn)),
 						waitlistSignupsTableName,
-						waitlistSignupsTableName, archivedAtColumn,
-						waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn,
-						buildFilterConditions(waitlistSignupsTableName, true, false, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn)),
-						buildCursorLimitClause(waitlistSignupsTableName),
+						querygen.FilterConditions(waitlistSignupsTableName, waitlistSignupColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn),
+						),
+						querygen.CursorLimitClause(waitlistSignupsTableName),
 					)),
 				},
 				{
@@ -134,18 +132,16 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(waitlistSignupsTableName, true, true, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn)),
-						buildTotalCountSelect(waitlistSignupsTableName, true, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn)),
+						querygen.FilterCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn)),
+						querygen.TotalCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn)),
 						waitlistSignupsTableName,
-						waitlistSignupsTableName, archivedAtColumn,
-						waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn,
-						buildFilterConditions(waitlistSignupsTableName, true, false, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn)),
-						buildCursorLimitClause(waitlistSignupsTableName),
+						querygen.FilterConditions(waitlistSignupsTableName, waitlistSignupColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn),
+						),
+						querygen.CursorLimitClause(waitlistSignupsTableName),
 					)),
 				},
 			},

@@ -513,9 +513,7 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredients.id)
 		FROM valid_ingredients
-		WHERE valid_ingredients.archived_at IS NULL
-			AND
-			valid_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_ingredients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_ingredients.last_updated_at IS NULL
@@ -525,17 +523,15 @@ SELECT
 				valid_ingredients.last_updated_at IS NULL
 				OR valid_ingredients.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredients.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_ingredients.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredients.id)
 		FROM valid_ingredients
-		WHERE valid_ingredients.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR valid_ingredients.archived_at IS NULL)
 	) AS total_count
 FROM valid_ingredients
-WHERE
-	valid_ingredients.archived_at IS NULL
-	AND valid_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_ingredients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredients.last_updated_at IS NULL
@@ -545,7 +541,7 @@ WHERE
 		valid_ingredients.last_updated_at IS NULL
 		OR valid_ingredients.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredients.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR valid_ingredients.archived_at IS NULL)
 	AND valid_ingredients.id > COALESCE($6, '')
 GROUP BY valid_ingredients.id
 ORDER BY valid_ingredients.id ASC
@@ -958,9 +954,7 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredients.id)
 		FROM valid_ingredients
-		WHERE valid_ingredients.archived_at IS NULL
-			AND
-			valid_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_ingredients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_ingredients.last_updated_at IS NULL
@@ -970,17 +964,15 @@ SELECT
 				valid_ingredients.last_updated_at IS NULL
 				OR valid_ingredients.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredients.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_ingredients.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredients.id)
 		FROM valid_ingredients
-		WHERE valid_ingredients.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR valid_ingredients.archived_at IS NULL)
 	) AS total_count
 FROM valid_ingredients
-WHERE valid_ingredients.archived_at IS NULL
-	AND valid_ingredients.name ILIKE '%' || $6::text || '%'
-	AND valid_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_ingredients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_ingredients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredients.last_updated_at IS NULL
@@ -990,7 +982,8 @@ WHERE valid_ingredients.archived_at IS NULL
 		valid_ingredients.last_updated_at IS NULL
 		OR valid_ingredients.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_ingredients.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR valid_ingredients.archived_at IS NULL)
+	AND valid_ingredients.name ILIKE '%' || $6::text || '%'
 	AND valid_ingredients.id > COALESCE($7, '')
 ORDER BY valid_ingredients.id ASC
 LIMIT COALESCE($8, 50)

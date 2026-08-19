@@ -146,65 +146,69 @@ FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	LEFT JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumn, ",\n\t"),
-
 						//
 
-						buildFilterCountSelect(
+						querygen.FilterCountSelect(
 							recipeStepIngredientsTableName,
-							true,
-							true,
+							recipeStepIngredientsColumns,
 							[]string{
-								fmt.Sprintf("%s ON %s.%s = %s.%s", recipeStepsTableName, recipeStepIngredientsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn),
-								fmt.Sprintf("%s ON %s.%s = %s.%s", recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn),
+								fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", recipeStepsTableName, recipeStepIngredientsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn),
+								fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn),
 							},
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, idColumn, recipeIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, idColumn, recipeStepIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepIngredientsTableName, belongsToRecipeStepColumn, recipeStepIDColumn),
 						),
-
 						//
 
-						buildTotalCountSelect(
+						querygen.TotalCountSelect(
 
 							recipeStepIngredientsTableName,
-							true,
+
+							recipeStepIngredientsColumns,
 							[]string{
-								fmt.Sprintf("%s ON %s.%s = %s.%s", recipeStepsTableName, recipeStepIngredientsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn),
-								fmt.Sprintf("%s ON %s.%s = %s.%s", recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn),
+								fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", recipeStepsTableName, recipeStepIngredientsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn),
+								fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn),
 							},
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, idColumn, recipeIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, idColumn, recipeStepIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepIngredientsTableName, belongsToRecipeStepColumn, recipeStepIDColumn),
 						),
-
 						//
 
 						recipeStepIngredientsTableName,
-						recipeStepsTableName, recipeStepIngredientsTableName, belongsToRecipeStepColumn, recipeStepsTableName, idColumn,
-						recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
-						validIngredientsTableName, recipeStepIngredientsTableName, ingredientIDColumn, validIngredientsTableName, idColumn,
-						validMeasurementUnitsTableName, recipeStepIngredientsTableName, measurementUnitColumn, validMeasurementUnitsTableName, idColumn,
-
-						//
-
-						recipeStepIngredientsTableName, archivedAtColumn,
-						recipesTableName, idColumn, recipeIDColumn,
-						recipeStepsTableName, idColumn, recipeStepIDColumn,
-						recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
-						recipeStepIngredientsTableName, belongsToRecipeStepColumn, recipeStepIDColumn,
-						buildFilterConditions(recipeStepIngredientsTableName, true, false),
-						buildCursorLimitClause(recipeStepIngredientsTableName),
+						recipeStepsTableName,
+						recipeStepIngredientsTableName,
+						belongsToRecipeStepColumn,
+						recipeStepsTableName,
+						idColumn,
+						recipesTableName,
+						recipeStepsTableName,
+						belongsToRecipeColumn,
+						recipesTableName,
+						idColumn,
+						validIngredientsTableName,
+						recipeStepIngredientsTableName,
+						ingredientIDColumn,
+						validIngredientsTableName,
+						idColumn,
+						validMeasurementUnitsTableName,
+						recipeStepIngredientsTableName,
+						measurementUnitColumn,
+						validMeasurementUnitsTableName,
+						idColumn,
+						querygen.FilterConditions(recipeStepIngredientsTableName, recipeStepIngredientsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, idColumn, recipeIDColumn),
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, idColumn, recipeStepIDColumn),
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn),
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepIngredientsTableName, belongsToRecipeStepColumn, recipeStepIDColumn),
+						),
+						querygen.CursorLimitClause(recipeStepIngredientsTableName),
 					)),
 				},
 				{

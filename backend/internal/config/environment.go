@@ -2,9 +2,7 @@ package config
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 	"path"
 	"strings"
 	"time"
@@ -14,6 +12,7 @@ import (
 
 	"github.com/primandproper/platform-go/v11/audit"
 	auditcfg "github.com/primandproper/platform-go/v11/audit/config"
+	platformconfig "github.com/primandproper/platform-go/v11/config"
 	"github.com/primandproper/platform-go/v11/database/dialect"
 	distributedlockcfg "github.com/primandproper/platform-go/v11/distributedlock/config"
 	pglock "github.com/primandproper/platform-go/v11/distributedlock/postgres"
@@ -27,7 +26,6 @@ import (
 	retrycfg "github.com/primandproper/platform-go/v11/retry/config"
 	"github.com/primandproper/platform-go/v11/saga"
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -408,29 +406,6 @@ func stringOrDefault(s, defaultStr string) string {
 	return defaultStr
 }
 
-func renderJSON(obj any, pretty bool) []byte {
-	var (
-		b   []byte
-		err error
-	)
-	if pretty {
-		b, err = json.MarshalIndent(obj, "", "\t")
-	} else {
-		b, err = json.Marshal(obj)
-	}
-
-	if err != nil {
-		panic(err)
-	}
-
-	return b
-}
-
-func writeFile(p string, content []byte) error {
-	//nolint:gosec // I want this to be 644 I think
-	return os.WriteFile(p, content, 0o0644)
-}
-
 // disableWorkerOtelMetrics turns off runtime and host metrics for worker configs to reduce cardinality.
 // It clones the Otel config so the root config (API server, async message handler) is not mutated.
 func disableWorkerOtelMetrics(obs *observability.Config) {
@@ -463,12 +438,17 @@ const (
 	mcpConfigObservabilityServiceName       = "dinner_done_better_mcp_server"
 )
 
-func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) error {
-	if err := os.MkdirAll(outputDir, 0o0750); err != nil {
-		return err
-	}
-	errs := &multierror.Error{}
-
+// Render writes one config file per workload into outputDir.
+//
+// The files go out through platform's config.RenderJSONFiles, the documented inverse of
+// LoadFromJSONFile: what this writes, that reads back. There is one call per config type
+// because Environment[T] is generic over a single T.
+//
+// Indentation is not a parameter. RenderJSONFiles fixes it at one tab, deliberately — these
+// files are checked in and read in diffs, and a file whose indentation depends on its last
+// call site produces a diff that is all whitespace. Neither is validation: every config is
+// validated, every time.
+func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) error {
 	// Ensure API server config has the correct observability name before writing.
 	s.RootConfig.Observability.Tracing.ServiceName = apiConfigObservabilityServiceName
 	s.RootConfig.Observability.Metrics.ServiceName = apiConfigObservabilityServiceName
@@ -476,14 +456,6 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 	s.RootConfig.Observability.Profiling.ServiceName = apiConfigObservabilityServiceName
 	if s.RootConfig.Routing.Chi != nil {
 		s.RootConfig.Routing.Chi.ServiceName = apiConfigObservabilityServiceName
-	}
-
-	// write files
-	if err := writeFile(
-		path.Join(outputDir, stringOrDefault(s.APIServiceConfigPath, "api_service_config.json")),
-		renderJSON(s.RootConfig, pretty),
-	); err != nil {
-		errs = multierror.Append(errs, err)
 	}
 
 	dbcConfig := &DBCleanerConfig{
@@ -578,12 +550,9 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 		// pointer and both configs address one chi.Config: the two writes below land on the API
 		// server's routing config too, renaming its service and turning on localhost CORS.
 		//
-		// Today that is invisible, for two reasons that are both accidents. The API service's
-		// file is written earlier in this function than the MCP config is built, and this
-		// function re-sets ServiceName from the top on every call — so the one config set that
-		// is rendered twice (localdev, whose RootConfig is shared between config_files and
-		// kustomize/configs) gets its service name repaired on the second pass. Nothing repairs
-		// EnableCORSForLocalhost; it survives only because localdev asks for true anyway.
+		// Nothing repairs that afterwards. EnableCORSForLocalhost in particular survived only
+		// because localdev — the one config set rendered twice, from a RootConfig shared between
+		// config_files and kustomize/configs — asks for true anyway.
 		chiConfig := *mcpRouting.Chi
 		chiConfig.ServiceName = mcpConfigObservabilityServiceName
 		// MCP clients (e.g. the MCP inspector) run in browsers on localhost,
@@ -606,40 +575,54 @@ func (s *EnvironmentConfigSet) Render(outputDir string, pretty, validate bool) e
 		HTTPServer:    mcpHTTPServer,
 	}
 
-	if validate {
-		allConfigs := []validation.ValidatableWithContext{
-			s.RootConfig,
-			dbcConfig,
-			schedulerConfig,
-			amhConfig,
-			edtConfig,
-			mcpConfig,
-		}
-		for i, cfg := range allConfigs {
-			if err := cfg.ValidateWithContext(context.Background()); err != nil {
-				errs = multierror.Append(errs, fmt.Errorf("validating config %d: %w", i, err))
-				continue
-			}
+	// RenderJSONFiles validates every environment it is handed before writing any of that
+	// call's files, but it cannot see across the six calls below. Validating the whole set
+	// here first restores the guarantee for the set as a whole: one invalid config leaves
+	// every file as it was, rather than the ones rendered before it updated and the rest stale.
+	for i, cfg := range []any{s.RootConfig, dbcConfig, schedulerConfig, amhConfig, edtConfig, mcpConfig} {
+		if err := platformconfig.Validate(ctx, cfg); err != nil {
+			return fmt.Errorf("validating config %d: %w", i, err)
 		}
 	}
 
-	if err := errs.ErrorOrNil(); err != nil {
-		return err
-	}
+	// The rendered files are checked in and read by everyone; platform's owner-only default
+	// is the wrong mode for them. It applies on creation only, so this is what a fresh
+	// checkout's first render gets.
+	renderOpts := []platformconfig.RenderOption{platformconfig.WithFileMode(0o644)}
 
-	pathToConfigMap := map[string][]byte{
-		path.Join(outputDir, stringOrDefault(s.DBCleanerConfigPath, "job_db_cleaner_config.json")):                              renderJSON(dbcConfig, pretty),
-		path.Join(outputDir, stringOrDefault(s.SchedulerConfigPath, "scheduler_config.json")):                                   renderJSON(schedulerConfig, pretty),
-		path.Join(outputDir, stringOrDefault(s.AsyncMessageHandlerConfigPath, "async_message_handler_config.json")):             renderJSON(amhConfig, pretty),
-		path.Join(outputDir, stringOrDefault(s.EmailDeliverabilityTestConfigPath, "job_email_deliverability_test_config.json")): renderJSON(edtConfig, pretty),
-		path.Join(outputDir, stringOrDefault(s.MCPServiceConfigPath, "mcp_server_config.json")):                                 renderJSON(mcpConfig, pretty),
-	}
+	renderErr := multierror.Append(
+		nil,
+		platformconfig.RenderJSONFiles(ctx, []platformconfig.Environment[APIServiceConfig]{{
+			Name:   apiConfigObservabilityServiceName,
+			Path:   path.Join(outputDir, stringOrDefault(s.APIServiceConfigPath, "api_service_config.json")),
+			Config: s.RootConfig,
+		}}, renderOpts...),
+		platformconfig.RenderJSONFiles(ctx, []platformconfig.Environment[DBCleanerConfig]{{
+			Name:   dbcConfigObservabilityServiceName,
+			Path:   path.Join(outputDir, stringOrDefault(s.DBCleanerConfigPath, "job_db_cleaner_config.json")),
+			Config: dbcConfig,
+		}}, renderOpts...),
+		platformconfig.RenderJSONFiles(ctx, []platformconfig.Environment[SchedulerConfig]{{
+			Name:   schedulerConfigObservabilityServiceName,
+			Path:   path.Join(outputDir, stringOrDefault(s.SchedulerConfigPath, "scheduler_config.json")),
+			Config: schedulerConfig,
+		}}, renderOpts...),
+		platformconfig.RenderJSONFiles(ctx, []platformconfig.Environment[AsyncMessageHandlerConfig]{{
+			Name:   amhConfigObservabilityServiceName,
+			Path:   path.Join(outputDir, stringOrDefault(s.AsyncMessageHandlerConfigPath, "async_message_handler_config.json")),
+			Config: amhConfig,
+		}}, renderOpts...),
+		platformconfig.RenderJSONFiles(ctx, []platformconfig.Environment[EmailDeliverabilityTestConfig]{{
+			Name:   edtConfigObservabilityServiceName,
+			Path:   path.Join(outputDir, stringOrDefault(s.EmailDeliverabilityTestConfigPath, "job_email_deliverability_test_config.json")),
+			Config: edtConfig,
+		}}, renderOpts...),
+		platformconfig.RenderJSONFiles(ctx, []platformconfig.Environment[MCPServiceConfig]{{
+			Name:   mcpConfigObservabilityServiceName,
+			Path:   path.Join(outputDir, stringOrDefault(s.MCPServiceConfigPath, "mcp_server_config.json")),
+			Config: mcpConfig,
+		}}, renderOpts...),
+	)
 
-	for p, b := range pathToConfigMap {
-		if err := writeFile(p, b); err != nil {
-			errs = multierror.Append(errs, err)
-		}
-	}
-
-	return errs.ErrorOrNil()
+	return renderErr.ErrorOrNil()
 }

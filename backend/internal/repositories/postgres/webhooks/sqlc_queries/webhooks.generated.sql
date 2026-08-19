@@ -53,9 +53,7 @@ SELECT
 	(
 		SELECT COUNT(webhooks.id)
 		FROM webhooks
-		WHERE webhooks.archived_at IS NULL
-			AND
-			webhooks.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE webhooks.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND webhooks.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				webhooks.last_updated_at IS NULL
@@ -65,19 +63,18 @@ SELECT
 				webhooks.last_updated_at IS NULL
 				OR webhooks.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR webhooks.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR webhooks.archived_at IS NULL)
 			AND webhooks.belongs_to_account = sqlc.arg(belongs_to_account)
 	) AS filtered_count,
 	(
 		SELECT COUNT(webhooks.id)
 		FROM webhooks
-		WHERE webhooks.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR webhooks.archived_at IS NULL)
 			AND webhooks.belongs_to_account = sqlc.arg(belongs_to_account)
 	) AS total_count
 FROM webhooks
 	LEFT JOIN webhook_trigger_configs ON webhooks.id = webhook_trigger_configs.belongs_to_webhook
-WHERE webhooks.archived_at IS NULL
-	AND webhooks.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE webhooks.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND webhooks.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		webhooks.last_updated_at IS NULL
@@ -87,7 +84,7 @@ WHERE webhooks.archived_at IS NULL
 		webhooks.last_updated_at IS NULL
 		OR webhooks.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR webhooks.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR webhooks.archived_at IS NULL)
 	AND webhooks.belongs_to_account = sqlc.arg(belongs_to_account)
 	AND webhook_trigger_configs.archived_at IS NULL
 	AND webhooks.id > COALESCE(sqlc.narg(cursor), '')

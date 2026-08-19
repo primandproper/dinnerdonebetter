@@ -115,9 +115,7 @@ SELECT
 	(
 		SELECT COUNT(recipe_step_completion_condition_ingredients.id)
 		FROM recipe_step_completion_condition_ingredients
-		WHERE recipe_step_completion_condition_ingredients.archived_at IS NULL
-			AND
-			recipe_step_completion_condition_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE recipe_step_completion_condition_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND recipe_step_completion_condition_ingredients.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				recipe_step_completion_condition_ingredients.last_updated_at IS NULL
@@ -127,20 +125,19 @@ SELECT
 				recipe_step_completion_condition_ingredients.last_updated_at IS NULL
 				OR recipe_step_completion_condition_ingredients.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_step_completion_condition_ingredients.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_step_completion_condition_ingredients.archived_at IS NULL)
 			AND recipe_step_completion_conditions.belongs_to_recipe_step = sqlc.arg(recipe_step_id)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipe_step_completion_condition_ingredients.id)
 		FROM recipe_step_completion_condition_ingredients
-		WHERE recipe_step_completion_condition_ingredients.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_step_completion_condition_ingredients.archived_at IS NULL)
 	) AS total_count
 FROM recipe_step_completion_condition_ingredients
 	JOIN recipe_step_completion_conditions ON recipe_step_completion_condition_ingredients.belongs_to_recipe_step_completion_condition = recipe_step_completion_conditions.id
 	JOIN recipe_steps ON recipe_step_completion_conditions.belongs_to_recipe_step = recipe_steps.id
 	JOIN valid_ingredient_states ON recipe_step_completion_conditions.ingredient_state = valid_ingredient_states.id
-WHERE recipe_step_completion_conditions.archived_at IS NULL
-	AND recipe_step_completion_conditions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE recipe_step_completion_conditions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND recipe_step_completion_conditions.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipe_step_completion_conditions.last_updated_at IS NULL
@@ -150,6 +147,7 @@ WHERE recipe_step_completion_conditions.archived_at IS NULL
 		recipe_step_completion_conditions.last_updated_at IS NULL
 		OR recipe_step_completion_conditions.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_step_completion_conditions.archived_at IS NULL)
 	AND recipe_step_completion_conditions.belongs_to_recipe_step = sqlc.arg(recipe_step_id)
 	AND recipe_step_completion_conditions.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY recipe_step_completion_conditions.id ASC

@@ -33,21 +33,19 @@ SELECT
 	(
 		SELECT COUNT(payment_transactions.id)
 		FROM payment_transactions
-		WHERE
-			payment_transactions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE payment_transactions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND payment_transactions.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND payment_transactions.belongs_to_account = sqlc.arg(belongs_to_account)
 	) AS filtered_count,
 	(
 		SELECT COUNT(payment_transactions.id)
 		FROM payment_transactions
-		WHERE
-			payment_transactions.belongs_to_account = sqlc.arg(belongs_to_account)
+		WHERE payment_transactions.belongs_to_account = sqlc.arg(belongs_to_account)
 	) AS total_count
 FROM payment_transactions
-WHERE payment_transactions.belongs_to_account = sqlc.arg(belongs_to_account)
-	AND payment_transactions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE payment_transactions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND payment_transactions.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+	AND payment_transactions.belongs_to_account = sqlc.arg(belongs_to_account)
 	AND payment_transactions.belongs_to_account = sqlc.arg(belongs_to_account)
 	AND payment_transactions.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY payment_transactions.id ASC

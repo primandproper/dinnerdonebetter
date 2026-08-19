@@ -72,28 +72,34 @@ FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
 	LEFT JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validPreparationVesselsTableName, true, true, []string{}),
-						buildTotalCountSelect(validPreparationVesselsTableName, true, []string{}),
+						querygen.FilterCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
+						querygen.TotalCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
 						validPreparationVesselsTableName,
-						validVesselsTableName, validPreparationVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
-						validPreparationsTableName, validPreparationVesselsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
-						validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
-						validPreparationVesselsTableName, archivedAtColumn,
-						validVesselsTableName, archivedAtColumn,
-						validPreparationsTableName, archivedAtColumn,
-						validMeasurementUnitsTableName, archivedAtColumn,
-						validPreparationVesselsTableName, validPreparationIDColumn, idColumn,
-						buildFilterConditions(validPreparationVesselsTableName, true, false),
-						buildCursorLimitClause(validPreparationVesselsTableName),
+						validVesselsTableName,
+						validPreparationVesselsTableName,
+						validVesselIDColumn,
+						validVesselsTableName,
+						idColumn,
+						validPreparationsTableName,
+						validPreparationVesselsTableName,
+						validPreparationIDColumn,
+						validPreparationsTableName,
+						idColumn,
+						validMeasurementUnitsTableName,
+						validVesselsTableName,
+						capacityUnitColumn,
+						validMeasurementUnitsTableName,
+						idColumn,
+						querygen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns,
+							"valid_vessels.archived_at IS NULL",
+							"valid_preparations.archived_at IS NULL",
+							"valid_measurement_units.archived_at IS NULL",
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationVesselsTableName, validPreparationIDColumn, idColumn),
+						),
+						querygen.CursorLimitClause(validPreparationVesselsTableName),
 					)),
 				},
 				{
@@ -109,29 +115,34 @@ FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
 	LEFT JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validPreparationVesselsTableName, true, true, []string{}),
-						buildTotalCountSelect(validPreparationVesselsTableName, true, []string{}),
+						querygen.FilterCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
+						querygen.TotalCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
 						validPreparationVesselsTableName,
-
-						validVesselsTableName, validPreparationVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
-						validPreparationsTableName, validPreparationVesselsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
-						validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
-						validPreparationVesselsTableName, archivedAtColumn,
-						validVesselsTableName, archivedAtColumn,
-						validPreparationsTableName, archivedAtColumn,
-						validMeasurementUnitsTableName, archivedAtColumn,
-						validPreparationVesselsTableName, validVesselIDColumn, idColumn,
-						buildFilterConditions(validPreparationVesselsTableName, true, false),
-						buildCursorLimitClause(validPreparationVesselsTableName),
+						validVesselsTableName,
+						validPreparationVesselsTableName,
+						validVesselIDColumn,
+						validVesselsTableName,
+						idColumn,
+						validPreparationsTableName,
+						validPreparationVesselsTableName,
+						validPreparationIDColumn,
+						validPreparationsTableName,
+						idColumn,
+						validMeasurementUnitsTableName,
+						validVesselsTableName,
+						capacityUnitColumn,
+						validMeasurementUnitsTableName,
+						idColumn,
+						querygen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns,
+							"valid_vessels.archived_at IS NULL",
+							"valid_preparations.archived_at IS NULL",
+							"valid_measurement_units.archived_at IS NULL",
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationVesselsTableName, validVesselIDColumn, idColumn),
+						),
+						querygen.CursorLimitClause(validPreparationVesselsTableName),
 					)),
 				},
 				{
@@ -147,26 +158,33 @@ FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
 	LEFT JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(validPreparationVesselsTableName, true, true, []string{}),
-						buildTotalCountSelect(validPreparationVesselsTableName, true, []string{}),
+						querygen.FilterCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
+						querygen.TotalCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
 						validPreparationVesselsTableName,
-						validVesselsTableName, validPreparationVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
-						validPreparationsTableName, validPreparationVesselsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
-						validMeasurementUnitsTableName, validVesselsTableName, capacityUnitColumn, validMeasurementUnitsTableName, idColumn,
-						validPreparationVesselsTableName, archivedAtColumn,
-						validVesselsTableName, archivedAtColumn,
-						validPreparationsTableName, archivedAtColumn,
-						validMeasurementUnitsTableName, archivedAtColumn,
-						buildFilterConditions(validPreparationVesselsTableName, true, false),
-						buildCursorLimitClause(validPreparationVesselsTableName),
+						validVesselsTableName,
+						validPreparationVesselsTableName,
+						validVesselIDColumn,
+						validVesselsTableName,
+						idColumn,
+						validPreparationsTableName,
+						validPreparationVesselsTableName,
+						validPreparationIDColumn,
+						validPreparationsTableName,
+						idColumn,
+						validMeasurementUnitsTableName,
+						validVesselsTableName,
+						capacityUnitColumn,
+						validMeasurementUnitsTableName,
+						idColumn,
+						querygen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns,
+							"valid_vessels.archived_at IS NULL",
+							"valid_preparations.archived_at IS NULL",
+							"valid_measurement_units.archived_at IS NULL",
+						),
+						querygen.CursorLimitClause(validPreparationVesselsTableName),
 					)),
 				},
 				{

@@ -133,38 +133,39 @@ SELECT
 		SELECT COUNT(user_device_tokens.id)
 		FROM user_device_tokens
 		WHERE
-			user_device_tokens.archived_at IS NULL
-			AND user_device_tokens.belongs_to_user = $1
-			AND ($2::TEXT IS NULL OR user_device_tokens.platform = $2::TEXT)
-			AND user_device_tokens.created_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
-			AND user_device_tokens.created_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+			(COALESCE($1, false)::boolean OR user_device_tokens.archived_at IS NULL)
+			AND user_device_tokens.belongs_to_user = $2
+			AND ($3::TEXT IS NULL OR user_device_tokens.platform = $3::TEXT)
+			AND user_device_tokens.created_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+			AND user_device_tokens.created_at < COALESCE($5, (SELECT NOW() + '999 years'::INTERVAL))
 	) AS filtered_count,
 	(
 		SELECT COUNT(user_device_tokens.id)
 		FROM user_device_tokens
 		WHERE
-			user_device_tokens.archived_at IS NULL
-			AND user_device_tokens.belongs_to_user = $1
-			AND ($2::TEXT IS NULL OR user_device_tokens.platform = $2::TEXT)
+			(COALESCE($1, false)::boolean OR user_device_tokens.archived_at IS NULL)
+			AND user_device_tokens.belongs_to_user = $2
+			AND ($3::TEXT IS NULL OR user_device_tokens.platform = $3::TEXT)
 	) AS total_count
 FROM user_device_tokens
-WHERE user_device_tokens.archived_at IS NULL
-	AND user_device_tokens.belongs_to_user = $1
-	AND ($2::TEXT IS NULL OR user_device_tokens.platform = $2::TEXT)
-	AND user_device_tokens.created_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
-	AND user_device_tokens.created_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
-	AND user_device_tokens.id > COALESCE($5, '')
+WHERE (COALESCE($1, false)::boolean OR user_device_tokens.archived_at IS NULL)
+	AND user_device_tokens.belongs_to_user = $2
+	AND ($3::TEXT IS NULL OR user_device_tokens.platform = $3::TEXT)
+	AND user_device_tokens.created_at > COALESCE($4, (SELECT NOW() - '999 years'::INTERVAL))
+	AND user_device_tokens.created_at < COALESCE($5, (SELECT NOW() + '999 years'::INTERVAL))
+	AND user_device_tokens.id > COALESCE($6, '')
 ORDER BY user_device_tokens.id ASC
-LIMIT COALESCE($6, 50)
+LIMIT COALESCE($7, 50)
 `
 
 type GetUserDeviceTokensForUserParams struct {
-	UserID         string
-	PlatformFilter sql.NullString
-	CreatedAfter   sql.NullTime
-	CreatedBefore  sql.NullTime
-	Cursor         sql.NullString
-	ResultLimit    interface{}
+	IncludeArchived sql.NullBool
+	UserID          string
+	PlatformFilter  sql.NullString
+	CreatedAfter    sql.NullTime
+	CreatedBefore   sql.NullTime
+	Cursor          sql.NullString
+	ResultLimit     interface{}
 }
 
 type GetUserDeviceTokensForUserRow struct {
@@ -181,6 +182,7 @@ type GetUserDeviceTokensForUserRow struct {
 
 func (q *Queries) GetUserDeviceTokensForUser(ctx context.Context, db DBTX, arg *GetUserDeviceTokensForUserParams) ([]*GetUserDeviceTokensForUserRow, error) {
 	rows, err := db.QueryContext(ctx, getUserDeviceTokensForUser,
+		arg.IncludeArchived,
 		arg.UserID,
 		arg.PlatformFilter,
 		arg.CreatedAfter,

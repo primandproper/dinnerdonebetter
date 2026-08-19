@@ -13,6 +13,7 @@ import (
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v11/pointer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -267,5 +268,51 @@ func TestQuerier_Integration_ValidInstruments_CursorBasedPagination(t *testing.T
 		CleanupItem: func(ctx context.Context, validInstrument *types.ValidInstrument) error {
 			return dbc.ArchiveValidInstrument(ctx, validInstrument.ID)
 		},
+	})
+}
+
+func TestQuerier_Integration_ValidInstruments_IncludeArchived(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	live := createValidInstrumentForTest(t, ctx, nil, dbc)
+	archived := createValidInstrumentForTest(t, ctx, nil, dbc)
+	require.NoError(t, dbc.ArchiveValidInstrument(ctx, archived.ID))
+
+	idsOf := func(instruments []*types.ValidInstrument) []string {
+		ids := []string{}
+		for _, instrument := range instruments {
+			ids = append(ids, instrument.ID)
+		}
+
+		return ids
+	}
+
+	t.Run("absent leaves archived rows out", func(t *testing.T) {
+		t.Parallel()
+
+		results, err := dbc.GetValidInstruments(ctx, filtering.DefaultQueryFilter())
+		require.NoError(t, err)
+
+		assert.Equal(t, []string{live.ID}, idsOf(results.Data))
+		assert.Equal(t, uint64(1), results.FilteredCount)
+		assert.Equal(t, uint64(1), results.TotalCount)
+	})
+
+	t.Run("set admits them, and both counts agree", func(t *testing.T) {
+		t.Parallel()
+
+		filter := filtering.DefaultQueryFilter()
+		filter.IncludeArchived = pointer.To(true)
+
+		results, err := dbc.GetValidInstruments(ctx, filter)
+		require.NoError(t, err)
+
+		assert.ElementsMatch(t, []string{live.ID, archived.ID}, idsOf(results.Data))
+		assert.Equal(t, uint64(2), results.FilteredCount)
+		// total_count applies the same toggle, so the subset can never exceed the set.
+		assert.Equal(t, uint64(2), results.TotalCount)
 	})
 }

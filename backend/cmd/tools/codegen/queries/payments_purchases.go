@@ -35,7 +35,7 @@ func buildPaymentsPurchasesQueries(database string) []*Query {
 	switch database {
 	case postgres:
 		fullSelectColumns := applyToEach(purchasesColumns, func(_ int, s string) string {
-			return fullColumnName(purchasesTableName, s)
+			return querygen.Qualify(purchasesTableName, s)
 		})
 		accountCondition := fmt.Sprintf("%s.%s = sqlc.arg(%s)", purchasesTableName, belongsToAccountColumn, belongsToAccountColumn)
 
@@ -55,18 +55,17 @@ func buildPaymentsPurchasesQueries(database string) []*Query {
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(purchasesTableName, true, true, nil, accountCondition),
-						buildTotalCountSelect(purchasesTableName, true, nil, accountCondition),
+						querygen.FilterCountSelect(purchasesTableName, purchasesColumns, nil, accountCondition),
+						querygen.TotalCountSelect(purchasesTableName, purchasesColumns, nil, accountCondition),
 						purchasesTableName,
-						purchasesTableName, archivedAtColumn,
-						accountCondition,
-						buildFilterConditions(purchasesTableName, true, false, accountCondition),
-						buildCursorLimitClause(purchasesTableName),
+						querygen.FilterConditions(purchasesTableName, purchasesColumns,
+							accountCondition,
+							accountCondition,
+						),
+						querygen.CursorLimitClause(purchasesTableName),
 					)),
 				},
 			},

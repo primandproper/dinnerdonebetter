@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/primandproper/platform-go/v11/database/querygen"
+
 	"github.com/cristalhq/builq"
 )
 
@@ -33,7 +35,7 @@ func buildPasswordResetTokensQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		insertColumns := filterForInsert(passwordResetTokensColumns, "redeemed_at")
+		insertColumns := querygen.ForInsert(passwordResetTokensColumns, "redeemed_at")
 
 		return []*Query{
 			{
@@ -53,7 +55,7 @@ func buildPasswordResetTokensQueries(database string) []*Query {
 					strings.Join(insertColumns, ",\n\t"),
 					idColumn,
 					passwordResetTokenColumn,
-					currentTimeExpression,
+					querygen.NowExpression,
 					belongsToUserColumn,
 				)),
 			},
@@ -73,7 +75,7 @@ WHERE %s.%s IS NULL
 					}), ",\n\t"),
 					passwordResetTokensTableName,
 					passwordResetTokensTableName, redeemedAtColumn,
-					currentTimeExpression, passwordResetTokensTableName, passwordResetTokenExpiresAtColumn,
+					querygen.NowExpression, passwordResetTokensTableName, passwordResetTokenExpiresAtColumn,
 					passwordResetTokensTableName, passwordResetTokenColumn, passwordResetTokenColumn,
 				)),
 			},
@@ -93,7 +95,7 @@ WHERE %s.%s IS NULL
 					}), ",\n\t"),
 					passwordResetTokensTableName,
 					passwordResetTokensTableName, redeemedAtColumn,
-					currentTimeExpression, passwordResetTokensTableName, passwordResetTokenExpiresAtColumn,
+					querygen.NowExpression, passwordResetTokensTableName, passwordResetTokenExpiresAtColumn,
 					passwordResetTokensTableName, idColumn, idColumn,
 				)),
 			},
@@ -107,7 +109,7 @@ WHERE %s.%s IS NULL
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 					passwordResetTokensTableName,
-					redeemedAtColumn, currentTimeExpression,
+					redeemedAtColumn, querygen.NowExpression,
 					redeemedAtColumn,
 					idColumn, idColumn,
 				)),

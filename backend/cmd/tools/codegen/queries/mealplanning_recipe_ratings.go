@@ -54,23 +54,22 @@ func buildRecipeRatingsQueries(database string) []*Query {
 	%s,
 	%s
 FROM %s
-WHERE
-	%s.%s IS NULL AND
-	%s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 GROUP BY %s.%s
 %s;`,
 						strings.Join(applyToEach(recipeRatingsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipeRatingsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(recipeRatingsTableName, true, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn)),
-						buildTotalCountSelect(recipeRatingsTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn)),
+						querygen.FilterCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn)),
+						querygen.TotalCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn)),
 						recipeRatingsTableName,
-						recipeRatingsTableName, archivedAtColumn,
-						recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn,
-						buildFilterConditions(recipeRatingsTableName, true, true, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn)),
-						recipeRatingsTableName, idColumn,
-						buildCursorLimitClause(recipeRatingsTableName),
+						querygen.FilterConditions(recipeRatingsTableName, recipeRatingsColumns,
+							fmt.Sprintf("%s.%s IS NULL AND\n\t%s.%s = sqlc.arg(%s)", recipeRatingsTableName, archivedAtColumn, recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn),
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn),
+						),
+						recipeRatingsTableName,
+						idColumn,
+						querygen.CursorLimitClause(recipeRatingsTableName),
 					)),
 				},
 				{
@@ -83,23 +82,22 @@ GROUP BY %s.%s
 	%s,
 	%s
 FROM %s
-WHERE
-	%s.%s IS NULL AND
-	%s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 GROUP BY %s.%s
 %s;`,
 						strings.Join(applyToEach(recipeRatingsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipeRatingsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(recipeRatingsTableName, true, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, createdByUserColumn, createdByUserColumn)),
-						buildTotalCountSelect(recipeRatingsTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, createdByUserColumn, createdByUserColumn)),
+						querygen.FilterCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, createdByUserColumn, createdByUserColumn)),
+						querygen.TotalCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, createdByUserColumn, createdByUserColumn)),
 						recipeRatingsTableName,
-						recipeRatingsTableName, archivedAtColumn,
-						recipeRatingsTableName, createdByUserColumn, createdByUserColumn,
-						buildFilterConditions(recipeRatingsTableName, true, true, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, createdByUserColumn, createdByUserColumn)),
-						recipeRatingsTableName, idColumn,
-						buildCursorLimitClause(recipeRatingsTableName),
+						querygen.FilterConditions(recipeRatingsTableName, recipeRatingsColumns,
+							fmt.Sprintf("%s.%s IS NULL AND\n\t%s.%s = sqlc.arg(%s)", recipeRatingsTableName, archivedAtColumn, recipeRatingsTableName, createdByUserColumn, createdByUserColumn),
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, createdByUserColumn, createdByUserColumn),
+						),
+						recipeRatingsTableName,
+						idColumn,
+						querygen.CursorLimitClause(recipeRatingsTableName),
 					)),
 				},
 			},

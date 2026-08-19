@@ -39,7 +39,7 @@ func buildIssueReportsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 		fullSelectColumns := applyToEach(issueReportsColumns, func(_ int, s string) string {
-			return fullColumnName(issueReportsTableName, s)
+			return querygen.Qualify(issueReportsTableName, s)
 		})
 
 		return slices.Concat(
@@ -60,8 +60,8 @@ func buildIssueReportsQueries(database string) []*Query {
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						issueReportsTableName,
-						lastUpdatedAtColumn, currentTimeExpression,
-						archivedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
+						archivedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -93,16 +93,14 @@ WHERE %s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(issueReportsTableName, true, true, nil),
-						buildTotalCountSelect(issueReportsTableName, true, nil),
+						querygen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil),
+						querygen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil),
 						issueReportsTableName,
-						issueReportsTableName, archivedAtColumn,
-						buildFilterConditions(issueReportsTableName, true, false),
-						buildCursorLimitClause(issueReportsTableName),
+						querygen.FilterConditions(issueReportsTableName, issueReportsColumns),
+						querygen.CursorLimitClause(issueReportsTableName),
 					)),
 				},
 				{
@@ -115,18 +113,16 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(issueReportsTableName, true, true, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn)),
-						buildTotalCountSelect(issueReportsTableName, true, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						querygen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						querygen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn)),
 						issueReportsTableName,
-						issueReportsTableName, archivedAtColumn,
-						issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn,
-						buildFilterConditions(issueReportsTableName, true, false, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn)),
-						buildCursorLimitClause(issueReportsTableName),
+						querygen.FilterConditions(issueReportsTableName, issueReportsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn),
+						),
+						querygen.CursorLimitClause(issueReportsTableName),
 					)),
 				},
 				{
@@ -139,18 +135,16 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(issueReportsTableName, true, true, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn)),
-						buildTotalCountSelect(issueReportsTableName, true, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn)),
+						querygen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn)),
+						querygen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn)),
 						issueReportsTableName,
-						issueReportsTableName, archivedAtColumn,
-						issueReportsTableName, relevantTableColumn, relevantTableColumn,
-						buildFilterConditions(issueReportsTableName, true, false, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn)),
-						buildCursorLimitClause(issueReportsTableName),
+						querygen.FilterConditions(issueReportsTableName, issueReportsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn),
+						),
+						querygen.CursorLimitClause(issueReportsTableName),
 					)),
 				},
 				{
@@ -163,26 +157,21 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(issueReportsTableName, true, true, nil,
+						querygen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantRecordIDColumn, relevantRecordIDColumn)),
-						buildTotalCountSelect(issueReportsTableName, true, nil,
+						querygen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantRecordIDColumn, relevantRecordIDColumn)),
 						issueReportsTableName,
-						issueReportsTableName, archivedAtColumn,
-						issueReportsTableName, relevantTableColumn, relevantTableColumn,
-						issueReportsTableName, relevantRecordIDColumn, relevantRecordIDColumn,
-						buildFilterConditions(issueReportsTableName, true, false,
+						querygen.FilterConditions(issueReportsTableName, issueReportsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn),
-							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantRecordIDColumn, relevantRecordIDColumn)),
-						buildCursorLimitClause(issueReportsTableName),
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantRecordIDColumn, relevantRecordIDColumn),
+						),
+						querygen.CursorLimitClause(issueReportsTableName),
 					)),
 				},
 			},

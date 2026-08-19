@@ -36,7 +36,7 @@ func buildUserNotificationQueries(database string) []*Query {
 	case postgres:
 
 		fullSelectColumns := applyToEach(userNotificationsColumns, func(_ int, s string) string {
-			return fullColumnName(userNotificationsTableName, s)
+			return querygen.Qualify(userNotificationsTableName, s)
 		})
 
 		return slices.Concat(
@@ -91,28 +91,29 @@ AND %s.%s = sqlc.arg(%s);`,
 	%s,
 	%s
 FROM %s
-WHERE %s%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(
+						querygen.FilterCountSelect(
 							userNotificationsTableName,
-							true,
-							false,
+							userNotificationsColumns,
 							nil,
 							fmt.Sprintf("user_notifications.status != '%s'", userNotificationStatusDismissed),
 							"user_notifications.belongs_to_user = sqlc.arg(user_id)",
 						),
-						buildTotalCountSelect(
+						querygen.TotalCountSelect(
 							userNotificationsTableName,
-							false,
+							userNotificationsColumns,
 							nil,
 							fmt.Sprintf("user_notifications.status != '%s'", userNotificationStatusDismissed),
 							"user_notifications.belongs_to_user = sqlc.arg(user_id)",
 						),
 						userNotificationsTableName,
-						fmt.Sprintf("user_notifications.status != '%s'\n\t", userNotificationStatusDismissed),
-						buildFilterConditions(userNotificationsTableName, true, false, "user_notifications.belongs_to_user = sqlc.arg(user_id)"),
-						buildCursorLimitClause(userNotificationsTableName),
+						querygen.FilterConditions(userNotificationsTableName, userNotificationsColumns,
+							fmt.Sprintf("user_notifications.status != '%s'", userNotificationStatusDismissed),
+							"user_notifications.belongs_to_user = sqlc.arg(user_id)",
+						),
+						querygen.CursorLimitClause(userNotificationsTableName),
 					)),
 				},
 				{
@@ -125,10 +126,10 @@ WHERE %s%s
 	%s = %s
 WHERE %s = sqlc.arg(%s);`,
 						userNotificationsTableName,
-						strings.Join(applyToEach(filterForUpdate(userNotificationsColumns, contentColumn, belongsToUserColumn), func(i int, s string) string {
+						strings.Join(applyToEach(querygen.ForUpdate(userNotificationsColumns, contentColumn, belongsToUserColumn), func(i int, s string) string {
 							return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
 						}), ",\n\t"),
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						idColumn, idColumn,
 					)),
 				},

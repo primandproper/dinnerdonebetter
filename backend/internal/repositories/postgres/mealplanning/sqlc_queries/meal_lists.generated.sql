@@ -46,9 +46,7 @@ SELECT
 	(
 		SELECT COUNT(meal_lists.id)
 		FROM meal_lists
-		WHERE meal_lists.archived_at IS NULL
-			AND
-			meal_lists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE meal_lists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND meal_lists.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				meal_lists.last_updated_at IS NULL
@@ -58,19 +56,18 @@ SELECT
 				meal_lists.last_updated_at IS NULL
 				OR meal_lists.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_lists.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_lists.archived_at IS NULL)
 			AND meal_lists.belongs_to_user = sqlc.arg(belongs_to_user)
 	) AS filtered_count,
 	(
 		SELECT COUNT(meal_lists.id)
 		FROM meal_lists
-		WHERE meal_lists.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_lists.archived_at IS NULL)
 			AND meal_lists.belongs_to_user = sqlc.arg(belongs_to_user)
 	) AS total_count
 FROM meal_lists
 	LEFT JOIN meal_list_items ON meal_list_items.belongs_to_meal_list = meal_lists.id AND meal_list_items.archived_at IS NULL
-	WHERE meal_lists.archived_at IS NULL
-	AND meal_lists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE meal_lists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND meal_lists.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		meal_lists.last_updated_at IS NULL
@@ -80,6 +77,7 @@ FROM meal_lists
 		meal_lists.last_updated_at IS NULL
 		OR meal_lists.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_lists.archived_at IS NULL)
 	AND meal_lists.belongs_to_user = sqlc.arg(belongs_to_user)
 	AND meal_lists.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY meal_lists.id ASC

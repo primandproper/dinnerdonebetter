@@ -65,7 +65,7 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 						userRoleHierarchyTableName,
-						archivedAtColumn, currentTimeExpression,
+						archivedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						parentRoleIDColumn, parentRoleIDColumn,
 						childRoleIDColumn, childRoleIDColumn,

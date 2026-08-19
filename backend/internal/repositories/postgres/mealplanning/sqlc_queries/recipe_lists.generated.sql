@@ -46,9 +46,7 @@ SELECT
 	(
 		SELECT COUNT(recipe_lists.id)
 		FROM recipe_lists
-		WHERE recipe_lists.archived_at IS NULL
-			AND
-			recipe_lists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE recipe_lists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND recipe_lists.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				recipe_lists.last_updated_at IS NULL
@@ -58,17 +56,16 @@ SELECT
 				recipe_lists.last_updated_at IS NULL
 				OR recipe_lists.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_lists.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_lists.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipe_lists.id)
 		FROM recipe_lists
-		WHERE recipe_lists.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_lists.archived_at IS NULL)
 	) AS total_count
 FROM recipe_lists
 	LEFT JOIN recipe_list_items ON recipe_list_items.belongs_to_recipe_list = recipe_lists.id AND recipe_list_items.archived_at IS NULL
-	WHERE recipe_lists.archived_at IS NULL
-	AND recipe_lists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE recipe_lists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND recipe_lists.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipe_lists.last_updated_at IS NULL
@@ -78,6 +75,7 @@ FROM recipe_lists
 		recipe_lists.last_updated_at IS NULL
 		OR recipe_lists.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_lists.archived_at IS NULL)
 	AND recipe_lists.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY recipe_lists.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

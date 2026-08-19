@@ -158,9 +158,7 @@ SELECT
 	(
 		SELECT COUNT(recipe_steps.id)
 		FROM recipe_steps
-		WHERE recipe_steps.archived_at IS NULL
-			AND
-			recipe_steps.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE recipe_steps.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND recipe_steps.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				recipe_steps.last_updated_at IS NULL
@@ -170,20 +168,17 @@ SELECT
 				recipe_steps.last_updated_at IS NULL
 				OR recipe_steps.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_steps.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_steps.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipe_steps.id)
 		FROM recipe_steps
-		WHERE recipe_steps.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_steps.archived_at IS NULL)
 	) AS total_count
 FROM recipe_steps
 	JOIN recipes ON recipe_steps.belongs_to_recipe=recipes.id
 	JOIN valid_preparations ON recipe_steps.preparation_id=valid_preparations.id
-WHERE recipe_steps.archived_at IS NULL
-	AND recipe_steps.belongs_to_recipe = sqlc.arg(recipe_id)
-	AND recipes.archived_at IS NULL
-	AND recipe_steps.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE recipe_steps.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND recipe_steps.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipe_steps.last_updated_at IS NULL
@@ -193,6 +188,9 @@ WHERE recipe_steps.archived_at IS NULL
 		recipe_steps.last_updated_at IS NULL
 		OR recipe_steps.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_steps.archived_at IS NULL)
+	AND recipe_steps.belongs_to_recipe = sqlc.arg(recipe_id)
+	AND recipes.archived_at IS NULL
 	AND recipe_steps.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY recipe_steps.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

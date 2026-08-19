@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/primandproper/platform-go/v11/database/querygen"
+
 	"github.com/cristalhq/builq"
 )
 
@@ -37,7 +39,7 @@ func buildMealPlanRecipeOptionSelectionsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		insertColumns := filterForInsert(mealPlanRecipeOptionSelectionsColumns)
+		insertColumns := querygen.ForInsert(mealPlanRecipeOptionSelectionsColumns)
 
 		return []*Query{
 			{
@@ -64,7 +66,7 @@ func buildMealPlanRecipeOptionSelectionsQueries(database string) []*Query {
 					selectedOptionIndexColumn,
 					selectedOptionIndexColumn,
 					lastUpdatedAtColumn,
-					currentTimeExpression,
+					querygen.NowExpression,
 				)),
 			},
 			{
@@ -99,18 +101,19 @@ WHERE %s = sqlc.arg(%s)
 	%s,
 	%s
 FROM %s
-WHERE %s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 					strings.Join(applyToEach(mealPlanRecipeOptionSelectionsColumns, func(i int, s string) string {
 						return fmt.Sprintf("%s.%s", mealPlanRecipeOptionSelectionsTableName, s)
 					}), ",\n\t"),
-					buildFilterCountSelect(mealPlanRecipeOptionSelectionsTableName, true, false, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn)),
-					buildTotalCountSelect(mealPlanRecipeOptionSelectionsTableName, false, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn)),
+					querygen.FilterCountSelect(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn)),
+					querygen.TotalCountSelect(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn)),
 					mealPlanRecipeOptionSelectionsTableName,
-					belongsToMealPlanOptionColumn, mealPlanOptionIDColumn,
-					buildFilterConditions(mealPlanRecipeOptionSelectionsTableName, true, false, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn)),
-					buildCursorLimitClause(mealPlanRecipeOptionSelectionsTableName),
+					querygen.FilterConditions(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns,
+						fmt.Sprintf("%s = sqlc.arg(%s)", belongsToMealPlanOptionColumn, mealPlanOptionIDColumn),
+						fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn),
+					),
+					querygen.CursorLimitClause(mealPlanRecipeOptionSelectionsTableName),
 				)),
 			},
 			{
@@ -125,34 +128,32 @@ WHERE %s = sqlc.arg(%s)
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE %s.%s = sqlc.arg(%s)
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
+WHERE %s
 %s;`,
 					strings.Join(applyToEach(mealPlanRecipeOptionSelectionsColumns, func(i int, s string) string {
 						return fmt.Sprintf("%s.%s", mealPlanRecipeOptionSelectionsTableName, s)
 					}), ",\n\t"),
-					buildFilterCountSelect(mealPlanRecipeOptionSelectionsTableName, true, false,
+					querygen.FilterCountSelect(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns,
 						[]string{
-							fmt.Sprintf("%s ON %s.%s = %s.%s", mealPlanOptionsTableName, mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn),
-							fmt.Sprintf("%s ON %s.%s = %s.%s", mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn),
+							fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", mealPlanOptionsTableName, mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn),
+							fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn),
 						},
 						fmt.Sprintf("%s.%s = sqlc.arg(%s) AND %s.%s IS NULL AND %s.%s IS NULL", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn, mealPlanOptionsTableName, archivedAtColumn, mealPlanEventsTableName, archivedAtColumn)),
-					buildTotalCountSelect(mealPlanRecipeOptionSelectionsTableName, false,
+					querygen.TotalCountSelect(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns,
 						[]string{
-							fmt.Sprintf("%s ON %s.%s = %s.%s", mealPlanOptionsTableName, mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn),
-							fmt.Sprintf("%s ON %s.%s = %s.%s", mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn),
+							fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", mealPlanOptionsTableName, mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn),
+							fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn),
 						},
 						fmt.Sprintf("%s.%s = sqlc.arg(%s) AND %s.%s IS NULL AND %s.%s IS NULL", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn, mealPlanOptionsTableName, archivedAtColumn, mealPlanEventsTableName, archivedAtColumn)),
 					mealPlanRecipeOptionSelectionsTableName,
 					mealPlanOptionsTableName, mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
 					mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
-					mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn,
-					mealPlanOptionsTableName, archivedAtColumn,
-					mealPlanEventsTableName, archivedAtColumn,
-					mealPlanRecipeOptionSelectionsTableName, archivedAtColumn,
-					buildCursorLimitClause(mealPlanRecipeOptionSelectionsTableName),
+					querygen.FilterConditions(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns,
+						fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn),
+						fmt.Sprintf("%s.%s IS NULL", mealPlanOptionsTableName, archivedAtColumn),
+						fmt.Sprintf("%s.%s IS NULL", mealPlanEventsTableName, archivedAtColumn),
+					),
+					querygen.CursorLimitClause(mealPlanRecipeOptionSelectionsTableName),
 				)),
 			},
 			{
@@ -168,10 +169,10 @@ WHERE %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 					mealPlanRecipeOptionSelectionsTableName,
-					strings.Join(applyToEach(filterForUpdate(mealPlanRecipeOptionSelectionsColumns, belongsToMealPlanOptionColumn, recipeStepIDColumn, ingredientIndexColumn, selectionTypeColumn), func(i int, s string) string {
+					strings.Join(applyToEach(querygen.ForUpdate(mealPlanRecipeOptionSelectionsColumns, belongsToMealPlanOptionColumn, recipeStepIDColumn, ingredientIndexColumn, selectionTypeColumn), func(i int, s string) string {
 						return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
 					}), ",\n\t"),
-					lastUpdatedAtColumn, currentTimeExpression,
+					lastUpdatedAtColumn, querygen.NowExpression,
 					belongsToMealPlanOptionColumn, mealPlanOptionIDColumn,
 					recipeStepIDColumn, recipeStepIDColumn,
 					ingredientIndexColumn, ingredientIndexColumn,
@@ -190,7 +191,7 @@ WHERE %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 					mealPlanRecipeOptionSelectionsTableName,
-					archivedAtColumn, currentTimeExpression,
+					archivedAtColumn, querygen.NowExpression,
 					belongsToMealPlanOptionColumn, mealPlanOptionIDColumn,
 					recipeStepIDColumn, recipeStepIDColumn,
 					ingredientIndexColumn, ingredientIndexColumn,

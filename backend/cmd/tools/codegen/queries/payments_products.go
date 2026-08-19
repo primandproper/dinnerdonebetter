@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
@@ -35,7 +36,7 @@ func buildPaymentsProductsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 		fullSelectColumns := applyToEach(productsColumns, func(_ int, s string) string {
-			return fullColumnName(productsTableName, s)
+			return querygen.Qualify(productsTableName, s)
 		})
 
 		return slices.Concat(
@@ -51,8 +52,8 @@ func buildPaymentsProductsQueries(database string) []*Query {
 					},
 					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s, %s = %s WHERE %s IS NULL AND %s = sqlc.arg(%s);`,
 						productsTableName,
-						archivedAtColumn, currentTimeExpression,
-						lastUpdatedAtColumn, currentTimeExpression,
+						archivedAtColumn, querygen.NowExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -83,16 +84,14 @@ AND %s.external_product_id = sqlc.arg(external_product_id);`,
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(productsTableName, true, true, []string{}),
-						buildTotalCountSelect(productsTableName, true, []string{}),
+						querygen.FilterCountSelect(productsTableName, productsColumns, []string{}),
+						querygen.TotalCountSelect(productsTableName, productsColumns, []string{}),
 						productsTableName,
-						productsTableName, archivedAtColumn,
-						buildFilterConditions(productsTableName, true, true),
-						buildCursorLimitClause(productsTableName),
+						querygen.FilterConditions(productsTableName, productsColumns),
+						querygen.CursorLimitClause(productsTableName),
 					)),
 				},
 				{
@@ -105,18 +104,16 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(productsTableName, true, true, []string{}),
-						buildTotalCountSelect(productsTableName, true, []string{}),
+						querygen.FilterCountSelect(productsTableName, productsColumns, []string{}),
+						querygen.TotalCountSelect(productsTableName, productsColumns, []string{}),
 						productsTableName,
-						productsTableName, archivedAtColumn,
-						productsTableName, nameColumn, buildILIKEForArgument("name_query"),
-						buildFilterConditions(productsTableName, true, true),
-						buildCursorLimitClause(productsTableName),
+						querygen.FilterConditions(productsTableName, productsColumns,
+							fmt.Sprintf("%s.%s %s", productsTableName, nameColumn, buildILIKEForArgument("name_query")),
+						),
+						querygen.CursorLimitClause(productsTableName),
 					)),
 				},
 			},

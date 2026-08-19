@@ -125,22 +125,27 @@ WHERE %s.%s IS NULL
 FROM %s
 	JOIN %s ON %s.%s=%s.%s
 	JOIN %s ON %s.%s=%s.%s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(recipeStepsTableName, true, true, []string{}),
-						buildTotalCountSelect(recipeStepsTableName, true, []string{}),
+						querygen.FilterCountSelect(recipeStepsTableName, recipeStepsColumns, []string{}),
+						querygen.TotalCountSelect(recipeStepsTableName, recipeStepsColumns, []string{}),
 						recipeStepsTableName,
-						recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
-						validPreparationsTableName, recipeStepsTableName, preparationIDColumn, validPreparationsTableName, idColumn,
-						recipeStepsTableName, archivedAtColumn,
-						recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
-						recipesTableName, archivedAtColumn,
-						buildFilterConditions(recipeStepsTableName, true, false),
-						buildCursorLimitClause(recipeStepsTableName),
+						recipesTableName,
+						recipeStepsTableName,
+						belongsToRecipeColumn,
+						recipesTableName,
+						idColumn,
+						validPreparationsTableName,
+						recipeStepsTableName,
+						preparationIDColumn,
+						validPreparationsTableName,
+						idColumn,
+						querygen.FilterConditions(recipeStepsTableName, recipeStepsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn),
+							"recipes.archived_at IS NULL",
+						),
+						querygen.CursorLimitClause(recipeStepsTableName),
 					)),
 				},
 				{

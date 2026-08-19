@@ -77,9 +77,7 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_groups.id)
 		FROM valid_ingredient_groups
-		WHERE valid_ingredient_groups.archived_at IS NULL
-			AND
-			valid_ingredient_groups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_ingredient_groups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_ingredient_groups.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_groups.last_updated_at IS NULL
@@ -89,17 +87,15 @@ SELECT
 				valid_ingredient_groups.last_updated_at IS NULL
 				OR valid_ingredient_groups.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_groups.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_groups.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredient_groups.id)
 		FROM valid_ingredient_groups
-		WHERE valid_ingredient_groups.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_groups.archived_at IS NULL)
 	) AS total_count
 FROM valid_ingredient_groups
-WHERE
-	valid_ingredient_groups.archived_at IS NULL
-	AND valid_ingredient_groups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_ingredient_groups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_ingredient_groups.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_groups.last_updated_at IS NULL
@@ -109,7 +105,7 @@ WHERE
 		valid_ingredient_groups.last_updated_at IS NULL
 		OR valid_ingredient_groups.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_groups.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_groups.archived_at IS NULL)
 	AND valid_ingredient_groups.id > COALESCE(sqlc.narg(cursor), '')
 GROUP BY valid_ingredient_groups.id
 ORDER BY valid_ingredient_groups.id ASC
@@ -180,9 +176,7 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_groups.id)
 		FROM valid_ingredient_groups
-		WHERE valid_ingredient_groups.archived_at IS NULL
-			AND
-			valid_ingredient_groups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_ingredient_groups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_ingredient_groups.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_groups.last_updated_at IS NULL
@@ -192,19 +186,16 @@ SELECT
 				valid_ingredient_groups.last_updated_at IS NULL
 				OR valid_ingredient_groups.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_groups.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_groups.archived_at IS NULL)
 			AND valid_ingredient_groups.name ILIKE '%' || sqlc.arg(name)::text || '%'
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_ingredient_groups.id)
 		FROM valid_ingredient_groups
-		WHERE valid_ingredient_groups.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_groups.archived_at IS NULL)
 	) AS total_count
 FROM valid_ingredient_groups
-WHERE
-	valid_ingredient_groups.archived_at IS NULL
-	AND valid_ingredient_groups.name ILIKE '%' || sqlc.arg(name)::text || '%'
-	AND valid_ingredient_groups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_ingredient_groups.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_ingredient_groups.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_groups.last_updated_at IS NULL
@@ -214,7 +205,8 @@ WHERE
 		valid_ingredient_groups.last_updated_at IS NULL
 		OR valid_ingredient_groups.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_groups.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_groups.archived_at IS NULL)
+	AND valid_ingredient_groups.name ILIKE '%' || sqlc.arg(name)::text || '%'
 	AND valid_ingredient_groups.id > COALESCE(sqlc.narg(cursor), '')
 GROUP BY valid_ingredient_groups.id
 ORDER BY valid_ingredient_groups.id ASC

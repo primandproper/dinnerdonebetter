@@ -74,26 +74,19 @@ func buildValidVesselsQueries(database string) []*Query {
 	%s,
 	%s
 FROM %s
-WHERE
-	%s.%s IS NULL
-	%s
+WHERE %s
 GROUP BY %s.%s
 %s;`,
 						strings.Join(applyToEach(validVesselsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validVesselsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(validVesselsTableName, true, true, []string{}),
-						buildTotalCountSelect(validVesselsTableName, true, []string{}),
+						querygen.FilterCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
+						querygen.TotalCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
 						validVesselsTableName,
+						querygen.FilterConditions(validVesselsTableName, validVesselsColumns),
 						validVesselsTableName,
-						archivedAtColumn,
-						buildFilterConditions(
-							validVesselsTableName,
-							true,
-							true,
-						),
-						validVesselsTableName, idColumn,
-						buildCursorLimitClause(validVesselsTableName),
+						idColumn,
+						querygen.CursorLimitClause(validVesselsTableName),
 					)),
 				},
 				{
@@ -117,7 +110,7 @@ WHERE %s.%s IS NULL
 						lastIndexedAtColumn,
 						validVesselsTableName,
 						lastIndexedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 					)),
 				},
 				{
@@ -209,27 +202,18 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(validVesselsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validVesselsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(validVesselsTableName, true, true, []string{}),
-						buildTotalCountSelect(validVesselsTableName, true, []string{}),
+						querygen.FilterCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
+						querygen.TotalCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
 						validVesselsTableName,
-						validVesselsTableName,
-						archivedAtColumn,
-						validVesselsTableName,
-						nameColumn,
-						buildILIKEForArgument("name_query"),
-						buildFilterConditions(
-							validVesselsTableName,
-							true,
-							true,
+						querygen.FilterConditions(validVesselsTableName, validVesselsColumns,
+							fmt.Sprintf("%s.%s %s", validVesselsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						buildCursorLimitClause(validVesselsTableName),
+						querygen.CursorLimitClause(validVesselsTableName),
 					)),
 				},
 			},

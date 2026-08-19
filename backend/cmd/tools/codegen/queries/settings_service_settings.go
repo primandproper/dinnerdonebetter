@@ -49,7 +49,7 @@ func buildServiceSettingQueries(database string) []*Query {
 					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s = sqlc.arg(%s);`,
 						serviceSettingsTableName,
 						archivedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						idColumn,
 						idColumn,
 					)),
@@ -64,22 +64,16 @@ func buildServiceSettingQueries(database string) []*Query {
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(serviceSettingsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", serviceSettingsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(serviceSettingsTableName, true, true, []string{}),
-						buildTotalCountSelect(serviceSettingsTableName, true, []string{}),
+						querygen.FilterCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
+						querygen.TotalCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
 						serviceSettingsTableName,
-						serviceSettingsTableName, archivedAtColumn,
-						buildFilterConditions(
-							serviceSettingsTableName,
-							true,
-							true,
-						),
-						buildCursorLimitClause(serviceSettingsTableName),
+						querygen.FilterConditions(serviceSettingsTableName, serviceSettingsColumns),
+						querygen.CursorLimitClause(serviceSettingsTableName),
 					)),
 				},
 				{
@@ -92,27 +86,18 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(serviceSettingsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", serviceSettingsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(serviceSettingsTableName, true, true, []string{}),
-						buildTotalCountSelect(serviceSettingsTableName, true, []string{}),
+						querygen.FilterCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
+						querygen.TotalCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
 						serviceSettingsTableName,
-						serviceSettingsTableName,
-						archivedAtColumn,
-						serviceSettingsTableName,
-						nameColumn,
-						buildILIKEForArgument("name_query"),
-						buildFilterConditions(
-							serviceSettingsTableName,
-							true,
-							true,
+						querygen.FilterConditions(serviceSettingsTableName, serviceSettingsColumns,
+							fmt.Sprintf("%s.%s %s", serviceSettingsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						buildCursorLimitClause(serviceSettingsTableName),
+						querygen.CursorLimitClause(serviceSettingsTableName),
 					)),
 				},
 			},

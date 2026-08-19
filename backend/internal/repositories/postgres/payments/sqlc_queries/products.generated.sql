@@ -93,9 +93,7 @@ SELECT
 	(
 		SELECT COUNT(products.id)
 		FROM products
-		WHERE products.archived_at IS NULL
-			AND
-			products.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE products.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND products.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				products.last_updated_at IS NULL
@@ -105,16 +103,15 @@ SELECT
 				products.last_updated_at IS NULL
 				OR products.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR products.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR products.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(products.id)
 		FROM products
-		WHERE products.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR products.archived_at IS NULL)
 	) AS total_count
 FROM products
-WHERE products.archived_at IS NULL
-	AND products.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE products.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND products.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		products.last_updated_at IS NULL
@@ -124,7 +121,7 @@ WHERE products.archived_at IS NULL
 		products.last_updated_at IS NULL
 		OR products.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR products.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR products.archived_at IS NULL)
 	AND products.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY products.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -145,9 +142,7 @@ SELECT
 	(
 		SELECT COUNT(products.id)
 		FROM products
-		WHERE products.archived_at IS NULL
-			AND
-			products.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE products.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND products.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				products.last_updated_at IS NULL
@@ -157,17 +152,15 @@ SELECT
 				products.last_updated_at IS NULL
 				OR products.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR products.archived_at IS NULL)
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR products.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(products.id)
 		FROM products
-		WHERE products.archived_at IS NULL
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR products.archived_at IS NULL)
 	) AS total_count
 FROM products
-WHERE products.archived_at IS NULL
-	AND products.name ILIKE '%' || sqlc.arg(name_query)::text || '%'
-	AND products.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE products.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND products.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		products.last_updated_at IS NULL
@@ -177,7 +170,8 @@ WHERE products.archived_at IS NULL
 		products.last_updated_at IS NULL
 		OR products.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR products.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR products.archived_at IS NULL)
+	AND products.name ILIKE '%' || sqlc.arg(name_query)::text || '%'
 	AND products.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY products.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

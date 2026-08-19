@@ -83,7 +83,7 @@ func buildRecipesQueries(database string) []*Query {
 					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s IS NULL AND %s = sqlc.arg(%s) AND %s = sqlc.arg(%s);`,
 						recipesTableName,
 						archivedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						archivedAtColumn,
 						createdByUserColumn,
 						createdByUserColumn,
@@ -147,20 +147,18 @@ ORDER BY %s.%s;`,
 	%s,
 	%s
 FROM %s
-	WHERE %s.%s IS NULL
-	AND %s.%s = COALESCE(sqlc.narg(%s), 'approved')::recipe_status
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(recipesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipesTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(recipesTableName, true, true, []string{}),
-						buildTotalCountSelect(recipesTableName, true, []string{}),
+						querygen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
+						querygen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
 						recipesTableName,
-						recipesTableName, archivedAtColumn,
-						recipesTableName, statusColumn, statusColumn,
-						buildFilterConditions(recipesTableName, true, false),
-						buildCursorLimitClause(recipesTableName),
+						querygen.FilterConditions(recipesTableName, recipesColumns,
+							fmt.Sprintf("%s.%s = COALESCE(sqlc.narg(%s), 'approved')::recipe_status", recipesTableName, statusColumn, statusColumn),
+						),
+						querygen.CursorLimitClause(recipesTableName),
 					)),
 				},
 				{
@@ -173,20 +171,18 @@ FROM %s
 	%s,
 	%s
 FROM %s
-	WHERE %s.%s IS NULL AND
-	%s.%s = sqlc.arg(%s)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(recipesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipesTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(recipesTableName, true, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, createdByUserColumn, createdByUserColumn)),
-						buildTotalCountSelect(recipesTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, createdByUserColumn, createdByUserColumn)),
+						querygen.FilterCountSelect(recipesTableName, recipesColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, createdByUserColumn, createdByUserColumn)),
+						querygen.TotalCountSelect(recipesTableName, recipesColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, createdByUserColumn, createdByUserColumn)),
 						recipesTableName,
-						recipesTableName, archivedAtColumn,
-						recipesTableName, createdByUserColumn, createdByUserColumn,
-						buildFilterConditions(recipesTableName, true, false, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, createdByUserColumn, createdByUserColumn)),
-						buildCursorLimitClause(recipesTableName),
+						querygen.FilterConditions(recipesTableName, recipesColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, createdByUserColumn, createdByUserColumn),
+						),
+						querygen.CursorLimitClause(recipesTableName),
 					)),
 				},
 				{
@@ -221,20 +217,18 @@ ORDER BY %s.%s ASC;`,
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(recipesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipesTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(recipesTableName, true, true, []string{}),
-						buildTotalCountSelect(recipesTableName, true, []string{}),
+						querygen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
+						querygen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
 						recipesTableName,
-						recipesTableName, archivedAtColumn,
-						recipesTableName, nameColumn, buildILIKEForArgument("query"),
-						buildFilterConditions(recipesTableName, true, false),
-						buildCursorLimitClause(recipesTableName),
+						querygen.FilterConditions(recipesTableName, recipesColumns,
+							fmt.Sprintf("%s.%s %s", recipesTableName, nameColumn, buildILIKEForArgument("query")),
+						),
+						querygen.CursorLimitClause(recipesTableName),
 					)),
 				},
 				{
@@ -247,24 +241,20 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s = true 
-	AND %s.%s = 'approved'
-	AND %s.%s %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(recipesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipesTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(recipesTableName, true, true, []string{}),
-						buildTotalCountSelect(recipesTableName, true, []string{}),
+						querygen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
+						querygen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
 						recipesTableName,
-						recipesTableName, archivedAtColumn,
-						recipesTableName, eligibleForMealsColumn,
-						recipesTableName, statusColumn,
-						recipesTableName, nameColumn, buildILIKEForArgument("query"),
-						buildFilterConditions(recipesTableName, true, false),
-						buildCursorLimitClause(recipesTableName),
+						querygen.FilterConditions(recipesTableName, recipesColumns,
+							fmt.Sprintf("%s.%s = true", recipesTableName, eligibleForMealsColumn),
+							fmt.Sprintf("%s.%s = 'approved'", recipesTableName, statusColumn),
+							fmt.Sprintf("%s.%s %s", recipesTableName, nameColumn, buildILIKEForArgument("query")),
+						),
+						querygen.CursorLimitClause(recipesTableName),
 					)),
 				},
 				{
@@ -277,34 +267,19 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.%s %s
-	%s
-	AND NOT EXISTS (
-		SELECT 1 FROM recipe_step_instruments rsi
-		JOIN recipe_steps rs ON rsi.belongs_to_recipe_step = rs.id
-		WHERE rs.belongs_to_recipe = %s.%s
-				AND rsi.archived_at IS NULL
-				AND rs.archived_at IS NULL
-				AND rsi.optional = false
-				AND rsi.instrument_id IS NOT NULL
-				AND rsi.instrument_id NOT IN (
-					SELECT valid_instrument_id FROM account_instrument_ownerships
-					WHERE belongs_to_account = sqlc.arg(account_id) AND archived_at IS NULL
-				)
-	)
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(recipesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipesTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(recipesTableName, true, true, []string{}),
-						buildTotalCountSelect(recipesTableName, true, []string{}),
+						querygen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
+						querygen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
 						recipesTableName,
-						recipesTableName, archivedAtColumn,
-						recipesTableName, nameColumn, buildILIKEForArgument("query"),
-						buildFilterConditions(recipesTableName, true, false),
-						recipesTableName, idColumn,
-						buildCursorLimitClause(recipesTableName),
+						querygen.FilterConditions(recipesTableName, recipesColumns,
+							fmt.Sprintf("%s.%s %s", recipesTableName, nameColumn, buildILIKEForArgument("query")),
+							"NOT EXISTS (\n\t\tSELECT 1 FROM recipe_step_instruments rsi\n\t\tJOIN recipe_steps rs ON rsi.belongs_to_recipe_step = rs.id\n\t\tWHERE rs.belongs_to_recipe = recipes.id\n\t\t\t\tAND rsi.archived_at IS NULL\n\t\t\t\tAND rs.archived_at IS NULL\n\t\t\t\tAND rsi.optional = false\n\t\t\t\tAND rsi.instrument_id IS NOT NULL\n\t\t\t\tAND rsi.instrument_id NOT IN (\n\t\t\t\t\tSELECT valid_instrument_id FROM account_instrument_ownerships\n\t\t\t\t\tWHERE belongs_to_account = sqlc.arg(account_id) AND archived_at IS NULL\n\t\t\t\t)\n\t)",
+						),
+						querygen.CursorLimitClause(recipesTableName),
 					)),
 				},
 				{
@@ -323,7 +298,7 @@ WHERE %s.%s IS NULL
 						recipesTableName,
 						recipesTableName, archivedAtColumn,
 						recipesTableName, lastIndexedAtColumn,
-						recipesTableName, lastIndexedAtColumn, currentTimeExpression,
+						recipesTableName, lastIndexedAtColumn, querygen.NowExpression,
 					)),
 				},
 				{
@@ -362,10 +337,10 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 						recipesTableName,
-						strings.Join(applyToEach(filterForUpdate(recipesColumns, statusColumn, lastValidatedAtColumn, createdByUserColumn), func(i int, s string) string {
+						strings.Join(applyToEach(querygen.ForUpdate(recipesColumns, statusColumn, lastValidatedAtColumn, createdByUserColumn), func(i int, s string) string {
 							return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
 						}), ",\n\t"),
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						createdByUserColumn, createdByUserColumn,
 						idColumn, idColumn,
@@ -383,7 +358,7 @@ WHERE %s IS NULL
 WHERE %s = ANY(sqlc.arg(%s)::text[]);`,
 						recipesTableName,
 						lastIndexedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						idColumn,
 						idsArg,
 					)),

@@ -609,9 +609,7 @@ SELECT
 	(
 		SELECT COUNT(recipes.id)
 		FROM recipes
-		WHERE recipes.archived_at IS NULL
-			AND
-			recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				recipes.last_updated_at IS NULL
@@ -621,17 +619,15 @@ SELECT
 				recipes.last_updated_at IS NULL
 				OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipes.id)
 		FROM recipes
-		WHERE recipes.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 	) AS total_count
 FROM recipes
-	WHERE recipes.archived_at IS NULL
-	AND recipes.status = COALESCE($6, 'approved')::recipe_status
-	AND recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipes.last_updated_at IS NULL
@@ -641,6 +637,8 @@ FROM recipes
 		recipes.last_updated_at IS NULL
 		OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
+	AND recipes.status = COALESCE($6, 'approved')::recipe_status
 	AND recipes.id > COALESCE($7, '')
 ORDER BY recipes.id ASC
 LIMIT COALESCE($8, 50)
@@ -762,9 +760,7 @@ SELECT
 	(
 		SELECT COUNT(recipes.id)
 		FROM recipes
-		WHERE recipes.archived_at IS NULL
-			AND
-			recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				recipes.last_updated_at IS NULL
@@ -774,19 +770,17 @@ SELECT
 				recipes.last_updated_at IS NULL
 				OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 			AND recipes.created_by_user = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipes.id)
 		FROM recipes
-		WHERE recipes.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 			AND recipes.created_by_user = $6
 	) AS total_count
 FROM recipes
-	WHERE recipes.archived_at IS NULL AND
-	recipes.created_by_user = $6
-	AND recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipes.last_updated_at IS NULL
@@ -796,6 +790,7 @@ FROM recipes
 		recipes.last_updated_at IS NULL
 		OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 	AND recipes.created_by_user = $6
 	AND recipes.id > COALESCE($7, '')
 ORDER BY recipes.id ASC
@@ -1176,9 +1171,7 @@ SELECT
 	(
 		SELECT COUNT(recipes.id)
 		FROM recipes
-		WHERE recipes.archived_at IS NULL
-			AND
-			recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				recipes.last_updated_at IS NULL
@@ -1188,17 +1181,15 @@ SELECT
 				recipes.last_updated_at IS NULL
 				OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipes.id)
 		FROM recipes
-		WHERE recipes.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 	) AS total_count
 FROM recipes
-WHERE recipes.archived_at IS NULL
-	AND recipes.name ILIKE '%' || $6::text || '%'
-	AND recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipes.last_updated_at IS NULL
@@ -1208,6 +1199,8 @@ WHERE recipes.archived_at IS NULL
 		recipes.last_updated_at IS NULL
 		OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
+	AND recipes.name ILIKE '%' || $6::text || '%'
 	AND recipes.id > COALESCE($7, '')
 ORDER BY recipes.id ASC
 LIMIT COALESCE($8, 50)
@@ -1366,9 +1359,7 @@ SELECT
 	(
 		SELECT COUNT(recipes.id)
 		FROM recipes
-		WHERE recipes.archived_at IS NULL
-			AND
-			recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				recipes.last_updated_at IS NULL
@@ -1378,19 +1369,15 @@ SELECT
 				recipes.last_updated_at IS NULL
 				OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipes.id)
 		FROM recipes
-		WHERE recipes.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 	) AS total_count
 FROM recipes
-WHERE recipes.archived_at IS NULL
-	AND recipes.eligible_for_meals = true
-	AND recipes.status = 'approved'
-	AND recipes.name ILIKE '%' || $6::text || '%'
-	AND recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipes.last_updated_at IS NULL
@@ -1400,6 +1387,10 @@ WHERE recipes.archived_at IS NULL
 		recipes.last_updated_at IS NULL
 		OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
+	AND recipes.eligible_for_meals = true
+	AND recipes.status = 'approved'
+	AND recipes.name ILIKE '%' || $6::text || '%'
 	AND recipes.id > COALESCE($7, '')
 ORDER BY recipes.id ASC
 LIMIT COALESCE($8, 50)
@@ -1521,9 +1512,7 @@ SELECT
 	(
 		SELECT COUNT(recipes.id)
 		FROM recipes
-		WHERE recipes.archived_at IS NULL
-			AND
-			recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				recipes.last_updated_at IS NULL
@@ -1533,17 +1522,15 @@ SELECT
 				recipes.last_updated_at IS NULL
 				OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipes.id)
 		FROM recipes
-		WHERE recipes.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
 	) AS total_count
 FROM recipes
-WHERE recipes.archived_at IS NULL
-	AND recipes.name ILIKE '%' || $6::text || '%'
-	AND recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE recipes.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND recipes.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		recipes.last_updated_at IS NULL
@@ -1553,20 +1540,22 @@ WHERE recipes.archived_at IS NULL
 		recipes.last_updated_at IS NULL
 		OR recipes.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-	AND recipes.id > COALESCE($7, '')
+	AND (COALESCE($5, false)::boolean OR recipes.archived_at IS NULL)
+	AND recipes.name ILIKE '%' || $6::text || '%'
 	AND NOT EXISTS (
-		SELECT 1 FROM recipe_step_instruments rsi
-		JOIN recipe_steps rs ON rsi.belongs_to_recipe_step = rs.id
-		WHERE rs.belongs_to_recipe = recipes.id
-				AND rsi.archived_at IS NULL
-				AND rs.archived_at IS NULL
-				AND rsi.optional = false
-				AND rsi.instrument_id IS NOT NULL
-				AND rsi.instrument_id NOT IN (
-					SELECT valid_instrument_id FROM account_instrument_ownerships
-					WHERE belongs_to_account = $8 AND archived_at IS NULL
-				)
-	)
+			SELECT 1 FROM recipe_step_instruments rsi
+			JOIN recipe_steps rs ON rsi.belongs_to_recipe_step = rs.id
+			WHERE rs.belongs_to_recipe = recipes.id
+					AND rsi.archived_at IS NULL
+					AND rs.archived_at IS NULL
+					AND rsi.optional = false
+					AND rsi.instrument_id IS NOT NULL
+					AND rsi.instrument_id NOT IN (
+						SELECT valid_instrument_id FROM account_instrument_ownerships
+						WHERE belongs_to_account = $7 AND archived_at IS NULL
+					)
+		)
+	AND recipes.id > COALESCE($8, '')
 ORDER BY recipes.id ASC
 LIMIT COALESCE($9, 50)
 `
@@ -1578,8 +1567,8 @@ type SearchForRecipesWithInstrumentOwnershipParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Query           string
-	Cursor          sql.NullString
 	AccountID       string
+	Cursor          sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -1616,8 +1605,8 @@ func (q *Queries) SearchForRecipesWithInstrumentOwnership(ctx context.Context, d
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Query,
-		arg.Cursor,
 		arg.AccountID,
+		arg.Cursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

@@ -57,22 +57,19 @@ SELECT
 	(
 		SELECT COUNT(oauth2_clients.id)
 		FROM oauth2_clients
-		WHERE oauth2_clients.archived_at IS NULL
-				AND oauth2_clients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE oauth2_clients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 			AND oauth2_clients.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
-					AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR oauth2_clients.archived_at IS NULL)
-			AND oauth2_clients.id > COALESCE(sqlc.narg(cursor), '')
-	) as filtered_count,
+			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR oauth2_clients.archived_at IS NULL)
+	) AS filtered_count,
 	(
-		SELECT COUNT(users.id)
-		FROM users
-		WHERE users.archived_at IS NULL
+		SELECT COUNT(oauth2_clients.id)
+		FROM oauth2_clients
+		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR oauth2_clients.archived_at IS NULL)
 	) AS total_count
 FROM oauth2_clients
-WHERE oauth2_clients.archived_at IS NULL
-	AND oauth2_clients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
+WHERE oauth2_clients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
 	AND oauth2_clients.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
-			AND (NOT COALESCE(sqlc.narg(include_archived), false)::boolean OR oauth2_clients.archived_at IS NULL)
+	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR oauth2_clients.archived_at IS NULL)
 	AND oauth2_clients.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY oauth2_clients.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/primandproper/platform-go/v11/database/querygen"
+
 	"github.com/cristalhq/builq"
 )
 
@@ -21,7 +23,7 @@ func buildAdminQueries(database string) []*Query {
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 					usersTableName,
-					lastUpdatedAtColumn, currentTimeExpression,
+					lastUpdatedAtColumn, querygen.NowExpression,
 					userAccountStatusColumn, userAccountStatusColumn,
 					userAccountStatusExplanationColumn, userAccountStatusExplanationColumn,
 					archivedAtColumn,
@@ -39,7 +41,7 @@ WHERE %s IS NULL
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 					usersTableName,
-					lastUpdatedAtColumn, currentTimeExpression,
+					lastUpdatedAtColumn, querygen.NowExpression,
 					requiresPasswordChangeColumn, requiresPasswordChangeColumn,
 					archivedAtColumn,
 					idColumn, idColumn,

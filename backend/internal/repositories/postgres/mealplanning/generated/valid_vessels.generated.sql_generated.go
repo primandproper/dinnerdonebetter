@@ -408,9 +408,7 @@ SELECT
 	(
 		SELECT COUNT(valid_vessels.id)
 		FROM valid_vessels
-		WHERE valid_vessels.archived_at IS NULL
-			AND
-			valid_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_vessels.last_updated_at IS NULL
@@ -420,17 +418,15 @@ SELECT
 				valid_vessels.last_updated_at IS NULL
 				OR valid_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_vessels.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_vessels.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_vessels.id)
 		FROM valid_vessels
-		WHERE valid_vessels.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR valid_vessels.archived_at IS NULL)
 	) AS total_count
 FROM valid_vessels
-WHERE
-	valid_vessels.archived_at IS NULL
-	AND valid_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_vessels.last_updated_at IS NULL
@@ -440,7 +436,7 @@ WHERE
 		valid_vessels.last_updated_at IS NULL
 		OR valid_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_vessels.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR valid_vessels.archived_at IS NULL)
 	AND valid_vessels.id > COALESCE($6, '')
 GROUP BY valid_vessels.id
 ORDER BY valid_vessels.id ASC
@@ -741,9 +737,7 @@ SELECT
 	(
 		SELECT COUNT(valid_vessels.id)
 		FROM valid_vessels
-		WHERE valid_vessels.archived_at IS NULL
-			AND
-			valid_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE valid_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND valid_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				valid_vessels.last_updated_at IS NULL
@@ -753,17 +747,15 @@ SELECT
 				valid_vessels.last_updated_at IS NULL
 				OR valid_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR valid_vessels.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR valid_vessels.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(valid_vessels.id)
 		FROM valid_vessels
-		WHERE valid_vessels.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR valid_vessels.archived_at IS NULL)
 	) AS total_count
 FROM valid_vessels
-WHERE valid_vessels.archived_at IS NULL
-	AND valid_vessels.name ILIKE '%' || $6::text || '%'
-	AND valid_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE valid_vessels.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND valid_vessels.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		valid_vessels.last_updated_at IS NULL
@@ -773,7 +765,8 @@ WHERE valid_vessels.archived_at IS NULL
 		valid_vessels.last_updated_at IS NULL
 		OR valid_vessels.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR valid_vessels.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR valid_vessels.archived_at IS NULL)
+	AND valid_vessels.name ILIKE '%' || $6::text || '%'
 	AND valid_vessels.id > COALESCE($7, '')
 ORDER BY valid_vessels.id ASC
 LIMIT COALESCE($8, 50)

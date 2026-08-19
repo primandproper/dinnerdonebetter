@@ -66,57 +66,59 @@ func buildValidPreparationInstrumentsQueries(database string) []*Query {
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	%s
+WHERE %s
 GROUP BY
 	%s.%s,
 	%s.%s,
 	%s.%s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(
+						querygen.FilterCountSelect(
 							validPreparationInstrumentsTableName,
-							true,
-							true,
+							validPreparationInstrumentsColumns,
 							[]string{
-								"valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
-								"valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
+								"JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
+								"JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
 							},
 							fmt.Sprintf("%s.%s IS NULL", validInstrumentsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationInstrumentsTableName, validInstrumentIDColumn, idColumn),
 						),
-						buildTotalCountSelect(
+						querygen.TotalCountSelect(
 							validPreparationInstrumentsTableName,
-							true,
+							validPreparationInstrumentsColumns,
 							[]string{
-								"valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
-								"valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
+								"JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
+								"JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
 							},
 							fmt.Sprintf("%s.%s IS NULL", validInstrumentsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationInstrumentsTableName, validInstrumentIDColumn, idColumn),
 						),
 						validPreparationInstrumentsTableName,
-						validInstrumentsTableName, validPreparationInstrumentsTableName, validInstrumentIDColumn, validInstrumentsTableName, idColumn,
-						validPreparationsTableName, validPreparationInstrumentsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
-						validPreparationInstrumentsTableName, archivedAtColumn,
-						validPreparationInstrumentsTableName, validInstrumentIDColumn, idColumn, ///
-						validInstrumentsTableName, archivedAtColumn,
-						validPreparationsTableName, archivedAtColumn,
-						buildFilterConditions(
-							validPreparationInstrumentsTableName,
-							true,
-							true,
+						validInstrumentsTableName,
+						validPreparationInstrumentsTableName,
+						validInstrumentIDColumn,
+						validInstrumentsTableName,
+						idColumn,
+						validPreparationsTableName,
+						validPreparationInstrumentsTableName,
+						validPreparationIDColumn,
+						validPreparationsTableName,
+						idColumn,
+						querygen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationInstrumentsTableName, validInstrumentIDColumn, idColumn),
+							fmt.Sprintf("%s.%s IS NULL", ///
+								validInstrumentsTableName, archivedAtColumn),
+							"valid_preparations.archived_at IS NULL",
 						),
-						validPreparationInstrumentsTableName, idColumn,
-						validPreparationsTableName, idColumn,
-						validInstrumentsTableName, idColumn,
-						buildCursorLimitClause(validPreparationInstrumentsTableName),
+						validPreparationInstrumentsTableName,
+						idColumn,
+						validPreparationsTableName,
+						idColumn,
+						validInstrumentsTableName,
+						idColumn,
+						querygen.CursorLimitClause(validPreparationInstrumentsTableName),
 					)),
 				},
 				{
@@ -131,57 +133,59 @@ GROUP BY
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s)
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	%s
+WHERE %s
 GROUP BY
 	%s.%s,
 	%s.%s,
 	%s.%s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(
+						querygen.FilterCountSelect(
 							validPreparationInstrumentsTableName,
-							true,
-							true,
+							validPreparationInstrumentsColumns,
 							[]string{
-								"valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
-								"valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
+								"JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
+								"JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
 							},
 							fmt.Sprintf("%s.%s IS NULL", validInstrumentsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationInstrumentsTableName, validPreparationIDColumn, idColumn),
 						),
-						buildTotalCountSelect(
+						querygen.TotalCountSelect(
 							validPreparationInstrumentsTableName,
-							true,
+							validPreparationInstrumentsColumns,
 							[]string{
-								"valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
-								"valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
+								"JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
+								"JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
 							},
 							fmt.Sprintf("%s.%s IS NULL", validInstrumentsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationInstrumentsTableName, validPreparationIDColumn, idColumn),
 						),
 						validPreparationInstrumentsTableName,
-						validInstrumentsTableName, validPreparationInstrumentsTableName, validInstrumentIDColumn, validInstrumentsTableName, idColumn,
-						validPreparationsTableName, validPreparationInstrumentsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
-						validPreparationInstrumentsTableName, archivedAtColumn,
-						validPreparationInstrumentsTableName, validPreparationIDColumn, idColumn, ///
-						validInstrumentsTableName, archivedAtColumn,
-						validPreparationsTableName, archivedAtColumn,
-						buildFilterConditions(
-							validPreparationInstrumentsTableName,
-							true,
-							true,
+						validInstrumentsTableName,
+						validPreparationInstrumentsTableName,
+						validInstrumentIDColumn,
+						validInstrumentsTableName,
+						idColumn,
+						validPreparationsTableName,
+						validPreparationInstrumentsTableName,
+						validPreparationIDColumn,
+						validPreparationsTableName,
+						idColumn,
+						querygen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationInstrumentsTableName, validPreparationIDColumn, idColumn),
+							fmt.Sprintf("%s.%s IS NULL", ///
+								validInstrumentsTableName, archivedAtColumn),
+							"valid_preparations.archived_at IS NULL",
 						),
-						validPreparationInstrumentsTableName, idColumn,
-						validPreparationsTableName, idColumn,
-						validInstrumentsTableName, idColumn,
-						buildCursorLimitClause(validPreparationInstrumentsTableName),
+						validPreparationInstrumentsTableName,
+						idColumn,
+						validPreparationsTableName,
+						idColumn,
+						validInstrumentsTableName,
+						idColumn,
+						querygen.CursorLimitClause(validPreparationInstrumentsTableName),
 					)),
 				},
 				{
@@ -196,53 +200,55 @@ GROUP BY
 FROM %s
 	JOIN %s ON %s.%s = %s.%s
 	JOIN %s ON %s.%s = %s.%s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s IS NULL
-	AND %s.%s IS NULL
-	%s
+WHERE %s
 GROUP BY
 	%s.%s,
 	%s.%s,
 	%s.%s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(
+						querygen.FilterCountSelect(
 							validPreparationInstrumentsTableName,
-							true,
-							true,
+							validPreparationInstrumentsColumns,
 							[]string{
-								"valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
-								"valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
+								"JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
+								"JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
 							},
 							fmt.Sprintf("%s.%s IS NULL", validInstrumentsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
 						),
-						buildTotalCountSelect(
+						querygen.TotalCountSelect(
 							validPreparationInstrumentsTableName,
-							true,
+							validPreparationInstrumentsColumns,
 							[]string{
-								"valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
-								"valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
+								"JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
+								"JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
 							},
 							fmt.Sprintf("%s.%s IS NULL", validInstrumentsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
 						),
 						validPreparationInstrumentsTableName,
-						validInstrumentsTableName, validPreparationInstrumentsTableName, validInstrumentIDColumn, validInstrumentsTableName, idColumn,
-						validPreparationsTableName, validPreparationInstrumentsTableName, validPreparationIDColumn, validPreparationsTableName, idColumn,
-						validPreparationInstrumentsTableName, archivedAtColumn,
-						validInstrumentsTableName, archivedAtColumn,
-						validPreparationsTableName, archivedAtColumn,
-						buildFilterConditions(
-							validPreparationInstrumentsTableName,
-							true,
-							true,
+						validInstrumentsTableName,
+						validPreparationInstrumentsTableName,
+						validInstrumentIDColumn,
+						validInstrumentsTableName,
+						idColumn,
+						validPreparationsTableName,
+						validPreparationInstrumentsTableName,
+						validPreparationIDColumn,
+						validPreparationsTableName,
+						idColumn,
+						querygen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns,
+							"valid_instruments.archived_at IS NULL",
+							"valid_preparations.archived_at IS NULL",
 						),
-						validPreparationInstrumentsTableName, idColumn,
-						validPreparationsTableName, idColumn,
-						validInstrumentsTableName, idColumn,
-						buildCursorLimitClause(validPreparationInstrumentsTableName),
+						validPreparationInstrumentsTableName,
+						idColumn,
+						validPreparationsTableName,
+						idColumn,
+						validInstrumentsTableName,
+						idColumn,
+						querygen.CursorLimitClause(validPreparationInstrumentsTableName),
 					)),
 				},
 				{

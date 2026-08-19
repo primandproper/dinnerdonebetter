@@ -59,17 +59,17 @@ WHERE %s IS NULL
 				AND %s IS NULL
 	);`,
 						webhookTriggerConfigsTableName,
-						archivedAtColumn, currentTimeExpression,
-						fullColumnName(webhookTriggerConfigsTableName, archivedAtColumn),
-						fullColumnName(webhookTriggerConfigsTableName, idColumn), idColumn,
-						fullColumnName(webhookTriggerConfigsTableName, belongsToWebhookColumn),
+						archivedAtColumn, querygen.NowExpression,
+						querygen.Qualify(webhookTriggerConfigsTableName, archivedAtColumn),
+						querygen.Qualify(webhookTriggerConfigsTableName, idColumn), idColumn,
+						querygen.Qualify(webhookTriggerConfigsTableName, belongsToWebhookColumn),
 						// Fully qualified inside the subquery: the outer UPDATE and the inner
 						// SELECT both have an id and an archived_at, and an unqualified
 						// reference to either is ambiguous.
-						fullColumnName(webhooksTableName, idColumn), webhooksTableName,
-						fullColumnName(webhooksTableName, idColumn), belongsToWebhookColumn,
-						fullColumnName(webhooksTableName, belongsToAccountColumn), belongsToAccountColumn,
-						fullColumnName(webhooksTableName, archivedAtColumn),
+						querygen.Qualify(webhooksTableName, idColumn), webhooksTableName,
+						querygen.Qualify(webhooksTableName, idColumn), belongsToWebhookColumn,
+						querygen.Qualify(webhooksTableName, belongsToAccountColumn), belongsToAccountColumn,
+						querygen.Qualify(webhooksTableName, archivedAtColumn),
 					)),
 				},
 			},

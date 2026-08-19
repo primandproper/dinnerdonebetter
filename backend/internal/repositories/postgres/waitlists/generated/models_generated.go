@@ -9,19 +9,6 @@ import (
 	"time"
 )
 
-type IssueReports struct {
-	ID               string
-	IssueType        string
-	Details          string
-	RelevantTable    sql.NullString
-	RelevantRecordID sql.NullString
-	CreatedAt        time.Time
-	LastUpdatedAt    sql.NullTime
-	ArchivedAt       sql.NullTime
-	CreatedByUser    string
-	BelongsToAccount string
-}
-
 type WaitlistSignups struct {
 	ID                string
 	Notes             string

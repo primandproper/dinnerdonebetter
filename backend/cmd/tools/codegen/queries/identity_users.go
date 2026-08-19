@@ -86,7 +86,7 @@ func buildUpdateAccountMembershipsQuery(ownershipColumn string, nowColumns []str
 
 	addendum := ""
 	for _, col := range nowColumns {
-		addendum = fmt.Sprintf(",\n\t%s = %s", col, currentTimeExpression)
+		addendum = fmt.Sprintf(",\n\t%s = %s", col, querygen.NowExpression)
 	}
 
 	builder := updateQueryBuilder.Addf(
@@ -96,7 +96,7 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 		accountUserMembershipsTableName,
 		archivedAtColumn,
-		currentTimeExpression,
+		querygen.NowExpression,
 		addendum,
 		archivedAtColumn,
 		ownershipColumn,
@@ -111,7 +111,7 @@ func buildUserUpdateQuery(columnName string, nowColumns []string) string {
 
 	addendum := ""
 	for _, col := range nowColumns {
-		addendum = fmt.Sprintf(",\n\t%s = %s", col, currentTimeExpression)
+		addendum = fmt.Sprintf(",\n\t%s = %s", col, querygen.NowExpression)
 	}
 
 	builder := updateQueryBuilder.Addf(
@@ -121,7 +121,7 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 		usersTableName,
 		columnName,
-		currentTimeExpression,
+		querygen.NowExpression,
 		addendum,
 		archivedAtColumn,
 		idColumn,
@@ -325,24 +325,18 @@ WHERE %s.%s IS NULL
 	%s
 FROM %s
 	%s
-WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(usersColumns, func(_ int, s string) string {
 							return fmt.Sprintf("%s.%s", usersTableName, s)
 						}), ",\n\t"),
 						strings.Join(avatarJoinSelect("avatar"), ",\n\t"),
-						buildFilterCountSelect(usersTableName, true, true, []string{}),
-						buildTotalCountSelect(usersTableName, true, []string{}),
+						querygen.FilterCountSelect(usersTableName, usersColumns, []string{}),
+						querygen.TotalCountSelect(usersTableName, usersColumns, []string{}),
 						usersTableName,
 						avatarJoinClause,
-						usersTableName, archivedAtColumn,
-						buildFilterConditions(
-							usersTableName,
-							true,
-							true,
-						),
-						buildCursorLimitClause(usersTableName),
+						querygen.FilterConditions(usersTableName, usersColumns),
+						querygen.CursorLimitClause(usersTableName),
 					)),
 				},
 				{
@@ -358,21 +352,26 @@ WHERE %s.%s IS NULL
 FROM %s
 	%s
 JOIN %s ON %s.%s = %s.%s
-WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(usersColumns, func(_ int, s string) string {
 							return fmt.Sprintf("%s.%s", usersTableName, s)
 						}), ",\n\t"),
 						strings.Join(avatarJoinSelect("avatar"), ",\n\t"),
-						buildFilterCountSelect(usersTableName, true, true, nil),
-						buildTotalCountSelect(usersTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						querygen.FilterCountSelect(usersTableName, usersColumns, nil),
+						querygen.TotalCountSelect(usersTableName, usersColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToAccountColumn, belongsToAccountColumn)),
 						usersTableName,
 						avatarJoinClause,
-						accountUserMembershipsTableName, accountUserMembershipsTableName, belongsToUserColumn, usersTableName, idColumn,
-						usersTableName, archivedAtColumn,
-						buildFilterConditions(usersTableName, true, true, fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToAccountColumn, belongsToAccountColumn), fmt.Sprintf("%s.%s IS NULL", accountUserMembershipsTableName, archivedAtColumn)),
-						buildCursorLimitClause(usersTableName),
+						accountUserMembershipsTableName,
+						accountUserMembershipsTableName,
+						belongsToUserColumn,
+						usersTableName,
+						idColumn,
+						querygen.FilterConditions(usersTableName, usersColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToAccountColumn, belongsToAccountColumn),
+							fmt.Sprintf("%s.%s IS NULL", accountUserMembershipsTableName, archivedAtColumn),
+						),
+						querygen.CursorLimitClause(usersTableName),
 					)),
 				},
 				{
@@ -428,7 +427,7 @@ WHERE %s.%s IS NULL
 						usersTableName,
 						usersTableName, archivedAtColumn,
 						usersTableName, lastIndexedAtColumn,
-						usersTableName, lastIndexedAtColumn, currentTimeExpression,
+						usersTableName, lastIndexedAtColumn, querygen.NowExpression,
 					)),
 				},
 				{
@@ -492,8 +491,8 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 						usersTableName,
-						emailAddressVerifiedAtColumn, currentTimeExpression,
-						lastUpdatedAtColumn, currentTimeExpression,
+						emailAddressVerifiedAtColumn, querygen.NowExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						emailAddressVerifiedAtColumn,
 						idColumn, idColumn,
@@ -513,7 +512,7 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						usersTableName,
 						emailAddressVerifiedAtColumn,
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						emailAddressVerifiedAtColumn,
 						idColumn, idColumn,
@@ -534,7 +533,7 @@ WHERE %s IS NULL
 						twoFactorSecretVerifiedAtColumn,
 						twoFactorSecretColumn, twoFactorSecretColumn,
 						lastUpdatedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						archivedAtColumn,
 						idColumn,
 						idColumn,
@@ -551,8 +550,8 @@ WHERE %s IS NULL
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						usersTableName,
-						twoFactorSecretVerifiedAtColumn, currentTimeExpression,
-						lastUpdatedAtColumn, currentTimeExpression,
+						twoFactorSecretVerifiedAtColumn, querygen.NowExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -569,29 +568,20 @@ WHERE %s IS NULL
 	%s
 FROM %s
 	%s
-WHERE %s.%s IS NULL
-	AND %s.%s %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(applyToEach(usersColumns, func(_ int, s string) string {
 							return fmt.Sprintf("%s.%s", usersTableName, s)
 						}), ",\n\t"),
 						strings.Join(avatarJoinSelect("avatar"), ",\n\t"),
-						buildFilterCountSelect(usersTableName, true, true, []string{}),
-						buildTotalCountSelect(usersTableName, true, []string{}),
+						querygen.FilterCountSelect(usersTableName, usersColumns, []string{}),
+						querygen.TotalCountSelect(usersTableName, usersColumns, []string{}),
 						usersTableName,
 						avatarJoinClause,
-						usersTableName,
-						archivedAtColumn,
-						usersTableName,
-						usernameColumn,
-						buildILIKEForArgument(usernameColumn),
-						buildFilterConditions(
-							usersTableName,
-							true,
-							true,
+						querygen.FilterConditions(usersTableName, usersColumns,
+							fmt.Sprintf("%s.%s %s", usersTableName, usernameColumn, buildILIKEForArgument(usernameColumn)),
 						),
-						buildCursorLimitClause(usersTableName),
+						querygen.CursorLimitClause(usersTableName),
 					)),
 				},
 				{
@@ -610,7 +600,7 @@ WHERE %s IS NULL
 						firstNameColumn, firstNameColumn,
 						lastNameColumn, lastNameColumn,
 						birthdayColumn, birthdayColumn,
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -630,7 +620,7 @@ WHERE %s IS NULL
 						emailAddressColumn, emailAddressColumn,
 						emailAddressVerifiedAtColumn,
 						lastUpdatedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -650,8 +640,8 @@ WHERE %s IS NULL
 						usersTableName,
 						hashedPasswordColumn, hashedPasswordColumn,
 						requiresPasswordChangeColumn,
-						passwordLastChangedAtColumn, currentTimeExpression,
-						lastUpdatedAtColumn, currentTimeExpression,
+						passwordLastChangedAtColumn, querygen.NowExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -670,7 +660,7 @@ WHERE %s IS NULL
 						usersTableName,
 						twoFactorSecretVerifiedAtColumn,
 						twoFactorSecretColumn, twoFactorSecretColumn,
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -687,7 +677,7 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						usersTableName,
 						usernameColumn, usernameColumn,
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),

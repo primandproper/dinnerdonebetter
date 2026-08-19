@@ -176,20 +176,19 @@ FROM meal_plan_options
 	JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event = meal_plan_events.id
 	JOIN meal_plans ON meal_plan_events.belongs_to_meal_plan = meal_plans.id
 	JOIN meals ON meal_plan_options.meal_id = meals.id
-WHERE
-	meal_plan_options.archived_at IS NULL
-	AND meal_plan_options.belongs_to_meal_plan_event = sqlc.arg(meal_plan_event_id)
-	AND meal_plan_events.id = sqlc.arg(meal_plan_event_id)
-	AND meal_plan_events.belongs_to_meal_plan = sqlc.arg(meal_plan_id)
-	AND meal_plans.archived_at IS NULL
-	AND meal_plans.id = sqlc.arg(meal_plan_id)
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(mealPlanOptionsTableName, true, true, []string{}, "meal_plan_options.belongs_to_meal_plan_event = sqlc.arg(meal_plan_event_id)"),
-						buildTotalCountSelect(mealPlanOptionsTableName, true, []string{}),
-						buildFilterConditions(mealPlanOptionsTableName, true, false, "meal_plan_options.belongs_to_meal_plan_event = sqlc.arg(meal_plan_event_id)"),
-						buildCursorLimitClause(mealPlanOptionsTableName),
+						querygen.FilterCountSelect(mealPlanOptionsTableName, mealPlanOptionsColumns, []string{}, "meal_plan_options.belongs_to_meal_plan_event = sqlc.arg(meal_plan_event_id)"),
+						querygen.TotalCountSelect(mealPlanOptionsTableName, mealPlanOptionsColumns, []string{}),
+						querygen.FilterConditions(mealPlanOptionsTableName, mealPlanOptionsColumns,
+							"meal_plan_events.id = sqlc.arg(meal_plan_event_id)",
+							"meal_plan_events.belongs_to_meal_plan = sqlc.arg(meal_plan_id)",
+							"meal_plans.archived_at IS NULL",
+							"meal_plans.id = sqlc.arg(meal_plan_id)",
+							"meal_plan_options.belongs_to_meal_plan_event = sqlc.arg(meal_plan_event_id)",
+						),
+						querygen.CursorLimitClause(mealPlanOptionsTableName),
 					)),
 				},
 				{
@@ -259,11 +258,11 @@ WHERE %s IS NULL
 	AND %s = sqlc.arg(%s)
 	AND %s = sqlc.arg(%s);`,
 						mealPlanOptionsTableName,
-						strings.Join(applyToEach(filterForUpdate(mealPlanOptionsColumns, mealPlanOptionsChosenColumn, mealPlanOptionsTiebrokenColumn, belongsToMealPlanEventColumn), func(i int, s string) string {
+						strings.Join(applyToEach(querygen.ForUpdate(mealPlanOptionsColumns, mealPlanOptionsChosenColumn, mealPlanOptionsTiebrokenColumn, belongsToMealPlanEventColumn), func(i int, s string) string {
 							return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
 						}), ",\n\t"),
 						lastUpdatedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						archivedAtColumn,
 						belongsToMealPlanEventColumn, mealPlanEventIDColumn,
 						idColumn, mealPlanOptionIDColumn,

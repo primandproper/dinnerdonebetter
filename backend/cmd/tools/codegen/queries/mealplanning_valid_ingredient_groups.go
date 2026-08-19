@@ -63,26 +63,19 @@ func buildValidIngredientGroupsQueries(database string) []*Query {
 	%s,
 	%s
 FROM %s
-WHERE
-	%s.%s IS NULL
-	%s
+WHERE %s
 GROUP BY %s.%s
 %s;`,
 						strings.Join(applyToEach(validIngredientGroupsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validIngredientGroupsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(validIngredientGroupsTableName, true, true, []string{}),
-						buildTotalCountSelect(validIngredientGroupsTableName, true, []string{}),
+						querygen.FilterCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}),
+						querygen.TotalCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}),
 						validIngredientGroupsTableName,
+						querygen.FilterConditions(validIngredientGroupsTableName, validIngredientGroupsColumns),
 						validIngredientGroupsTableName,
-						archivedAtColumn,
-						buildFilterConditions(
-							validIngredientGroupsTableName,
-							true,
-							true,
-						),
-						validIngredientGroupsTableName, idColumn,
-						buildCursorLimitClause(validIngredientGroupsTableName),
+						idColumn,
+						querygen.CursorLimitClause(validIngredientGroupsTableName),
 					)),
 				},
 				{
@@ -118,28 +111,21 @@ WHERE
 	%s,
 	%s
 FROM %s
-WHERE
-	%s.%s IS NULL
-	AND %s.%s %s
-	%s
+WHERE %s
 GROUP BY %s.%s
 %s;`,
 						strings.Join(applyToEach(validIngredientGroupsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validIngredientGroupsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(validIngredientGroupsTableName, true, true, []string{}, fmt.Sprintf("%s.%s %s", validIngredientGroupsTableName, nameColumn, buildILIKEForArgument("name"))),
-						buildTotalCountSelect(validIngredientGroupsTableName, true, []string{}),
+						querygen.FilterCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}, fmt.Sprintf("%s.%s %s", validIngredientGroupsTableName, nameColumn, buildILIKEForArgument("name"))),
+						querygen.TotalCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}),
 						validIngredientGroupsTableName,
-						validIngredientGroupsTableName,
-						archivedAtColumn,
-						validIngredientGroupsTableName, nameColumn, buildILIKEForArgument("name"),
-						buildFilterConditions(
-							validIngredientGroupsTableName,
-							true,
-							true,
+						querygen.FilterConditions(validIngredientGroupsTableName, validIngredientGroupsColumns,
+							fmt.Sprintf("%s.%s %s", validIngredientGroupsTableName, nameColumn, buildILIKEForArgument("name")),
 						),
-						validIngredientGroupsTableName, idColumn,
-						buildCursorLimitClause(validIngredientGroupsTableName),
+						validIngredientGroupsTableName,
+						idColumn,
+						querygen.CursorLimitClause(validIngredientGroupsTableName),
 					)),
 				},
 				{

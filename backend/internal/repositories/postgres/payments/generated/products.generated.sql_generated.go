@@ -176,9 +176,7 @@ SELECT
 	(
 		SELECT COUNT(products.id)
 		FROM products
-		WHERE products.archived_at IS NULL
-			AND
-			products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				products.last_updated_at IS NULL
@@ -188,16 +186,15 @@ SELECT
 				products.last_updated_at IS NULL
 				OR products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR products.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(products.id)
 		FROM products
-		WHERE products.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	) AS total_count
 FROM products
-WHERE products.archived_at IS NULL
-	AND products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		products.last_updated_at IS NULL
@@ -207,7 +204,7 @@ WHERE products.archived_at IS NULL
 		products.last_updated_at IS NULL
 		OR products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR products.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	AND products.id > COALESCE($6, '')
 ORDER BY products.id ASC
 LIMIT COALESCE($7, 50)
@@ -300,9 +297,7 @@ SELECT
 	(
 		SELECT COUNT(products.id)
 		FROM products
-		WHERE products.archived_at IS NULL
-			AND
-			products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				products.last_updated_at IS NULL
@@ -312,17 +307,15 @@ SELECT
 				products.last_updated_at IS NULL
 				OR products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR products.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	) AS filtered_count,
 	(
 		SELECT COUNT(products.id)
 		FROM products
-		WHERE products.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	) AS total_count
 FROM products
-WHERE products.archived_at IS NULL
-	AND products.name ILIKE '%' || $6::text || '%'
-	AND products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		products.last_updated_at IS NULL
@@ -332,7 +325,8 @@ WHERE products.archived_at IS NULL
 		products.last_updated_at IS NULL
 		OR products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
-			AND (NOT COALESCE($5, false)::boolean OR products.archived_at IS NULL)
+	AND (COALESCE($5, false)::boolean OR products.archived_at IS NULL)
+	AND products.name ILIKE '%' || $6::text || '%'
 	AND products.id > COALESCE($7, '')
 ORDER BY products.id ASC
 LIMIT COALESCE($8, 50)

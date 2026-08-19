@@ -24,6 +24,15 @@ const (
 
 type (
 	// Subscription represents a recurring agreement for an account.
+	//
+	// It is not a duplicate of capitalism.SubscriptionCreationInput. That type is a provider
+	// call's arguments — CustomerID, PriceID, IdempotencyKey — naming things that exist in
+	// Stripe and nowhere here. This is the row: it belongs to an account, points at one of our
+	// products, has a status this application transitions and archival timestamps this
+	// application stamps, and holds the provider's own identifier in ExternalSubscriptionID
+	// precisely because the two identities are separate. The platform deliberately has no
+	// counterpart to it — how a subscription is stored, scoped, and expired is an
+	// application's decision.
 	Subscription struct {
 		_                      struct{}   `json:"-"`
 		CurrentPeriodStart     time.Time  `json:"currentPeriodStart"`

@@ -102,21 +102,21 @@ func buildMealPlanEventsQueries(database string) []*Query {
 	%s,
 	%s
 FROM %s
-WHERE
-	%s.%s IS NULL
-	%s
+WHERE %s
 GROUP BY %s.%s
 %s;`,
 						strings.Join(applyToEach(mealPlanEventsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", mealPlanEventsTableName, s)
 						}), ",\n\t"),
-						buildFilterCountSelect(mealPlanEventsTableName, true, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn)),
-						buildTotalCountSelect(mealPlanEventsTableName, true, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn)),
+						querygen.FilterCountSelect(mealPlanEventsTableName, mealPlanEventsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn)),
+						querygen.TotalCountSelect(mealPlanEventsTableName, mealPlanEventsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn)),
 						mealPlanEventsTableName,
-						mealPlanEventsTableName, archivedAtColumn,
-						buildFilterConditions(mealPlanEventsTableName, true, true, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn)),
-						mealPlanEventsTableName, idColumn,
-						buildCursorLimitClause(mealPlanEventsTableName),
+						querygen.FilterConditions(mealPlanEventsTableName, mealPlanEventsColumns,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn),
+						),
+						mealPlanEventsTableName,
+						idColumn,
+						querygen.CursorLimitClause(mealPlanEventsTableName),
 					)),
 				},
 				{
@@ -149,11 +149,11 @@ WHERE
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						mealPlanEventsTableName,
-						strings.Join(applyToEach(filterForUpdate(mealPlanEventsColumns), func(i int, s string) string {
+						strings.Join(applyToEach(querygen.ForUpdate(mealPlanEventsColumns), func(i int, s string) string {
 							return fmt.Sprintf("%s = sqlc.arg(%s)", s, s)
 						}), ",\n\t"),
 						lastUpdatedAtColumn,
-						currentTimeExpression,
+						querygen.NowExpression,
 						archivedAtColumn,
 						idColumn,
 						idColumn,

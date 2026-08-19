@@ -36,7 +36,7 @@ func buildPaymentsSubscriptionsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 		fullSelectColumns := applyToEach(subscriptionsColumns, func(_ int, s string) string {
-			return fullColumnName(subscriptionsTableName, s)
+			return querygen.Qualify(subscriptionsTableName, s)
 		})
 		accountCondition := fmt.Sprintf("%s.%s = sqlc.arg(%s)", subscriptionsTableName, belongsToAccountColumn, belongsToAccountColumn)
 
@@ -54,8 +54,8 @@ func buildPaymentsSubscriptionsQueries(database string) []*Query {
 					},
 					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s, %s = %s WHERE %s IS NULL AND %s = sqlc.arg(%s);`,
 						subscriptionsTableName,
-						archivedAtColumn, currentTimeExpression,
-						lastUpdatedAtColumn, currentTimeExpression,
+						archivedAtColumn, querygen.NowExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -86,18 +86,17 @@ AND %s.%s = sqlc.arg(%s);`,
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(subscriptionsTableName, true, true, nil, accountCondition),
-						buildTotalCountSelect(subscriptionsTableName, true, nil, accountCondition),
+						querygen.FilterCountSelect(subscriptionsTableName, subscriptionsColumns, nil, accountCondition),
+						querygen.TotalCountSelect(subscriptionsTableName, subscriptionsColumns, nil, accountCondition),
 						subscriptionsTableName,
-						subscriptionsTableName, archivedAtColumn,
-						accountCondition,
-						buildFilterConditions(subscriptionsTableName, true, false, accountCondition),
-						buildCursorLimitClause(subscriptionsTableName),
+						querygen.FilterConditions(subscriptionsTableName, subscriptionsColumns,
+							accountCondition,
+							accountCondition,
+						),
+						querygen.CursorLimitClause(subscriptionsTableName),
 					)),
 				},
 				{
@@ -108,7 +107,7 @@ WHERE %s.%s IS NULL
 					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET status = sqlc.arg(status), %s = %s
 WHERE %s IS NULL AND %s = sqlc.arg(%s);`,
 						subscriptionsTableName,
-						lastUpdatedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),

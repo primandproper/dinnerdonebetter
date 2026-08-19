@@ -98,6 +98,7 @@ func (q *repository) GetSelectionsForMealPlanOption(ctx context.Context, mealPla
 		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
 		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
+		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		MealPlanOptionID: mealPlanOptionID,
 		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
@@ -158,12 +159,14 @@ func (q *repository) GetSelectionsForMealPlan(ctx context.Context, mealPlanID st
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
 	results, err := q.generatedQuerier.GetMealPlanRecipeOptionSelectionsForMealPlan(ctx, q.readDB, &generated.GetMealPlanRecipeOptionSelectionsForMealPlanParams{
-		MealPlanID:    mealPlanID,
-		CreatedAfter:  database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore: database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore: database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:  database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		ResultLimit:   nil, // fetch everything always
+		MealPlanID:      mealPlanID,
+		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
+		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
+		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
+		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
+		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		ResultLimit:     nil, // fetch everything always
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing meal plan recipe option selections for meal plan retrieval query")

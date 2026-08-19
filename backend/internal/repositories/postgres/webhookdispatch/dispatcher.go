@@ -43,7 +43,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"strings"
 
 	"github.com/primandproper/platform-go/v11/clock"
 	"github.com/primandproper/platform-go/v11/database"
@@ -53,7 +52,6 @@ import (
 	"github.com/primandproper/platform-go/v11/observability/logging"
 	"github.com/primandproper/platform-go/v11/observability/metrics"
 	"github.com/primandproper/platform-go/v11/observability/tracing"
-	"github.com/primandproper/platform-go/v11/tenancy"
 	"github.com/primandproper/platform-go/v11/webhooks"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -61,14 +59,6 @@ import (
 )
 
 const o11yName = "webhook_dispatcher"
-
-// accountSeparator joins an account to an event type in a subscription row.
-//
-// A colon, because neither half can contain one: account IDs are the alphanumeric identifiers
-// identifiers.New mints, and event types are Go constants matching [a-z0-9_]+. That is what makes
-// the join unambiguous — a separator either side could contain would let two different pairs
-// render to the same subscription string, and events would reach the wrong account's endpoint.
-const accountSeparator = ":"
 
 // secretBytes is the size of a generated endpoint signing secret. 32 bytes matches the output
 // width of the SHA-256 the signature is computed with; a longer key buys nothing against HMAC.
@@ -200,36 +190,6 @@ func NewDispatcher(
 	return d, nil
 }
 
-// qualify renders the subscription string for one account's interest in one event type.
-// scope is the tenant dimension every stored record and every store call in this package
-// carries.
-//
-// It is Global, and that is behavior-preserving rather than an omission. platform-go's webhooks
-// tables grew an owner dimension in /v11, and this package had already solved the same problem a
-// different way: the account travels inside the subscription's event type, as
-// <accountID>:<eventType>, which is what the qualify/unqualify pair below is for. Two account
-// filters would be one too many. Global matches only itself, so the added dimension selects
-// every row this package writes and excludes nothing it would otherwise have read.
-//
-// Adopting the dimension properly means deleting qualify/unqualify, backfilling real account IDs
-// into the scope column, and then deleting most of this package in favor of the platform's own
-// Dispatcher — which is what the owner dimension was added for, and which is #1303. It is not
-// this change.
-func scope() tenancy.Scope {
-	return tenancy.Global()
-}
-
-func qualify(accountID, eventType string) webhooks.EventType {
-	return webhooks.EventType(accountID + accountSeparator + eventType)
-}
-
-// unqualify recovers the event type from a subscription string, and reports whether it belonged
-// to the given account. A subscription for another account returns false, which is what makes
-// this safe to map over an endpoint's whole subscription set.
-func unqualify(accountID string, subscription webhooks.EventType) (eventType string, ok bool) {
-	return strings.CutPrefix(subscription.String(), accountID+accountSeparator)
-}
-
 // Register stores an endpoint and its subscriptions, returning the signing secret.
 //
 // The secret is generated here and returned exactly once: it is stored to sign with, never read
@@ -257,25 +217,15 @@ func (d *Dispatcher) Register(ctx context.Context, registration *Registration) (
 
 	logger := d.logger.WithValue("webhook_id", registration.ID)
 
-	events, err := d.qualifyAll(registration.AccountID, registration.EventTypes)
-	if err != nil {
-		return "", observability.PrepareAndLogError(err, logger, span, "qualifying webhook event types")
-	}
-
 	rawSecret := make([]byte, secretBytes)
 	if _, err = rand.Read(rawSecret); err != nil {
 		return "", observability.PrepareAndLogError(err, logger, span, "generating webhook signing secret")
 	}
 
-	endpoint := &webhooks.Endpoint{
-		Scope:       scope(),
-		ID:          registration.ID,
-		URL:         registration.URL,
-		ContentType: registration.ContentType,
-		Secret:      webhooks.Secret{Current: rawSecret},
-		Events:      events,
+	endpoint := toPlatformEndpoint(registration, rawSecret)
+	if err = d.setAccountSubscriptions(endpoint, registration.AccountID, registration.EventTypes); err != nil {
+		return "", observability.PrepareAndLogError(err, logger, span, "subscribing webhook endpoint to event types")
 	}
-	endpoint.EnsureDefaults()
 
 	// Vetted before it is stored, not only before it is dialed. A rejection reported at
 	// registration reaches whoever submitted the URL; one discovered at delivery reaches a log
@@ -294,10 +244,8 @@ func (d *Dispatcher) Register(ctx context.Context, registration *Registration) (
 // SetEventTypes replaces the account's subscriptions for one endpoint.
 //
 // Read-modify-write, because SaveEndpoint replaces an endpoint's whole subscription set and this
-// application never owns all of it: the set stored against an endpoint is keyed by account, and
-// rewriting it from the event types alone would drop any subscription belonging to a different
-// account. In practice an endpoint has exactly one account — its webhook's — but relying on that
-// here would make a future multi-account endpoint silently lose subscriptions.
+// application never owns all of it. setAccountSubscriptions is what preserves the rest of it, and
+// is the same call Register makes — see conversion.go.
 func (d *Dispatcher) SetEventTypes(ctx context.Context, endpointID, accountID string, eventTypes []string) error {
 	if d == nil {
 		return ErrNoDispatcher
@@ -308,9 +256,10 @@ func (d *Dispatcher) SetEventTypes(ctx context.Context, endpointID, accountID st
 
 	logger := d.logger.WithValue("webhook_id", endpointID)
 
-	qualified, err := d.qualifyAll(accountID, eventTypes)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "qualifying webhook event types")
+	// Vetted before the read, so a request naming an event type nobody publishes costs no
+	// query. The projection into the platform's vocabulary still happens in one place, below.
+	if err := d.checkKnown(eventTypes); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "checking webhook event types against the catalog")
 	}
 
 	endpoint, err := d.store.GetEndpoint(ctx, scope(), endpointID)
@@ -325,15 +274,9 @@ func (d *Dispatcher) SetEventTypes(ctx context.Context, endpointID, accountID st
 		return observability.PrepareAndLogError(err, logger, span, "reading webhook endpoint")
 	}
 
-	subscriptions := make([]webhooks.EventType, 0, len(endpoint.Events)+len(qualified))
-	for _, subscription := range endpoint.Events {
-		if _, mine := unqualify(accountID, subscription); !mine {
-			subscriptions = append(subscriptions, subscription)
-		}
+	if err = d.setAccountSubscriptions(endpoint, accountID, eventTypes); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "subscribing webhook endpoint to event types")
 	}
-
-	subscriptions = append(subscriptions, qualified...)
-	endpoint.Events = subscriptions
 
 	if err = d.store.SaveEndpoint(ctx, endpoint); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "saving webhook endpoint subscriptions")
@@ -517,32 +460,4 @@ func (d *Dispatcher) Dispatch(
 	d.dispatchedCounter.Add(ctx, int64(len(endpointIDs)), eventTypeAttr)
 
 	return nil
-}
-
-// qualifyAll vets event types against the catalog and renders them for storage.
-//
-// The catalog check happens here rather than being left to the platform, because the qualified
-// string this produces can never be in a catalog: it holds unqualified types and would need one
-// entry per account to hold these. Checking the unqualified type is checking the thing the
-// catalog is actually about.
-func (d *Dispatcher) qualifyAll(accountID string, eventTypes []string) ([]webhooks.EventType, error) {
-	if accountID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-
-	// An empty set is allowed here, producing an endpoint that is registered and subscribed to
-	// nothing. That is a real state — a webhook adopted from before delivery worked starts in
-	// it, and unsubscribing from the last event type returns to it — and it is inert rather
-	// than dangerous, because fan-out reads the subscriptions table. The rule that a webhook is
-	// created subscribed to something is a request-validation rule, and lives there.
-	qualified := make([]webhooks.EventType, 0, len(eventTypes))
-	for _, eventType := range eventTypes {
-		if !d.catalog.Known(webhooks.EventType(eventType)) {
-			return nil, platformerrors.Wrapf(ErrUnknownEventType, "event type %q", eventType)
-		}
-
-		qualified = append(qualified, qualify(accountID, eventType))
-	}
-
-	return qualified, nil
 }

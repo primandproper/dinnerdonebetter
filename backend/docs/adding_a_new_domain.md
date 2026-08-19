@@ -366,7 +366,7 @@ If adding:
 
 1. Add field to `ServicesConfig` in [backend/internal/config/services_config.go](backend/internal/config/services_config.go)
 2. Add to `wire.FieldsOf(new(*ServicesConfig), "Xxx")` in [backend/internal/config/wire.go](backend/internal/config/wire.go)
-3. Add values in codegen configs: `cmd/tools/codegen/configs/localdev.go`, `integrationtests.go`. For prod, update `deploy/environments/prod/kustomize/configs/*.json` as needed.
+3. Add values in codegen configs: `internal/config/environments/localdev.go`, `integrationtests.go`. For prod, update `deploy/environments/prod/kustomize/configs/*.json` as needed.
 
 ---
 
@@ -460,7 +460,7 @@ Shorter path — reuse:
 | gRPC - Converters        | `services/<domain>/grpc/converters/` or inline                                                                        |
 | gRPC - Registration      | `build/services/api/grpc/extras.go`, `build.go`                                                                       |
 | Auth interceptor         | `authorization/*_permissions.go`; `services/<domain>/grpc/permissions.go`; `extras.go` AggregateMethodPermissions     |
-| Configs                  | `config/services_config.go`, `wire.go`, `codegen/configs/*.go` (if needed)                                            |
+| Configs                  | `config/services_config.go`, `wire.go`, `config/environments/*.go` (if needed)                                        |
 | Integration tests        | `testing/integration/apiserver/<domain>_<entity>_test.go`                                                             |
 | Admin - List view        | `cmd/services/admin/routes.go`; handler in `cmd/services/admin/`                                                      |
 | Admin - Edit view        | Same                                                                                                                  |

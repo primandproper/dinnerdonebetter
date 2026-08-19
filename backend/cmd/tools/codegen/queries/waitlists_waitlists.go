@@ -32,7 +32,7 @@ func buildWaitlistsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 		fullSelectColumns := applyToEach(waitlistsColumns, func(_ int, s string) string {
-			return fullColumnName(waitlistsTableName, s)
+			return querygen.Qualify(waitlistsTableName, s)
 		})
 
 		return slices.Concat(
@@ -52,8 +52,8 @@ func buildWaitlistsQueries(database string) []*Query {
 WHERE %s IS NULL
 	AND %s = sqlc.arg(%s);`,
 						waitlistsTableName,
-						lastUpdatedAtColumn, currentTimeExpression,
-						archivedAtColumn, currentTimeExpression,
+						lastUpdatedAtColumn, querygen.NowExpression,
+						archivedAtColumn, querygen.NowExpression,
 						archivedAtColumn,
 						idColumn, idColumn,
 					)),
@@ -91,7 +91,7 @@ WHERE %s IS NULL
 						waitlistsTableName,
 						waitlistsTableName, archivedAtColumn,
 						waitlistsTableName, idColumn, idColumn,
-						waitlistsTableName, currentTimeExpression,
+						waitlistsTableName, querygen.NowExpression,
 					)),
 				},
 				{
@@ -104,16 +104,14 @@ WHERE %s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(waitlistsTableName, true, true, nil),
-						buildTotalCountSelect(waitlistsTableName, true, nil),
+						querygen.FilterCountSelect(waitlistsTableName, waitlistsColumns, nil),
+						querygen.TotalCountSelect(waitlistsTableName, waitlistsColumns, nil),
 						waitlistsTableName,
-						waitlistsTableName, archivedAtColumn,
-						buildFilterConditions(waitlistsTableName, true, false),
-						buildCursorLimitClause(waitlistsTableName),
+						querygen.FilterConditions(waitlistsTableName, waitlistsColumns),
+						querygen.CursorLimitClause(waitlistsTableName),
 					)),
 				},
 				{
@@ -126,18 +124,16 @@ WHERE %s.%s IS NULL
 	%s,
 	%s
 FROM %s
-WHERE %s.%s IS NULL
-	AND %s.valid_until >= %s
-	%s
+WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						buildFilterCountSelect(waitlistsTableName, true, true, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, currentTimeExpression)),
-						buildTotalCountSelect(waitlistsTableName, true, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, currentTimeExpression)),
+						querygen.FilterCountSelect(waitlistsTableName, waitlistsColumns, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, querygen.NowExpression)),
+						querygen.TotalCountSelect(waitlistsTableName, waitlistsColumns, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, querygen.NowExpression)),
 						waitlistsTableName,
-						waitlistsTableName, archivedAtColumn,
-						waitlistsTableName, currentTimeExpression,
-						buildFilterConditions(waitlistsTableName, true, false, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, currentTimeExpression)),
-						buildCursorLimitClause(waitlistsTableName),
+						querygen.FilterConditions(waitlistsTableName, waitlistsColumns,
+							fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, querygen.NowExpression),
+						),
+						querygen.CursorLimitClause(waitlistsTableName),
 					)),
 				},
 			},

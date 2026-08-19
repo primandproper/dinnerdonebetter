@@ -104,9 +104,7 @@ SELECT
 	(
 		SELECT COUNT(purchases.id)
 		FROM purchases
-		WHERE purchases.archived_at IS NULL
-			AND
-			purchases.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+		WHERE purchases.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 			AND purchases.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 			AND (
 				purchases.last_updated_at IS NULL
@@ -116,19 +114,17 @@ SELECT
 				purchases.last_updated_at IS NULL
 				OR purchases.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 			)
-			AND (NOT COALESCE($5, false)::boolean OR purchases.archived_at IS NULL)
+			AND (COALESCE($5, false)::boolean OR purchases.archived_at IS NULL)
 			AND purchases.belongs_to_account = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(purchases.id)
 		FROM purchases
-		WHERE purchases.archived_at IS NULL
+		WHERE (COALESCE($5, false)::boolean OR purchases.archived_at IS NULL)
 			AND purchases.belongs_to_account = $6
 	) AS total_count
 FROM purchases
-WHERE purchases.archived_at IS NULL
-	AND purchases.belongs_to_account = $6
-	AND purchases.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
+WHERE purchases.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
 	AND purchases.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
 	AND (
 		purchases.last_updated_at IS NULL
@@ -138,6 +134,8 @@ WHERE purchases.archived_at IS NULL
 		purchases.last_updated_at IS NULL
 		OR purchases.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
 	)
+	AND (COALESCE($5, false)::boolean OR purchases.archived_at IS NULL)
+	AND purchases.belongs_to_account = $6
 	AND purchases.belongs_to_account = $6
 	AND purchases.id > COALESCE($7, '')
 ORDER BY purchases.id ASC
