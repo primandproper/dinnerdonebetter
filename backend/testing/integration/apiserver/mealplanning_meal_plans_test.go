@@ -245,13 +245,12 @@ func TestMealPlans_CompleteLifecycleForAllVotesReceived(T *testing.T) {
 			createdMeals = append(createdMeals, createdMeal)
 		}
 
-		const baseDeadline = 10 * time.Second
 		now := time.Now()
 
 		exampleMealPlan := &mealplanning.MealPlan{
 			Notes:          t.Name(),
 			Status:         string(mealplanning.MealPlanStatusAwaitingVotes),
-			VotingDeadline: now.Add(baseDeadline),
+			VotingDeadline: now.Add(votingDeadlineForSetup),
 			ElectionMethod: mealplanning.MealPlanElectionMethodSchulze,
 			Events: []*mealplanning.MealPlanEvent{
 				{
@@ -512,7 +511,7 @@ func TestMealPlans_FinalizeMealPlan(T *testing.T) {
 		exampleMealPlan := &mealplanning.MealPlan{
 			Notes:          t.Name(),
 			Status:         string(mealplanning.MealPlanStatusAwaitingVotes),
-			VotingDeadline: now.Add(10 * time.Second),
+			VotingDeadline: now.Add(votingDeadlineForSetup),
 			ElectionMethod: mealplanning.MealPlanElectionMethodSchulze,
 			Events: []*mealplanning.MealPlanEvent{
 				{
@@ -723,13 +722,12 @@ func TestMealPlans_CompleteLifecycleForSomeVotesReceived(T *testing.T) {
 			createdMeals = append(createdMeals, createdMeal)
 		}
 
-		const baseDeadline = time.Minute
 		now := time.Now()
 
 		exampleMealPlan := &mealplanning.MealPlan{
 			Notes:          t.Name(),
 			Status:         string(mealplanning.MealPlanStatusAwaitingVotes),
-			VotingDeadline: now.Add(baseDeadline),
+			VotingDeadline: now.Add(votingDeadlineForSetup),
 			ElectionMethod: mealplanning.MealPlanElectionMethodSchulze,
 			Events: []*mealplanning.MealPlanEvent{
 				{

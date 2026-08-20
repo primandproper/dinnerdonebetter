@@ -934,7 +934,7 @@ func TestRecipes_GetMealPlanTasksForRecipe(T *testing.T) {
 			GroceryListInitialized: true,
 			TasksCreated:           true,
 			// voting deadline must be before every event's start time; see MealPlanCreationRequestInput.ValidateWithContext.
-			VotingDeadline: now.Add(1 * time.Hour),
+			VotingDeadline: now.Add(votingDeadlineForSetup),
 			ElectionMethod: mealplanning.MealPlanElectionMethodSchulze,
 			Events: []*mealplanning.MealPlanEvent{
 				{

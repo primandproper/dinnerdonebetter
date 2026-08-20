@@ -25,6 +25,20 @@ const (
 	finalizationPollInterval = 100 * time.Millisecond
 )
 
+// votingDeadlineForSetup is the deadline a test gives a plan it intends to vote on itself.
+//
+// The deadline is a wall-clock budget on everything the test does between creating the plan and
+// casting its last ballot, because the predicate behind GetMealPlansAwaitingFinalizationSaga is
+// database-wide: once a plan's deadline passes while it is still awaiting votes, the next
+// RunFinalizeMealPlanWorker or RunMealPlanTaskCreatorWorker call from *any* parallel test in the
+// package sweeps it up, attaches a saga, and finalizes it. The remaining votes are then refused
+// with "meal plan event is not eligible for voting".
+//
+// An hour is not a wait — no test ever reaches it. It is long enough that no amount of load
+// makes the deadline the thing that fails. Tests that need an expired deadline set one
+// explicitly once they are done voting, which is what actually drives finalization.
+const votingDeadlineForSetup = time.Hour
+
 // awaitMealPlanFinalized waits for the finalization saga's first step to tally a meal plan's
 // ballots and mark it finalized, and returns the plan as it stands afterwards.
 func awaitMealPlanFinalized(t *testing.T, ctx context.Context, c client.Client, mealPlanID string) *mealplanning.MealPlan {
