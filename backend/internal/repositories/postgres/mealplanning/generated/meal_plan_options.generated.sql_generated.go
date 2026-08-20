@@ -212,6 +212,7 @@ WHERE
 	AND meal_plan_events.belongs_to_meal_plan = $2
 	AND meal_plans.archived_at IS NULL
 	AND meal_plans.id = $2
+ORDER BY meal_plan_options.id ASC
 `
 
 type GetAllMealPlanOptionsForMealPlanEventParams struct {
