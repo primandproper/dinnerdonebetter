@@ -103,7 +103,7 @@ func TestMealPlans_WithRecipeOptionSelections(T *testing.T) {
 		exampleMealPlan := &mealplanning.MealPlan{
 			Notes:          t.Name(),
 			Status:         string(mealplanning.MealPlanStatusAwaitingVotes),
-			VotingDeadline: now.Add(10 * time.Second),
+			VotingDeadline: now.Add(votingDeadlineForSetup),
 			ElectionMethod: mealplanning.MealPlanElectionMethodSchulze,
 			Events: []*mealplanning.MealPlanEvent{
 				{
@@ -547,7 +547,7 @@ func createMealPlanWithAlternativeIngredientsForSelectionTests(t *testing.T) *se
 		Notes:  t.Name(),
 		Status: string(mealplanning.MealPlanStatusFinalized),
 		// voting deadline must be before every event's start time (events start 24h out); see MealPlanCreationRequestInput.ValidateWithContext.
-		VotingDeadline: now.Add(1 * time.Hour),
+		VotingDeadline: now.Add(votingDeadlineForSetup),
 		ElectionMethod: mealplanning.MealPlanElectionMethodSchulze,
 		Events: []*mealplanning.MealPlanEvent{
 			{

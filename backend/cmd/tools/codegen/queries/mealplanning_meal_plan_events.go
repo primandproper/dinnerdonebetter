@@ -129,13 +129,15 @@ GROUP BY %s.%s
 FROM %s
 WHERE
 	%s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s);`,
+	AND %s.%s = sqlc.arg(%s)
+ORDER BY %s.%s ASC;`,
 						strings.Join(applyToEach(mealPlanEventsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", mealPlanEventsTableName, s)
 						}), ",\n\t"),
 						mealPlanEventsTableName,
 						mealPlanEventsTableName, archivedAtColumn,
 						mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn,
+						mealPlanEventsTableName, idColumn,
 					)),
 				},
 				{

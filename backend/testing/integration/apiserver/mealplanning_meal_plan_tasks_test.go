@@ -129,7 +129,7 @@ func createFinalizedMealPlanWithTasks(t *testing.T) (string, client.Client) {
 	exampleMealPlan := &mealplanning.MealPlan{
 		Notes:          t.Name(),
 		Status:         string(mealplanning.MealPlanStatusAwaitingVotes),
-		VotingDeadline: now.Add(10 * time.Second),
+		VotingDeadline: now.Add(votingDeadlineForSetup),
 		ElectionMethod: mealplanning.MealPlanElectionMethodSchulze,
 		Events: []*mealplanning.MealPlanEvent{
 			{

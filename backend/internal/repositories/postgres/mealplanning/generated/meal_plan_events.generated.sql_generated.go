@@ -108,6 +108,7 @@ FROM meal_plan_events
 WHERE
 	meal_plan_events.archived_at IS NULL
 	AND meal_plan_events.belongs_to_meal_plan = $1
+ORDER BY meal_plan_events.id ASC
 `
 
 func (q *Queries) GetAllMealPlanEventsForMealPlan(ctx context.Context, db DBTX, mealPlanID string) ([]*MealPlanEvents, error) {
