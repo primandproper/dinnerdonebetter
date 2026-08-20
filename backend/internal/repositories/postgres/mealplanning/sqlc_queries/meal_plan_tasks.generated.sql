@@ -237,7 +237,7 @@ FROM meal_plan_tasks
 WHERE meal_plan_tasks.id = sqlc.arg(meal_plan_task_id);
 
 -- name: MarkMealPlanTaskNotificationSent :exec
-UPDATE meal_plan_tasks SET notification_sent_at = NOW()
+UPDATE meal_plan_tasks SET notification_sent_at = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg(id);
 
 -- name: ClearMealPlanTaskNotificationSentForEvent :exec
@@ -258,7 +258,7 @@ WHERE meal_plan_tasks.completed_at IS NULL
 	AND meal_plan_options.archived_at IS NULL
 	AND meal_plan_events.archived_at IS NULL
 	AND meal_plans.archived_at IS NULL
-	AND meal_plan_events.starts_at > NOW();
+	AND meal_plan_events.starts_at > CURRENT_TIMESTAMP;
 
 -- name: GetMealPlanTaskAccountID :one
 SELECT meal_plans.belongs_to_account

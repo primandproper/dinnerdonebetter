@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -89,7 +89,7 @@ func buildMealPlanTasksQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(mealPlanTasksTableName, mealPlanTasksColumns,
+			pgGen.StandardCRUD(mealPlanTasksTableName, mealPlanTasksColumns,
 				querygen.WithEntity("MealPlanTask", "MealPlanTasks"),
 				querygen.WithDatabaseOwned(mealPlanTaskCompletedAtColumn, mealPlanTaskNotificationSentAtColumn),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),

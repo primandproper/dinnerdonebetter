@@ -10,7 +10,7 @@ import (
 	oauthfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/fakes"
 	oauthmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/mock"
 
-	"github.com/primandproper/platform-go/v11/authentication/oauth2server"
+	"github.com/primandproper/platform-go/v12/authentication/oauth2server"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

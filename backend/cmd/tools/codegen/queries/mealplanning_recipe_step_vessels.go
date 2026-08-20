@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -60,7 +60,7 @@ func buildRecipeStepVesselsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(recipeStepVesselsTableName, recipeStepVesselsColumns,
+			pgGen.StandardCRUD(recipeStepVesselsTableName, recipeStepVesselsColumns,
 				querygen.WithEntity("RecipeStepVessel", "RecipeStepVessels"),
 				querygen.WithOwnership(belongsToRecipeStepColumn),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
@@ -182,8 +182,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(recipeStepVesselsTableName, recipeStepVesselsColumns, []string{}),
-						querygen.TotalCountSelect(recipeStepVesselsTableName, recipeStepVesselsColumns, []string{}),
+						pgGen.FilterCountSelect(recipeStepVesselsTableName, recipeStepVesselsColumns, []string{}),
+						pgGen.TotalCountSelect(recipeStepVesselsTableName, recipeStepVesselsColumns, []string{}),
 						recipeStepVesselsTableName,
 						validVesselsTableName,
 						recipeStepVesselsTableName,
@@ -205,7 +205,7 @@ WHERE %s
 						belongsToRecipeColumn,
 						recipesTableName,
 						idColumn,
-						querygen.FilterConditions(recipeStepVesselsTableName, recipeStepVesselsColumns,
+						pgGen.FilterConditions(recipeStepVesselsTableName, recipeStepVesselsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn),
 							"recipe_steps.archived_at IS NULL",
@@ -213,7 +213,7 @@ WHERE %s
 							"recipes.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, idColumn, recipeIDColumn),
 						),
-						querygen.CursorLimitClause(recipeStepVesselsTableName),
+						pgGen.CursorLimitClause(recipeStepVesselsTableName),
 					)),
 				},
 				{

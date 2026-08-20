@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -41,7 +41,7 @@ func buildValidInstrumentsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(validInstrumentsTableName, validInstrumentsColumns,
+			pgGen.StandardCRUD(validInstrumentsTableName, validInstrumentsColumns,
 				querygen.WithEntity("ValidInstrument", "ValidInstruments"),
 				querygen.WithOmitted(querygen.ListQuery),
 			),
@@ -62,13 +62,13 @@ GROUP BY %s.%s
 						strings.Join(applyToEach(validInstrumentsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validInstrumentsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{}),
-						querygen.TotalCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{}),
+						pgGen.FilterCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{}),
+						pgGen.TotalCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{}),
 						validInstrumentsTableName,
-						querygen.FilterConditions(validInstrumentsTableName, validInstrumentsColumns),
+						pgGen.FilterConditions(validInstrumentsTableName, validInstrumentsColumns),
 						validInstrumentsTableName,
 						idColumn,
-						querygen.CursorLimitClause(validInstrumentsTableName),
+						pgGen.CursorLimitClause(validInstrumentsTableName),
 					)),
 				},
 				{
@@ -148,13 +148,13 @@ WHERE %s
 						strings.Join(applyToEach(validInstrumentsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validInstrumentsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{}),
-						querygen.TotalCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{}),
+						pgGen.FilterCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{}),
+						pgGen.TotalCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{}),
 						validInstrumentsTableName,
-						querygen.FilterConditions(validInstrumentsTableName, validInstrumentsColumns,
+						pgGen.FilterConditions(validInstrumentsTableName, validInstrumentsColumns,
 							fmt.Sprintf("%s.%s %s", validInstrumentsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						querygen.CursorLimitClause(validInstrumentsTableName),
+						pgGen.CursorLimitClause(validInstrumentsTableName),
 					)),
 				},
 				{
@@ -172,16 +172,16 @@ WHERE %s
 						strings.Join(applyToEach(validInstrumentsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validInstrumentsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{},
+						pgGen.FilterCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{},
 							validInstrumentsTableName+".id NOT IN (SELECT valid_instrument_id FROM account_instrument_ownerships WHERE account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id) AND account_instrument_ownerships.archived_at IS NULL)"),
-						querygen.TotalCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{},
+						pgGen.TotalCountSelect(validInstrumentsTableName, validInstrumentsColumns, []string{},
 							validInstrumentsTableName+".id NOT IN (SELECT valid_instrument_id FROM account_instrument_ownerships WHERE account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id) AND account_instrument_ownerships.archived_at IS NULL)"),
 						validInstrumentsTableName,
-						querygen.FilterConditions(validInstrumentsTableName, validInstrumentsColumns,
+						pgGen.FilterConditions(validInstrumentsTableName, validInstrumentsColumns,
 							fmt.Sprintf("%s.%s %s", validInstrumentsTableName, nameColumn, buildILIKEForArgument("name_query")),
 							validInstrumentsTableName+".id NOT IN (SELECT valid_instrument_id FROM account_instrument_ownerships WHERE account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id) AND account_instrument_ownerships.archived_at IS NULL)",
 						),
-						querygen.CursorLimitClause(validInstrumentsTableName),
+						pgGen.CursorLimitClause(validInstrumentsTableName),
 					)),
 				},
 			},

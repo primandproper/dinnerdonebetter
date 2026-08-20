@@ -39,14 +39,14 @@ UPDATE meal_plans SET
 	notes = sqlc.arg(notes),
 	status = sqlc.arg(status),
 	voting_deadline = sqlc.arg(voting_deadline),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND belongs_to_account = sqlc.arg(belongs_to_account);
 
 -- name: ArchiveMealPlan :execrows
 UPDATE meal_plans SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND belongs_to_account = sqlc.arg(belongs_to_account);
@@ -71,7 +71,7 @@ FROM meal_plans
 WHERE meal_plans.archived_at IS NULL
 	AND meal_plans.finalization_saga_id IS NULL
 	AND (
-		(meal_plans.status = 'awaiting_votes' AND meal_plans.voting_deadline < NOW())
+		(meal_plans.status = 'awaiting_votes' AND meal_plans.voting_deadline < CURRENT_TIMESTAMP)
 		OR (meal_plans.status = 'finalized' AND (meal_plans.tasks_created IS FALSE OR meal_plans.grocery_list_initialized IS FALSE))
 	)
 ORDER BY meal_plans.voting_deadline
@@ -80,7 +80,7 @@ LIMIT sqlc.arg(query_limit);
 -- name: AttachMealPlanFinalizationSaga :execrows
 UPDATE meal_plans SET
 	finalization_saga_id = sqlc.arg(finalization_saga_id),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND finalization_saga_id IS NULL
 	AND id = sqlc.arg(id);
@@ -119,14 +119,14 @@ ORDER BY
 -- name: UnmarkMealPlanGroceryListInitialized :exec
 UPDATE meal_plans SET
 	grocery_list_initialized = FALSE,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: UnmarkMealPlanPrepTasksCreated :exec
 UPDATE meal_plans SET
 	tasks_created = FALSE,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
@@ -147,15 +147,15 @@ SELECT
 	(
 		SELECT COUNT(meal_plans.id)
 		FROM meal_plans
-		WHERE meal_plans.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND meal_plans.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE meal_plans.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND meal_plans.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				meal_plans.last_updated_at IS NULL
-				OR meal_plans.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR meal_plans.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				meal_plans.last_updated_at IS NULL
-				OR meal_plans.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR meal_plans.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plans.archived_at IS NULL)
 			AND meal_plans.belongs_to_account = sqlc.arg(belongs_to_account)
@@ -167,15 +167,15 @@ SELECT
 			AND meal_plans.belongs_to_account = sqlc.arg(belongs_to_account)
 	) AS total_count
 FROM meal_plans
-WHERE meal_plans.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND meal_plans.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE meal_plans.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND meal_plans.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		meal_plans.last_updated_at IS NULL
-		OR meal_plans.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR meal_plans.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		meal_plans.last_updated_at IS NULL
-		OR meal_plans.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR meal_plans.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plans.archived_at IS NULL)
 	AND meal_plans.belongs_to_account = sqlc.arg(belongs_to_account)
@@ -202,7 +202,7 @@ WHERE meal_plans.archived_at IS NULL
 	AND meal_plans.id = sqlc.arg(meal_plan_id)
 	AND meal_plans.belongs_to_account = sqlc.arg(account_id)
 	AND meal_plans.status = 'awaiting_votes'
-	AND NOW() > meal_plans.voting_deadline;
+	AND CURRENT_TIMESTAMP > meal_plans.voting_deadline;
 
 -- name: FindMealPlansForDates :many
 SELECT DISTINCT
@@ -230,13 +230,13 @@ ORDER BY meal_plans.id;
 -- name: MarkMealPlanAsGroceryListInitialized :exec
 UPDATE meal_plans SET
 	grocery_list_initialized = TRUE,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: MarkMealPlanAsPrepTasksCreated :exec
 UPDATE meal_plans SET
 	tasks_created = TRUE,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);

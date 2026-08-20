@@ -3,7 +3,7 @@ package dataprivacy
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v12/filtering"
 )
 
 // CollectAllPages exhaustively pages through a cursor-paginated list accessor and returns

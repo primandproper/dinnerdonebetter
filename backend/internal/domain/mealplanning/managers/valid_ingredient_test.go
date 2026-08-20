@@ -9,10 +9,10 @@ import (
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v11/fake"
-	"github.com/primandproper/platform-go/v11/filtering"
-	textsearch "github.com/primandproper/platform-go/v11/search/text"
-	mocksearch "github.com/primandproper/platform-go/v11/search/text/mock"
+	"github.com/primandproper/platform-go/v12/fake"
+	"github.com/primandproper/platform-go/v12/filtering"
+	textsearch "github.com/primandproper/platform-go/v12/search/text"
+	mocksearch "github.com/primandproper/platform-go/v12/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -41,7 +41,7 @@ func buildPaymentsSubscriptionsQueries(database string) []*Query {
 		accountCondition := fmt.Sprintf("%s.%s = sqlc.arg(%s)", subscriptionsTableName, belongsToAccountColumn, belongsToAccountColumn)
 
 		return slices.Concat(
-			querygen.StandardCRUD(subscriptionsTableName, subscriptionsColumns,
+			pgGen.StandardCRUD(subscriptionsTableName, subscriptionsColumns,
 				querygen.WithEntity("Subscription", "Subscriptions"),
 				querygen.WithImmutable(belongsToAccountColumn, "product_id"),
 				querygen.WithOmitted(querygen.ArchiveQuery, querygen.ExistsQuery, querygen.ListQuery),
@@ -89,14 +89,14 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(subscriptionsTableName, subscriptionsColumns, nil, accountCondition),
-						querygen.TotalCountSelect(subscriptionsTableName, subscriptionsColumns, nil, accountCondition),
+						pgGen.FilterCountSelect(subscriptionsTableName, subscriptionsColumns, nil, accountCondition),
+						pgGen.TotalCountSelect(subscriptionsTableName, subscriptionsColumns, nil, accountCondition),
 						subscriptionsTableName,
-						querygen.FilterConditions(subscriptionsTableName, subscriptionsColumns,
+						pgGen.FilterConditions(subscriptionsTableName, subscriptionsColumns,
 							accountCondition,
 							accountCondition,
 						),
-						querygen.CursorLimitClause(subscriptionsTableName),
+						pgGen.CursorLimitClause(subscriptionsTableName),
 					)),
 				},
 				{

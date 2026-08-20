@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -37,7 +37,7 @@ func buildValidIngredientStatesQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(validIngredientStatesTableName, validIngredientStatesColumns,
+			pgGen.StandardCRUD(validIngredientStatesTableName, validIngredientStatesColumns,
 				querygen.WithEntity("ValidIngredientState", "ValidIngredientStates"),
 				querygen.WithOmitted(querygen.ListQuery),
 			),
@@ -58,13 +58,13 @@ GROUP BY %s.%s
 						strings.Join(applyToEach(validIngredientStatesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validIngredientStatesTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validIngredientStatesTableName, validIngredientStatesColumns, []string{}),
-						querygen.TotalCountSelect(validIngredientStatesTableName, validIngredientStatesColumns, []string{}),
+						pgGen.FilterCountSelect(validIngredientStatesTableName, validIngredientStatesColumns, []string{}),
+						pgGen.TotalCountSelect(validIngredientStatesTableName, validIngredientStatesColumns, []string{}),
 						validIngredientStatesTableName,
-						querygen.FilterConditions(validIngredientStatesTableName, validIngredientStatesColumns),
+						pgGen.FilterConditions(validIngredientStatesTableName, validIngredientStatesColumns),
 						validIngredientStatesTableName,
 						idColumn,
-						querygen.CursorLimitClause(validIngredientStatesTableName),
+						pgGen.CursorLimitClause(validIngredientStatesTableName),
 					)),
 				},
 				{
@@ -126,13 +126,13 @@ WHERE %s
 						strings.Join(applyToEach(validIngredientStatesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validIngredientStatesTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validIngredientStatesTableName, validIngredientStatesColumns, []string{}),
-						querygen.TotalCountSelect(validIngredientStatesTableName, validIngredientStatesColumns, []string{}),
+						pgGen.FilterCountSelect(validIngredientStatesTableName, validIngredientStatesColumns, []string{}),
+						pgGen.TotalCountSelect(validIngredientStatesTableName, validIngredientStatesColumns, []string{}),
 						validIngredientStatesTableName,
-						querygen.FilterConditions(validIngredientStatesTableName, validIngredientStatesColumns,
+						pgGen.FilterConditions(validIngredientStatesTableName, validIngredientStatesColumns,
 							fmt.Sprintf("%s.%s %s", validIngredientStatesTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						querygen.CursorLimitClause(validIngredientStatesTableName),
+						pgGen.CursorLimitClause(validIngredientStatesTableName),
 					)),
 				},
 			},

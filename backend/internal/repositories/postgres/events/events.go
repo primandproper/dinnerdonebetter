@@ -28,12 +28,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 
-	"github.com/primandproper/platform-go/v11/database"
-	platformerrors "github.com/primandproper/platform-go/v11/errors"
-	"github.com/primandproper/platform-go/v11/observability/logging"
-	"github.com/primandproper/platform-go/v11/outbox"
-	"github.com/primandproper/platform-go/v11/tenancy"
-	"github.com/primandproper/platform-go/v11/webhooks"
+	"github.com/primandproper/platform-go/v12/database"
+	platformerrors "github.com/primandproper/platform-go/v12/errors"
+	"github.com/primandproper/platform-go/v12/observability/logging"
+	"github.com/primandproper/platform-go/v12/outbox"
+	"github.com/primandproper/platform-go/v12/tenancy"
+	"github.com/primandproper/platform-go/v12/webhooks"
 )
 
 // Emitter enqueues data change events into the outbox and fans them out to webhooks.

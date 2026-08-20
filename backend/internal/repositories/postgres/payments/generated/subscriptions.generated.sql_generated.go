@@ -12,7 +12,7 @@ import (
 )
 
 const archiveSubscription = `-- name: ArchiveSubscription :execrows
-UPDATE subscriptions SET archived_at = NOW(), last_updated_at = NOW() WHERE archived_at IS NULL AND id = $1
+UPDATE subscriptions SET archived_at = CURRENT_TIMESTAMP, last_updated_at = CURRENT_TIMESTAMP WHERE archived_at IS NULL AND id = $1
 `
 
 func (q *Queries) ArchiveSubscription(ctx context.Context, db DBTX, id string) (int64, error) {
@@ -151,15 +151,15 @@ SELECT
 	(
 		SELECT COUNT(subscriptions.id)
 		FROM subscriptions
-		WHERE subscriptions.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND subscriptions.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE subscriptions.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND subscriptions.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				subscriptions.last_updated_at IS NULL
-				OR subscriptions.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR subscriptions.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				subscriptions.last_updated_at IS NULL
-				OR subscriptions.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR subscriptions.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR subscriptions.archived_at IS NULL)
 			AND subscriptions.belongs_to_account = $6
@@ -171,15 +171,15 @@ SELECT
 			AND subscriptions.belongs_to_account = $6
 	) AS total_count
 FROM subscriptions
-WHERE subscriptions.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND subscriptions.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE subscriptions.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND subscriptions.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		subscriptions.last_updated_at IS NULL
-		OR subscriptions.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR subscriptions.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		subscriptions.last_updated_at IS NULL
-		OR subscriptions.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR subscriptions.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR subscriptions.archived_at IS NULL)
 	AND subscriptions.belongs_to_account = $6
@@ -266,7 +266,7 @@ UPDATE subscriptions SET
 	status = $2,
 	current_period_start = $3,
 	current_period_end = $4,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $5
 `
@@ -294,7 +294,7 @@ func (q *Queries) UpdateSubscription(ctx context.Context, db DBTX, arg *UpdateSu
 }
 
 const updateSubscriptionStatus = `-- name: UpdateSubscriptionStatus :execrows
-UPDATE subscriptions SET status = $1, last_updated_at = NOW()
+UPDATE subscriptions SET status = $1, last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL AND id = $2
 `
 

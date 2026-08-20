@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -52,7 +52,7 @@ func buildMealPlanOptionsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(mealPlanOptionsTableName, mealPlanOptionsColumns,
+			pgGen.StandardCRUD(mealPlanOptionsTableName, mealPlanOptionsColumns,
 				querygen.WithEntity("MealPlanOption", "MealPlanOptions"),
 				querygen.WithOwnership(belongsToMealPlanEventColumn),
 				querygen.WithDatabaseOwned(mealPlanOptionsTiebrokenColumn),
@@ -180,16 +180,16 @@ FROM meal_plan_options
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(mealPlanOptionsTableName, mealPlanOptionsColumns, []string{}, "meal_plan_options.belongs_to_meal_plan_event = sqlc.arg(meal_plan_event_id)"),
-						querygen.TotalCountSelect(mealPlanOptionsTableName, mealPlanOptionsColumns, []string{}),
-						querygen.FilterConditions(mealPlanOptionsTableName, mealPlanOptionsColumns,
+						pgGen.FilterCountSelect(mealPlanOptionsTableName, mealPlanOptionsColumns, []string{}, "meal_plan_options.belongs_to_meal_plan_event = sqlc.arg(meal_plan_event_id)"),
+						pgGen.TotalCountSelect(mealPlanOptionsTableName, mealPlanOptionsColumns, []string{}),
+						pgGen.FilterConditions(mealPlanOptionsTableName, mealPlanOptionsColumns,
 							"meal_plan_events.id = sqlc.arg(meal_plan_event_id)",
 							"meal_plan_events.belongs_to_meal_plan = sqlc.arg(meal_plan_id)",
 							"meal_plans.archived_at IS NULL",
 							"meal_plans.id = sqlc.arg(meal_plan_id)",
 							"meal_plan_options.belongs_to_meal_plan_event = sqlc.arg(meal_plan_event_id)",
 						),
-						querygen.CursorLimitClause(mealPlanOptionsTableName),
+						pgGen.CursorLimitClause(mealPlanOptionsTableName),
 					)),
 				},
 				{

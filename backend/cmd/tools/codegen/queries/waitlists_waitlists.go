@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -36,7 +36,7 @@ func buildWaitlistsQueries(database string) []*Query {
 		})
 
 		return slices.Concat(
-			querygen.StandardCRUD(waitlistsTableName, waitlistsColumns,
+			pgGen.StandardCRUD(waitlistsTableName, waitlistsColumns,
 				querygen.WithEntity("Waitlist", "Waitlists"),
 				querygen.WithOmitted(querygen.ArchiveQuery, querygen.ExistsQuery, querygen.ListQuery),
 			),
@@ -107,11 +107,11 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(waitlistsTableName, waitlistsColumns, nil),
-						querygen.TotalCountSelect(waitlistsTableName, waitlistsColumns, nil),
+						pgGen.FilterCountSelect(waitlistsTableName, waitlistsColumns, nil),
+						pgGen.TotalCountSelect(waitlistsTableName, waitlistsColumns, nil),
 						waitlistsTableName,
-						querygen.FilterConditions(waitlistsTableName, waitlistsColumns),
-						querygen.CursorLimitClause(waitlistsTableName),
+						pgGen.FilterConditions(waitlistsTableName, waitlistsColumns),
+						pgGen.CursorLimitClause(waitlistsTableName),
 					)),
 				},
 				{
@@ -127,13 +127,13 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(waitlistsTableName, waitlistsColumns, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, querygen.NowExpression)),
-						querygen.TotalCountSelect(waitlistsTableName, waitlistsColumns, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, querygen.NowExpression)),
+						pgGen.FilterCountSelect(waitlistsTableName, waitlistsColumns, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, querygen.NowExpression)),
+						pgGen.TotalCountSelect(waitlistsTableName, waitlistsColumns, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, querygen.NowExpression)),
 						waitlistsTableName,
-						querygen.FilterConditions(waitlistsTableName, waitlistsColumns,
+						pgGen.FilterConditions(waitlistsTableName, waitlistsColumns,
 							fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, querygen.NowExpression),
 						),
-						querygen.CursorLimitClause(waitlistsTableName),
+						pgGen.CursorLimitClause(waitlistsTableName),
 					)),
 				},
 			},

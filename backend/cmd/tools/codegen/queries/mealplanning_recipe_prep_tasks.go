@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -51,7 +51,7 @@ func buildRecipePrepTasksQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(recipePrepTasksTableName, recipePrepTasksColumns,
+			pgGen.StandardCRUD(recipePrepTasksTableName, recipePrepTasksColumns,
 				querygen.WithEntity("RecipePrepTask", "RecipePrepTasks"),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery),
 			),

@@ -15,7 +15,7 @@ import (
 
 const archiveValidMeasurementUnit = `-- name: ArchiveValidMeasurementUnit :execrows
 UPDATE valid_measurement_units SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -178,15 +178,15 @@ SELECT
 	(
 		SELECT COUNT(valid_measurement_units.id)
 		FROM valid_measurement_units
-		WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_measurement_units.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_measurement_units.last_updated_at IS NULL
-				OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_measurement_units.last_updated_at IS NULL
-				OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS filtered_count,
@@ -196,15 +196,15 @@ SELECT
 		WHERE (COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS total_count
 FROM valid_measurement_units
-WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_measurement_units.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	AND valid_measurement_units.universal = TRUE
@@ -370,15 +370,15 @@ SELECT
 	(
 		SELECT COUNT(valid_measurement_units.id)
 		FROM valid_measurement_units
-		WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_measurement_units.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_measurement_units.last_updated_at IS NULL
-				OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_measurement_units.last_updated_at IS NULL
-				OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS filtered_count,
@@ -388,15 +388,15 @@ SELECT
 		WHERE (COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS total_count
 FROM valid_measurement_units
-WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_measurement_units.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	AND valid_measurement_units.id > COALESCE($6, '')
@@ -488,7 +488,7 @@ FROM valid_measurement_units
 WHERE valid_measurement_units.archived_at IS NULL
 	AND (
 	valid_measurement_units.last_indexed_at IS NULL
-	OR valid_measurement_units.last_indexed_at < NOW() - '24 hours'::INTERVAL
+	OR valid_measurement_units.last_indexed_at < CURRENT_TIMESTAMP - '24 hours'::INTERVAL
 )
 `
 
@@ -593,7 +593,7 @@ func (q *Queries) GetValidMeasurementUnitsWithIDs(ctx context.Context, db DBTX, 
 
 const markValidMeasurementUnitsAsIndexed = `-- name: MarkValidMeasurementUnitsAsIndexed :execrows
 UPDATE valid_measurement_units SET
-	last_indexed_at = NOW()
+	last_indexed_at = CURRENT_TIMESTAMP
 WHERE id = ANY($1::text[])
 `
 
@@ -661,15 +661,15 @@ SELECT
 	(
 		SELECT COUNT(valid_measurement_units.id)
 		FROM valid_measurement_units
-		WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_measurement_units.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_measurement_units.last_updated_at IS NULL
-				OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_measurement_units.last_updated_at IS NULL
-				OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS filtered_count,
@@ -679,15 +679,15 @@ SELECT
 		WHERE (COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	) AS total_count
 FROM valid_measurement_units
-WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_measurement_units.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	AND valid_measurement_units.name ILIKE '%' || $6::text || '%'
@@ -794,15 +794,15 @@ SELECT
 	(
 		SELECT COUNT(valid_measurement_units.id)
 		FROM valid_measurement_units
-		WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_measurement_units.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_measurement_units.last_updated_at IS NULL
-				OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_measurement_units.last_updated_at IS NULL
-				OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 			AND  (
@@ -818,15 +818,15 @@ SELECT
 FROM valid_measurement_units
 	JOIN valid_ingredient_measurement_units ON valid_ingredient_measurement_units.valid_measurement_unit_id = valid_measurement_units.id
 	JOIN valid_ingredients ON valid_ingredient_measurement_units.valid_ingredient_id = valid_ingredients.id
-WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_measurement_units.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_measurement_units.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_measurement_units.last_updated_at IS NULL
-		OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_measurement_units.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	AND (
@@ -930,7 +930,7 @@ UPDATE valid_measurement_units SET
 	imperial = $7,
 	slug = $8,
 	plural_name = $9,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $10
 `

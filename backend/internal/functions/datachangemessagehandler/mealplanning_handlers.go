@@ -12,8 +12,8 @@ import (
 	mealplanningnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	notifications "github.com/primandproper/platform-go/v11/notifications/mobile"
-	"github.com/primandproper/platform-go/v11/observability"
+	notifications "github.com/primandproper/platform-go/v12/notifications/mobile"
+	"github.com/primandproper/platform-go/v12/observability"
 )
 
 // handleMealPlanTaskNotification processes a meal plan task reminder notification.

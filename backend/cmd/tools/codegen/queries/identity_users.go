@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -136,7 +136,7 @@ func buildUsersQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(usersTableName, usersColumns,
+			pgGen.StandardCRUD(usersTableName, usersColumns,
 				querygen.WithEntity("User", "Users"),
 				querygen.WithDatabaseOwned(
 					passwordLastChangedAtColumn,
@@ -331,12 +331,12 @@ WHERE %s
 							return fmt.Sprintf("%s.%s", usersTableName, s)
 						}), ",\n\t"),
 						strings.Join(avatarJoinSelect("avatar"), ",\n\t"),
-						querygen.FilterCountSelect(usersTableName, usersColumns, []string{}),
-						querygen.TotalCountSelect(usersTableName, usersColumns, []string{}),
+						pgGen.FilterCountSelect(usersTableName, usersColumns, []string{}),
+						pgGen.TotalCountSelect(usersTableName, usersColumns, []string{}),
 						usersTableName,
 						avatarJoinClause,
-						querygen.FilterConditions(usersTableName, usersColumns),
-						querygen.CursorLimitClause(usersTableName),
+						pgGen.FilterConditions(usersTableName, usersColumns),
+						pgGen.CursorLimitClause(usersTableName),
 					)),
 				},
 				{
@@ -358,8 +358,8 @@ WHERE %s
 							return fmt.Sprintf("%s.%s", usersTableName, s)
 						}), ",\n\t"),
 						strings.Join(avatarJoinSelect("avatar"), ",\n\t"),
-						querygen.FilterCountSelect(usersTableName, usersColumns, nil),
-						querygen.TotalCountSelect(usersTableName, usersColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						pgGen.FilterCountSelect(usersTableName, usersColumns, nil),
+						pgGen.TotalCountSelect(usersTableName, usersColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToAccountColumn, belongsToAccountColumn)),
 						usersTableName,
 						avatarJoinClause,
 						accountUserMembershipsTableName,
@@ -367,11 +367,11 @@ WHERE %s
 						belongsToUserColumn,
 						usersTableName,
 						idColumn,
-						querygen.FilterConditions(usersTableName, usersColumns,
+						pgGen.FilterConditions(usersTableName, usersColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToAccountColumn, belongsToAccountColumn),
 							fmt.Sprintf("%s.%s IS NULL", accountUserMembershipsTableName, archivedAtColumn),
 						),
-						querygen.CursorLimitClause(usersTableName),
+						pgGen.CursorLimitClause(usersTableName),
 					)),
 				},
 				{
@@ -574,14 +574,14 @@ WHERE %s
 							return fmt.Sprintf("%s.%s", usersTableName, s)
 						}), ",\n\t"),
 						strings.Join(avatarJoinSelect("avatar"), ",\n\t"),
-						querygen.FilterCountSelect(usersTableName, usersColumns, []string{}),
-						querygen.TotalCountSelect(usersTableName, usersColumns, []string{}),
+						pgGen.FilterCountSelect(usersTableName, usersColumns, []string{}),
+						pgGen.TotalCountSelect(usersTableName, usersColumns, []string{}),
 						usersTableName,
 						avatarJoinClause,
-						querygen.FilterConditions(usersTableName, usersColumns,
+						pgGen.FilterConditions(usersTableName, usersColumns,
 							fmt.Sprintf("%s.%s %s", usersTableName, usernameColumn, buildILIKEForArgument(usernameColumn)),
 						),
-						querygen.CursorLimitClause(usersTableName),
+						pgGen.CursorLimitClause(usersTableName),
 					)),
 				},
 				{

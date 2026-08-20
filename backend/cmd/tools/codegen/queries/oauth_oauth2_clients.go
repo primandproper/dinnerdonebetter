@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -35,7 +35,7 @@ func buildOAuth2ClientsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(oauth2ClientsTableName, oauth2ClientsColumns,
+			pgGen.StandardCRUD(oauth2ClientsTableName, oauth2ClientsColumns,
 				querygen.WithEntity("OAuth2Client", "OAuth2Clients"),
 				querygen.WithQueryName(querygen.GetQuery, "GetOAuth2ClientByDatabaseID"),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.ListQuery, querygen.UpdateQuery),
@@ -75,11 +75,11 @@ WHERE %s
 						strings.Join(applyToEach(oauth2ClientsColumns, func(_ int, s string) string {
 							return fmt.Sprintf("%s.%s", oauth2ClientsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(oauth2ClientsTableName, oauth2ClientsColumns, nil),
-						querygen.TotalCountSelect(oauth2ClientsTableName, oauth2ClientsColumns, nil),
+						pgGen.FilterCountSelect(oauth2ClientsTableName, oauth2ClientsColumns, nil),
+						pgGen.TotalCountSelect(oauth2ClientsTableName, oauth2ClientsColumns, nil),
 						oauth2ClientsTableName,
-						querygen.FilterConditions(oauth2ClientsTableName, oauth2ClientsColumns),
-						querygen.CursorLimitClause(oauth2ClientsTableName),
+						pgGen.FilterConditions(oauth2ClientsTableName, oauth2ClientsColumns),
+						pgGen.CursorLimitClause(oauth2ClientsTableName),
 					)),
 				},
 			},

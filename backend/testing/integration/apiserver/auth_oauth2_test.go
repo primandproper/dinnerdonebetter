@@ -12,7 +12,7 @@ import (
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 
-	"github.com/primandproper/platform-go/v11/authentication/oauth2server"
+	"github.com/primandproper/platform-go/v12/authentication/oauth2server"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -319,23 +319,23 @@ func TestAuth_OAuth2AuthorizationCodeFlow(T *testing.T) {
 		status, _ = requestTokenForTest(t, http.MethodPost, exchangeCodeFormForTest(code, verifier))
 		require.Equal(t, http.StatusBadRequest, status)
 
-		// Characterization of a platform gap, not an endorsement. RFC 6749 §4.1.2 says a code
-		// presented twice SHOULD revoke what it previously issued — a second redemption is
-		// either a client retrying or somebody else holding the code, and the server cannot
-		// tell which. oauth2server counts the replay and logs it, but cannot act on it:
-		// AuthorizationCode carries no FamilyID, so there is no way to name the tokens the
-		// first redemption minted. Store.ConsumeAuthorizationCode's own doc says the record is
-		// returned *because* "the caller cannot find those tokens without knowing which family
-		// the code belongs to" — which is the capability the type does not provide.
+		// RFC 6749 §4.1.2: a code presented twice SHOULD revoke what it previously issued — a
+		// second redemption is either a client retrying or somebody else holding the code, and
+		// the server cannot tell which, so it assumes the worse of the two.
 		//
-		// Refresh reuse detection, which does have a family, is asserted in
-		// TestAuth_OAuth2RefreshTokenGrant. Filed upstream; pinned here so that a platform
-		// release which closes it turns this red rather than passing quietly.
+		// This assertion used to be its own inverse, characterizing a platform gap:
+		// AuthorizationCode carried no FamilyID, so oauth2server could count a replay and log
+		// it but had no way to name the tokens the first redemption minted. platform-go v12
+		// closed that, and the characterization turned red on the version bump exactly as it
+		// was pinned to.
+		//
+		// Refresh reuse detection, which has always had a family, is asserted in
+		// TestAuth_OAuth2RefreshTokenGrant.
 		c, err := buildAuthedGRPCClientWithBearerToken(token.AccessToken)
 		require.NoError(t, err)
 
 		_, err = c.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
-		assert.NoError(t, err, "the access token survives a code replay today; see the comment above")
+		assert.Error(t, err, "a replayed code must revoke the tokens it issued")
 	})
 
 	T.Run("an expired authorization code is rejected", func(t *testing.T) {

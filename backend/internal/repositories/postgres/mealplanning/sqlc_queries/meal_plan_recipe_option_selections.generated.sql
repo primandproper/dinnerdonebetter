@@ -17,7 +17,7 @@ INSERT INTO meal_plan_recipe_option_selections (
 	sqlc.arg(selection_type)
 ) ON CONFLICT (belongs_to_meal_plan_option, recipe_step_id, ingredient_index, selection_type) DO UPDATE SET
 	selected_option_index = EXCLUDED.selected_option_index,
-	last_updated_at = NOW();
+	last_updated_at = CURRENT_TIMESTAMP;
 
 -- name: GetMealPlanRecipeOptionSelection :one
 SELECT
@@ -52,15 +52,15 @@ SELECT
 	(
 		SELECT COUNT(meal_plan_recipe_option_selections.id)
 		FROM meal_plan_recipe_option_selections
-		WHERE meal_plan_recipe_option_selections.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND meal_plan_recipe_option_selections.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE meal_plan_recipe_option_selections.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND meal_plan_recipe_option_selections.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				meal_plan_recipe_option_selections.last_updated_at IS NULL
-				OR meal_plan_recipe_option_selections.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR meal_plan_recipe_option_selections.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				meal_plan_recipe_option_selections.last_updated_at IS NULL
-				OR meal_plan_recipe_option_selections.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR meal_plan_recipe_option_selections.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plan_recipe_option_selections.archived_at IS NULL)
 			AND meal_plan_recipe_option_selections.belongs_to_meal_plan_option = sqlc.arg(meal_plan_option_id)
@@ -72,15 +72,15 @@ SELECT
 			AND meal_plan_recipe_option_selections.belongs_to_meal_plan_option = sqlc.arg(meal_plan_option_id)
 	) AS total_count
 FROM meal_plan_recipe_option_selections
-WHERE meal_plan_recipe_option_selections.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND meal_plan_recipe_option_selections.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE meal_plan_recipe_option_selections.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND meal_plan_recipe_option_selections.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		meal_plan_recipe_option_selections.last_updated_at IS NULL
-		OR meal_plan_recipe_option_selections.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR meal_plan_recipe_option_selections.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		meal_plan_recipe_option_selections.last_updated_at IS NULL
-		OR meal_plan_recipe_option_selections.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR meal_plan_recipe_option_selections.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plan_recipe_option_selections.archived_at IS NULL)
 	AND belongs_to_meal_plan_option = sqlc.arg(meal_plan_option_id)
@@ -106,15 +106,15 @@ SELECT
 		FROM meal_plan_recipe_option_selections
 		JOIN meal_plan_options ON meal_plan_recipe_option_selections.belongs_to_meal_plan_option = meal_plan_options.id
 		JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event = meal_plan_events.id
-		WHERE meal_plan_recipe_option_selections.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND meal_plan_recipe_option_selections.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE meal_plan_recipe_option_selections.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND meal_plan_recipe_option_selections.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				meal_plan_recipe_option_selections.last_updated_at IS NULL
-				OR meal_plan_recipe_option_selections.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR meal_plan_recipe_option_selections.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				meal_plan_recipe_option_selections.last_updated_at IS NULL
-				OR meal_plan_recipe_option_selections.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR meal_plan_recipe_option_selections.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plan_recipe_option_selections.archived_at IS NULL)
 			AND meal_plan_events.belongs_to_meal_plan = sqlc.arg(meal_plan_id) AND meal_plan_options.archived_at IS NULL AND meal_plan_events.archived_at IS NULL
@@ -130,15 +130,15 @@ SELECT
 FROM meal_plan_recipe_option_selections
 	JOIN meal_plan_options ON meal_plan_recipe_option_selections.belongs_to_meal_plan_option = meal_plan_options.id
 	JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event = meal_plan_events.id
-WHERE meal_plan_recipe_option_selections.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND meal_plan_recipe_option_selections.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE meal_plan_recipe_option_selections.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND meal_plan_recipe_option_selections.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		meal_plan_recipe_option_selections.last_updated_at IS NULL
-		OR meal_plan_recipe_option_selections.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR meal_plan_recipe_option_selections.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		meal_plan_recipe_option_selections.last_updated_at IS NULL
-		OR meal_plan_recipe_option_selections.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR meal_plan_recipe_option_selections.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plan_recipe_option_selections.archived_at IS NULL)
 	AND meal_plan_events.belongs_to_meal_plan = sqlc.arg(meal_plan_id)
@@ -152,7 +152,7 @@ LIMIT COALESCE(sqlc.narg(result_limit), 50);
 UPDATE meal_plan_recipe_option_selections SET
 	recipe_id = sqlc.arg(recipe_id),
 	selected_option_index = sqlc.arg(selected_option_index),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE belongs_to_meal_plan_option = sqlc.arg(meal_plan_option_id)
 	AND recipe_step_id = sqlc.arg(recipe_step_id)
 	AND ingredient_index = sqlc.arg(ingredient_index)
@@ -160,7 +160,7 @@ WHERE belongs_to_meal_plan_option = sqlc.arg(meal_plan_option_id)
 
 -- name: ArchiveMealPlanRecipeOptionSelection :execrows
 UPDATE meal_plan_recipe_option_selections SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE belongs_to_meal_plan_option = sqlc.arg(meal_plan_option_id)
 	AND recipe_step_id = sqlc.arg(recipe_step_id)
 	AND ingredient_index = sqlc.arg(ingredient_index)

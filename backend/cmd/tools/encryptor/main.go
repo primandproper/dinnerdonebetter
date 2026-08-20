@@ -7,10 +7,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/primandproper/platform-go/v11/cryptography/encryption"
-	encryptioncfg "github.com/primandproper/platform-go/v11/cryptography/encryption/config"
-	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v12/cryptography/encryption"
+	encryptioncfg "github.com/primandproper/platform-go/v12/cryptography/encryption/config"
+	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )

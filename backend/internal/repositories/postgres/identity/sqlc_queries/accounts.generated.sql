@@ -43,7 +43,7 @@ UPDATE accounts SET
 	country = sqlc.arg(country),
 	latitude = sqlc.arg(latitude),
 	longitude = sqlc.arg(longitude),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND belongs_to_user = sqlc.arg(belongs_to_user);
@@ -61,8 +61,8 @@ INSERT INTO account_user_memberships (
 
 -- name: ArchiveAccount :execrows
 UPDATE accounts SET
-	last_updated_at = NOW(),
-	archived_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP,
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND belongs_to_user = sqlc.arg(belongs_to_user)
 	AND id = sqlc.arg(id);
@@ -160,15 +160,15 @@ SELECT
 	(
 		SELECT COUNT(accounts.id)
 		FROM accounts
-		WHERE accounts.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND accounts.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE accounts.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND accounts.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				accounts.last_updated_at IS NULL
-				OR accounts.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR accounts.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				accounts.last_updated_at IS NULL
-				OR accounts.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR accounts.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR accounts.archived_at IS NULL)
 	) AS filtered_count,
@@ -180,15 +180,15 @@ SELECT
 	) AS total_count
 FROM accounts
 JOIN account_user_memberships ON account_user_memberships.belongs_to_account = accounts.id
-WHERE accounts.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND accounts.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE accounts.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND accounts.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		accounts.last_updated_at IS NULL
-		OR accounts.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR accounts.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		accounts.last_updated_at IS NULL
-		OR accounts.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR accounts.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR accounts.archived_at IS NULL)
 	AND account_user_memberships.archived_at IS NULL
@@ -203,14 +203,14 @@ UPDATE accounts SET
 	subscription_plan_id = COALESCE(sqlc.narg(subscription_plan_id), subscription_plan_id),
 	payment_processor_customer_id = COALESCE(sqlc.narg(payment_processor_customer_id), payment_processor_customer_id),
 	last_payment_provider_sync_occurred_at = COALESCE(sqlc.narg(last_payment_provider_sync_occurred_at), last_payment_provider_sync_occurred_at),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: UpdateAccountWebhookEncryptionKey :execrows
 UPDATE accounts SET
 	webhook_hmac_secret = sqlc.arg(webhook_hmac_secret),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND belongs_to_user = sqlc.arg(belongs_to_user)
 	AND id = sqlc.arg(id);

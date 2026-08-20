@@ -36,8 +36,8 @@ func (q *Queries) AddToAccountDuringCreation(ctx context.Context, db DBTX, arg *
 
 const archiveAccount = `-- name: ArchiveAccount :execrows
 UPDATE accounts SET
-	last_updated_at = NOW(),
-	archived_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP,
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND belongs_to_user = $1
 	AND id = $2
@@ -360,15 +360,15 @@ SELECT
 	(
 		SELECT COUNT(accounts.id)
 		FROM accounts
-		WHERE accounts.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND accounts.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE accounts.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND accounts.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				accounts.last_updated_at IS NULL
-				OR accounts.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR accounts.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				accounts.last_updated_at IS NULL
-				OR accounts.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR accounts.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR accounts.archived_at IS NULL)
 	) AS filtered_count,
@@ -380,15 +380,15 @@ SELECT
 	) AS total_count
 FROM accounts
 JOIN account_user_memberships ON account_user_memberships.belongs_to_account = accounts.id
-WHERE accounts.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND accounts.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE accounts.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND accounts.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		accounts.last_updated_at IS NULL
-		OR accounts.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR accounts.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		accounts.last_updated_at IS NULL
-		OR accounts.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR accounts.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR accounts.archived_at IS NULL)
 	AND account_user_memberships.archived_at IS NULL
@@ -503,7 +503,7 @@ UPDATE accounts SET
 	country = $8,
 	latitude = $9,
 	longitude = $10,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $11
 	AND belongs_to_user = $12
@@ -551,7 +551,7 @@ UPDATE accounts SET
 	subscription_plan_id = COALESCE($2, subscription_plan_id),
 	payment_processor_customer_id = COALESCE($3, payment_processor_customer_id),
 	last_payment_provider_sync_occurred_at = COALESCE($4, last_payment_provider_sync_occurred_at),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $5
 `
@@ -581,7 +581,7 @@ func (q *Queries) UpdateAccountBillingFields(ctx context.Context, db DBTX, arg *
 const updateAccountWebhookEncryptionKey = `-- name: UpdateAccountWebhookEncryptionKey :execrows
 UPDATE accounts SET
 	webhook_hmac_secret = $1,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND belongs_to_user = $2
 	AND id = $3

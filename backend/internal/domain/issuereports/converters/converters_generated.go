@@ -5,7 +5,7 @@ package converters
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	"github.com/primandproper/platform-go/v11/identifiers"
+	"github.com/primandproper/platform-go/v12/identifiers"
 )
 
 // ConvertIssueReportToIssueReportCreationRequestInput builds an IssueReportCreationRequestInput from an IssueReport.

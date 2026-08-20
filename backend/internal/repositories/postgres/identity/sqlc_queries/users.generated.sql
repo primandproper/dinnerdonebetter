@@ -31,7 +31,7 @@ INSERT INTO users (
 
 -- name: ArchiveUser :execrows
 UPDATE users SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
@@ -45,18 +45,18 @@ LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
 -- name: MarkUsersAsIndexed :execrows
 UPDATE users SET
-	last_indexed_at = NOW()
+	last_indexed_at = CURRENT_TIMESTAMP
 WHERE id = ANY(sqlc.arg(ids)::text[]);
 
 -- name: AcceptPrivacyPolicyForUser :exec
 UPDATE users SET
-	last_accepted_privacy_policy = NOW()
+	last_accepted_privacy_policy = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: AcceptTermsOfServiceForUser :exec
 UPDATE users SET
-	last_accepted_terms_of_service = NOW()
+	last_accepted_terms_of_service = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
@@ -288,15 +288,15 @@ SELECT
 	(
 		SELECT COUNT(users.id)
 		FROM users
-		WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				users.last_updated_at IS NULL
-				OR users.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR users.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				users.last_updated_at IS NULL
-				OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	) AS filtered_count,
@@ -308,15 +308,15 @@ SELECT
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
-WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR users.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	AND users.id > COALESCE(sqlc.narg(cursor), '')
@@ -356,15 +356,15 @@ SELECT
 	(
 		SELECT COUNT(users.id)
 		FROM users
-		WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				users.last_updated_at IS NULL
-				OR users.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR users.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				users.last_updated_at IS NULL
-				OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	) AS filtered_count,
@@ -378,15 +378,15 @@ FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 JOIN account_user_memberships ON account_user_memberships.belongs_to_user = users.id
-WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR users.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	AND account_user_memberships.belongs_to_account = sqlc.arg(belongs_to_account)
@@ -442,7 +442,7 @@ SELECT users.id
 FROM users
 WHERE users.archived_at IS NULL
 	AND users.last_indexed_at IS NULL
-	OR users.last_indexed_at < NOW() - '24 hours'::INTERVAL;
+	OR users.last_indexed_at < CURRENT_TIMESTAMP - '24 hours'::INTERVAL;
 
 -- name: GetUserWithUnverifiedTwoFactor :one
 SELECT
@@ -520,8 +520,8 @@ WHERE users.archived_at IS NULL
 
 -- name: MarkEmailAddressAsVerified :exec
 UPDATE users SET
-	email_address_verified_at = NOW(),
-	last_updated_at = NOW()
+	email_address_verified_at = CURRENT_TIMESTAMP,
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND email_address_verified_at IS NULL
 	AND id = sqlc.arg(id)
@@ -530,7 +530,7 @@ WHERE archived_at IS NULL
 -- name: MarkEmailAddressAsUnverified :exec
 UPDATE users SET
 	email_address_verified_at = NULL,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND email_address_verified_at IS NOT NULL
 	AND id = sqlc.arg(id);
@@ -539,14 +539,14 @@ WHERE archived_at IS NULL
 UPDATE users SET
 	two_factor_secret_verified_at = NULL,
 	two_factor_secret = sqlc.arg(two_factor_secret),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: MarkTwoFactorSecretAsVerified :exec
 UPDATE users SET
-	two_factor_secret_verified_at = NOW(),
-	last_updated_at = NOW()
+	two_factor_secret_verified_at = CURRENT_TIMESTAMP,
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
@@ -583,15 +583,15 @@ SELECT
 	(
 		SELECT COUNT(users.id)
 		FROM users
-		WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				users.last_updated_at IS NULL
-				OR users.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR users.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				users.last_updated_at IS NULL
-				OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	) AS filtered_count,
@@ -603,15 +603,15 @@ SELECT
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
-WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR users.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	AND users.username ILIKE '%' || sqlc.arg(username)::text || '%'
@@ -624,7 +624,7 @@ UPDATE users SET
 	first_name = sqlc.arg(first_name),
 	last_name = sqlc.arg(last_name),
 	birthday = sqlc.arg(birthday),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
@@ -632,7 +632,7 @@ WHERE archived_at IS NULL
 UPDATE users SET
 	email_address = sqlc.arg(email_address),
 	email_address_verified_at = NULL,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
@@ -640,8 +640,8 @@ WHERE archived_at IS NULL
 UPDATE users SET
 	hashed_password = sqlc.arg(hashed_password),
 	requires_password_change = FALSE,
-	password_last_changed_at = NOW(),
-	last_updated_at = NOW()
+	password_last_changed_at = CURRENT_TIMESTAMP,
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
@@ -649,13 +649,13 @@ WHERE archived_at IS NULL
 UPDATE users SET
 	two_factor_secret_verified_at = NULL,
 	two_factor_secret = sqlc.arg(two_factor_secret),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: UpdateUserUsername :execrows
 UPDATE users SET
 	username = sqlc.arg(username),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);

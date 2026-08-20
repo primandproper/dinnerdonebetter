@@ -15,7 +15,7 @@ import (
 
 const archiveValidInstrument = `-- name: ArchiveValidInstrument :execrows
 UPDATE valid_instruments SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -227,15 +227,15 @@ SELECT
 	(
 		SELECT COUNT(valid_instruments.id)
 		FROM valid_instruments
-		WHERE valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_instruments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_instruments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_instruments.last_updated_at IS NULL
-				OR valid_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_instruments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_instruments.last_updated_at IS NULL
-				OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_instruments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	) AS filtered_count,
@@ -245,15 +245,15 @@ SELECT
 		WHERE (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	) AS total_count
 FROM valid_instruments
-WHERE valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_instruments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_instruments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_instruments.last_updated_at IS NULL
-		OR valid_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_instruments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_instruments.last_updated_at IS NULL
-		OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_instruments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	AND valid_instruments.id > COALESCE($6, '')
@@ -343,7 +343,7 @@ FROM valid_instruments
 WHERE valid_instruments.archived_at IS NULL
 	AND (
 	valid_instruments.last_indexed_at IS NULL
-	OR valid_instruments.last_indexed_at < NOW() - '24 hours'::INTERVAL
+	OR valid_instruments.last_indexed_at < CURRENT_TIMESTAMP - '24 hours'::INTERVAL
 )
 `
 
@@ -445,7 +445,7 @@ func (q *Queries) GetValidInstrumentsWithIDs(ctx context.Context, db DBTX, ids [
 
 const markValidInstrumentsAsIndexed = `-- name: MarkValidInstrumentsAsIndexed :execrows
 UPDATE valid_instruments SET
-	last_indexed_at = NOW()
+	last_indexed_at = CURRENT_TIMESTAMP
 WHERE id = ANY($1::text[])
 `
 
@@ -512,15 +512,15 @@ SELECT
 	(
 		SELECT COUNT(valid_instruments.id)
 		FROM valid_instruments
-		WHERE valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_instruments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_instruments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_instruments.last_updated_at IS NULL
-				OR valid_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_instruments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_instruments.last_updated_at IS NULL
-				OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_instruments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	) AS filtered_count,
@@ -530,15 +530,15 @@ SELECT
 		WHERE (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	) AS total_count
 FROM valid_instruments
-WHERE valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_instruments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_instruments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_instruments.last_updated_at IS NULL
-		OR valid_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_instruments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_instruments.last_updated_at IS NULL
-		OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_instruments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	AND valid_instruments.name ILIKE '%' || $6::text || '%'
@@ -642,15 +642,15 @@ SELECT
 	(
 		SELECT COUNT(valid_instruments.id)
 		FROM valid_instruments
-		WHERE valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_instruments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_instruments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_instruments.last_updated_at IS NULL
-				OR valid_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_instruments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_instruments.last_updated_at IS NULL
-				OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_instruments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 			AND valid_instruments.id NOT IN (SELECT valid_instrument_id FROM account_instrument_ownerships WHERE account_instrument_ownerships.belongs_to_account = $6 AND account_instrument_ownerships.archived_at IS NULL)
@@ -662,15 +662,15 @@ SELECT
 			AND valid_instruments.id NOT IN (SELECT valid_instrument_id FROM account_instrument_ownerships WHERE account_instrument_ownerships.belongs_to_account = $6 AND account_instrument_ownerships.archived_at IS NULL)
 	) AS total_count
 FROM valid_instruments
-WHERE valid_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_instruments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_instruments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_instruments.last_updated_at IS NULL
-		OR valid_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_instruments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_instruments.last_updated_at IS NULL
-		OR valid_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_instruments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_instruments.archived_at IS NULL)
 	AND valid_instruments.name ILIKE '%' || $7::text || '%'
@@ -769,7 +769,7 @@ UPDATE valid_instruments SET
 	slug = $6,
 	display_in_summary_lists = $7,
 	include_in_generated_instructions = $8,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $9
 `

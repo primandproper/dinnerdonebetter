@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -32,7 +32,7 @@ func buildPermissionsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(permissionsTableName, permissionsColumns,
+			pgGen.StandardCRUD(permissionsTableName, permissionsColumns,
 				querygen.WithEntity("Permission", "Permissions"),
 				querygen.WithQueryName(querygen.GetQuery, "GetPermissionByID"),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.ListQuery, querygen.UpdateQuery),
@@ -71,11 +71,11 @@ WHERE %s
 						strings.Join(applyToEach(permissionsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", permissionsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(permissionsTableName, permissionsColumns, []string{}),
-						querygen.TotalCountSelect(permissionsTableName, permissionsColumns, []string{}),
+						pgGen.FilterCountSelect(permissionsTableName, permissionsColumns, []string{}),
+						pgGen.TotalCountSelect(permissionsTableName, permissionsColumns, []string{}),
 						permissionsTableName,
-						querygen.FilterConditions(permissionsTableName, permissionsColumns),
-						querygen.CursorLimitClause(permissionsTableName),
+						pgGen.FilterConditions(permissionsTableName, permissionsColumns),
+						pgGen.CursorLimitClause(permissionsTableName),
 					)),
 				},
 			},

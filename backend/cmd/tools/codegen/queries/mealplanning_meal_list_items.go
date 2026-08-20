@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -35,7 +35,7 @@ func buildMealListItemsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(mealListItemsTableName, mealListItemsColumns,
+			pgGen.StandardCRUD(mealListItemsTableName, mealListItemsColumns,
 				querygen.WithEntity("MealListItem", "MealListItems"),
 				querygen.WithOwnership("belongs_to_meal_list"),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery),
@@ -75,14 +75,14 @@ WHERE %s
 						strings.Join(applyToEach(mealListItemsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", mealListItemsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(mealListItemsTableName, mealListItemsColumns, []string{}, fmt.Sprintf("%s.belongs_to_meal_list = sqlc.arg(%s)", mealListItemsTableName, mealListIDColumn), fmt.Sprintf("EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.belongs_to_meal_list AND %s.%s = sqlc.arg(%s))", mealListsTableName, mealListsTableName, idColumn, mealListItemsTableName, mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
-						querygen.TotalCountSelect(mealListItemsTableName, mealListItemsColumns, []string{}),
+						pgGen.FilterCountSelect(mealListItemsTableName, mealListItemsColumns, []string{}, fmt.Sprintf("%s.belongs_to_meal_list = sqlc.arg(%s)", mealListItemsTableName, mealListIDColumn), fmt.Sprintf("EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.belongs_to_meal_list AND %s.%s = sqlc.arg(%s))", mealListsTableName, mealListsTableName, idColumn, mealListItemsTableName, mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
+						pgGen.TotalCountSelect(mealListItemsTableName, mealListItemsColumns, []string{}),
 						mealListItemsTableName,
-						querygen.FilterConditions(mealListItemsTableName, mealListItemsColumns,
+						pgGen.FilterConditions(mealListItemsTableName, mealListItemsColumns,
 							fmt.Sprintf("%s.belongs_to_meal_list = sqlc.arg(%s)", mealListItemsTableName, mealListIDColumn),
 							fmt.Sprintf("EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.belongs_to_meal_list AND %s.%s = sqlc.arg(%s))", mealListsTableName, mealListsTableName, idColumn, mealListItemsTableName, mealListsTableName, belongsToUserColumn, belongsToUserColumn),
 						),
-						querygen.CursorLimitClause(mealListItemsTableName),
+						pgGen.CursorLimitClause(mealListItemsTableName),
 					)),
 				},
 			},

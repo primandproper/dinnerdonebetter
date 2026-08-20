@@ -13,7 +13,7 @@ import (
 
 const archiveAccountInstrumentOwnership = `-- name: ArchiveAccountInstrumentOwnership :execrows
 UPDATE account_instrument_ownerships SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 	AND belongs_to_account = $2
@@ -199,15 +199,15 @@ SELECT
 	(
 		SELECT COUNT(account_instrument_ownerships.id)
 		FROM account_instrument_ownerships
-		WHERE account_instrument_ownerships.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND account_instrument_ownerships.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE account_instrument_ownerships.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND account_instrument_ownerships.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				account_instrument_ownerships.last_updated_at IS NULL
-				OR account_instrument_ownerships.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR account_instrument_ownerships.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				account_instrument_ownerships.last_updated_at IS NULL
-				OR account_instrument_ownerships.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR account_instrument_ownerships.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR account_instrument_ownerships.archived_at IS NULL)
 			AND account_instrument_ownerships.belongs_to_account = $6
@@ -220,15 +220,15 @@ SELECT
 	) AS total_count
 FROM account_instrument_ownerships
 INNER JOIN valid_instruments ON account_instrument_ownerships.valid_instrument_id = valid_instruments.id
-WHERE account_instrument_ownerships.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND account_instrument_ownerships.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE account_instrument_ownerships.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND account_instrument_ownerships.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		account_instrument_ownerships.last_updated_at IS NULL
-		OR account_instrument_ownerships.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR account_instrument_ownerships.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		account_instrument_ownerships.last_updated_at IS NULL
-		OR account_instrument_ownerships.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR account_instrument_ownerships.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR account_instrument_ownerships.archived_at IS NULL)
 	AND account_instrument_ownerships.belongs_to_account = $6
@@ -336,7 +336,7 @@ UPDATE account_instrument_ownerships SET
 	notes = $1,
 	quantity = $2,
 	valid_instrument_id = $3,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $4
 	AND belongs_to_account = $5

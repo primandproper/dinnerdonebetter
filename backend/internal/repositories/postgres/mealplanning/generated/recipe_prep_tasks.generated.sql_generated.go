@@ -13,7 +13,7 @@ import (
 
 const archiveRecipePrepTask = `-- name: ArchiveRecipePrepTask :execrows
 UPDATE recipe_prep_tasks SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -315,7 +315,7 @@ UPDATE recipe_prep_tasks SET
 	minimum_storage_temperature_in_celsius = $9,
 	maximum_storage_temperature_in_celsius = $10,
 	belongs_to_recipe = $11,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $12
 `

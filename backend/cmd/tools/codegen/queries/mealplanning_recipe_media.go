@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -36,7 +36,7 @@ func buildRecipeMediaQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(recipeMediaTableName, recipeMediaColumns,
+			pgGen.StandardCRUD(recipeMediaTableName, recipeMediaColumns,
 				querygen.WithEntity("RecipeMedia", "RecipeMedias"),
 				querygen.WithOmitted(querygen.ListQuery),
 			),

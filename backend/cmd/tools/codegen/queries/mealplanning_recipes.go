@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -67,7 +67,7 @@ func buildRecipesQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(recipesTableName, recipesColumns,
+			pgGen.StandardCRUD(recipesTableName, recipesColumns,
 				querygen.WithEntity("Recipe", "Recipes"),
 				querygen.WithDatabaseOwned(lastValidatedAtColumn),
 				querygen.WithImmutable(nameColumn, slugColumn, "source", "source_isbn", descriptionColumn, "inspired_by_recipe_id", "min_estimated_portions", "max_estimated_portions", "portion_name", "plural_portion_name", eligibleForMealsColumn, "yields_component_type", createdByUserColumn),
@@ -152,13 +152,13 @@ WHERE %s
 						strings.Join(applyToEach(recipesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipesTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
-						querygen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
+						pgGen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
+						pgGen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
 						recipesTableName,
-						querygen.FilterConditions(recipesTableName, recipesColumns,
+						pgGen.FilterConditions(recipesTableName, recipesColumns,
 							fmt.Sprintf("%s.%s = COALESCE(sqlc.narg(%s), 'approved')::recipe_status", recipesTableName, statusColumn, statusColumn),
 						),
-						querygen.CursorLimitClause(recipesTableName),
+						pgGen.CursorLimitClause(recipesTableName),
 					)),
 				},
 				{
@@ -176,13 +176,13 @@ WHERE %s
 						strings.Join(applyToEach(recipesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipesTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(recipesTableName, recipesColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, createdByUserColumn, createdByUserColumn)),
-						querygen.TotalCountSelect(recipesTableName, recipesColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, createdByUserColumn, createdByUserColumn)),
+						pgGen.FilterCountSelect(recipesTableName, recipesColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, createdByUserColumn, createdByUserColumn)),
+						pgGen.TotalCountSelect(recipesTableName, recipesColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, createdByUserColumn, createdByUserColumn)),
 						recipesTableName,
-						querygen.FilterConditions(recipesTableName, recipesColumns,
+						pgGen.FilterConditions(recipesTableName, recipesColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, createdByUserColumn, createdByUserColumn),
 						),
-						querygen.CursorLimitClause(recipesTableName),
+						pgGen.CursorLimitClause(recipesTableName),
 					)),
 				},
 				{
@@ -222,13 +222,13 @@ WHERE %s
 						strings.Join(applyToEach(recipesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipesTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
-						querygen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
+						pgGen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
+						pgGen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
 						recipesTableName,
-						querygen.FilterConditions(recipesTableName, recipesColumns,
+						pgGen.FilterConditions(recipesTableName, recipesColumns,
 							fmt.Sprintf("%s.%s %s", recipesTableName, nameColumn, buildILIKEForArgument("query")),
 						),
-						querygen.CursorLimitClause(recipesTableName),
+						pgGen.CursorLimitClause(recipesTableName),
 					)),
 				},
 				{
@@ -246,15 +246,15 @@ WHERE %s
 						strings.Join(applyToEach(recipesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipesTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
-						querygen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
+						pgGen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
+						pgGen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
 						recipesTableName,
-						querygen.FilterConditions(recipesTableName, recipesColumns,
+						pgGen.FilterConditions(recipesTableName, recipesColumns,
 							fmt.Sprintf("%s.%s = true", recipesTableName, eligibleForMealsColumn),
 							fmt.Sprintf("%s.%s = 'approved'", recipesTableName, statusColumn),
 							fmt.Sprintf("%s.%s %s", recipesTableName, nameColumn, buildILIKEForArgument("query")),
 						),
-						querygen.CursorLimitClause(recipesTableName),
+						pgGen.CursorLimitClause(recipesTableName),
 					)),
 				},
 				{
@@ -272,14 +272,14 @@ WHERE %s
 						strings.Join(applyToEach(recipesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipesTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
-						querygen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
+						pgGen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
+						pgGen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
 						recipesTableName,
-						querygen.FilterConditions(recipesTableName, recipesColumns,
+						pgGen.FilterConditions(recipesTableName, recipesColumns,
 							fmt.Sprintf("%s.%s %s", recipesTableName, nameColumn, buildILIKEForArgument("query")),
 							"NOT EXISTS (\n\t\tSELECT 1 FROM recipe_step_instruments rsi\n\t\tJOIN recipe_steps rs ON rsi.belongs_to_recipe_step = rs.id\n\t\tWHERE rs.belongs_to_recipe = recipes.id\n\t\t\t\tAND rsi.archived_at IS NULL\n\t\t\t\tAND rs.archived_at IS NULL\n\t\t\t\tAND rsi.optional = false\n\t\t\t\tAND rsi.instrument_id IS NOT NULL\n\t\t\t\tAND rsi.instrument_id NOT IN (\n\t\t\t\t\tSELECT valid_instrument_id FROM account_instrument_ownerships\n\t\t\t\t\tWHERE belongs_to_account = sqlc.arg(account_id) AND archived_at IS NULL\n\t\t\t\t)\n\t)",
 						),
-						querygen.CursorLimitClause(recipesTableName),
+						pgGen.CursorLimitClause(recipesTableName),
 					)),
 				},
 				{

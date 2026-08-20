@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -48,7 +48,7 @@ func buildMealsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(mealsTableName, mealsColumns,
+			pgGen.StandardCRUD(mealsTableName, mealsColumns,
 				querygen.WithEntity("Meal", "Meals"),
 				querygen.WithOmitted(querygen.ArchiveQuery, querygen.GetQuery, querygen.ListQuery, querygen.MarkAsIndexedQuery, querygen.UpdateQuery),
 			),
@@ -155,8 +155,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(mealsTableName, mealsColumns, []string{}),
-						querygen.TotalCountSelect(mealsTableName, mealsColumns, []string{}),
+						pgGen.FilterCountSelect(mealsTableName, mealsColumns, []string{}),
+						pgGen.TotalCountSelect(mealsTableName, mealsColumns, []string{}),
 						mealsTableName,
 						mealComponentsTableName,
 						mealComponentsTableName,
@@ -172,8 +172,8 @@ WHERE %s
 						recipeIDColumn,
 						recipesTableName,
 						archivedAtColumn,
-						querygen.FilterConditions(mealsTableName, mealsColumns),
-						querygen.CursorLimitClause(mealsTableName),
+						pgGen.FilterConditions(mealsTableName, mealsColumns),
+						pgGen.CursorLimitClause(mealsTableName),
 					)),
 				},
 				{
@@ -216,8 +216,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(mealsTableName, mealsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealsTableName, createdByUserColumn, createdByUserColumn)),
-						querygen.TotalCountSelect(mealsTableName, mealsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealsTableName, createdByUserColumn, createdByUserColumn)),
+						pgGen.FilterCountSelect(mealsTableName, mealsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealsTableName, createdByUserColumn, createdByUserColumn)),
+						pgGen.TotalCountSelect(mealsTableName, mealsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealsTableName, createdByUserColumn, createdByUserColumn)),
 						mealsTableName,
 						mealComponentsTableName,
 						mealComponentsTableName,
@@ -233,10 +233,10 @@ WHERE %s
 						recipeIDColumn,
 						recipesTableName,
 						archivedAtColumn,
-						querygen.FilterConditions(mealsTableName, mealsColumns,
+						pgGen.FilterConditions(mealsTableName, mealsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealsTableName, createdByUserColumn, createdByUserColumn),
 						),
-						querygen.CursorLimitClause(mealsTableName),
+						pgGen.CursorLimitClause(mealsTableName),
 					)),
 				},
 				{
@@ -255,8 +255,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(mealsTableName, mealsColumns, []string{}),
-						querygen.TotalCountSelect(mealsTableName, mealsColumns, []string{}),
+						pgGen.FilterCountSelect(mealsTableName, mealsColumns, []string{}),
+						pgGen.TotalCountSelect(mealsTableName, mealsColumns, []string{}),
 						mealsTableName,
 						mealComponentsTableName,
 						mealComponentsTableName,
@@ -272,10 +272,10 @@ WHERE %s
 						recipeIDColumn,
 						recipesTableName,
 						archivedAtColumn,
-						querygen.FilterConditions(mealsTableName, mealsColumns,
+						pgGen.FilterConditions(mealsTableName, mealsColumns,
 							fmt.Sprintf("%s.%s %s", mealsTableName, nameColumn, buildILIKEForArgument("query")),
 						),
-						querygen.CursorLimitClause(mealsTableName),
+						pgGen.CursorLimitClause(mealsTableName),
 					)),
 				},
 				{

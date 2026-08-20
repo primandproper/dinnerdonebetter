@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -48,7 +48,7 @@ func buildWebhooksQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(webhooksTableName, webhooksColumns,
+			pgGen.StandardCRUD(webhooksTableName, webhooksColumns,
 				querygen.WithEntity("Webhook", "Webhooks"),
 				querygen.WithOwnership(belongsToAccountColumn),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
@@ -87,8 +87,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(webhooksTableName, webhooksColumns, []string{}, "webhooks.belongs_to_account = sqlc.arg(belongs_to_account)"),
-						querygen.TotalCountSelect(
+						pgGen.FilterCountSelect(webhooksTableName, webhooksColumns, []string{}, "webhooks.belongs_to_account = sqlc.arg(belongs_to_account)"),
+						pgGen.TotalCountSelect(
 							webhooksTableName,
 							webhooksColumns,
 							nil,
@@ -100,11 +100,11 @@ WHERE %s
 						idColumn,
 						webhookTriggerConfigsTableName,
 						belongsToWebhookColumn,
-						querygen.FilterConditions(webhooksTableName, webhooksColumns,
+						pgGen.FilterConditions(webhooksTableName, webhooksColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", webhooksTableName, belongsToAccountColumn, belongsToAccountColumn),
 							fmt.Sprintf("%s.%s IS NULL", webhookTriggerConfigsTableName, archivedAtColumn),
 						),
-						querygen.CursorLimitClause(webhooksTableName),
+						pgGen.CursorLimitClause(webhooksTableName),
 					)),
 				},
 				{

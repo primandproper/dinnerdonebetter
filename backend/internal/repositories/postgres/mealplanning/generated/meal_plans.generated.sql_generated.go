@@ -13,7 +13,7 @@ import (
 
 const archiveMealPlan = `-- name: ArchiveMealPlan :execrows
 UPDATE meal_plans SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 	AND belongs_to_account = $2
@@ -35,7 +35,7 @@ func (q *Queries) ArchiveMealPlan(ctx context.Context, db DBTX, arg *ArchiveMeal
 const attachMealPlanFinalizationSaga = `-- name: AttachMealPlanFinalizationSaga :execrows
 UPDATE meal_plans SET
 	finalization_saga_id = $1,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND finalization_saga_id IS NULL
 	AND id = $2
@@ -358,7 +358,7 @@ WHERE meal_plans.archived_at IS NULL
 	AND meal_plans.id = $1
 	AND meal_plans.belongs_to_account = $2
 	AND meal_plans.status = 'awaiting_votes'
-	AND NOW() > meal_plans.voting_deadline
+	AND CURRENT_TIMESTAMP > meal_plans.voting_deadline
 `
 
 type GetMealPlanPastVotingDeadlineParams struct {
@@ -409,7 +409,7 @@ FROM meal_plans
 WHERE meal_plans.archived_at IS NULL
 	AND meal_plans.finalization_saga_id IS NULL
 	AND (
-		(meal_plans.status = 'awaiting_votes' AND meal_plans.voting_deadline < NOW())
+		(meal_plans.status = 'awaiting_votes' AND meal_plans.voting_deadline < CURRENT_TIMESTAMP)
 		OR (meal_plans.status = 'finalized' AND (meal_plans.tasks_created IS FALSE OR meal_plans.grocery_list_initialized IS FALSE))
 	)
 ORDER BY meal_plans.voting_deadline
@@ -461,15 +461,15 @@ SELECT
 	(
 		SELECT COUNT(meal_plans.id)
 		FROM meal_plans
-		WHERE meal_plans.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND meal_plans.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE meal_plans.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND meal_plans.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				meal_plans.last_updated_at IS NULL
-				OR meal_plans.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR meal_plans.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				meal_plans.last_updated_at IS NULL
-				OR meal_plans.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR meal_plans.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR meal_plans.archived_at IS NULL)
 			AND meal_plans.belongs_to_account = $6
@@ -481,15 +481,15 @@ SELECT
 			AND meal_plans.belongs_to_account = $6
 	) AS total_count
 FROM meal_plans
-WHERE meal_plans.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND meal_plans.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE meal_plans.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND meal_plans.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		meal_plans.last_updated_at IS NULL
-		OR meal_plans.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR meal_plans.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		meal_plans.last_updated_at IS NULL
-		OR meal_plans.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR meal_plans.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR meal_plans.archived_at IS NULL)
 	AND meal_plans.belongs_to_account = $6
@@ -576,7 +576,7 @@ func (q *Queries) GetMealPlansForAccount(ctx context.Context, db DBTX, arg *GetM
 const markMealPlanAsGroceryListInitialized = `-- name: MarkMealPlanAsGroceryListInitialized :exec
 UPDATE meal_plans SET
 	grocery_list_initialized = TRUE,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -589,7 +589,7 @@ func (q *Queries) MarkMealPlanAsGroceryListInitialized(ctx context.Context, db D
 const markMealPlanAsPrepTasksCreated = `-- name: MarkMealPlanAsPrepTasksCreated :exec
 UPDATE meal_plans SET
 	tasks_created = TRUE,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -602,7 +602,7 @@ func (q *Queries) MarkMealPlanAsPrepTasksCreated(ctx context.Context, db DBTX, i
 const unmarkMealPlanGroceryListInitialized = `-- name: UnmarkMealPlanGroceryListInitialized :exec
 UPDATE meal_plans SET
 	grocery_list_initialized = FALSE,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -615,7 +615,7 @@ func (q *Queries) UnmarkMealPlanGroceryListInitialized(ctx context.Context, db D
 const unmarkMealPlanPrepTasksCreated = `-- name: UnmarkMealPlanPrepTasksCreated :exec
 UPDATE meal_plans SET
 	tasks_created = FALSE,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -630,7 +630,7 @@ UPDATE meal_plans SET
 	notes = $1,
 	status = $2,
 	voting_deadline = $3,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $4
 	AND belongs_to_account = $5

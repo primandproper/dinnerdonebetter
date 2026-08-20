@@ -49,13 +49,13 @@ UPDATE recipe_media SET
 	internal_path = sqlc.arg(internal_path),
 	external_path = sqlc.arg(external_path),
 	index = sqlc.arg(index),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: ArchiveRecipeMedia :execrows
 UPDATE recipe_media SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 

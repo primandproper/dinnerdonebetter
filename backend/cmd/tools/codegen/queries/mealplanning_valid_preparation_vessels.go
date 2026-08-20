@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -54,7 +54,7 @@ func buildValidPreparationVesselsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(validPreparationVesselsTableName, validPreparationVesselsColumns,
+			pgGen.StandardCRUD(validPreparationVesselsTableName, validPreparationVesselsColumns,
 				querygen.WithEntity("ValidPreparationVessel", "ValidPreparationVessels"),
 				querygen.WithOmitted(querygen.GetQuery, querygen.ListQuery),
 			),
@@ -75,8 +75,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
-						querygen.TotalCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
+						pgGen.FilterCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
+						pgGen.TotalCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
 						validPreparationVesselsTableName,
 						validVesselsTableName,
 						validPreparationVesselsTableName,
@@ -93,13 +93,13 @@ WHERE %s
 						capacityUnitColumn,
 						validMeasurementUnitsTableName,
 						idColumn,
-						querygen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns,
+						pgGen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns,
 							"valid_vessels.archived_at IS NULL",
 							"valid_preparations.archived_at IS NULL",
 							"valid_measurement_units.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationVesselsTableName, validPreparationIDColumn, idColumn),
 						),
-						querygen.CursorLimitClause(validPreparationVesselsTableName),
+						pgGen.CursorLimitClause(validPreparationVesselsTableName),
 					)),
 				},
 				{
@@ -118,8 +118,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
-						querygen.TotalCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
+						pgGen.FilterCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
+						pgGen.TotalCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
 						validPreparationVesselsTableName,
 						validVesselsTableName,
 						validPreparationVesselsTableName,
@@ -136,13 +136,13 @@ WHERE %s
 						capacityUnitColumn,
 						validMeasurementUnitsTableName,
 						idColumn,
-						querygen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns,
+						pgGen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns,
 							"valid_vessels.archived_at IS NULL",
 							"valid_preparations.archived_at IS NULL",
 							"valid_measurement_units.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationVesselsTableName, validVesselIDColumn, idColumn),
 						),
-						querygen.CursorLimitClause(validPreparationVesselsTableName),
+						pgGen.CursorLimitClause(validPreparationVesselsTableName),
 					)),
 				},
 				{
@@ -161,8 +161,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
-						querygen.TotalCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
+						pgGen.FilterCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
+						pgGen.TotalCountSelect(validPreparationVesselsTableName, validPreparationVesselsColumns, []string{}),
 						validPreparationVesselsTableName,
 						validVesselsTableName,
 						validPreparationVesselsTableName,
@@ -179,12 +179,12 @@ WHERE %s
 						capacityUnitColumn,
 						validMeasurementUnitsTableName,
 						idColumn,
-						querygen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns,
+						pgGen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns,
 							"valid_vessels.archived_at IS NULL",
 							"valid_preparations.archived_at IS NULL",
 							"valid_measurement_units.archived_at IS NULL",
 						),
-						querygen.CursorLimitClause(validPreparationVesselsTableName),
+						pgGen.CursorLimitClause(validPreparationVesselsTableName),
 					)),
 				},
 				{

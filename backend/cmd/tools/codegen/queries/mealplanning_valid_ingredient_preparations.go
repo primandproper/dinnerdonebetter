@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -49,7 +49,7 @@ func buildValidIngredientPreparationsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(validIngredientPreparationsTableName, validIngredientPreparationsColumns,
+			pgGen.StandardCRUD(validIngredientPreparationsTableName, validIngredientPreparationsColumns,
 				querygen.WithEntity("ValidIngredientPreparation", "ValidIngredientPreparations"),
 				querygen.WithOmitted(querygen.GetQuery, querygen.ListQuery),
 			),
@@ -69,8 +69,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
-						querygen.TotalCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
+						pgGen.FilterCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
+						pgGen.TotalCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
 						validIngredientPreparationsTableName,
 						validIngredientsTableName,
 						validIngredientPreparationsTableName,
@@ -82,10 +82,10 @@ WHERE %s
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						querygen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns,
+						pgGen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientPreparationsTableName, validIngredientIDColumn, idColumn),
 						),
-						querygen.CursorLimitClause(validIngredientPreparationsTableName),
+						pgGen.CursorLimitClause(validIngredientPreparationsTableName),
 					)),
 				},
 				{
@@ -103,8 +103,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
-						querygen.TotalCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
+						pgGen.FilterCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
+						pgGen.TotalCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
 						validIngredientPreparationsTableName,
 						validIngredientsTableName,
 						validIngredientPreparationsTableName,
@@ -116,10 +116,10 @@ WHERE %s
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						querygen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns,
+						pgGen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientPreparationsTableName, validPreparationIDColumn, idColumn),
 						),
-						querygen.CursorLimitClause(validIngredientPreparationsTableName),
+						pgGen.CursorLimitClause(validIngredientPreparationsTableName),
 					)),
 				},
 				{
@@ -137,8 +137,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
-						querygen.TotalCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
+						pgGen.FilterCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
+						pgGen.TotalCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}),
 						validIngredientPreparationsTableName,
 						validIngredientsTableName,
 						validIngredientPreparationsTableName,
@@ -150,8 +150,8 @@ WHERE %s
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						querygen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns),
-						querygen.CursorLimitClause(validIngredientPreparationsTableName),
+						pgGen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns),
+						pgGen.CursorLimitClause(validIngredientPreparationsTableName),
 					)),
 				},
 				{
@@ -265,8 +265,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationsTableName, idColumn, idColumn)),
-						querygen.TotalCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationsTableName, idColumn, idColumn)),
+						pgGen.FilterCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationsTableName, idColumn, idColumn)),
+						pgGen.TotalCountSelect(validIngredientPreparationsTableName, validIngredientPreparationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationsTableName, idColumn, idColumn)),
 						validIngredientPreparationsTableName,
 						validIngredientsTableName,
 						validIngredientPreparationsTableName,
@@ -278,13 +278,13 @@ WHERE %s
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						querygen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns,
+						pgGen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns,
 							"valid_ingredients.archived_at IS NULL",
 							"valid_preparations.archived_at IS NULL",
 							fmt.Sprintf("%s.%s %s", validIngredientsTableName, nameColumn, buildILIKEForArgument("name_query")),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationsTableName, idColumn, idColumn),
 						),
-						querygen.CursorLimitClause(validIngredientPreparationsTableName),
+						pgGen.CursorLimitClause(validIngredientPreparationsTableName),
 					)),
 				},
 			},

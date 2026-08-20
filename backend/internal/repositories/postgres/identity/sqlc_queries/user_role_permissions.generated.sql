@@ -21,7 +21,7 @@ WHERE user_role_permissions.archived_at IS NULL
 	AND user_role_permissions.role_id = sqlc.arg(role_id);
 
 -- name: ArchiveUserRolePermission :exec
-UPDATE user_role_permissions SET archived_at = NOW()
+UPDATE user_role_permissions SET archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND role_id = sqlc.arg(role_id)
 	AND permission_id = sqlc.arg(permission_id);

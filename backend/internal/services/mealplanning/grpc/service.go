@@ -9,9 +9,9 @@ import (
 	_ "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/errors"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/platform-go/v11/observability/logging"
-	"github.com/primandproper/platform-go/v11/observability/tracing"
-	"github.com/primandproper/platform-go/v11/uploads"
+	"github.com/primandproper/platform-go/v12/observability/logging"
+	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v12/uploads"
 )
 
 var _ mealplanningsvc.MealPlanningServiceServer = (*serviceImpl)(nil)

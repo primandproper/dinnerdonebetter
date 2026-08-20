@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -38,7 +38,7 @@ func buildUploadedMediaQueries(database string) []*Query {
 		})
 
 		return slices.Concat(
-			querygen.StandardCRUD(uploadedMediaTableName, uploadedMediaColumns,
+			pgGen.StandardCRUD(uploadedMediaTableName, uploadedMediaColumns,
 				querygen.WithEntity("UploadedMedia", "UploadedMedias"),
 				querygen.WithImmutable(createdByUserColumn),
 				querygen.WithOmitted(querygen.ArchiveQuery, querygen.ExistsQuery, querygen.ListQuery),
@@ -107,13 +107,13 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(uploadedMediaTableName, uploadedMediaColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", uploadedMediaTableName, createdByUserColumn, createdByUserColumn)),
-						querygen.TotalCountSelect(uploadedMediaTableName, uploadedMediaColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", uploadedMediaTableName, createdByUserColumn, createdByUserColumn)),
+						pgGen.FilterCountSelect(uploadedMediaTableName, uploadedMediaColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", uploadedMediaTableName, createdByUserColumn, createdByUserColumn)),
+						pgGen.TotalCountSelect(uploadedMediaTableName, uploadedMediaColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", uploadedMediaTableName, createdByUserColumn, createdByUserColumn)),
 						uploadedMediaTableName,
-						querygen.FilterConditions(uploadedMediaTableName, uploadedMediaColumns,
+						pgGen.FilterConditions(uploadedMediaTableName, uploadedMediaColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", uploadedMediaTableName, createdByUserColumn, createdByUserColumn),
 						),
-						querygen.CursorLimitClause(uploadedMediaTableName),
+						pgGen.CursorLimitClause(uploadedMediaTableName),
 					)),
 				},
 			},

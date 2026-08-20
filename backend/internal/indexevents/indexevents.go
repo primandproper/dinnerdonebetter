@@ -45,10 +45,10 @@ import (
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v11/database"
-	platformerrors "github.com/primandproper/platform-go/v11/errors"
-	"github.com/primandproper/platform-go/v11/outbox"
-	searchsync "github.com/primandproper/platform-go/v11/search/sync"
+	"github.com/primandproper/platform-go/v12/database"
+	platformerrors "github.com/primandproper/platform-go/v12/errors"
+	"github.com/primandproper/platform-go/v12/outbox"
+	searchsync "github.com/primandproper/platform-go/v12/search/sync"
 )
 
 // SideEffectName identifies this effect on the Writer. It appears in the error a duplicate or

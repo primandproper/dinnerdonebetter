@@ -15,7 +15,7 @@ import (
 
 const archiveValidIngredientMeasurementUnit = `-- name: ArchiveValidIngredientMeasurementUnit :execrows
 UPDATE valid_ingredient_measurement_units SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -351,15 +351,15 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_measurement_units.id)
 		FROM valid_ingredient_measurement_units
-		WHERE valid_ingredient_measurement_units.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_ingredient_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_ingredient_measurement_units.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_ingredient_measurement_units.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_measurement_units.last_updated_at IS NULL
-				OR valid_ingredient_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_ingredient_measurement_units.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_ingredient_measurement_units.last_updated_at IS NULL
-				OR valid_ingredient_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_ingredient_measurement_units.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_ingredient_measurement_units.archived_at IS NULL)
 	) AS filtered_count,
@@ -371,15 +371,15 @@ SELECT
 FROM valid_ingredient_measurement_units
 	JOIN valid_measurement_units ON valid_ingredient_measurement_units.valid_measurement_unit_id = valid_measurement_units.id
 	JOIN valid_ingredients ON valid_ingredient_measurement_units.valid_ingredient_id = valid_ingredients.id
-WHERE valid_ingredient_measurement_units.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_ingredient_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_ingredient_measurement_units.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_ingredient_measurement_units.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_measurement_units.last_updated_at IS NULL
-		OR valid_ingredient_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_ingredient_measurement_units.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_ingredient_measurement_units.last_updated_at IS NULL
-		OR valid_ingredient_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_ingredient_measurement_units.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_ingredient_measurement_units.archived_at IS NULL)
 	AND valid_measurement_units.archived_at IS NULL
@@ -842,15 +842,15 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_measurement_units.id)
 		FROM valid_ingredient_measurement_units
-		WHERE valid_ingredient_measurement_units.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_ingredient_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_ingredient_measurement_units.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_ingredient_measurement_units.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_measurement_units.last_updated_at IS NULL
-				OR valid_ingredient_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_ingredient_measurement_units.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_ingredient_measurement_units.last_updated_at IS NULL
-				OR valid_ingredient_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_ingredient_measurement_units.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_ingredient_measurement_units.archived_at IS NULL)
 	) AS filtered_count,
@@ -862,15 +862,15 @@ SELECT
 FROM valid_ingredient_measurement_units
 	JOIN valid_measurement_units ON valid_ingredient_measurement_units.valid_measurement_unit_id = valid_measurement_units.id
 	JOIN valid_ingredients ON valid_ingredient_measurement_units.valid_ingredient_id = valid_ingredients.id
-WHERE valid_ingredient_measurement_units.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_ingredient_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_ingredient_measurement_units.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_ingredient_measurement_units.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_measurement_units.last_updated_at IS NULL
-		OR valid_ingredient_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_ingredient_measurement_units.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_ingredient_measurement_units.last_updated_at IS NULL
-		OR valid_ingredient_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_ingredient_measurement_units.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_ingredient_measurement_units.archived_at IS NULL)
 	AND valid_measurement_units.archived_at IS NULL
@@ -1117,15 +1117,15 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_measurement_units.id)
 		FROM valid_ingredient_measurement_units
-		WHERE valid_ingredient_measurement_units.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_ingredient_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_ingredient_measurement_units.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_ingredient_measurement_units.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_measurement_units.last_updated_at IS NULL
-				OR valid_ingredient_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_ingredient_measurement_units.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_ingredient_measurement_units.last_updated_at IS NULL
-				OR valid_ingredient_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_ingredient_measurement_units.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_ingredient_measurement_units.archived_at IS NULL)
 	) AS filtered_count,
@@ -1137,15 +1137,15 @@ SELECT
 FROM valid_ingredient_measurement_units
 	JOIN valid_measurement_units ON valid_ingredient_measurement_units.valid_measurement_unit_id = valid_measurement_units.id
 	JOIN valid_ingredients ON valid_ingredient_measurement_units.valid_ingredient_id = valid_ingredients.id
-WHERE valid_ingredient_measurement_units.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_ingredient_measurement_units.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_ingredient_measurement_units.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_ingredient_measurement_units.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_measurement_units.last_updated_at IS NULL
-		OR valid_ingredient_measurement_units.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_ingredient_measurement_units.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_ingredient_measurement_units.last_updated_at IS NULL
-		OR valid_ingredient_measurement_units.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_ingredient_measurement_units.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_ingredient_measurement_units.archived_at IS NULL)
 	AND valid_measurement_units.archived_at IS NULL
@@ -1334,7 +1334,7 @@ UPDATE valid_ingredient_measurement_units SET
 	valid_ingredient_id = $3,
 	minimum_allowable_quantity = $4,
 	maximum_allowable_quantity = $5,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $6
 `

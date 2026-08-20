@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -35,7 +35,7 @@ func buildRecipeListItemsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(recipeListItemsTableName, recipeListItemsColumns,
+			pgGen.StandardCRUD(recipeListItemsTableName, recipeListItemsColumns,
 				querygen.WithEntity("RecipeListItem", "RecipeListItems"),
 				querygen.WithOwnership("belongs_to_recipe_list"),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery),
@@ -56,13 +56,13 @@ WHERE %s
 						strings.Join(applyToEach(recipeListItemsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipeListItemsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(recipeListItemsTableName, recipeListItemsColumns, []string{}, fmt.Sprintf("%s.belongs_to_recipe_list = sqlc.arg(%s)", recipeListItemsTableName, recipeListIDColumn)),
-						querygen.TotalCountSelect(recipeListItemsTableName, recipeListItemsColumns, []string{}),
+						pgGen.FilterCountSelect(recipeListItemsTableName, recipeListItemsColumns, []string{}, fmt.Sprintf("%s.belongs_to_recipe_list = sqlc.arg(%s)", recipeListItemsTableName, recipeListIDColumn)),
+						pgGen.TotalCountSelect(recipeListItemsTableName, recipeListItemsColumns, []string{}),
 						recipeListItemsTableName,
-						querygen.FilterConditions(recipeListItemsTableName, recipeListItemsColumns,
+						pgGen.FilterConditions(recipeListItemsTableName, recipeListItemsColumns,
 							fmt.Sprintf("%s.belongs_to_recipe_list = sqlc.arg(%s)", recipeListItemsTableName, recipeListIDColumn),
 						),
-						querygen.CursorLimitClause(recipeListItemsTableName),
+						pgGen.CursorLimitClause(recipeListItemsTableName),
 					)),
 				},
 			},

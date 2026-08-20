@@ -13,7 +13,7 @@ import (
 
 const archiveUserIngredientPreference = `-- name: ArchiveUserIngredientPreference :execrows
 UPDATE user_ingredient_preferences SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 	AND belongs_to_user = $2
@@ -312,15 +312,15 @@ SELECT
 	(
 		SELECT COUNT(user_ingredient_preferences.id)
 		FROM user_ingredient_preferences
-		WHERE user_ingredient_preferences.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND user_ingredient_preferences.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE user_ingredient_preferences.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND user_ingredient_preferences.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				user_ingredient_preferences.last_updated_at IS NULL
-				OR user_ingredient_preferences.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR user_ingredient_preferences.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				user_ingredient_preferences.last_updated_at IS NULL
-				OR user_ingredient_preferences.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR user_ingredient_preferences.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR user_ingredient_preferences.archived_at IS NULL)
 	) AS filtered_count,
@@ -331,15 +331,15 @@ SELECT
 	) AS total_count
 FROM user_ingredient_preferences
 	JOIN valid_ingredients ON valid_ingredients.id = user_ingredient_preferences.ingredient
-WHERE user_ingredient_preferences.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND user_ingredient_preferences.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE user_ingredient_preferences.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND user_ingredient_preferences.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		user_ingredient_preferences.last_updated_at IS NULL
-		OR user_ingredient_preferences.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR user_ingredient_preferences.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		user_ingredient_preferences.last_updated_at IS NULL
-		OR user_ingredient_preferences.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR user_ingredient_preferences.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR user_ingredient_preferences.archived_at IS NULL)
 	AND user_ingredient_preferences.belongs_to_user = $6
@@ -500,7 +500,7 @@ UPDATE user_ingredient_preferences SET
 	rating = $2,
 	notes = $3,
 	allergy = $4,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $5
 	AND belongs_to_user = $6

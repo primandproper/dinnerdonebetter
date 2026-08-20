@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/errors"
-	"github.com/primandproper/platform-go/v11/reflection/ast"
+	"github.com/primandproper/platform-go/v12/errors"
+	"github.com/primandproper/platform-go/v12/reflection/ast"
 )
 
 // structIndex is every struct type the domain packages declare, keyed by domain and type name.

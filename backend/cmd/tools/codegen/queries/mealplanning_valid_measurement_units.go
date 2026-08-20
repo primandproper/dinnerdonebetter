@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -42,7 +42,7 @@ func buildValidMeasurementUnitsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(validMeasurementUnitsTableName, validMeasurementUnitsColumns,
+			pgGen.StandardCRUD(validMeasurementUnitsTableName, validMeasurementUnitsColumns,
 				querygen.WithEntity("ValidMeasurementUnit", "ValidMeasurementUnits"),
 				querygen.WithOmitted(querygen.ListQuery),
 			),
@@ -63,13 +63,13 @@ GROUP BY %s.%s
 						strings.Join(applyToEach(validMeasurementUnitsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validMeasurementUnitsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
-						querygen.TotalCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
+						pgGen.FilterCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
+						pgGen.TotalCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
 						validMeasurementUnitsTableName,
-						querygen.FilterConditions(validMeasurementUnitsTableName, validMeasurementUnitsColumns),
+						pgGen.FilterConditions(validMeasurementUnitsTableName, validMeasurementUnitsColumns),
 						validMeasurementUnitsTableName,
 						idColumn,
-						querygen.CursorLimitClause(validMeasurementUnitsTableName),
+						pgGen.CursorLimitClause(validMeasurementUnitsTableName),
 					)),
 				},
 				{
@@ -88,15 +88,15 @@ GROUP BY %s.%s
 						strings.Join(applyToEach(validMeasurementUnitsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validMeasurementUnitsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
-						querygen.TotalCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
+						pgGen.FilterCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
+						pgGen.TotalCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
 						validMeasurementUnitsTableName,
-						querygen.FilterConditions(validMeasurementUnitsTableName, validMeasurementUnitsColumns,
+						pgGen.FilterConditions(validMeasurementUnitsTableName, validMeasurementUnitsColumns,
 							fmt.Sprintf("%s.%s = TRUE", validMeasurementUnitsTableName, validMeasurementUnitsUniversalColumn),
 						),
 						validMeasurementUnitsTableName,
 						idColumn,
-						querygen.CursorLimitClause(validMeasurementUnitsTableName),
+						pgGen.CursorLimitClause(validMeasurementUnitsTableName),
 					)),
 				},
 				{
@@ -176,13 +176,13 @@ WHERE %s
 						strings.Join(applyToEach(validMeasurementUnitsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validMeasurementUnitsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
-						querygen.TotalCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
+						pgGen.FilterCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
+						pgGen.TotalCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
 						validMeasurementUnitsTableName,
-						querygen.FilterConditions(validMeasurementUnitsTableName, validMeasurementUnitsColumns,
+						pgGen.FilterConditions(validMeasurementUnitsTableName, validMeasurementUnitsColumns,
 							fmt.Sprintf("%s.%s %s", validMeasurementUnitsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						querygen.CursorLimitClause(validMeasurementUnitsTableName),
+						pgGen.CursorLimitClause(validMeasurementUnitsTableName),
 					)),
 				},
 				{
@@ -205,11 +205,11 @@ WHERE %s
 							}
 							return fmt.Sprintf("%s.%s", validMeasurementUnitsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}, ` (
+						pgGen.FilterCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}, ` (
 				valid_ingredient_measurement_units.valid_ingredient_id = sqlc.arg(valid_ingredient_id)
 				OR valid_measurement_units.universal = true
 			)`),
-						querygen.TotalCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
+						pgGen.TotalCountSelect(validMeasurementUnitsTableName, validMeasurementUnitsColumns, []string{}),
 						validMeasurementUnitsTableName,
 						validIngredientMeasurementUnitsTableName,
 						validIngredientMeasurementUnitsTableName,
@@ -221,12 +221,12 @@ WHERE %s
 						validIngredientIDColumn,
 						validIngredientsTableName,
 						idColumn,
-						querygen.FilterConditions(validMeasurementUnitsTableName, validMeasurementUnitsColumns,
+						pgGen.FilterConditions(validMeasurementUnitsTableName, validMeasurementUnitsColumns,
 							fmt.Sprintf("(\n\t\t%s.%s = sqlc.arg(%s)\n\t\tOR %s.%s = TRUE\n\t)", validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientIDColumn, validMeasurementUnitsTableName, validMeasurementUnitsUniversalColumn),
 							"valid_ingredients.archived_at IS NULL",
 							"valid_ingredient_measurement_units.archived_at IS NULL",
 						),
-						querygen.CursorLimitClause(validMeasurementUnitsTableName),
+						pgGen.CursorLimitClause(validMeasurementUnitsTableName),
 					)),
 				},
 			},

@@ -98,15 +98,15 @@ SELECT
 	(
 		SELECT COUNT(user_notifications.id)
 		FROM user_notifications
-		WHERE user_notifications.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND user_notifications.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE user_notifications.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND user_notifications.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				user_notifications.last_updated_at IS NULL
-				OR user_notifications.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR user_notifications.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				user_notifications.last_updated_at IS NULL
-				OR user_notifications.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR user_notifications.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND user_notifications.status != 'dismissed'
 			AND user_notifications.belongs_to_user = $5
@@ -118,15 +118,15 @@ SELECT
 			AND user_notifications.belongs_to_user = $5
 	) AS total_count
 FROM user_notifications
-WHERE user_notifications.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND user_notifications.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE user_notifications.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND user_notifications.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		user_notifications.last_updated_at IS NULL
-		OR user_notifications.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR user_notifications.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		user_notifications.last_updated_at IS NULL
-		OR user_notifications.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR user_notifications.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND user_notifications.status != 'dismissed'
 	AND user_notifications.belongs_to_user = $5
@@ -199,7 +199,7 @@ func (q *Queries) GetUserNotificationsForUser(ctx context.Context, db DBTX, arg 
 const updateUserNotification = `-- name: UpdateUserNotification :execrows
 UPDATE user_notifications SET
 	status = $1,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE id = $2
 `
 

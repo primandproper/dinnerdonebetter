@@ -11,10 +11,10 @@ import (
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks/generated"
 
-	"github.com/primandproper/platform-go/v11/fake"
-	"github.com/primandproper/platform-go/v11/identifiers"
-	"github.com/primandproper/platform-go/v11/tenancy"
-	"github.com/primandproper/platform-go/v11/webhooks"
+	"github.com/primandproper/platform-go/v12/fake"
+	"github.com/primandproper/platform-go/v12/identifiers"
+	"github.com/primandproper/platform-go/v12/tenancy"
+	"github.com/primandproper/platform-go/v12/webhooks"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

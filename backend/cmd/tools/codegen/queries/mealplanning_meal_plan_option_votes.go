@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -38,7 +38,7 @@ func buildMealPlanOptionVotesQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(mealPlanOptionVotesTableName, mealPlanOptionVotesColumns,
+			pgGen.StandardCRUD(mealPlanOptionVotesTableName, mealPlanOptionVotesColumns,
 				querygen.WithEntity("MealPlanOptionVote", "MealPlanOptionVotes"),
 				querygen.WithOwnership(belongsToMealPlanOptionColumn),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery),
@@ -146,8 +146,8 @@ GROUP BY
 						strings.Join(applyToEach(mealPlanOptionVotesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", mealPlanOptionVotesTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(mealPlanOptionVotesTableName, mealPlanOptionVotesColumns, []string{}, "meal_plan_option_votes.belongs_to_meal_plan_option = sqlc.arg(meal_plan_option_id)"),
-						querygen.TotalCountSelect(mealPlanOptionVotesTableName, mealPlanOptionVotesColumns, []string{}),
+						pgGen.FilterCountSelect(mealPlanOptionVotesTableName, mealPlanOptionVotesColumns, []string{}, "meal_plan_option_votes.belongs_to_meal_plan_option = sqlc.arg(meal_plan_option_id)"),
+						pgGen.TotalCountSelect(mealPlanOptionVotesTableName, mealPlanOptionVotesColumns, []string{}),
 						mealPlanOptionVotesTableName,
 						mealPlanOptionsTableName,
 						mealPlanOptionVotesTableName,
@@ -164,7 +164,7 @@ GROUP BY
 						belongsToMealPlanColumn,
 						mealPlansTableName,
 						idColumn,
-						querygen.FilterConditions(mealPlanOptionVotesTableName, mealPlanOptionVotesColumns,
+						pgGen.FilterConditions(mealPlanOptionVotesTableName, mealPlanOptionVotesColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanOptionVotesTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn),
 							"meal_plan_options.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventIDColumn),
@@ -183,7 +183,7 @@ GROUP BY
 						idColumn,
 						mealPlansTableName,
 						idColumn,
-						querygen.CursorLimitClause(mealPlanOptionVotesTableName),
+						pgGen.CursorLimitClause(mealPlanOptionVotesTableName),
 					)),
 				},
 				{

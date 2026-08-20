@@ -13,7 +13,7 @@ import (
 
 const archiveWebhook = `-- name: ArchiveWebhook :execrows
 UPDATE webhooks SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 	AND belongs_to_account = $2
@@ -203,15 +203,15 @@ SELECT
 	(
 		SELECT COUNT(webhooks.id)
 		FROM webhooks
-		WHERE webhooks.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND webhooks.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE webhooks.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND webhooks.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				webhooks.last_updated_at IS NULL
-				OR webhooks.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR webhooks.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				webhooks.last_updated_at IS NULL
-				OR webhooks.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR webhooks.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR webhooks.archived_at IS NULL)
 			AND webhooks.belongs_to_account = $6
@@ -224,15 +224,15 @@ SELECT
 	) AS total_count
 FROM webhooks
 	LEFT JOIN webhook_trigger_configs ON webhooks.id = webhook_trigger_configs.belongs_to_webhook
-WHERE webhooks.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND webhooks.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE webhooks.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND webhooks.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		webhooks.last_updated_at IS NULL
-		OR webhooks.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR webhooks.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		webhooks.last_updated_at IS NULL
-		OR webhooks.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR webhooks.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR webhooks.archived_at IS NULL)
 	AND webhooks.belongs_to_account = $6

@@ -13,7 +13,7 @@ import (
 
 const archiveUserRole = `-- name: ArchiveUserRole :execrows
 UPDATE user_roles SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -127,15 +127,15 @@ SELECT
 	(
 		SELECT COUNT(user_roles.id)
 		FROM user_roles
-		WHERE user_roles.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND user_roles.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE user_roles.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND user_roles.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				user_roles.last_updated_at IS NULL
-				OR user_roles.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR user_roles.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				user_roles.last_updated_at IS NULL
-				OR user_roles.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR user_roles.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR user_roles.archived_at IS NULL)
 	) AS filtered_count,
@@ -145,15 +145,15 @@ SELECT
 		WHERE (COALESCE($5, false)::boolean OR user_roles.archived_at IS NULL)
 	) AS total_count
 FROM user_roles
-WHERE user_roles.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND user_roles.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE user_roles.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND user_roles.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		user_roles.last_updated_at IS NULL
-		OR user_roles.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR user_roles.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		user_roles.last_updated_at IS NULL
-		OR user_roles.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR user_roles.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR user_roles.archived_at IS NULL)
 	AND user_roles.id > COALESCE($6, '')

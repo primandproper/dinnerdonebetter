@@ -15,8 +15,8 @@ import (
 
 const archiveUploadedMedia = `-- name: ArchiveUploadedMedia :execrows
 UPDATE uploaded_media SET
-	last_updated_at = NOW(),
-	archived_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP,
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -117,15 +117,15 @@ SELECT
 	(
 		SELECT COUNT(uploaded_media.id)
 		FROM uploaded_media
-		WHERE uploaded_media.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND uploaded_media.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE uploaded_media.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND uploaded_media.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				uploaded_media.last_updated_at IS NULL
-				OR uploaded_media.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR uploaded_media.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				uploaded_media.last_updated_at IS NULL
-				OR uploaded_media.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR uploaded_media.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR uploaded_media.archived_at IS NULL)
 			AND uploaded_media.created_by_user = $6
@@ -137,15 +137,15 @@ SELECT
 			AND uploaded_media.created_by_user = $6
 	) AS total_count
 FROM uploaded_media
-WHERE uploaded_media.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND uploaded_media.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE uploaded_media.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND uploaded_media.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		uploaded_media.last_updated_at IS NULL
-		OR uploaded_media.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR uploaded_media.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		uploaded_media.last_updated_at IS NULL
-		OR uploaded_media.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR uploaded_media.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR uploaded_media.archived_at IS NULL)
 	AND uploaded_media.created_by_user = $6
@@ -268,7 +268,7 @@ const updateUploadedMedia = `-- name: UpdateUploadedMedia :execrows
 UPDATE uploaded_media SET
 	storage_path = $1,
 	mime_type = $2,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $3
 `

@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -47,7 +47,7 @@ func buildUserIngredientPreferencesQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(userIngredientPreferencesTableName, userIngredientPreferencesColumns,
+			pgGen.StandardCRUD(userIngredientPreferencesTableName, userIngredientPreferencesColumns,
 				querygen.WithEntity("UserIngredientPreference", "UserIngredientPreferences"),
 				querygen.WithOwnership(belongsToUserColumn),
 				querygen.WithOmitted(querygen.GetQuery, querygen.ListQuery),
@@ -67,19 +67,19 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(userIngredientPreferencesTableName, userIngredientPreferencesColumns, []string{}),
-						querygen.TotalCountSelect(userIngredientPreferencesTableName, userIngredientPreferencesColumns, []string{}),
+						pgGen.FilterCountSelect(userIngredientPreferencesTableName, userIngredientPreferencesColumns, []string{}),
+						pgGen.TotalCountSelect(userIngredientPreferencesTableName, userIngredientPreferencesColumns, []string{}),
 						userIngredientPreferencesTableName,
 						validIngredientsTableName,
 						validIngredientsTableName,
 						idColumn,
 						userIngredientPreferencesTableName,
 						userIngredientPreferencesIngredientColumn,
-						querygen.FilterConditions(userIngredientPreferencesTableName, userIngredientPreferencesColumns,
+						pgGen.FilterConditions(userIngredientPreferencesTableName, userIngredientPreferencesColumns,
 							"user_ingredient_preferences.belongs_to_user = sqlc.arg(belongs_to_user)",
 							"valid_ingredients.archived_at IS NULL",
 						),
-						querygen.CursorLimitClause(userIngredientPreferencesTableName),
+						pgGen.CursorLimitClause(userIngredientPreferencesTableName),
 					)),
 				},
 				{

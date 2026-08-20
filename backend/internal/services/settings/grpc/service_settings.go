@@ -9,9 +9,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/settings/grpc/converters"
 
-	errorsgrpc "github.com/primandproper/platform-go/v11/errors/grpc"
-	platformkeys "github.com/primandproper/platform-go/v11/observability/keys"
-	"github.com/primandproper/platform-go/v11/observability/tracing"
+	errorsgrpc "github.com/primandproper/platform-go/v12/errors/grpc"
+	platformkeys "github.com/primandproper/platform-go/v12/observability/keys"
+	"github.com/primandproper/platform-go/v12/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )

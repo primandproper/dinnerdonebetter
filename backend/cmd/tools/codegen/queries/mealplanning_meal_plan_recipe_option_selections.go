@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -106,14 +106,14 @@ WHERE %s
 					strings.Join(applyToEach(mealPlanRecipeOptionSelectionsColumns, func(i int, s string) string {
 						return fmt.Sprintf("%s.%s", mealPlanRecipeOptionSelectionsTableName, s)
 					}), ",\n\t"),
-					querygen.FilterCountSelect(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn)),
-					querygen.TotalCountSelect(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn)),
+					pgGen.FilterCountSelect(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn)),
+					pgGen.TotalCountSelect(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn)),
 					mealPlanRecipeOptionSelectionsTableName,
-					querygen.FilterConditions(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns,
+					pgGen.FilterConditions(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns,
 						fmt.Sprintf("%s = sqlc.arg(%s)", belongsToMealPlanOptionColumn, mealPlanOptionIDColumn),
 						fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn),
 					),
-					querygen.CursorLimitClause(mealPlanRecipeOptionSelectionsTableName),
+					pgGen.CursorLimitClause(mealPlanRecipeOptionSelectionsTableName),
 				)),
 			},
 			{
@@ -133,13 +133,13 @@ WHERE %s
 					strings.Join(applyToEach(mealPlanRecipeOptionSelectionsColumns, func(i int, s string) string {
 						return fmt.Sprintf("%s.%s", mealPlanRecipeOptionSelectionsTableName, s)
 					}), ",\n\t"),
-					querygen.FilterCountSelect(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns,
+					pgGen.FilterCountSelect(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns,
 						[]string{
 							fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", mealPlanOptionsTableName, mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn),
 							fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn),
 						},
 						fmt.Sprintf("%s.%s = sqlc.arg(%s) AND %s.%s IS NULL AND %s.%s IS NULL", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn, mealPlanOptionsTableName, archivedAtColumn, mealPlanEventsTableName, archivedAtColumn)),
-					querygen.TotalCountSelect(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns,
+					pgGen.TotalCountSelect(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns,
 						[]string{
 							fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", mealPlanOptionsTableName, mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn),
 							fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn),
@@ -148,12 +148,12 @@ WHERE %s
 					mealPlanRecipeOptionSelectionsTableName,
 					mealPlanOptionsTableName, mealPlanRecipeOptionSelectionsTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
 					mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
-					querygen.FilterConditions(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns,
+					pgGen.FilterConditions(mealPlanRecipeOptionSelectionsTableName, mealPlanRecipeOptionSelectionsColumns,
 						fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn),
 						fmt.Sprintf("%s.%s IS NULL", mealPlanOptionsTableName, archivedAtColumn),
 						fmt.Sprintf("%s.%s IS NULL", mealPlanEventsTableName, archivedAtColumn),
 					),
-					querygen.CursorLimitClause(mealPlanRecipeOptionSelectionsTableName),
+					pgGen.CursorLimitClause(mealPlanRecipeOptionSelectionsTableName),
 				)),
 			},
 			{

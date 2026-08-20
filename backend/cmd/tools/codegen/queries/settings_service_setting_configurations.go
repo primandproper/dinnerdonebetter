@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -48,7 +48,7 @@ func buildServiceSettingConfigurationQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns,
+			pgGen.StandardCRUD(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns,
 				querygen.WithEntity("ServiceSettingConfiguration", "ServiceSettingConfigurations"),
 				querygen.WithOmitted(querygen.GetQuery, querygen.ListQuery),
 			),
@@ -131,19 +131,19 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(selectColumnsWithServiceSettingColumns, ",\n\t"),
-						querygen.FilterCountSelect(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn)),
-						querygen.TotalCountSelect(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						pgGen.FilterCountSelect(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						pgGen.TotalCountSelect(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToAccountColumn, belongsToAccountColumn)),
 						serviceSettingConfigurationsTableName,
 						serviceSettingsTableName,
 						serviceSettingConfigurationsTableName,
 						serviceSettingIDColumn,
 						serviceSettingsTableName,
 						idColumn,
-						querygen.FilterConditions(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns,
+						pgGen.FilterConditions(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns,
 							"service_settings.archived_at IS NULL",
 							"service_setting_configurations.belongs_to_account = sqlc.arg(belongs_to_account)",
 						),
-						querygen.CursorLimitClause(serviceSettingConfigurationsTableName),
+						pgGen.CursorLimitClause(serviceSettingConfigurationsTableName),
 					)),
 				},
 				{
@@ -160,19 +160,19 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(selectColumnsWithServiceSettingColumns, ",\n\t"),
-						querygen.FilterCountSelect(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn)),
-						querygen.TotalCountSelect(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn)),
+						pgGen.FilterCountSelect(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn)),
+						pgGen.TotalCountSelect(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", serviceSettingConfigurationsTableName, belongsToUserColumn, belongsToUserColumn)),
 						serviceSettingConfigurationsTableName,
 						serviceSettingsTableName,
 						serviceSettingConfigurationsTableName,
 						serviceSettingIDColumn,
 						serviceSettingsTableName,
 						idColumn,
-						querygen.FilterConditions(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns,
+						pgGen.FilterConditions(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns,
 							"service_settings.archived_at IS NULL",
 							"service_setting_configurations.belongs_to_user = sqlc.arg(belongs_to_user)",
 						),
-						querygen.CursorLimitClause(serviceSettingConfigurationsTableName),
+						pgGen.CursorLimitClause(serviceSettingConfigurationsTableName),
 					)),
 				},
 			},

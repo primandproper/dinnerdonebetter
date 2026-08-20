@@ -13,12 +13,12 @@ import (
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 
-	databasecfg "github.com/primandproper/platform-go/v11/database/config"
-	"github.com/primandproper/platform-go/v11/database/postgres"
-	"github.com/primandproper/platform-go/v11/observability"
-	loggingcfg "github.com/primandproper/platform-go/v11/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v11/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v11/observability/tracing/config"
+	databasecfg "github.com/primandproper/platform-go/v12/database/config"
+	"github.com/primandproper/platform-go/v12/database/postgres"
+	"github.com/primandproper/platform-go/v12/observability"
+	loggingcfg "github.com/primandproper/platform-go/v12/observability/logging/config"
+	metricscfg "github.com/primandproper/platform-go/v12/observability/metrics/config"
+	tracingcfg "github.com/primandproper/platform-go/v12/observability/tracing/config"
 
 	"github.com/samber/do/v2"
 )

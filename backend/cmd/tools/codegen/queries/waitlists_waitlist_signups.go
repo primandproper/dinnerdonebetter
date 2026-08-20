@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -39,7 +39,7 @@ func buildWaitlistSignupsQueries(database string) []*Query {
 		})
 
 		return slices.Concat(
-			querygen.StandardCRUD(waitlistSignupsTableName, waitlistSignupColumns,
+			pgGen.StandardCRUD(waitlistSignupsTableName, waitlistSignupColumns,
 				querygen.WithEntity("WaitlistSignup", "WaitlistSignups"),
 				querygen.WithImmutable(belongsToWaitlistColumn, belongsToUserColumn, belongsToAccountColumn),
 				querygen.WithQueryName(querygen.GetQuery, "GetWaitlistSignupByID"),
@@ -113,13 +113,13 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn)),
-						querygen.TotalCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn)),
+						pgGen.FilterCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn)),
+						pgGen.TotalCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn)),
 						waitlistSignupsTableName,
-						querygen.FilterConditions(waitlistSignupsTableName, waitlistSignupColumns,
+						pgGen.FilterConditions(waitlistSignupsTableName, waitlistSignupColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn),
 						),
-						querygen.CursorLimitClause(waitlistSignupsTableName),
+						pgGen.CursorLimitClause(waitlistSignupsTableName),
 					)),
 				},
 				{
@@ -135,13 +135,13 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn)),
-						querygen.TotalCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn)),
+						pgGen.FilterCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn)),
+						pgGen.TotalCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn)),
 						waitlistSignupsTableName,
-						querygen.FilterConditions(waitlistSignupsTableName, waitlistSignupColumns,
+						pgGen.FilterConditions(waitlistSignupsTableName, waitlistSignupColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn),
 						),
-						querygen.CursorLimitClause(waitlistSignupsTableName),
+						pgGen.CursorLimitClause(waitlistSignupsTableName),
 					)),
 				},
 			},

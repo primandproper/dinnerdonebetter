@@ -13,7 +13,7 @@ import (
 
 const archiveRecipeStepProduct = `-- name: ArchiveRecipeStepProduct :execrows
 UPDATE recipe_step_products SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 	AND belongs_to_recipe_step = $2
@@ -331,15 +331,15 @@ SELECT
 	(
 		SELECT COUNT(recipe_step_products.id)
 		FROM recipe_step_products
-		WHERE recipe_step_products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND recipe_step_products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE recipe_step_products.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND recipe_step_products.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				recipe_step_products.last_updated_at IS NULL
-				OR recipe_step_products.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR recipe_step_products.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				recipe_step_products.last_updated_at IS NULL
-				OR recipe_step_products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR recipe_step_products.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR recipe_step_products.archived_at IS NULL)
 	) AS filtered_count,
@@ -353,15 +353,15 @@ FROM recipe_step_products
 	JOIN recipe_steps ON recipe_step_products.belongs_to_recipe_step=recipe_steps.id
 	JOIN recipes ON recipe_steps.belongs_to_recipe=recipes.id
 	LEFT JOIN valid_measurement_units ON recipe_step_products.measurement_unit=valid_measurement_units.id
-WHERE recipe_step_products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND recipe_step_products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE recipe_step_products.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND recipe_step_products.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		recipe_step_products.last_updated_at IS NULL
-		OR recipe_step_products.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipe_step_products.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		recipe_step_products.last_updated_at IS NULL
-		OR recipe_step_products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipe_step_products.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR recipe_step_products.archived_at IS NULL)
 	AND recipe_step_products.belongs_to_recipe_step = $6
@@ -662,7 +662,7 @@ UPDATE recipe_step_products SET
 	is_waste = $15,
 	index = $16,
 	contained_in_vessel_index = $17,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $18
 	AND belongs_to_recipe_step = $19

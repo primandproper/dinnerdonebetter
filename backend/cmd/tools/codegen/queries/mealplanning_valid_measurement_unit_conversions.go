@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -59,7 +59,7 @@ func buildValidMeasurementUnitConversionsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsColumns,
+			pgGen.StandardCRUD(validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsColumns,
 				querygen.WithEntity("ValidMeasurementUnitConversion", "ValidMeasurementUnitConversions"),
 				querygen.WithOmitted(querygen.GetQuery, querygen.ListQuery),
 			),
@@ -80,12 +80,12 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsColumns, []string{
+						pgGen.FilterCountSelect(validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsColumns, []string{
 							fmt.Sprintf("JOIN %s AS %s_from ON %s.%s = %s_from.%s", validMeasurementUnitsTableName, validMeasurementUnitsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsFromUnitColumn, validMeasurementUnitsTableName, idColumn),
 							fmt.Sprintf("JOIN %s AS %s_to ON %s.%s = %s_to.%s", validMeasurementUnitsTableName, validMeasurementUnitsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsToUnitColumn, validMeasurementUnitsTableName, idColumn),
 							fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", validIngredientsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsOnlyForIngredientColumn, validIngredientsTableName, idColumn),
 						}, fmt.Sprintf("(%s_from.%s = sqlc.arg(%s) OR %s_to.%s = sqlc.arg(%s))", validMeasurementUnitsTableName, idColumn, idColumn, validMeasurementUnitsTableName, idColumn, idColumn), fmt.Sprintf("%s_from.%s IS NULL", validMeasurementUnitsTableName, archivedAtColumn), fmt.Sprintf("%s_to.%s IS NULL", validMeasurementUnitsTableName, archivedAtColumn)),
-						querygen.TotalCountSelect(validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsColumns, []string{
+						pgGen.TotalCountSelect(validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsColumns, []string{
 							fmt.Sprintf("JOIN %s AS %s_from ON %s.%s = %s_from.%s", validMeasurementUnitsTableName, validMeasurementUnitsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsFromUnitColumn, validMeasurementUnitsTableName, idColumn),
 							fmt.Sprintf("JOIN %s AS %s_to ON %s.%s = %s_to.%s", validMeasurementUnitsTableName, validMeasurementUnitsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsToUnitColumn, validMeasurementUnitsTableName, idColumn),
 							fmt.Sprintf("JOIN %s ON %s.%s = %s.%s", validIngredientsTableName, validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsOnlyForIngredientColumn, validIngredientsTableName, idColumn),
@@ -108,12 +108,12 @@ WHERE %s
 						validMeasurementUnitConversionsOnlyForIngredientColumn,
 						validIngredientsTableName,
 						idColumn,
-						querygen.FilterConditions(validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsColumns,
+						pgGen.FilterConditions(validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsColumns,
 							"(valid_measurement_units_from.id = sqlc.arg(id) OR valid_measurement_units_to.id = sqlc.arg(id))",
 							"valid_measurement_units_from.archived_at IS NULL",
 							"valid_measurement_units_to.archived_at IS NULL",
 						),
-						querygen.CursorLimitClause(validMeasurementUnitConversionsTableName),
+						pgGen.CursorLimitClause(validMeasurementUnitConversionsTableName),
 					)),
 				},
 				{

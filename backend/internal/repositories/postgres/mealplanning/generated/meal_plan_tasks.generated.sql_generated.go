@@ -311,7 +311,7 @@ WHERE meal_plan_tasks.completed_at IS NULL
 	AND meal_plan_options.archived_at IS NULL
 	AND meal_plan_events.archived_at IS NULL
 	AND meal_plans.archived_at IS NULL
-	AND meal_plan_events.starts_at > NOW()
+	AND meal_plan_events.starts_at > CURRENT_TIMESTAMP
 `
 
 func (q *Queries) GetMealPlanTaskIDsThatNeedNotification(ctx context.Context, db DBTX) ([]string, error) {
@@ -734,7 +734,7 @@ func (q *Queries) ListIncompleteMealPlanTasksByMealPlanOption(ctx context.Contex
 }
 
 const markMealPlanTaskNotificationSent = `-- name: MarkMealPlanTaskNotificationSent :exec
-UPDATE meal_plan_tasks SET notification_sent_at = NOW()
+UPDATE meal_plan_tasks SET notification_sent_at = CURRENT_TIMESTAMP
 WHERE id = $1
 `
 

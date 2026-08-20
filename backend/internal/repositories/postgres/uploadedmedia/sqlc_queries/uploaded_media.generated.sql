@@ -28,14 +28,14 @@ WHERE uploaded_media.archived_at IS NULL
 UPDATE uploaded_media SET
 	storage_path = sqlc.arg(storage_path),
 	mime_type = sqlc.arg(mime_type),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: ArchiveUploadedMedia :execrows
 UPDATE uploaded_media SET
-	last_updated_at = NOW(),
-	archived_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP,
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
@@ -72,15 +72,15 @@ SELECT
 	(
 		SELECT COUNT(uploaded_media.id)
 		FROM uploaded_media
-		WHERE uploaded_media.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND uploaded_media.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE uploaded_media.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND uploaded_media.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				uploaded_media.last_updated_at IS NULL
-				OR uploaded_media.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR uploaded_media.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				uploaded_media.last_updated_at IS NULL
-				OR uploaded_media.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR uploaded_media.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR uploaded_media.archived_at IS NULL)
 			AND uploaded_media.created_by_user = sqlc.arg(created_by_user)
@@ -92,15 +92,15 @@ SELECT
 			AND uploaded_media.created_by_user = sqlc.arg(created_by_user)
 	) AS total_count
 FROM uploaded_media
-WHERE uploaded_media.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND uploaded_media.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE uploaded_media.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND uploaded_media.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		uploaded_media.last_updated_at IS NULL
-		OR uploaded_media.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR uploaded_media.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		uploaded_media.last_updated_at IS NULL
-		OR uploaded_media.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR uploaded_media.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR uploaded_media.archived_at IS NULL)
 	AND uploaded_media.created_by_user = sqlc.arg(created_by_user)

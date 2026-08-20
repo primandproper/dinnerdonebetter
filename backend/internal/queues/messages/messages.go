@@ -12,7 +12,7 @@
 package queuemessages
 
 import (
-	"github.com/primandproper/platform-go/v11/email"
+	"github.com/primandproper/platform-go/v12/email"
 )
 
 type (

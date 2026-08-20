@@ -40,13 +40,13 @@ UPDATE recipe_prep_tasks SET
 	minimum_storage_temperature_in_celsius = sqlc.arg(minimum_storage_temperature_in_celsius),
 	maximum_storage_temperature_in_celsius = sqlc.arg(maximum_storage_temperature_in_celsius),
 	belongs_to_recipe = sqlc.arg(belongs_to_recipe),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: ArchiveRecipePrepTask :execrows
 UPDATE recipe_prep_tasks SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 

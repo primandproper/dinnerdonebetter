@@ -10,7 +10,7 @@ import (
 )
 
 const archiveUserRoleHierarchy = `-- name: ArchiveUserRoleHierarchy :exec
-UPDATE user_role_hierarchy SET archived_at = NOW()
+UPDATE user_role_hierarchy SET archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND parent_role_id = $1
 	AND child_role_id = $2

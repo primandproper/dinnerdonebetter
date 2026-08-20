@@ -13,9 +13,9 @@ import (
 
 const cleanupExpiredSessions = `-- name: CleanupExpiredSessions :execrows
 UPDATE user_sessions SET
-	revoked_at = NOW()
+	revoked_at = CURRENT_TIMESTAMP
 WHERE user_sessions.revoked_at IS NULL
-	AND user_sessions.expires_at < NOW()
+	AND user_sessions.expires_at < CURRENT_TIMESTAMP
 `
 
 func (q *Queries) CleanupExpiredSessions(ctx context.Context, db DBTX) (int64, error) {
@@ -96,23 +96,23 @@ SELECT
 		FROM user_sessions
 		WHERE user_sessions.belongs_to_user = $1
 				AND user_sessions.revoked_at IS NULL
-				AND user_sessions.expires_at > NOW()
-				AND user_sessions.created_at > COALESCE($2, (SELECT NOW() - '999 years'::INTERVAL))
-				AND user_sessions.created_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+				AND user_sessions.expires_at > CURRENT_TIMESTAMP
+				AND user_sessions.created_at > COALESCE($2, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+				AND user_sessions.created_at < COALESCE($3, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	) AS filtered_count,
 	(
 		SELECT COUNT(user_sessions.id)
 		FROM user_sessions
 		WHERE user_sessions.belongs_to_user = $1
 				AND user_sessions.revoked_at IS NULL
-				AND user_sessions.expires_at > NOW()
+				AND user_sessions.expires_at > CURRENT_TIMESTAMP
 	) AS total_count
 FROM user_sessions
 WHERE user_sessions.belongs_to_user = $1
 	AND user_sessions.revoked_at IS NULL
-	AND user_sessions.expires_at > NOW()
-	AND user_sessions.created_at > COALESCE($2, (SELECT NOW() - '999 years'::INTERVAL))
-	AND user_sessions.created_at < COALESCE($3, (SELECT NOW() + '999 years'::INTERVAL))
+	AND user_sessions.expires_at > CURRENT_TIMESTAMP
+	AND user_sessions.created_at > COALESCE($2, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND user_sessions.created_at < COALESCE($3, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND user_sessions.id > COALESCE($4, '')
 ORDER BY user_sessions.last_active_at DESC
 LIMIT COALESCE($5, 50)
@@ -243,7 +243,7 @@ SELECT
 FROM user_sessions
 WHERE user_sessions.session_token_id = $1
 	AND user_sessions.revoked_at IS NULL
-	AND user_sessions.expires_at > NOW()
+	AND user_sessions.expires_at > CURRENT_TIMESTAMP
 `
 
 func (q *Queries) GetUserSessionBySessionTokenID(ctx context.Context, db DBTX, sessionTokenID string) (*UserSessions, error) {
@@ -268,7 +268,7 @@ func (q *Queries) GetUserSessionBySessionTokenID(ctx context.Context, db DBTX, s
 
 const revokeAllSessionsForUser = `-- name: RevokeAllSessionsForUser :execrows
 UPDATE user_sessions SET
-	revoked_at = NOW()
+	revoked_at = CURRENT_TIMESTAMP
 WHERE user_sessions.belongs_to_user = $1
 	AND user_sessions.revoked_at IS NULL
 `
@@ -283,7 +283,7 @@ func (q *Queries) RevokeAllSessionsForUser(ctx context.Context, db DBTX, belongs
 
 const revokeAllSessionsForUserExcept = `-- name: RevokeAllSessionsForUserExcept :execrows
 UPDATE user_sessions SET
-	revoked_at = NOW()
+	revoked_at = CURRENT_TIMESTAMP
 WHERE user_sessions.belongs_to_user = $1
 	AND user_sessions.id != $2
 	AND user_sessions.revoked_at IS NULL
@@ -304,7 +304,7 @@ func (q *Queries) RevokeAllSessionsForUserExcept(ctx context.Context, db DBTX, a
 
 const revokeUserSession = `-- name: RevokeUserSession :execrows
 UPDATE user_sessions SET
-	revoked_at = NOW()
+	revoked_at = CURRENT_TIMESTAMP
 WHERE user_sessions.id = $1
 	AND user_sessions.belongs_to_user = $2
 	AND user_sessions.revoked_at IS NULL
@@ -325,7 +325,7 @@ func (q *Queries) RevokeUserSession(ctx context.Context, db DBTX, arg *RevokeUse
 
 const touchSessionLastActive = `-- name: TouchSessionLastActive :execrows
 UPDATE user_sessions SET
-	last_active_at = NOW()
+	last_active_at = CURRENT_TIMESTAMP
 WHERE user_sessions.session_token_id = $1
 	AND user_sessions.revoked_at IS NULL
 `
@@ -343,7 +343,7 @@ UPDATE user_sessions SET
 	session_token_id = $1,
 	refresh_token_id = $2,
 	expires_at = $3,
-	last_active_at = NOW()
+	last_active_at = CURRENT_TIMESTAMP
 WHERE user_sessions.id = $4
 	AND user_sessions.revoked_at IS NULL
 `

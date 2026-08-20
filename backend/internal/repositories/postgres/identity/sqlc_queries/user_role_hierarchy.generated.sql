@@ -20,7 +20,7 @@ FROM user_role_hierarchy
 WHERE user_role_hierarchy.archived_at IS NULL;
 
 -- name: ArchiveUserRoleHierarchy :exec
-UPDATE user_role_hierarchy SET archived_at = NOW()
+UPDATE user_role_hierarchy SET archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND parent_role_id = sqlc.arg(parent_role_id)
 	AND child_role_id = sqlc.arg(child_role_id);

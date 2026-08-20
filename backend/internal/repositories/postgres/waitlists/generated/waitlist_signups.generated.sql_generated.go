@@ -13,8 +13,8 @@ import (
 
 const archiveWaitlistSignup = `-- name: ArchiveWaitlistSignup :execrows
 UPDATE waitlist_signups SET
-	last_updated_at = NOW(),
-	archived_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP,
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -165,15 +165,15 @@ SELECT
 	(
 		SELECT COUNT(waitlist_signups.id)
 		FROM waitlist_signups
-		WHERE waitlist_signups.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND waitlist_signups.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE waitlist_signups.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND waitlist_signups.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				waitlist_signups.last_updated_at IS NULL
-				OR waitlist_signups.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR waitlist_signups.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				waitlist_signups.last_updated_at IS NULL
-				OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR waitlist_signups.archived_at IS NULL)
 			AND waitlist_signups.belongs_to_user = $6
@@ -185,15 +185,15 @@ SELECT
 			AND waitlist_signups.belongs_to_user = $6
 	) AS total_count
 FROM waitlist_signups
-WHERE waitlist_signups.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND waitlist_signups.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE waitlist_signups.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND waitlist_signups.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		waitlist_signups.last_updated_at IS NULL
-		OR waitlist_signups.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR waitlist_signups.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		waitlist_signups.last_updated_at IS NULL
-		OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR waitlist_signups.archived_at IS NULL)
 	AND waitlist_signups.belongs_to_user = $6
@@ -282,15 +282,15 @@ SELECT
 	(
 		SELECT COUNT(waitlist_signups.id)
 		FROM waitlist_signups
-		WHERE waitlist_signups.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND waitlist_signups.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE waitlist_signups.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND waitlist_signups.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				waitlist_signups.last_updated_at IS NULL
-				OR waitlist_signups.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR waitlist_signups.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				waitlist_signups.last_updated_at IS NULL
-				OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR waitlist_signups.archived_at IS NULL)
 			AND waitlist_signups.belongs_to_waitlist = $6
@@ -302,15 +302,15 @@ SELECT
 			AND waitlist_signups.belongs_to_waitlist = $6
 	) AS total_count
 FROM waitlist_signups
-WHERE waitlist_signups.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND waitlist_signups.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE waitlist_signups.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND waitlist_signups.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		waitlist_signups.last_updated_at IS NULL
-		OR waitlist_signups.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR waitlist_signups.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		waitlist_signups.last_updated_at IS NULL
-		OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR waitlist_signups.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR waitlist_signups.archived_at IS NULL)
 	AND waitlist_signups.belongs_to_waitlist = $6
@@ -389,7 +389,7 @@ func (q *Queries) GetWaitlistSignupsForWaitlist(ctx context.Context, db DBTX, ar
 const updateWaitlistSignup = `-- name: UpdateWaitlistSignup :execrows
 UPDATE waitlist_signups SET
 	notes = $1,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $2
 `
