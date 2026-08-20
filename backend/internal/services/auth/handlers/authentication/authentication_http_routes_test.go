@@ -1,49 +1,80 @@
 package authentication
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAuthenticationService_AuthorizeHandler(T *testing.T) {
 	T.Parallel()
 
-	T.Run("standard", func(t *testing.T) {
+	T.Run("with no client_id", func(t *testing.T) {
 		t.Parallel()
 
-		helper := buildTestHelper(t)
+		// Answered in the browser rather than by redirecting: until the client and its redirect
+		// URI are known, there is nowhere safe to send an error to.
+		res := httptest.NewRecorder()
+		buildTestService(t).AuthorizeHandler(res, httptest.NewRequest(http.MethodGet, "/authorize", http.NoBody))
 
-		req := helper.req
-		res := helper.res
-
-		// The AuthorizeHandler delegates to the oauth2Server, so we just test that it calls it
-		// Since we can't easily mock the oauth2Server.HandleAuthorizeRequest, we'll test error handling
-		helper.service.AuthorizeHandler(res, req)
-
-		// The response code will depend on the oauth2 library's behavior
-		// We're mainly testing that the method doesn't panic
-		assert.GreaterOrEqual(t, res.Code, 400) // Expect some error since we don't have a real OAuth2 setup
+		assert.Equal(t, http.StatusBadRequest, res.Code)
+		assert.Empty(t, res.Header().Get("Location"))
 	})
 }
 
 func TestAuthenticationService_TokenHandler(T *testing.T) {
 	T.Parallel()
 
+	T.Run("with no grant type", func(t *testing.T) {
+		t.Parallel()
+
+		res := httptest.NewRecorder()
+		buildTestService(t).TokenHandler(res, httptest.NewRequest(http.MethodPost, "/token", http.NoBody))
+
+		assert.GreaterOrEqual(t, res.Code, http.StatusBadRequest)
+	})
+}
+
+func TestAuthenticationService_RevokeHandler(T *testing.T) {
+	T.Parallel()
+
+	T.Run("with no token", func(t *testing.T) {
+		t.Parallel()
+
+		res := httptest.NewRecorder()
+		buildTestService(t).RevokeHandler(res, httptest.NewRequest(http.MethodPost, "/revoke", http.NoBody))
+
+		assert.GreaterOrEqual(t, res.Code, http.StatusBadRequest)
+	})
+}
+
+func TestAuthenticationService_AuthorizationServerMetadataHandler(T *testing.T) {
+	T.Parallel()
+
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		helper := buildTestHelper(t)
+		res := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/.well-known/oauth-authorization-server", http.NoBody)
 
-		req := helper.req
-		res := helper.res
+		buildTestService(t).AuthorizationServerMetadataHandler(res, req)
 
-		// The TokenHandler delegates to the oauth2Server, so we just test that it calls it
-		// Since we can't easily mock the oauth2Server.HandleTokenRequest, we'll test error handling
-		helper.service.TokenHandler(res, req)
+		require.Equal(t, http.StatusOK, res.Code)
 
-		// The response code will depend on the oauth2 library's behavior
-		// We're mainly testing that the method doesn't panic
-		assert.GreaterOrEqual(t, res.Code, 400) // Expect some error since we don't have a real OAuth2 setup
+		var metadata map[string]any
+		require.NoError(t, json.Unmarshal(res.Body.Bytes(), &metadata))
+
+		assert.Equal(t, testIssuer, metadata["issuer"])
+		assert.Equal(t, testIssuer+"/authorize", metadata["authorization_endpoint"])
+		assert.Equal(t, testIssuer+"/token", metadata["token_endpoint"])
+
+		// Omitted, because this server does not serve RFC 7591 registration. Advertising an
+		// endpoint that answers 404 is worse than advertising nothing: a client believes the
+		// document.
+		assert.NotContains(t, metadata, "registration_endpoint")
 	})
 }

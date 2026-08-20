@@ -16,11 +16,3 @@
       secretKeyRef:
         name: api-service-config
         key: DATABASE_HOST
-- op: add
-  path: "/spec/jobTemplate/spec/template/spec/containers/0/env/-"
-  value:
-    name: DINNER_DONE_BETTER_DATABASE_OAUTH2_TOKEN_ENCRYPTION_KEY
-    valueFrom:
-      secretKeyRef:
-        name: api-service-config
-        key: OAUTH2_TOKEN_ENCRYPTION_KEY

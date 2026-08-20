@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 const archiveOAuth2Client = `-- name: ArchiveOAuth2Client :execrows
@@ -32,13 +34,15 @@ INSERT INTO oauth2_clients (
 	name,
 	description,
 	client_id,
-	client_secret
+	client_secret,
+	redirect_uris
 ) VALUES (
 	$1,
 	$2,
 	$3,
 	$4,
-	$5
+	$5,
+	$6
 )
 `
 
@@ -48,6 +52,7 @@ type CreateOAuth2ClientParams struct {
 	Description  string
 	ClientID     string
 	ClientSecret string
+	RedirectUris []string
 }
 
 func (q *Queries) CreateOAuth2Client(ctx context.Context, db DBTX, arg *CreateOAuth2ClientParams) error {
@@ -57,6 +62,7 @@ func (q *Queries) CreateOAuth2Client(ctx context.Context, db DBTX, arg *CreateOA
 		arg.Description,
 		arg.ClientID,
 		arg.ClientSecret,
+		pq.Array(arg.RedirectUris),
 	)
 	return err
 }
@@ -68,6 +74,7 @@ SELECT
 	oauth2_clients.description,
 	oauth2_clients.client_id,
 	oauth2_clients.client_secret,
+	oauth2_clients.redirect_uris,
 	oauth2_clients.created_at,
 	oauth2_clients.archived_at
 FROM oauth2_clients
@@ -84,6 +91,7 @@ func (q *Queries) GetOAuth2ClientByClientID(ctx context.Context, db DBTX, client
 		&i.Description,
 		&i.ClientID,
 		&i.ClientSecret,
+		pq.Array(&i.RedirectUris),
 		&i.CreatedAt,
 		&i.ArchivedAt,
 	)
@@ -97,6 +105,7 @@ SELECT
 	oauth2_clients.description,
 	oauth2_clients.client_id,
 	oauth2_clients.client_secret,
+	oauth2_clients.redirect_uris,
 	oauth2_clients.created_at,
 	oauth2_clients.archived_at
 FROM oauth2_clients
@@ -113,6 +122,7 @@ func (q *Queries) GetOAuth2ClientByDatabaseID(ctx context.Context, db DBTX, id s
 		&i.Description,
 		&i.ClientID,
 		&i.ClientSecret,
+		pq.Array(&i.RedirectUris),
 		&i.CreatedAt,
 		&i.ArchivedAt,
 	)
@@ -126,6 +136,7 @@ SELECT
 	oauth2_clients.description,
 	oauth2_clients.client_id,
 	oauth2_clients.client_secret,
+	oauth2_clients.redirect_uris,
 	oauth2_clients.created_at,
 	oauth2_clients.archived_at,
 	(
@@ -163,6 +174,7 @@ type GetOAuth2ClientsRow struct {
 	Description   string
 	ClientID      string
 	ClientSecret  string
+	RedirectUris  []string
 	CreatedAt     time.Time
 	ArchivedAt    sql.NullTime
 	FilteredCount int64
@@ -190,6 +202,7 @@ func (q *Queries) GetOAuth2Clients(ctx context.Context, db DBTX, arg *GetOAuth2C
 			&i.Description,
 			&i.ClientID,
 			&i.ClientSecret,
+			pq.Array(&i.RedirectUris),
 			&i.CreatedAt,
 			&i.ArchivedAt,
 			&i.FilteredCount,

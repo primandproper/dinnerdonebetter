@@ -51,6 +51,12 @@ export interface GetOAuth2ClientsResponse {
 export interface OAuth2ClientCreationRequestInput {
   name: string;
   description: string;
+  /**
+   * At least one is required. The authorization server matches redirect_uri byte for byte
+   * against this list, so a client registered without one can authenticate at the token
+   * endpoint and still never complete an authorization request.
+   */
+  redirectUris: string[];
 }
 
 export interface OAuth2ClientCreationResponse {
@@ -59,6 +65,7 @@ export interface OAuth2ClientCreationResponse {
   name: string;
   description: string;
   id: string;
+  redirectUris: string[];
 }
 
 function createBaseCreateOAuth2ClientRequest(): CreateOAuth2ClientRequest {
@@ -649,7 +656,7 @@ export const GetOAuth2ClientsResponse: MessageFns<GetOAuth2ClientsResponse> = {
 };
 
 function createBaseOAuth2ClientCreationRequestInput(): OAuth2ClientCreationRequestInput {
-  return { name: '', description: '' };
+  return { name: '', description: '', redirectUris: [] };
 }
 
 export const OAuth2ClientCreationRequestInput: MessageFns<OAuth2ClientCreationRequestInput> = {
@@ -659,6 +666,9 @@ export const OAuth2ClientCreationRequestInput: MessageFns<OAuth2ClientCreationRe
     }
     if (message.description !== '') {
       writer.uint32(18).string(message.description);
+    }
+    for (const v of message.redirectUris) {
+      writer.uint32(26).string(v!);
     }
     return writer;
   },
@@ -686,6 +696,14 @@ export const OAuth2ClientCreationRequestInput: MessageFns<OAuth2ClientCreationRe
           message.description = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.redirectUris.push(reader.string());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -699,6 +717,11 @@ export const OAuth2ClientCreationRequestInput: MessageFns<OAuth2ClientCreationRe
     return {
       name: isSet(object.name) ? globalThis.String(object.name) : '',
       description: isSet(object.description) ? globalThis.String(object.description) : '',
+      redirectUris: globalThis.Array.isArray(object?.redirectUris)
+        ? object.redirectUris.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.redirect_uris)
+          ? object.redirect_uris.map((e: any) => globalThis.String(e))
+          : [],
     };
   },
 
@@ -709,6 +732,9 @@ export const OAuth2ClientCreationRequestInput: MessageFns<OAuth2ClientCreationRe
     }
     if (message.description !== '') {
       obj.description = message.description;
+    }
+    if (message.redirectUris?.length) {
+      obj.redirectUris = message.redirectUris;
     }
     return obj;
   },
@@ -724,12 +750,13 @@ export const OAuth2ClientCreationRequestInput: MessageFns<OAuth2ClientCreationRe
     const message = createBaseOAuth2ClientCreationRequestInput();
     message.name = object.name ?? '';
     message.description = object.description ?? '';
+    message.redirectUris = object.redirectUris?.map((e) => e) || [];
     return message;
   },
 };
 
 function createBaseOAuth2ClientCreationResponse(): OAuth2ClientCreationResponse {
-  return { clientId: '', clientSecret: '', name: '', description: '', id: '' };
+  return { clientId: '', clientSecret: '', name: '', description: '', id: '', redirectUris: [] };
 }
 
 export const OAuth2ClientCreationResponse: MessageFns<OAuth2ClientCreationResponse> = {
@@ -748,6 +775,9 @@ export const OAuth2ClientCreationResponse: MessageFns<OAuth2ClientCreationRespon
     }
     if (message.id !== '') {
       writer.uint32(42).string(message.id);
+    }
+    for (const v of message.redirectUris) {
+      writer.uint32(50).string(v!);
     }
     return writer;
   },
@@ -799,6 +829,14 @@ export const OAuth2ClientCreationResponse: MessageFns<OAuth2ClientCreationRespon
           message.id = reader.string();
           continue;
         }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.redirectUris.push(reader.string());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -823,6 +861,11 @@ export const OAuth2ClientCreationResponse: MessageFns<OAuth2ClientCreationRespon
       name: isSet(object.name) ? globalThis.String(object.name) : '',
       description: isSet(object.description) ? globalThis.String(object.description) : '',
       id: isSet(object.id) ? globalThis.String(object.id) : '',
+      redirectUris: globalThis.Array.isArray(object?.redirectUris)
+        ? object.redirectUris.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.redirect_uris)
+          ? object.redirect_uris.map((e: any) => globalThis.String(e))
+          : [],
     };
   },
 
@@ -843,6 +886,9 @@ export const OAuth2ClientCreationResponse: MessageFns<OAuth2ClientCreationRespon
     if (message.id !== '') {
       obj.id = message.id;
     }
+    if (message.redirectUris?.length) {
+      obj.redirectUris = message.redirectUris;
+    }
     return obj;
   },
 
@@ -856,6 +902,7 @@ export const OAuth2ClientCreationResponse: MessageFns<OAuth2ClientCreationRespon
     message.name = object.name ?? '';
     message.description = object.description ?? '';
     message.id = object.id ?? '';
+    message.redirectUris = object.redirectUris?.map((e) => e) || [];
     return message;
   },
 };

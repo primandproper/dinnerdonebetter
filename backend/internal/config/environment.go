@@ -464,6 +464,13 @@ func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) err
 	dbcConfig := &DBCleanerConfig{
 		Observability: s.RootConfig.Observability,
 		Database:      databaseConfigForService(&s.RootConfig.Database, s.ServiceDatabaseUsers, dbcConfigObservabilityServiceName),
+		// This job sweeps the authorization server's tables, so it needs the prefix they
+		// were created under and nothing else: a sweep asks the store for rows past their
+		// deadlines, which needs neither an issuer nor a lifetime.
+		OAuth2: oauth2servercfg.Config{
+			Provider: oauth2servercfg.ProviderDatabase,
+			Database: oauth2database.Config{TablePrefix: ddboauth.TablePrefix},
+		},
 	}
 	dbcConfig.Observability.Tracing.ServiceName = dbcConfigObservabilityServiceName
 	dbcConfig.Observability.Metrics.ServiceName = dbcConfigObservabilityServiceName

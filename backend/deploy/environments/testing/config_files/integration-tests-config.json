@@ -118,11 +118,6 @@
 		}
 	},
 	"database": {
-		"encryption": {
-			"provider": "aes",
-			"currentKeyID": "v1"
-		},
-		"oauth2TokenEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
 		"provider": "postgres",
 		"readConnection": {
 			"username": "dbuser",
@@ -186,9 +181,14 @@
 				"base64EncodedSigningKey": "SEVSRUlTQTMyQ0hBUlNFQ1JFVFdISUNISVNNQURFVVA="
 			},
 			"oauth2": {
-				"domain": "http://localhost:9000",
-				"accessTokenLifespan": 3600000000000,
-				"refreshTokenLifespan": 3600000000000
+				"provider": "database",
+				"issuer": "http://localhost:9000",
+				"database": {
+					"tablePrefix": "ddb"
+				},
+				"resources": [
+					"http://localhost:9000"
+				]
 			},
 			"jwtLifetime": 300000000000,
 			"enableUserSignup": true,

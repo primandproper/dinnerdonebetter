@@ -88,6 +88,13 @@ func init() {
 	cfg.GRPCServer.Port = uint16(grpcPort)
 	httpTestServerAddress = fmt.Sprintf("http://localhost:%d", httpPort)
 
+	// The authorization server's identity, which the rendered config cannot know: the port is
+	// chosen here, at startup, and every endpoint in the discovery document is derived from the
+	// issuer. Resources is the same string because the API server is both the authorization
+	// server and the resource server the interceptor checks a token's audience against.
+	cfg.Services.Auth.OAuth2.Issuer = httpTestServerAddress
+	cfg.Services.Auth.OAuth2.Resources = []string{httpTestServerAddress}
+
 	apiServiceConfig = cfg
 
 	pillars, err := cfg.Observability.NewPillars(ctx)
@@ -124,6 +131,11 @@ func init() {
 		Description:  "integration test client",
 		ClientID:     random.MustGenerateHexEncodedString(ctx, oauth.ClientIDSize),
 		ClientSecret: random.MustGenerateHexEncodedString(ctx, oauth.ClientSecretSize),
+		// Registered, and matched byte for byte at /authorize and again at /token. The suite
+		// authorizes against the API server's own address — nothing listens for the redirect,
+		// because the code is read off the Location header rather than followed — and that
+		// address is only known now, which is why this is not in the rendered config.
+		RedirectURIs: []string{httpTestServerAddress},
 	})
 	if err != nil {
 		log.Fatal(err)

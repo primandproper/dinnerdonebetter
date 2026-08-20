@@ -51,6 +51,7 @@ func (q *repository) GetOAuth2ClientByClientID(ctx context.Context, clientID str
 		ClientID:     result.ClientID,
 		ID:           result.ID,
 		ClientSecret: result.ClientSecret,
+		RedirectURIs: result.RedirectUris,
 	}
 
 	return client, nil
@@ -82,6 +83,7 @@ func (q *repository) GetOAuth2ClientByDatabaseID(ctx context.Context, clientID s
 		ClientID:     result.ClientID,
 		ID:           result.ID,
 		ClientSecret: result.ClientSecret,
+		RedirectURIs: result.RedirectUris,
 	}
 
 	return client, nil
@@ -124,6 +126,7 @@ func (q *repository) GetOAuth2Clients(ctx context.Context, filter *filtering.Que
 			ClientID:     result.ClientID,
 			ID:           result.ID,
 			ClientSecret: result.ClientSecret,
+			RedirectURIs: result.RedirectUris,
 		})
 		filteredCount = uint64(result.FilteredCount)
 		totalCount = uint64(result.TotalCount)
@@ -163,6 +166,7 @@ func (q *repository) CreateOAuth2Client(ctx context.Context, input *types.OAuth2
 			Name:         input.Name,
 			ClientID:     input.ClientID,
 			ClientSecret: input.ClientSecret,
+			RedirectUris: input.RedirectURIs,
 		}); writeErr != nil {
 			return observability.PrepareError(writeErr, span, "creating OAuth2 client")
 		}
@@ -188,6 +192,7 @@ func (q *repository) CreateOAuth2Client(ctx context.Context, input *types.OAuth2
 		Description:  input.Description,
 		ClientID:     input.ClientID,
 		ClientSecret: input.ClientSecret,
+		RedirectURIs: input.RedirectURIs,
 		CreatedAt:    q.CurrentTime(),
 	}
 

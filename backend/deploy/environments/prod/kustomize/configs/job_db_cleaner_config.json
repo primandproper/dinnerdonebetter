@@ -39,10 +39,6 @@
 		}
 	},
 	"database": {
-		"encryption": {
-			"provider": "aes",
-			"currentKeyID": "v1"
-		},
 		"provider": "postgres",
 		"readConnection": {
 			"username": "db_cleaner",
@@ -64,5 +60,11 @@
 		"maxIdleConns": 5,
 		"maxOpenConns": 7,
 		"runMigrations": true
+	},
+	"oauth2": {
+		"provider": "database",
+		"database": {
+			"tablePrefix": "ddb"
+		}
 	}
 }

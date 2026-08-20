@@ -211,6 +211,11 @@ public struct Oauth_OAuth2ClientCreationRequestInput: Sendable {
 
   public var description_p: String = String()
 
+  /// At least one is required. The authorization server matches redirect_uri byte for byte
+  /// against this list, so a client registered without one can authenticate at the token
+  /// endpoint and still never complete an authorization request.
+  public var redirectUris: [String] = []
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -230,6 +235,8 @@ public struct Oauth_OAuth2ClientCreationResponse: Sendable {
   public var description_p: String = String()
 
   public var id: String = String()
+
+  public var redirectUris: [String] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -526,7 +533,7 @@ extension Oauth_GetOAuth2ClientsResponse: SwiftProtobuf.Message, SwiftProtobuf._
 
 extension Oauth_OAuth2ClientCreationRequestInput: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".OAuth2ClientCreationRequestInput"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{1}description\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{1}description\0\u{3}redirect_uris\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -536,6 +543,7 @@ extension Oauth_OAuth2ClientCreationRequestInput: SwiftProtobuf.Message, SwiftPr
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.name) }()
       case 2: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
+      case 3: try { try decoder.decodeRepeatedStringField(value: &self.redirectUris) }()
       default: break
       }
     }
@@ -548,12 +556,16 @@ extension Oauth_OAuth2ClientCreationRequestInput: SwiftProtobuf.Message, SwiftPr
     if !self.description_p.isEmpty {
       try visitor.visitSingularStringField(value: self.description_p, fieldNumber: 2)
     }
+    if !self.redirectUris.isEmpty {
+      try visitor.visitRepeatedStringField(value: self.redirectUris, fieldNumber: 3)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Oauth_OAuth2ClientCreationRequestInput, rhs: Oauth_OAuth2ClientCreationRequestInput) -> Bool {
     if lhs.name != rhs.name {return false}
     if lhs.description_p != rhs.description_p {return false}
+    if lhs.redirectUris != rhs.redirectUris {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -561,7 +573,7 @@ extension Oauth_OAuth2ClientCreationRequestInput: SwiftProtobuf.Message, SwiftPr
 
 extension Oauth_OAuth2ClientCreationResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".OAuth2ClientCreationResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}client_id\0\u{3}client_secret\0\u{1}name\0\u{1}description\0\u{1}id\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}client_id\0\u{3}client_secret\0\u{1}name\0\u{1}description\0\u{1}id\0\u{3}redirect_uris\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -574,6 +586,7 @@ extension Oauth_OAuth2ClientCreationResponse: SwiftProtobuf.Message, SwiftProtob
       case 3: try { try decoder.decodeSingularStringField(value: &self.name) }()
       case 4: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
       case 5: try { try decoder.decodeSingularStringField(value: &self.id) }()
+      case 6: try { try decoder.decodeRepeatedStringField(value: &self.redirectUris) }()
       default: break
       }
     }
@@ -595,6 +608,9 @@ extension Oauth_OAuth2ClientCreationResponse: SwiftProtobuf.Message, SwiftProtob
     if !self.id.isEmpty {
       try visitor.visitSingularStringField(value: self.id, fieldNumber: 5)
     }
+    if !self.redirectUris.isEmpty {
+      try visitor.visitRepeatedStringField(value: self.redirectUris, fieldNumber: 6)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -604,6 +620,7 @@ extension Oauth_OAuth2ClientCreationResponse: SwiftProtobuf.Message, SwiftProtob
     if lhs.name != rhs.name {return false}
     if lhs.description_p != rhs.description_p {return false}
     if lhs.id != rhs.id {return false}
+    if lhs.redirectUris != rhs.redirectUris {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

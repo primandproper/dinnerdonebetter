@@ -36,6 +36,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
 	"github.com/primandproper/platform-go/v11/authentication/argon2"
+	"github.com/primandproper/platform-go/v11/authentication/oauth2server"
 	"github.com/primandproper/platform-go/v11/database"
 	databasecfg "github.com/primandproper/platform-go/v11/database/config"
 	"github.com/primandproper/platform-go/v11/httpclient"
@@ -348,8 +349,8 @@ func NewOAuth2ConfigForTestServer(clientID, clientSecret, httpServerAddress stri
 		RedirectURL:  httpServerAddress,
 		Endpoint: oauth2.Endpoint{
 			AuthStyle: oauth2.AuthStyleInParams,
-			AuthURL:   httpServerAddress + "/oauth2/authorize",
-			TokenURL:  httpServerAddress + "/oauth2/token",
+			AuthURL:   httpServerAddress + oauth2server.PathAuthorize,
+			TokenURL:  httpServerAddress + oauth2server.PathToken,
 		},
 	}
 }
@@ -371,12 +372,18 @@ func NewNonRedirectingHTTPClient() (*http.Client, error) {
 }
 
 // exchangeAuthorizationCodeWithJWT runs the full authorization code flow against the API
-// server: GET /oauth2/authorize authenticated with the caller's JWT, read the code off the
-// redirect, then POST /oauth2/token to exchange it.
+// server: POST /authorize authenticated with the caller's JWT, read the code off the redirect,
+// then POST /token to exchange it.
 //
-// PKCE is S256, and deliberately not configurable. The `plain` method this used to send is
-// accepted by today's server but not by the OAuth 2.1 server replacing it, and a helper that
-// could still choose `plain` is a helper that eventually would.
+// POST rather than GET, which is what changed when the API server moved onto the platform's
+// authorization server. A GET there renders the login form — the answer for a browser that
+// arrived with no session — and only a POST runs the SubjectAuthenticator that reads this
+// bearer token. The query string is the same either way: the authorization parameters travel in
+// the URL on both methods, so the request that issues the code is the one that was validated.
+//
+// PKCE is S256, and deliberately not configurable. The `plain` method this used to send is not
+// accepted at all any more, and a helper that could still choose it is one that eventually
+// would.
 func exchangeAuthorizationCodeWithJWT(ctx context.Context, oauth2Config *oauth2.Config, jwt string) (*oauth2.Token, error) {
 	state, err := random.GenerateBase64EncodedString(ctx, 32)
 	if err != nil {
@@ -387,12 +394,16 @@ func exchangeAuthorizationCodeWithJWT(ctx context.Context, oauth2Config *oauth2.
 
 	authCodeURL := oauth2Config.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier))
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, authCodeURL, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, authCodeURL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("creating auth request: %w", err)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+jwt)
+	// The authorization server parses the form on every request. Without a content type it
+	// reads no body at all, which is fine here — every parameter is in the query — but the
+	// header keeps the request well-formed rather than accidentally acceptable.
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	httpClient, err := NewNonRedirectingHTTPClient()
 	if err != nil {

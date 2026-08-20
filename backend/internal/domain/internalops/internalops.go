@@ -14,7 +14,6 @@ type (
 	}
 
 	InternalOpsDataManager interface {
-		DeleteExpiredOAuth2ClientTokens(context.Context) (int64, error)
 		CreateQueueTestMessage(ctx context.Context, id, queueName string) error
 		AcknowledgeQueueTestMessage(ctx context.Context, id string) error
 		GetQueueTestMessage(ctx context.Context, id string) (*QueueTestMessage, error)

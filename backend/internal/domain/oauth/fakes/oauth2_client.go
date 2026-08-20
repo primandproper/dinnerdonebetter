@@ -1,8 +1,6 @@
 package fakes
 
 import (
-	"time"
-
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
 	"github.com/primandproper/platform-go/v11/fake"
@@ -20,25 +18,13 @@ func BuildFakeOAuth2Client() *types.OAuth2Client {
 	client.ClientSecret = fake.BuildFakePassword()
 	client.Name = gofakeit.Password(true, true, true, false, false, 32)
 
+	// Redirect URIs are matched byte for byte by the authorization server, so a faked
+	// client needs values that parse as absolute URLs rather than faker's arbitrary
+	// strings — a client whose registered URI is not a URI can never be authorized
+	// against, which makes it useless as a fixture for the flow.
+	client.RedirectURIs = []string{gofakeit.URL(), gofakeit.URL()}
+
 	return client
-}
-
-// BuildFakeOAuth2ClientToken builds a faked OAuth2ClientToken.
-func BuildFakeOAuth2ClientToken() *types.OAuth2ClientToken {
-	token := fake.BuildFakeRecord[types.OAuth2ClientToken]()
-
-	// The three durations are lifetimes rather than arbitrary quantities, and a token
-	// whose lifetime faker picked is one that may already have expired.
-	token.CodeExpiresAt = time.Hour
-	token.AccessExpiresAt = time.Hour
-	token.RefreshExpiresAt = time.Hour
-
-	// The two values the OAuth2 spec constrains: a redirect the authorization path
-	// parses as a URL, and the one PKCE challenge method this server supports.
-	token.RedirectURI = gofakeit.URL()
-	token.CodeChallengeMethod = "S256"
-
-	return token
 }
 
 // BuildFakeOAuth2ClientCreationResponse builds a faked OAuth2ClientCreationResponse.
@@ -49,6 +35,7 @@ func BuildFakeOAuth2ClientCreationResponse() *types.OAuth2ClientCreationResponse
 		ID:           client.ID,
 		ClientID:     client.ClientID,
 		ClientSecret: client.ClientSecret,
+		RedirectURIs: client.RedirectURIs,
 	}
 }
 
@@ -62,7 +49,8 @@ func BuildFakeOAuth2ClientCreationRequestInput() *types.OAuth2ClientCreationRequ
 	client := BuildFakeOAuth2Client()
 
 	return &types.OAuth2ClientCreationRequestInput{
-		Name:        client.Name,
-		Description: client.Description,
+		Name:         client.Name,
+		Description:  client.Description,
+		RedirectURIs: client.RedirectURIs,
 	}
 }

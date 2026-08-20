@@ -7,6 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	dbcleaner "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/workers/db_cleaner"
 
+	oauth2servercfg "github.com/primandproper/platform-go/v11/authentication/oauth2server/config"
 	databasecfg "github.com/primandproper/platform-go/v11/database/config"
 	"github.com/primandproper/platform-go/v11/database/postgres"
 	"github.com/primandproper/platform-go/v11/observability"
@@ -36,6 +37,7 @@ func BuildInjector(
 	databasecfg.RegisterClientConfig(i)
 	postgres.RegisterDatabaseClient(i)
 	internalops.RegisterInternalOpsRepository(i)
+	oauth2servercfg.RegisterStore(i)
 	dbcleaner.RegisterDBCleaner(i)
 
 	return i

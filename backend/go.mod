@@ -22,7 +22,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fxamacker/cbor/v2 v2.9.2
 	github.com/go-chi/chi/v5 v5.3.0
-	github.com/go-oauth2/oauth2/v4 v4.5.4
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/go-webauthn/webauthn v0.17.4
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
@@ -328,7 +327,6 @@ require (
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/safehtml v0.1.0 // indirect
@@ -394,7 +392,6 @@ require (
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/tklauser/go-sysconf v0.4.0 // indirect
 	github.com/tklauser/numcpus v0.12.0 // indirect
-	github.com/valyala/fasthttp v1.49.0 // indirect
 	github.com/vanng822/css v1.0.1 // indirect
 	github.com/vanng822/go-premailer v1.34.0 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect

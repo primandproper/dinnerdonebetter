@@ -10,17 +10,9 @@ import (
 
 type Querier interface {
 	ArchiveOAuth2Client(ctx context.Context, db DBTX, id string) (int64, error)
-	CheckOAuth2ClientTokenExistence(ctx context.Context, db DBTX, id string) (bool, error)
 	CreateOAuth2Client(ctx context.Context, db DBTX, arg *CreateOAuth2ClientParams) error
-	CreateOAuth2ClientToken(ctx context.Context, db DBTX, arg *CreateOAuth2ClientTokenParams) error
-	DeleteOAuth2ClientTokenByAccess(ctx context.Context, db DBTX, accessHash string) (int64, error)
-	DeleteOAuth2ClientTokenByCode(ctx context.Context, db DBTX, codeHash string) (int64, error)
-	DeleteOAuth2ClientTokenByRefresh(ctx context.Context, db DBTX, refreshHash string) (int64, error)
 	GetOAuth2ClientByClientID(ctx context.Context, db DBTX, clientID string) (*Oauth2Clients, error)
 	GetOAuth2ClientByDatabaseID(ctx context.Context, db DBTX, id string) (*Oauth2Clients, error)
-	GetOAuth2ClientTokenByAccess(ctx context.Context, db DBTX, accessHash string) (*GetOAuth2ClientTokenByAccessRow, error)
-	GetOAuth2ClientTokenByCode(ctx context.Context, db DBTX, codeHash string) (*GetOAuth2ClientTokenByCodeRow, error)
-	GetOAuth2ClientTokenByRefresh(ctx context.Context, db DBTX, refreshHash string) (*GetOAuth2ClientTokenByRefreshRow, error)
 	GetOAuth2Clients(ctx context.Context, db DBTX, arg *GetOAuth2ClientsParams) ([]*GetOAuth2ClientsRow, error)
 }
 

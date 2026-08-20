@@ -28,32 +28,11 @@ var _ oauth.Repository = &RepositoryMock{}
 //			CreateOAuth2ClientFunc: func(ctx context.Context, input *oauth.OAuth2ClientDatabaseCreationInput) (*oauth.OAuth2Client, error) {
 //				panic("mock out the CreateOAuth2Client method")
 //			},
-//			CreateOAuth2ClientTokenFunc: func(ctx context.Context, input *oauth.OAuth2ClientTokenDatabaseCreationInput) (*oauth.OAuth2ClientToken, error) {
-//				panic("mock out the CreateOAuth2ClientToken method")
-//			},
-//			DeleteOAuth2ClientTokenByAccessFunc: func(ctx context.Context, access string) error {
-//				panic("mock out the DeleteOAuth2ClientTokenByAccess method")
-//			},
-//			DeleteOAuth2ClientTokenByCodeFunc: func(ctx context.Context, code string) error {
-//				panic("mock out the DeleteOAuth2ClientTokenByCode method")
-//			},
-//			DeleteOAuth2ClientTokenByRefreshFunc: func(ctx context.Context, refresh string) error {
-//				panic("mock out the DeleteOAuth2ClientTokenByRefresh method")
-//			},
 //			GetOAuth2ClientByClientIDFunc: func(ctx context.Context, clientID string) (*oauth.OAuth2Client, error) {
 //				panic("mock out the GetOAuth2ClientByClientID method")
 //			},
 //			GetOAuth2ClientByDatabaseIDFunc: func(ctx context.Context, id string) (*oauth.OAuth2Client, error) {
 //				panic("mock out the GetOAuth2ClientByDatabaseID method")
-//			},
-//			GetOAuth2ClientTokenByAccessFunc: func(ctx context.Context, access string) (*oauth.OAuth2ClientToken, error) {
-//				panic("mock out the GetOAuth2ClientTokenByAccess method")
-//			},
-//			GetOAuth2ClientTokenByCodeFunc: func(ctx context.Context, code string) (*oauth.OAuth2ClientToken, error) {
-//				panic("mock out the GetOAuth2ClientTokenByCode method")
-//			},
-//			GetOAuth2ClientTokenByRefreshFunc: func(ctx context.Context, refresh string) (*oauth.OAuth2ClientToken, error) {
-//				panic("mock out the GetOAuth2ClientTokenByRefresh method")
 //			},
 //			GetOAuth2ClientsFunc: func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[oauth.OAuth2Client], error) {
 //				panic("mock out the GetOAuth2Clients method")
@@ -71,32 +50,11 @@ type RepositoryMock struct {
 	// CreateOAuth2ClientFunc mocks the CreateOAuth2Client method.
 	CreateOAuth2ClientFunc func(ctx context.Context, input *oauth.OAuth2ClientDatabaseCreationInput) (*oauth.OAuth2Client, error)
 
-	// CreateOAuth2ClientTokenFunc mocks the CreateOAuth2ClientToken method.
-	CreateOAuth2ClientTokenFunc func(ctx context.Context, input *oauth.OAuth2ClientTokenDatabaseCreationInput) (*oauth.OAuth2ClientToken, error)
-
-	// DeleteOAuth2ClientTokenByAccessFunc mocks the DeleteOAuth2ClientTokenByAccess method.
-	DeleteOAuth2ClientTokenByAccessFunc func(ctx context.Context, access string) error
-
-	// DeleteOAuth2ClientTokenByCodeFunc mocks the DeleteOAuth2ClientTokenByCode method.
-	DeleteOAuth2ClientTokenByCodeFunc func(ctx context.Context, code string) error
-
-	// DeleteOAuth2ClientTokenByRefreshFunc mocks the DeleteOAuth2ClientTokenByRefresh method.
-	DeleteOAuth2ClientTokenByRefreshFunc func(ctx context.Context, refresh string) error
-
 	// GetOAuth2ClientByClientIDFunc mocks the GetOAuth2ClientByClientID method.
 	GetOAuth2ClientByClientIDFunc func(ctx context.Context, clientID string) (*oauth.OAuth2Client, error)
 
 	// GetOAuth2ClientByDatabaseIDFunc mocks the GetOAuth2ClientByDatabaseID method.
 	GetOAuth2ClientByDatabaseIDFunc func(ctx context.Context, id string) (*oauth.OAuth2Client, error)
-
-	// GetOAuth2ClientTokenByAccessFunc mocks the GetOAuth2ClientTokenByAccess method.
-	GetOAuth2ClientTokenByAccessFunc func(ctx context.Context, access string) (*oauth.OAuth2ClientToken, error)
-
-	// GetOAuth2ClientTokenByCodeFunc mocks the GetOAuth2ClientTokenByCode method.
-	GetOAuth2ClientTokenByCodeFunc func(ctx context.Context, code string) (*oauth.OAuth2ClientToken, error)
-
-	// GetOAuth2ClientTokenByRefreshFunc mocks the GetOAuth2ClientTokenByRefresh method.
-	GetOAuth2ClientTokenByRefreshFunc func(ctx context.Context, refresh string) (*oauth.OAuth2ClientToken, error)
 
 	// GetOAuth2ClientsFunc mocks the GetOAuth2Clients method.
 	GetOAuth2ClientsFunc func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[oauth.OAuth2Client], error)
@@ -117,34 +75,6 @@ type RepositoryMock struct {
 			// Input is the input argument value.
 			Input *oauth.OAuth2ClientDatabaseCreationInput
 		}
-		// CreateOAuth2ClientToken holds details about calls to the CreateOAuth2ClientToken method.
-		CreateOAuth2ClientToken []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Input is the input argument value.
-			Input *oauth.OAuth2ClientTokenDatabaseCreationInput
-		}
-		// DeleteOAuth2ClientTokenByAccess holds details about calls to the DeleteOAuth2ClientTokenByAccess method.
-		DeleteOAuth2ClientTokenByAccess []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Access is the access argument value.
-			Access string
-		}
-		// DeleteOAuth2ClientTokenByCode holds details about calls to the DeleteOAuth2ClientTokenByCode method.
-		DeleteOAuth2ClientTokenByCode []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Code is the code argument value.
-			Code string
-		}
-		// DeleteOAuth2ClientTokenByRefresh holds details about calls to the DeleteOAuth2ClientTokenByRefresh method.
-		DeleteOAuth2ClientTokenByRefresh []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Refresh is the refresh argument value.
-			Refresh string
-		}
 		// GetOAuth2ClientByClientID holds details about calls to the GetOAuth2ClientByClientID method.
 		GetOAuth2ClientByClientID []struct {
 			// Ctx is the ctx argument value.
@@ -159,27 +89,6 @@ type RepositoryMock struct {
 			// ID is the id argument value.
 			ID string
 		}
-		// GetOAuth2ClientTokenByAccess holds details about calls to the GetOAuth2ClientTokenByAccess method.
-		GetOAuth2ClientTokenByAccess []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Access is the access argument value.
-			Access string
-		}
-		// GetOAuth2ClientTokenByCode holds details about calls to the GetOAuth2ClientTokenByCode method.
-		GetOAuth2ClientTokenByCode []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Code is the code argument value.
-			Code string
-		}
-		// GetOAuth2ClientTokenByRefresh holds details about calls to the GetOAuth2ClientTokenByRefresh method.
-		GetOAuth2ClientTokenByRefresh []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Refresh is the refresh argument value.
-			Refresh string
-		}
 		// GetOAuth2Clients holds details about calls to the GetOAuth2Clients method.
 		GetOAuth2Clients []struct {
 			// Ctx is the ctx argument value.
@@ -188,18 +97,11 @@ type RepositoryMock struct {
 			Filter *filtering.QueryFilter
 		}
 	}
-	lockArchiveOAuth2Client              sync.RWMutex
-	lockCreateOAuth2Client               sync.RWMutex
-	lockCreateOAuth2ClientToken          sync.RWMutex
-	lockDeleteOAuth2ClientTokenByAccess  sync.RWMutex
-	lockDeleteOAuth2ClientTokenByCode    sync.RWMutex
-	lockDeleteOAuth2ClientTokenByRefresh sync.RWMutex
-	lockGetOAuth2ClientByClientID        sync.RWMutex
-	lockGetOAuth2ClientByDatabaseID      sync.RWMutex
-	lockGetOAuth2ClientTokenByAccess     sync.RWMutex
-	lockGetOAuth2ClientTokenByCode       sync.RWMutex
-	lockGetOAuth2ClientTokenByRefresh    sync.RWMutex
-	lockGetOAuth2Clients                 sync.RWMutex
+	lockArchiveOAuth2Client         sync.RWMutex
+	lockCreateOAuth2Client          sync.RWMutex
+	lockGetOAuth2ClientByClientID   sync.RWMutex
+	lockGetOAuth2ClientByDatabaseID sync.RWMutex
+	lockGetOAuth2Clients            sync.RWMutex
 }
 
 // ArchiveOAuth2Client calls ArchiveOAuth2ClientFunc.
@@ -274,150 +176,6 @@ func (mock *RepositoryMock) CreateOAuth2ClientCalls() []struct {
 	return calls
 }
 
-// CreateOAuth2ClientToken calls CreateOAuth2ClientTokenFunc.
-func (mock *RepositoryMock) CreateOAuth2ClientToken(ctx context.Context, input *oauth.OAuth2ClientTokenDatabaseCreationInput) (*oauth.OAuth2ClientToken, error) {
-	if mock.CreateOAuth2ClientTokenFunc == nil {
-		panic("RepositoryMock.CreateOAuth2ClientTokenFunc: method is nil but Repository.CreateOAuth2ClientToken was just called")
-	}
-	callInfo := struct {
-		Ctx   context.Context
-		Input *oauth.OAuth2ClientTokenDatabaseCreationInput
-	}{
-		Ctx:   ctx,
-		Input: input,
-	}
-	mock.lockCreateOAuth2ClientToken.Lock()
-	mock.calls.CreateOAuth2ClientToken = append(mock.calls.CreateOAuth2ClientToken, callInfo)
-	mock.lockCreateOAuth2ClientToken.Unlock()
-	return mock.CreateOAuth2ClientTokenFunc(ctx, input)
-}
-
-// CreateOAuth2ClientTokenCalls gets all the calls that were made to CreateOAuth2ClientToken.
-// Check the length with:
-//
-//	len(mockedRepository.CreateOAuth2ClientTokenCalls())
-func (mock *RepositoryMock) CreateOAuth2ClientTokenCalls() []struct {
-	Ctx   context.Context
-	Input *oauth.OAuth2ClientTokenDatabaseCreationInput
-} {
-	var calls []struct {
-		Ctx   context.Context
-		Input *oauth.OAuth2ClientTokenDatabaseCreationInput
-	}
-	mock.lockCreateOAuth2ClientToken.RLock()
-	calls = mock.calls.CreateOAuth2ClientToken
-	mock.lockCreateOAuth2ClientToken.RUnlock()
-	return calls
-}
-
-// DeleteOAuth2ClientTokenByAccess calls DeleteOAuth2ClientTokenByAccessFunc.
-func (mock *RepositoryMock) DeleteOAuth2ClientTokenByAccess(ctx context.Context, access string) error {
-	if mock.DeleteOAuth2ClientTokenByAccessFunc == nil {
-		panic("RepositoryMock.DeleteOAuth2ClientTokenByAccessFunc: method is nil but Repository.DeleteOAuth2ClientTokenByAccess was just called")
-	}
-	callInfo := struct {
-		Ctx    context.Context
-		Access string
-	}{
-		Ctx:    ctx,
-		Access: access,
-	}
-	mock.lockDeleteOAuth2ClientTokenByAccess.Lock()
-	mock.calls.DeleteOAuth2ClientTokenByAccess = append(mock.calls.DeleteOAuth2ClientTokenByAccess, callInfo)
-	mock.lockDeleteOAuth2ClientTokenByAccess.Unlock()
-	return mock.DeleteOAuth2ClientTokenByAccessFunc(ctx, access)
-}
-
-// DeleteOAuth2ClientTokenByAccessCalls gets all the calls that were made to DeleteOAuth2ClientTokenByAccess.
-// Check the length with:
-//
-//	len(mockedRepository.DeleteOAuth2ClientTokenByAccessCalls())
-func (mock *RepositoryMock) DeleteOAuth2ClientTokenByAccessCalls() []struct {
-	Ctx    context.Context
-	Access string
-} {
-	var calls []struct {
-		Ctx    context.Context
-		Access string
-	}
-	mock.lockDeleteOAuth2ClientTokenByAccess.RLock()
-	calls = mock.calls.DeleteOAuth2ClientTokenByAccess
-	mock.lockDeleteOAuth2ClientTokenByAccess.RUnlock()
-	return calls
-}
-
-// DeleteOAuth2ClientTokenByCode calls DeleteOAuth2ClientTokenByCodeFunc.
-func (mock *RepositoryMock) DeleteOAuth2ClientTokenByCode(ctx context.Context, code string) error {
-	if mock.DeleteOAuth2ClientTokenByCodeFunc == nil {
-		panic("RepositoryMock.DeleteOAuth2ClientTokenByCodeFunc: method is nil but Repository.DeleteOAuth2ClientTokenByCode was just called")
-	}
-	callInfo := struct {
-		Ctx  context.Context
-		Code string
-	}{
-		Ctx:  ctx,
-		Code: code,
-	}
-	mock.lockDeleteOAuth2ClientTokenByCode.Lock()
-	mock.calls.DeleteOAuth2ClientTokenByCode = append(mock.calls.DeleteOAuth2ClientTokenByCode, callInfo)
-	mock.lockDeleteOAuth2ClientTokenByCode.Unlock()
-	return mock.DeleteOAuth2ClientTokenByCodeFunc(ctx, code)
-}
-
-// DeleteOAuth2ClientTokenByCodeCalls gets all the calls that were made to DeleteOAuth2ClientTokenByCode.
-// Check the length with:
-//
-//	len(mockedRepository.DeleteOAuth2ClientTokenByCodeCalls())
-func (mock *RepositoryMock) DeleteOAuth2ClientTokenByCodeCalls() []struct {
-	Ctx  context.Context
-	Code string
-} {
-	var calls []struct {
-		Ctx  context.Context
-		Code string
-	}
-	mock.lockDeleteOAuth2ClientTokenByCode.RLock()
-	calls = mock.calls.DeleteOAuth2ClientTokenByCode
-	mock.lockDeleteOAuth2ClientTokenByCode.RUnlock()
-	return calls
-}
-
-// DeleteOAuth2ClientTokenByRefresh calls DeleteOAuth2ClientTokenByRefreshFunc.
-func (mock *RepositoryMock) DeleteOAuth2ClientTokenByRefresh(ctx context.Context, refresh string) error {
-	if mock.DeleteOAuth2ClientTokenByRefreshFunc == nil {
-		panic("RepositoryMock.DeleteOAuth2ClientTokenByRefreshFunc: method is nil but Repository.DeleteOAuth2ClientTokenByRefresh was just called")
-	}
-	callInfo := struct {
-		Ctx     context.Context
-		Refresh string
-	}{
-		Ctx:     ctx,
-		Refresh: refresh,
-	}
-	mock.lockDeleteOAuth2ClientTokenByRefresh.Lock()
-	mock.calls.DeleteOAuth2ClientTokenByRefresh = append(mock.calls.DeleteOAuth2ClientTokenByRefresh, callInfo)
-	mock.lockDeleteOAuth2ClientTokenByRefresh.Unlock()
-	return mock.DeleteOAuth2ClientTokenByRefreshFunc(ctx, refresh)
-}
-
-// DeleteOAuth2ClientTokenByRefreshCalls gets all the calls that were made to DeleteOAuth2ClientTokenByRefresh.
-// Check the length with:
-//
-//	len(mockedRepository.DeleteOAuth2ClientTokenByRefreshCalls())
-func (mock *RepositoryMock) DeleteOAuth2ClientTokenByRefreshCalls() []struct {
-	Ctx     context.Context
-	Refresh string
-} {
-	var calls []struct {
-		Ctx     context.Context
-		Refresh string
-	}
-	mock.lockDeleteOAuth2ClientTokenByRefresh.RLock()
-	calls = mock.calls.DeleteOAuth2ClientTokenByRefresh
-	mock.lockDeleteOAuth2ClientTokenByRefresh.RUnlock()
-	return calls
-}
-
 // GetOAuth2ClientByClientID calls GetOAuth2ClientByClientIDFunc.
 func (mock *RepositoryMock) GetOAuth2ClientByClientID(ctx context.Context, clientID string) (*oauth.OAuth2Client, error) {
 	if mock.GetOAuth2ClientByClientIDFunc == nil {
@@ -487,114 +245,6 @@ func (mock *RepositoryMock) GetOAuth2ClientByDatabaseIDCalls() []struct {
 	mock.lockGetOAuth2ClientByDatabaseID.RLock()
 	calls = mock.calls.GetOAuth2ClientByDatabaseID
 	mock.lockGetOAuth2ClientByDatabaseID.RUnlock()
-	return calls
-}
-
-// GetOAuth2ClientTokenByAccess calls GetOAuth2ClientTokenByAccessFunc.
-func (mock *RepositoryMock) GetOAuth2ClientTokenByAccess(ctx context.Context, access string) (*oauth.OAuth2ClientToken, error) {
-	if mock.GetOAuth2ClientTokenByAccessFunc == nil {
-		panic("RepositoryMock.GetOAuth2ClientTokenByAccessFunc: method is nil but Repository.GetOAuth2ClientTokenByAccess was just called")
-	}
-	callInfo := struct {
-		Ctx    context.Context
-		Access string
-	}{
-		Ctx:    ctx,
-		Access: access,
-	}
-	mock.lockGetOAuth2ClientTokenByAccess.Lock()
-	mock.calls.GetOAuth2ClientTokenByAccess = append(mock.calls.GetOAuth2ClientTokenByAccess, callInfo)
-	mock.lockGetOAuth2ClientTokenByAccess.Unlock()
-	return mock.GetOAuth2ClientTokenByAccessFunc(ctx, access)
-}
-
-// GetOAuth2ClientTokenByAccessCalls gets all the calls that were made to GetOAuth2ClientTokenByAccess.
-// Check the length with:
-//
-//	len(mockedRepository.GetOAuth2ClientTokenByAccessCalls())
-func (mock *RepositoryMock) GetOAuth2ClientTokenByAccessCalls() []struct {
-	Ctx    context.Context
-	Access string
-} {
-	var calls []struct {
-		Ctx    context.Context
-		Access string
-	}
-	mock.lockGetOAuth2ClientTokenByAccess.RLock()
-	calls = mock.calls.GetOAuth2ClientTokenByAccess
-	mock.lockGetOAuth2ClientTokenByAccess.RUnlock()
-	return calls
-}
-
-// GetOAuth2ClientTokenByCode calls GetOAuth2ClientTokenByCodeFunc.
-func (mock *RepositoryMock) GetOAuth2ClientTokenByCode(ctx context.Context, code string) (*oauth.OAuth2ClientToken, error) {
-	if mock.GetOAuth2ClientTokenByCodeFunc == nil {
-		panic("RepositoryMock.GetOAuth2ClientTokenByCodeFunc: method is nil but Repository.GetOAuth2ClientTokenByCode was just called")
-	}
-	callInfo := struct {
-		Ctx  context.Context
-		Code string
-	}{
-		Ctx:  ctx,
-		Code: code,
-	}
-	mock.lockGetOAuth2ClientTokenByCode.Lock()
-	mock.calls.GetOAuth2ClientTokenByCode = append(mock.calls.GetOAuth2ClientTokenByCode, callInfo)
-	mock.lockGetOAuth2ClientTokenByCode.Unlock()
-	return mock.GetOAuth2ClientTokenByCodeFunc(ctx, code)
-}
-
-// GetOAuth2ClientTokenByCodeCalls gets all the calls that were made to GetOAuth2ClientTokenByCode.
-// Check the length with:
-//
-//	len(mockedRepository.GetOAuth2ClientTokenByCodeCalls())
-func (mock *RepositoryMock) GetOAuth2ClientTokenByCodeCalls() []struct {
-	Ctx  context.Context
-	Code string
-} {
-	var calls []struct {
-		Ctx  context.Context
-		Code string
-	}
-	mock.lockGetOAuth2ClientTokenByCode.RLock()
-	calls = mock.calls.GetOAuth2ClientTokenByCode
-	mock.lockGetOAuth2ClientTokenByCode.RUnlock()
-	return calls
-}
-
-// GetOAuth2ClientTokenByRefresh calls GetOAuth2ClientTokenByRefreshFunc.
-func (mock *RepositoryMock) GetOAuth2ClientTokenByRefresh(ctx context.Context, refresh string) (*oauth.OAuth2ClientToken, error) {
-	if mock.GetOAuth2ClientTokenByRefreshFunc == nil {
-		panic("RepositoryMock.GetOAuth2ClientTokenByRefreshFunc: method is nil but Repository.GetOAuth2ClientTokenByRefresh was just called")
-	}
-	callInfo := struct {
-		Ctx     context.Context
-		Refresh string
-	}{
-		Ctx:     ctx,
-		Refresh: refresh,
-	}
-	mock.lockGetOAuth2ClientTokenByRefresh.Lock()
-	mock.calls.GetOAuth2ClientTokenByRefresh = append(mock.calls.GetOAuth2ClientTokenByRefresh, callInfo)
-	mock.lockGetOAuth2ClientTokenByRefresh.Unlock()
-	return mock.GetOAuth2ClientTokenByRefreshFunc(ctx, refresh)
-}
-
-// GetOAuth2ClientTokenByRefreshCalls gets all the calls that were made to GetOAuth2ClientTokenByRefresh.
-// Check the length with:
-//
-//	len(mockedRepository.GetOAuth2ClientTokenByRefreshCalls())
-func (mock *RepositoryMock) GetOAuth2ClientTokenByRefreshCalls() []struct {
-	Ctx     context.Context
-	Refresh string
-} {
-	var calls []struct {
-		Ctx     context.Context
-		Refresh string
-	}
-	mock.lockGetOAuth2ClientTokenByRefresh.RLock()
-	calls = mock.calls.GetOAuth2ClientTokenByRefresh
-	mock.lockGetOAuth2ClientTokenByRefresh.RUnlock()
 	return calls
 }
 

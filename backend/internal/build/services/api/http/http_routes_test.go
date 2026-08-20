@@ -150,6 +150,10 @@ func (s *stubAuthService) RevokeHandler(res http.ResponseWriter, req *http.Reque
 	s.serve(res, req)
 }
 
+func (s *stubAuthService) AuthorizationServerMetadataHandler(res http.ResponseWriter, req *http.Request) {
+	s.serve(res, req)
+}
+
 // serve reads the body the way the real OAuth2 handlers do, so a bound that only takes effect on
 // the read is still visible to a test.
 func (s *stubAuthService) serve(res http.ResponseWriter, req *http.Request) {
@@ -220,7 +224,7 @@ func Test_ProvideAPIRouter_requestBodyBound(T *testing.T) {
 
 		authService := &stubAuthService{}
 
-		res := postTo(t, buildAPIRouter(t, authService, &stubProcessorRegistry{}), "/oauth2/token", "grant_type=authorization_code")
+		res := postTo(t, buildAPIRouter(t, authService, &stubProcessorRegistry{}), "/token", "grant_type=authorization_code")
 
 		assert.Equal(t, http.StatusOK, res.Code)
 		assert.True(t, authService.reached)
@@ -231,7 +235,7 @@ func Test_ProvideAPIRouter_requestBodyBound(T *testing.T) {
 
 		authService := &stubAuthService{}
 
-		res := postTo(t, buildAPIRouter(t, authService, &stubProcessorRegistry{}), "/oauth2/token", strings.Repeat("x", maxRequestBodyBytes+1))
+		res := postTo(t, buildAPIRouter(t, authService, &stubProcessorRegistry{}), "/token", strings.Repeat("x", maxRequestBodyBytes+1))
 
 		// 413 rather than 400: a client told its request was malformed sends the same one again.
 		assert.Equal(t, http.StatusRequestEntityTooLarge, res.Code)

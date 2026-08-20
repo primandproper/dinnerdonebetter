@@ -129,10 +129,6 @@
 		}
 	},
 	"database": {
-		"encryption": {
-			"provider": "aes",
-			"currentKeyID": "v1"
-		},
 		"provider": "postgres",
 		"readConnection": {
 			"username": "async_message_handler",

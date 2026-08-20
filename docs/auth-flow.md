@@ -7,7 +7,7 @@ This document describes how authentication works across the Dinner Done Better a
 Authentication in this app is **convoluted by design**: there are several ways to log in, several token types, and the same token can flow through different paths depending on the client. The main sources of complexity:
 
 1. **Multiple auth methods**: Password+TOTP and Passkey (WebAuthn)
-2. **Two token systems**: JWT (from `LoginForToken`) and OAuth2 (stored in DB, used for gRPC)
+2. **Two token systems**: JWT (from `LoginForToken`) and OAuth2 (opaque, stored as a digest, used for gRPC)
 3. **Multiple client types**: Consumer web app, Admin web app, mobile apps, API clients, integration tests
 4. **Different paths for different clients**: Web apps use cookies + OAuth2 exchange; some clients send JWT directly
 
@@ -27,12 +27,16 @@ Authentication in this app is **convoluted by design**: there are several ways t
 
 ### OAuth2 Access Token
 
-- **Issued by**: OAuth2 server at `/oauth2/authorize` + `/oauth2/token`
-- **Format**: Opaque string stored in `oauth2_client_tokens` table
-- **Lifetime**: 24h access, 72h refresh
+- **Issued by**: the OAuth 2.1 authorization server at `/authorize` + `/token`
+- **Format**: opaque string; the store holds only its hex SHA-256 digest, never the token
+- **Lifetime**: 15 minutes access, refresh token rotating with reuse detection
 - **Used for**: gRPC `Authorization: Bearer <token>` when clients use the full OAuth2 flow
 
-**Implementation**: [`internal/services/auth/handlers/authentication/oauth2.go`](backend/internal/services/auth/handlers/authentication/oauth2.go), [`oauth2_token_store.go`](backend/internal/services/auth/handlers/authentication/oauth2_token_store.go)
+Opaque and looked up rather than signed and verified locally: that is what makes a revoked
+token stop working on the next request rather than at the end of its lifetime. The cost is a
+store read per request, which is the trade `oauth2server`'s package doc argues.
+
+**Implementation**: [`internal/services/auth/handlers/authentication/oauth2.go`](backend/internal/services/auth/handlers/authentication/oauth2.go), [`oauth2_store.go`](backend/internal/services/auth/handlers/authentication/oauth2_store.go), [`oauth2_authenticator.go`](backend/internal/services/auth/handlers/authentication/oauth2_authenticator.go)
 
 ## Auth Methods
 
@@ -108,7 +112,7 @@ The consumer and admin frontends use the same pattern:
 2. **Cookie**: JWT is encoded and stored in a signed cookie (`AuthPayload{AccessToken}`).
 3. **Per-request**: `AuthMiddleware` reads cookie, decodes JWT, calls `BuildAuthedClient(ctx, config, accessToken, developingLocally)`.
 4. **Client build**:
-   - **Production**: `WithOAuth2Credentials` — uses JWT as Bearer to hit `/oauth2/authorize`, gets code, exchanges for OAuth2 token, uses OAuth2 token for gRPC.
+   - **Production**: `WithOAuth2Credentials` — uses JWT as Bearer to hit `POST /authorize`, gets code, exchanges for OAuth2 token, uses OAuth2 token for gRPC.
    - **Local dev**: `BuildInsecureOAuthedGRPCClient` — same OAuth2 flow but over HTTP.
 5. **gRPC calls**: Authenticated client sends OAuth2 access token (or JWT in some paths) as `Authorization: Bearer <token>`.
 
@@ -120,8 +124,8 @@ Every gRPC request (except unauthenticated routes) goes through `AuthInterceptor
 
 1. **Extract token**: Read `Authorization: Bearer <token>` from metadata.
 2. **Resolve session** (in order):
-   - **OAuth2 first**: `oauth2ClientManager.LoadAccessToken(ctx, accessToken)` — if token is an OAuth2 access token, load from DB and get `user_id`.
-   - **JWT fallback**: `tokenIssuer.ParseUserIDAndAccountIDFromToken(ctx, accessToken)` — if OAuth2 fails, treat as JWT.
+   - **OAuth2 first**: `oauth2Server.Authenticate(ctx, accessToken)` — a Store lookup by digest. If it resolves, the token's audience is checked against this server's own resource identifier (RFC 8707) and the subject's `sub` becomes the user ID. An audience naming somewhere else — the MCP server, which shares this database and therefore this store — is refused; an empty audience is accepted, because a client that sent no `resource` parameter gets one.
+   - **JWT fallback**: `tokenIssuer.ParseToken(ctx, accessToken)` — if OAuth2 fails, treat as JWT.
 3. **Validate session** (JWT path only): If the token has a `sid` claim, extract the `jti` and look up the session in `user_sessions`. If the session has been revoked or expired, return 401. Tokens without `sid` (pre-session-management) skip this check. Asynchronously updates `last_active_at` on the session.
 4. **Build session context**: `identityDataManager.BuildSessionContextDataForUser(ctx, userID, accountID)`. The session ID is attached to `ContextData.SessionID`.
 5. **Zuck mode** (optional): If `X-Zuck-Mode-User` header present and user can impersonate, override session with that user/account.
@@ -143,43 +147,74 @@ Every gRPC request (except unauthenticated routes) goes through `AuthInterceptor
 Clients that use OAuth2 (e.g. web app via `WithOAuth2Credentials`) follow this flow:
 
 1. Client has a JWT (from `LoginForToken` or equivalent).
-2. Client calls `GET /oauth2/authorize?client_id=X&state=Y&...` with `Authorization: Bearer <JWT>`.
-3. `UserAuthorizationHandler` parses JWT, extracts `sub` (user ID), returns it to OAuth2 server.
-4. OAuth2 server issues authorization code, redirects to `redirect_uri?code=Z`.
-5. Client (with `CheckRedirect = ErrUseLastResponse`) reads `code` from `Location` header.
-6. Client calls `POST /oauth2/token` with `code`, `client_id`, `client_secret` → receives OAuth2 access + refresh tokens.
-7. Client uses OAuth2 access token for gRPC `Authorization: Bearer <oauth2_access_token>`.
+2. Client calls `POST /authorize?client_id=X&state=Y&code_challenge=…&code_challenge_method=S256&…`
+   with `Authorization: Bearer <JWT>`.
+3. The `SubjectAuthenticator` parses the JWT, extracts `sub` (user ID), and resolves the account
+   the authorization is granted against.
+4. The authorization server issues an authorization code and redirects to `redirect_uri?code=Z`,
+   with `state` and the RFC 9207 `iss` parameter echoed back.
+5. Client (with `CheckRedirect = ErrUseLastResponse`) reads `code` from the `Location` header.
+6. Client calls `POST /token` with `code`, `code_verifier`, `client_id`, `client_secret` →
+   receives OAuth2 access + refresh tokens.
+7. Client uses the OAuth2 access token for gRPC `Authorization: Bearer <oauth2_access_token>`.
+
+**POST, not GET, at step 2.** A `GET /authorize` renders the login form — the answer for a
+browser arriving without a session — and only a POST runs the authenticator that reads the
+bearer token. Both methods carry the authorization parameters in the query string, so the
+request that issues the code is validated against exactly the same bytes the GET would have been.
 
 **Endpoints** (API server):
 
-- `GET /oauth2/authorize` — authorization
-- `POST /oauth2/token` — token exchange
-- `POST /oauth2/revoke` — token revocation
+- `GET /.well-known/oauth-authorization-server` — RFC 8414 discovery
+- `GET|POST /authorize` — authorization (GET renders the login form; POST authenticates)
+- `POST /token` — token exchange (`authorization_code` and `refresh_token` only)
+- `POST /revoke` — RFC 7009 token revocation
+
+`POST /register` is **not** served. RFC 7591 dynamic registration is open by construction, and an
+OAuth2 client here is an administered object created through the permission-gated gRPC surface —
+an anonymous endpoint writing to the same registry would be a way around those permissions. The
+discovery document therefore omits `registration_endpoint` rather than advertising a 404.
+
+### What the API server's authorization server enforces
+
+- **Redirect URIs matched byte for byte**, at `/authorize` and again at `/token` against the URI
+  the code was issued for. Not by hostname, not ignoring ports. A client registers the exact
+  string it will send.
+- **PKCE mandatory, S256 only.** No `plain`, and an absent `code_challenge_method` is refused
+  rather than defaulted — RFC 7636 defaults it to `plain`, so silence is a request for the
+  method this server does not accept.
+- **Refresh token rotation with reuse detection.** A replayed refresh token revokes the whole
+  family, not just itself.
+- **Every credential stored as a hex SHA-256 digest**, never as itself.
+- **`authorization_code` and `refresh_token` only.** No password grant, no client credentials, no
+  implicit.
+
+### Two servers, one Store
+
+`ddb serve` and `ddb serve mcp` are different processes running the same authorization server
+package over the same four `ddb_oauth2_*` tables. That is the intended shape: `oauth2server`
+ships no RFC 7662 introspection endpoint, so a resource server either shares the Store or lives
+in the same process, and both of these reach the same Postgres.
+
+It is also why the audience check in the gRPC interceptor is load-bearing rather than decorative.
+A token minted by the MCP server is in the same table this server reads, so what stops it being
+spent here is that its audience names somewhere else.
 
 ## The MCP server's authorization server
 
-There are currently **two** OAuth 2.0 authorization servers in this repository, and everything
-above describes only the API server's. The MCP server (`ddb serve mcp`) runs a second one, and
-they are not the same implementation:
+`ddb serve mcp` runs the same `oauth2server` package, over the same tables, at the same paths.
+What differs is the two things the package deliberately leaves to the application:
 
-|                     | API server                                    | MCP server                                     |
-|---------------------|-----------------------------------------------|------------------------------------------------|
-| Implementation      | `github.com/go-oauth2/oauth2/v4`              | `platform-go` `authentication/oauth2server`    |
-| Endpoints           | `/oauth2/authorize`, `/oauth2/token`, …       | `/authorize`, `/token`, `/register`, `/revoke` |
-| Tables              | `oauth2_clients`, `oauth2_client_tokens`      | `ddb_oauth2_*` (four of them)                  |
-| Who the subject is  | a JWT the client already holds                | a username, argon2 password, and TOTP          |
-| Client registration | pre-registered                                | RFC 7591 dynamic, open, 90-day expiry          |
-| PKCE                | S256 or `plain`                               | S256, mandatory                                |
-| Access token        | opaque, 24h                                   | opaque, 15m, revocable immediately             |
+|                     | API server                                     | MCP server                                          |
+|---------------------|------------------------------------------------|-----------------------------------------------------|
+| Who the subject is  | a session JWT, or a username + password + TOTP | a username, argon2 password, and TOTP — admins only |
+| Client registration | administered, via the gRPC surface             | RFC 7591 dynamic, open, 90-day expiry               |
+| `POST /register`    | not served                                     | served                                              |
+
+Everything else — the endpoints, the tables, exact redirect URI matching, mandatory S256 PKCE,
+rotation with reuse detection, opaque 15-minute access tokens — is one implementation.
 
 The MCP side is documented in [`backend/docs/mcp-usage-guide.md`](backend/docs/mcp-usage-guide.md).
-
-This split is deliberate but temporary: [#1288](https://github.com/primandproper/dinnerdonebetter/issues/1288)
-moves the API server onto `oauth2server` too, at which point there is one implementation, one
-set of tables, and `go-oauth2/oauth2/v4` leaves `go.mod`. The two processes will then share the
-Store rather than each running their own server — `oauth2server` ships no RFC 7662 introspection
-endpoint, so a resource server either shares the Store or lives in the same process, and both of
-these reach the same Postgres.
 
 ## Session Context
 
@@ -236,7 +271,8 @@ Tokens issued before session management (without a `sid` claim) continue to work
 | gRPC auth service                             | `internal/services/auth/grpc/auth.go`                                               |
 | Auth interceptor                              | `internal/services/auth/grpc/interceptors/authn_interceptor.go`                     |
 | OAuth2 server                                 | `internal/services/auth/handlers/authentication/oauth2.go`                          |
-| OAuth2 token store                            | `internal/services/auth/handlers/authentication/oauth2_token_store.go`              |
+| OAuth2 client registry store                  | `internal/services/auth/handlers/authentication/oauth2_store.go`                    |
+| OAuth2 subject authenticator                  | `internal/services/auth/handlers/authentication/oauth2_authenticator.go`            |
 | Passkey HTTP endpoints (web)                  | `frontend/consumer/src/routes/auth/passkey/`                                        |
 | Web app auth middleware                       | `internal/platform/webappauth/middleware.go`                                        |
 | Client builder (OAuth2 + JWT)                 | `internal/platform/webappauth/client_builder.go`                                    |

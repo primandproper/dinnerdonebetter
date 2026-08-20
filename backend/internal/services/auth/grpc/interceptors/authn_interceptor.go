@@ -14,13 +14,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 
+	"github.com/primandproper/platform-go/v11/authentication/oauth2server"
 	"github.com/primandproper/platform-go/v11/authentication/tokens"
 	errorsgrpc "github.com/primandproper/platform-go/v11/errors/grpc"
 	"github.com/primandproper/platform-go/v11/observability"
 	"github.com/primandproper/platform-go/v11/observability/logging"
 	"github.com/primandproper/platform-go/v11/observability/tracing"
 
-	"github.com/go-oauth2/oauth2/v4/manage"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -48,8 +48,9 @@ type AuthInterceptor struct {
 	identityDataManager         identitymanager.IdentityDataManager
 	sessionDataManager          auth.UserSessionDataManager
 	methodPermissions           map[string][]authorization.Permission
-	oauth2ClientManager         *manage.Manager
+	oauth2Server                *oauth2server.Server
 	tokenIssuer                 tokens.Issuer
+	oauth2Resource              string
 	unauthenticatedRoutes       []string
 	passwordChangeAllowedRoutes []string
 	methodScopesHat             sync.Mutex
@@ -64,7 +65,8 @@ func ProvideAuthInterceptor(
 	logger logging.Logger,
 	identityDataManager identitymanager.IdentityDataManager,
 	sessionDataManager auth.UserSessionDataManager,
-	oauth2ClientManager *manage.Manager,
+	oauth2Server *oauth2server.Server,
+	oauth2Resource string,
 	tokenIssuer tokens.Issuer,
 	aggregatedPermissions MethodPermissionsMap,
 ) *AuthInterceptor {
@@ -100,7 +102,8 @@ func ProvideAuthInterceptor(
 		logger:              logging.NewNamedLogger(logger, o11yName),
 		identityDataManager: identityDataManager,
 		sessionDataManager:  sessionDataManager,
-		oauth2ClientManager: oauth2ClientManager,
+		oauth2Server:        oauth2Server,
+		oauth2Resource:      oauth2Resource,
 		tokenIssuer:         tokenIssuer,
 		methodPermissions:   aggregatedPermissions,
 		// Routes allowed when requires_password_change is true.
@@ -182,13 +185,31 @@ func (s *AuthInterceptor) extractSessionContextData(ctx context.Context, metaDat
 
 	accessToken := strings.TrimPrefix(authHeader[0], tokenPrefix)
 
-	// Try OAuth2 token first.
-	token, err := s.oauth2ClientManager.LoadAccessToken(ctx, accessToken)
-	if err == nil {
-		if userID := token.GetUserID(); userID != "" {
+	// Try OAuth2 token first. The token is opaque, so this is a store lookup rather than a
+	// signature check — which is what makes a revoked token stop working on the next request
+	// rather than at the end of its lifetime.
+	if token, err := s.oauth2Server.Authenticate(ctx, accessToken); err == nil {
+		if audErr := s.checkAudience(token); audErr != nil {
+			return nil, errorsgrpc.PrepareAndLogGRPCStatus(audErr, logger, span, codes.Unauthenticated, "token audience does not name this resource server")
+		}
+
+		if userID := token.Subject.ID; userID != "" {
+			// The user's current default account, not the one named in the token's claims.
+			//
+			// The authorization server does record which account the authorization was granted
+			// against — see the account_id claim it mints — and pinning to it would be the more
+			// literal reading of a scoped token. It is not what this server can do: an access
+			// token is opaque and long-lived relative to a session, SetDefaultAccount and
+			// ChangeActiveAccount are how a user moves between accounts, and there is no way to
+			// re-mint an OAuth2 access token when they do. Pinning would mean an account switch
+			// silently not applying until the next full authorization.
+			//
+			// So the claim is recorded and not spent. Honoring it needs a way for a client to
+			// ask for a token on a named account and a way to notice when that account is no
+			// longer the one in use — neither of which exists yet.
 			sessionCtxData, sessionErr := s.identityDataManager.BuildSessionContextDataForUser(ctx, userID, "")
 			if sessionErr != nil {
-				return nil, observability.PrepareAndLogError(sessionErr, logger, span, "fetching user info for cookie")
+				return nil, observability.PrepareAndLogError(sessionErr, logger, span, "fetching user info for oauth2 token")
 			}
 			return s.applyZuckMode(ctx, metaData, sessionCtxData)
 		}
@@ -405,4 +426,33 @@ func (s *AuthInterceptor) StreamServerInterceptor() grpc.StreamServerInterceptor
 // is how a method ends up public in one and not the other.
 func (s *AuthInterceptor) UnauthenticatedRoutes() []string {
 	return slices.Clone(s.unauthenticatedRoutes)
+}
+
+// errWrongAudience is the refusal the store cannot make.
+//
+// Expiry and revocation are already Authenticate's answer, so this is the only condition left
+// for a resource server to check for itself: a token minted for a different resource — the MCP
+// server, say, which shares this database and therefore this store — must not be spendable
+// here. RFC 8707 exists to make that detectable and explicitly leaves the check to whoever is
+// being handed the token.
+var errWrongAudience = errors.New("token audience does not name this resource server")
+
+// checkAudience refuses a token whose audience names somewhere that is not this server.
+//
+// An empty audience is accepted: a client that sends no resource parameter gets a token with
+// none, and refusing those would make every such client unable to call anything. What must not
+// be accepted is an audience that names a different resource.
+//
+// An unset oauth2Resource disables the check rather than failing every request, because a
+// deployment that has not declared its own identifier cannot say whether a token names it.
+func (s *AuthInterceptor) checkAudience(token *oauth2server.AccessToken) error {
+	if s.oauth2Resource == "" || len(token.Audience) == 0 {
+		return nil
+	}
+
+	if !slices.Contains(token.Audience, s.oauth2Resource) {
+		return errWrongAudience
+	}
+
+	return nil
 }

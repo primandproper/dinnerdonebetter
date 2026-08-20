@@ -75,11 +75,6 @@ var fieldExceptions = map[string]map[string]Rule{
 	"ConvertMealPlanRecipeOptionSelectionCreationRequestInputToMealPlanRecipeOptionSelectionDatabaseCreationInput": {
 		"BelongsToMealPlanOption": Skip(parentStampedByCaller),
 	},
-	"ConvertOAuth2ClientTokenToOAuth2ClientTokenDatabaseCreationInput": {
-		"CodeExpiresIn":    Expr("x.CodeExpiresAt", tokenExpiryRenamed),
-		"AccessExpiresIn":  Expr("x.AccessExpiresAt", tokenExpiryRenamed),
-		"RefreshExpiresIn": Expr("x.RefreshExpiresAt", tokenExpiryRenamed),
-	},
 	"ConvertRecipePrepTaskStepToRecipePrepTaskStepUpdateRequestInput": {
 		"BelongsToRecipeStep":     Expr("new(x.BelongsToRecipeStep)", pointsAtACopy),
 		"BelongsToRecipePrepTask": Expr("new(x.BelongsToRecipePrepTask)", pointsAtACopy),
@@ -161,7 +156,6 @@ const (
 	bridgeRowID              = "The bridge-table row this step was built from. A stored step keeps the entity it resolved to, not the row that justified it."
 	alsoCreateMeal           = "A request-time instruction to create a meal alongside the recipe, not a property of the recipe that resulted."
 	preferenceGroup          = "A preference is stored against one ingredient, whether it was expressed against a group or not, so the group it came from is not recoverable."
-	tokenExpiryRenamed       = "The token records when it expires and the row that creates one records the same instant under an In name."
 	pointsAtACopy            = "Points at a copy rather than at the entity's own field, so amending the update input cannot write back through to what it was built from."
 	scaleFactorDefaulted     = "Zero means unset on the wire and one in the database, and scaleFactorOrDefault is where that is decided."
 	ambiguousMeasurementUnit = "MealPlanGroceryListItem holds two measurement units — the one called for and the one purchased — so which of them an unqualified ValidMeasurementUnitID means has to be said."

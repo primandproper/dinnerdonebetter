@@ -148,12 +148,19 @@ type (
 	}
 
 	// DBCleanerConfig configures an instance of the database cleaner job.
+	//
+	// The OAuth2 section is here for one field: the table prefix the authorization server's
+	// records live under. This job's whole purpose is sweeping them, and it reaches them
+	// through the same Store the API server writes them with — so it has to be pointed at
+	// the same tables. Issuer and the lifetimes are unused; a sweep needs neither.
 	DBCleanerConfig struct {
 		_ struct{} `json:"-"`
 
 		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability,omitzero"`
 
 		Database dbcfg.Config `envPrefix:"DATABASE_" json:"database,omitzero"`
+
+		OAuth2 oauth2servercfg.Config `envPrefix:"OAUTH2_" json:"oauth2,omitzero"`
 	}
 
 	// AsyncMessageHandlerConfig configures an instance of the search data index scheduler job.

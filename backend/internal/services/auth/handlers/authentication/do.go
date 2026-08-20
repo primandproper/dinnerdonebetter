@@ -5,53 +5,50 @@ import (
 
 	authn "github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
-	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
+	"github.com/primandproper/platform-go/v11/authentication/oauth2server"
+	oauth2servercfg "github.com/primandproper/platform-go/v11/authentication/oauth2server/config"
 	"github.com/primandproper/platform-go/v11/authentication/tokens"
 	"github.com/primandproper/platform-go/v11/authentication/totp"
-	"github.com/primandproper/platform-go/v11/messagequeue"
+	"github.com/primandproper/platform-go/v11/database"
 	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v11/observability/metrics"
 	"github.com/primandproper/platform-go/v11/observability/tracing"
 
-	"github.com/go-oauth2/oauth2/v4/manage"
-	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/samber/do/v2"
 )
 
 // RegisterAuthHTTPService registers the auth HTTP service providers with the injector.
 func RegisterAuthHTTPService(i do.Injector) {
-	do.Provide[*manage.Manager](i, func(i do.Injector) (*manage.Manager, error) {
-		return ProvideOAuth2ClientManager(
+	// One authorization server for the process, resolved by both the HTTP handlers that
+	// issue tokens and the gRPC interceptor that spends them. They must be the same
+	// instance: Authenticate is a Store lookup, and a second server would be a second
+	// Store with its own sweeper over the same rows.
+	do.Provide[*oauth2server.Server](i, func(i do.Injector) (*oauth2server.Server, error) {
+		return ProvideOAuth2Server(
+			do.MustInvoke[context.Context](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[*OAuth2Config](i),
+			do.MustInvoke[metrics.Provider](i),
+			do.MustInvoke[*oauth2servercfg.Config](i),
+			do.MustInvoke[database.Client](i),
+			&subjectAuthenticator{
+				identityRepo:  do.MustInvoke[identity.Repository](i),
+				authenticator: do.MustInvoke[authn.Authenticator](i),
+				totpVerifier:  do.MustInvoke[totp.Verifier](i),
+				tokenIssuer:   do.MustInvoke[tokens.Issuer](i),
+			},
 			do.MustInvoke[oauth.Repository](i),
-		), nil
-	})
-
-	do.Provide[*server.Server](i, func(i do.Injector) (*server.Server, error) {
-		return ProvideOAuth2ServerImplementation(
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[tokens.Issuer](i),
-			do.MustInvoke[*manage.Manager](i),
-		), nil
+		)
 	})
 
 	do.Provide[auth.AuthDataService](i, func(i do.Injector) (auth.AuthDataService, error) {
 		return ProvideService(
-			do.MustInvoke[context.Context](i),
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[*Config](i),
-			do.MustInvoke[authn.Authenticator](i),
-			do.MustInvoke[totp.Verifier](i),
-			do.MustInvoke[oauth.Repository](i),
-			do.MustInvoke[identitymanager.IdentityDataManager](i),
+			do.MustInvoke[*oauth2server.Server](i),
 			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[messagequeue.PublisherProvider](i),
-			do.MustInvoke[*queuescfg.Config](i),
 		)
 	})
 }

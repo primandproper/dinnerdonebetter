@@ -1,23 +1,11 @@
 package authentication
 
 import (
-	"context"
-	"fmt"
-
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
-	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	tokenscfg "github.com/primandproper/platform-go/v11/authentication/tokens/config"
-	"github.com/primandproper/platform-go/v11/authentication/totp"
-	perrors "github.com/primandproper/platform-go/v11/errors"
-	"github.com/primandproper/platform-go/v11/messagequeue"
+	"github.com/primandproper/platform-go/v11/authentication/oauth2server"
 	"github.com/primandproper/platform-go/v11/observability/logging"
 	"github.com/primandproper/platform-go/v11/observability/tracing"
-
-	"github.com/go-oauth2/oauth2/v4/server"
 )
 
 const (
@@ -25,56 +13,31 @@ const (
 )
 
 type (
-	// service handles passwords service-wide.
+	// service carries the OAuth 2.1 authorization server's HTTP surface across the
+	// auth.AuthDataService interface the API router builds against.
+	//
+	// It is thin, and got thinner with this change: the credential checks, the token store
+	// adapters and the hand-rolled RFC 7009 revocation endpoint it used to hold are all the
+	// authorization server's now. What is left is four handlers and the logger the metadata
+	// one writes through.
 	service struct {
-		logger               logging.Logger
-		authenticator        authentication.Authenticator
-		totpVerifier         totp.Verifier
-		tracer               tracing.Tracer
-		dataChangesPublisher messagequeue.Publisher
-		oauth2Server         *server.Server
-		oauthRepo            oauth.Repository
+		logger       logging.Logger
+		oauth2Server *oauth2server.Server
 	}
 )
 
 // ProvideService builds a new AuthDataService.
+//
+// The tracer provider is taken and not held: the authorization server does its own
+// instrumentation, and every handler here is a delegation to it. A span wrapped around that
+// would record this function's own duration and nothing else.
 func ProvideService(
-	ctx context.Context,
 	logger logging.Logger,
-	cfg *Config,
-	authenticator authentication.Authenticator,
-	totpVerifier totp.Verifier,
-	oauthRepo oauth.Repository,
-	identityDataManager identitymanager.IdentityDataManager,
-	tracerProvider tracing.Provider,
-	publisherProvider messagequeue.PublisherProvider,
-	queuesConfig *queuescfg.Config,
+	oauth2Server *oauth2server.Server,
+	_ tracing.Provider,
 ) (auth.AuthDataService, error) {
-	if queuesConfig == nil {
-		return nil, perrors.ErrNilInputParameter
-	}
-
-	dataChangesPublisher, publisherProviderErr := publisherProvider.NewPublisher(ctx, queuesConfig.DataChangesTopicName)
-	if publisherProviderErr != nil {
-		return nil, fmt.Errorf("setting up %s data changes publisher: %w", serviceName, publisherProviderErr)
-	}
-
-	signer, err := cfg.Tokens.NewTokenIssuer(ctx, tokenscfg.WithLogger(logger), tokenscfg.WithTracerProvider(tracerProvider))
-	if err != nil {
-		return nil, fmt.Errorf("creating json web token signer: %w", err)
-	}
-
-	manager := ProvideOAuth2ClientManager(logger, tracerProvider, &cfg.OAuth2, oauthRepo)
-
-	svc := &service{
-		logger:               logging.NewNamedLogger(logger, serviceName),
-		authenticator:        authenticator,
-		totpVerifier:         totpVerifier,
-		tracer:               tracing.NewNamedTracer(tracerProvider, serviceName),
-		dataChangesPublisher: dataChangesPublisher,
-		oauth2Server:         ProvideOAuth2ServerImplementation(logger, tracerProvider, signer, manager),
-		oauthRepo:            oauthRepo,
-	}
-
-	return svc, nil
+	return &service{
+		logger:       logging.NewNamedLogger(logger, serviceName),
+		oauth2Server: oauth2Server,
+	}, nil
 }

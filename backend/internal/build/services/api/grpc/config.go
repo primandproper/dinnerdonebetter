@@ -14,6 +14,7 @@ import (
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 
 	analyticscfg "github.com/primandproper/platform-go/v11/analytics/config"
+	oauth2servercfg "github.com/primandproper/platform-go/v11/authentication/oauth2server/config"
 	tokenscfg "github.com/primandproper/platform-go/v11/authentication/tokens/config"
 	databasecfg "github.com/primandproper/platform-go/v11/database/config"
 	emailcfg "github.com/primandproper/platform-go/v11/email/config"
@@ -128,7 +129,7 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*tokenscfg.Config](i, func(i do.Injector) (*tokenscfg.Config, error) {
 		return &do.MustInvoke[*authcfg.TokensConfig](i).Config, nil
 	})
-	do.Provide[*authentication.OAuth2Config](i, func(i do.Injector) (*authentication.OAuth2Config, error) {
+	do.Provide[*oauth2servercfg.Config](i, func(i do.Injector) (*oauth2servercfg.Config, error) {
 		cfg := do.MustInvoke[*authentication.Config](i)
 		return &cfg.OAuth2, nil
 	})

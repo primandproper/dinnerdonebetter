@@ -17,7 +17,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	encryptioncfg "github.com/primandproper/platform-go/v11/cryptography/encryption/config"
 	"github.com/primandproper/platform-go/v11/database"
 	databasecfg "github.com/primandproper/platform-go/v11/database/config"
 	mockdatabase "github.com/primandproper/platform-go/v11/database/mock"
@@ -83,10 +82,6 @@ const (
 	// driverName is the database/sql driver these helpers open pools with. The pgx
 	// stdlib driver is registered by this package's blank import.
 	driverName = "pgx"
-
-	// testOAuth2TokenEncryptionKey is a throwaway key for containers that never
-	// outlive the test that started them.
-	testOAuth2TokenEncryptionKey = "blahblahblahblahblahblahblahblah" /* #nosec G101 */
 )
 
 // userFromGetUserByIDRow converts a GetUserByIDRow to User. Used by CreateUserForTest.
@@ -173,8 +168,6 @@ func databaseConfigForConnectionString(connectionString string) (*dbcfg.Config, 
 		Config: databasecfg.Config{
 			RunMigrations: false,
 		},
-		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
-		OAuth2TokenEncryptionKey: testOAuth2TokenEncryptionKey,
 	}
 
 	if err := dbConfig.LoadConnectionDetailsFromURL(connectionString); err != nil {

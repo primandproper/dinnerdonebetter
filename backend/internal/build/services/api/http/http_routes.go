@@ -7,6 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	paymentswebhook "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
 
+	"github.com/primandproper/platform-go/v11/authentication/oauth2server"
 	"github.com/primandproper/platform-go/v11/encoding"
 	"github.com/primandproper/platform-go/v11/healthcheck"
 	"github.com/primandproper/platform-go/v11/observability/logging"
@@ -53,11 +54,17 @@ func ProvideAPIRouter(
 	// The raw routes below carry limitRequestBody because the Router-wide bound does not reach
 	// them: it is applied where a request is decoded into a typed input, and these are registered
 	// with Handle precisely because they are not.
-	router.Group("/oauth2", func(userRouter *routing.Router) {
-		userRouter.Handle(http.MethodGet, "/authorize", http.HandlerFunc(authService.AuthorizeHandler), limitRequestBody(maxRequestBodyBytes))
-		userRouter.Handle(http.MethodPost, "/token", http.HandlerFunc(authService.TokenHandler), limitRequestBody(maxRequestBodyBytes))
-		userRouter.Handle(http.MethodPost, "/revoke", http.HandlerFunc(authService.RevokeHandler), limitRequestBody(maxRequestBodyBytes))
-	})
+	//
+	// The paths are the ones oauth2server publishes in its discovery document — which is derived
+	// from the issuer, so mounting them anywhere else would mean advertising addresses that do
+	// not answer. POST /authorize is what a first-party client uses: it carries the session JWT
+	// in an Authorization header and gets the redirect back, where a browser GETs the same URL
+	// and is shown a login form. RFC 7591 registration is deliberately not routed.
+	router.Handle(http.MethodGet, oauth2server.PathAuthorizationServerMetadata, http.HandlerFunc(authService.AuthorizationServerMetadataHandler))
+	router.Handle(http.MethodGet, oauth2server.PathAuthorize, http.HandlerFunc(authService.AuthorizeHandler), limitRequestBody(maxRequestBodyBytes))
+	router.Handle(http.MethodPost, oauth2server.PathAuthorize, http.HandlerFunc(authService.AuthorizeHandler), limitRequestBody(maxRequestBodyBytes))
+	router.Handle(http.MethodPost, oauth2server.PathToken, http.HandlerFunc(authService.TokenHandler), limitRequestBody(maxRequestBodyBytes))
+	router.Handle(http.MethodPost, oauth2server.PathRevoke, http.HandlerFunc(authService.RevokeHandler), limitRequestBody(maxRequestBodyBytes))
 
 	router.Group("/api/payments/webhooks", func(paymentsRouter *routing.Router) {
 		paymentsRouter.Handle(http.MethodPost, "/{provider}", http.HandlerFunc(paymentsWebhookHandler.Handle), limitRequestBody(maxRequestBodyBytes))

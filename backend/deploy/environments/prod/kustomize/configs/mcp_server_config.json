@@ -1,9 +1,5 @@
 {
 	"database": {
-		"encryption": {
-			"provider": "aes",
-			"currentKeyID": "v1"
-		},
 		"provider": "postgres",
 		"readConnection": {
 			"username": "mcp_server",

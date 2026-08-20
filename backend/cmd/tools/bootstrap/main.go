@@ -20,7 +20,6 @@ import (
 	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 
 	"github.com/primandproper/platform-go/v11/authentication/argon2"
-	encryptioncfg "github.com/primandproper/platform-go/v11/cryptography/encryption/config"
 	"github.com/primandproper/platform-go/v11/database"
 	databasecfg "github.com/primandproper/platform-go/v11/database/config"
 	"github.com/primandproper/platform-go/v11/database/postgres"
@@ -38,28 +37,30 @@ import (
 const (
 	// Placeholder TOTP secret for bootstrap admin (2FA is marked verified without real TOTP).
 	twoFactorSecretPlaceholder = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-	bootstrapEncryptionKey     = "bootstrap-placeholder-encrypt32!" // exactly 32 bytes
 
 	// Prod Kubernetes secret coordinates.
 	prodNamespace  = "prod"
 	prodSecretName = "api-service-config"
 	prodDBUser     = "api_db_user"
 	/* #nosec G101 */
-	prodDBPassKey              = "DATABASE_API_PASSWORD"
-	prodOAuth2EncryptionKeyKey = "OAUTH2_TOKEN_ENCRYPTION_KEY"
+	prodDBPassKey = "DATABASE_API_PASSWORD"
+
+	// prodAPIServerURL is where the production API server answers, and so the redirect URI
+	// every first-party OAuth2 client sends. Overridable with --api-server-url, because a
+	// bootstrap run against anything other than prod is registering a different address.
+	prodAPIServerURL = "https://http-api." + branding.PublicDomain
 )
 
 // dbFlags holds database connection flags shared across subcommands.
 type dbFlags struct {
-	host                     string
-	user                     string
-	password                 string
-	name                     string
-	kubeconfig               string
-	oauth2TokenEncryptionKey string
-	port                     uint16
-	sslDisable               bool
-	prod                     bool
+	host       string
+	user       string
+	password   string
+	name       string
+	kubeconfig string
+	port       uint16
+	sslDisable bool
+	prod       bool
 }
 
 func main() {
@@ -102,6 +103,7 @@ Local dev (explicit credentials):
 		adminUsername string
 		adminPassword string
 		adminEmail    string
+		apiServerURL  string
 	)
 
 	initCmd := &cobra.Command{
@@ -116,13 +118,14 @@ clients are detected by name and skipped.`,
 			if err := resolveDBFlags(cmd, &db); err != nil {
 				return err
 			}
-			return runInit(&db, adminUsername, adminPassword, adminEmail)
+			return runInit(&db, adminUsername, adminPassword, adminEmail, apiServerURL)
 		},
 	}
 
 	initCmd.Flags().StringVar(&adminUsername, "username", "", "Admin username to create")
 	initCmd.Flags().StringVar(&adminPassword, "password", "", "Admin password (will be hashed with Argon2)")
 	initCmd.Flags().StringVar(&adminEmail, "email", "", "Admin email (defaults to <username>@bootstrap.local)")
+	initCmd.Flags().StringVar(&apiServerURL, "api-server-url", prodAPIServerURL, "Public URL of the API server, registered as every bootstrapped OAuth2 client's redirect URI")
 
 	for _, flag := range []string{"username", "password"} {
 		if err := initCmd.MarkFlagRequired(flag); err != nil {
@@ -153,21 +156,16 @@ func resolveDBFlags(cmd *cobra.Command, db *dbFlags) error {
 		if !cmd.Flags().Changed("db-password") {
 			db.password = secrets.dbPassword
 		}
-		db.oauth2TokenEncryptionKey = secrets.oauth2TokenEncryptionKey
 	}
 
 	if db.host == "" || db.user == "" || db.password == "" || db.name == "" {
 		return errors.New("database connection requires --db-host, --db-user, --db-password, --db-name (or use --prod)")
 	}
 
-	if db.oauth2TokenEncryptionKey == "" {
-		db.oauth2TokenEncryptionKey = bootstrapEncryptionKey
-	}
-
 	return nil
 }
 
-func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error {
+func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL string) error {
 	if adminEmail == "" {
 		adminEmail = adminUsername + "@bootstrap.local"
 	}
@@ -193,8 +191,6 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 			ReadConnection:  connDetails,
 			WriteConnection: connDetails,
 		},
-		Encryption:               encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
-		OAuth2TokenEncryptionKey: db.oauth2TokenEncryptionKey,
 	}
 
 	clientConfig := &bootstrapClientConfig{connDetails: connDetails}
@@ -293,14 +289,26 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 	}
 
 	// --- OAuth2 clients (idempotent) ---
+	// Every first-party client sends the API server's own address as its redirect_uri and reads
+	// the authorization code off the Location header rather than following it — there is no
+	// callback endpoint, and never was. Registering that address is therefore registering what
+	// the clients actually send.
+	//
+	// It matters that this is exact. The authorization server compares redirect_uri byte for
+	// byte, at /authorize and again at /token against the URI the code was issued for, so a
+	// trailing slash or a missing port here is a client that authenticates at the token
+	// endpoint and then fails every authorization request.
+	redirectURIs := []string{apiServerURL}
+
 	wantClients := []*struct {
-		name string
-		desc string
+		name         string
+		desc         string
+		redirectURIs []string
 	}{
-		{"Admin Webapp", "Admin web application OAuth2 client"},
-		{"Consumer Webapp", "Consumer web application OAuth2 client"},
-		{"iOS App", "iOS mobile application OAuth2 client"},
-		{"MCP Server", "MCP server OAuth2 client"},
+		{"Admin Webapp", "Admin web application OAuth2 client", redirectURIs},
+		{"Consumer Webapp", "Consumer web application OAuth2 client", redirectURIs},
+		{"iOS App", "iOS mobile application OAuth2 client", redirectURIs},
+		{"MCP Server", "MCP server OAuth2 client", redirectURIs},
 	}
 
 	existingClients, err := oauthRepo.GetOAuth2Clients(ctx, nil)
@@ -337,6 +345,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail string) error
 			Description:  want.desc,
 			ClientID:     clientID,
 			ClientSecret: oauth.HashClientSecret(clientSecret),
+			RedirectURIs: want.redirectURIs,
 		})
 		if creationErr != nil {
 			return fmt.Errorf("creating OAuth2 client %s: %w", want.name, creationErr)
@@ -391,8 +400,7 @@ func (b *bootstrapClientConfig) GetConnMaxLifetime() time.Duration {
 }
 
 type prodSecrets struct {
-	dbPassword               string
-	oauth2TokenEncryptionKey string
+	dbPassword string
 }
 
 func fetchProdSecrets(ctx context.Context, kubeconfigPath string) (*prodSecrets, error) {
@@ -424,11 +432,6 @@ func fetchProdSecrets(ctx context.Context, kubeconfigPath string) (*prodSecrets,
 	s.dbPassword, err = secretSource.GetSecret(ctx, prodSecretName+"/"+prodDBPassKey)
 	if err != nil {
 		return nil, fmt.Errorf("fetching %s/%s: %w", prodSecretName, prodDBPassKey, err)
-	}
-
-	s.oauth2TokenEncryptionKey, err = secretSource.GetSecret(ctx, prodSecretName+"/"+prodOAuth2EncryptionKeyKey)
-	if err != nil {
-		return nil, fmt.Errorf("fetching %s/%s: %w", prodSecretName, prodOAuth2EncryptionKeyKey, err)
 	}
 
 	return &s, nil

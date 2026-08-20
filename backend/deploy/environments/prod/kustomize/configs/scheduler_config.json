@@ -180,10 +180,6 @@
 		}
 	},
 	"database": {
-		"encryption": {
-			"provider": "aes",
-			"currentKeyID": "v1"
-		},
 		"provider": "postgres",
 		"readConnection": {
 			"username": "scheduler",

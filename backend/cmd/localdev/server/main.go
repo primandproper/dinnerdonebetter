@@ -10,6 +10,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
@@ -214,6 +215,15 @@ func main() {
 				Description:  "localdev admin client",
 				ClientID:     strings.Repeat("A", oauth.ClientIDSize),
 				ClientSecret: oauth.HashClientSecret(strings.Repeat("A", oauth.ClientSecretSize)),
+				// Matched byte for byte, so this is every address a localdev client actually
+				// redirects to: the API server's own (which is what the CLI helpers authorize
+				// against, reading the code off the Location header rather than following it)
+				// and the two web apps' callbacks.
+				RedirectURIs: []string{
+					"http://localhost:9000",
+					branding.LocalDevConsumerWebAppURL + "/auth/callback",
+					branding.LocalDevAdminWebAppURL + "/auth/callback",
+				},
 			})
 			return err
 		}),

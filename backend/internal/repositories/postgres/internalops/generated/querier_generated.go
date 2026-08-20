@@ -11,7 +11,6 @@ import (
 type Querier interface {
 	AcknowledgeQueueTestMessage(ctx context.Context, db DBTX, id string) error
 	CreateQueueTestMessage(ctx context.Context, db DBTX, arg *CreateQueueTestMessageParams) error
-	DeleteExpiredOAuth2ClientTokens(ctx context.Context, db DBTX) (int64, error)
 	DestroyAllData(ctx context.Context, db DBTX) error
 	GetQueueTestMessage(ctx context.Context, db DBTX, id string) (*QueueTestMessages, error)
 	PruneQueueTestMessages(ctx context.Context, db DBTX, queueName string) error

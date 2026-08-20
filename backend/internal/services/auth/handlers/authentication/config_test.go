@@ -2,7 +2,8 @@ package authentication
 
 import (
 	"testing"
-	"time"
+
+	oauth2servercfg "github.com/primandproper/platform-go/v11/authentication/oauth2server/config"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,70 +21,33 @@ func TestConfig_Validate(T *testing.T) {
 			EnableUserSignup:      false,
 			MinimumUsernameLength: 123,
 			MinimumPasswordLength: 123,
-		}
-
-		assert.NoError(t, cfg.ValidateWithContext(ctx))
-	})
-}
-
-func TestOAuth2Config_ValidateWithContext(T *testing.T) {
-	T.Parallel()
-
-	T.Run("standard", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-
-		cfg := OAuth2Config{
-			Domain:               "example.com",
-			AccessTokenLifespan:  time.Hour,
-			RefreshTokenLifespan: 24 * time.Hour,
-			Debug:                false,
+			OAuth2: oauth2servercfg.Config{
+				Provider: oauth2servercfg.ProviderMemory,
+				Issuer:   "https://example.com",
+			},
 		}
 
 		assert.NoError(t, cfg.ValidateWithContext(ctx))
 	})
 
-	T.Run("with missing domain", func(t *testing.T) {
+	T.Run("with an unknown oauth2 provider", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 
-		cfg := OAuth2Config{
-			Domain:               "",
-			AccessTokenLifespan:  time.Hour,
-			RefreshTokenLifespan: 24 * time.Hour,
-			Debug:                false,
-		}
-
-		assert.Error(t, cfg.ValidateWithContext(ctx))
-	})
-
-	T.Run("with missing access token lifespan", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-
-		cfg := OAuth2Config{
-			Domain:               "example.com",
-			AccessTokenLifespan:  0,
-			RefreshTokenLifespan: 24 * time.Hour,
-			Debug:                false,
-		}
-
-		assert.Error(t, cfg.ValidateWithContext(ctx))
-	})
-
-	T.Run("with missing refresh token lifespan", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-
-		cfg := OAuth2Config{
-			Domain:               "example.com",
-			AccessTokenLifespan:  time.Hour,
-			RefreshTokenLifespan: 0,
-			Debug:                false,
+		// Whether the issuer is a legal issuer is oauth2server.NewServer's answer rather than
+		// the config's — see TestProvideOAuth2Server. What the config decides is the provider,
+		// and an unrecognized one has to fail here: the alternative is a server that comes up
+		// on neither store.
+		cfg := &Config{
+			Debug:                 false,
+			EnableUserSignup:      false,
+			MinimumUsernameLength: 123,
+			MinimumPasswordLength: 123,
+			OAuth2: oauth2servercfg.Config{
+				Provider: "postgres",
+				Issuer:   "https://example.com",
+			},
 		}
 
 		assert.Error(t, cfg.ValidateWithContext(ctx))
