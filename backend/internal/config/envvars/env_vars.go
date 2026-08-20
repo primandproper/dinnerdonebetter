@@ -748,6 +748,14 @@ const (
 	// `APIServiceConfig.FeatureFlags.Provider`.
 	FeatureFlagsProviderEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_PROVIDER"
 
+	// GrpcMaxReceiveMessageSizeEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.GRPCServer.MaxReceiveMessageSize`.
+	GrpcMaxReceiveMessageSizeEnvVarKey = "DINNER_DONE_BETTER_GRPC_MAX_RECEIVE_MESSAGE_SIZE"
+
+	// GrpcMaxSendMessageSizeEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.GRPCServer.MaxSendMessageSize`.
+	GrpcMaxSendMessageSizeEnvVarKey = "DINNER_DONE_BETTER_GRPC_MAX_SEND_MESSAGE_SIZE"
+
 	// GrpcPortEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.GRPCServer.Port`.
 	GrpcPortEnvVarKey = "DINNER_DONE_BETTER_GRPC_PORT"
@@ -1306,6 +1314,11 @@ const (
 	// `DBCleanerConfig.OAuth2.Database.TablePrefix`,
 	// `MCPServiceConfig.OAuth2.Database.TablePrefix`.
 	Oauth2DatabaseTablePrefixEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_DATABASE_TABLE_PREFIX"
+
+	// Oauth2DisableDynamicRegistrationEnvVarKey is the environment variable name to set to
+	// override `DBCleanerConfig.OAuth2.DisableDynamicRegistration`,
+	// `MCPServiceConfig.OAuth2.DisableDynamicRegistration`.
+	Oauth2DisableDynamicRegistrationEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_DISABLE_DYNAMIC_REGISTRATION"
 
 	// Oauth2DisableRefreshReuseDetectionEnvVarKey is the environment variable name to set to
 	// override `DBCleanerConfig.OAuth2.DisableRefreshReuseDetection`,
@@ -2309,6 +2322,10 @@ const (
 	// ServiceAuthOauth2DatabaseTablePrefixEnvVarKey is the environment variable name to set to
 	// override `APIServiceConfig.Services.Auth.OAuth2.Database.TablePrefix`.
 	ServiceAuthOauth2DatabaseTablePrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_DATABASE_TABLE_PREFIX"
+
+	// ServiceAuthOauth2DisableDynamicRegistrationEnvVarKey is the environment variable name to set
+	// to override `APIServiceConfig.Services.Auth.OAuth2.DisableDynamicRegistration`.
+	ServiceAuthOauth2DisableDynamicRegistrationEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_DISABLE_DYNAMIC_REGISTRATION"
 
 	// ServiceAuthOauth2DisableRefreshReuseDetectionEnvVarKey is the environment variable name to
 	// set to override `APIServiceConfig.Services.Auth.OAuth2.DisableRefreshReuseDetection`.
