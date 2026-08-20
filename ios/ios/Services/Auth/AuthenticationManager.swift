@@ -443,26 +443,22 @@ class AuthenticationManager: AuthenticationManaging {
     // Generate state for OAuth2 flow
     let state = UUID().uuidString
 
-    // Build authorization URL
-    guard var components = URLComponents(string: APIConfiguration.oauth2AuthorizeURL) else {
-      return (false, "Failed to build authorization URL")
-    }
-    components.queryItems = [
-      URLQueryItem(name: "response_type", value: "code"),
-      URLQueryItem(name: "client_id", value: await oauth2ClientID()),
-      URLQueryItem(name: "redirect_uri", value: APIConfiguration.serverURL),
-      URLQueryItem(name: "state", value: state),
-      URLQueryItem(name: "code_challenge_method", value: "plain"),
-    ]
-
-    guard let authURL = components.url else {
-      return (false, "Failed to build authorization URL")
-    }
+    // PKCE, held across both legs: the challenge goes to /authorize, the verifier to /token.
+    let pkce = PKCE()
 
     // Step 1: Get authorization code
-    var request = URLRequest(url: authURL)
-    request.httpMethod = "GET"
-    request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
+    guard
+      let request = OAuth2Exchange.authorizationRequest(
+        authorizeURL: APIConfiguration.oauth2AuthorizeURL,
+        bearerToken: jwtToken,
+        clientID: await oauth2ClientID(),
+        redirectURI: APIConfiguration.oauth2RedirectURI,
+        state: state,
+        challenge: pkce.challenge
+      )
+    else {
+      return (false, "Failed to build authorization URL")
+    }
 
     // Configure session to not follow redirects
     let delegate = NoRedirectDelegate()
@@ -492,7 +488,7 @@ class AuthenticationManager: AuthenticationManaging {
       print("📝 Received OAuth2 authorization code")
 
       // Step 2: Exchange code for access token
-      return await exchangeCodeForToken(code: code)
+      return await exchangeCodeForToken(code: code, codeVerifier: pkce.verifier)
     } catch {
       print("❌ Error getting authorization code: \(error)")
       return (false, "Failed to get authorization code: \(error.localizedDescription)")
@@ -500,30 +496,21 @@ class AuthenticationManager: AuthenticationManaging {
   }
 
   /// Exchange OAuth2 authorization code for access token
-  private func exchangeCodeForToken(code: String) async -> (success: Bool, error: String?) {
-    guard let tokenURL = URL(string: APIConfiguration.oauth2TokenURL) else {
+  private func exchangeCodeForToken(code: String, codeVerifier: String) async -> (
+    success: Bool, error: String?
+  ) {
+    guard
+      let request = OAuth2Exchange.tokenRequest(
+        tokenURL: APIConfiguration.oauth2TokenURL,
+        clientID: await oauth2ClientID(),
+        clientSecret: await oauth2ClientSecret(),
+        code: code,
+        codeVerifier: codeVerifier,
+        redirectURI: APIConfiguration.oauth2RedirectURI
+      )
+    else {
       return (false, "Invalid token URL")
     }
-
-    var request = URLRequest(url: tokenURL)
-    request.httpMethod = "POST"
-    request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-
-    // Build form data
-    let formData = [
-      "grant_type": "authorization_code",
-      "code": code,
-      "redirect_uri": APIConfiguration.serverURL,
-      "client_id": await oauth2ClientID(),
-      "client_secret": await oauth2ClientSecret(),
-    ]
-
-    // Encode form data
-    let formString = formData.map {
-      "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? $0.value)"
-    }
-    .joined(separator: "&")
-    request.httpBody = formString.data(using: .utf8)
 
     do {
       let (data, response) = try await URLSession.shared.data(for: request)
@@ -545,15 +532,20 @@ class AuthenticationManager: AuthenticationManaging {
       }
 
       let refreshToken = json["refresh_token"] as? String ?? ""
-      let expiresIn = json["expires_in"] as? Int ?? 86400  // Default to 24 hours
+      let expiresIn =
+        (json["expires_in"] as? Int).map { TimeInterval($0) }
+        ?? OAuth2Exchange.defaultAccessTokenLifetime
 
       // Calculate expiration time
-      let expiresAt = Date().addingTimeInterval(TimeInterval(expiresIn))
+      let expiresAt = Date().addingTimeInterval(expiresIn)
 
       await MainActor.run {
         self.oauth2AccessToken = accessToken
         self.oauth2RefreshToken = refreshToken
         self.oauth2TokenExpiresAt = expiresAt
+        // Refresh tokens rotate, so the freshly issued one has to replace whatever is in the
+        // Keychain. Presenting a spent one revokes the whole family and forces a re-login.
+        self.persistCredentials()
       }
 
       return (true, nil)
@@ -582,28 +574,17 @@ class AuthenticationManager: AuthenticationManaging {
       return false
     }
 
-    guard let tokenURL = URL(string: APIConfiguration.oauth2TokenURL) else {
+    guard
+      let request = OAuth2Exchange.refreshRequest(
+        tokenURL: APIConfiguration.oauth2TokenURL,
+        clientID: await oauth2ClientID(),
+        clientSecret: await oauth2ClientSecret(),
+        refreshToken: oauth2RefreshToken
+      )
+    else {
       print("❌ Invalid token URL")
       return false
     }
-
-    var request = URLRequest(url: tokenURL)
-    request.httpMethod = "POST"
-    request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-
-    // Build form data for refresh
-    let formData = [
-      "grant_type": "refresh_token",
-      "refresh_token": oauth2RefreshToken,
-      "client_id": await oauth2ClientID(),
-      "client_secret": await oauth2ClientSecret(),
-    ]
-
-    let formString = formData.map {
-      "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? $0.value)"
-    }
-    .joined(separator: "&")
-    request.httpBody = formString.data(using: .utf8)
 
     do {
       let (data, response) = try await URLSession.shared.data(for: request)
@@ -623,8 +604,10 @@ class AuthenticationManager: AuthenticationManaging {
       }
 
       let refreshToken = json["refresh_token"] as? String ?? oauth2RefreshToken
-      let expiresIn = json["expires_in"] as? Int ?? 86400
-      let expiresAt = Date().addingTimeInterval(TimeInterval(expiresIn))
+      let expiresIn =
+        (json["expires_in"] as? Int).map { TimeInterval($0) }
+        ?? OAuth2Exchange.defaultAccessTokenLifetime
+      let expiresAt = Date().addingTimeInterval(expiresIn)
 
       await MainActor.run {
         self.oauth2AccessToken = accessToken

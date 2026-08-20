@@ -153,13 +153,23 @@ struct APIConfiguration {
     Bundle.main.infoDictionary?["OAuth2ClientSecret"] as? String ?? ""
   }
 
-  // OAuth2 endpoints
+  // OAuth2 endpoints, as served by the OAuth 2.1 authorization server.
   static var oauth2AuthorizeURL: String {
-    return "\(serverURL)/oauth2/authorize"
+    return "\(serverURL)/authorize"
   }
 
   static var oauth2TokenURL: String {
-    return "\(serverURL)/oauth2/token"
+    return "\(serverURL)/token"
+  }
+
+  /// The redirect URI sent at `/authorize` and again at `/token`.
+  ///
+  /// Nothing listens here: the authorization code is read off the `Location` header of the 302
+  /// rather than followed. It is matched byte for byte against the client's registered URIs,
+  /// so it has to be `serverURL` exactly — the address `ddb-bootstrap init --api-server-url`
+  /// registers for every first-party client.
+  static var oauth2RedirectURI: String {
+    return serverURL
   }
 }
 
