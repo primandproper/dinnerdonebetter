@@ -205,11 +205,11 @@ spent here is that its audience names somewhere else.
 `ddb serve mcp` runs the same `oauth2server` package, over the same tables, at the same paths.
 What differs is the two things the package deliberately leaves to the application:
 
-|                     | API server                                     | MCP server                                     |
-|---------------------|------------------------------------------------|------------------------------------------------|
+|                     | API server                                     | MCP server                                          |
+|---------------------|------------------------------------------------|-----------------------------------------------------|
 | Who the subject is  | a session JWT, or a username + password + TOTP | a username, argon2 password, and TOTP — admins only |
-| Client registration | administered, via the gRPC surface             | RFC 7591 dynamic, open, 90-day expiry          |
-| `POST /register`    | not served                                     | served                                         |
+| Client registration | administered, via the gRPC surface             | RFC 7591 dynamic, open, 90-day expiry               |
+| `POST /register`    | not served                                     | served                                              |
 
 Everything else — the endpoints, the tables, exact redirect URI matching, mandatory S256 PKCE,
 rotation with reuse detection, opaque 15-minute access tokens — is one implementation.
