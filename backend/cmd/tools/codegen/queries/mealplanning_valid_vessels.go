@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -59,7 +59,7 @@ func buildValidVesselsQueries(database string) []*Query {
 		return slices.Concat(
 			// GetValidVessel joins valid_measurement_units for the capacity unit, so it
 			// is not the standard single-row read and stays below.
-			querygen.StandardCRUD(validVesselsTableName, validVesselsColumns,
+			pgGen.StandardCRUD(validVesselsTableName, validVesselsColumns,
 				querygen.WithEntity("ValidVessel", "ValidVessels"),
 				querygen.WithOmitted(querygen.GetQuery, querygen.ListQuery),
 			),
@@ -80,13 +80,13 @@ GROUP BY %s.%s
 						strings.Join(applyToEach(validVesselsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validVesselsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
-						querygen.TotalCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
+						pgGen.FilterCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
+						pgGen.TotalCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
 						validVesselsTableName,
-						querygen.FilterConditions(validVesselsTableName, validVesselsColumns),
+						pgGen.FilterConditions(validVesselsTableName, validVesselsColumns),
 						validVesselsTableName,
 						idColumn,
-						querygen.CursorLimitClause(validVesselsTableName),
+						pgGen.CursorLimitClause(validVesselsTableName),
 					)),
 				},
 				{
@@ -207,13 +207,13 @@ WHERE %s
 						strings.Join(applyToEach(validVesselsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validVesselsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
-						querygen.TotalCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
+						pgGen.FilterCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
+						pgGen.TotalCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
 						validVesselsTableName,
-						querygen.FilterConditions(validVesselsTableName, validVesselsColumns,
+						pgGen.FilterConditions(validVesselsTableName, validVesselsColumns,
 							fmt.Sprintf("%s.%s %s", validVesselsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						querygen.CursorLimitClause(validVesselsTableName),
+						pgGen.CursorLimitClause(validVesselsTableName),
 					)),
 				},
 			},

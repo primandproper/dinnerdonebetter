@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"testing"
 
-	platformerrors "github.com/primandproper/platform-go/v11/errors"
-	"github.com/primandproper/platform-go/v11/identifiers"
+	platformerrors "github.com/primandproper/platform-go/v12/errors"
+	"github.com/primandproper/platform-go/v12/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -15,7 +15,7 @@ import (
 
 const archiveValidPreparationInstrument = `-- name: ArchiveValidPreparationInstrument :execrows
 UPDATE valid_preparation_instruments SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -270,15 +270,15 @@ SELECT
 		FROM valid_preparation_instruments
 		JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
 		JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-		WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
-				OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
-				OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
@@ -296,15 +296,15 @@ SELECT
 FROM valid_preparation_instruments
 	JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
 	JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
-		OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
-		OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 	AND valid_instruments.archived_at IS NULL
@@ -660,15 +660,15 @@ SELECT
 		FROM valid_preparation_instruments
 		JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
 		JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-		WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
-				OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
-				OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
@@ -688,15 +688,15 @@ SELECT
 FROM valid_preparation_instruments
 	JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
 	JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
-		OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
-		OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 	AND valid_preparation_instruments.valid_instrument_id = $6
@@ -892,15 +892,15 @@ SELECT
 		FROM valid_preparation_instruments
 		JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
 		JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-		WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
-				OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_preparation_instruments.last_updated_at IS NULL
-				OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 			AND valid_instruments.archived_at IS NULL
@@ -920,15 +920,15 @@ SELECT
 FROM valid_preparation_instruments
 	JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id
 	JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id
-WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_preparation_instruments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_preparation_instruments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
-		OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparation_instruments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparation_instruments.last_updated_at IS NULL
-		OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparation_instruments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 	AND valid_preparation_instruments.valid_preparation_id = $6
@@ -1081,7 +1081,7 @@ UPDATE valid_preparation_instruments SET
 	notes = $1,
 	valid_preparation_id = $2,
 	valid_instrument_id = $3,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $4
 `

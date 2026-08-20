@@ -15,7 +15,7 @@ import (
 
 const archiveValidPreparation = `-- name: ArchiveValidPreparation :execrows
 UPDATE valid_preparations SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -337,15 +337,15 @@ SELECT
 	(
 		SELECT COUNT(valid_preparations.id)
 		FROM valid_preparations
-		WHERE valid_preparations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_preparations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_preparations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_preparations.last_updated_at IS NULL
-				OR valid_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_preparations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_preparations.last_updated_at IS NULL
-				OR valid_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_preparations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_preparations.archived_at IS NULL)
 	) AS filtered_count,
@@ -355,15 +355,15 @@ SELECT
 		WHERE (COALESCE($5, false)::boolean OR valid_preparations.archived_at IS NULL)
 	) AS total_count
 FROM valid_preparations
-WHERE valid_preparations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_preparations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_preparations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_preparations.last_updated_at IS NULL
-		OR valid_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparations.last_updated_at IS NULL
-		OR valid_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_preparations.archived_at IS NULL)
 	AND valid_preparations.id > COALESCE($6, '')
@@ -473,7 +473,7 @@ FROM valid_preparations
 WHERE valid_preparations.archived_at IS NULL
 	AND (
 	valid_preparations.last_indexed_at IS NULL
-	OR valid_preparations.last_indexed_at < NOW() - '24 hours'::INTERVAL
+	OR valid_preparations.last_indexed_at < CURRENT_TIMESTAMP - '24 hours'::INTERVAL
 )
 `
 
@@ -605,7 +605,7 @@ func (q *Queries) GetValidPreparationsWithIDs(ctx context.Context, db DBTX, ids 
 
 const markValidPreparationsAsIndexed = `-- name: MarkValidPreparationsAsIndexed :execrows
 UPDATE valid_preparations SET
-	last_indexed_at = NOW()
+	last_indexed_at = CURRENT_TIMESTAMP
 WHERE id = ANY($1::text[])
 `
 
@@ -682,15 +682,15 @@ SELECT
 	(
 		SELECT COUNT(valid_preparations.id)
 		FROM valid_preparations
-		WHERE valid_preparations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_preparations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_preparations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_preparations.last_updated_at IS NULL
-				OR valid_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_preparations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_preparations.last_updated_at IS NULL
-				OR valid_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_preparations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_preparations.archived_at IS NULL)
 	) AS filtered_count,
@@ -700,15 +700,15 @@ SELECT
 		WHERE (COALESCE($5, false)::boolean OR valid_preparations.archived_at IS NULL)
 	) AS total_count
 FROM valid_preparations
-WHERE valid_preparations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_preparations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_preparations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_preparations.last_updated_at IS NULL
-		OR valid_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparations.last_updated_at IS NULL
-		OR valid_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_preparations.archived_at IS NULL)
 	AND valid_preparations.name ILIKE '%' || $6::text || '%'
@@ -834,7 +834,7 @@ UPDATE valid_preparations SET
 	only_for_vessels = $16,
 	minimum_vessel_count = $17,
 	maximum_vessel_count = $18,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $19
 `

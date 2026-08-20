@@ -13,8 +13,8 @@ import (
 
 const archiveWaitlist = `-- name: ArchiveWaitlist :execrows
 UPDATE waitlists SET
-	last_updated_at = NOW(),
-	archived_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP,
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -86,38 +86,38 @@ SELECT
 	(
 		SELECT COUNT(waitlists.id)
 		FROM waitlists
-		WHERE waitlists.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND waitlists.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE waitlists.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND waitlists.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				waitlists.last_updated_at IS NULL
-				OR waitlists.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR waitlists.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				waitlists.last_updated_at IS NULL
-				OR waitlists.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR waitlists.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR waitlists.archived_at IS NULL)
-			AND waitlists.valid_until >= NOW()
+			AND waitlists.valid_until >= CURRENT_TIMESTAMP
 	) AS filtered_count,
 	(
 		SELECT COUNT(waitlists.id)
 		FROM waitlists
 		WHERE (COALESCE($5, false)::boolean OR waitlists.archived_at IS NULL)
-			AND waitlists.valid_until >= NOW()
+			AND waitlists.valid_until >= CURRENT_TIMESTAMP
 	) AS total_count
 FROM waitlists
-WHERE waitlists.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND waitlists.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE waitlists.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND waitlists.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		waitlists.last_updated_at IS NULL
-		OR waitlists.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR waitlists.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		waitlists.last_updated_at IS NULL
-		OR waitlists.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR waitlists.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR waitlists.archived_at IS NULL)
-	AND waitlists.valid_until >= NOW()
+	AND waitlists.valid_until >= CURRENT_TIMESTAMP
 	AND waitlists.id > COALESCE($6, '')
 ORDER BY waitlists.id ASC
 LIMIT COALESCE($7, 50)
@@ -227,15 +227,15 @@ SELECT
 	(
 		SELECT COUNT(waitlists.id)
 		FROM waitlists
-		WHERE waitlists.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND waitlists.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE waitlists.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND waitlists.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				waitlists.last_updated_at IS NULL
-				OR waitlists.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR waitlists.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				waitlists.last_updated_at IS NULL
-				OR waitlists.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR waitlists.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR waitlists.archived_at IS NULL)
 	) AS filtered_count,
@@ -245,15 +245,15 @@ SELECT
 		WHERE (COALESCE($5, false)::boolean OR waitlists.archived_at IS NULL)
 	) AS total_count
 FROM waitlists
-WHERE waitlists.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND waitlists.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE waitlists.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND waitlists.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		waitlists.last_updated_at IS NULL
-		OR waitlists.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR waitlists.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		waitlists.last_updated_at IS NULL
-		OR waitlists.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR waitlists.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR waitlists.archived_at IS NULL)
 	AND waitlists.id > COALESCE($6, '')
@@ -329,7 +329,7 @@ UPDATE waitlists SET
 	name = $1,
 	description = $2,
 	valid_until = $3,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $4
 `
@@ -360,7 +360,7 @@ SELECT EXISTS(
 	FROM waitlists
 	WHERE waitlists.archived_at IS NULL
 		AND waitlists.id = $1
-		AND waitlists.valid_until >= NOW()
+		AND waitlists.valid_until >= CURRENT_TIMESTAMP
 )
 `
 

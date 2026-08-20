@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -46,7 +46,7 @@ func buildMealPlansQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(mealPlansTableName, mealPlansColumns,
+			pgGen.StandardCRUD(mealPlansTableName, mealPlansColumns,
 				querygen.WithEntity("MealPlan", "MealPlans"),
 				querygen.WithOwnership(belongsToAccountColumn),
 				querygen.WithDatabaseOwned(mealPlanGroceryListInitializedColumn, mealPlanTasksCreatedColumn, electionMethodColumn),
@@ -264,13 +264,13 @@ WHERE %s
 						strings.Join(applyToEach(mealPlansColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", mealPlansTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(mealPlansTableName, mealPlansColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlansTableName, belongsToAccountColumn, belongsToAccountColumn)),
-						querygen.TotalCountSelect(mealPlansTableName, mealPlansColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlansTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						pgGen.FilterCountSelect(mealPlansTableName, mealPlansColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlansTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						pgGen.TotalCountSelect(mealPlansTableName, mealPlansColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlansTableName, belongsToAccountColumn, belongsToAccountColumn)),
 						mealPlansTableName,
-						querygen.FilterConditions(mealPlansTableName, mealPlansColumns,
+						pgGen.FilterConditions(mealPlansTableName, mealPlansColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlansTableName, belongsToAccountColumn, belongsToAccountColumn),
 						),
-						querygen.CursorLimitClause(mealPlansTableName),
+						pgGen.CursorLimitClause(mealPlansTableName),
 					)),
 				},
 				{

@@ -21,14 +21,14 @@ UPDATE meal_plan_option_votes SET
 	abstain = sqlc.arg(abstain),
 	notes = sqlc.arg(notes),
 	by_user = sqlc.arg(by_user),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND belongs_to_meal_plan_option = sqlc.arg(belongs_to_meal_plan_option);
 
 -- name: ArchiveMealPlanOptionVote :execrows
 UPDATE meal_plan_option_votes SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND belongs_to_meal_plan_option = sqlc.arg(belongs_to_meal_plan_option);
@@ -92,15 +92,15 @@ SELECT
 	(
 		SELECT COUNT(meal_plan_option_votes.id)
 		FROM meal_plan_option_votes
-		WHERE meal_plan_option_votes.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND meal_plan_option_votes.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE meal_plan_option_votes.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND meal_plan_option_votes.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				meal_plan_option_votes.last_updated_at IS NULL
-				OR meal_plan_option_votes.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR meal_plan_option_votes.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				meal_plan_option_votes.last_updated_at IS NULL
-				OR meal_plan_option_votes.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR meal_plan_option_votes.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plan_option_votes.archived_at IS NULL)
 			AND meal_plan_option_votes.belongs_to_meal_plan_option = sqlc.arg(meal_plan_option_id)
@@ -114,15 +114,15 @@ FROM meal_plan_option_votes
 	JOIN meal_plan_options ON meal_plan_option_votes.belongs_to_meal_plan_option=meal_plan_options.id
 	JOIN meal_plan_events ON meal_plan_options.belongs_to_meal_plan_event=meal_plan_events.id
 	JOIN meal_plans ON meal_plan_events.belongs_to_meal_plan=meal_plans.id
-WHERE meal_plan_option_votes.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND meal_plan_option_votes.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE meal_plan_option_votes.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND meal_plan_option_votes.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		meal_plan_option_votes.last_updated_at IS NULL
-		OR meal_plan_option_votes.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR meal_plan_option_votes.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		meal_plan_option_votes.last_updated_at IS NULL
-		OR meal_plan_option_votes.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR meal_plan_option_votes.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plan_option_votes.archived_at IS NULL)
 	AND meal_plan_option_votes.belongs_to_meal_plan_option = sqlc.arg(meal_plan_option_id)

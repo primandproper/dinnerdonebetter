@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -50,7 +50,7 @@ func buildAccountsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(accountsTableName, accountsColumns,
+			pgGen.StandardCRUD(accountsTableName, accountsColumns,
 				querygen.WithEntity("Account", "Accounts"),
 				querygen.WithOwnership(belongsToUserColumn),
 				querygen.WithDatabaseOwned("payment_processor_customer_id", "subscription_plan_id", "time_zone", "last_payment_provider_sync_occurred_at"),
@@ -154,19 +154,19 @@ WHERE %s
 						strings.Join(applyToEach(accountsColumns, func(_ int, s string) string {
 							return fmt.Sprintf("%s.%s", accountsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(accountsTableName, accountsColumns, nil),
-						querygen.TotalCountSelect(accountsTableName, accountsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToUserColumn, belongsToUserColumn)),
+						pgGen.FilterCountSelect(accountsTableName, accountsColumns, nil),
+						pgGen.TotalCountSelect(accountsTableName, accountsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToUserColumn, belongsToUserColumn)),
 						accountsTableName,
 						accountUserMembershipsTableName,
 						accountUserMembershipsTableName,
 						belongsToAccountColumn,
 						accountsTableName,
 						idColumn,
-						querygen.FilterConditions(accountsTableName, accountsColumns,
+						pgGen.FilterConditions(accountsTableName, accountsColumns,
 							"account_user_memberships.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToUserColumn, belongsToUserColumn),
 						),
-						querygen.CursorLimitClause(accountsTableName),
+						pgGen.CursorLimitClause(accountsTableName),
 					)),
 				},
 				{

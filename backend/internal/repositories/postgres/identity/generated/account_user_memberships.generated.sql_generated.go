@@ -34,7 +34,7 @@ func (q *Queries) AddUserToAccount(ctx context.Context, db DBTX, arg *AddUserToA
 
 const archiveUserMemberships = `-- name: ArchiveUserMemberships :execrows
 UPDATE account_user_memberships SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND belongs_to_user = $1
 `
@@ -158,7 +158,7 @@ func (q *Queries) MarkAccountUserMembershipAsUserDefault(ctx context.Context, db
 
 const removeUserFromAccount = `-- name: RemoveUserFromAccount :exec
 UPDATE account_user_memberships SET
-	archived_at = NOW(),
+	archived_at = CURRENT_TIMESTAMP,
 	default_account = 'false'
 WHERE account_user_memberships.archived_at IS NULL
 	AND account_user_memberships.belongs_to_account = $1

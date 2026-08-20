@@ -16,9 +16,9 @@ import (
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
-	"github.com/primandproper/platform-go/v11/fake"
-	"github.com/primandproper/platform-go/v11/featureflags"
-	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v12/fake"
+	"github.com/primandproper/platform-go/v12/featureflags"
+	"github.com/primandproper/platform-go/v12/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

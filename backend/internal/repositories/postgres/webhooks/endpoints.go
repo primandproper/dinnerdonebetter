@@ -9,9 +9,9 @@ import (
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
-	platformerrors "github.com/primandproper/platform-go/v11/errors"
-	"github.com/primandproper/platform-go/v11/tenancy"
-	"github.com/primandproper/platform-go/v11/webhooks"
+	platformerrors "github.com/primandproper/platform-go/v12/errors"
+	"github.com/primandproper/platform-go/v12/tenancy"
+	"github.com/primandproper/platform-go/v12/webhooks"
 )
 
 // The delivery side of a webhook: the endpoint it is delivered to, its signing secret, and the

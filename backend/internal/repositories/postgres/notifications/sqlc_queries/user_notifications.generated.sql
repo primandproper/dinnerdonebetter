@@ -40,15 +40,15 @@ SELECT
 	(
 		SELECT COUNT(user_notifications.id)
 		FROM user_notifications
-		WHERE user_notifications.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND user_notifications.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE user_notifications.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND user_notifications.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				user_notifications.last_updated_at IS NULL
-				OR user_notifications.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR user_notifications.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				user_notifications.last_updated_at IS NULL
-				OR user_notifications.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR user_notifications.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND user_notifications.status != 'dismissed'
 			AND user_notifications.belongs_to_user = sqlc.arg(user_id)
@@ -60,15 +60,15 @@ SELECT
 			AND user_notifications.belongs_to_user = sqlc.arg(user_id)
 	) AS total_count
 FROM user_notifications
-WHERE user_notifications.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND user_notifications.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE user_notifications.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND user_notifications.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		user_notifications.last_updated_at IS NULL
-		OR user_notifications.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR user_notifications.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		user_notifications.last_updated_at IS NULL
-		OR user_notifications.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR user_notifications.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND user_notifications.status != 'dismissed'
 	AND user_notifications.belongs_to_user = sqlc.arg(user_id)
@@ -79,5 +79,5 @@ LIMIT COALESCE(sqlc.narg(result_limit), 50);
 -- name: UpdateUserNotification :execrows
 UPDATE user_notifications SET
 	status = sqlc.arg(status),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg(id);

@@ -12,7 +12,7 @@ import (
 )
 
 const archiveProduct = `-- name: ArchiveProduct :execrows
-UPDATE products SET archived_at = NOW(), last_updated_at = NOW() WHERE archived_at IS NULL AND id = $1
+UPDATE products SET archived_at = CURRENT_TIMESTAMP, last_updated_at = CURRENT_TIMESTAMP WHERE archived_at IS NULL AND id = $1
 `
 
 func (q *Queries) ArchiveProduct(ctx context.Context, db DBTX, id string) (int64, error) {
@@ -176,15 +176,15 @@ SELECT
 	(
 		SELECT COUNT(products.id)
 		FROM products
-		WHERE products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE products.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND products.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				products.last_updated_at IS NULL
-				OR products.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR products.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				products.last_updated_at IS NULL
-				OR products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR products.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	) AS filtered_count,
@@ -194,15 +194,15 @@ SELECT
 		WHERE (COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	) AS total_count
 FROM products
-WHERE products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE products.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND products.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		products.last_updated_at IS NULL
-		OR products.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR products.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		products.last_updated_at IS NULL
-		OR products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR products.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	AND products.id > COALESCE($6, '')
@@ -297,15 +297,15 @@ SELECT
 	(
 		SELECT COUNT(products.id)
 		FROM products
-		WHERE products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE products.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND products.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				products.last_updated_at IS NULL
-				OR products.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR products.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				products.last_updated_at IS NULL
-				OR products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR products.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	) AS filtered_count,
@@ -315,15 +315,15 @@ SELECT
 		WHERE (COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	) AS total_count
 FROM products
-WHERE products.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND products.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE products.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND products.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		products.last_updated_at IS NULL
-		OR products.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR products.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		products.last_updated_at IS NULL
-		OR products.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR products.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR products.archived_at IS NULL)
 	AND products.name ILIKE '%' || $6::text || '%'
@@ -414,7 +414,7 @@ UPDATE products SET
 	currency = $5,
 	billing_interval_months = $6,
 	external_product_id = $7,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $8
 `

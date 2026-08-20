@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -43,7 +43,7 @@ func buildRecipeListsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(recipeListsTableName, recipeListsColumns,
+			pgGen.StandardCRUD(recipeListsTableName, recipeListsColumns,
 				querygen.WithEntity("RecipeList", "RecipeLists"),
 				querygen.WithOwnership(belongsToUserColumn),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery),
@@ -63,12 +63,12 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(recipeListsTableName, recipeListsColumns, []string{}),
-						querygen.TotalCountSelect(recipeListsTableName, recipeListsColumns, []string{}),
+						pgGen.FilterCountSelect(recipeListsTableName, recipeListsColumns, []string{}),
+						pgGen.TotalCountSelect(recipeListsTableName, recipeListsColumns, []string{}),
 						recipeListsTableName,
 						recipeListItemsTableName, recipeListItemsTableName, "belongs_to_recipe_list", recipeListsTableName, idColumn, recipeListItemsTableName, archivedAtColumn,
-						querygen.FilterConditions(recipeListsTableName, recipeListsColumns),
-						querygen.CursorLimitClause(recipeListsTableName),
+						pgGen.FilterConditions(recipeListsTableName, recipeListsColumns),
+						pgGen.CursorLimitClause(recipeListsTableName),
 					)),
 				},
 			},

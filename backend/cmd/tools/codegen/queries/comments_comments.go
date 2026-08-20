@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -35,7 +35,7 @@ func buildCommentsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(commentsTableName, commentsColumns,
+			pgGen.StandardCRUD(commentsTableName, commentsColumns,
 				querygen.WithEntity("Comment", "Comments"),
 				querygen.WithNullable("parent_comment_id"),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.ListQuery, querygen.UpdateQuery),
@@ -72,18 +72,18 @@ WHERE %s
 						strings.Join(applyToEach(commentsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", commentsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(commentsTableName, commentsColumns, []string{},
+						pgGen.FilterCountSelect(commentsTableName, commentsColumns, []string{},
 							fmt.Sprintf("%s.%s = sqlc.arg(target_type)", commentsTableName, "target_type"),
 							fmt.Sprintf("%s.%s = sqlc.arg(referenced_id)", commentsTableName, "referenced_id")),
-						querygen.TotalCountSelect(commentsTableName, commentsColumns, []string{},
+						pgGen.TotalCountSelect(commentsTableName, commentsColumns, []string{},
 							fmt.Sprintf("%s.%s = sqlc.arg(target_type)", commentsTableName, "target_type"),
 							fmt.Sprintf("%s.%s = sqlc.arg(referenced_id)", commentsTableName, "referenced_id")),
 						commentsTableName,
-						querygen.FilterConditions(commentsTableName, commentsColumns,
+						pgGen.FilterConditions(commentsTableName, commentsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(target_type)", commentsTableName, "target_type"),
 							fmt.Sprintf("%s.%s = sqlc.arg(referenced_id)", commentsTableName, "referenced_id"),
 						),
-						querygen.CursorLimitClause(commentsTableName),
+						pgGen.CursorLimitClause(commentsTableName),
 					)),
 				},
 				{
@@ -101,15 +101,15 @@ WHERE %s
 						strings.Join(applyToEach(commentsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", commentsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(commentsTableName, commentsColumns, []string{},
+						pgGen.FilterCountSelect(commentsTableName, commentsColumns, []string{},
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", commentsTableName, belongsToUserColumn, belongsToUserColumn)),
-						querygen.TotalCountSelect(commentsTableName, commentsColumns, []string{},
+						pgGen.TotalCountSelect(commentsTableName, commentsColumns, []string{},
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", commentsTableName, belongsToUserColumn, belongsToUserColumn)),
 						commentsTableName,
-						querygen.FilterConditions(commentsTableName, commentsColumns,
+						pgGen.FilterConditions(commentsTableName, commentsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", commentsTableName, belongsToUserColumn, belongsToUserColumn),
 						),
-						querygen.CursorLimitClause(commentsTableName),
+						pgGen.CursorLimitClause(commentsTableName),
 					)),
 				},
 				{

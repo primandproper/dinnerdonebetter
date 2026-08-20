@@ -15,13 +15,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v11/database"
-	platformerrors "github.com/primandproper/platform-go/v11/errors"
-	"github.com/primandproper/platform-go/v11/filtering"
-	"github.com/primandproper/platform-go/v11/identifiers"
-	"github.com/primandproper/platform-go/v11/observability"
-	platformkeys "github.com/primandproper/platform-go/v11/observability/keys"
-	"github.com/primandproper/platform-go/v11/observability/tracing"
+	"github.com/primandproper/platform-go/v12/database"
+	platformerrors "github.com/primandproper/platform-go/v12/errors"
+	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v12/identifiers"
+	"github.com/primandproper/platform-go/v12/observability"
+	platformkeys "github.com/primandproper/platform-go/v12/observability/keys"
+	"github.com/primandproper/platform-go/v12/observability/tracing"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )

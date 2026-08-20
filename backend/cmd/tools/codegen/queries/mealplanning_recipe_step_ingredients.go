@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -66,7 +66,7 @@ func buildRecipeStepIngredientsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(recipeStepIngredientsTableName, recipeStepIngredientsColumns,
+			pgGen.StandardCRUD(recipeStepIngredientsTableName, recipeStepIngredientsColumns,
 				querygen.WithEntity("RecipeStepIngredient", "RecipeStepIngredients"),
 				querygen.WithOwnership(belongsToRecipeStepColumn),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery),
@@ -151,7 +151,7 @@ WHERE %s
 						strings.Join(fullSelectColumn, ",\n\t"),
 						//
 
-						querygen.FilterCountSelect(
+						pgGen.FilterCountSelect(
 							recipeStepIngredientsTableName,
 							recipeStepIngredientsColumns,
 							[]string{
@@ -165,7 +165,7 @@ WHERE %s
 						),
 						//
 
-						querygen.TotalCountSelect(
+						pgGen.TotalCountSelect(
 
 							recipeStepIngredientsTableName,
 
@@ -202,13 +202,13 @@ WHERE %s
 						measurementUnitColumn,
 						validMeasurementUnitsTableName,
 						idColumn,
-						querygen.FilterConditions(recipeStepIngredientsTableName, recipeStepIngredientsColumns,
+						pgGen.FilterConditions(recipeStepIngredientsTableName, recipeStepIngredientsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, idColumn, recipeIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, idColumn, recipeStepIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepIngredientsTableName, belongsToRecipeStepColumn, recipeStepIDColumn),
 						),
-						querygen.CursorLimitClause(recipeStepIngredientsTableName),
+						pgGen.CursorLimitClause(recipeStepIngredientsTableName),
 					)),
 				},
 				{

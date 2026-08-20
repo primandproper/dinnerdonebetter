@@ -12,13 +12,13 @@ INSERT INTO user_role_assignments (
 );
 
 -- name: ArchiveRoleAssignment :exec
-UPDATE user_role_assignments SET archived_at = NOW()
+UPDATE user_role_assignments SET archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND user_id = sqlc.arg(user_id);
 
 -- name: ArchiveRoleAssignmentsForUserAndAccount :exec
-UPDATE user_role_assignments SET archived_at = NOW()
+UPDATE user_role_assignments SET archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND user_id = sqlc.arg(user_id)
 	AND account_id = sqlc.arg(account_id);

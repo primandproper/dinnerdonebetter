@@ -15,7 +15,7 @@ import (
 
 const archiveOAuth2Client = `-- name: ArchiveOAuth2Client :execrows
 UPDATE oauth2_clients SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -142,8 +142,8 @@ SELECT
 	(
 		SELECT COUNT(oauth2_clients.id)
 		FROM oauth2_clients
-		WHERE oauth2_clients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND oauth2_clients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE oauth2_clients.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND oauth2_clients.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (COALESCE($3, false)::boolean OR oauth2_clients.archived_at IS NULL)
 	) AS filtered_count,
 	(
@@ -152,8 +152,8 @@ SELECT
 		WHERE (COALESCE($3, false)::boolean OR oauth2_clients.archived_at IS NULL)
 	) AS total_count
 FROM oauth2_clients
-WHERE oauth2_clients.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND oauth2_clients.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE oauth2_clients.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND oauth2_clients.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (COALESCE($3, false)::boolean OR oauth2_clients.archived_at IS NULL)
 	AND oauth2_clients.id > COALESCE($4, '')
 ORDER BY oauth2_clients.id ASC

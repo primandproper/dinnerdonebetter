@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 )
 
 const (
@@ -25,7 +25,7 @@ func buildRecipePrepTaskStepsQueries(database string) []*Query {
 	switch database {
 	case postgres:
 
-		return querygen.StandardCRUD(recipePrepTaskStepsTableName, recipePrepTaskStepsColumns,
+		return pgGen.StandardCRUD(recipePrepTaskStepsTableName, recipePrepTaskStepsColumns,
 			querygen.WithEntity("RecipePrepTaskStep", "RecipePrepTaskSteps"),
 			querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
 		)

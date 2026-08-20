@@ -39,12 +39,12 @@ UPDATE subscriptions SET
 	status = sqlc.arg(status),
 	current_period_start = sqlc.arg(current_period_start),
 	current_period_end = sqlc.arg(current_period_end),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: ArchiveSubscription :execrows
-UPDATE subscriptions SET archived_at = NOW(), last_updated_at = NOW() WHERE archived_at IS NULL AND id = sqlc.arg(id);
+UPDATE subscriptions SET archived_at = CURRENT_TIMESTAMP, last_updated_at = CURRENT_TIMESTAMP WHERE archived_at IS NULL AND id = sqlc.arg(id);
 
 -- name: GetSubscriptionByExternalID :one
 SELECT
@@ -77,15 +77,15 @@ SELECT
 	(
 		SELECT COUNT(subscriptions.id)
 		FROM subscriptions
-		WHERE subscriptions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND subscriptions.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE subscriptions.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND subscriptions.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				subscriptions.last_updated_at IS NULL
-				OR subscriptions.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR subscriptions.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				subscriptions.last_updated_at IS NULL
-				OR subscriptions.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR subscriptions.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR subscriptions.archived_at IS NULL)
 			AND subscriptions.belongs_to_account = sqlc.arg(belongs_to_account)
@@ -97,15 +97,15 @@ SELECT
 			AND subscriptions.belongs_to_account = sqlc.arg(belongs_to_account)
 	) AS total_count
 FROM subscriptions
-WHERE subscriptions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND subscriptions.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE subscriptions.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND subscriptions.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		subscriptions.last_updated_at IS NULL
-		OR subscriptions.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR subscriptions.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		subscriptions.last_updated_at IS NULL
-		OR subscriptions.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR subscriptions.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR subscriptions.archived_at IS NULL)
 	AND subscriptions.belongs_to_account = sqlc.arg(belongs_to_account)
@@ -115,5 +115,5 @@ ORDER BY subscriptions.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
 -- name: UpdateSubscriptionStatus :execrows
-UPDATE subscriptions SET status = sqlc.arg(status), last_updated_at = NOW()
+UPDATE subscriptions SET status = sqlc.arg(status), last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL AND id = sqlc.arg(id);

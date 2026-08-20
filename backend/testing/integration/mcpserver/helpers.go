@@ -16,7 +16,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/mcpserver"
 
-	"github.com/primandproper/platform-go/v11/authentication/oauth2server"
+	"github.com/primandproper/platform-go/v12/authentication/oauth2server"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/pquerna/otp/totp"

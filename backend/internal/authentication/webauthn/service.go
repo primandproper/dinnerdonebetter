@@ -8,12 +8,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	platformwebauthn "github.com/primandproper/platform-go/v11/authentication/webauthn"
-	platformerrors "github.com/primandproper/platform-go/v11/errors"
-	"github.com/primandproper/platform-go/v11/identifiers"
-	"github.com/primandproper/platform-go/v11/observability"
-	"github.com/primandproper/platform-go/v11/observability/logging"
-	"github.com/primandproper/platform-go/v11/observability/tracing"
+	platformwebauthn "github.com/primandproper/platform-go/v12/authentication/webauthn"
+	platformerrors "github.com/primandproper/platform-go/v12/errors"
+	"github.com/primandproper/platform-go/v12/identifiers"
+	"github.com/primandproper/platform-go/v12/observability"
+	"github.com/primandproper/platform-go/v12/observability/logging"
+	"github.com/primandproper/platform-go/v12/observability/tracing"
 
 	"github.com/go-webauthn/webauthn/protocol"
 )

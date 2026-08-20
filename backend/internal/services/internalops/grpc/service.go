@@ -10,13 +10,13 @@ import (
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 
-	errorsgrpc "github.com/primandproper/platform-go/v11/errors/grpc"
-	"github.com/primandproper/platform-go/v11/identifiers"
-	msgconfig "github.com/primandproper/platform-go/v11/messagequeue/config"
-	"github.com/primandproper/platform-go/v11/observability/logging"
-	metricsnoop "github.com/primandproper/platform-go/v11/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v11/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
+	errorsgrpc "github.com/primandproper/platform-go/v12/errors/grpc"
+	"github.com/primandproper/platform-go/v12/identifiers"
+	msgconfig "github.com/primandproper/platform-go/v12/messagequeue/config"
+	"github.com/primandproper/platform-go/v12/observability/logging"
+	metricsnoop "github.com/primandproper/platform-go/v12/observability/metrics/noop"
+	"github.com/primandproper/platform-go/v12/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
 
 	"google.golang.org/grpc/codes"
 )

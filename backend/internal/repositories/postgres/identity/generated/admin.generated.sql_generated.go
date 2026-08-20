@@ -11,7 +11,7 @@ import (
 
 const setUserAccountStatus = `-- name: SetUserAccountStatus :execrows
 UPDATE users SET
-	last_updated_at = NOW(),
+	last_updated_at = CURRENT_TIMESTAMP,
 	user_account_status = $1,
 	user_account_status_explanation = $2
 WHERE archived_at IS NULL
@@ -34,7 +34,7 @@ func (q *Queries) SetUserAccountStatus(ctx context.Context, db DBTX, arg *SetUse
 
 const setUserRequiresPasswordChange = `-- name: SetUserRequiresPasswordChange :execrows
 UPDATE users SET
-	last_updated_at = NOW(),
+	last_updated_at = CURRENT_TIMESTAMP,
 	requires_password_change = $1
 WHERE archived_at IS NULL
 	AND id = $2

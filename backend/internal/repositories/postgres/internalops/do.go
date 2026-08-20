@@ -3,9 +3,9 @@ package internalops
 import (
 	domaininternalops "github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 
-	"github.com/primandproper/platform-go/v11/database"
-	"github.com/primandproper/platform-go/v11/observability/logging"
-	"github.com/primandproper/platform-go/v11/observability/tracing"
+	"github.com/primandproper/platform-go/v12/database"
+	"github.com/primandproper/platform-go/v12/observability/logging"
+	"github.com/primandproper/platform-go/v12/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

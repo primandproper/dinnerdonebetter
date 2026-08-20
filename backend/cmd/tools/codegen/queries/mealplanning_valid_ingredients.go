@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -66,7 +66,7 @@ func buildValidIngredientsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(validIngredientsTableName, validIngredientsColumns,
+			pgGen.StandardCRUD(validIngredientsTableName, validIngredientsColumns,
 				querygen.WithEntity("ValidIngredient", "ValidIngredients"),
 				querygen.WithNullable(
 					"minimum_ideal_storage_temperature_in_celsius",
@@ -91,13 +91,13 @@ GROUP BY %s.%s
 						strings.Join(applyToEach(validIngredientsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validIngredientsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validIngredientsTableName, validIngredientsColumns, []string{}),
-						querygen.TotalCountSelect(validIngredientsTableName, validIngredientsColumns, []string{}),
+						pgGen.FilterCountSelect(validIngredientsTableName, validIngredientsColumns, []string{}),
+						pgGen.TotalCountSelect(validIngredientsTableName, validIngredientsColumns, []string{}),
 						validIngredientsTableName,
-						querygen.FilterConditions(validIngredientsTableName, validIngredientsColumns),
+						pgGen.FilterConditions(validIngredientsTableName, validIngredientsColumns),
 						validIngredientsTableName,
 						idColumn,
-						querygen.CursorLimitClause(validIngredientsTableName),
+						pgGen.CursorLimitClause(validIngredientsTableName),
 					)),
 				},
 				{
@@ -177,13 +177,13 @@ WHERE %s
 						strings.Join(applyToEach(validIngredientsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validIngredientsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validIngredientsTableName, validIngredientsColumns, []string{}),
-						querygen.TotalCountSelect(validIngredientsTableName, validIngredientsColumns, []string{}),
+						pgGen.FilterCountSelect(validIngredientsTableName, validIngredientsColumns, []string{}),
+						pgGen.TotalCountSelect(validIngredientsTableName, validIngredientsColumns, []string{}),
 						validIngredientsTableName,
-						querygen.FilterConditions(validIngredientsTableName, validIngredientsColumns,
+						pgGen.FilterConditions(validIngredientsTableName, validIngredientsColumns,
 							fmt.Sprintf("%s.%s %s", validIngredientsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						querygen.CursorLimitClause(validIngredientsTableName),
+						pgGen.CursorLimitClause(validIngredientsTableName),
 					)),
 				},
 				{

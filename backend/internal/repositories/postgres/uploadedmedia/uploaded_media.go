@@ -10,11 +10,11 @@ import (
 	uploadedmediakeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia/generated"
 
-	"github.com/primandproper/platform-go/v11/database"
-	platformerrors "github.com/primandproper/platform-go/v11/errors"
-	"github.com/primandproper/platform-go/v11/filtering"
-	"github.com/primandproper/platform-go/v11/observability"
-	"github.com/primandproper/platform-go/v11/observability/tracing"
+	"github.com/primandproper/platform-go/v12/database"
+	platformerrors "github.com/primandproper/platform-go/v12/errors"
+	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v12/observability"
+	"github.com/primandproper/platform-go/v12/observability/tracing"
 )
 
 const (

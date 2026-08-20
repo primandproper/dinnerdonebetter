@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -53,7 +53,7 @@ func buildRecipeStepCompletionConditionQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(recipeStepCompletionConditionsTableName, recipeStepCompletionConditionsColumns,
+			pgGen.StandardCRUD(recipeStepCompletionConditionsTableName, recipeStepCompletionConditionsColumns,
 				querygen.WithEntity("RecipeStepCompletionCondition", "RecipeStepCompletionConditions"),
 				querygen.WithOmitted(querygen.ArchiveQuery, querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery),
 			),
@@ -162,8 +162,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(recipeStepCompletionConditionIngredientsTableName, recipeStepCompletionConditionIngredientsColumns, []string{}, "recipe_step_completion_conditions.belongs_to_recipe_step = sqlc.arg(recipe_step_id)"),
-						querygen.TotalCountSelect(recipeStepCompletionConditionIngredientsTableName, recipeStepCompletionConditionIngredientsColumns, []string{}),
+						pgGen.FilterCountSelect(recipeStepCompletionConditionIngredientsTableName, recipeStepCompletionConditionIngredientsColumns, []string{}, "recipe_step_completion_conditions.belongs_to_recipe_step = sqlc.arg(recipe_step_id)"),
+						pgGen.TotalCountSelect(recipeStepCompletionConditionIngredientsTableName, recipeStepCompletionConditionIngredientsColumns, []string{}),
 						recipeStepCompletionConditionIngredientsTableName,
 						recipeStepCompletionConditionsTableName,
 						recipeStepCompletionConditionIngredientsTableName,
@@ -180,10 +180,10 @@ WHERE %s
 						ingredientStateColumn,
 						validIngredientStatesTableName,
 						idColumn,
-						querygen.FilterConditions(recipeStepCompletionConditionsTableName, recipeStepCompletionConditionsColumns,
+						pgGen.FilterConditions(recipeStepCompletionConditionsTableName, recipeStepCompletionConditionsColumns,
 							"recipe_step_completion_conditions.belongs_to_recipe_step = sqlc.arg(recipe_step_id)",
 						),
-						querygen.CursorLimitClause(recipeStepCompletionConditionsTableName),
+						pgGen.CursorLimitClause(recipeStepCompletionConditionsTableName),
 					)),
 				},
 				{

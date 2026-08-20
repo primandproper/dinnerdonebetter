@@ -12,7 +12,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc/converters"
 
-	errorsgrpc "github.com/primandproper/platform-go/v11/errors/grpc"
+	errorsgrpc "github.com/primandproper/platform-go/v12/errors/grpc"
 
 	"google.golang.org/grpc/codes"
 )

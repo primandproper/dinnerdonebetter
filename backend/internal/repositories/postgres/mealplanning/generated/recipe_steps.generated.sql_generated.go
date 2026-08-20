@@ -13,7 +13,7 @@ import (
 
 const archiveRecipeStep = `-- name: ArchiveRecipeStep :execrows
 UPDATE recipe_steps SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 	AND belongs_to_recipe = $2
@@ -443,15 +443,15 @@ SELECT
 	(
 		SELECT COUNT(recipe_steps.id)
 		FROM recipe_steps
-		WHERE recipe_steps.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND recipe_steps.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE recipe_steps.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND recipe_steps.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				recipe_steps.last_updated_at IS NULL
-				OR recipe_steps.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR recipe_steps.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				recipe_steps.last_updated_at IS NULL
-				OR recipe_steps.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR recipe_steps.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR recipe_steps.archived_at IS NULL)
 	) AS filtered_count,
@@ -463,15 +463,15 @@ SELECT
 FROM recipe_steps
 	JOIN recipes ON recipe_steps.belongs_to_recipe=recipes.id
 	JOIN valid_preparations ON recipe_steps.preparation_id=valid_preparations.id
-WHERE recipe_steps.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND recipe_steps.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE recipe_steps.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND recipe_steps.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		recipe_steps.last_updated_at IS NULL
-		OR recipe_steps.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipe_steps.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		recipe_steps.last_updated_at IS NULL
-		OR recipe_steps.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipe_steps.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR recipe_steps.archived_at IS NULL)
 	AND recipe_steps.belongs_to_recipe = $6
@@ -621,7 +621,7 @@ UPDATE recipe_steps SET
 	condition_expression = $9,
 	optional = $10,
 	start_timer_automatically = $11,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $12
 	AND belongs_to_recipe = $13

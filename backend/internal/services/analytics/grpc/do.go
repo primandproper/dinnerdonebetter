@@ -3,9 +3,9 @@ package grpc
 import (
 	analyticspb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
 
-	"github.com/primandproper/platform-go/v11/analytics/multisource"
-	"github.com/primandproper/platform-go/v11/observability/logging"
-	"github.com/primandproper/platform-go/v11/observability/tracing"
+	"github.com/primandproper/platform-go/v12/analytics/multisource"
+	"github.com/primandproper/platform-go/v12/observability/logging"
+	"github.com/primandproper/platform-go/v12/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

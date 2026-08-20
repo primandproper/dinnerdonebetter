@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -49,7 +49,7 @@ func buildValidPreparationInstrumentsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns,
+			pgGen.StandardCRUD(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns,
 				querygen.WithEntity("ValidPreparationInstrument", "ValidPreparationInstruments"),
 				querygen.WithOmitted(querygen.GetQuery, querygen.ListQuery),
 			),
@@ -73,7 +73,7 @@ GROUP BY
 	%s.%s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(
+						pgGen.FilterCountSelect(
 							validPreparationInstrumentsTableName,
 							validPreparationInstrumentsColumns,
 							[]string{
@@ -84,7 +84,7 @@ GROUP BY
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationInstrumentsTableName, validInstrumentIDColumn, idColumn),
 						),
-						querygen.TotalCountSelect(
+						pgGen.TotalCountSelect(
 							validPreparationInstrumentsTableName,
 							validPreparationInstrumentsColumns,
 							[]string{
@@ -106,7 +106,7 @@ GROUP BY
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						querygen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns,
+						pgGen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationInstrumentsTableName, validInstrumentIDColumn, idColumn),
 							fmt.Sprintf("%s.%s IS NULL", ///
 								validInstrumentsTableName, archivedAtColumn),
@@ -118,7 +118,7 @@ GROUP BY
 						idColumn,
 						validInstrumentsTableName,
 						idColumn,
-						querygen.CursorLimitClause(validPreparationInstrumentsTableName),
+						pgGen.CursorLimitClause(validPreparationInstrumentsTableName),
 					)),
 				},
 				{
@@ -140,7 +140,7 @@ GROUP BY
 	%s.%s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(
+						pgGen.FilterCountSelect(
 							validPreparationInstrumentsTableName,
 							validPreparationInstrumentsColumns,
 							[]string{
@@ -151,7 +151,7 @@ GROUP BY
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationInstrumentsTableName, validPreparationIDColumn, idColumn),
 						),
-						querygen.TotalCountSelect(
+						pgGen.TotalCountSelect(
 							validPreparationInstrumentsTableName,
 							validPreparationInstrumentsColumns,
 							[]string{
@@ -173,7 +173,7 @@ GROUP BY
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						querygen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns,
+						pgGen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationInstrumentsTableName, validPreparationIDColumn, idColumn),
 							fmt.Sprintf("%s.%s IS NULL", ///
 								validInstrumentsTableName, archivedAtColumn),
@@ -185,7 +185,7 @@ GROUP BY
 						idColumn,
 						validInstrumentsTableName,
 						idColumn,
-						querygen.CursorLimitClause(validPreparationInstrumentsTableName),
+						pgGen.CursorLimitClause(validPreparationInstrumentsTableName),
 					)),
 				},
 				{
@@ -207,7 +207,7 @@ GROUP BY
 	%s.%s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(
+						pgGen.FilterCountSelect(
 							validPreparationInstrumentsTableName,
 							validPreparationInstrumentsColumns,
 							[]string{
@@ -217,7 +217,7 @@ GROUP BY
 							fmt.Sprintf("%s.%s IS NULL", validInstrumentsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
 						),
-						querygen.TotalCountSelect(
+						pgGen.TotalCountSelect(
 							validPreparationInstrumentsTableName,
 							validPreparationInstrumentsColumns,
 							[]string{
@@ -238,7 +238,7 @@ GROUP BY
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						querygen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns,
+						pgGen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns,
 							"valid_instruments.archived_at IS NULL",
 							"valid_preparations.archived_at IS NULL",
 						),
@@ -248,7 +248,7 @@ GROUP BY
 						idColumn,
 						validInstrumentsTableName,
 						idColumn,
-						querygen.CursorLimitClause(validPreparationInstrumentsTableName),
+						pgGen.CursorLimitClause(validPreparationInstrumentsTableName),
 					)),
 				},
 				{

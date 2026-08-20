@@ -15,7 +15,7 @@ import (
 
 const archiveValidIngredientPreparation = `-- name: ArchiveValidIngredientPreparation :execrows
 UPDATE valid_ingredient_preparations SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -371,15 +371,15 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_preparations.id)
 		FROM valid_ingredient_preparations
-		WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_preparations.last_updated_at IS NULL
-				OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_ingredient_preparations.last_updated_at IS NULL
-				OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 	) AS filtered_count,
@@ -391,15 +391,15 @@ SELECT
 FROM valid_ingredient_preparations
 	JOIN valid_ingredients ON valid_ingredient_preparations.valid_ingredient_id = valid_ingredients.id
 	JOIN valid_preparations ON valid_ingredient_preparations.valid_preparation_id = valid_preparations.id
-WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 	AND valid_ingredient_preparations.id > COALESCE($6, '')
@@ -902,15 +902,15 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_preparations.id)
 		FROM valid_ingredient_preparations
-		WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_preparations.last_updated_at IS NULL
-				OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_ingredient_preparations.last_updated_at IS NULL
-				OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 	) AS filtered_count,
@@ -922,15 +922,15 @@ SELECT
 FROM valid_ingredient_preparations
 	JOIN valid_ingredients ON valid_ingredient_preparations.valid_ingredient_id = valid_ingredients.id
 	JOIN valid_preparations ON valid_ingredient_preparations.valid_preparation_id = valid_preparations.id
-WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 	AND valid_ingredient_preparations.valid_ingredient_id = $6
@@ -1196,15 +1196,15 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_preparations.id)
 		FROM valid_ingredient_preparations
-		WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_preparations.last_updated_at IS NULL
-				OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_ingredient_preparations.last_updated_at IS NULL
-				OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 	) AS filtered_count,
@@ -1216,15 +1216,15 @@ SELECT
 FROM valid_ingredient_preparations
 	JOIN valid_ingredients ON valid_ingredient_preparations.valid_ingredient_id = valid_ingredients.id
 	JOIN valid_preparations ON valid_ingredient_preparations.valid_preparation_id = valid_preparations.id
-WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 	AND valid_ingredient_preparations.valid_preparation_id = $6
@@ -1490,15 +1490,15 @@ SELECT
 	(
 		SELECT COUNT(valid_ingredient_preparations.id)
 		FROM valid_ingredient_preparations
-		WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_ingredient_preparations.last_updated_at IS NULL
-				OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_ingredient_preparations.last_updated_at IS NULL
-				OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 			AND valid_preparations.id = $6
@@ -1512,15 +1512,15 @@ SELECT
 FROM valid_ingredient_preparations
 	JOIN valid_ingredients ON valid_ingredient_preparations.valid_ingredient_id = valid_ingredients.id
 	JOIN valid_preparations ON valid_ingredient_preparations.valid_preparation_id = valid_preparations.id
-WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_ingredient_preparations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_ingredient_preparations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_ingredient_preparations.last_updated_at IS NULL
-		OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_ingredient_preparations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 	AND valid_ingredients.archived_at IS NULL
@@ -1724,7 +1724,7 @@ UPDATE valid_ingredient_preparations SET
 	notes = $1,
 	valid_preparation_id = $2,
 	valid_ingredient_id = $3,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $4
 `

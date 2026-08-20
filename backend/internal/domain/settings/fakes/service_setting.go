@@ -4,9 +4,9 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/converters"
 
-	"github.com/primandproper/platform-go/v11/fake"
-	"github.com/primandproper/platform-go/v11/filtering"
-	"github.com/primandproper/platform-go/v11/pointer"
+	"github.com/primandproper/platform-go/v12/fake"
+	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v12/pointer"
 )
 
 // BuildFakeServiceSetting builds a faked service setting.

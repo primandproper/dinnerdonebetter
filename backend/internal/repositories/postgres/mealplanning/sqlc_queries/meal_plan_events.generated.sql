@@ -33,7 +33,7 @@ WHERE meal_plan_events.archived_at IS NULL
 
 -- name: ArchiveMealPlanEvent :execrows
 UPDATE meal_plan_events SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND belongs_to_meal_plan = sqlc.arg(belongs_to_meal_plan);
@@ -75,15 +75,15 @@ SELECT
 	(
 		SELECT COUNT(meal_plan_events.id)
 		FROM meal_plan_events
-		WHERE meal_plan_events.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND meal_plan_events.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE meal_plan_events.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND meal_plan_events.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				meal_plan_events.last_updated_at IS NULL
-				OR meal_plan_events.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR meal_plan_events.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				meal_plan_events.last_updated_at IS NULL
-				OR meal_plan_events.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR meal_plan_events.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plan_events.archived_at IS NULL)
 			AND meal_plan_events.belongs_to_meal_plan = sqlc.arg(meal_plan_id)
@@ -95,15 +95,15 @@ SELECT
 			AND meal_plan_events.belongs_to_meal_plan = sqlc.arg(meal_plan_id)
 	) AS total_count
 FROM meal_plan_events
-WHERE meal_plan_events.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND meal_plan_events.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE meal_plan_events.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND meal_plan_events.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		meal_plan_events.last_updated_at IS NULL
-		OR meal_plan_events.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR meal_plan_events.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		meal_plan_events.last_updated_at IS NULL
-		OR meal_plan_events.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR meal_plan_events.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plan_events.archived_at IS NULL)
 	AND meal_plan_events.belongs_to_meal_plan = sqlc.arg(meal_plan_id)
@@ -136,6 +136,6 @@ UPDATE meal_plan_events SET
 	ends_at = sqlc.arg(ends_at),
 	meal_name = sqlc.arg(meal_name),
 	belongs_to_meal_plan = sqlc.arg(belongs_to_meal_plan),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);

@@ -10,7 +10,7 @@ import (
 )
 
 const archiveUserRolePermission = `-- name: ArchiveUserRolePermission :exec
-UPDATE user_role_permissions SET archived_at = NOW()
+UPDATE user_role_permissions SET archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND role_id = $1
 	AND permission_id = $2

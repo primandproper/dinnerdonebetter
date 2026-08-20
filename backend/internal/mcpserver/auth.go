@@ -11,9 +11,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v11/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v11/authentication/totp"
-	"github.com/primandproper/platform-go/v11/observability/logging"
+	"github.com/primandproper/platform-go/v12/authentication/oauth2server"
+	"github.com/primandproper/platform-go/v12/authentication/totp"
+	"github.com/primandproper/platform-go/v12/observability/logging"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 )

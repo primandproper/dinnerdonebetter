@@ -13,7 +13,7 @@ import (
 
 const archiveServiceSettingConfiguration = `-- name: ArchiveServiceSettingConfiguration :execrows
 UPDATE service_setting_configurations SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -338,15 +338,15 @@ SELECT
 	(
 		SELECT COUNT(service_setting_configurations.id)
 		FROM service_setting_configurations
-		WHERE service_setting_configurations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND service_setting_configurations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE service_setting_configurations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND service_setting_configurations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				service_setting_configurations.last_updated_at IS NULL
-				OR service_setting_configurations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR service_setting_configurations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				service_setting_configurations.last_updated_at IS NULL
-				OR service_setting_configurations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR service_setting_configurations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR service_setting_configurations.archived_at IS NULL)
 			AND service_setting_configurations.belongs_to_account = $6
@@ -359,15 +359,15 @@ SELECT
 	) AS total_count
 FROM service_setting_configurations
 	JOIN service_settings ON service_setting_configurations.service_setting_id=service_settings.id
-WHERE service_setting_configurations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND service_setting_configurations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE service_setting_configurations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND service_setting_configurations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		service_setting_configurations.last_updated_at IS NULL
-		OR service_setting_configurations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR service_setting_configurations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		service_setting_configurations.last_updated_at IS NULL
-		OR service_setting_configurations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR service_setting_configurations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR service_setting_configurations.archived_at IS NULL)
 	AND service_settings.archived_at IS NULL
@@ -487,15 +487,15 @@ SELECT
 	(
 		SELECT COUNT(service_setting_configurations.id)
 		FROM service_setting_configurations
-		WHERE service_setting_configurations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND service_setting_configurations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE service_setting_configurations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND service_setting_configurations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				service_setting_configurations.last_updated_at IS NULL
-				OR service_setting_configurations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR service_setting_configurations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				service_setting_configurations.last_updated_at IS NULL
-				OR service_setting_configurations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR service_setting_configurations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR service_setting_configurations.archived_at IS NULL)
 			AND service_setting_configurations.belongs_to_user = $6
@@ -508,15 +508,15 @@ SELECT
 	) AS total_count
 FROM service_setting_configurations
 	JOIN service_settings ON service_setting_configurations.service_setting_id=service_settings.id
-WHERE service_setting_configurations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND service_setting_configurations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE service_setting_configurations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND service_setting_configurations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		service_setting_configurations.last_updated_at IS NULL
-		OR service_setting_configurations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR service_setting_configurations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		service_setting_configurations.last_updated_at IS NULL
-		OR service_setting_configurations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR service_setting_configurations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR service_setting_configurations.archived_at IS NULL)
 	AND service_settings.archived_at IS NULL
@@ -620,7 +620,7 @@ UPDATE service_setting_configurations SET
 	service_setting_id = $3,
 	belongs_to_user = $4,
 	belongs_to_account = $5,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $6
 `

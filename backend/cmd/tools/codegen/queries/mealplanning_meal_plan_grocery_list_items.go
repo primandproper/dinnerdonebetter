@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -63,7 +63,7 @@ func buildMealPlanGroceryListItemsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(mealPlanGroceryListItemsTableName, mealPlanGroceryListItemsColumns,
+			pgGen.StandardCRUD(mealPlanGroceryListItemsTableName, mealPlanGroceryListItemsColumns,
 				querygen.WithEntity("MealPlanGroceryListItem", "MealPlanGroceryListItems"),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery),
 			),
@@ -124,7 +124,7 @@ GROUP BY %s.%s,
 	%s.%s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(
+						pgGen.FilterCountSelect(
 							mealPlanGroceryListItemsTableName,
 							mealPlanGroceryListItemsColumns,
 							[]string{
@@ -138,7 +138,7 @@ GROUP BY %s.%s,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanGroceryListItemsTableName, belongsToMealPlanColumn, mealPlanIDColumn),
 							"(meal_plan_grocery_list_items.belongs_to_meal_plan_option IS NULL OR NOT EXISTS (SELECT 1 FROM meal_plan_options o JOIN meal_plan_events e ON o.belongs_to_meal_plan_event = e.id WHERE o.id = meal_plan_grocery_list_items.belongs_to_meal_plan_option AND e.archived_at IS NOT NULL))",
 						),
-						querygen.TotalCountSelect(
+						pgGen.TotalCountSelect(
 							mealPlanGroceryListItemsTableName,
 							mealPlanGroceryListItemsColumns,
 							[]string{
@@ -168,7 +168,7 @@ GROUP BY %s.%s,
 						validMeasurementUnitColumn,
 						validMeasurementUnitsTableName,
 						idColumn,
-						querygen.FilterConditions(mealPlanGroceryListItemsTableName, mealPlanGroceryListItemsColumns,
+						pgGen.FilterConditions(mealPlanGroceryListItemsTableName, mealPlanGroceryListItemsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanGroceryListItemsTableName, belongsToMealPlanColumn, mealPlanIDColumn),
 							fmt.Sprintf("%s.%s IS NULL", validMeasurementUnitsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validIngredientsTableName, archivedAtColumn),
@@ -183,7 +183,7 @@ GROUP BY %s.%s,
 						idColumn,
 						mealPlansTableName,
 						idColumn,
-						querygen.CursorLimitClause(mealPlanGroceryListItemsTableName),
+						pgGen.CursorLimitClause(mealPlanGroceryListItemsTableName),
 					)),
 				},
 				{

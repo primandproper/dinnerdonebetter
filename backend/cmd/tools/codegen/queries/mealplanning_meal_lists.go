@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -43,7 +43,7 @@ func buildMealListsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(mealListsTableName, mealListsColumns,
+			pgGen.StandardCRUD(mealListsTableName, mealListsColumns,
 				querygen.WithEntity("MealList", "MealLists"),
 				querygen.WithOwnership(belongsToUserColumn),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery),
@@ -63,14 +63,14 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(mealListsTableName, mealListsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
-						querygen.TotalCountSelect(mealListsTableName, mealListsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
+						pgGen.FilterCountSelect(mealListsTableName, mealListsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
+						pgGen.TotalCountSelect(mealListsTableName, mealListsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
 						mealListsTableName,
 						mealListItemsTableName, mealListItemsTableName, "belongs_to_meal_list", mealListsTableName, idColumn, mealListItemsTableName, archivedAtColumn,
-						querygen.FilterConditions(mealListsTableName, mealListsColumns,
+						pgGen.FilterConditions(mealListsTableName, mealListsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealListsTableName, belongsToUserColumn, belongsToUserColumn),
 						),
-						querygen.CursorLimitClause(mealListsTableName),
+						pgGen.CursorLimitClause(mealListsTableName),
 					)),
 				},
 			},

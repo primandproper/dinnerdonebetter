@@ -3,7 +3,7 @@ package fakes
 import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v11/fake"
+	"github.com/primandproper/platform-go/v12/fake"
 )
 
 // BuildFakeAccountUserMembership builds a faked AccountUserMembership.

@@ -14,14 +14,14 @@ import (
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
-	"github.com/primandproper/platform-go/v11/database"
-	databasecfg "github.com/primandproper/platform-go/v11/database/config"
-	"github.com/primandproper/platform-go/v11/database/postgres"
-	"github.com/primandproper/platform-go/v11/filtering"
-	"github.com/primandproper/platform-go/v11/observability/logging"
-	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
-	"github.com/primandproper/platform-go/v11/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v12/database"
+	databasecfg "github.com/primandproper/platform-go/v12/database/config"
+	"github.com/primandproper/platform-go/v12/database/postgres"
+	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v12/observability/logging"
+	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
+	"github.com/primandproper/platform-go/v12/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )

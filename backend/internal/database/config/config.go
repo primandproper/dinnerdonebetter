@@ -12,7 +12,7 @@
 package dbcfg
 
 import (
-	databasecfg "github.com/primandproper/platform-go/v11/database/config"
+	databasecfg "github.com/primandproper/platform-go/v12/database/config"
 )
 
 // Config is the database configuration.

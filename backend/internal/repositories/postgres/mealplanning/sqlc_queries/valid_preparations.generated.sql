@@ -98,13 +98,13 @@ UPDATE valid_preparations SET
 	only_for_vessels = sqlc.arg(only_for_vessels),
 	minimum_vessel_count = sqlc.arg(minimum_vessel_count),
 	maximum_vessel_count = sqlc.arg(maximum_vessel_count),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: ArchiveValidPreparation :execrows
 UPDATE valid_preparations SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
@@ -118,7 +118,7 @@ LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
 -- name: MarkValidPreparationsAsIndexed :execrows
 UPDATE valid_preparations SET
-	last_indexed_at = NOW()
+	last_indexed_at = CURRENT_TIMESTAMP
 WHERE id = ANY(sqlc.arg(ids)::text[]);
 
 -- name: GetValidPreparations :many
@@ -149,15 +149,15 @@ SELECT
 	(
 		SELECT COUNT(valid_preparations.id)
 		FROM valid_preparations
-		WHERE valid_preparations.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_preparations.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_preparations.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_preparations.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_preparations.last_updated_at IS NULL
-				OR valid_preparations.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_preparations.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_preparations.last_updated_at IS NULL
-				OR valid_preparations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_preparations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparations.archived_at IS NULL)
 	) AS filtered_count,
@@ -167,15 +167,15 @@ SELECT
 		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparations.archived_at IS NULL)
 	) AS total_count
 FROM valid_preparations
-WHERE valid_preparations.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_preparations.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_preparations.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_preparations.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_preparations.last_updated_at IS NULL
-		OR valid_preparations.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparations.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparations.last_updated_at IS NULL
-		OR valid_preparations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparations.archived_at IS NULL)
 	AND valid_preparations.id > COALESCE(sqlc.narg(cursor), '')
@@ -189,7 +189,7 @@ FROM valid_preparations
 WHERE valid_preparations.archived_at IS NULL
 	AND (
 	valid_preparations.last_indexed_at IS NULL
-	OR valid_preparations.last_indexed_at < NOW() - '24 hours'::INTERVAL
+	OR valid_preparations.last_indexed_at < CURRENT_TIMESTAMP - '24 hours'::INTERVAL
 );
 
 -- name: GetRandomValidPreparation :one
@@ -278,15 +278,15 @@ SELECT
 	(
 		SELECT COUNT(valid_preparations.id)
 		FROM valid_preparations
-		WHERE valid_preparations.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_preparations.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_preparations.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_preparations.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_preparations.last_updated_at IS NULL
-				OR valid_preparations.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_preparations.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_preparations.last_updated_at IS NULL
-				OR valid_preparations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_preparations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparations.archived_at IS NULL)
 	) AS filtered_count,
@@ -296,15 +296,15 @@ SELECT
 		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparations.archived_at IS NULL)
 	) AS total_count
 FROM valid_preparations
-WHERE valid_preparations.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_preparations.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_preparations.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_preparations.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_preparations.last_updated_at IS NULL
-		OR valid_preparations.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_preparations.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_preparations.last_updated_at IS NULL
-		OR valid_preparations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_preparations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparations.archived_at IS NULL)
 	AND valid_preparations.name ILIKE '%' || sqlc.arg(name_query)::text || '%'

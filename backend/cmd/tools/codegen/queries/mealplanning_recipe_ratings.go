@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -38,7 +38,7 @@ func buildRecipeRatingsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(recipeRatingsTableName, recipeRatingsColumns,
+			pgGen.StandardCRUD(recipeRatingsTableName, recipeRatingsColumns,
 				querygen.WithEntity("RecipeRating", "RecipeRatings"),
 				querygen.WithImmutable(createdByUserColumn),
 				querygen.WithOmitted(querygen.ListQuery),
@@ -60,16 +60,16 @@ GROUP BY %s.%s
 						strings.Join(applyToEach(recipeRatingsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipeRatingsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn)),
-						querygen.TotalCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn)),
+						pgGen.FilterCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn)),
+						pgGen.TotalCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn)),
 						recipeRatingsTableName,
-						querygen.FilterConditions(recipeRatingsTableName, recipeRatingsColumns,
+						pgGen.FilterConditions(recipeRatingsTableName, recipeRatingsColumns,
 							fmt.Sprintf("%s.%s IS NULL AND\n\t%s.%s = sqlc.arg(%s)", recipeRatingsTableName, archivedAtColumn, recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn),
 						),
 						recipeRatingsTableName,
 						idColumn,
-						querygen.CursorLimitClause(recipeRatingsTableName),
+						pgGen.CursorLimitClause(recipeRatingsTableName),
 					)),
 				},
 				{
@@ -88,16 +88,16 @@ GROUP BY %s.%s
 						strings.Join(applyToEach(recipeRatingsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", recipeRatingsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, createdByUserColumn, createdByUserColumn)),
-						querygen.TotalCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, createdByUserColumn, createdByUserColumn)),
+						pgGen.FilterCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, createdByUserColumn, createdByUserColumn)),
+						pgGen.TotalCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, createdByUserColumn, createdByUserColumn)),
 						recipeRatingsTableName,
-						querygen.FilterConditions(recipeRatingsTableName, recipeRatingsColumns,
+						pgGen.FilterConditions(recipeRatingsTableName, recipeRatingsColumns,
 							fmt.Sprintf("%s.%s IS NULL AND\n\t%s.%s = sqlc.arg(%s)", recipeRatingsTableName, archivedAtColumn, recipeRatingsTableName, createdByUserColumn, createdByUserColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, createdByUserColumn, createdByUserColumn),
 						),
 						recipeRatingsTableName,
 						idColumn,
-						querygen.CursorLimitClause(recipeRatingsTableName),
+						pgGen.CursorLimitClause(recipeRatingsTableName),
 					)),
 				},
 			},

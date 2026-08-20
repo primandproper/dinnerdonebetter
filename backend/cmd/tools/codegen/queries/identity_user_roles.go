@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -35,7 +35,7 @@ func buildUserRolesQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(userRolesTableName, userRolesColumns,
+			pgGen.StandardCRUD(userRolesTableName, userRolesColumns,
 				querygen.WithEntity("UserRole", "UserRoles"),
 				querygen.WithQueryName(querygen.GetQuery, "GetUserRoleByID"),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.ListQuery, querygen.UpdateQuery),
@@ -74,11 +74,11 @@ WHERE %s
 						strings.Join(applyToEach(userRolesColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", userRolesTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(userRolesTableName, userRolesColumns, []string{}),
-						querygen.TotalCountSelect(userRolesTableName, userRolesColumns, []string{}),
+						pgGen.FilterCountSelect(userRolesTableName, userRolesColumns, []string{}),
+						pgGen.TotalCountSelect(userRolesTableName, userRolesColumns, []string{}),
 						userRolesTableName,
-						querygen.FilterConditions(userRolesTableName, userRolesColumns),
-						querygen.CursorLimitClause(userRolesTableName),
+						pgGen.FilterConditions(userRolesTableName, userRolesColumns),
+						pgGen.CursorLimitClause(userRolesTableName),
 					)),
 				},
 			},

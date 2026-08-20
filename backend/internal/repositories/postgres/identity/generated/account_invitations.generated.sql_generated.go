@@ -35,7 +35,7 @@ func (q *Queries) AssignInvitationsToUserByEmail(ctx context.Context, db DBTX, a
 const attachAccountInvitationsToUserID = `-- name: AttachAccountInvitationsToUserID :execrows
 UPDATE account_invitations SET
 	to_user = $1,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND to_email = LOWER($2)
 `
@@ -191,7 +191,7 @@ FROM account_invitations
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE account_invitations.archived_at IS NULL
-	AND account_invitations.expires_at > NOW()
+	AND account_invitations.expires_at > CURRENT_TIMESTAMP
 	AND account_invitations.destination_account = $1
 	AND account_invitations.id = $2
 `
@@ -409,7 +409,7 @@ FROM account_invitations
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE account_invitations.archived_at IS NULL
-	AND account_invitations.expires_at > NOW()
+	AND account_invitations.expires_at > CURRENT_TIMESTAMP
 	AND account_invitations.to_email = LOWER($1)
 	AND account_invitations.token = $2
 `
@@ -627,7 +627,7 @@ FROM account_invitations
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE account_invitations.archived_at IS NULL
-	AND account_invitations.expires_at > NOW()
+	AND account_invitations.expires_at > CURRENT_TIMESTAMP
 	AND account_invitations.token = $1
 `
 
@@ -839,7 +839,7 @@ FROM account_invitations
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE account_invitations.archived_at IS NULL
-	AND account_invitations.expires_at > NOW()
+	AND account_invitations.expires_at > CURRENT_TIMESTAMP
 	AND account_invitations.token = $1
 	AND account_invitations.id = $2
 `
@@ -1054,15 +1054,15 @@ SELECT
 	(
 		SELECT COUNT(account_invitations.id)
 		FROM account_invitations
-		WHERE account_invitations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND account_invitations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE account_invitations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND account_invitations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				account_invitations.last_updated_at IS NULL
-				OR account_invitations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR account_invitations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				account_invitations.last_updated_at IS NULL
-				OR account_invitations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR account_invitations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR account_invitations.archived_at IS NULL)
 	) AS filtered_count,
@@ -1076,15 +1076,15 @@ FROM account_invitations
 	JOIN users ON account_invitations.from_user = users.id
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
-WHERE account_invitations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND account_invitations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE account_invitations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND account_invitations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		account_invitations.last_updated_at IS NULL
-		OR account_invitations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR account_invitations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		account_invitations.last_updated_at IS NULL
-		OR account_invitations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR account_invitations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR account_invitations.archived_at IS NULL)
 	AND account_invitations.to_user = $6
@@ -1341,15 +1341,15 @@ SELECT
 	(
 		SELECT COUNT(account_invitations.id)
 		FROM account_invitations
-		WHERE account_invitations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND account_invitations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE account_invitations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND account_invitations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				account_invitations.last_updated_at IS NULL
-				OR account_invitations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR account_invitations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				account_invitations.last_updated_at IS NULL
-				OR account_invitations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR account_invitations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR account_invitations.archived_at IS NULL)
 	) AS filtered_count,
@@ -1363,15 +1363,15 @@ FROM account_invitations
 	JOIN users ON account_invitations.from_user = users.id
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
-WHERE account_invitations.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND account_invitations.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE account_invitations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND account_invitations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		account_invitations.last_updated_at IS NULL
-		OR account_invitations.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR account_invitations.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		account_invitations.last_updated_at IS NULL
-		OR account_invitations.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR account_invitations.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR account_invitations.archived_at IS NULL)
 	AND account_invitations.from_user = $6
@@ -1564,8 +1564,8 @@ const setAccountInvitationStatus = `-- name: SetAccountInvitationStatus :exec
 UPDATE account_invitations SET
 	status = $1,
 	status_note = $2,
-	last_updated_at = NOW(),
-	archived_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP,
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $3
 `

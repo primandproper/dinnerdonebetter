@@ -11,7 +11,7 @@ INSERT INTO account_user_memberships (
 
 -- name: ArchiveUserMemberships :execrows
 UPDATE account_user_memberships SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND belongs_to_user = sqlc.arg(id);
 
@@ -57,7 +57,7 @@ WHERE archived_at IS NULL
 
 -- name: RemoveUserFromAccount :exec
 UPDATE account_user_memberships SET
-	archived_at = NOW(),
+	archived_at = CURRENT_TIMESTAMP,
 	default_account = 'false'
 WHERE account_user_memberships.archived_at IS NULL
 	AND account_user_memberships.belongs_to_account = sqlc.arg(belongs_to_account)

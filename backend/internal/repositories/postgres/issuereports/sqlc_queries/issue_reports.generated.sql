@@ -39,14 +39,14 @@ UPDATE issue_reports SET
 	details = sqlc.arg(details),
 	relevant_table = sqlc.arg(relevant_table),
 	relevant_record_id = sqlc.arg(relevant_record_id),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: ArchiveIssueReport :execrows
 UPDATE issue_reports SET
-	last_updated_at = NOW(),
-	archived_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP,
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
@@ -73,15 +73,15 @@ SELECT
 	(
 		SELECT COUNT(issue_reports.id)
 		FROM issue_reports
-		WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 	) AS filtered_count,
@@ -91,15 +91,15 @@ SELECT
 		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 	) AS total_count
 FROM issue_reports
-WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 	AND issue_reports.id > COALESCE(sqlc.narg(cursor), '')
@@ -121,15 +121,15 @@ SELECT
 	(
 		SELECT COUNT(issue_reports.id)
 		FROM issue_reports
-		WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.belongs_to_account = sqlc.arg(belongs_to_account)
@@ -141,15 +141,15 @@ SELECT
 			AND issue_reports.belongs_to_account = sqlc.arg(belongs_to_account)
 	) AS total_count
 FROM issue_reports
-WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 	AND issue_reports.belongs_to_account = sqlc.arg(belongs_to_account)
@@ -172,15 +172,15 @@ SELECT
 	(
 		SELECT COUNT(issue_reports.id)
 		FROM issue_reports
-		WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.relevant_table = sqlc.arg(relevant_table)
@@ -192,15 +192,15 @@ SELECT
 			AND issue_reports.relevant_table = sqlc.arg(relevant_table)
 	) AS total_count
 FROM issue_reports
-WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 	AND issue_reports.relevant_table = sqlc.arg(relevant_table)
@@ -223,15 +223,15 @@ SELECT
 	(
 		SELECT COUNT(issue_reports.id)
 		FROM issue_reports
-		WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				issue_reports.last_updated_at IS NULL
-				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 			AND issue_reports.relevant_table = sqlc.arg(relevant_table)
@@ -245,15 +245,15 @@ SELECT
 			AND issue_reports.relevant_record_id = sqlc.arg(relevant_record_id)
 	) AS total_count
 FROM issue_reports
-WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND issue_reports.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		issue_reports.last_updated_at IS NULL
-		OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 	AND issue_reports.relevant_table = sqlc.arg(relevant_table)

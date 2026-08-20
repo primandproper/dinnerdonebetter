@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -43,7 +43,7 @@ func buildIssueReportsQueries(database string) []*Query {
 		})
 
 		return slices.Concat(
-			querygen.StandardCRUD(issueReportsTableName, issueReportsColumns,
+			pgGen.StandardCRUD(issueReportsTableName, issueReportsColumns,
 				querygen.WithEntity("IssueReport", "IssueReports"),
 				querygen.WithImmutable(createdByUserColumn, belongsToAccountColumn),
 				querygen.WithOmitted(querygen.ArchiveQuery, querygen.ExistsQuery, querygen.ListQuery),
@@ -96,11 +96,11 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil),
-						querygen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil),
+						pgGen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil),
+						pgGen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil),
 						issueReportsTableName,
-						querygen.FilterConditions(issueReportsTableName, issueReportsColumns),
-						querygen.CursorLimitClause(issueReportsTableName),
+						pgGen.FilterConditions(issueReportsTableName, issueReportsColumns),
+						pgGen.CursorLimitClause(issueReportsTableName),
 					)),
 				},
 				{
@@ -116,13 +116,13 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn)),
-						querygen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						pgGen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn)),
+						pgGen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn)),
 						issueReportsTableName,
-						querygen.FilterConditions(issueReportsTableName, issueReportsColumns,
+						pgGen.FilterConditions(issueReportsTableName, issueReportsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn),
 						),
-						querygen.CursorLimitClause(issueReportsTableName),
+						pgGen.CursorLimitClause(issueReportsTableName),
 					)),
 				},
 				{
@@ -138,13 +138,13 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn)),
-						querygen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn)),
+						pgGen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn)),
+						pgGen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn)),
 						issueReportsTableName,
-						querygen.FilterConditions(issueReportsTableName, issueReportsColumns,
+						pgGen.FilterConditions(issueReportsTableName, issueReportsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn),
 						),
-						querygen.CursorLimitClause(issueReportsTableName),
+						pgGen.CursorLimitClause(issueReportsTableName),
 					)),
 				},
 				{
@@ -160,18 +160,18 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil,
+						pgGen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantRecordIDColumn, relevantRecordIDColumn)),
-						querygen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil,
+						pgGen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantRecordIDColumn, relevantRecordIDColumn)),
 						issueReportsTableName,
-						querygen.FilterConditions(issueReportsTableName, issueReportsColumns,
+						pgGen.FilterConditions(issueReportsTableName, issueReportsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantRecordIDColumn, relevantRecordIDColumn),
 						),
-						querygen.CursorLimitClause(issueReportsTableName),
+						pgGen.CursorLimitClause(issueReportsTableName),
 					)),
 				},
 			},

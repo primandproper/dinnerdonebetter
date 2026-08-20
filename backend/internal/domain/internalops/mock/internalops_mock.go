@@ -26,9 +26,6 @@ var _ internalops.InternalOpsDataManager = &InternalOpsDataManagerMock{}
 //			CreateQueueTestMessageFunc: func(ctx context.Context, id string, queueName string) error {
 //				panic("mock out the CreateQueueTestMessage method")
 //			},
-//			DeleteExpiredOAuth2ClientTokensFunc: func(contextMoqParam context.Context) (int64, error) {
-//				panic("mock out the DeleteExpiredOAuth2ClientTokens method")
-//			},
 //			GetQueueTestMessageFunc: func(ctx context.Context, id string) (*internalops.QueueTestMessage, error) {
 //				panic("mock out the GetQueueTestMessage method")
 //			},
@@ -47,9 +44,6 @@ type InternalOpsDataManagerMock struct {
 
 	// CreateQueueTestMessageFunc mocks the CreateQueueTestMessage method.
 	CreateQueueTestMessageFunc func(ctx context.Context, id string, queueName string) error
-
-	// DeleteExpiredOAuth2ClientTokensFunc mocks the DeleteExpiredOAuth2ClientTokens method.
-	DeleteExpiredOAuth2ClientTokensFunc func(contextMoqParam context.Context) (int64, error)
 
 	// GetQueueTestMessageFunc mocks the GetQueueTestMessage method.
 	GetQueueTestMessageFunc func(ctx context.Context, id string) (*internalops.QueueTestMessage, error)
@@ -75,11 +69,6 @@ type InternalOpsDataManagerMock struct {
 			// QueueName is the queueName argument value.
 			QueueName string
 		}
-		// DeleteExpiredOAuth2ClientTokens holds details about calls to the DeleteExpiredOAuth2ClientTokens method.
-		DeleteExpiredOAuth2ClientTokens []struct {
-			// ContextMoqParam is the contextMoqParam argument value.
-			ContextMoqParam context.Context
-		}
 		// GetQueueTestMessage holds details about calls to the GetQueueTestMessage method.
 		GetQueueTestMessage []struct {
 			// Ctx is the ctx argument value.
@@ -95,11 +84,10 @@ type InternalOpsDataManagerMock struct {
 			QueueName string
 		}
 	}
-	lockAcknowledgeQueueTestMessage     sync.RWMutex
-	lockCreateQueueTestMessage          sync.RWMutex
-	lockDeleteExpiredOAuth2ClientTokens sync.RWMutex
-	lockGetQueueTestMessage             sync.RWMutex
-	lockPruneQueueTestMessages          sync.RWMutex
+	lockAcknowledgeQueueTestMessage sync.RWMutex
+	lockCreateQueueTestMessage      sync.RWMutex
+	lockGetQueueTestMessage         sync.RWMutex
+	lockPruneQueueTestMessages      sync.RWMutex
 }
 
 // AcknowledgeQueueTestMessage calls AcknowledgeQueueTestMessageFunc.
@@ -175,38 +163,6 @@ func (mock *InternalOpsDataManagerMock) CreateQueueTestMessageCalls() []struct {
 	mock.lockCreateQueueTestMessage.RLock()
 	calls = mock.calls.CreateQueueTestMessage
 	mock.lockCreateQueueTestMessage.RUnlock()
-	return calls
-}
-
-// DeleteExpiredOAuth2ClientTokens calls DeleteExpiredOAuth2ClientTokensFunc.
-func (mock *InternalOpsDataManagerMock) DeleteExpiredOAuth2ClientTokens(contextMoqParam context.Context) (int64, error) {
-	if mock.DeleteExpiredOAuth2ClientTokensFunc == nil {
-		panic("InternalOpsDataManagerMock.DeleteExpiredOAuth2ClientTokensFunc: method is nil but InternalOpsDataManager.DeleteExpiredOAuth2ClientTokens was just called")
-	}
-	callInfo := struct {
-		ContextMoqParam context.Context
-	}{
-		ContextMoqParam: contextMoqParam,
-	}
-	mock.lockDeleteExpiredOAuth2ClientTokens.Lock()
-	mock.calls.DeleteExpiredOAuth2ClientTokens = append(mock.calls.DeleteExpiredOAuth2ClientTokens, callInfo)
-	mock.lockDeleteExpiredOAuth2ClientTokens.Unlock()
-	return mock.DeleteExpiredOAuth2ClientTokensFunc(contextMoqParam)
-}
-
-// DeleteExpiredOAuth2ClientTokensCalls gets all the calls that were made to DeleteExpiredOAuth2ClientTokens.
-// Check the length with:
-//
-//	len(mockedInternalOpsDataManager.DeleteExpiredOAuth2ClientTokensCalls())
-func (mock *InternalOpsDataManagerMock) DeleteExpiredOAuth2ClientTokensCalls() []struct {
-	ContextMoqParam context.Context
-} {
-	var calls []struct {
-		ContextMoqParam context.Context
-	}
-	mock.lockDeleteExpiredOAuth2ClientTokens.RLock()
-	calls = mock.calls.DeleteExpiredOAuth2ClientTokens
-	mock.lockDeleteExpiredOAuth2ClientTokens.RUnlock()
 	return calls
 }
 

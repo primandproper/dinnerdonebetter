@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -55,7 +55,7 @@ func buildRecipeStepInstrumentsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(recipeStepInstrumentsTableName, recipeStepInstrumentsColumns,
+			pgGen.StandardCRUD(recipeStepInstrumentsTableName, recipeStepInstrumentsColumns,
 				querygen.WithEntity("RecipeStepInstrument", "RecipeStepInstruments"),
 				querygen.WithOwnership(belongsToRecipeStepColumn),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery),
@@ -172,8 +172,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumn, ",\n\t"),
-						querygen.FilterCountSelect(recipeStepInstrumentsTableName, recipeStepInstrumentsColumns, nil),
-						querygen.TotalCountSelect(recipeStepInstrumentsTableName, recipeStepInstrumentsColumns, []string{}),
+						pgGen.FilterCountSelect(recipeStepInstrumentsTableName, recipeStepInstrumentsColumns, nil),
+						pgGen.TotalCountSelect(recipeStepInstrumentsTableName, recipeStepInstrumentsColumns, []string{}),
 						recipeStepInstrumentsTableName,
 						validInstrumentsTableName,
 						recipeStepInstrumentsTableName,
@@ -190,7 +190,7 @@ WHERE %s
 						belongsToRecipeColumn,
 						recipesTableName,
 						idColumn,
-						querygen.FilterConditions(recipeStepInstrumentsTableName, recipeStepInstrumentsColumns,
+						pgGen.FilterConditions(recipeStepInstrumentsTableName, recipeStepInstrumentsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepIDColumn),
 							"recipe_steps.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn),
@@ -198,7 +198,7 @@ WHERE %s
 							"recipes.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, idColumn, recipeIDColumn),
 						),
-						querygen.CursorLimitClause(recipeStepInstrumentsTableName),
+						pgGen.CursorLimitClause(recipeStepInstrumentsTableName),
 					)),
 				},
 			},

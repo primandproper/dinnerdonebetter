@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -40,7 +40,7 @@ func buildPaymentsProductsQueries(database string) []*Query {
 		})
 
 		return slices.Concat(
-			querygen.StandardCRUD(productsTableName, productsColumns,
+			pgGen.StandardCRUD(productsTableName, productsColumns,
 				querygen.WithEntity("Product", "Products"),
 				querygen.WithOmitted(querygen.ArchiveQuery, querygen.ListQuery),
 			),
@@ -87,11 +87,11 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(productsTableName, productsColumns, []string{}),
-						querygen.TotalCountSelect(productsTableName, productsColumns, []string{}),
+						pgGen.FilterCountSelect(productsTableName, productsColumns, []string{}),
+						pgGen.TotalCountSelect(productsTableName, productsColumns, []string{}),
 						productsTableName,
-						querygen.FilterConditions(productsTableName, productsColumns),
-						querygen.CursorLimitClause(productsTableName),
+						pgGen.FilterConditions(productsTableName, productsColumns),
+						pgGen.CursorLimitClause(productsTableName),
 					)),
 				},
 				{
@@ -107,13 +107,13 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(productsTableName, productsColumns, []string{}),
-						querygen.TotalCountSelect(productsTableName, productsColumns, []string{}),
+						pgGen.FilterCountSelect(productsTableName, productsColumns, []string{}),
+						pgGen.TotalCountSelect(productsTableName, productsColumns, []string{}),
 						productsTableName,
-						querygen.FilterConditions(productsTableName, productsColumns,
+						pgGen.FilterConditions(productsTableName, productsColumns,
 							fmt.Sprintf("%s.%s %s", productsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						querygen.CursorLimitClause(productsTableName),
+						pgGen.CursorLimitClause(productsTableName),
 					)),
 				},
 			},

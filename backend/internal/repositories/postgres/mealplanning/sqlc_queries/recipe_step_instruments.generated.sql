@@ -42,14 +42,14 @@ UPDATE recipe_step_instruments SET
 	index = sqlc.arg(index),
 	option_index = sqlc.arg(option_index),
 	scale_factor = sqlc.arg(scale_factor),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step);
 
 -- name: ArchiveRecipeStepInstrument :execrows
 UPDATE recipe_step_instruments SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step);
@@ -186,15 +186,15 @@ SELECT
 	(
 		SELECT COUNT(recipe_step_instruments.id)
 		FROM recipe_step_instruments
-		WHERE recipe_step_instruments.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND recipe_step_instruments.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE recipe_step_instruments.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND recipe_step_instruments.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				recipe_step_instruments.last_updated_at IS NULL
-				OR recipe_step_instruments.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR recipe_step_instruments.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				recipe_step_instruments.last_updated_at IS NULL
-				OR recipe_step_instruments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR recipe_step_instruments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_step_instruments.archived_at IS NULL)
 	) AS filtered_count,
@@ -207,15 +207,15 @@ FROM recipe_step_instruments
 	LEFT JOIN valid_instruments ON recipe_step_instruments.instrument_id=valid_instruments.id
 	JOIN recipe_steps ON recipe_step_instruments.belongs_to_recipe_step=recipe_steps.id
 	JOIN recipes ON recipe_steps.belongs_to_recipe=recipes.id
-WHERE recipe_step_instruments.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND recipe_step_instruments.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE recipe_step_instruments.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND recipe_step_instruments.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		recipe_step_instruments.last_updated_at IS NULL
-		OR recipe_step_instruments.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipe_step_instruments.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		recipe_step_instruments.last_updated_at IS NULL
-		OR recipe_step_instruments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipe_step_instruments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_step_instruments.archived_at IS NULL)
 	AND recipe_step_instruments.belongs_to_recipe_step = sqlc.arg(recipe_step_id)

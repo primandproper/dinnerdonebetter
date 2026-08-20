@@ -13,7 +13,7 @@ import (
 
 const archiveComment = `-- name: ArchiveComment :execrows
 UPDATE comments SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -27,7 +27,7 @@ func (q *Queries) ArchiveComment(ctx context.Context, db DBTX, id string) (int64
 }
 
 const archiveCommentsForReference = `-- name: ArchiveCommentsForReference :execrows
-UPDATE comments SET archived_at = NOW() WHERE archived_at IS NULL
+UPDATE comments SET archived_at = CURRENT_TIMESTAMP WHERE archived_at IS NULL
 	AND target_type = $1
 	AND referenced_id = $2
 `
@@ -131,15 +131,15 @@ SELECT
 	(
 		SELECT COUNT(comments.id)
 		FROM comments
-		WHERE comments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND comments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE comments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND comments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				comments.last_updated_at IS NULL
-				OR comments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR comments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				comments.last_updated_at IS NULL
-				OR comments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR comments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
 			AND comments.target_type = $6
@@ -153,15 +153,15 @@ SELECT
 			AND comments.referenced_id = $7
 	) AS total_count
 FROM comments
-WHERE comments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND comments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE comments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND comments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		comments.last_updated_at IS NULL
-		OR comments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR comments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		comments.last_updated_at IS NULL
-		OR comments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR comments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
 	AND comments.target_type = $6
@@ -256,15 +256,15 @@ SELECT
 	(
 		SELECT COUNT(comments.id)
 		FROM comments
-		WHERE comments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND comments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE comments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND comments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				comments.last_updated_at IS NULL
-				OR comments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR comments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				comments.last_updated_at IS NULL
-				OR comments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR comments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
 			AND comments.belongs_to_user = $6
@@ -276,15 +276,15 @@ SELECT
 			AND comments.belongs_to_user = $6
 	) AS total_count
 FROM comments
-WHERE comments.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND comments.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE comments.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND comments.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		comments.last_updated_at IS NULL
-		OR comments.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR comments.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		comments.last_updated_at IS NULL
-		OR comments.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR comments.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR comments.archived_at IS NULL)
 	AND comments.belongs_to_user = $6
@@ -365,7 +365,7 @@ func (q *Queries) GetCommentsForUser(ctx context.Context, db DBTX, arg *GetComme
 const updateComment = `-- name: UpdateComment :execrows
 UPDATE comments SET
 	content = $1,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $2
 	AND belongs_to_user = $3

@@ -1,11 +1,11 @@
 package authorization
 
 import (
-	platformauthz "github.com/primandproper/platform-go/v11/authorization"
+	platformauthz "github.com/primandproper/platform-go/v12/authorization"
 )
 
 // This file bridges this package's hand-rolled permission model onto
-// platform-go/v11's authorization package.
+// platform-go/v12's authorization package.
 //
 // The bridge exists so the platform enforcer can be run in audit-only mode
 // beside the existing checks: it evaluates every call against the same policy

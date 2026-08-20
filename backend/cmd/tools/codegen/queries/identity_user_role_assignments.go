@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -34,7 +34,7 @@ func buildUserRoleAssignmentsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(userRoleAssignmentsTableName, userRoleAssignmentsColumns,
+			pgGen.StandardCRUD(userRoleAssignmentsTableName, userRoleAssignmentsColumns,
 				querygen.WithEntity("UserRoleAssignments", "UserRoleAssignmentss"),
 				querygen.WithQueryName(querygen.CreateQuery, "AssignRoleToUser"),
 				querygen.WithOmitted(querygen.ArchiveQuery, querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),

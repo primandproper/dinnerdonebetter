@@ -42,7 +42,7 @@ SELECT EXISTS (
 );
 
 -- name: ArchiveServiceSetting :execrows
-UPDATE service_settings SET archived_at = NOW() WHERE id = sqlc.arg(id);
+UPDATE service_settings SET archived_at = CURRENT_TIMESTAMP WHERE id = sqlc.arg(id);
 
 -- name: GetServiceSettings :many
 SELECT
@@ -59,15 +59,15 @@ SELECT
 	(
 		SELECT COUNT(service_settings.id)
 		FROM service_settings
-		WHERE service_settings.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND service_settings.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE service_settings.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND service_settings.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				service_settings.last_updated_at IS NULL
-				OR service_settings.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR service_settings.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				service_settings.last_updated_at IS NULL
-				OR service_settings.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR service_settings.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR service_settings.archived_at IS NULL)
 	) AS filtered_count,
@@ -77,15 +77,15 @@ SELECT
 		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR service_settings.archived_at IS NULL)
 	) AS total_count
 FROM service_settings
-WHERE service_settings.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND service_settings.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE service_settings.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND service_settings.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		service_settings.last_updated_at IS NULL
-		OR service_settings.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR service_settings.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		service_settings.last_updated_at IS NULL
-		OR service_settings.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR service_settings.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR service_settings.archived_at IS NULL)
 	AND service_settings.id > COALESCE(sqlc.narg(cursor), '')
@@ -107,15 +107,15 @@ SELECT
 	(
 		SELECT COUNT(service_settings.id)
 		FROM service_settings
-		WHERE service_settings.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND service_settings.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE service_settings.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND service_settings.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				service_settings.last_updated_at IS NULL
-				OR service_settings.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR service_settings.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				service_settings.last_updated_at IS NULL
-				OR service_settings.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR service_settings.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR service_settings.archived_at IS NULL)
 	) AS filtered_count,
@@ -125,15 +125,15 @@ SELECT
 		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR service_settings.archived_at IS NULL)
 	) AS total_count
 FROM service_settings
-WHERE service_settings.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND service_settings.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE service_settings.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND service_settings.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		service_settings.last_updated_at IS NULL
-		OR service_settings.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR service_settings.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		service_settings.last_updated_at IS NULL
-		OR service_settings.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR service_settings.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR service_settings.archived_at IS NULL)
 	AND service_settings.name ILIKE '%' || sqlc.arg(name_query)::text || '%'

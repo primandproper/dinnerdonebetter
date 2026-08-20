@@ -62,3 +62,7 @@ main
 
 TODO.md
 .claude/
+
+# Compiled output from `go run ./cmd/tools/codegen/queries`, which drops a
+# binary next to its source when invoked without -o.
+cmd/tools/codegen/queries/queries

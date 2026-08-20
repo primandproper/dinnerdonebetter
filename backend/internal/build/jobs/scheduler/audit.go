@@ -6,12 +6,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	auditcfg "github.com/primandproper/platform-go/v11/audit/config"
-	"github.com/primandproper/platform-go/v11/database"
-	"github.com/primandproper/platform-go/v11/observability/logging"
-	"github.com/primandproper/platform-go/v11/observability/metrics"
-	"github.com/primandproper/platform-go/v11/observability/tracing"
-	"github.com/primandproper/platform-go/v11/retention"
+	auditcfg "github.com/primandproper/platform-go/v12/audit/config"
+	"github.com/primandproper/platform-go/v12/database"
+	"github.com/primandproper/platform-go/v12/observability/logging"
+	"github.com/primandproper/platform-go/v12/observability/metrics"
+	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v12/retention"
 
 	"github.com/samber/do/v2"
 )

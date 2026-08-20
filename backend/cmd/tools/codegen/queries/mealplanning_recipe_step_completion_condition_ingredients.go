@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -43,7 +43,7 @@ func buildRecipeStepCompletionConditionIngredientsQueries(database string) []*Qu
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(recipeStepCompletionConditionIngredientsTableName, recipeStepCompletionConditionIngredientsColumns,
+			pgGen.StandardCRUD(recipeStepCompletionConditionIngredientsTableName, recipeStepCompletionConditionIngredientsColumns,
 				querygen.WithEntity("RecipeStepCompletionConditionIngredient", "RecipeStepCompletionConditionIngredients"),
 				querygen.WithOmitted(querygen.ArchiveQuery, querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
 			),

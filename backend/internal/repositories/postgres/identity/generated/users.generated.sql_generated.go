@@ -15,7 +15,7 @@ import (
 
 const acceptPrivacyPolicyForUser = `-- name: AcceptPrivacyPolicyForUser :exec
 UPDATE users SET
-	last_accepted_privacy_policy = NOW()
+	last_accepted_privacy_policy = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -27,7 +27,7 @@ func (q *Queries) AcceptPrivacyPolicyForUser(ctx context.Context, db DBTX, id st
 
 const acceptTermsOfServiceForUser = `-- name: AcceptTermsOfServiceForUser :exec
 UPDATE users SET
-	last_accepted_terms_of_service = NOW()
+	last_accepted_terms_of_service = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -39,7 +39,7 @@ func (q *Queries) AcceptTermsOfServiceForUser(ctx context.Context, db DBTX, id s
 
 const archiveUser = `-- name: ArchiveUser :execrows
 UPDATE users SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -676,7 +676,7 @@ SELECT users.id
 FROM users
 WHERE users.archived_at IS NULL
 	AND users.last_indexed_at IS NULL
-	OR users.last_indexed_at < NOW() - '24 hours'::INTERVAL
+	OR users.last_indexed_at < CURRENT_TIMESTAMP - '24 hours'::INTERVAL
 `
 
 func (q *Queries) GetUserIDsNeedingIndexing(ctx context.Context, db DBTX) ([]string, error) {
@@ -959,15 +959,15 @@ SELECT
 	(
 		SELECT COUNT(users.id)
 		FROM users
-		WHERE users.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND users.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE users.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND users.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				users.last_updated_at IS NULL
-				OR users.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR users.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				users.last_updated_at IS NULL
-				OR users.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR users.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR users.archived_at IS NULL)
 	) AS filtered_count,
@@ -979,15 +979,15 @@ SELECT
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
-WHERE users.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND users.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE users.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND users.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR users.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR users.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR users.archived_at IS NULL)
 	AND users.id > COALESCE($6, '')
@@ -1133,15 +1133,15 @@ SELECT
 	(
 		SELECT COUNT(users.id)
 		FROM users
-		WHERE users.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND users.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE users.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND users.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				users.last_updated_at IS NULL
-				OR users.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR users.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				users.last_updated_at IS NULL
-				OR users.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR users.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR users.archived_at IS NULL)
 	) AS filtered_count,
@@ -1155,15 +1155,15 @@ FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 JOIN account_user_memberships ON account_user_memberships.belongs_to_user = users.id
-WHERE users.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND users.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE users.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND users.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR users.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR users.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR users.archived_at IS NULL)
 	AND account_user_memberships.belongs_to_account = $6
@@ -1403,7 +1403,7 @@ func (q *Queries) GetUsersWithIDs(ctx context.Context, db DBTX, ids []string) ([
 const markEmailAddressAsUnverified = `-- name: MarkEmailAddressAsUnverified :exec
 UPDATE users SET
 	email_address_verified_at = NULL,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND email_address_verified_at IS NOT NULL
 	AND id = $1
@@ -1416,8 +1416,8 @@ func (q *Queries) MarkEmailAddressAsUnverified(ctx context.Context, db DBTX, id 
 
 const markEmailAddressAsVerified = `-- name: MarkEmailAddressAsVerified :exec
 UPDATE users SET
-	email_address_verified_at = NOW(),
-	last_updated_at = NOW()
+	email_address_verified_at = CURRENT_TIMESTAMP,
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND email_address_verified_at IS NULL
 	AND id = $1
@@ -1438,7 +1438,7 @@ const markTwoFactorSecretAsUnverified = `-- name: MarkTwoFactorSecretAsUnverifie
 UPDATE users SET
 	two_factor_secret_verified_at = NULL,
 	two_factor_secret = $1,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $2
 `
@@ -1455,8 +1455,8 @@ func (q *Queries) MarkTwoFactorSecretAsUnverified(ctx context.Context, db DBTX, 
 
 const markTwoFactorSecretAsVerified = `-- name: MarkTwoFactorSecretAsVerified :exec
 UPDATE users SET
-	two_factor_secret_verified_at = NOW(),
-	last_updated_at = NOW()
+	two_factor_secret_verified_at = CURRENT_TIMESTAMP,
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -1468,7 +1468,7 @@ func (q *Queries) MarkTwoFactorSecretAsVerified(ctx context.Context, db DBTX, id
 
 const markUsersAsIndexed = `-- name: MarkUsersAsIndexed :execrows
 UPDATE users SET
-	last_indexed_at = NOW()
+	last_indexed_at = CURRENT_TIMESTAMP
 WHERE id = ANY($1::text[])
 `
 
@@ -1550,15 +1550,15 @@ SELECT
 	(
 		SELECT COUNT(users.id)
 		FROM users
-		WHERE users.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND users.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE users.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND users.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				users.last_updated_at IS NULL
-				OR users.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR users.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				users.last_updated_at IS NULL
-				OR users.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR users.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR users.archived_at IS NULL)
 	) AS filtered_count,
@@ -1570,15 +1570,15 @@ SELECT
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
-WHERE users.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND users.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE users.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND users.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR users.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		users.last_updated_at IS NULL
-		OR users.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR users.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR users.archived_at IS NULL)
 	AND users.username ILIKE '%' || $6::text || '%'
@@ -1699,7 +1699,7 @@ UPDATE users SET
 	first_name = $1,
 	last_name = $2,
 	birthday = $3,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $4
 `
@@ -1728,7 +1728,7 @@ const updateUserEmailAddress = `-- name: UpdateUserEmailAddress :execrows
 UPDATE users SET
 	email_address = $1,
 	email_address_verified_at = NULL,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $2
 `
@@ -1750,8 +1750,8 @@ const updateUserPassword = `-- name: UpdateUserPassword :execrows
 UPDATE users SET
 	hashed_password = $1,
 	requires_password_change = FALSE,
-	password_last_changed_at = NOW(),
-	last_updated_at = NOW()
+	password_last_changed_at = CURRENT_TIMESTAMP,
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $2
 `
@@ -1773,7 +1773,7 @@ const updateUserTwoFactorSecret = `-- name: UpdateUserTwoFactorSecret :execrows
 UPDATE users SET
 	two_factor_secret_verified_at = NULL,
 	two_factor_secret = $1,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $2
 `
@@ -1794,7 +1794,7 @@ func (q *Queries) UpdateUserTwoFactorSecret(ctx context.Context, db DBTX, arg *U
 const updateUserUsername = `-- name: UpdateUserUsername :execrows
 UPDATE users SET
 	username = $1,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $2
 `

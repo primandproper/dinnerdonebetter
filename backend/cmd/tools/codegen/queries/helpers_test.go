@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 	"github.com/stretchr/testify/assert"

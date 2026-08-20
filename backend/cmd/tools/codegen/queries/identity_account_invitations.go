@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -67,7 +67,7 @@ func buildAccountInvitationsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(accountInvitationsTableName, accountInvitationsColumns,
+			pgGen.StandardCRUD(accountInvitationsTableName, accountInvitationsColumns,
 				querygen.WithEntity("AccountInvitation", "AccountInvitations"),
 				querygen.WithDatabaseOwned("status", accountInvitationsStatusNoteColumn),
 				querygen.WithOmitted(querygen.ArchiveQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
@@ -223,8 +223,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(accountInvitationsTableName, accountInvitationsColumns, []string{}),
-						querygen.TotalCountSelect(accountInvitationsTableName, accountInvitationsColumns, []string{}),
+						pgGen.FilterCountSelect(accountInvitationsTableName, accountInvitationsColumns, []string{}),
+						pgGen.TotalCountSelect(accountInvitationsTableName, accountInvitationsColumns, []string{}),
 						accountInvitationsTableName,
 						accountsTableName,
 						accountInvitationsTableName,
@@ -237,11 +237,11 @@ WHERE %s
 						usersTableName,
 						idColumn,
 						avatarJoinClause,
-						querygen.FilterConditions(accountInvitationsTableName, accountInvitationsColumns,
+						pgGen.FilterConditions(accountInvitationsTableName, accountInvitationsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountInvitationsTableName, fromUserColumn, fromUserColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountInvitationsTableName, accountInvitationsStatusColumn, accountInvitationsStatusColumn),
 						),
-						querygen.CursorLimitClause(accountInvitationsTableName),
+						pgGen.CursorLimitClause(accountInvitationsTableName),
 					)),
 				},
 				{
@@ -260,8 +260,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(accountInvitationsTableName, accountInvitationsColumns, []string{}),
-						querygen.TotalCountSelect(accountInvitationsTableName, accountInvitationsColumns, []string{}),
+						pgGen.FilterCountSelect(accountInvitationsTableName, accountInvitationsColumns, []string{}),
+						pgGen.TotalCountSelect(accountInvitationsTableName, accountInvitationsColumns, []string{}),
 						accountInvitationsTableName,
 						accountsTableName,
 						accountInvitationsTableName,
@@ -274,11 +274,11 @@ WHERE %s
 						usersTableName,
 						idColumn,
 						avatarJoinClause,
-						querygen.FilterConditions(accountInvitationsTableName, accountInvitationsColumns,
+						pgGen.FilterConditions(accountInvitationsTableName, accountInvitationsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountInvitationsTableName, toUserColumn, toUserColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountInvitationsTableName, accountInvitationsStatusColumn, accountInvitationsStatusColumn),
 						),
-						querygen.CursorLimitClause(accountInvitationsTableName),
+						pgGen.CursorLimitClause(accountInvitationsTableName),
 					)),
 				},
 				{

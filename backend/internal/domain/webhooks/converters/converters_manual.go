@@ -11,7 +11,7 @@ package converters
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
-	"github.com/primandproper/platform-go/v11/identifiers"
+	"github.com/primandproper/platform-go/v12/identifiers"
 )
 
 // ConvertWebhookCreationRequestInputToWebhookDatabaseCreationInput creates a

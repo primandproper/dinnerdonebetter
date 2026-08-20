@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -34,7 +34,7 @@ func buildUserRolePermissionsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(userRolePermissionsTableName, userRolePermissionsColumns,
+			pgGen.StandardCRUD(userRolePermissionsTableName, userRolePermissionsColumns,
 				querygen.WithEntity("UserRolePermission", "UserRolePermissions"),
 				querygen.WithOmitted(querygen.ArchiveQuery, querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
 			),

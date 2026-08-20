@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -36,7 +36,7 @@ func buildServiceSettingQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(serviceSettingsTableName, serviceSettingsColumns,
+			pgGen.StandardCRUD(serviceSettingsTableName, serviceSettingsColumns,
 				querygen.WithEntity("ServiceSetting", "ServiceSettings"),
 				querygen.WithOmitted(querygen.ArchiveQuery, querygen.ListQuery, querygen.UpdateQuery),
 			),
@@ -69,11 +69,11 @@ WHERE %s
 						strings.Join(applyToEach(serviceSettingsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", serviceSettingsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
-						querygen.TotalCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
+						pgGen.FilterCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
+						pgGen.TotalCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
 						serviceSettingsTableName,
-						querygen.FilterConditions(serviceSettingsTableName, serviceSettingsColumns),
-						querygen.CursorLimitClause(serviceSettingsTableName),
+						pgGen.FilterConditions(serviceSettingsTableName, serviceSettingsColumns),
+						pgGen.CursorLimitClause(serviceSettingsTableName),
 					)),
 				},
 				{
@@ -91,13 +91,13 @@ WHERE %s
 						strings.Join(applyToEach(serviceSettingsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", serviceSettingsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
-						querygen.TotalCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
+						pgGen.FilterCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
+						pgGen.TotalCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
 						serviceSettingsTableName,
-						querygen.FilterConditions(serviceSettingsTableName, serviceSettingsColumns,
+						pgGen.FilterConditions(serviceSettingsTableName, serviceSettingsColumns,
 							fmt.Sprintf("%s.%s %s", serviceSettingsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						querygen.CursorLimitClause(serviceSettingsTableName),
+						pgGen.CursorLimitClause(serviceSettingsTableName),
 					)),
 				},
 			},

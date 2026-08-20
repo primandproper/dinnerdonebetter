@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v12/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )

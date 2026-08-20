@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -52,7 +52,7 @@ func buildValidPreparationsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(validPreparationsTableName, validPreparationsColumns,
+			pgGen.StandardCRUD(validPreparationsTableName, validPreparationsColumns,
 				querygen.WithEntity("ValidPreparation", "ValidPreparations"),
 				querygen.WithOmitted(querygen.ListQuery),
 			),
@@ -73,13 +73,13 @@ GROUP BY %s.%s
 						strings.Join(applyToEach(validPreparationsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validPreparationsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
-						querygen.TotalCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
+						pgGen.FilterCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
+						pgGen.TotalCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
 						validPreparationsTableName,
-						querygen.FilterConditions(validPreparationsTableName, validPreparationsColumns),
+						pgGen.FilterConditions(validPreparationsTableName, validPreparationsColumns),
 						validPreparationsTableName,
 						idColumn,
-						querygen.CursorLimitClause(validPreparationsTableName),
+						pgGen.CursorLimitClause(validPreparationsTableName),
 					)),
 				},
 				{
@@ -151,13 +151,13 @@ WHERE %s
 						strings.Join(applyToEach(validPreparationsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validPreparationsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
-						querygen.TotalCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
+						pgGen.FilterCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
+						pgGen.TotalCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
 						validPreparationsTableName,
-						querygen.FilterConditions(validPreparationsTableName, validPreparationsColumns,
+						pgGen.FilterConditions(validPreparationsTableName, validPreparationsColumns,
 							fmt.Sprintf("%s.%s %s", validPreparationsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						querygen.CursorLimitClause(validPreparationsTableName),
+						pgGen.CursorLimitClause(validPreparationsTableName),
 					)),
 				},
 			},

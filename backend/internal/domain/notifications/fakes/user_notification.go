@@ -4,8 +4,8 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/converters"
 
-	"github.com/primandproper/platform-go/v11/fake"
-	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v12/fake"
+	"github.com/primandproper/platform-go/v12/filtering"
 )
 
 // BuildFakeUserNotification builds a faked user notification.

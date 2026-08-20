@@ -3,7 +3,7 @@ package main
 import (
 	"slices"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -33,7 +33,7 @@ func buildWebhookTriggerConfigsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(webhookTriggerConfigsTableName, webhookTriggerConfigsColumns,
+			pgGen.StandardCRUD(webhookTriggerConfigsTableName, webhookTriggerConfigsColumns,
 				querygen.WithEntity("WebhookTriggerConfig", "WebhookTriggerConfigs"),
 				querygen.WithOmitted(querygen.ArchiveQuery, querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
 			),

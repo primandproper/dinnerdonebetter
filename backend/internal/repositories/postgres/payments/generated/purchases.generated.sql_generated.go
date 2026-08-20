@@ -104,15 +104,15 @@ SELECT
 	(
 		SELECT COUNT(purchases.id)
 		FROM purchases
-		WHERE purchases.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND purchases.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE purchases.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND purchases.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				purchases.last_updated_at IS NULL
-				OR purchases.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR purchases.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				purchases.last_updated_at IS NULL
-				OR purchases.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR purchases.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR purchases.archived_at IS NULL)
 			AND purchases.belongs_to_account = $6
@@ -124,15 +124,15 @@ SELECT
 			AND purchases.belongs_to_account = $6
 	) AS total_count
 FROM purchases
-WHERE purchases.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND purchases.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE purchases.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND purchases.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		purchases.last_updated_at IS NULL
-		OR purchases.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR purchases.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		purchases.last_updated_at IS NULL
-		OR purchases.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR purchases.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR purchases.archived_at IS NULL)
 	AND purchases.belongs_to_account = $6

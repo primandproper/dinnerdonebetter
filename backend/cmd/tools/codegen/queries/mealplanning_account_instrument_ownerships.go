@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -44,7 +44,7 @@ func buildAccountInstrumentOwnershipQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(accountInstrumentOwnershipsTableName, accountInstrumentOwnershipsColumns,
+			pgGen.StandardCRUD(accountInstrumentOwnershipsTableName, accountInstrumentOwnershipsColumns,
 				querygen.WithEntity("AccountInstrumentOwnership", "AccountInstrumentOwnerships"),
 				querygen.WithOwnership(belongsToAccountColumn),
 				querygen.WithOmitted(querygen.GetQuery, querygen.ListQuery),
@@ -67,22 +67,22 @@ GROUP BY
 	%s.%s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(accountInstrumentOwnershipsTableName, accountInstrumentOwnershipsColumns, []string{}, "account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)"),
-						querygen.TotalCountSelect(accountInstrumentOwnershipsTableName, accountInstrumentOwnershipsColumns, []string{}, "account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)"),
+						pgGen.FilterCountSelect(accountInstrumentOwnershipsTableName, accountInstrumentOwnershipsColumns, []string{}, "account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)"),
+						pgGen.TotalCountSelect(accountInstrumentOwnershipsTableName, accountInstrumentOwnershipsColumns, []string{}, "account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)"),
 						accountInstrumentOwnershipsTableName,
 						validInstrumentsTableName,
 						accountInstrumentOwnershipsTableName,
 						validInstrumentIDColumn,
 						validInstrumentsTableName,
 						idColumn,
-						querygen.FilterConditions(accountInstrumentOwnershipsTableName, accountInstrumentOwnershipsColumns,
+						pgGen.FilterConditions(accountInstrumentOwnershipsTableName, accountInstrumentOwnershipsColumns,
 							"account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)",
 						),
 						accountInstrumentOwnershipsTableName,
 						idColumn,
 						validInstrumentsTableName,
 						idColumn,
-						querygen.CursorLimitClause(accountInstrumentOwnershipsTableName),
+						pgGen.CursorLimitClause(accountInstrumentOwnershipsTableName),
 					)),
 				},
 				{

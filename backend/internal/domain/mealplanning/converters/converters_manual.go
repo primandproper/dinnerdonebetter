@@ -13,7 +13,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v11/identifiers"
+	"github.com/primandproper/platform-go/v12/identifiers"
 
 	"github.com/ccoveille/go-safecast"
 )

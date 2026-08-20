@@ -42,14 +42,14 @@ UPDATE recipe_steps SET
 	condition_expression = sqlc.arg(condition_expression),
 	optional = sqlc.arg(optional),
 	start_timer_automatically = sqlc.arg(start_timer_automatically),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND belongs_to_recipe = sqlc.arg(belongs_to_recipe);
 
 -- name: ArchiveRecipeStep :execrows
 UPDATE recipe_steps SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND belongs_to_recipe = sqlc.arg(belongs_to_recipe);
@@ -158,15 +158,15 @@ SELECT
 	(
 		SELECT COUNT(recipe_steps.id)
 		FROM recipe_steps
-		WHERE recipe_steps.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND recipe_steps.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE recipe_steps.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND recipe_steps.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				recipe_steps.last_updated_at IS NULL
-				OR recipe_steps.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR recipe_steps.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				recipe_steps.last_updated_at IS NULL
-				OR recipe_steps.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR recipe_steps.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_steps.archived_at IS NULL)
 	) AS filtered_count,
@@ -178,15 +178,15 @@ SELECT
 FROM recipe_steps
 	JOIN recipes ON recipe_steps.belongs_to_recipe=recipes.id
 	JOIN valid_preparations ON recipe_steps.preparation_id=valid_preparations.id
-WHERE recipe_steps.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND recipe_steps.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE recipe_steps.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND recipe_steps.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		recipe_steps.last_updated_at IS NULL
-		OR recipe_steps.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipe_steps.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		recipe_steps.last_updated_at IS NULL
-		OR recipe_steps.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipe_steps.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_steps.archived_at IS NULL)
 	AND recipe_steps.belongs_to_recipe = sqlc.arg(recipe_id)

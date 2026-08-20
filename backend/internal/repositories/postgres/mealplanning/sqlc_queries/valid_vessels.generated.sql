@@ -57,13 +57,13 @@ UPDATE valid_vessels SET
 	length_in_millimeters = sqlc.arg(length_in_millimeters),
 	height_in_millimeters = sqlc.arg(height_in_millimeters),
 	shape = sqlc.arg(shape),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: ArchiveValidVessel :execrows
 UPDATE valid_vessels SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
@@ -77,7 +77,7 @@ LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
 -- name: MarkValidVesselsAsIndexed :execrows
 UPDATE valid_vessels SET
-	last_indexed_at = NOW()
+	last_indexed_at = CURRENT_TIMESTAMP
 WHERE id = ANY(sqlc.arg(ids)::text[]);
 
 -- name: GetValidVessels :many
@@ -104,15 +104,15 @@ SELECT
 	(
 		SELECT COUNT(valid_vessels.id)
 		FROM valid_vessels
-		WHERE valid_vessels.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_vessels.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_vessels.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_vessels.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_vessels.last_updated_at IS NULL
-				OR valid_vessels.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_vessels.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_vessels.last_updated_at IS NULL
-				OR valid_vessels.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_vessels.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_vessels.archived_at IS NULL)
 	) AS filtered_count,
@@ -122,15 +122,15 @@ SELECT
 		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_vessels.archived_at IS NULL)
 	) AS total_count
 FROM valid_vessels
-WHERE valid_vessels.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_vessels.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_vessels.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_vessels.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_vessels.last_updated_at IS NULL
-		OR valid_vessels.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_vessels.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_vessels.last_updated_at IS NULL
-		OR valid_vessels.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_vessels.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_vessels.archived_at IS NULL)
 	AND valid_vessels.id > COALESCE(sqlc.narg(cursor), '')
@@ -144,7 +144,7 @@ FROM valid_vessels
 WHERE valid_vessels.archived_at IS NULL
 	AND (
 	valid_vessels.last_indexed_at IS NULL
-	OR valid_vessels.last_indexed_at < NOW() - '24 hours'::INTERVAL
+	OR valid_vessels.last_indexed_at < CURRENT_TIMESTAMP - '24 hours'::INTERVAL
 );
 
 -- name: GetValidVessel :one
@@ -291,15 +291,15 @@ SELECT
 	(
 		SELECT COUNT(valid_vessels.id)
 		FROM valid_vessels
-		WHERE valid_vessels.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND valid_vessels.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE valid_vessels.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND valid_vessels.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				valid_vessels.last_updated_at IS NULL
-				OR valid_vessels.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR valid_vessels.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				valid_vessels.last_updated_at IS NULL
-				OR valid_vessels.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR valid_vessels.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_vessels.archived_at IS NULL)
 	) AS filtered_count,
@@ -309,15 +309,15 @@ SELECT
 		WHERE (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_vessels.archived_at IS NULL)
 	) AS total_count
 FROM valid_vessels
-WHERE valid_vessels.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND valid_vessels.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE valid_vessels.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND valid_vessels.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		valid_vessels.last_updated_at IS NULL
-		OR valid_vessels.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR valid_vessels.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		valid_vessels.last_updated_at IS NULL
-		OR valid_vessels.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR valid_vessels.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_vessels.archived_at IS NULL)
 	AND valid_vessels.name ILIKE '%' || sqlc.arg(name_query)::text || '%'

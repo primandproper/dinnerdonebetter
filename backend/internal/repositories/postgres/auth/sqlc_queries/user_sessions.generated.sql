@@ -38,7 +38,7 @@ SELECT
 FROM user_sessions
 WHERE user_sessions.session_token_id = sqlc.arg(session_token_id)
 	AND user_sessions.revoked_at IS NULL
-	AND user_sessions.expires_at > NOW();
+	AND user_sessions.expires_at > CURRENT_TIMESTAMP;
 
 -- name: GetUserSessionByRefreshTokenID :one
 SELECT
@@ -77,43 +77,43 @@ SELECT
 		FROM user_sessions
 		WHERE user_sessions.belongs_to_user = sqlc.arg(belongs_to_user)
 				AND user_sessions.revoked_at IS NULL
-				AND user_sessions.expires_at > NOW()
-				AND user_sessions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-				AND user_sessions.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+				AND user_sessions.expires_at > CURRENT_TIMESTAMP
+				AND user_sessions.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+				AND user_sessions.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	) AS filtered_count,
 	(
 		SELECT COUNT(user_sessions.id)
 		FROM user_sessions
 		WHERE user_sessions.belongs_to_user = sqlc.arg(belongs_to_user)
 				AND user_sessions.revoked_at IS NULL
-				AND user_sessions.expires_at > NOW()
+				AND user_sessions.expires_at > CURRENT_TIMESTAMP
 	) AS total_count
 FROM user_sessions
 WHERE user_sessions.belongs_to_user = sqlc.arg(belongs_to_user)
 	AND user_sessions.revoked_at IS NULL
-	AND user_sessions.expires_at > NOW()
-	AND user_sessions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND user_sessions.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+	AND user_sessions.expires_at > CURRENT_TIMESTAMP
+	AND user_sessions.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND user_sessions.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND user_sessions.id > COALESCE(sqlc.narg(cursor), '')
 ORDER BY user_sessions.last_active_at DESC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
 -- name: RevokeUserSession :execrows
 UPDATE user_sessions SET
-	revoked_at = NOW()
+	revoked_at = CURRENT_TIMESTAMP
 WHERE user_sessions.id = sqlc.arg(id)
 	AND user_sessions.belongs_to_user = sqlc.arg(belongs_to_user)
 	AND user_sessions.revoked_at IS NULL;
 
 -- name: RevokeAllSessionsForUser :execrows
 UPDATE user_sessions SET
-	revoked_at = NOW()
+	revoked_at = CURRENT_TIMESTAMP
 WHERE user_sessions.belongs_to_user = sqlc.arg(belongs_to_user)
 	AND user_sessions.revoked_at IS NULL;
 
 -- name: RevokeAllSessionsForUserExcept :execrows
 UPDATE user_sessions SET
-	revoked_at = NOW()
+	revoked_at = CURRENT_TIMESTAMP
 WHERE user_sessions.belongs_to_user = sqlc.arg(belongs_to_user)
 	AND user_sessions.id != sqlc.arg(session_id)
 	AND user_sessions.revoked_at IS NULL;
@@ -123,18 +123,18 @@ UPDATE user_sessions SET
 	session_token_id = sqlc.arg(session_token_id),
 	refresh_token_id = sqlc.arg(refresh_token_id),
 	expires_at = sqlc.arg(expires_at),
-	last_active_at = NOW()
+	last_active_at = CURRENT_TIMESTAMP
 WHERE user_sessions.id = sqlc.arg(id)
 	AND user_sessions.revoked_at IS NULL;
 
 -- name: TouchSessionLastActive :execrows
 UPDATE user_sessions SET
-	last_active_at = NOW()
+	last_active_at = CURRENT_TIMESTAMP
 WHERE user_sessions.session_token_id = sqlc.arg(session_token_id)
 	AND user_sessions.revoked_at IS NULL;
 
 -- name: CleanupExpiredSessions :execrows
 UPDATE user_sessions SET
-	revoked_at = NOW()
+	revoked_at = CURRENT_TIMESTAMP
 WHERE user_sessions.revoked_at IS NULL
-	AND user_sessions.expires_at < NOW();
+	AND user_sessions.expires_at < CURRENT_TIMESTAMP;

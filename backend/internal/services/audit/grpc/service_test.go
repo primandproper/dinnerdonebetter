@@ -13,11 +13,11 @@ import (
 	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	auditsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 
-	"github.com/primandproper/platform-go/v11/filtering"
-	"github.com/primandproper/platform-go/v11/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
-	"github.com/primandproper/platform-go/v11/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v12/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
+	"github.com/primandproper/platform-go/v12/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

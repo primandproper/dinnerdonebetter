@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -56,7 +56,7 @@ func buildValidPrepTaskConfigsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns,
+			pgGen.StandardCRUD(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns,
 				querygen.WithEntity("ValidPrepTaskConfig", "ValidPrepTaskConfigs"),
 				querygen.WithNullable("maximum_storage_duration_in_seconds", "maximum_storage_temperature_in_celsius", "minimum_storage_temperature_in_celsius"),
 				querygen.WithOmitted(querygen.GetQuery, querygen.ListQuery),
@@ -77,8 +77,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
-						querygen.TotalCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
+						pgGen.FilterCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
+						pgGen.TotalCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
 						validPrepTaskConfigsTableName,
 						validIngredientsTableName,
 						validPrepTaskConfigsTableName,
@@ -90,10 +90,10 @@ WHERE %s
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						querygen.FilterConditions(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns,
+						pgGen.FilterConditions(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPrepTaskConfigsTableName, validIngredientIDColumn, idColumn),
 						),
-						querygen.CursorLimitClause(validPrepTaskConfigsTableName),
+						pgGen.CursorLimitClause(validPrepTaskConfigsTableName),
 					)),
 				},
 				{
@@ -111,8 +111,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
-						querygen.TotalCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
+						pgGen.FilterCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
+						pgGen.TotalCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
 						validPrepTaskConfigsTableName,
 						validIngredientsTableName,
 						validPrepTaskConfigsTableName,
@@ -124,10 +124,10 @@ WHERE %s
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						querygen.FilterConditions(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns,
+						pgGen.FilterConditions(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPrepTaskConfigsTableName, validPreparationIDColumn, idColumn),
 						),
-						querygen.CursorLimitClause(validPrepTaskConfigsTableName),
+						pgGen.CursorLimitClause(validPrepTaskConfigsTableName),
 					)),
 				},
 				{
@@ -145,8 +145,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
-						querygen.TotalCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
+						pgGen.FilterCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
+						pgGen.TotalCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
 						validPrepTaskConfigsTableName,
 						validIngredientsTableName,
 						validPrepTaskConfigsTableName,
@@ -158,11 +158,11 @@ WHERE %s
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						querygen.FilterConditions(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns,
+						pgGen.FilterConditions(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPrepTaskConfigsTableName, validIngredientIDColumn, validIngredientIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPrepTaskConfigsTableName, validPreparationIDColumn, validPreparationIDColumn),
 						),
-						querygen.CursorLimitClause(validPrepTaskConfigsTableName),
+						pgGen.CursorLimitClause(validPrepTaskConfigsTableName),
 					)),
 				},
 				{
@@ -180,8 +180,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
-						querygen.TotalCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
+						pgGen.FilterCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
+						pgGen.TotalCountSelect(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns, []string{}),
 						validPrepTaskConfigsTableName,
 						validIngredientsTableName,
 						validPrepTaskConfigsTableName,
@@ -193,8 +193,8 @@ WHERE %s
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						querygen.FilterConditions(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns),
-						querygen.CursorLimitClause(validPrepTaskConfigsTableName),
+						pgGen.FilterConditions(validPrepTaskConfigsTableName, validPrepTaskConfigsColumns),
+						pgGen.CursorLimitClause(validPrepTaskConfigsTableName),
 					)),
 				},
 				{

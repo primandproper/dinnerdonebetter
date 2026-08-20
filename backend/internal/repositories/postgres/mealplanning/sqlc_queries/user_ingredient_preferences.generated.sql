@@ -30,14 +30,14 @@ UPDATE user_ingredient_preferences SET
 	rating = sqlc.arg(rating),
 	notes = sqlc.arg(notes),
 	allergy = sqlc.arg(allergy),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND belongs_to_user = sqlc.arg(belongs_to_user);
 
 -- name: ArchiveUserIngredientPreference :execrows
 UPDATE user_ingredient_preferences SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND belongs_to_user = sqlc.arg(belongs_to_user);
@@ -94,15 +94,15 @@ SELECT
 	(
 		SELECT COUNT(user_ingredient_preferences.id)
 		FROM user_ingredient_preferences
-		WHERE user_ingredient_preferences.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND user_ingredient_preferences.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE user_ingredient_preferences.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND user_ingredient_preferences.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				user_ingredient_preferences.last_updated_at IS NULL
-				OR user_ingredient_preferences.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR user_ingredient_preferences.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				user_ingredient_preferences.last_updated_at IS NULL
-				OR user_ingredient_preferences.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR user_ingredient_preferences.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR user_ingredient_preferences.archived_at IS NULL)
 	) AS filtered_count,
@@ -113,15 +113,15 @@ SELECT
 	) AS total_count
 FROM user_ingredient_preferences
 	JOIN valid_ingredients ON valid_ingredients.id = user_ingredient_preferences.ingredient
-WHERE user_ingredient_preferences.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND user_ingredient_preferences.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE user_ingredient_preferences.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND user_ingredient_preferences.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		user_ingredient_preferences.last_updated_at IS NULL
-		OR user_ingredient_preferences.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR user_ingredient_preferences.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		user_ingredient_preferences.last_updated_at IS NULL
-		OR user_ingredient_preferences.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR user_ingredient_preferences.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR user_ingredient_preferences.archived_at IS NULL)
 	AND user_ingredient_preferences.belongs_to_user = sqlc.arg(belongs_to_user)

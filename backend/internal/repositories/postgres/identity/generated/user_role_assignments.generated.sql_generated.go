@@ -11,7 +11,7 @@ import (
 )
 
 const archiveRoleAssignment = `-- name: ArchiveRoleAssignment :exec
-UPDATE user_role_assignments SET archived_at = NOW()
+UPDATE user_role_assignments SET archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 	AND user_id = $2
@@ -28,7 +28,7 @@ func (q *Queries) ArchiveRoleAssignment(ctx context.Context, db DBTX, arg *Archi
 }
 
 const archiveRoleAssignmentsForUserAndAccount = `-- name: ArchiveRoleAssignmentsForUserAndAccount :exec
-UPDATE user_role_assignments SET archived_at = NOW()
+UPDATE user_role_assignments SET archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND user_id = $1
 	AND account_id = $2

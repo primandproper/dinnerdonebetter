@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -43,11 +43,11 @@ func buildValidIngredientGroupsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(validIngredientGroupsTableName, validIngredientGroupsColumns,
+			pgGen.StandardCRUD(validIngredientGroupsTableName, validIngredientGroupsColumns,
 				querygen.WithEntity("ValidIngredientGroup", "ValidIngredientGroups"),
 				querygen.WithOmitted(querygen.ListQuery),
 			),
-			querygen.StandardCRUD(validIngredientGroupMembersTableName, validIngredientGroupMembersColumns,
+			pgGen.StandardCRUD(validIngredientGroupMembersTableName, validIngredientGroupMembersColumns,
 				querygen.WithEntity("ValidIngredientGroupMember", "ValidIngredientGroupMembers"),
 				querygen.WithOwnership(belongsToGroupColumn),
 				querygen.WithOmitted(querygen.GetQuery, querygen.ExistsQuery, querygen.ListQuery, querygen.UpdateQuery),
@@ -69,13 +69,13 @@ GROUP BY %s.%s
 						strings.Join(applyToEach(validIngredientGroupsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validIngredientGroupsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}),
-						querygen.TotalCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}),
+						pgGen.FilterCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}),
+						pgGen.TotalCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}),
 						validIngredientGroupsTableName,
-						querygen.FilterConditions(validIngredientGroupsTableName, validIngredientGroupsColumns),
+						pgGen.FilterConditions(validIngredientGroupsTableName, validIngredientGroupsColumns),
 						validIngredientGroupsTableName,
 						idColumn,
-						querygen.CursorLimitClause(validIngredientGroupsTableName),
+						pgGen.CursorLimitClause(validIngredientGroupsTableName),
 					)),
 				},
 				{
@@ -117,15 +117,15 @@ GROUP BY %s.%s
 						strings.Join(applyToEach(validIngredientGroupsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", validIngredientGroupsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}, fmt.Sprintf("%s.%s %s", validIngredientGroupsTableName, nameColumn, buildILIKEForArgument("name"))),
-						querygen.TotalCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}),
+						pgGen.FilterCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}, fmt.Sprintf("%s.%s %s", validIngredientGroupsTableName, nameColumn, buildILIKEForArgument("name"))),
+						pgGen.TotalCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}),
 						validIngredientGroupsTableName,
-						querygen.FilterConditions(validIngredientGroupsTableName, validIngredientGroupsColumns,
+						pgGen.FilterConditions(validIngredientGroupsTableName, validIngredientGroupsColumns,
 							fmt.Sprintf("%s.%s %s", validIngredientGroupsTableName, nameColumn, buildILIKEForArgument("name")),
 						),
 						validIngredientGroupsTableName,
 						idColumn,
-						querygen.CursorLimitClause(validIngredientGroupsTableName),
+						pgGen.CursorLimitClause(validIngredientGroupsTableName),
 					)),
 				},
 				{

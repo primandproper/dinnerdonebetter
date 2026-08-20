@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -39,7 +39,7 @@ func buildMealPlanEventsQueries(database string) []*Query {
 	case postgres:
 
 		return slices.Concat(
-			querygen.StandardCRUD(mealPlanEventsTableName, mealPlanEventsColumns,
+			pgGen.StandardCRUD(mealPlanEventsTableName, mealPlanEventsColumns,
 				querygen.WithEntity("MealPlanEvent", "MealPlanEvents"),
 				querygen.WithOwnership(belongsToMealPlanColumn),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.ListQuery, querygen.UpdateQuery),
@@ -108,15 +108,15 @@ GROUP BY %s.%s
 						strings.Join(applyToEach(mealPlanEventsColumns, func(i int, s string) string {
 							return fmt.Sprintf("%s.%s", mealPlanEventsTableName, s)
 						}), ",\n\t"),
-						querygen.FilterCountSelect(mealPlanEventsTableName, mealPlanEventsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn)),
-						querygen.TotalCountSelect(mealPlanEventsTableName, mealPlanEventsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn)),
+						pgGen.FilterCountSelect(mealPlanEventsTableName, mealPlanEventsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn)),
+						pgGen.TotalCountSelect(mealPlanEventsTableName, mealPlanEventsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn)),
 						mealPlanEventsTableName,
-						querygen.FilterConditions(mealPlanEventsTableName, mealPlanEventsColumns,
+						pgGen.FilterConditions(mealPlanEventsTableName, mealPlanEventsColumns,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn),
 						),
 						mealPlanEventsTableName,
 						idColumn,
-						querygen.CursorLimitClause(mealPlanEventsTableName),
+						pgGen.CursorLimitClause(mealPlanEventsTableName),
 					)),
 				},
 				{

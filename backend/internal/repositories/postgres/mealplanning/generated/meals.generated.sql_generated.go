@@ -14,7 +14,7 @@ import (
 )
 
 const archiveMeal = `-- name: ArchiveMeal :execrows
-UPDATE meals SET archived_at = NOW() WHERE archived_at IS NULL AND created_by_user = $1 AND id = $2
+UPDATE meals SET archived_at = CURRENT_TIMESTAMP WHERE archived_at IS NULL AND created_by_user = $1 AND id = $2
 `
 
 type ArchiveMealParams struct {
@@ -207,15 +207,15 @@ SELECT
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE meals.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND meals.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				meals.last_updated_at IS NULL
-				OR meals.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR meals.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				meals.last_updated_at IS NULL
-				OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR meals.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	) AS filtered_count,
@@ -227,15 +227,15 @@ SELECT
 FROM meals
 	LEFT JOIN meal_components ON meal_components.belongs_to_meal=meals.id AND meal_components.archived_at IS NULL
 		AND EXISTS (SELECT 1 FROM recipes WHERE recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL)
-WHERE meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE meals.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND meals.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		meals.last_updated_at IS NULL
-		OR meals.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR meals.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		meals.last_updated_at IS NULL
-		OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR meals.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	AND meals.id > COALESCE($6, '')
@@ -455,15 +455,15 @@ SELECT
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE meals.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND meals.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				meals.last_updated_at IS NULL
-				OR meals.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR meals.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				meals.last_updated_at IS NULL
-				OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR meals.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 			AND meals.created_by_user = $6
@@ -477,15 +477,15 @@ SELECT
 FROM meals
 	LEFT JOIN meal_components ON meal_components.belongs_to_meal=meals.id AND meal_components.archived_at IS NULL
 		AND EXISTS (SELECT 1 FROM recipes WHERE recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL)
-WHERE meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE meals.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND meals.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		meals.last_updated_at IS NULL
-		OR meals.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR meals.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		meals.last_updated_at IS NULL
-		OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR meals.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	AND meals.created_by_user = $6
@@ -589,7 +589,7 @@ SELECT meals.id
 	WHERE meals.archived_at IS NULL
 	AND (
 		meals.last_indexed_at IS NULL
-		OR meals.last_indexed_at < NOW() - '24 hours'::INTERVAL
+		OR meals.last_indexed_at < CURRENT_TIMESTAMP - '24 hours'::INTERVAL
 	)
 `
 
@@ -713,7 +713,7 @@ func (q *Queries) GetMealsWithIDs(ctx context.Context, db DBTX, ids []string) ([
 
 const markMealsAsIndexed = `-- name: MarkMealsAsIndexed :execrows
 UPDATE meals SET
-	last_indexed_at = NOW()
+	last_indexed_at = CURRENT_TIMESTAMP
 WHERE id = ANY($1::text[])
 `
 
@@ -786,15 +786,15 @@ SELECT
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
-		WHERE meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE meals.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND meals.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				meals.last_updated_at IS NULL
-				OR meals.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR meals.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				meals.last_updated_at IS NULL
-				OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR meals.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	) AS filtered_count,
@@ -807,15 +807,15 @@ FROM meals
 	JOIN meal_components ON meal_components.belongs_to_meal=meals.id
 		AND meal_components.archived_at IS NULL
 		AND EXISTS (SELECT 1 FROM recipes WHERE recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL)
-WHERE meals.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND meals.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE meals.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND meals.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		meals.last_updated_at IS NULL
-		OR meals.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR meals.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		meals.last_updated_at IS NULL
-		OR meals.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR meals.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR meals.archived_at IS NULL)
 	AND meals.name ILIKE '%' || $6::text || '%'

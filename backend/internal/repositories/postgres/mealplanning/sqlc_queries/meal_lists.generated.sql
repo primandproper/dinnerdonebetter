@@ -15,14 +15,14 @@ INSERT INTO meal_lists (
 UPDATE meal_lists SET
 	name = sqlc.arg(name),
 	description = sqlc.arg(description),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND belongs_to_user = sqlc.arg(belongs_to_user);
 
 -- name: ArchiveMealList :execrows
 UPDATE meal_lists SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id)
 	AND belongs_to_user = sqlc.arg(belongs_to_user);
@@ -46,15 +46,15 @@ SELECT
 	(
 		SELECT COUNT(meal_lists.id)
 		FROM meal_lists
-		WHERE meal_lists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND meal_lists.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE meal_lists.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND meal_lists.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				meal_lists.last_updated_at IS NULL
-				OR meal_lists.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR meal_lists.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				meal_lists.last_updated_at IS NULL
-				OR meal_lists.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR meal_lists.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_lists.archived_at IS NULL)
 			AND meal_lists.belongs_to_user = sqlc.arg(belongs_to_user)
@@ -67,15 +67,15 @@ SELECT
 	) AS total_count
 FROM meal_lists
 	LEFT JOIN meal_list_items ON meal_list_items.belongs_to_meal_list = meal_lists.id AND meal_list_items.archived_at IS NULL
-WHERE meal_lists.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND meal_lists.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE meal_lists.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND meal_lists.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		meal_lists.last_updated_at IS NULL
-		OR meal_lists.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR meal_lists.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		meal_lists.last_updated_at IS NULL
-		OR meal_lists.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR meal_lists.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_lists.archived_at IS NULL)
 	AND meal_lists.belongs_to_user = sqlc.arg(belongs_to_user)

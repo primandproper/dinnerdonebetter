@@ -13,7 +13,7 @@ import (
 
 const archiveRecipeMedia = `-- name: ArchiveRecipeMedia :execrows
 UPDATE recipe_media SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 `
@@ -280,7 +280,7 @@ UPDATE recipe_media SET
 	internal_path = $4,
 	external_path = $5,
 	index = $6,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $7
 `

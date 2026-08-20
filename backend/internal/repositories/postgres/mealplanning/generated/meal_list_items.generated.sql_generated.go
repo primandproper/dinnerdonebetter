@@ -13,7 +13,7 @@ import (
 
 const archiveMealListItem = `-- name: ArchiveMealListItem :execrows
 UPDATE meal_list_items SET
-	archived_at = NOW()
+	archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $1
 	AND belongs_to_meal_list = $2
@@ -97,15 +97,15 @@ SELECT
 	(
 		SELECT COUNT(meal_list_items.id)
 		FROM meal_list_items
-		WHERE meal_list_items.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-			AND meal_list_items.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE meal_list_items.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND meal_list_items.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				meal_list_items.last_updated_at IS NULL
-				OR meal_list_items.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+				OR meal_list_items.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				meal_list_items.last_updated_at IS NULL
-				OR meal_list_items.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+				OR meal_list_items.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR meal_list_items.archived_at IS NULL)
 			AND meal_list_items.belongs_to_meal_list = $6
@@ -117,15 +117,15 @@ SELECT
 		WHERE (COALESCE($5, false)::boolean OR meal_list_items.archived_at IS NULL)
 	) AS total_count
 FROM meal_list_items
-WHERE meal_list_items.created_at > COALESCE($1, (SELECT NOW() - '999 years'::INTERVAL))
-	AND meal_list_items.created_at < COALESCE($2, (SELECT NOW() + '999 years'::INTERVAL))
+WHERE meal_list_items.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND meal_list_items.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		meal_list_items.last_updated_at IS NULL
-		OR meal_list_items.last_updated_at > COALESCE($3, (SELECT NOW() - '999 years'::INTERVAL))
+		OR meal_list_items.last_updated_at > COALESCE($3, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		meal_list_items.last_updated_at IS NULL
-		OR meal_list_items.last_updated_at < COALESCE($4, (SELECT NOW() + '999 years'::INTERVAL))
+		OR meal_list_items.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR meal_list_items.archived_at IS NULL)
 	AND meal_list_items.belongs_to_meal_list = $6
@@ -206,7 +206,7 @@ const updateMealListItem = `-- name: UpdateMealListItem :execrows
 UPDATE meal_list_items SET
 	meal_id = $1,
 	notes = $2,
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = $3
 	AND belongs_to_meal_list = $4

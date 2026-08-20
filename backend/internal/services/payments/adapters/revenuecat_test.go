@@ -8,8 +8,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	loggingnoop "github.com/primandproper/platform-go/v11/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v11/observability/tracing/noop"
+	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

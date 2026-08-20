@@ -3,7 +3,7 @@ package grpcconverters
 import (
 	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 
-	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v12/filtering"
 )
 
 func ConvertGRPCQueryFilterToQueryFilter(qf *grpcfiltering.QueryFilter) *filtering.QueryFilter {

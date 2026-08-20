@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -39,7 +39,7 @@ func buildPaymentsTransactionsQueries(database string) []*Query {
 		accountCondition := fmt.Sprintf("%s.%s = sqlc.arg(%s)", paymentTransactionsTableName, belongsToAccountColumn, belongsToAccountColumn)
 
 		return slices.Concat(
-			querygen.StandardCRUD(paymentTransactionsTableName, paymentTransactionsColumns,
+			pgGen.StandardCRUD(paymentTransactionsTableName, paymentTransactionsColumns,
 				querygen.WithEntity("PaymentTransaction", "PaymentTransactions"),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
 			),
@@ -57,14 +57,14 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(paymentTransactionsTableName, paymentTransactionsColumns, nil, accountCondition),
-						querygen.TotalCountSelect(paymentTransactionsTableName, paymentTransactionsColumns, nil, accountCondition),
+						pgGen.FilterCountSelect(paymentTransactionsTableName, paymentTransactionsColumns, nil, accountCondition),
+						pgGen.TotalCountSelect(paymentTransactionsTableName, paymentTransactionsColumns, nil, accountCondition),
 						paymentTransactionsTableName,
-						querygen.FilterConditions(paymentTransactionsTableName, paymentTransactionsColumns,
+						pgGen.FilterConditions(paymentTransactionsTableName, paymentTransactionsColumns,
 							accountCondition,
 							accountCondition,
 						),
-						querygen.CursorLimitClause(paymentTransactionsTableName),
+						pgGen.CursorLimitClause(paymentTransactionsTableName),
 					)),
 				},
 			},

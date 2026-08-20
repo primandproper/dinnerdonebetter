@@ -13,11 +13,11 @@ import (
 
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 
-	"github.com/primandproper/platform-go/v11/authentication/oauth2server"
-	oauth2memory "github.com/primandproper/platform-go/v11/authentication/oauth2server/memory"
-	"github.com/primandproper/platform-go/v11/observability"
-	"github.com/primandproper/platform-go/v11/routing/backends/chi"
-	routingcfg "github.com/primandproper/platform-go/v11/routing/config"
+	"github.com/primandproper/platform-go/v12/authentication/oauth2server"
+	oauth2memory "github.com/primandproper/platform-go/v12/authentication/oauth2server/memory"
+	"github.com/primandproper/platform-go/v12/observability"
+	"github.com/primandproper/platform-go/v12/routing/backends/chi"
+	routingcfg "github.com/primandproper/platform-go/v12/routing/config"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

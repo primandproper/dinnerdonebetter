@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v11/database/querygen"
+	"github.com/primandproper/platform-go/v12/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -50,7 +50,7 @@ func buildValidIngredientStateIngredientsQueries(database string) []*Query {
 		)
 
 		return slices.Concat(
-			querygen.StandardCRUD(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns,
+			pgGen.StandardCRUD(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns,
 				querygen.WithEntity("ValidIngredientStateIngredient", "ValidIngredientStateIngredients"),
 				querygen.WithOmitted(querygen.GetQuery, querygen.ListQuery),
 			),
@@ -70,8 +70,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
-						querygen.TotalCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
+						pgGen.FilterCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
+						pgGen.TotalCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
 						validIngredientStateIngredientsTableName,
 						validIngredientsTableName,
 						validIngredientStateIngredientsTableName,
@@ -83,12 +83,12 @@ WHERE %s
 						validIngredientStateColumn,
 						validIngredientStatesTableName,
 						idColumn,
-						querygen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns,
+						pgGen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns,
 							"valid_ingredients.archived_at IS NULL",
 							"valid_ingredient_states.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientStateIngredientsTableName, validIngredientColumn, validIngredientColumn),
 						),
-						querygen.CursorLimitClause(validIngredientStateIngredientsTableName),
+						pgGen.CursorLimitClause(validIngredientStateIngredientsTableName),
 					)),
 				},
 				{
@@ -106,8 +106,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
-						querygen.TotalCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
+						pgGen.FilterCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
+						pgGen.TotalCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
 						validIngredientStateIngredientsTableName,
 						validIngredientsTableName,
 						validIngredientStateIngredientsTableName,
@@ -119,12 +119,12 @@ WHERE %s
 						validIngredientStateColumn,
 						validIngredientStatesTableName,
 						idColumn,
-						querygen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns,
+						pgGen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns,
 							"valid_ingredients.archived_at IS NULL",
 							"valid_ingredient_states.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientStateIngredientsTableName, validIngredientStateColumn, validIngredientStateColumn),
 						),
-						querygen.CursorLimitClause(validIngredientStateIngredientsTableName),
+						pgGen.CursorLimitClause(validIngredientStateIngredientsTableName),
 					)),
 				},
 				{
@@ -142,8 +142,8 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						querygen.FilterCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
-						querygen.TotalCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
+						pgGen.FilterCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
+						pgGen.TotalCountSelect(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, []string{}),
 						validIngredientStateIngredientsTableName,
 						validIngredientsTableName,
 						validIngredientStateIngredientsTableName,
@@ -155,11 +155,11 @@ WHERE %s
 						validIngredientStateColumn,
 						validIngredientStatesTableName,
 						idColumn,
-						querygen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns,
+						pgGen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns,
 							"valid_ingredients.archived_at IS NULL",
 							"valid_ingredient_states.archived_at IS NULL",
 						),
-						querygen.CursorLimitClause(validIngredientStateIngredientsTableName),
+						pgGen.CursorLimitClause(validIngredientStateIngredientsTableName),
 					)),
 				},
 				{

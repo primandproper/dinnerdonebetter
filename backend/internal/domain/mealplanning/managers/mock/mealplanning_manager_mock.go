@@ -10,7 +10,7 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers"
 
-	"github.com/primandproper/platform-go/v11/filtering"
+	"github.com/primandproper/platform-go/v12/filtering"
 )
 
 // Ensure, that MealPlanningManagerMock does implement managers.MealPlanningManager.

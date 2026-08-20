@@ -19,12 +19,12 @@ UPDATE recipe_step_completion_conditions SET
 	notes = sqlc.arg(notes),
 	belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step),
 	ingredient_state = sqlc.arg(ingredient_state),
-	last_updated_at = NOW()
+	last_updated_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
 -- name: ArchiveRecipeStepCompletionCondition :execrows
-UPDATE recipe_step_completion_conditions SET archived_at = NOW() WHERE archived_at IS NULL AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step) AND id = sqlc.arg(id);
+UPDATE recipe_step_completion_conditions SET archived_at = CURRENT_TIMESTAMP WHERE archived_at IS NULL AND belongs_to_recipe_step = sqlc.arg(belongs_to_recipe_step) AND id = sqlc.arg(id);
 
 -- name: CheckRecipeStepCompletionConditionExistence :one
 SELECT EXISTS (
@@ -115,15 +115,15 @@ SELECT
 	(
 		SELECT COUNT(recipe_step_completion_condition_ingredients.id)
 		FROM recipe_step_completion_condition_ingredients
-		WHERE recipe_step_completion_condition_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-			AND recipe_step_completion_condition_ingredients.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+		WHERE recipe_step_completion_condition_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+			AND recipe_step_completion_condition_ingredients.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			AND (
 				recipe_step_completion_condition_ingredients.last_updated_at IS NULL
-				OR recipe_step_completion_condition_ingredients.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+				OR recipe_step_completion_condition_ingredients.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 			)
 			AND (
 				recipe_step_completion_condition_ingredients.last_updated_at IS NULL
-				OR recipe_step_completion_condition_ingredients.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+				OR recipe_step_completion_condition_ingredients.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_step_completion_condition_ingredients.archived_at IS NULL)
 			AND recipe_step_completion_conditions.belongs_to_recipe_step = sqlc.arg(recipe_step_id)
@@ -137,15 +137,15 @@ FROM recipe_step_completion_condition_ingredients
 	JOIN recipe_step_completion_conditions ON recipe_step_completion_condition_ingredients.belongs_to_recipe_step_completion_condition = recipe_step_completion_conditions.id
 	JOIN recipe_steps ON recipe_step_completion_conditions.belongs_to_recipe_step = recipe_steps.id
 	JOIN valid_ingredient_states ON recipe_step_completion_conditions.ingredient_state = valid_ingredient_states.id
-WHERE recipe_step_completion_conditions.created_at > COALESCE(sqlc.narg(created_after), (SELECT NOW() - '999 years'::INTERVAL))
-	AND recipe_step_completion_conditions.created_at < COALESCE(sqlc.narg(created_before), (SELECT NOW() + '999 years'::INTERVAL))
+WHERE recipe_step_completion_conditions.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
+	AND recipe_step_completion_conditions.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
 		recipe_step_completion_conditions.last_updated_at IS NULL
-		OR recipe_step_completion_conditions.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT NOW() - '999 years'::INTERVAL))
+		OR recipe_step_completion_conditions.last_updated_at > COALESCE(sqlc.narg(updated_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	)
 	AND (
 		recipe_step_completion_conditions.last_updated_at IS NULL
-		OR recipe_step_completion_conditions.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT NOW() + '999 years'::INTERVAL))
+		OR recipe_step_completion_conditions.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_step_completion_conditions.archived_at IS NULL)
 	AND recipe_step_completion_conditions.belongs_to_recipe_step = sqlc.arg(recipe_step_id)
