@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	commentsmanagermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mockmanagers "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers/mock"
@@ -131,12 +132,18 @@ func TestServiceImpl_ArchiveRecipe(T *testing.T) {
 		}
 		s.mealPlanningManager = mrm
 
+		// A comments manager with no functions set: any call panics. Archiving a
+		// recipe must not touch the comments on it — they belong to their authors.
+		cm := &commentsmanagermock.CommentsDataManagerMock{}
+		s.commentsManager = cm
+
 		res, err := s.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: exampleRecipeID})
 		assert.NotNil(t, res)
 		require.NoError(t, err)
 
 		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeCalls(), 1)
+		assert.Empty(t, cm.ArchiveCommentCalls())
 	})
 
 	T.Run("returns permission denied for non-owner", func(t *testing.T) {

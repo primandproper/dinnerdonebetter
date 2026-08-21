@@ -124,10 +124,3 @@ func (m *commentsManager) ArchiveComment(ctx context.Context, id string) error {
 
 	return nil
 }
-
-func (m *commentsManager) ArchiveCommentsForReference(ctx context.Context, targetType, referencedID string) error {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	return m.repo.ArchiveCommentsForReference(ctx, targetType, referencedID)
-}

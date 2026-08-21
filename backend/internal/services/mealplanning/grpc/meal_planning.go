@@ -75,9 +75,7 @@ func (s *serviceImpl) ArchiveMeal(ctx context.Context, request *mealplanningsvc.
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive meal")
 	}
 
-	if err = s.commentsManager.ArchiveCommentsForReference(ctx, mealplanning.CommentTargetTypeMeals, request.MealId); err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving comments for meal")
-	}
+	// The meal's comments are deliberately left alone; see ArchiveRecipe.
 
 	x := &mealplanningsvc.ArchiveMealResponse{
 		ResponseDetails: &types.ResponseDetails{
@@ -105,9 +103,7 @@ func (s *serviceImpl) ArchiveMealPlan(ctx context.Context, request *mealplanning
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive meal plan")
 	}
 
-	if err = s.commentsManager.ArchiveCommentsForReference(ctx, mealplanning.CommentTargetTypeMealPlans, request.MealPlanId); err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving comments for meal plan")
-	}
+	// The meal plan's comments are deliberately left alone; see ArchiveRecipe.
 
 	x := &mealplanningsvc.ArchiveMealPlanResponse{
 		ResponseDetails: &types.ResponseDetails{

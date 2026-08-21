@@ -16,6 +16,5 @@ type (
 		GetCommentsForReference(ctx context.Context, targetType, referencedID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[comments.Comment], error)
 		UpdateComment(ctx context.Context, id, belongsToUser string, input *comments.CommentUpdateRequestInput) error
 		ArchiveComment(ctx context.Context, id string) error
-		ArchiveCommentsForReference(ctx context.Context, targetType, referencedID string) error
 	}
 )

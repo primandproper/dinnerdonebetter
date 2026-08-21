@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	commentsmanagermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mockmanagers "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers/mock"
@@ -63,6 +64,11 @@ func TestServiceImpl_ArchiveMeal(T *testing.T) {
 		}
 		s.mealPlanningManager = mmpm
 
+		// A comments manager with no functions set: any call panics. Archiving a
+		// meal must not touch the comments on it — they belong to their authors.
+		cm := &commentsmanagermock.CommentsDataManagerMock{}
+		s.commentsManager = cm
+
 		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
 			Requester: sessions.RequesterInfo{
 				UserID: exampleUserID,
@@ -74,6 +80,7 @@ func TestServiceImpl_ArchiveMeal(T *testing.T) {
 		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ArchiveMealCalls(), 1)
+		assert.Empty(t, cm.ArchiveCommentCalls())
 	})
 }
 
@@ -99,6 +106,11 @@ func TestServiceImpl_ArchiveMealPlan(T *testing.T) {
 		}
 		s.mealPlanningManager = mmpm
 
+		// A comments manager with no functions set: any call panics. Archiving a
+		// meal plan must not touch the comments on it — they belong to their authors.
+		cm := &commentsmanagermock.CommentsDataManagerMock{}
+		s.commentsManager = cm
+
 		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
 			ActiveAccountID: exampleAccountID,
 		})
@@ -108,6 +120,7 @@ func TestServiceImpl_ArchiveMealPlan(T *testing.T) {
 		require.NoError(t, err)
 
 		assert.Len(t, mmpm.ArchiveMealPlanCalls(), 1)
+		assert.Empty(t, cm.ArchiveCommentCalls())
 	})
 }
 

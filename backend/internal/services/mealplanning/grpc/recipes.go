@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
-	mealplanningdomain "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
@@ -90,9 +89,11 @@ func (s *serviceImpl) ArchiveRecipe(ctx context.Context, request *mealplanning.A
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving recipe")
 	}
 
-	if err = s.commentsManager.ArchiveCommentsForReference(ctx, mealplanningdomain.CommentTargetTypeRecipes, request.RecipeId); err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving comments for recipe")
-	}
+	// The recipe's comments are deliberately left alone. A comment belongs to the
+	// user who wrote it, and archiving the recipe is not that user's act: only the
+	// author archives their own comment (see the ownership check in the comments
+	// service). The thread stops being reachable through the recipe and remains
+	// reachable through GetCommentsForUser, pointing at an archived recipe.
 
 	x := &mealplanning.ArchiveRecipeResponse{
 		ResponseDetails: &types.ResponseDetails{

@@ -37,9 +37,6 @@ func (n *noopCommentsManager) UpdateComment(_ context.Context, _, _ string, _ *c
 func (n *noopCommentsManager) ArchiveComment(_ context.Context, _ string) error {
 	return nil
 }
-func (n *noopCommentsManager) ArchiveCommentsForReference(_ context.Context, _, _ string) error {
-	return nil
-}
 
 var _ commentsmanager.CommentsDataManager = (*noopCommentsManager)(nil)
 

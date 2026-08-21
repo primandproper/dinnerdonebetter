@@ -191,41 +191,6 @@ func TestQuerier_Integration_Comments_WithReplies(t *testing.T) {
 	assert.True(t, foundReply)
 }
 
-func TestQuerier_Integration_ArchiveCommentsForReference(t *testing.T) {
-	ctx := t.Context()
-	dbc, auditRepo := buildDatabaseClientForTest(t)
-
-	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
-	referencedID := identifiers.New()
-	targetType := mealplanning.CommentTargetTypeMealPlans
-
-	input := fakes.BuildFakeCommentDatabaseCreationInput()
-	input.BelongsToUser = user.ID
-	input.ReferencedID = referencedID
-	input.TargetType = targetType
-
-	created := createCommentForTest(t, ctx, input, dbc)
-
-	// archive all for reference
-	err := dbc.ArchiveCommentsForReference(ctx, targetType, referencedID)
-	require.NoError(t, err)
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeComments, RelevantID: created.ID},
-	})
-
-	// comment should no longer be fetchable (GetComment returns archived)
-	fetched, err := dbc.GetComment(ctx, created.ID)
-	require.Error(t, err)
-	assert.Nil(t, fetched)
-	require.ErrorIs(t, err, sql.ErrNoRows)
-
-	// list should be empty when not including archived
-	result, err := dbc.GetCommentsForReference(ctx, targetType, referencedID, nil)
-	require.NoError(t, err)
-	assert.Empty(t, result.Data)
-}
-
 func TestQuerier_CreateComment(T *testing.T) {
 	T.Parallel()
 
@@ -316,30 +281,6 @@ func TestQuerier_ArchiveComment(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		err := c.ArchiveComment(ctx, "")
-		assert.Error(t, err)
-	})
-}
-
-func TestQuerier_ArchiveCommentsForReference(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with empty target type", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		err := c.ArchiveCommentsForReference(ctx, "", "ref-id")
-		assert.Error(t, err)
-	})
-
-	T.Run("with empty referenced id", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		err := c.ArchiveCommentsForReference(ctx, mealplanning.CommentTargetTypeRecipes, "")
 		assert.Error(t, err)
 	})
 }
