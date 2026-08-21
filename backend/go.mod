@@ -57,6 +57,7 @@ require (
 
 require (
 	cloud.google.com/go/pubsub/v2 v2.6.0 // indirect
+	cloud.google.com/go/secretmanager v1.20.0 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	firebase.google.com/go/v4 v4.20.0 // indirect
 	github.com/4meepo/tagalign v1.4.3 // indirect
@@ -65,15 +66,19 @@ require (
 	github.com/KimMachineGun/automemlimit v0.7.5 // indirect
 	github.com/XSAM/otelsql v0.42.0 // indirect
 	github.com/a2aproject/a2a-go/v2 v2.3.1 // indirect
+	github.com/ably/ably-go v1.3.0 // indirect
+	github.com/ably/vcdiff-go v0.0.2 // indirect
 	github.com/air-verse/air v1.64.5 // indirect
 	github.com/alexedwards/argon2id v1.0.0 // indirect
 	github.com/alfatraining/structtag v1.0.0 // indirect
 	github.com/algolia/algoliasearch-client-go/v3 v3.32.1 // indirect
+	github.com/anthropics/anthropic-sdk-go v1.27.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.2.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.104.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.62.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.2.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.44.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.68.3 // indirect
 	github.com/bep/godartsass/v2 v2.5.0 // indirect
 	github.com/bep/golibsass v1.2.0 // indirect
 	github.com/boombuler/barcode v1.1.0 // indirect
@@ -132,6 +137,7 @@ require (
 	github.com/google/go-tpm v0.9.8 // indirect
 	github.com/google/renameio/v2 v2.0.2 // indirect
 	github.com/google/wire v0.7.0 // indirect
+	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
@@ -156,6 +162,7 @@ require (
 	github.com/moby/moby/api v1.55.0 // indirect
 	github.com/moby/moby/client v0.5.0 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
+	github.com/mozilla-ai/any-llm-go v0.9.0 // indirect
 	github.com/mssola/useragent v1.0.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
@@ -165,6 +172,7 @@ require (
 	github.com/olekukonko/ll v0.1.8 // indirect
 	github.com/open-feature/go-sdk v1.17.2 // indirect
 	github.com/open-feature/go-sdk-contrib/providers/launchdarkly v0.1.6 // indirect
+	github.com/openai/openai-go v1.12.0 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
@@ -172,6 +180,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.27 // indirect
 	github.com/posthog/posthog-go v1.17.2 // indirect
 	github.com/pressly/goose/v3 v3.27.3 // indirect
+	github.com/pusher/pusher-http-go/v5 v5.1.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/redis/go-redis/v9 v9.21.0 // indirect
@@ -202,6 +211,10 @@ require (
 	github.com/swaggest/refl v1.4.0 // indirect
 	github.com/tdewolff/parse/v2 v2.8.3 // indirect
 	github.com/testcontainers/testcontainers-go/modules/redis v0.43.0 // indirect
+	github.com/tidwall/gjson v1.18.0 // indirect
+	github.com/tidwall/match v1.2.0 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
@@ -249,6 +262,7 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/sqlite v1.54.0 // indirect
+	nhooyr.io/websocket v1.8.7 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.0 // indirect
