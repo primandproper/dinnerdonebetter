@@ -17,10 +17,6 @@ const (
 	childRoleIDColumn  = "child_role_id"
 )
 
-func init() {
-	registerTableName(userRoleHierarchyTableName)
-}
-
 var userRoleHierarchyColumns = []string{
 	idColumn,
 	parentRoleIDColumn,

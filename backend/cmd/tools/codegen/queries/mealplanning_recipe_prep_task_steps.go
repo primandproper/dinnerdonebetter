@@ -10,10 +10,6 @@ const (
 	satisfiesRecipeStepColumn = "satisfies_recipe_step"
 )
 
-func init() {
-	registerTableName(recipePrepTaskStepsTableName)
-}
-
 var recipePrepTaskStepsColumns = []string{
 	idColumn,
 	belongsToRecipeStepColumn,

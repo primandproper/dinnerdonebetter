@@ -37,12 +37,6 @@ const (
 	lastAcceptedPrivacyPolicyColumn     = "last_accepted_privacy_policy"
 )
 
-func init() {
-	registerTableName(usersTableName)
-	registerTableName(userAvatarsTableName)
-	registerTableName(uploadedMediaTable)
-}
-
 // avatarJoinColumns are the uploaded_media columns selected when joining for avatar.
 var avatarJoinColumns = []string{
 	"id", "storage_path", "mime_type", "created_at", "last_updated_at", "archived_at", "created_by_user",

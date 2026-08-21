@@ -17,10 +17,6 @@ const (
 	serviceSettingValueColumn = "value"
 )
 
-func init() {
-	registerTableName(serviceSettingConfigurationsTableName)
-}
-
 var serviceSettingConfigurationsColumns = []string{
 	idColumn,
 	serviceSettingValueColumn,

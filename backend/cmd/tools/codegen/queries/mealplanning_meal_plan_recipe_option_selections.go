@@ -18,10 +18,6 @@ const (
 	ingredientIndexColumn                 = "ingredient_index"
 )
 
-func init() {
-	registerTableName(mealPlanRecipeOptionSelectionsTableName)
-}
-
 var mealPlanRecipeOptionSelectionsColumns = []string{
 	idColumn,
 	belongsToMealPlanOptionColumn,

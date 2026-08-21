@@ -20,10 +20,6 @@ const (
 	mealPlanTaskStatusColumn             = "status"
 )
 
-func init() {
-	registerTableName(mealPlanTasksTableName)
-}
-
 var mealPlanTasksColumns = []string{
 	idColumn,
 	mealPlanTaskStatusColumn,

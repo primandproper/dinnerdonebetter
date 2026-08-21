@@ -9,10 +9,6 @@ const (
 	belongsToMealColumn     = "belongs_to_meal"
 )
 
-func init() {
-	registerTableName(mealComponentsTableName)
-}
-
 var mealComponentsColumns = []string{
 	idColumn,
 	belongsToMealColumn,

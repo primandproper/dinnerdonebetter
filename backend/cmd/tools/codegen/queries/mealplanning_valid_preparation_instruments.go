@@ -14,10 +14,6 @@ const (
 	validPreparationInstrumentsTableName = "valid_preparation_instruments"
 )
 
-func init() {
-	registerTableName(validPreparationInstrumentsTableName)
-}
-
 var validPreparationInstrumentsColumns = []string{
 	idColumn,
 	notesColumn,

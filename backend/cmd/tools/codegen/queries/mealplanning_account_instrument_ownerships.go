@@ -14,10 +14,6 @@ const (
 	accountInstrumentOwnershipsTableName = "account_instrument_ownerships"
 )
 
-func init() {
-	registerTableName(accountInstrumentOwnershipsTableName)
-}
-
 var accountInstrumentOwnershipsColumns = []string{
 	idColumn,
 	notesColumn,

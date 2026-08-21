@@ -17,10 +17,6 @@ const (
 	permissionIDColumn = "permission_id"
 )
 
-func init() {
-	registerTableName(userRolePermissionsTableName)
-}
-
 var userRolePermissionsColumns = []string{
 	idColumn,
 	roleIDColumn,

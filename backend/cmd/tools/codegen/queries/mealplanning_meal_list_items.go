@@ -16,10 +16,6 @@ const (
 	mealListIDColumn = "meal_list_id"
 )
 
-func init() {
-	registerTableName(mealListItemsTableName)
-}
-
 var mealListItemsColumns = []string{
 	idColumn,
 	mealIDColumn,

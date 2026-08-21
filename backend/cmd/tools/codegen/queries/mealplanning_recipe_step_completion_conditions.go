@@ -17,10 +17,6 @@ const (
 	recipeStepCompletionConditionIDColumn = "recipe_step_completion_condition_id"
 )
 
-func init() {
-	registerTableName(recipeStepCompletionConditionsTableName)
-}
-
 var recipeStepCompletionConditionsColumns = []string{
 	idColumn,
 	"optional",

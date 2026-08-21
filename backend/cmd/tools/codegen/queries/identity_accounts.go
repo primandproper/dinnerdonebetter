@@ -17,10 +17,6 @@ const (
 	webhookHMACSecretColumn = "webhook_hmac_secret"
 )
 
-func init() {
-	registerTableName(accountsTableName)
-}
-
 var accountsColumns = []string{
 	idColumn,
 	nameColumn,

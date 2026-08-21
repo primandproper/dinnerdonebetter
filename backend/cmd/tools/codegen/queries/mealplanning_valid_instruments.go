@@ -16,10 +16,6 @@ const (
 	validInstrumentIDColumn = "valid_instrument_id"
 )
 
-func init() {
-	registerTableName(validInstrumentsTableName)
-}
-
 var validInstrumentsColumns = []string{
 	idColumn,
 	nameColumn,

@@ -14,10 +14,6 @@ const (
 	recipeListsTableName = "recipe_lists"
 )
 
-func init() {
-	registerTableName(recipeListsTableName)
-}
-
 var recipeListsColumns = []string{
 	idColumn,
 	nameColumn,

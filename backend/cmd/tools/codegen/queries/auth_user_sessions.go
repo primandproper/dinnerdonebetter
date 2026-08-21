@@ -23,10 +23,6 @@ const (
 	revokedAtColumn      = "revoked_at"
 )
 
-func init() {
-	registerTableName(userSessionsTableName)
-}
-
 var userSessionsColumns = []string{
 	idColumn,
 	belongsToUserColumn,

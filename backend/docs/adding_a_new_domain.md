@@ -89,9 +89,13 @@ The query pipeline has two stages:
 Create a file like `your_domain_entity_name.go` (e.g., `settings_service_settings.go`). Each file:
 
 1. Defines `const tableName = "your_table_name"`
-2. Calls `registerTableName(tableName)` in `init()`
-3. Defines `var columns = []string{...}` (include `idColumn`, `createdAtColumn`, `lastUpdatedAtColumn`, `archivedAtColumn` from shared constants)
-4. Implements `buildXxxQueries(database string) []*Query` returning a slice of `Query` structs
+2. Defines `var columns = []string{...}` (include `idColumn`, `createdAtColumn`, `lastUpdatedAtColumn`, `archivedAtColumn` from shared constants)
+3. Implements `buildXxxQueries(database string) []*Query` returning a slice of `Query` structs
+
+There is nothing to register your table with. `DestroyAllData` — the `TRUNCATE` that
+empties a database between tests — reads `pg_tables` when it runs, so a table is covered
+by virtue of existing rather than by virtue of somebody having written a query builder
+for it.
 
 #### Query types
 
