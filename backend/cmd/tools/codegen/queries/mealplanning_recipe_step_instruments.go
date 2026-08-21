@@ -17,10 +17,6 @@ const (
 	instrumentIDColumn           = "instrument_id"
 )
 
-func init() {
-	registerTableName(recipeStepInstrumentsTableName)
-}
-
 var recipeStepInstrumentsColumns = []string{
 	idColumn,
 	instrumentIDColumn,

@@ -15,10 +15,6 @@ const (
 	externalSubscriptionIDColumn = "external_subscription_id"
 )
 
-func init() {
-	registerTableName(subscriptionsTableName)
-}
-
 var subscriptionsColumns = []string{
 	idColumn,
 	belongsToAccountColumn,

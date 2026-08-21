@@ -16,10 +16,6 @@ const (
 	mimeTypeColumn         = "mime_type"
 )
 
-func init() {
-	registerTableName(uploadedMediaTableName)
-}
-
 var uploadedMediaColumns = []string{
 	idColumn,
 	storagePathColumn,

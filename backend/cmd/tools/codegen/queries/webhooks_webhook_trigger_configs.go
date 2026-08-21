@@ -14,10 +14,6 @@ const (
 	triggerEventColumn             = "trigger_event"
 )
 
-func init() {
-	registerTableName(webhookTriggerConfigsTableName)
-}
-
 var (
 	webhookTriggerConfigsColumns = []string{
 		idColumn,

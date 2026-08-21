@@ -16,10 +16,6 @@ const (
 	accountIDColumn = "account_id"
 )
 
-func init() {
-	registerTableName(userRoleAssignmentsTableName)
-}
-
 var userRoleAssignmentsColumns = []string{
 	idColumn,
 	userIDColumn,

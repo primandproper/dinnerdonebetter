@@ -16,10 +16,6 @@ const (
 	validMeasurementUnitIDColumn             = "valid_measurement_unit_id"
 )
 
-func init() {
-	registerTableName(validIngredientMeasurementUnitsTableName)
-}
-
 var validIngredientMeasurementUnitsColumns = []string{
 	idColumn,
 	notesColumn,

@@ -16,10 +16,6 @@ const (
 	defaultAccountColumn = "default_account"
 )
 
-func init() {
-	registerTableName(accountUserMembershipsTableName)
-}
-
 var accountUserMembershipsColumns = []string{
 	idColumn,
 	belongsToAccountColumn,

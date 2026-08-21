@@ -16,10 +16,6 @@ const (
 	validMeasurementUnitsUniversalColumn = "universal"
 )
 
-func init() {
-	registerTableName(validMeasurementUnitsTableName)
-}
-
 var validMeasurementUnitsColumns = []string{
 	idColumn,
 	nameColumn,

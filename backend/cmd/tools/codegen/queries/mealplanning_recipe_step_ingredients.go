@@ -18,10 +18,6 @@ const (
 	measurementUnitColumn        = "measurement_unit"
 )
 
-func init() {
-	registerTableName(recipeStepIngredientsTableName)
-}
-
 var recipeStepIngredientsColumns = []string{
 	idColumn,
 	nameColumn,

@@ -17,10 +17,6 @@ const (
 	passwordResetTokenExpiresAtColumn = "expires_at"
 )
 
-func init() {
-	registerTableName(passwordResetTokensTableName)
-}
-
 var passwordResetTokensColumns = []string{
 	idColumn,
 	passwordResetTokenColumn,

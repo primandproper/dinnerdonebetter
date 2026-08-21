@@ -16,10 +16,6 @@ const (
 	capacityUnitColumn    = "capacity_unit"
 )
 
-func init() {
-	registerTableName(validVesselsTableName)
-}
-
 var validVesselsColumns = []string{
 	idColumn,
 	nameColumn,

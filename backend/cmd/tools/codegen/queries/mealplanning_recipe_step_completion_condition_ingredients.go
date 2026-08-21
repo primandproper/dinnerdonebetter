@@ -16,10 +16,6 @@ const (
 	belongsToRecipeStepCompletionConditionColumn = "belongs_to_recipe_step_completion_condition"
 )
 
-func init() {
-	registerTableName(recipeStepCompletionConditionIngredientsTableName)
-}
-
 var recipeStepCompletionConditionIngredientsColumns = []string{
 	idColumn,
 	belongsToRecipeStepCompletionConditionColumn,
