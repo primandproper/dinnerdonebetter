@@ -26,9 +26,6 @@ var _ manager.CommentsDataManager = &CommentsDataManagerMock{}
 //			ArchiveCommentFunc: func(ctx context.Context, id string) error {
 //				panic("mock out the ArchiveComment method")
 //			},
-//			ArchiveCommentsForReferenceFunc: func(ctx context.Context, targetType string, referencedID string) error {
-//				panic("mock out the ArchiveCommentsForReference method")
-//			},
 //			CreateCommentFunc: func(ctx context.Context, input *comments.CommentCreationRequestInput) (*comments.Comment, error) {
 //				panic("mock out the CreateComment method")
 //			},
@@ -51,9 +48,6 @@ type CommentsDataManagerMock struct {
 	// ArchiveCommentFunc mocks the ArchiveComment method.
 	ArchiveCommentFunc func(ctx context.Context, id string) error
 
-	// ArchiveCommentsForReferenceFunc mocks the ArchiveCommentsForReference method.
-	ArchiveCommentsForReferenceFunc func(ctx context.Context, targetType string, referencedID string) error
-
 	// CreateCommentFunc mocks the CreateComment method.
 	CreateCommentFunc func(ctx context.Context, input *comments.CommentCreationRequestInput) (*comments.Comment, error)
 
@@ -74,15 +68,6 @@ type CommentsDataManagerMock struct {
 			Ctx context.Context
 			// ID is the id argument value.
 			ID string
-		}
-		// ArchiveCommentsForReference holds details about calls to the ArchiveCommentsForReference method.
-		ArchiveCommentsForReference []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// TargetType is the targetType argument value.
-			TargetType string
-			// ReferencedID is the referencedID argument value.
-			ReferencedID string
 		}
 		// CreateComment holds details about calls to the CreateComment method.
 		CreateComment []struct {
@@ -121,12 +106,11 @@ type CommentsDataManagerMock struct {
 			Input *comments.CommentUpdateRequestInput
 		}
 	}
-	lockArchiveComment              sync.RWMutex
-	lockArchiveCommentsForReference sync.RWMutex
-	lockCreateComment               sync.RWMutex
-	lockGetComment                  sync.RWMutex
-	lockGetCommentsForReference     sync.RWMutex
-	lockUpdateComment               sync.RWMutex
+	lockArchiveComment          sync.RWMutex
+	lockCreateComment           sync.RWMutex
+	lockGetComment              sync.RWMutex
+	lockGetCommentsForReference sync.RWMutex
+	lockUpdateComment           sync.RWMutex
 }
 
 // ArchiveComment calls ArchiveCommentFunc.
@@ -162,46 +146,6 @@ func (mock *CommentsDataManagerMock) ArchiveCommentCalls() []struct {
 	mock.lockArchiveComment.RLock()
 	calls = mock.calls.ArchiveComment
 	mock.lockArchiveComment.RUnlock()
-	return calls
-}
-
-// ArchiveCommentsForReference calls ArchiveCommentsForReferenceFunc.
-func (mock *CommentsDataManagerMock) ArchiveCommentsForReference(ctx context.Context, targetType string, referencedID string) error {
-	if mock.ArchiveCommentsForReferenceFunc == nil {
-		panic("CommentsDataManagerMock.ArchiveCommentsForReferenceFunc: method is nil but CommentsDataManager.ArchiveCommentsForReference was just called")
-	}
-	callInfo := struct {
-		Ctx          context.Context
-		TargetType   string
-		ReferencedID string
-	}{
-		Ctx:          ctx,
-		TargetType:   targetType,
-		ReferencedID: referencedID,
-	}
-	mock.lockArchiveCommentsForReference.Lock()
-	mock.calls.ArchiveCommentsForReference = append(mock.calls.ArchiveCommentsForReference, callInfo)
-	mock.lockArchiveCommentsForReference.Unlock()
-	return mock.ArchiveCommentsForReferenceFunc(ctx, targetType, referencedID)
-}
-
-// ArchiveCommentsForReferenceCalls gets all the calls that were made to ArchiveCommentsForReference.
-// Check the length with:
-//
-//	len(mockedCommentsDataManager.ArchiveCommentsForReferenceCalls())
-func (mock *CommentsDataManagerMock) ArchiveCommentsForReferenceCalls() []struct {
-	Ctx          context.Context
-	TargetType   string
-	ReferencedID string
-} {
-	var calls []struct {
-		Ctx          context.Context
-		TargetType   string
-		ReferencedID string
-	}
-	mock.lockArchiveCommentsForReference.RLock()
-	calls = mock.calls.ArchiveCommentsForReference
-	mock.lockArchiveCommentsForReference.RUnlock()
 	return calls
 }
 

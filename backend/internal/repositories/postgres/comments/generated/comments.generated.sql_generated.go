@@ -26,25 +26,6 @@ func (q *Queries) ArchiveComment(ctx context.Context, db DBTX, id string) (int64
 	return result.RowsAffected()
 }
 
-const archiveCommentsForReference = `-- name: ArchiveCommentsForReference :execrows
-UPDATE comments SET archived_at = CURRENT_TIMESTAMP WHERE archived_at IS NULL
-	AND target_type = $1
-	AND referenced_id = $2
-`
-
-type ArchiveCommentsForReferenceParams struct {
-	TargetType   CommentTargetType
-	ReferencedID string
-}
-
-func (q *Queries) ArchiveCommentsForReference(ctx context.Context, db DBTX, arg *ArchiveCommentsForReferenceParams) (int64, error) {
-	result, err := db.ExecContext(ctx, archiveCommentsForReference, arg.TargetType, arg.ReferencedID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
 const createComment = `-- name: CreateComment :exec
 INSERT INTO comments (
 	id,

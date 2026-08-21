@@ -10,7 +10,6 @@ import (
 
 type Querier interface {
 	ArchiveComment(ctx context.Context, db DBTX, id string) (int64, error)
-	ArchiveCommentsForReference(ctx context.Context, db DBTX, arg *ArchiveCommentsForReferenceParams) (int64, error)
 	CreateComment(ctx context.Context, db DBTX, arg *CreateCommentParams) error
 	GetComment(ctx context.Context, db DBTX, id string) (*Comments, error)
 	GetCommentsForReference(ctx context.Context, db DBTX, arg *GetCommentsForReferenceParams) ([]*GetCommentsForReferenceRow, error)

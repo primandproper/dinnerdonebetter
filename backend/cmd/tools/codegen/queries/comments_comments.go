@@ -43,22 +43,6 @@ func buildCommentsQueries(database string) []*Query {
 			[]*Query{
 				{
 					Annotation: QueryAnnotation{
-						Name: "ArchiveCommentsForReference",
-						Type: ExecRowsType,
-					},
-					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s IS NULL
-	AND %s = sqlc.arg(target_type)
-	AND %s = sqlc.arg(referenced_id);`,
-						commentsTableName,
-						archivedAtColumn,
-						querygen.NowExpression,
-						archivedAtColumn,
-						"target_type",
-						"referenced_id",
-					)),
-				},
-				{
-					Annotation: QueryAnnotation{
 						Name: "GetCommentsForReference",
 						Type: ManyType,
 					},
