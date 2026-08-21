@@ -26,10 +26,11 @@ func (q *Queries) ArchiveComment(ctx context.Context, db DBTX, id string) (int64
 	return result.RowsAffected()
 }
 
-const archiveCommentsForReference = `-- name: ArchiveCommentsForReference :execrows
+const archiveCommentsForReference = `-- name: ArchiveCommentsForReference :many
 UPDATE comments SET archived_at = CURRENT_TIMESTAMP WHERE archived_at IS NULL
 	AND target_type = $1
 	AND referenced_id = $2
+RETURNING id, belongs_to_user
 `
 
 type ArchiveCommentsForReferenceParams struct {
@@ -37,12 +38,32 @@ type ArchiveCommentsForReferenceParams struct {
 	ReferencedID string
 }
 
-func (q *Queries) ArchiveCommentsForReference(ctx context.Context, db DBTX, arg *ArchiveCommentsForReferenceParams) (int64, error) {
-	result, err := db.ExecContext(ctx, archiveCommentsForReference, arg.TargetType, arg.ReferencedID)
+type ArchiveCommentsForReferenceRow struct {
+	ID            string
+	BelongsToUser string
+}
+
+func (q *Queries) ArchiveCommentsForReference(ctx context.Context, db DBTX, arg *ArchiveCommentsForReferenceParams) ([]*ArchiveCommentsForReferenceRow, error) {
+	rows, err := db.QueryContext(ctx, archiveCommentsForReference, arg.TargetType, arg.ReferencedID)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return result.RowsAffected()
+	defer rows.Close()
+	items := []*ArchiveCommentsForReferenceRow{}
+	for rows.Next() {
+		var i ArchiveCommentsForReferenceRow
+		if err := rows.Scan(&i.ID, &i.BelongsToUser); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const createComment = `-- name: CreateComment :exec

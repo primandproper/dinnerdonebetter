@@ -376,32 +376,38 @@ func (q *repository) ArchiveCommentsForReference(ctx context.Context, targetType
 	tracing.AttachToSpan(span, "target_type", targetType)
 	tracing.AttachToSpan(span, "referenced_id", referencedID)
 
-	filter := filtering.DefaultQueryFilter()
-	maxSize := uint16(filtering.MaxQueryFilterLimit)
-	filter.MaxResponseSize = &maxSize
-	commentsResult, err := q.GetCommentsForReference(ctx, targetType, referencedID, filter)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "fetching comments for archive")
-	}
-
+	// The UPDATE returns the rows it archived, so the audited set and the archived set
+	// are the same set by construction. Reading the comments beforehand would be a
+	// second statement, against the replica, outside this transaction, and bounded by a
+	// page limit the UPDATE does not share — any of which makes the two sets differ.
 	return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
-		if _, err = q.generatedQuerier.ArchiveCommentsForReference(ctx, tx, &generated.ArchiveCommentsForReferenceParams{
+		archived, err := q.generatedQuerier.ArchiveCommentsForReference(ctx, tx, &generated.ArchiveCommentsForReferenceParams{
 			TargetType:   targetTypeToGenerated(targetType),
 			ReferencedID: referencedID,
-		}); err != nil {
+		})
+		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving comments for reference")
 		}
 
-		for _, c := range commentsResult.Data {
-			if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		if len(archived) == 0 {
+			return nil
+		}
+
+		// One Record call rather than one per comment: the set here is unbounded, and
+		// Record pays a chain-head lookup and an INSERT per call, not per entry.
+		entries := make([]*audit.AuditLogEntry, 0, len(archived))
+		for _, c := range archived {
+			entries = append(entries, &audit.AuditLogEntry{
 				ID:            identifiers.New(),
 				ResourceType:  resourceTypeComments,
 				RelevantID:    c.ID,
 				EventType:     audit.AuditLogEventTypeArchived,
 				BelongsToUser: c.BelongsToUser,
-			}); err != nil {
-				return observability.PrepareError(err, span, "creating audit log entry")
-			}
+			})
+		}
+
+		if err = q.auditLogEntryRepo.Record(ctx, tx, entries...); err != nil {
+			return observability.PrepareError(err, span, "creating audit log entries")
 		}
 
 		return nil

@@ -44,17 +44,24 @@ func buildCommentsQueries(database string) []*Query {
 				{
 					Annotation: QueryAnnotation{
 						Name: "ArchiveCommentsForReference",
-						Type: ExecRowsType,
+						// This returns the rows it archived rather than a count, so the caller can
+						// audit exactly the set it updated. A separate read beforehand would be a
+						// different statement against a different snapshot, and the two would only
+						// agree by luck.
+						Type: ManyType,
 					},
 					Content: buildRawQuery((&builq.Builder{}).Addf(`UPDATE %s SET %s = %s WHERE %s IS NULL
 	AND %s = sqlc.arg(target_type)
-	AND %s = sqlc.arg(referenced_id);`,
+	AND %s = sqlc.arg(referenced_id)
+RETURNING %s, %s;`,
 						commentsTableName,
 						archivedAtColumn,
 						querygen.NowExpression,
 						archivedAtColumn,
 						"target_type",
 						"referenced_id",
+						idColumn,
+						belongsToUserColumn,
 					)),
 				},
 				{

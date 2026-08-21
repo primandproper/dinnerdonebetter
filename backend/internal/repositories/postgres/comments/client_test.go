@@ -92,6 +92,31 @@ func createCommentForTest(t *testing.T, ctx context.Context, input *comments.Com
 	return created
 }
 
+// fetchAllAuditLogEntriesForUser drains the cursor rather than reading one page, because
+// the sets these tests assert on are deliberately larger than a page.
+func fetchAllAuditLogEntriesForUser(t *testing.T, ctx context.Context, auditRepo audit.Repository, userID string) []*audit.AuditLogEntry {
+	t.Helper()
+
+	filter := filtering.DefaultQueryFilter()
+	pageSize := uint16(filtering.MaxQueryFilterLimit)
+	filter.MaxResponseSize = &pageSize
+
+	var entries []*audit.AuditLogEntry
+	for {
+		page, err := auditRepo.GetAuditLogEntriesForUser(ctx, userID, filter)
+		require.NoError(t, err)
+		require.NotNil(t, page)
+
+		entries = append(entries, page.Data...)
+		if len(page.Data) < int(pageSize) {
+			return entries
+		}
+
+		cursor := page.Cursor
+		filter.Cursor = &cursor
+	}
+}
+
 func TestQuerier_Integration_Comments(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo := buildDatabaseClientForTest(t)
@@ -224,6 +249,106 @@ func TestQuerier_Integration_ArchiveCommentsForReference(t *testing.T) {
 	result, err := dbc.GetCommentsForReference(ctx, targetType, referencedID, nil)
 	require.NoError(t, err)
 	assert.Empty(t, result.Data)
+}
+
+// TestQuerier_Integration_ArchiveCommentsForReference_BeyondOnePage covers the case the
+// archive used to get wrong: a reference whose live comments do not fit in one page. The
+// UPDATE has never had a LIMIT, so every comment was archived; the audit entries used to
+// come from a separate, page-limited read, so past filtering.MaxQueryFilterLimit the log
+// was short by the overflow and nothing reported it.
+func TestQuerier_Integration_ArchiveCommentsForReference_BeyondOnePage(t *testing.T) {
+	ctx := t.Context()
+	dbc, auditRepo := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	referencedID := identifiers.New()
+	targetType := mealplanning.CommentTargetTypeRecipes
+
+	// One more than a single page holds, so a page-limited read cannot describe the whole set.
+	commentCount := filtering.MaxQueryFilterLimit + 1
+	expected := map[string]bool{}
+	for range commentCount {
+		input := fakes.BuildFakeCommentDatabaseCreationInput()
+		input.BelongsToUser = user.ID
+		input.ReferencedID = referencedID
+		input.TargetType = targetType
+
+		created, err := dbc.CreateComment(ctx, input)
+		require.NoError(t, err)
+		require.NotNil(t, created)
+		expected[created.ID] = true
+	}
+
+	require.NoError(t, dbc.ArchiveCommentsForReference(ctx, targetType, referencedID))
+
+	archivedIDs := map[string]bool{}
+	for _, entry := range fetchAllAuditLogEntriesForUser(t, ctx, auditRepo, user.ID) {
+		if entry.ResourceType == resourceTypeComments && entry.EventType == audit.AuditLogEventTypeArchived {
+			archivedIDs[entry.RelevantID] = true
+		}
+	}
+
+	assert.Len(t, archivedIDs, commentCount)
+	for id := range expected {
+		assert.True(t, archivedIDs[id], "no archival audit log entry for comment %q", id)
+	}
+
+	result, err := dbc.GetCommentsForReference(ctx, targetType, referencedID, nil)
+	require.NoError(t, err)
+	assert.Empty(t, result.Data)
+	assert.Zero(t, result.TotalCount)
+}
+
+// TestQuerier_Integration_ArchiveCommentsForReference_OnlyMatchingReference makes sure the
+// RETURNING clause reports the rows the UPDATE actually matched, rather than everything the
+// table holds: comments on another reference stay live and pick up no archival entry.
+func TestQuerier_Integration_ArchiveCommentsForReference_OnlyMatchingReference(t *testing.T) {
+	ctx := t.Context()
+	dbc, auditRepo := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	targetType := mealplanning.CommentTargetTypeMeals
+	archivedRef, untouchedRef := identifiers.New(), identifiers.New()
+
+	createFor := func(referencedID string) *comments.Comment {
+		input := fakes.BuildFakeCommentDatabaseCreationInput()
+		input.BelongsToUser = user.ID
+		input.ReferencedID = referencedID
+		input.TargetType = targetType
+
+		return createCommentForTest(t, ctx, input, dbc)
+	}
+
+	doomed := createFor(archivedRef)
+	survivor := createFor(untouchedRef)
+
+	require.NoError(t, dbc.ArchiveCommentsForReference(ctx, targetType, archivedRef))
+
+	var archivedRelevantIDs []string
+	for _, entry := range fetchAllAuditLogEntriesForUser(t, ctx, auditRepo, user.ID) {
+		if entry.ResourceType == resourceTypeComments && entry.EventType == audit.AuditLogEventTypeArchived {
+			archivedRelevantIDs = append(archivedRelevantIDs, entry.RelevantID)
+		}
+	}
+	assert.Equal(t, []string{doomed.ID}, archivedRelevantIDs)
+
+	fetched, err := dbc.GetComment(ctx, survivor.ID)
+	require.NoError(t, err)
+	require.NotNil(t, fetched)
+	assert.Nil(t, fetched.ArchivedAt)
+}
+
+// TestQuerier_Integration_ArchiveCommentsForReference_NoComments covers the empty case: a
+// reference with nothing live archives nothing and records nothing.
+func TestQuerier_Integration_ArchiveCommentsForReference_NoComments(t *testing.T) {
+	ctx := t.Context()
+	dbc, auditRepo := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+
+	require.NoError(t, dbc.ArchiveCommentsForReference(ctx, mealplanning.CommentTargetTypeRecipes, identifiers.New()))
+
+	assert.Empty(t, fetchAllAuditLogEntriesForUser(t, ctx, auditRepo, user.ID))
 }
 
 func TestQuerier_CreateComment(T *testing.T) {

@@ -36,10 +36,11 @@ UPDATE comments SET
 WHERE archived_at IS NULL
 	AND id = sqlc.arg(id);
 
--- name: ArchiveCommentsForReference :execrows
+-- name: ArchiveCommentsForReference :many
 UPDATE comments SET archived_at = CURRENT_TIMESTAMP WHERE archived_at IS NULL
 	AND target_type = sqlc.arg(target_type)
-	AND referenced_id = sqlc.arg(referenced_id);
+	AND referenced_id = sqlc.arg(referenced_id)
+RETURNING id, belongs_to_user;
 
 -- name: GetCommentsForReference :many
 SELECT
