@@ -238,8 +238,8 @@ public struct Settings_GetServiceSettingConfigurationByNameRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -253,7 +253,7 @@ public struct Settings_GetServiceSettingConfigurationByNameRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Settings_GetServiceSettingConfigurationByNameResponse: Sendable {
@@ -270,8 +270,8 @@ public struct Settings_GetServiceSettingConfigurationByNameResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -293,7 +293,7 @@ public struct Settings_GetServiceSettingConfigurationByNameResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
   fileprivate var _result: Settings_ServiceSettingConfiguration? = nil
 }
 
@@ -302,8 +302,8 @@ public struct Settings_GetServiceSettingConfigurationsForAccountRequest: Sendabl
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -315,7 +315,7 @@ public struct Settings_GetServiceSettingConfigurationsForAccountRequest: Sendabl
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Settings_GetServiceSettingConfigurationsForAccountResponse: Sendable {
@@ -332,8 +332,8 @@ public struct Settings_GetServiceSettingConfigurationsForAccountResponse: Sendab
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -348,7 +348,7 @@ public struct Settings_GetServiceSettingConfigurationsForAccountResponse: Sendab
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Settings_GetServiceSettingConfigurationsForUserRequest: Sendable {
@@ -356,8 +356,8 @@ public struct Settings_GetServiceSettingConfigurationsForUserRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -369,7 +369,7 @@ public struct Settings_GetServiceSettingConfigurationsForUserRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Settings_GetServiceSettingConfigurationsForUserResponse: Sendable {
@@ -386,8 +386,8 @@ public struct Settings_GetServiceSettingConfigurationsForUserResponse: Sendable 
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -402,7 +402,7 @@ public struct Settings_GetServiceSettingConfigurationsForUserResponse: Sendable 
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Settings_GetServiceSettingsRequest: Sendable {
@@ -410,8 +410,8 @@ public struct Settings_GetServiceSettingsRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -423,7 +423,7 @@ public struct Settings_GetServiceSettingsRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Settings_GetServiceSettingsResponse: Sendable {
@@ -440,8 +440,8 @@ public struct Settings_GetServiceSettingsResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -456,7 +456,7 @@ public struct Settings_GetServiceSettingsResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Settings_SearchForServiceSettingsRequest: Sendable {
@@ -464,8 +464,8 @@ public struct Settings_SearchForServiceSettingsRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -479,7 +479,7 @@ public struct Settings_SearchForServiceSettingsRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Settings_SearchForServiceSettingsResponse: Sendable {
@@ -496,8 +496,8 @@ public struct Settings_SearchForServiceSettingsResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -512,7 +512,7 @@ public struct Settings_SearchForServiceSettingsResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Settings_UpdateServiceSettingConfigurationRequest: Sendable {

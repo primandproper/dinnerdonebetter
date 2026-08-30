@@ -5,13 +5,13 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	commentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	commentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/services/comments/grpc/converters"
 
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 	"github.com/primandproper/platform-go/v13/observability"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 
@@ -75,7 +75,11 @@ func (s *serviceImpl) GetCommentsForReference(ctx context.Context, request *comm
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	result, err := s.commentsManager.GetCommentsForReference(ctx, request.TargetType, request.ReferencedId, filter)
@@ -87,7 +91,7 @@ func (s *serviceImpl) GetCommentsForReference(ctx context.Context, request *comm
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(result.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(result.Pagination),
 	}
 	for _, c := range result.Data {
 		x.Data = append(x.Data, converters.ConvertCommentToGRPCComment(c))

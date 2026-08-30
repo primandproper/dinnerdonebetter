@@ -9,10 +9,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	settingsfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/fakes"
 	settingsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/mock"
-	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 	"github.com/primandproper/platform-go/v13/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
@@ -221,7 +221,7 @@ func TestServiceImpl_GetServiceSettings(t *testing.T) {
 
 		pageSize := uint32(50)
 		request := &settingssvc.GetServiceSettingsRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -242,6 +242,66 @@ func TestServiceImpl_GetServiceSettings(t *testing.T) {
 		assert.Len(t, settingsRepo.GetServiceSettingsCalls(), 1)
 	})
 
+	// A page size above the ceiling is the reason this path goes through
+	// filtering/grpc rather than a local converter. protobuf carries the value as
+	// a uint32 and filtering.QueryFilter holds a uint16, so a converter that
+	// narrows before it clamps wraps instead: 70000 becomes 4464, which then
+	// clamps to a page size that looks like an answer to a question nobody asked.
+	t.Run("with a page size above the ceiling", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := buildSessionContextForTest(t)
+		exampleServiceSettingsList := settingsfakes.BuildFakeServiceSettingsList()
+
+		service, settingsRepo := buildTestService(t)
+
+		pageSize := uint32(70_000)
+		request := &settingssvc.GetServiceSettingsRequest{
+			Filter: &filteringpb.QueryFilter{
+				MaxResponseSize: &pageSize,
+			},
+		}
+
+		settingsRepo.GetServiceSettingsFunc = func(_ context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSetting], error) {
+			require.NotNil(t, filter.MaxResponseSize)
+			assert.Equal(t, filtering.MaxQueryFilterLimit, *filter.MaxResponseSize)
+
+			return exampleServiceSettingsList, nil
+		}
+
+		actual, err := service.GetServiceSettings(ctx, request)
+
+		require.NoError(t, err)
+		assert.NotNil(t, actual)
+
+		assert.Len(t, settingsRepo.GetServiceSettingsCalls(), 1)
+	})
+
+	// A sort direction nobody recognizes is reported rather than silently listed
+	// under ascending, so a mistyped filter is not answered with a plausible page.
+	t.Run("with an unrecognized sort direction", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := buildSessionContextForTest(t)
+
+		service, settingsRepo := buildTestService(t)
+
+		sortBy := "sideways"
+		request := &settingssvc.GetServiceSettingsRequest{
+			Filter: &filteringpb.QueryFilter{
+				SortBy: &sortBy,
+			},
+		}
+
+		actual, err := service.GetServiceSettings(ctx, request)
+
+		require.Error(t, err)
+		assert.Nil(t, actual)
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+
+		assert.Empty(t, settingsRepo.GetServiceSettingsCalls())
+	})
+
 	t.Run("with repository error", func(t *testing.T) {
 		t.Parallel()
 
@@ -251,7 +311,7 @@ func TestServiceImpl_GetServiceSettings(t *testing.T) {
 
 		pageSize := uint32(50)
 		request := &settingssvc.GetServiceSettingsRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}

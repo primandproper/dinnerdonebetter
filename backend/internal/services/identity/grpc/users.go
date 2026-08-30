@@ -12,7 +12,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
@@ -20,6 +19,7 @@ import (
 
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 	"github.com/primandproper/platform-go/v13/identifiers"
 	"github.com/primandproper/platform-go/v13/observability"
 	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
@@ -107,7 +107,10 @@ func (s *serviceImpl) GetUsers(ctx context.Context, request *identitysvc.GetUser
 
 	logger := s.logger.WithSpan(span)
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	users, err := s.identityDataManager.GetUsers(ctx, filter)
 	if err != nil {
@@ -116,7 +119,7 @@ func (s *serviceImpl) GetUsers(ctx context.Context, request *identitysvc.GetUser
 
 	x := &identitysvc.GetUsersResponse{
 		ResponseDetails: s.buildResponseDetails(ctx, span),
-		Pagination:      grpcconverters.ConvertPaginationToGRPCPagination(users.Pagination, filter),
+		Pagination:      filteringgrpc.PaginationToProto(users.Pagination),
 	}
 
 	for _, user := range users.Data {
@@ -132,7 +135,10 @@ func (s *serviceImpl) GetUsersForAccount(ctx context.Context, request *identitys
 
 	logger := s.logger.WithSpan(span)
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	users, err := s.identityDataManager.GetUsersForAccount(ctx, request.AccountId, filter)
 	if err != nil {
@@ -141,7 +147,7 @@ func (s *serviceImpl) GetUsersForAccount(ctx context.Context, request *identitys
 
 	x := &identitysvc.GetUsersForAccountResponse{
 		ResponseDetails: s.buildResponseDetails(ctx, span),
-		Pagination:      grpcconverters.ConvertPaginationToGRPCPagination(users.Pagination, filter),
+		Pagination:      filteringgrpc.PaginationToProto(users.Pagination),
 	}
 
 	for _, user := range users.Data {
@@ -159,7 +165,10 @@ func (s *serviceImpl) SearchForUsers(ctx context.Context, request *identitysvc.S
 		platformkeys.SearchQueryKey: request.Query,
 	}, span, s.logger)
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	users, err := s.identityDataManager.SearchForUsers(ctx, request.Query, request.UseSearchService, filter)
 	if err != nil {
@@ -168,7 +177,7 @@ func (s *serviceImpl) SearchForUsers(ctx context.Context, request *identitysvc.S
 
 	x := &identitysvc.SearchForUsersResponse{
 		ResponseDetails: s.buildResponseDetails(ctx, span),
-		Pagination:      grpcconverters.ConvertPaginationToGRPCPagination(users.Pagination, filter),
+		Pagination:      filteringgrpc.PaginationToProto(users.Pagination),
 	}
 
 	for _, user := range users.Data {

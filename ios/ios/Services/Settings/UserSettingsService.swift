@@ -75,7 +75,7 @@ class UserSettingsService {
     -> [Settings_ServiceSettingConfiguration]
   {
     var request = Settings_GetServiceSettingConfigurationsForUserRequest()
-    request.filter = Filtering_QueryFilter()
+    request.filter = QueryFilterMessage()
 
     let response = try await authManager.authenticatedCall(
       "getServiceSettingConfigurationsForUser", idempotent: true

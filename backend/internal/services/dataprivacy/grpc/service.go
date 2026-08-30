@@ -8,7 +8,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	dataprivacykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/keys"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc/converters"
@@ -16,6 +15,7 @@ import (
 	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 	"github.com/primandproper/platform-go/v13/observability"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
@@ -184,7 +184,11 @@ func (s *serviceImpl) ListDataPrivacyRequests(ctx context.Context, request *data
 	logger := s.logger.WithSpan(span).WithValue(identitykeys.UserIDKey, userID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.GetFilter())
+	filter, err := filteringgrpc.FromProto(request.GetFilter())
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	result, err := s.requests.List(ctx, subjectFor(userID), filter)
@@ -194,7 +198,7 @@ func (s *serviceImpl) ListDataPrivacyRequests(ctx context.Context, request *data
 
 	response := &dataprivacysvc.ListDataPrivacyRequestsResponse{
 		ResponseDetails: &types.ResponseDetails{TraceId: span.SpanContext().TraceID().String()},
-		Pagination:      grpcconverters.ConvertPaginationToGRPCPagination(result.Pagination, filter),
+		Pagination:      filteringgrpc.PaginationToProto(result.Pagination),
 	}
 
 	for _, stored := range result.Data {

@@ -9,11 +9,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	webhookfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 	webhookmgrmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/manager/mock"
-	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc/converters"
 
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 	"github.com/primandproper/platform-go/v13/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
@@ -366,7 +366,7 @@ func TestServiceImpl_GetWebhooks(t *testing.T) {
 		}
 
 		request := &webhookssvc.GetWebhooksRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				// Add any filter fields as needed
 			},
 		}
@@ -389,7 +389,7 @@ func TestServiceImpl_GetWebhooks(t *testing.T) {
 		service, _ := buildTestService(t)
 
 		request := &webhookssvc.GetWebhooksRequest{
-			Filter: &grpcfiltering.QueryFilter{},
+			Filter: &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetWebhooks(ctx, request)
@@ -412,7 +412,7 @@ func TestServiceImpl_GetWebhooks(t *testing.T) {
 		}
 
 		request := &webhookssvc.GetWebhooksRequest{
-			Filter: &grpcfiltering.QueryFilter{},
+			Filter: &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetWebhooks(ctx, request)

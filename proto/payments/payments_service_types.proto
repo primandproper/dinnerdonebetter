@@ -3,9 +3,9 @@ syntax = "proto3";
 package payments;
 
 import "common.proto";
-import "filtering.proto";
 import "google/protobuf/timestamp.proto";
 import "payments/payments_messages.proto";
+import "primandproper/platform/filtering/v1/filtering.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments";
 
@@ -71,12 +71,12 @@ message GetProductResponse {
 }
 
 message GetProductsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetProductsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated Product results = 3;
 }
 
@@ -117,12 +117,12 @@ message GetSubscriptionResponse {
 
 message GetSubscriptionsForAccountRequest {
   string account_id = 1;
-  filtering.QueryFilter filter = 2;
+  primandproper.platform.filtering.v1.QueryFilter filter = 2;
 }
 
 message GetSubscriptionsForAccountResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated Subscription results = 3;
 }
 
@@ -153,22 +153,22 @@ message CancelSubscriptionResponse {
 
 message GetPurchasesForAccountRequest {
   string account_id = 1;
-  filtering.QueryFilter filter = 2;
+  primandproper.platform.filtering.v1.QueryFilter filter = 2;
 }
 
 message GetPurchasesForAccountResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated Purchase results = 3;
 }
 
 message GetPaymentHistoryForAccountRequest {
   string account_id = 1;
-  filtering.QueryFilter filter = 2;
+  primandproper.platform.filtering.v1.QueryFilter filter = 2;
 }
 
 message GetPaymentHistoryForAccountResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated PaymentTransaction results = 3;
 }

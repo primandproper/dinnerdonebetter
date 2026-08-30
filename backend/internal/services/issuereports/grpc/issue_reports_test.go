@@ -9,11 +9,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	issuereportfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/fakes"
 	issuereportmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/mock"
-	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/issuereports/grpc/converters"
 
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 	"github.com/primandproper/platform-go/v13/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
@@ -245,7 +245,7 @@ func TestServiceImpl_GetIssueReports(t *testing.T) {
 		service := buildTestService(t, mockRepo)
 
 		request := &issuereportssvc.GetIssueReportsRequest{
-			Filter: &grpcfiltering.QueryFilter{},
+			Filter: &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetIssueReports(ctx, request)
@@ -264,7 +264,7 @@ func TestServiceImpl_GetIssueReports(t *testing.T) {
 		service := buildTestService(t, nil)
 
 		request := &issuereportssvc.GetIssueReportsRequest{
-			Filter: &grpcfiltering.QueryFilter{},
+			Filter: &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetIssueReports(ctx, request)
@@ -304,7 +304,7 @@ func TestServiceImpl_GetIssueReportsForAccount(t *testing.T) {
 
 		request := &issuereportssvc.GetIssueReportsForAccountRequest{
 			AccountId: testAccountID,
-			Filter:    &grpcfiltering.QueryFilter{},
+			Filter:    &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetIssueReportsForAccount(ctx, request)
@@ -324,7 +324,7 @@ func TestServiceImpl_GetIssueReportsForAccount(t *testing.T) {
 
 		request := &issuereportssvc.GetIssueReportsForAccountRequest{
 			AccountId: testAccountID,
-			Filter:    &grpcfiltering.QueryFilter{},
+			Filter:    &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetIssueReportsForAccount(ctx, request)
@@ -363,7 +363,7 @@ func TestServiceImpl_GetIssueReportsForTable(t *testing.T) {
 
 		request := &issuereportssvc.GetIssueReportsForTableRequest{
 			TableName: "recipes",
-			Filter:    &grpcfiltering.QueryFilter{},
+			Filter:    &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetIssueReportsForTable(ctx, request)
@@ -383,7 +383,7 @@ func TestServiceImpl_GetIssueReportsForTable(t *testing.T) {
 
 		request := &issuereportssvc.GetIssueReportsForTableRequest{
 			TableName: "recipes",
-			Filter:    &grpcfiltering.QueryFilter{},
+			Filter:    &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetIssueReportsForTable(ctx, request)
@@ -424,7 +424,7 @@ func TestServiceImpl_GetIssueReportsForRecord(t *testing.T) {
 		request := &issuereportssvc.GetIssueReportsForRecordRequest{
 			TableName: "recipes",
 			RecordId:  "some-record-id",
-			Filter:    &grpcfiltering.QueryFilter{},
+			Filter:    &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetIssueReportsForRecord(ctx, request)
@@ -445,7 +445,7 @@ func TestServiceImpl_GetIssueReportsForRecord(t *testing.T) {
 		request := &issuereportssvc.GetIssueReportsForRecordRequest{
 			TableName: "recipes",
 			RecordId:  "some-record-id",
-			Filter:    &grpcfiltering.QueryFilter{},
+			Filter:    &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetIssueReportsForRecord(ctx, request)

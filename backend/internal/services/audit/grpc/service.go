@@ -8,12 +8,12 @@ import (
 	auditkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/keys"
 	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	auditsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 	grpctypes "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/audit/grpc/converters"
 
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 
@@ -55,7 +55,10 @@ func (s *serviceImpl) GetAuditLogEntriesForAccount(ctx context.Context, request 
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
@@ -81,7 +84,7 @@ func (s *serviceImpl) GetAuditLogEntriesForAccount(ctx context.Context, request 
 		ResponseDetails: &grpctypes.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(auditLogEntries.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(auditLogEntries.Pagination),
 		Results:    nil,
 	}
 
@@ -97,7 +100,10 @@ func (s *serviceImpl) GetAuditLogEntriesForUser(ctx context.Context, request *au
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
@@ -123,7 +129,7 @@ func (s *serviceImpl) GetAuditLogEntriesForUser(ctx context.Context, request *au
 		ResponseDetails: &grpctypes.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(auditLogEntries.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(auditLogEntries.Pagination),
 		Results:    nil,
 	}
 

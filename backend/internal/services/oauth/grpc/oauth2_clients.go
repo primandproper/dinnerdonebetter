@@ -4,12 +4,12 @@ import (
 	"context"
 
 	oauthkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 	grpctypes "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	oauthgrpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc/converters"
 
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 
 	"google.golang.org/grpc/codes"
 )
@@ -80,7 +80,10 @@ func (s *serviceImpl) GetOAuth2Clients(ctx context.Context, request *oauthsvc.Ge
 	defer span.End()
 
 	logger := s.logger.Clone()
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	oauth2Clients, err := s.oauthDataManager.GetOAuth2Clients(ctx, filter)
 	if err != nil {
@@ -91,7 +94,7 @@ func (s *serviceImpl) GetOAuth2Clients(ctx context.Context, request *oauthsvc.Ge
 		ResponseDetails: &grpctypes.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(oauth2Clients.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(oauth2Clients.Pagination),
 	}
 
 	for _, client := range oauth2Clients.Data {

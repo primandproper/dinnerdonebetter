@@ -7,8 +7,8 @@
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { ResponseDetails } from '../common';
-import { Pagination, QueryFilter } from '../filtering';
 import { Timestamp } from '../google/protobuf/timestamp';
+import { Pagination, QueryFilter } from '../primandproper/platform/filtering/v1/filtering';
 import { PaymentTransaction, Product, Purchase, Subscription } from './payments_messages';
 
 export const protobufPackage = 'payments';

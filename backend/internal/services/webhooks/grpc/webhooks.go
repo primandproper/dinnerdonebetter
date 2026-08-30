@@ -7,12 +7,12 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	webhookkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc/converters"
 
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 
 	"google.golang.org/grpc/codes"
 )
@@ -126,7 +126,11 @@ func (s *serviceImpl) GetWebhooks(ctx context.Context, request *webhookssvc.GetW
 	}
 	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	retrieved, err := s.webhookManager.GetWebhooks(ctx, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch webhooks")
@@ -136,7 +140,7 @@ func (s *serviceImpl) GetWebhooks(ctx context.Context, request *webhookssvc.GetW
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(retrieved.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(retrieved.Pagination),
 	}
 
 	for _, webhook := range retrieved.Data {

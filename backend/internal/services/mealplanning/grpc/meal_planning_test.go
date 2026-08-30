@@ -1530,7 +1530,7 @@ func TestServiceImpl_SearchForMeals(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeMealsList()
-		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForMealsRequest](t)
+		exampleRequest := requestWithSortDirection(t, fake.BuildFakeForTest[mealplanninggrpc.SearchForMealsRequest](t))
 
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
@@ -1962,7 +1962,7 @@ func TestServiceImpl_SearchForValidInstrumentsNotOwnedByAccount(T *testing.T) {
 
 		exampleAccountID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeValidInstrumentsList()
-		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForValidInstrumentsNotOwnedByAccountRequest](t)
+		exampleRequest := requestWithSortDirection(t, fake.BuildFakeForTest[mealplanninggrpc.SearchForValidInstrumentsNotOwnedByAccountRequest](t))
 
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)

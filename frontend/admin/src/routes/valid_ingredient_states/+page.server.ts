@@ -1,7 +1,8 @@
 import type { PageServerLoad } from './$types';
 import { getValidIngredientStates, searchForValidIngredientStates } from '$lib/grpc/clients';
+import { QueryFilter } from '@dinnerdonebetter/api-client';
 
-const DEFAULT_LIST_FILTER = { maxResponseSize: 100 };
+const DEFAULT_LIST_FILTER = QueryFilter.create({ maxResponseSize: 100 });
 
 export const load: PageServerLoad = async ({ locals, url }) => {
   const token = locals.accessToken;

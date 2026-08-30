@@ -16,7 +16,7 @@ Uses the same flow as the mobile and web apps:
 - [k6](https://k6.io/docs/getting-started/installation/) installed
 - Load test user (username + password)
 - Load test OAuth2 client (client_id + client_secret)
-- gRPC server reflection enabled (for proto discovery). The `proto/` symlink points to the repo proto dir for manual proto loading if reflection is unavailable.
+- gRPC server reflection enabled (for proto discovery). The `proto/` symlink points to the repo proto dir for manual proto loading if reflection is unavailable; those files import `primandproper/platform/filtering/v1/filtering.proto` from platform-go, so a manual load needs that module's `filtering/proto` directory on the import path too (see `proto/README.md`).
 
 ## Environment Variables
 

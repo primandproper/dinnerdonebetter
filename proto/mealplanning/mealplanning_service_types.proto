@@ -4,9 +4,9 @@ package mealplanning;
 
 import "comments/comments_messages.proto";
 import "common.proto";
-import "filtering.proto";
 import "google/protobuf/timestamp.proto";
 import "mealplanning/mealplanning_messages.proto";
+import "primandproper/platform/filtering/v1/filtering.proto";
 import "uploaded_media/uploaded_media_messages.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning";
@@ -652,12 +652,12 @@ message GetValidIngredientGroupResponse {
 }
 
 message GetValidIngredientGroupsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetValidIngredientGroupsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredientGroup results = 3;
 }
 
@@ -671,34 +671,34 @@ message GetValidIngredientMeasurementUnitResponse {
 }
 
 message GetValidIngredientMeasurementUnitsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetValidIngredientMeasurementUnitsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredientMeasurementUnit results = 3;
 }
 
 message GetValidIngredientMeasurementUnitsByIngredientRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string valid_ingredient_id = 2;
 }
 
 message GetValidIngredientMeasurementUnitsByIngredientResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredientMeasurementUnit results = 3;
 }
 
 message GetValidIngredientMeasurementUnitsByMeasurementUnitRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string valid_measurement_unit_id = 2;
 }
 
 message GetValidIngredientMeasurementUnitsByMeasurementUnitResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredientMeasurementUnit results = 3;
 }
 
@@ -712,34 +712,34 @@ message GetValidIngredientPreparationResponse {
 }
 
 message GetValidIngredientPreparationsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetValidIngredientPreparationsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredientPreparation results = 3;
 }
 
 message GetValidIngredientPreparationsByIngredientRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string valid_ingredient_id = 2;
 }
 
 message GetValidIngredientPreparationsByIngredientResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredientPreparation results = 3;
 }
 
 message GetValidIngredientPreparationsByPreparationRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string valid_preparation_id = 2;
 }
 
 message GetValidIngredientPreparationsByPreparationResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredientPreparation results = 3;
 }
 
@@ -753,46 +753,46 @@ message GetValidPrepTaskConfigResponse {
 }
 
 message GetValidPrepTaskConfigsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetValidPrepTaskConfigsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidPrepTaskConfig results = 3;
 }
 
 message GetValidPrepTaskConfigsByIngredientRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string valid_ingredient_id = 2;
 }
 
 message GetValidPrepTaskConfigsByIngredientResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidPrepTaskConfig results = 3;
 }
 
 message GetValidPrepTaskConfigsByPreparationRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string valid_preparation_id = 2;
 }
 
 message GetValidPrepTaskConfigsByPreparationResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidPrepTaskConfig results = 3;
 }
 
 message GetValidPrepTaskConfigsByIngredientAndPreparationRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string valid_ingredient_id = 2;
   string valid_preparation_id = 3;
 }
 
 message GetValidPrepTaskConfigsByIngredientAndPreparationResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidPrepTaskConfig results = 3;
 }
 
@@ -815,54 +815,54 @@ message GetValidIngredientStateIngredientResponse {
 }
 
 message GetValidIngredientStateIngredientsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetValidIngredientStateIngredientsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredientStateIngredient results = 3;
 }
 
 message GetValidIngredientStateIngredientsByIngredientRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string valid_ingredient_id = 2;
 }
 
 message GetValidIngredientStateIngredientsByIngredientResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredientStateIngredient results = 3;
 }
 
 message GetValidIngredientStateIngredientsByIngredientStateRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string valid_ingredient_state_id = 2;
 }
 
 message GetValidIngredientStateIngredientsByIngredientStateResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredientStateIngredient results = 3;
 }
 
 message GetValidIngredientStatesRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetValidIngredientStatesResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredientState results = 3;
 }
 
 message GetValidIngredientsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetValidIngredientsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredient results = 3;
 }
 
@@ -876,12 +876,12 @@ message GetValidInstrumentResponse {
 }
 
 message GetValidInstrumentsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetValidInstrumentsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidInstrument results = 3;
 }
 
@@ -904,13 +904,13 @@ message GetValidMeasurementUnitConversionResponse {
 }
 
 message GetValidMeasurementUnitConversionsForUnitRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string valid_measurement_unit_id = 2;
 }
 
 message GetValidMeasurementUnitConversionsForUnitResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidMeasurementUnitConversion results = 3;
 }
 
@@ -932,12 +932,12 @@ message GetMeasurementUnitConversionMismatchesResponse {
 }
 
 message GetValidMeasurementUnitsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetValidMeasurementUnitsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidMeasurementUnit results = 3;
 }
 
@@ -960,34 +960,34 @@ message GetValidPreparationInstrumentResponse {
 }
 
 message GetValidPreparationInstrumentsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetValidPreparationInstrumentsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidPreparationInstrument results = 3;
 }
 
 message GetValidPreparationInstrumentsByInstrumentRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string valid_instrument_id = 2;
 }
 
 message GetValidPreparationInstrumentsByInstrumentResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidPreparationInstrument results = 3;
 }
 
 message GetValidPreparationInstrumentsByPreparationRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string valid_preparation_id = 2;
 }
 
 message GetValidPreparationInstrumentsByPreparationResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidPreparationInstrument results = 3;
 }
 
@@ -1001,44 +1001,44 @@ message GetValidPreparationVesselResponse {
 }
 
 message GetValidPreparationVesselsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetValidPreparationVesselsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidPreparationVessel results = 3;
 }
 
 message GetValidPreparationVesselsByPreparationRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string valid_preparation_id = 2;
 }
 
 message GetValidPreparationVesselsByPreparationResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidPreparationVessel results = 3;
 }
 
 message GetValidPreparationVesselsByVesselRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string valid_vessel_id = 2;
 }
 
 message GetValidPreparationVesselsByVesselResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidPreparationVessel results = 3;
 }
 
 message GetValidPreparationsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetValidPreparationsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidPreparation results = 3;
 }
 
@@ -1052,132 +1052,132 @@ message GetValidVesselResponse {
 }
 
 message GetValidVesselsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetValidVesselsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidVessel results = 3;
 }
 
 message SearchForValidIngredientGroupsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
   bool use_search_service = 3;
 }
 
 message SearchForValidIngredientGroupsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredientGroup results = 3;
 }
 
 message SearchForValidIngredientStatesRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
   bool use_search_service = 3;
 }
 
 message SearchForValidIngredientStatesResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredientState results = 3;
 }
 
 message SearchForValidIngredientsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
   bool use_search_service = 3;
 }
 
 message SearchForValidIngredientsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredient results = 3;
 }
 
 message SearchForValidInstrumentsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
   bool use_search_service = 3;
 }
 
 message SearchForValidInstrumentsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidInstrument results = 3;
 }
 
 message SearchForValidInstrumentsNotOwnedByAccountRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
   bool use_search_service = 3;
 }
 
 message SearchForValidInstrumentsNotOwnedByAccountResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidInstrument results = 3;
 }
 
 message SearchForValidMeasurementUnitsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
   bool use_search_service = 3;
 }
 
 message SearchForValidMeasurementUnitsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidMeasurementUnit results = 3;
 }
 
 message SearchForValidPreparationsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
   bool use_search_service = 3;
 }
 
 message SearchForValidPreparationsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidPreparation results = 3;
 }
 
 message SearchForValidVesselsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
   bool use_search_service = 3;
 }
 
 message SearchForValidVesselsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidVessel results = 3;
 }
 
 message SearchValidIngredientsByPreparationRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
   string valid_preparation_id = 3;
 }
 
 message SearchValidIngredientsByPreparationResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidIngredient results = 3;
 }
 
 message SearchValidMeasurementUnitsByIngredientRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
   string valid_ingredient_id = 3;
 }
 
 message SearchValidMeasurementUnitsByIngredientResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ValidMeasurementUnit results = 3;
 }
 
@@ -1348,12 +1348,12 @@ message GetUserIngredientPreferenceResponse {
 }
 
 message GetUserIngredientPreferencesRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetUserIngredientPreferencesResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated UserIngredientPreference results = 3;
 }
 
@@ -1942,13 +1942,13 @@ message GetRecipePrepTaskResponse {
 }
 
 message GetRecipePrepTasksRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string recipe_id = 2;
 }
 
 message GetRecipePrepTasksResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated RecipePrepTask results = 3;
 }
 
@@ -1963,13 +1963,13 @@ message GetRecipeRatingResponse {
 }
 
 message GetRecipeRatingsForRecipeRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string recipe_id = 2;
 }
 
 message GetRecipeRatingsForRecipeResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated RecipeRating results = 3;
 }
 
@@ -1995,14 +1995,14 @@ message GetRecipeStepCompletionConditionResponse {
 }
 
 message GetRecipeStepCompletionConditionsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string recipe_id = 2;
   string recipe_step_id = 3;
 }
 
 message GetRecipeStepCompletionConditionsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated RecipeStepCompletionCondition results = 3;
 }
 
@@ -2018,14 +2018,14 @@ message GetRecipeStepIngredientResponse {
 }
 
 message GetRecipeStepIngredientsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string recipe_id = 2;
   string recipe_step_id = 3;
 }
 
 message GetRecipeStepIngredientsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated RecipeStepIngredient results = 3;
 }
 
@@ -2041,14 +2041,14 @@ message GetRecipeStepInstrumentResponse {
 }
 
 message GetRecipeStepInstrumentsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string recipe_id = 2;
   string recipe_step_id = 3;
 }
 
 message GetRecipeStepInstrumentsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated RecipeStepInstrument results = 3;
 }
 
@@ -2064,14 +2064,14 @@ message GetRecipeStepProductResponse {
 }
 
 message GetRecipeStepProductsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string recipe_id = 2;
   string recipe_step_id = 3;
 }
 
 message GetRecipeStepProductsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated RecipeStepProduct results = 3;
 }
 
@@ -2087,70 +2087,70 @@ message GetRecipeStepVesselResponse {
 }
 
 message GetRecipeStepVesselsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string recipe_id = 2;
   string recipe_step_id = 3;
 }
 
 message GetRecipeStepVesselsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated RecipeStepVessel results = 3;
 }
 
 message GetRecipeStepsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string recipe_id = 2;
 }
 
 message GetRecipeStepsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated RecipeStep results = 3;
 }
 
 message GetRecipesRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string status = 2;
 }
 
 message GetRecipesResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated Recipe results = 3;
 }
 
 message SearchForRecipesRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
   bool use_search_service = 3;
 }
 
 message SearchForRecipesResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated Recipe results = 3;
 }
 
 message SearchForMealEligibleRecipesRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
 }
 
 message SearchForMealEligibleRecipesResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated Recipe results = 3;
 }
 
 message SearchForRecipesWithInstrumentOwnershipRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
 }
 
 message SearchForRecipesWithInstrumentOwnershipResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated Recipe results = 3;
 }
 
@@ -2621,13 +2621,13 @@ message GetMealPlanEventResponse {
 }
 
 message GetMealPlanEventsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string meal_plan_id = 2;
 }
 
 message GetMealPlanEventsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated MealPlanEvent results = 3;
 }
 
@@ -2642,13 +2642,13 @@ message GetMealPlanGroceryListItemResponse {
 }
 
 message GetMealPlanGroceryListItemsForMealPlanRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string meal_plan_id = 2;
 }
 
 message GetMealPlanGroceryListItemsForMealPlanResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated MealPlanGroceryListItem results = 3;
 }
 
@@ -2676,7 +2676,7 @@ message GetMealPlanOptionVoteResponse {
 }
 
 message GetMealPlanOptionVotesRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string meal_plan_id = 2;
   string meal_plan_event_id = 3;
   string meal_plan_option_id = 4;
@@ -2684,19 +2684,19 @@ message GetMealPlanOptionVotesRequest {
 
 message GetMealPlanOptionVotesResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated MealPlanOptionVote results = 3;
 }
 
 message GetMealPlanOptionsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string meal_plan_id = 2;
   string meal_plan_event_id = 3;
 }
 
 message GetMealPlanOptionsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated MealPlanOption results = 3;
 }
 
@@ -2711,43 +2711,43 @@ message GetMealPlanTaskResponse {
 }
 
 message GetMealPlanTasksRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string meal_plan_id = 2;
 }
 
 message GetMealPlanTasksResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated MealPlanTask results = 3;
 }
 
 message GetMealPlansForAccountRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetMealPlansForAccountResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated MealPlan results = 3;
 }
 
 message GetMealsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetMealsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated Meal results = 3;
 }
 
 message GetMealListsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetMealListsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated MealList results = 3;
 }
 
@@ -2780,12 +2780,12 @@ message ArchiveMealListResponse {
 
 message GetMealListItemsRequest {
   string meal_list_id = 1;
-  filtering.QueryFilter filter = 2;
+  primandproper.platform.filtering.v1.QueryFilter filter = 2;
 }
 
 message GetMealListItemsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated MealListItem results = 3;
 }
 
@@ -2818,12 +2818,12 @@ message ArchiveMealListItemResponse {
 }
 
 message GetRecipeListsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetRecipeListsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated RecipeList results = 3;
 }
 
@@ -2856,12 +2856,12 @@ message ArchiveRecipeListResponse {
 
 message GetRecipeListItemsRequest {
   string recipe_list_id = 1;
-  filtering.QueryFilter filter = 2;
+  primandproper.platform.filtering.v1.QueryFilter filter = 2;
 }
 
 message GetRecipeListItemsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated RecipeListItem results = 3;
 }
 
@@ -2916,14 +2916,14 @@ message RunMealPlanTaskCreatorWorkerResponse {
 }
 
 message SearchForMealsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
   bool use_search_service = 3;
 }
 
 message SearchForMealsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated Meal results = 3;
 }
 
@@ -3008,12 +3008,12 @@ message GetMealPlanRecipeOptionSelectionResponse {
 
 message GetMealPlanRecipeOptionSelectionsForMealPlanOptionRequest {
   string meal_plan_option_id = 1;
-  filtering.QueryFilter filter = 2;
+  primandproper.platform.filtering.v1.QueryFilter filter = 2;
 }
 
 message GetMealPlanRecipeOptionSelectionsForMealPlanOptionResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated MealPlanRecipeOptionSelection results = 3;
 }
 
@@ -3096,12 +3096,12 @@ message CreateAccountInstrumentOwnershipResponse {
 }
 
 message GetAccountInstrumentOwnershipsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetAccountInstrumentOwnershipsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated AccountInstrumentOwnership results = 3;
 }
 

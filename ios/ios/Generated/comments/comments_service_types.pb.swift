@@ -114,8 +114,8 @@ public struct Comments_GetCommentsForReferenceRequest: Sendable {
 
   public var referencedID: String = String()
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -127,7 +127,7 @@ public struct Comments_GetCommentsForReferenceRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Comments_GetCommentsForReferenceResponse: Sendable {
@@ -146,8 +146,8 @@ public struct Comments_GetCommentsForReferenceResponse: Sendable {
 
   public var data: [Comments_Comment] = []
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -160,7 +160,7 @@ public struct Comments_GetCommentsForReferenceResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Comments_UpdateCommentRequest: Sendable {

@@ -9,12 +9,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
 	"github.com/primandproper/platform-go/v13/fake"
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 	"github.com/primandproper/platform-go/v13/uploads"
 	mockuploads "github.com/primandproper/platform-go/v13/uploads/mock"
 
@@ -248,7 +248,7 @@ func TestServiceImpl_GetUsers(T *testing.T) {
 
 		pageSize := uint32(25)
 		request := &identitysvc.GetUsersRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -276,7 +276,7 @@ func TestServiceImpl_GetUsers(T *testing.T) {
 
 		pageSize := uint32(25)
 		request := &identitysvc.GetUsersRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -320,7 +320,7 @@ func TestServiceImpl_SearchForUsers(T *testing.T) {
 		request := &identitysvc.SearchForUsersRequest{
 			Query:            exampleQuery,
 			UseSearchService: false,
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -359,7 +359,7 @@ func TestServiceImpl_SearchForUsers(T *testing.T) {
 		request := &identitysvc.SearchForUsersRequest{
 			Query:            exampleQuery,
 			UseSearchService: true,
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -393,7 +393,7 @@ func TestServiceImpl_SearchForUsers(T *testing.T) {
 		request := &identitysvc.SearchForUsersRequest{
 			Query:            exampleQuery,
 			UseSearchService: false,
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}

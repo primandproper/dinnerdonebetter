@@ -100,6 +100,8 @@ config JSON are byte-identical, since every constant holds the value the literal
 - **No new platform packages adopted.** v13 is largely platform absorbing what this repo
   hand-rolls; none of it is imported yet. See the table below.
 - **No `filtering` proto/converter adoption**, so `proto/`, `frontend/` and `ios/` are untouched.
+  (Adopted afterwards in #1370 — the row below is kept struck through rather than deleted, because
+  the sequencing is the point: v13 landed without it.)
 - **No sqlc bump.**
 
 ## Adoption opportunities
@@ -119,12 +121,12 @@ sequenced separately — none is required to compile.
 | `authentication/passwordreset` | `postgres/auth/password_reset_tokens.go` | #387 |
 | `sessions` | `postgres/auth/user_sessions.go` | #399, #430 |
 | `uploads/registry` | `postgres/uploadedmedia` | #389 |
-| `filtering/filteringpb` + `filtering/grpc` | `proto/filtering.proto` + `internal/grpc/converters` | #311 |
+| ~~`filtering/filteringpb` + `filtering/grpc`~~ (adopted, #1370) | `proto/filtering.proto` + `internal/grpc/converters/query_filter.go` | #311 |
 | `oauth2server` resource server | the MCP server's resource-server half | #451 |
 
-`filtering` has the best value-to-risk ratio — it deletes a page-size clamp this repo restated by
-hand — but it is the only one that reaches `frontend/` and `ios/`. `identity` is the largest by far
-and should be its own epic.
+`filtering` had the best value-to-risk ratio — it deleted a page-size clamp this repo restated by
+hand — and was the only one that reached `frontend/` and `ios/`; #1370 did it. `identity` is the
+largest by far and should be its own epic.
 
 ## Verification
 

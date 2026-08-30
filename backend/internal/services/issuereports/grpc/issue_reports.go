@@ -6,13 +6,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	issuereportkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/issuereports/grpc/converters"
 
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 
 	"google.golang.org/grpc/codes"
 )
@@ -95,7 +95,10 @@ func (s *serviceImpl) GetIssueReports(ctx context.Context, request *issuereports
 	}
 	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	issueReports, err := s.issueReportsManager.GetIssueReports(ctx, filter)
 	if err != nil {
@@ -107,7 +110,7 @@ func (s *serviceImpl) GetIssueReports(ctx context.Context, request *issuereports
 			TraceId:          span.SpanContext().TraceID().String(),
 			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(issueReports.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(issueReports.Pagination),
 	}
 
 	for _, issueReport := range issueReports.Data {
@@ -129,7 +132,10 @@ func (s *serviceImpl) GetIssueReportsForAccount(ctx context.Context, request *is
 	}
 	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	issueReports, err := s.issueReportsManager.GetIssueReportsForAccount(ctx, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
@@ -141,7 +147,7 @@ func (s *serviceImpl) GetIssueReportsForAccount(ctx context.Context, request *is
 			TraceId:          span.SpanContext().TraceID().String(),
 			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(issueReports.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(issueReports.Pagination),
 	}
 
 	for _, issueReport := range issueReports.Data {
@@ -163,7 +169,10 @@ func (s *serviceImpl) GetIssueReportsForTable(ctx context.Context, request *issu
 	}
 	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	issueReports, err := s.issueReportsManager.GetIssueReportsForTable(ctx, request.TableName, filter)
 	if err != nil {
@@ -175,7 +184,7 @@ func (s *serviceImpl) GetIssueReportsForTable(ctx context.Context, request *issu
 			TraceId:          span.SpanContext().TraceID().String(),
 			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(issueReports.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(issueReports.Pagination),
 	}
 
 	for _, issueReport := range issueReports.Data {
@@ -197,7 +206,10 @@ func (s *serviceImpl) GetIssueReportsForRecord(ctx context.Context, request *iss
 	}
 	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	issueReports, err := s.issueReportsManager.GetIssueReportsForRecord(ctx, request.TableName, request.RecordId, filter)
 	if err != nil {
@@ -209,7 +221,7 @@ func (s *serviceImpl) GetIssueReportsForRecord(ctx context.Context, request *iss
 			TraceId:          span.SpanContext().TraceID().String(),
 			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(issueReports.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(issueReports.Pagination),
 	}
 
 	for _, issueReport := range issueReports.Data {

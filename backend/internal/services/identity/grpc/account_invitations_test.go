@@ -7,11 +7,11 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 
 	"github.com/primandproper/platform-go/v13/fake"
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -371,7 +371,7 @@ func TestServiceImpl_GetReceivedAccountInvitations(t *testing.T) {
 
 		pageSize := uint32(25)
 		request := &identitysvc.GetReceivedAccountInvitationsRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -394,7 +394,7 @@ func TestServiceImpl_GetReceivedAccountInvitations(t *testing.T) {
 
 		pageSize := uint32(25)
 		request := &identitysvc.GetReceivedAccountInvitationsRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -421,7 +421,7 @@ func TestServiceImpl_GetReceivedAccountInvitations(t *testing.T) {
 
 		pageSize := uint32(25)
 		request := &identitysvc.GetReceivedAccountInvitationsRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -459,7 +459,7 @@ func TestServiceImpl_GetSentAccountInvitations(t *testing.T) {
 
 		pageSize := uint32(25)
 		request := &identitysvc.GetSentAccountInvitationsRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -482,7 +482,7 @@ func TestServiceImpl_GetSentAccountInvitations(t *testing.T) {
 
 		pageSize := uint32(25)
 		request := &identitysvc.GetSentAccountInvitationsRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -508,7 +508,7 @@ func TestServiceImpl_GetSentAccountInvitations(t *testing.T) {
 
 		pageSize := uint32(25)
 		request := &identitysvc.GetSentAccountInvitationsRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}

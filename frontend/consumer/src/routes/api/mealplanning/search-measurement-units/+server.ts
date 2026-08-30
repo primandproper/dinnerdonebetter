@@ -6,8 +6,9 @@ import {
   searchForValidMeasurementUnits,
 } from '$lib/grpc/clients';
 import { logger } from '$lib/logger';
+import { QueryFilter } from '@dinnerdonebetter/api-client';
 
-const DEFAULT_LIST_FILTER = { maxResponseSize: 100 };
+const DEFAULT_LIST_FILTER = QueryFilter.create({ maxResponseSize: 100 });
 
 export const GET: RequestHandler = async ({ url, locals }) => {
   const token = locals.oauthToken;
@@ -23,7 +24,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
       // Use getValidIngredientMeasurementUnitsByIngredient for bridge IDs
       const res = await getValidIngredientMeasurementUnitsByIngredient(token, {
         validIngredientId: ingredientId,
-        filter: { maxResponseSize: 50 },
+        filter: QueryFilter.create({ maxResponseSize: 50 }),
       });
       const vimus = res.results ?? [];
       const filtered =

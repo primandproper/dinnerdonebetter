@@ -7,10 +7,10 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	settingsfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/fakes"
-	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -222,7 +222,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 
 		pageSize := uint32(50)
 		request := &settingssvc.GetServiceSettingConfigurationsForAccountRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -253,7 +253,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 
 		pageSize := uint32(50)
 		request := &settingssvc.GetServiceSettingConfigurationsForAccountRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -274,7 +274,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForAccount(t *testing.T) {
 
 		pageSize := uint32(50)
 		request := &settingssvc.GetServiceSettingConfigurationsForAccountRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -309,7 +309,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 
 		pageSize := uint32(50)
 		request := &settingssvc.GetServiceSettingConfigurationsForUserRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -340,7 +340,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 
 		pageSize := uint32(50)
 		request := &settingssvc.GetServiceSettingConfigurationsForUserRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}
@@ -361,7 +361,7 @@ func TestServiceImpl_GetServiceSettingConfigurationsForUser(t *testing.T) {
 
 		pageSize := uint32(50)
 		request := &settingssvc.GetServiceSettingConfigurationsForUserRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &pageSize,
 			},
 		}

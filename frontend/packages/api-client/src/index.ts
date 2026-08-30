@@ -8,6 +8,7 @@ import type { Metadata } from '@grpc/grpc-js';
 
 export { createGrpcClients, type GrpcClientConfig } from './create-clients.js';
 export { createAdminGrpcClients } from './admin-clients.js';
+export { QueryFilter, Pagination } from './primandproper/platform/filtering/v1/filtering.js';
 
 /**
  * Metadata with Bearer token for authenticated gRPC calls.

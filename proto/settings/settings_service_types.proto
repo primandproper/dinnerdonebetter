@@ -3,7 +3,7 @@ syntax = "proto3";
 package settings;
 
 import "common.proto";
-import "filtering.proto";
+import "primandproper/platform/filtering/v1/filtering.proto";
 import "settings/settings_messages.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings";
@@ -52,54 +52,54 @@ message GetServiceSettingResponse {
 }
 
 message GetServiceSettingConfigurationByNameRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string service_setting_configuration_name = 2;
 }
 
 message GetServiceSettingConfigurationByNameResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   ServiceSettingConfiguration result = 3;
 }
 
 message GetServiceSettingConfigurationsForAccountRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetServiceSettingConfigurationsForAccountResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ServiceSettingConfiguration results = 3;
 }
 
 message GetServiceSettingConfigurationsForUserRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetServiceSettingConfigurationsForUserResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ServiceSettingConfiguration results = 3;
 }
 
 message GetServiceSettingsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetServiceSettingsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ServiceSetting results = 3;
 }
 
 message SearchForServiceSettingsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
 }
 
 message SearchForServiceSettingsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated ServiceSetting results = 3;
 }
 

@@ -143,7 +143,7 @@ class ServiceSettingsViewModel {
     metadata: GRPCCore.Metadata
   ) async throws -> [Settings_ServiceSetting] {
     var request = Settings_GetServiceSettingsRequest()
-    request.filter = Filtering_QueryFilter()
+    request.filter = QueryFilterMessage()
 
     let response = try await clientManager.client.settings.getServiceSettings(
       request,
@@ -159,7 +159,7 @@ class ServiceSettingsViewModel {
     metadata: GRPCCore.Metadata
   ) async throws -> [Settings_ServiceSettingConfiguration] {
     var request = Settings_GetServiceSettingConfigurationsForUserRequest()
-    request.filter = Filtering_QueryFilter()
+    request.filter = QueryFilterMessage()
 
     let response = try await clientManager.client.settings.getServiceSettingConfigurationsForUser(
       request,

@@ -4,7 +4,7 @@ package dataprivacy;
 
 import "common.proto";
 import "dataprivacy/dataprivacy_messages.proto";
-import "filtering.proto";
+import "primandproper/platform/filtering/v1/filtering.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy";
 
@@ -62,11 +62,11 @@ message GetDataPrivacyRequestResponse {
 }
 
 message ListDataPrivacyRequestsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message ListDataPrivacyRequestsResponse {
   common.ResponseDetails response_details = 1;
   repeated DataPrivacyRequest data = 2;
-  filtering.Pagination pagination = 3;
+  primandproper.platform.filtering.v1.Pagination pagination = 3;
 }

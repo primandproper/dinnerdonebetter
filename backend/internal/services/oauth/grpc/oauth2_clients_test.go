@@ -8,10 +8,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	oauthfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/fakes"
 	managermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/manager/mock"
-	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 
@@ -195,7 +195,7 @@ func TestServiceImpl_GetOAuth2Clients(t *testing.T) {
 
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &oauthsvc.GetOAuth2ClientsRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &grpcPageSize,
 			},
 		}
@@ -229,7 +229,7 @@ func TestServiceImpl_GetOAuth2Clients(t *testing.T) {
 
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &oauthsvc.GetOAuth2ClientsRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &grpcPageSize,
 			},
 		}

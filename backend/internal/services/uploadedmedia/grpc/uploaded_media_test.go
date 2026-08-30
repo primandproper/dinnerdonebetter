@@ -10,13 +10,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	uploadedmediafakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/fakes"
 	uploadedmediamock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/mock"
-	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 	"github.com/primandproper/platform-go/v13/identifiers"
 	"github.com/primandproper/platform-go/v13/metering"
 	meteringmock "github.com/primandproper/platform-go/v13/metering/mock"
@@ -482,7 +482,7 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 
 		request := &uploadedmediasvc.GetUploadedMediaForUserRequest{
 			UserId: testUserID,
-			Filter: &grpcfiltering.QueryFilter{},
+			Filter: &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetUploadedMediaForUser(ctx, request)
@@ -502,7 +502,7 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 
 		request := &uploadedmediasvc.GetUploadedMediaForUserRequest{
 			UserId: testUserID,
-			Filter: &grpcfiltering.QueryFilter{},
+			Filter: &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetUploadedMediaForUser(ctx, request)
@@ -520,7 +520,7 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 
 		request := &uploadedmediasvc.GetUploadedMediaForUserRequest{
 			UserId: "different-user-id",
-			Filter: &grpcfiltering.QueryFilter{},
+			Filter: &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetUploadedMediaForUser(ctx, request)
@@ -544,7 +544,7 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 
 		request := &uploadedmediasvc.GetUploadedMediaForUserRequest{
 			UserId: testUserID,
-			Filter: &grpcfiltering.QueryFilter{},
+			Filter: &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetUploadedMediaForUser(ctx, request)

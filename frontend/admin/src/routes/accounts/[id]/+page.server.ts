@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { getAccount, getUsersForAccount, getAuditLogEntriesForAccount } from '$lib/grpc/clients';
+import { QueryFilter } from '@dinnerdonebetter/api-client';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
   const token = locals.accessToken;
@@ -18,7 +19,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
       try {
         const usersRes = (await getUsersForAccount(token, {
           accountId,
-          filter: { maxResponseSize: 50 },
+          filter: QueryFilter.create({ maxResponseSize: 50 }),
         })) as { results?: unknown[] };
         users = usersRes?.results ?? [];
       } catch {
@@ -27,7 +28,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
       try {
         const auditRes = (await getAuditLogEntriesForAccount(token, {
           accountId,
-          filter: { maxResponseSize: 20 },
+          filter: QueryFilter.create({ maxResponseSize: 20 }),
         })) as { results?: unknown[] };
         auditLog = auditRes?.results ?? [];
       } catch {

@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { getProducts } from '$lib/grpc/clients';
+import { QueryFilter } from '@dinnerdonebetter/api-client';
 
 export const load: PageServerLoad = async ({ locals }) => {
   const token = locals.accessToken;
@@ -7,7 +8,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     return { products: [], error: 'Not authenticated' };
   }
   try {
-    const res = (await getProducts(token, { filter: { maxResponseSize: 100 } })) as {
+    const res = (await getProducts(token, { filter: QueryFilter.create({ maxResponseSize: 100 }) })) as {
       results?: Array<{ id?: string; name?: string }>;
     };
     return { products: res?.results ?? [] };

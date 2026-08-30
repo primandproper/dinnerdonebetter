@@ -20,6 +20,7 @@ import (
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
 	"github.com/primandproper/platform-go/v13/featureflags"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 	"github.com/primandproper/platform-go/v13/observability"
 
 	"google.golang.org/grpc/codes"
@@ -704,7 +705,10 @@ func (s *serviceImpl) ListActiveSessions(ctx context.Context, request *authsvc.L
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	sessionsResult, err := s.authManager.GetActiveSessionsForUser(ctx, sessionContextData.GetUserID(), filter)
 	if err != nil {
@@ -730,7 +734,7 @@ func (s *serviceImpl) ListActiveSessions(ctx context.Context, request *authsvc.L
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(sessionsResult.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(sessionsResult.Pagination),
 		Sessions:   results,
 	}, nil
 }
@@ -831,7 +835,10 @@ func (s *serviceImpl) AdminListSessionsForUser(ctx context.Context, request *aut
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("user_id is required"), logger, span, codes.InvalidArgument, "user_id is required")
 	}
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	sessionsResult, err := s.authManager.GetActiveSessionsForUser(ctx, userID, filter)
 	if err != nil {
@@ -856,7 +863,7 @@ func (s *serviceImpl) AdminListSessionsForUser(ctx context.Context, request *aut
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(sessionsResult.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(sessionsResult.Pagination),
 		Sessions:   results,
 	}, nil
 }

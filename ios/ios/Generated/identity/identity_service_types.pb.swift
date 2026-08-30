@@ -456,8 +456,8 @@ public struct Identity_GetAccountsRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -469,7 +469,7 @@ public struct Identity_GetAccountsRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Identity_GetAccountsResponse: Sendable {
@@ -486,8 +486,8 @@ public struct Identity_GetAccountsResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -502,7 +502,7 @@ public struct Identity_GetAccountsResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Identity_GetAccountsForUserRequest: Sendable {
@@ -510,8 +510,8 @@ public struct Identity_GetAccountsForUserRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -525,7 +525,7 @@ public struct Identity_GetAccountsForUserRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Identity_GetAccountsForUserResponse: Sendable {
@@ -542,8 +542,8 @@ public struct Identity_GetAccountsForUserResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -558,7 +558,7 @@ public struct Identity_GetAccountsForUserResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Identity_GetReceivedAccountInvitationsRequest: Sendable {
@@ -566,8 +566,8 @@ public struct Identity_GetReceivedAccountInvitationsRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -579,7 +579,7 @@ public struct Identity_GetReceivedAccountInvitationsRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Identity_GetReceivedAccountInvitationsResponse: Sendable {
@@ -596,8 +596,8 @@ public struct Identity_GetReceivedAccountInvitationsResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -612,7 +612,7 @@ public struct Identity_GetReceivedAccountInvitationsResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Identity_GetSentAccountInvitationsRequest: Sendable {
@@ -620,8 +620,8 @@ public struct Identity_GetSentAccountInvitationsRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -633,7 +633,7 @@ public struct Identity_GetSentAccountInvitationsRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Identity_GetSentAccountInvitationsResponse: Sendable {
@@ -650,8 +650,8 @@ public struct Identity_GetSentAccountInvitationsResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -666,7 +666,7 @@ public struct Identity_GetSentAccountInvitationsResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Identity_GetUserRequest: Sendable {
@@ -717,8 +717,8 @@ public struct Identity_GetUsersRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -730,7 +730,7 @@ public struct Identity_GetUsersRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Identity_GetUsersResponse: Sendable {
@@ -747,8 +747,8 @@ public struct Identity_GetUsersResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -763,7 +763,7 @@ public struct Identity_GetUsersResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Identity_GetUsersForAccountRequest: Sendable {
@@ -771,8 +771,8 @@ public struct Identity_GetUsersForAccountRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -786,7 +786,7 @@ public struct Identity_GetUsersForAccountRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Identity_GetUsersForAccountResponse: Sendable {
@@ -803,8 +803,8 @@ public struct Identity_GetUsersForAccountResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -819,7 +819,7 @@ public struct Identity_GetUsersForAccountResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Identity_RejectAccountInvitationRequest: Sendable {
@@ -871,8 +871,8 @@ public struct Identity_SearchForUsersRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -888,7 +888,7 @@ public struct Identity_SearchForUsersRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Identity_SearchForUsersResponse: Sendable {
@@ -905,8 +905,8 @@ public struct Identity_SearchForUsersResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -921,7 +921,7 @@ public struct Identity_SearchForUsersResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Identity_SetDefaultAccountRequest: Sendable {

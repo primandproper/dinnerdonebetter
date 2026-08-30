@@ -7,12 +7,12 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	notificationkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	notificationssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 	grpctypes "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/notifications/grpc/converters"
 
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 
 	"google.golang.org/grpc/codes"
 )
@@ -54,7 +54,10 @@ func (s *serviceImpl) GetUserNotifications(ctx context.Context, request *notific
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
@@ -67,7 +70,7 @@ func (s *serviceImpl) GetUserNotifications(ctx context.Context, request *notific
 		ResponseDetails: &grpctypes.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(notifs.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(notifs.Pagination),
 	}
 	for _, notif := range notifs.Data {
 		x.Results = append(x.Results, converters.ConvertUserNotificationToGRPCUserNotification(notif))

@@ -7,12 +7,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	waitlistkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc/converters"
 
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 
 	"google.golang.org/grpc/codes"
 )
@@ -79,7 +79,11 @@ func (s *serviceImpl) GetWaitlists(ctx context.Context, request *waitlistssvc.Ge
 
 	logger := s.logger.WithSpan(span)
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	retrieved, err := s.waitlistsManager.GetWaitlists(ctx, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch waitlists")
@@ -89,7 +93,7 @@ func (s *serviceImpl) GetWaitlists(ctx context.Context, request *waitlistssvc.Ge
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(retrieved.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(retrieved.Pagination),
 	}
 
 	for _, waitlist := range retrieved.Data {
@@ -105,7 +109,11 @@ func (s *serviceImpl) GetActiveWaitlists(ctx context.Context, request *waitlists
 
 	logger := s.logger.WithSpan(span)
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	retrieved, err := s.waitlistsManager.GetActiveWaitlists(ctx, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch active waitlists")
@@ -115,7 +123,7 @@ func (s *serviceImpl) GetActiveWaitlists(ctx context.Context, request *waitlists
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(retrieved.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(retrieved.Pagination),
 	}
 
 	for _, waitlist := range retrieved.Data {
@@ -278,7 +286,11 @@ func (s *serviceImpl) GetWaitlistSignupsForWaitlist(ctx context.Context, request
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedForWaitlistSignup, logger, span, codes.PermissionDenied, "not authorized to list waitlist signups")
 	}
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	retrieved, err := s.waitlistsManager.GetWaitlistSignupsForWaitlist(ctx, request.WaitlistId, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch waitlist signups")
@@ -288,7 +300,7 @@ func (s *serviceImpl) GetWaitlistSignupsForWaitlist(ctx context.Context, request
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(retrieved.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(retrieved.Pagination),
 	}
 
 	for _, signup := range retrieved.Data {
