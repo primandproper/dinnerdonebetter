@@ -3,7 +3,6 @@ package privacy
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
 	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
@@ -58,7 +57,7 @@ func ErasableScopeResolver(repo identity.Repository) auditerasure.ScopeResolver 
 // member of would destroy the audit trail of everyone else in it, which is the
 // failure platform-go's own documentation warns is worth being exact about.
 func erasableScopes(ctx context.Context, repo identity.Repository, userID string) ([]string, error) {
-	accounts, err := dataprivacy.CollectAllPages(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.Account], error) {
+	accounts, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.Account], error) {
 		return repo.GetAccounts(ctx, userID, filter)
 	})
 	if err != nil {
@@ -70,9 +69,9 @@ func erasableScopes(ctx context.Context, repo identity.Repository, userID string
 	// serialize on one chain.
 	scopes := []string{userID}
 
-	for _, account := range accounts {
-		if account.BelongsToUser == userID {
-			scopes = append(scopes, account.ID)
+	for i := range accounts {
+		if accounts[i].BelongsToUser == userID {
+			scopes = append(scopes, accounts[i].ID)
 		}
 	}
 

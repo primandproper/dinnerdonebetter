@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 
 	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
@@ -36,16 +35,21 @@ func NewCollector(repo notifications.Repository, logger logging.Logger, tracerPr
 }
 
 // Collect implements platformdataprivacy.Collector.
+//
+// One read, so this looks like a platformdataprivacy.CollectorFor and is not.
+// That constructor encodes the rows themselves; this section is a
+// notifications.UserDataCollection wrapping them, which is the shape the gRPC
+// converters read and so is not this collector's to flatten.
 func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Subject) (json.RawMessage, error) {
 	ctx, span := c.tracer.StartSpan(ctx)
 	defer span.End()
 
-	notifs, err := dataprivacy.CollectAllValues(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[notifications.UserNotification], error) {
+	notifs, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[notifications.UserNotification], error) {
 		return c.repo.GetUserNotifications(ctx, subject.ID, filter)
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, c.logger.WithSpan(span), span, "fetching user notifications")
 	}
 
-	return dataprivacy.Fragment(len(notifs) > 0, &notifications.UserDataCollection{Data: notifs})
+	return platformdataprivacy.Fragment(len(notifs) > 0, &notifications.UserDataCollection{Data: notifs})
 }

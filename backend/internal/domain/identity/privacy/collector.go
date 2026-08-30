@@ -64,7 +64,7 @@ func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Sub
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching user")
 	}
 
-	accounts, err := dataprivacy.CollectAllValues(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.Account], error) {
+	accounts, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.Account], error) {
 		return c.repo.GetAccounts(ctx, subject.ID, filter)
 	})
 	if err != nil {
@@ -76,7 +76,7 @@ func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Sub
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching account invitations")
 	}
 
-	return dataprivacy.Fragment(true, &identity.UserDataCollection{
+	return platformdataprivacy.Fragment(true, &identity.UserDataCollection{
 		User:               *user,
 		Accounts:           accounts,
 		AccountInvitations: invitations,
@@ -91,14 +91,14 @@ func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Sub
 // an export. Deduplication is by ID because that is the only field guaranteed to
 // identify the same row on both sides.
 func (c *Collector) invitations(ctx context.Context, userID string) ([]identity.AccountInvitation, error) {
-	sent, err := dataprivacy.CollectAllValues(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.AccountInvitation], error) {
+	sent, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.AccountInvitation], error) {
 		return c.repo.GetPendingAccountInvitationsFromUser(ctx, userID, filter)
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	received, err := dataprivacy.CollectAllValues(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.AccountInvitation], error) {
+	received, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.AccountInvitation], error) {
 		return c.repo.GetPendingAccountInvitationsForUser(ctx, userID, filter)
 	})
 	if err != nil {
@@ -127,7 +127,7 @@ func (c *Collector) invitations(ctx context.Context, userID string) ([]identity.
 // is handed.
 func ResolveAccountIDs(repo identity.Repository) dataprivacy.AccountIDResolver {
 	return func(ctx context.Context, userID string) ([]string, error) {
-		accounts, err := dataprivacy.CollectAllValues(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.Account], error) {
+		accounts, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.Account], error) {
 			return repo.GetAccounts(ctx, userID, filter)
 		})
 		if err != nil {

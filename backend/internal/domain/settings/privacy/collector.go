@@ -49,7 +49,7 @@ func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Sub
 
 	logger := c.logger.WithSpan(span)
 
-	userSettings, err := dataprivacy.CollectAllValues(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
+	userSettings, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
 		return c.repo.GetServiceSettingConfigurationsForUser(ctx, subject.ID, filter)
 	})
 	if err != nil {
@@ -68,7 +68,7 @@ func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Sub
 
 	held := len(userSettings) > 0 || len(accountSettings) > 0
 
-	return dataprivacy.Fragment(held, &settings.UserDataCollection{
+	return platformdataprivacy.Fragment(held, &settings.UserDataCollection{
 		UserSettings:    userSettings,
 		AccountSettings: accountSettings,
 	})
