@@ -113,15 +113,17 @@ func (r *repository) GetSubscriptionsForAccount(ctx context.Context, accountID s
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	params := &generated.GetSubscriptionsForAccountParams{
 		BelongsToAccount: accountID,
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:     filterArgs.CreatedAfter,
+		CreatedBefore:    filterArgs.CreatedBefore,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
+		IncludeArchived:  filterArgs.IncludeArchived,
 	}
 
 	results, err := r.generatedQuerier.GetSubscriptionsForAccount(ctx, r.readDB, params)
@@ -259,28 +261,25 @@ func convertSubscriptionFromGenerated(m *generated.Subscriptions) *payments.Subs
 }
 
 func convertSubscriptionsResult(rows []*generated.GetSubscriptionsForAccountRow, filter *filtering.QueryFilter) *filtering.QueryFilteredResult[payments.Subscription] {
-	data := make([]*payments.Subscription, 0, len(rows))
-	var filteredCount, totalCount uint64
-	for _, row := range rows {
-		data = append(data, &payments.Subscription{
-			ID:                     row.ID,
-			BelongsToAccount:       row.BelongsToAccount,
-			ProductID:              row.ProductID,
-			ExternalSubscriptionID: database.StringFromNullString(row.ExternalSubscriptionID),
-			Status:                 string(row.Status),
-			CurrentPeriodStart:     row.CurrentPeriodStart,
-			CurrentPeriodEnd:       row.CurrentPeriodEnd,
-			CreatedAt:              row.CreatedAt,
-			LastUpdatedAt:          database.TimePointerFromNullTime(row.LastUpdatedAt),
-			ArchivedAt:             database.TimePointerFromNullTime(row.ArchivedAt),
-		})
-		filteredCount = uint64(row.FilteredCount)
-		totalCount = uint64(row.TotalCount)
-	}
-	return filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	return filtering.Drain(
+		rows,
+		func(row *generated.GetSubscriptionsForAccountRow) *payments.Subscription {
+			return &payments.Subscription{
+				ID:                     row.ID,
+				BelongsToAccount:       row.BelongsToAccount,
+				ProductID:              row.ProductID,
+				ExternalSubscriptionID: database.StringFromNullString(row.ExternalSubscriptionID),
+				Status:                 string(row.Status),
+				CurrentPeriodStart:     row.CurrentPeriodStart,
+				CurrentPeriodEnd:       row.CurrentPeriodEnd,
+				CreatedAt:              row.CreatedAt,
+				LastUpdatedAt:          database.TimePointerFromNullTime(row.LastUpdatedAt),
+				ArchivedAt:             database.TimePointerFromNullTime(row.ArchivedAt),
+			}
+		},
+		func(row *generated.GetSubscriptionsForAccountRow) (int64, int64) {
+			return row.FilteredCount, row.TotalCount
+		},
 		func(p *payments.Subscription) string { return p.ID },
 		filter,
 	)

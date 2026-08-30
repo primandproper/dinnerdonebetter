@@ -122,60 +122,52 @@ func (q *repository) GetAccountInstrumentOwnerships(ctx context.Context, account
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	var (
-		data          []*types.AccountInstrumentOwnership
-		filteredCount uint64
-		totalCount    uint64
-	)
+	filterArgs := filtering.ToSQLArgs(filter)
 
 	results, err := q.generatedQuerier.GetAccountInstrumentOwnerships(ctx, q.readDB, &generated.GetAccountInstrumentOwnershipsParams{
 		AccountID:       accountID,
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing account instrument ownerships list retrieval query")
 	}
 
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, &types.AccountInstrumentOwnership{
-			CreatedAt:        result.CreatedAt,
-			ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ID:               result.ID,
-			Notes:            result.Notes,
-			BelongsToAccount: result.BelongsToAccount,
-			Quantity:         uint16(result.Quantity),
-			Instrument: types.ValidInstrument{
-				CreatedAt:                      result.ValidInstrumentCreatedAt,
-				LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
-				ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
-				IconPath:                       result.ValidInstrumentIconPath,
-				ID:                             result.ValidInstrumentID,
-				Name:                           result.ValidInstrumentName,
-				PluralName:                     result.ValidInstrumentPluralName,
-				Description:                    result.ValidInstrumentDescription,
-				Slug:                           result.ValidInstrumentSlug,
-				DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists,
-				IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions,
-				UsableForStorage:               result.ValidInstrumentUsableForStorage,
-			},
-		})
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.GetAccountInstrumentOwnershipsRow) *types.AccountInstrumentOwnership {
+			return &types.AccountInstrumentOwnership{
+				CreatedAt:        result.CreatedAt,
+				ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
+				LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ID:               result.ID,
+				Notes:            result.Notes,
+				BelongsToAccount: result.BelongsToAccount,
+				Quantity:         uint16(result.Quantity),
+				Instrument: types.ValidInstrument{
+					CreatedAt:                      result.ValidInstrumentCreatedAt,
+					LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
+					ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
+					IconPath:                       result.ValidInstrumentIconPath,
+					ID:                             result.ValidInstrumentID,
+					Name:                           result.ValidInstrumentName,
+					PluralName:                     result.ValidInstrumentPluralName,
+					Description:                    result.ValidInstrumentDescription,
+					Slug:                           result.ValidInstrumentSlug,
+					DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists,
+					IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions,
+					UsableForStorage:               result.ValidInstrumentUsableForStorage,
+				},
+			}
+		},
+		func(result *generated.GetAccountInstrumentOwnershipsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(aio *types.AccountInstrumentOwnership) string { return aio.ID },
 		filter,
 	)

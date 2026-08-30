@@ -289,14 +289,16 @@ func (r *repository) SearchForUsersByUsername(ctx context.Context, usernameQuery
 	tracing.AttachQueryFilterToSpan(span, filter)
 	filter.AttachToLogger(logger)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.SearchUsersByUsername(ctx, r.readDB, &generated.SearchUsersByUsernameParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 		Username:        usernameQuery,
 	})
 	if err != nil {
@@ -359,56 +361,50 @@ func (r *repository) GetUsers(ctx context.Context, filter *filtering.QueryFilter
 	tracing.AttachQueryFilterToSpan(span, filter)
 	filter.AttachToLogger(logger) // TODO: is assignment necessary here? if not, make consistent
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetUsers(ctx, r.readDB, &generated.GetUsersParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "scanning user")
 	}
 
-	var (
-		data                      = []*identity.User{}
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		u := &identity.User{
-			CreatedAt:                  result.CreatedAt,
-			PasswordLastChangedAt:      database.TimePointerFromNullTime(result.PasswordLastChangedAt),
-			LastUpdatedAt:              database.TimePointerFromNullTime(result.LastUpdatedAt),
-			LastAcceptedTermsOfService: database.TimePointerFromNullTime(result.LastAcceptedTermsOfService),
-			LastAcceptedPrivacyPolicy:  database.TimePointerFromNullTime(result.LastAcceptedPrivacyPolicy),
-			TwoFactorSecretVerifiedAt:  database.TimePointerFromNullTime(result.TwoFactorSecretVerifiedAt),
-			Birthday:                   database.TimePointerFromNullTime(result.Birthday),
-			ArchivedAt:                 database.TimePointerFromNullTime(result.ArchivedAt),
-			AccountStatusExplanation:   result.UserAccountStatusExplanation,
-			TwoFactorSecret:            result.TwoFactorSecret,
-			HashedPassword:             result.HashedPassword,
-			ID:                         result.ID,
-			AccountStatus:              result.UserAccountStatus,
-			Username:                   result.Username,
-			FirstName:                  result.FirstName,
-			LastName:                   result.LastName,
-			EmailAddress:               result.EmailAddress,
-			EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.EmailAddressVerifiedAt),
-			Avatar:                     avatarFromRow(result.AvatarID, result.AvatarStoragePath, result.AvatarMimeType, result.AvatarCreatedAt, result.AvatarLastUpdatedAt, result.AvatarArchivedAt, result.AvatarCreatedByUser),
-			RequiresPasswordChange:     result.RequiresPasswordChange,
-		}
-
-		data = append(data, u)
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetUsersRow) *identity.User {
+			return &identity.User{
+				CreatedAt:                  result.CreatedAt,
+				PasswordLastChangedAt:      database.TimePointerFromNullTime(result.PasswordLastChangedAt),
+				LastUpdatedAt:              database.TimePointerFromNullTime(result.LastUpdatedAt),
+				LastAcceptedTermsOfService: database.TimePointerFromNullTime(result.LastAcceptedTermsOfService),
+				LastAcceptedPrivacyPolicy:  database.TimePointerFromNullTime(result.LastAcceptedPrivacyPolicy),
+				TwoFactorSecretVerifiedAt:  database.TimePointerFromNullTime(result.TwoFactorSecretVerifiedAt),
+				Birthday:                   database.TimePointerFromNullTime(result.Birthday),
+				ArchivedAt:                 database.TimePointerFromNullTime(result.ArchivedAt),
+				AccountStatusExplanation:   result.UserAccountStatusExplanation,
+				TwoFactorSecret:            result.TwoFactorSecret,
+				HashedPassword:             result.HashedPassword,
+				ID:                         result.ID,
+				AccountStatus:              result.UserAccountStatus,
+				Username:                   result.Username,
+				FirstName:                  result.FirstName,
+				LastName:                   result.LastName,
+				EmailAddress:               result.EmailAddress,
+				EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.EmailAddressVerifiedAt),
+				Avatar:                     avatarFromRow(result.AvatarID, result.AvatarStoragePath, result.AvatarMimeType, result.AvatarCreatedAt, result.AvatarLastUpdatedAt, result.AvatarArchivedAt, result.AvatarCreatedByUser),
+				RequiresPasswordChange:     result.RequiresPasswordChange,
+			}
+		},
+		func(result *generated.GetUsersRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *identity.User) string {
 			return t.ID
 		},
@@ -441,15 +437,17 @@ func (r *repository) GetUsersForAccount(ctx context.Context, accountID string, f
 		Pagination: filter.ToPagination(),
 	}
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetUsersForAccount(ctx, r.readDB, &generated.GetUsersForAccountParams{
 		BelongsToAccount: accountID,
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:    filterArgs.CreatedBefore,
+		CreatedAfter:     filterArgs.CreatedAfter,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
+		IncludeArchived:  filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "scanning user")

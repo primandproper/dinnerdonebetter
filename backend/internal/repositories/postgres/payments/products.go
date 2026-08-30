@@ -110,14 +110,16 @@ func (r *repository) GetProducts(ctx context.Context, filter *filtering.QueryFil
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	params := &generated.GetProductsParams{
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	}
 
 	results, err := r.generatedQuerier.GetProducts(ctx, r.readDB, params)
@@ -256,17 +258,12 @@ func convertProductFromRow(row *generated.GetProductsRow) *payments.Product {
 }
 
 func convertProductsResult(rows []*generated.GetProductsRow, filter *filtering.QueryFilter) *filtering.QueryFilteredResult[payments.Product] {
-	data := make([]*payments.Product, 0, len(rows))
-	var filteredCount, totalCount uint64
-	for _, row := range rows {
-		data = append(data, convertProductFromRow(row))
-		filteredCount = uint64(row.FilteredCount)
-		totalCount = uint64(row.TotalCount)
-	}
-	return filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	return filtering.Drain(
+		rows,
+		convertProductFromRow,
+		func(row *generated.GetProductsRow) (int64, int64) {
+			return row.FilteredCount, row.TotalCount
+		},
 		func(p *payments.Product) string { return p.ID },
 		filter,
 	)

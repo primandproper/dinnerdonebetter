@@ -72,45 +72,40 @@ func (r *repository) GetIssueReports(ctx context.Context, filter *filtering.Quer
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetIssueReports(ctx, r.readDB, &generated.GetIssueReportsParams{
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")
 	}
 
-	var (
-		data                      []*types.IssueReport
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, &types.IssueReport{
-			ID:               result.ID,
-			IssueType:        result.IssueType,
-			Details:          result.Details,
-			RelevantTable:    database.StringFromNullString(result.RelevantTable),
-			RelevantRecordID: database.StringFromNullString(result.RelevantRecordID),
-			CreatedAt:        result.CreatedAt,
-			LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
-			CreatedByUser:    result.CreatedByUser,
-			BelongsToAccount: result.BelongsToAccount,
-		})
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetIssueReportsRow) *types.IssueReport {
+			return &types.IssueReport{
+				ID:               result.ID,
+				IssueType:        result.IssueType,
+				Details:          result.Details,
+				RelevantTable:    database.StringFromNullString(result.RelevantTable),
+				RelevantRecordID: database.StringFromNullString(result.RelevantRecordID),
+				CreatedAt:        result.CreatedAt,
+				LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
+				CreatedByUser:    result.CreatedByUser,
+				BelongsToAccount: result.BelongsToAccount,
+			}
+		},
+		func(result *generated.GetIssueReportsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.IssueReport) string {
 			return t.ID
 		},
@@ -139,46 +134,41 @@ func (r *repository) GetIssueReportsForAccount(ctx context.Context, accountID st
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetIssueReportsForAccount(ctx, r.readDB, &generated.GetIssueReportsForAccountParams{
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:     filterArgs.CreatedAfter,
+		CreatedBefore:    filterArgs.CreatedBefore,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		IncludeArchived:  filterArgs.IncludeArchived,
 		BelongsToAccount: accountID,
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")
 	}
 
-	var (
-		data                      []*types.IssueReport
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, &types.IssueReport{
-			ID:               result.ID,
-			IssueType:        result.IssueType,
-			Details:          result.Details,
-			RelevantTable:    database.StringFromNullString(result.RelevantTable),
-			RelevantRecordID: database.StringFromNullString(result.RelevantRecordID),
-			CreatedAt:        result.CreatedAt,
-			LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
-			CreatedByUser:    result.CreatedByUser,
-			BelongsToAccount: result.BelongsToAccount,
-		})
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetIssueReportsForAccountRow) *types.IssueReport {
+			return &types.IssueReport{
+				ID:               result.ID,
+				IssueType:        result.IssueType,
+				Details:          result.Details,
+				RelevantTable:    database.StringFromNullString(result.RelevantTable),
+				RelevantRecordID: database.StringFromNullString(result.RelevantRecordID),
+				CreatedAt:        result.CreatedAt,
+				LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
+				CreatedByUser:    result.CreatedByUser,
+				BelongsToAccount: result.BelongsToAccount,
+			}
+		},
+		func(result *generated.GetIssueReportsForAccountRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.IssueReport) string {
 			return t.ID
 		},
@@ -330,46 +320,41 @@ func (r *repository) GetIssueReportsForTable(ctx context.Context, tableName stri
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetIssueReportsForTable(ctx, r.readDB, &generated.GetIssueReportsForTableParams{
 		RelevantTable:   database.NullStringFromString(tableName),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")
 	}
 
-	var (
-		data                      []*types.IssueReport
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, &types.IssueReport{
-			ID:               result.ID,
-			IssueType:        result.IssueType,
-			Details:          result.Details,
-			RelevantTable:    database.StringFromNullString(result.RelevantTable),
-			RelevantRecordID: database.StringFromNullString(result.RelevantRecordID),
-			CreatedAt:        result.CreatedAt,
-			LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
-			CreatedByUser:    result.CreatedByUser,
-			BelongsToAccount: result.BelongsToAccount,
-		})
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetIssueReportsForTableRow) *types.IssueReport {
+			return &types.IssueReport{
+				ID:               result.ID,
+				IssueType:        result.IssueType,
+				Details:          result.Details,
+				RelevantTable:    database.StringFromNullString(result.RelevantTable),
+				RelevantRecordID: database.StringFromNullString(result.RelevantRecordID),
+				CreatedAt:        result.CreatedAt,
+				LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
+				CreatedByUser:    result.CreatedByUser,
+				BelongsToAccount: result.BelongsToAccount,
+			}
+		},
+		func(result *generated.GetIssueReportsForTableRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.IssueReport) string {
 			return t.ID
 		},
@@ -404,47 +389,42 @@ func (r *repository) GetIssueReportsForRecord(ctx context.Context, tableName, re
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetIssueReportsForRecord(ctx, r.readDB, &generated.GetIssueReportsForRecordParams{
 		RelevantTable:    database.NullStringFromString(tableName),
 		RelevantRecordID: database.NullStringFromString(recordID),
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:     filterArgs.CreatedAfter,
+		CreatedBefore:    filterArgs.CreatedBefore,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		IncludeArchived:  filterArgs.IncludeArchived,
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")
 	}
 
-	var (
-		data                      []*types.IssueReport
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, &types.IssueReport{
-			ID:               result.ID,
-			IssueType:        result.IssueType,
-			Details:          result.Details,
-			RelevantTable:    database.StringFromNullString(result.RelevantTable),
-			RelevantRecordID: database.StringFromNullString(result.RelevantRecordID),
-			CreatedAt:        result.CreatedAt,
-			LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
-			CreatedByUser:    result.CreatedByUser,
-			BelongsToAccount: result.BelongsToAccount,
-		})
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetIssueReportsForRecordRow) *types.IssueReport {
+			return &types.IssueReport{
+				ID:               result.ID,
+				IssueType:        result.IssueType,
+				Details:          result.Details,
+				RelevantTable:    database.StringFromNullString(result.RelevantTable),
+				RelevantRecordID: database.StringFromNullString(result.RelevantRecordID),
+				CreatedAt:        result.CreatedAt,
+				LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
+				CreatedByUser:    result.CreatedByUser,
+				BelongsToAccount: result.BelongsToAccount,
+			}
+		},
+		func(result *generated.GetIssueReportsForRecordRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.IssueReport) string {
 			return t.ID
 		},

@@ -173,37 +173,29 @@ func (q *repository) GetCommentsForReference(ctx context.Context, targetType, re
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	limit := database.NullInt32FromUint16Pointer(filter.MaxResponseSize)
+	filterArgs := filtering.ToSQLArgs(filter)
 
 	results, err := q.generatedQuerier.GetCommentsForReference(ctx, q.readDB, &generated.GetCommentsForReferenceParams{
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
 		TargetType:      targetTypeToGenerated(targetType),
 		ReferencedID:    referencedID,
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     limit,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing comments list retrieval query")
 	}
 
-	var (
-		data                      = []*types.Comment{}
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, convertRowToComment(result))
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	return filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	return filtering.Drain(
+		results,
+		convertRowToComment,
+		func(result *generated.GetCommentsForReferenceRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.Comment) string { return t.ID },
 		filter,
 	), nil
@@ -228,44 +220,40 @@ func (q *repository) GetCommentsForUser(ctx context.Context, userID string, filt
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetCommentsForUser(ctx, q.readDB, &generated.GetCommentsForUserParams{
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
 		BelongsToUser:   userID,
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing user comments list retrieval query")
 	}
 
-	var (
-		data                      = []*types.Comment{}
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, convertRowToComment(&generated.GetCommentsForReferenceRow{
-			ID:              result.ID,
-			Content:         result.Content,
-			TargetType:      result.TargetType,
-			ReferencedID:    result.ReferencedID,
-			ParentCommentID: result.ParentCommentID,
-			BelongsToUser:   result.BelongsToUser,
-			CreatedAt:       result.CreatedAt,
-			LastUpdatedAt:   result.LastUpdatedAt,
-			ArchivedAt:      result.ArchivedAt,
-		}))
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	return filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	return filtering.Drain(
+		results,
+		func(result *generated.GetCommentsForUserRow) *types.Comment {
+			return convertRowToComment(&generated.GetCommentsForReferenceRow{
+				ID:              result.ID,
+				Content:         result.Content,
+				TargetType:      result.TargetType,
+				ReferencedID:    result.ReferencedID,
+				ParentCommentID: result.ParentCommentID,
+				BelongsToUser:   result.BelongsToUser,
+				CreatedAt:       result.CreatedAt,
+				LastUpdatedAt:   result.LastUpdatedAt,
+				ArchivedAt:      result.ArchivedAt,
+			})
+		},
+		func(result *generated.GetCommentsForUserRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.Comment) string { return t.ID },
 		filter,
 	), nil

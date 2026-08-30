@@ -149,15 +149,17 @@ func (q *repository) GetMealPlansForAccount(ctx context.Context, accountID strin
 		totalCount    uint64
 	)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetMealPlansForAccount(ctx, q.readDB, &generated.GetMealPlansForAccountParams{
 		BelongsToAccount: accountID,
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:    filterArgs.CreatedBefore,
+		CreatedAfter:     filterArgs.CreatedAfter,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
+		IncludeArchived:  filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing meal plans list retrieval query")

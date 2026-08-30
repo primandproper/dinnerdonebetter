@@ -100,42 +100,37 @@ func (r *Repository) GetWaitlists(ctx context.Context, filter *filtering.QueryFi
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetWaitlists(ctx, r.readDB, &generated.GetWaitlistsParams{
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching waitlists from database")
 	}
 
-	var (
-		data                      []*types.Waitlist
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, &types.Waitlist{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			ID:            result.ID,
-			Name:          result.Name,
-			Description:   result.Description,
-			ValidUntil:    result.ValidUntil,
-		})
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetWaitlistsRow) *types.Waitlist {
+			return &types.Waitlist{
+				CreatedAt:     result.CreatedAt,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				ID:            result.ID,
+				Name:          result.Name,
+				Description:   result.Description,
+				ValidUntil:    result.ValidUntil,
+			}
+		},
+		func(result *generated.GetWaitlistsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.Waitlist) string {
 			return t.ID
 		},
@@ -158,42 +153,37 @@ func (r *Repository) GetActiveWaitlists(ctx context.Context, filter *filtering.Q
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetActiveWaitlists(ctx, r.readDB, &generated.GetActiveWaitlistsParams{
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching active waitlists from database")
 	}
 
-	var (
-		data                      []*types.Waitlist
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, &types.Waitlist{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			ID:            result.ID,
-			Name:          result.Name,
-			Description:   result.Description,
-			ValidUntil:    result.ValidUntil,
-		})
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetActiveWaitlistsRow) *types.Waitlist {
+			return &types.Waitlist{
+				CreatedAt:     result.CreatedAt,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				ID:            result.ID,
+				Name:          result.Name,
+				Description:   result.Description,
+				ValidUntil:    result.ValidUntil,
+			}
+		},
+		func(result *generated.GetActiveWaitlistsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.Waitlist) string {
 			return t.ID
 		},
@@ -416,44 +406,39 @@ func (r *Repository) GetWaitlistSignupsForWaitlist(ctx context.Context, waitlist
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetWaitlistSignupsForWaitlist(ctx, r.readDB, &generated.GetWaitlistSignupsForWaitlistParams{
 		BelongsToWaitlist: database.NullStringFromString(waitlistID),
-		CreatedAfter:      database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:     database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:     database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:      database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived:   database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:        database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:       database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:      filterArgs.CreatedAfter,
+		CreatedBefore:     filterArgs.CreatedBefore,
+		UpdatedBefore:     filterArgs.UpdatedBefore,
+		UpdatedAfter:      filterArgs.UpdatedAfter,
+		IncludeArchived:   filterArgs.IncludeArchived,
+		PageCursor:        filterArgs.Cursor,
+		ResultLimit:       filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching waitlist signups from database")
 	}
 
-	var (
-		data                      []*types.WaitlistSignup
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, &types.WaitlistSignup{
-			CreatedAt:         result.CreatedAt,
-			LastUpdatedAt:     database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:        database.TimePointerFromNullTime(result.ArchivedAt),
-			ID:                result.ID,
-			Notes:             result.Notes,
-			BelongsToWaitlist: database.StringFromNullString(result.BelongsToWaitlist),
-			BelongsToUser:     database.StringFromNullString(result.BelongsToUser),
-			BelongsToAccount:  database.StringFromNullString(result.BelongsToAccount),
-		})
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetWaitlistSignupsForWaitlistRow) *types.WaitlistSignup {
+			return &types.WaitlistSignup{
+				CreatedAt:         result.CreatedAt,
+				LastUpdatedAt:     database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:        database.TimePointerFromNullTime(result.ArchivedAt),
+				ID:                result.ID,
+				Notes:             result.Notes,
+				BelongsToWaitlist: database.StringFromNullString(result.BelongsToWaitlist),
+				BelongsToUser:     database.StringFromNullString(result.BelongsToUser),
+				BelongsToAccount:  database.StringFromNullString(result.BelongsToAccount),
+			}
+		},
+		func(result *generated.GetWaitlistSignupsForWaitlistRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.WaitlistSignup) string {
 			return t.ID
 		},
@@ -482,44 +467,39 @@ func (r *Repository) GetWaitlistSignupsForUser(ctx context.Context, userID strin
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetWaitlistSignupsForUser(ctx, r.readDB, &generated.GetWaitlistSignupsForUserParams{
 		BelongsToUser:   database.NullStringFromString(userID),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching waitlist signups for user from database")
 	}
 
-	var (
-		data                      []*types.WaitlistSignup
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, &types.WaitlistSignup{
-			CreatedAt:         result.CreatedAt,
-			LastUpdatedAt:     database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:        database.TimePointerFromNullTime(result.ArchivedAt),
-			ID:                result.ID,
-			Notes:             result.Notes,
-			BelongsToWaitlist: database.StringFromNullString(result.BelongsToWaitlist),
-			BelongsToUser:     database.StringFromNullString(result.BelongsToUser),
-			BelongsToAccount:  database.StringFromNullString(result.BelongsToAccount),
-		})
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	return filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	return filtering.Drain(
+		results,
+		func(result *generated.GetWaitlistSignupsForUserRow) *types.WaitlistSignup {
+			return &types.WaitlistSignup{
+				CreatedAt:         result.CreatedAt,
+				LastUpdatedAt:     database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:        database.TimePointerFromNullTime(result.ArchivedAt),
+				ID:                result.ID,
+				Notes:             result.Notes,
+				BelongsToWaitlist: database.StringFromNullString(result.BelongsToWaitlist),
+				BelongsToUser:     database.StringFromNullString(result.BelongsToUser),
+				BelongsToAccount:  database.StringFromNullString(result.BelongsToAccount),
+			}
+		},
+		func(result *generated.GetWaitlistSignupsForUserRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.WaitlistSignup) string {
 			return t.ID
 		},

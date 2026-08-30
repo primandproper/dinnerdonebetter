@@ -237,64 +237,57 @@ func (q *Repository) GetServiceSettingConfigurationsForUser(ctx context.Context,
 	tracing.AttachQueryFilterToSpan(span, filter)
 	filter.AttachToLogger(logger)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetServiceSettingConfigurationsForUser(ctx, q.readDB, &generated.GetServiceSettingConfigurationsForUserParams{
 		BelongsToUser:   userID,
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing service setting configurations list retrieval query")
 	}
 
-	var (
-		data                      = []*types.ServiceSettingConfiguration{}
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		usableEnumeration := []string{}
-		for x := range strings.SplitSeq(result.ServiceSettingEnumeration, serviceSettingsEnumDelimiter) {
-			if strings.TrimSpace(x) != "" {
-				usableEnumeration = append(usableEnumeration, x)
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetServiceSettingConfigurationsForUserRow) *types.ServiceSettingConfiguration {
+			usableEnumeration := []string{}
+			for x := range strings.SplitSeq(result.ServiceSettingEnumeration, serviceSettingsEnumDelimiter) {
+				if strings.TrimSpace(x) != "" {
+					usableEnumeration = append(usableEnumeration, x)
+				}
 			}
-		}
-
-		serviceSettingConfiguration := &types.ServiceSettingConfiguration{
-			CreatedAt:        result.CreatedAt,
-			LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
-			ID:               result.ID,
-			Value:            result.Value,
-			Notes:            result.Notes,
-			BelongsToUser:    result.BelongsToUser,
-			BelongsToAccount: result.BelongsToAccount,
-			ServiceSetting: types.ServiceSetting{
-				CreatedAt:     result.ServiceSettingCreatedAt,
-				DefaultValue:  database.StringPointerFromNullString(result.ServiceSettingDefaultValue),
-				LastUpdatedAt: database.TimePointerFromNullTime(result.ServiceSettingLastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ServiceSettingArchivedAt),
-				ID:            result.ServiceSettingID,
-				Name:          result.ServiceSettingName,
-				Type:          string(result.ServiceSettingType),
-				Description:   result.ServiceSettingDescription,
-				Enumeration:   usableEnumeration,
-				AdminsOnly:    result.ServiceSettingAdminsOnly,
-			},
-		}
-
-		data = append(data, serviceSettingConfiguration)
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+			return &types.ServiceSettingConfiguration{
+				CreatedAt:        result.CreatedAt,
+				LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
+				ID:               result.ID,
+				Value:            result.Value,
+				Notes:            result.Notes,
+				BelongsToUser:    result.BelongsToUser,
+				BelongsToAccount: result.BelongsToAccount,
+				ServiceSetting: types.ServiceSetting{
+					CreatedAt:     result.ServiceSettingCreatedAt,
+					DefaultValue:  database.StringPointerFromNullString(result.ServiceSettingDefaultValue),
+					LastUpdatedAt: database.TimePointerFromNullTime(result.ServiceSettingLastUpdatedAt),
+					ArchivedAt:    database.TimePointerFromNullTime(result.ServiceSettingArchivedAt),
+					ID:            result.ServiceSettingID,
+					Name:          result.ServiceSettingName,
+					Type:          string(result.ServiceSettingType),
+					Description:   result.ServiceSettingDescription,
+					Enumeration:   usableEnumeration,
+					AdminsOnly:    result.ServiceSettingAdminsOnly,
+				},
+			}
+		},
+		func(result *generated.GetServiceSettingConfigurationsForUserRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.ServiceSettingConfiguration) string {
 			return t.ID
 		},
@@ -323,64 +316,57 @@ func (q *Repository) GetServiceSettingConfigurationsForAccount(ctx context.Conte
 	tracing.AttachQueryFilterToSpan(span, filter)
 	filter.AttachToLogger(logger)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetServiceSettingConfigurationsForAccount(ctx, q.readDB, &generated.GetServiceSettingConfigurationsForAccountParams{
 		BelongsToAccount: accountID,
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:     filterArgs.CreatedAfter,
+		CreatedBefore:    filterArgs.CreatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
+		IncludeArchived:  filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing service setting configurations list retrieval query")
 	}
 
-	var (
-		data                      = []*types.ServiceSettingConfiguration{}
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		usableEnumeration := []string{}
-		for x := range strings.SplitSeq(result.ServiceSettingEnumeration, serviceSettingsEnumDelimiter) {
-			if strings.TrimSpace(x) != "" {
-				usableEnumeration = append(usableEnumeration, x)
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetServiceSettingConfigurationsForAccountRow) *types.ServiceSettingConfiguration {
+			usableEnumeration := []string{}
+			for x := range strings.SplitSeq(result.ServiceSettingEnumeration, serviceSettingsEnumDelimiter) {
+				if strings.TrimSpace(x) != "" {
+					usableEnumeration = append(usableEnumeration, x)
+				}
 			}
-		}
-
-		serviceSettingConfiguration := &types.ServiceSettingConfiguration{
-			CreatedAt:        result.CreatedAt,
-			LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
-			ID:               result.ID,
-			Value:            result.Value,
-			Notes:            result.Notes,
-			BelongsToUser:    result.BelongsToUser,
-			BelongsToAccount: result.BelongsToAccount,
-			ServiceSetting: types.ServiceSetting{
-				CreatedAt:     result.ServiceSettingCreatedAt,
-				DefaultValue:  database.StringPointerFromNullString(result.ServiceSettingDefaultValue),
-				LastUpdatedAt: database.TimePointerFromNullTime(result.ServiceSettingLastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ServiceSettingArchivedAt),
-				ID:            result.ServiceSettingID,
-				Name:          result.ServiceSettingName,
-				Type:          string(result.ServiceSettingType),
-				Description:   result.ServiceSettingDescription,
-				Enumeration:   usableEnumeration,
-				AdminsOnly:    result.ServiceSettingAdminsOnly,
-			},
-		}
-
-		data = append(data, serviceSettingConfiguration)
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+			return &types.ServiceSettingConfiguration{
+				CreatedAt:        result.CreatedAt,
+				LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
+				ID:               result.ID,
+				Value:            result.Value,
+				Notes:            result.Notes,
+				BelongsToUser:    result.BelongsToUser,
+				BelongsToAccount: result.BelongsToAccount,
+				ServiceSetting: types.ServiceSetting{
+					CreatedAt:     result.ServiceSettingCreatedAt,
+					DefaultValue:  database.StringPointerFromNullString(result.ServiceSettingDefaultValue),
+					LastUpdatedAt: database.TimePointerFromNullTime(result.ServiceSettingLastUpdatedAt),
+					ArchivedAt:    database.TimePointerFromNullTime(result.ServiceSettingArchivedAt),
+					ID:            result.ServiceSettingID,
+					Name:          result.ServiceSettingName,
+					Type:          string(result.ServiceSettingType),
+					Description:   result.ServiceSettingDescription,
+					Enumeration:   usableEnumeration,
+					AdminsOnly:    result.ServiceSettingAdminsOnly,
+				},
+			}
+		},
+		func(result *generated.GetServiceSettingConfigurationsForAccountRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.ServiceSettingConfiguration) string {
 			return t.ID
 		},

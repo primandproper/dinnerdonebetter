@@ -124,46 +124,46 @@ func (q *repository) SearchForValidInstruments(ctx context.Context, query string
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.SearchForValidInstruments(ctx, q.readDB, &generated.SearchForValidInstrumentsParams{
 		NameQuery:       query,
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid instruments list retrieval query")
 	}
 
-	var (
-		data                      = []*types.ValidInstrument{}
-		filteredCount, totalCount uint64
+	x := filtering.Drain(
+		results,
+		func(result *generated.SearchForValidInstrumentsRow) *types.ValidInstrument {
+			return &types.ValidInstrument{
+				CreatedAt:                      result.CreatedAt,
+				LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
+				IconPath:                       result.IconPath,
+				ID:                             result.ID,
+				Name:                           result.Name,
+				PluralName:                     result.PluralName,
+				Description:                    result.Description,
+				Slug:                           result.Slug,
+				DisplayInSummaryLists:          result.DisplayInSummaryLists,
+				IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
+				UsableForStorage:               result.UsableForStorage,
+			}
+		},
+		func(result *generated.SearchForValidInstrumentsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
+		func(vi *types.ValidInstrument) string { return vi.ID },
+		filter,
 	)
-	for _, result := range results {
-		validInstrument := &types.ValidInstrument{
-			CreatedAt:                      result.CreatedAt,
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-			IconPath:                       result.IconPath,
-			ID:                             result.ID,
-			Name:                           result.Name,
-			PluralName:                     result.PluralName,
-			Description:                    result.Description,
-			Slug:                           result.Slug,
-			DisplayInSummaryLists:          result.DisplayInSummaryLists,
-			IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
-			UsableForStorage:               result.UsableForStorage,
-		}
-		data = append(data, validInstrument)
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(data, filteredCount, totalCount, func(vi *types.ValidInstrument) string { return vi.ID }, filter)
 
 	return x, nil
 }
@@ -181,47 +181,47 @@ func (q *repository) SearchForValidInstrumentsNotOwnedByAccount(ctx context.Cont
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.SearchForValidInstrumentsNotOwnedByAccount(ctx, q.readDB, &generated.SearchForValidInstrumentsNotOwnedByAccountParams{
 		AccountID:       accountID,
 		NameQuery:       query,
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid instruments not owned by account search query")
 	}
 
-	var (
-		data                      = []*types.ValidInstrument{}
-		filteredCount, totalCount uint64
+	x := filtering.Drain(
+		results,
+		func(result *generated.SearchForValidInstrumentsNotOwnedByAccountRow) *types.ValidInstrument {
+			return &types.ValidInstrument{
+				CreatedAt:                      result.CreatedAt,
+				LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
+				IconPath:                       result.IconPath,
+				ID:                             result.ID,
+				Name:                           result.Name,
+				PluralName:                     result.PluralName,
+				Description:                    result.Description,
+				Slug:                           result.Slug,
+				DisplayInSummaryLists:          result.DisplayInSummaryLists,
+				IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
+				UsableForStorage:               result.UsableForStorage,
+			}
+		},
+		func(result *generated.SearchForValidInstrumentsNotOwnedByAccountRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
+		func(vi *types.ValidInstrument) string { return vi.ID },
+		filter,
 	)
-	for _, result := range results {
-		validInstrument := &types.ValidInstrument{
-			CreatedAt:                      result.CreatedAt,
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-			IconPath:                       result.IconPath,
-			ID:                             result.ID,
-			Name:                           result.Name,
-			PluralName:                     result.PluralName,
-			Description:                    result.Description,
-			Slug:                           result.Slug,
-			DisplayInSummaryLists:          result.DisplayInSummaryLists,
-			IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
-			UsableForStorage:               result.UsableForStorage,
-		}
-		data = append(data, validInstrument)
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(data, filteredCount, totalCount, func(vi *types.ValidInstrument) string { return vi.ID }, filter)
 
 	return x, nil
 }
@@ -239,50 +239,42 @@ func (q *repository) GetValidInstruments(ctx context.Context, filter *filtering.
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetValidInstruments(ctx, q.readDB, &generated.GetValidInstrumentsParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid instruments list retrieval query")
 	}
 
-	var (
-		data          []*types.ValidInstrument
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, &types.ValidInstrument{
-			CreatedAt:                      result.CreatedAt,
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-			IconPath:                       result.IconPath,
-			ID:                             result.ID,
-			Name:                           result.Name,
-			PluralName:                     result.PluralName,
-			Description:                    result.Description,
-			Slug:                           result.Slug,
-			DisplayInSummaryLists:          result.DisplayInSummaryLists,
-			IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
-			UsableForStorage:               result.UsableForStorage,
-		})
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.GetValidInstrumentsRow) *types.ValidInstrument {
+			return &types.ValidInstrument{
+				CreatedAt:                      result.CreatedAt,
+				LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
+				IconPath:                       result.IconPath,
+				ID:                             result.ID,
+				Name:                           result.Name,
+				PluralName:                     result.PluralName,
+				Description:                    result.Description,
+				Slug:                           result.Slug,
+				DisplayInSummaryLists:          result.DisplayInSummaryLists,
+				IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
+				UsableForStorage:               result.UsableForStorage,
+			}
+		},
+		func(result *generated.GetValidInstrumentsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(vi *types.ValidInstrument) string { return vi.ID },
 		filter,
 	)

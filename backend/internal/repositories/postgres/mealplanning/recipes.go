@@ -417,54 +417,49 @@ func (q *repository) GetRecipes(ctx context.Context, status string, filter *filt
 		status = mealplanning.RecipeStatusApproved
 	}
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetRecipes(ctx, q.readDB, &generated.GetRecipesParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 		Status:          generated.NullRecipeStatus{RecipeStatus: generated.RecipeStatus(status), Valid: true},
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing recipes list retrieval query")
 	}
 
-	var (
-		data          []*mealplanning.Recipe
-		filteredCount uint64
-		totalCount    uint64
-	)
-	for _, result := range results {
-		data = append(data, &mealplanning.Recipe{
-			CreatedAt:            result.CreatedAt,
-			InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
-			LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-			PluralPortionName:    result.PluralPortionName,
-			Description:          result.Description,
-			Name:                 result.Name,
-			PortionName:          result.PortionName,
-			ID:                   result.ID,
-			CreatedByUser:        result.CreatedByUser,
-			Source:               result.Source,
-			SourceISBN:           result.SourceIsbn,
-			Slug:                 result.Slug,
-			YieldsComponentType:  string(result.YieldsComponentType),
-			MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
-			MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
-			Status:               string(result.Status),
-			EligibleForMeals:     result.EligibleForMeals,
-		})
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.GetRecipesRow) *mealplanning.Recipe {
+			return &mealplanning.Recipe{
+				CreatedAt:            result.CreatedAt,
+				InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
+				LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
+				PluralPortionName:    result.PluralPortionName,
+				Description:          result.Description,
+				Name:                 result.Name,
+				PortionName:          result.PortionName,
+				ID:                   result.ID,
+				CreatedByUser:        result.CreatedByUser,
+				Source:               result.Source,
+				SourceISBN:           result.SourceIsbn,
+				Slug:                 result.Slug,
+				YieldsComponentType:  string(result.YieldsComponentType),
+				MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
+				MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
+				Status:               string(result.Status),
+				EligibleForMeals:     result.EligibleForMeals,
+			}
+		},
+		func(result *generated.GetRecipesRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(r *mealplanning.Recipe) string { return r.ID },
 		filter,
 	)
@@ -491,55 +486,49 @@ func (q *repository) GetRecipesCreatedByUser(ctx context.Context, userID string,
 	logger = logger.WithValue(identitykeys.UserIDKey, userID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetRecipesCreatedByUser(ctx, q.readDB, &generated.GetRecipesCreatedByUserParams{
 		CreatedByUser:   userID,
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing recipes list retrieval query")
 	}
 
-	var (
-		data          []*mealplanning.Recipe
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		data = append(data, &mealplanning.Recipe{
-			CreatedAt:            result.CreatedAt,
-			InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
-			LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-			PluralPortionName:    result.PluralPortionName,
-			Description:          result.Description,
-			Name:                 result.Name,
-			PortionName:          result.PortionName,
-			ID:                   result.ID,
-			CreatedByUser:        result.CreatedByUser,
-			Source:               result.Source,
-			SourceISBN:           result.SourceIsbn,
-			Slug:                 result.Slug,
-			YieldsComponentType:  string(result.YieldsComponentType),
-			MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
-			MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
-			Status:               string(result.Status),
-			EligibleForMeals:     result.EligibleForMeals,
-		})
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.GetRecipesCreatedByUserRow) *mealplanning.Recipe {
+			return &mealplanning.Recipe{
+				CreatedAt:            result.CreatedAt,
+				InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
+				LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
+				PluralPortionName:    result.PluralPortionName,
+				Description:          result.Description,
+				Name:                 result.Name,
+				PortionName:          result.PortionName,
+				ID:                   result.ID,
+				CreatedByUser:        result.CreatedByUser,
+				Source:               result.Source,
+				SourceISBN:           result.SourceIsbn,
+				Slug:                 result.Slug,
+				YieldsComponentType:  string(result.YieldsComponentType),
+				MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
+				MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
+				Status:               string(result.Status),
+				EligibleForMeals:     result.EligibleForMeals,
+			}
+		},
+		func(result *generated.GetRecipesCreatedByUserRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(r *mealplanning.Recipe) string { return r.ID },
 		filter,
 	)
@@ -703,55 +692,49 @@ func (q *repository) SearchForRecipes(ctx context.Context, recipeNameQuery strin
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.RecipeSearch(ctx, q.readDB, &generated.RecipeSearchParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 		Query:           recipeNameQuery,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing recipes search query")
 	}
 
-	var (
-		data          []*mealplanning.Recipe
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		data = append(data, &mealplanning.Recipe{
-			CreatedAt:            result.CreatedAt,
-			InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
-			LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-			PluralPortionName:    result.PluralPortionName,
-			Description:          result.Description,
-			Name:                 result.Name,
-			PortionName:          result.PortionName,
-			ID:                   result.ID,
-			CreatedByUser:        result.CreatedByUser,
-			Source:               result.Source,
-			SourceISBN:           result.SourceIsbn,
-			Slug:                 result.Slug,
-			YieldsComponentType:  string(result.YieldsComponentType),
-			MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
-			MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
-			Status:               string(result.Status),
-			EligibleForMeals:     result.EligibleForMeals,
-		})
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.RecipeSearchRow) *mealplanning.Recipe {
+			return &mealplanning.Recipe{
+				CreatedAt:            result.CreatedAt,
+				InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
+				LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
+				PluralPortionName:    result.PluralPortionName,
+				Description:          result.Description,
+				Name:                 result.Name,
+				PortionName:          result.PortionName,
+				ID:                   result.ID,
+				CreatedByUser:        result.CreatedByUser,
+				Source:               result.Source,
+				SourceISBN:           result.SourceIsbn,
+				Slug:                 result.Slug,
+				YieldsComponentType:  string(result.YieldsComponentType),
+				MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
+				MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
+				Status:               string(result.Status),
+				EligibleForMeals:     result.EligibleForMeals,
+			}
+		},
+		func(result *generated.RecipeSearchRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(r *mealplanning.Recipe) string { return r.ID },
 		filter,
 	)
@@ -772,55 +755,49 @@ func (q *repository) SearchForMealEligibleRecipes(ctx context.Context, recipeNam
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.SearchForMealEligibleRecipes(ctx, q.readDB, &generated.SearchForMealEligibleRecipesParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 		Query:           recipeNameQuery,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing recipes search query")
 	}
 
-	var (
-		data          []*mealplanning.Recipe
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		data = append(data, &mealplanning.Recipe{
-			CreatedAt:            result.CreatedAt,
-			InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
-			LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-			PluralPortionName:    result.PluralPortionName,
-			Description:          result.Description,
-			Name:                 result.Name,
-			PortionName:          result.PortionName,
-			ID:                   result.ID,
-			CreatedByUser:        result.CreatedByUser,
-			Source:               result.Source,
-			SourceISBN:           result.SourceIsbn,
-			Slug:                 result.Slug,
-			YieldsComponentType:  string(result.YieldsComponentType),
-			MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
-			MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
-			Status:               string(result.Status),
-			EligibleForMeals:     result.EligibleForMeals,
-		})
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.SearchForMealEligibleRecipesRow) *mealplanning.Recipe {
+			return &mealplanning.Recipe{
+				CreatedAt:            result.CreatedAt,
+				InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
+				LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
+				PluralPortionName:    result.PluralPortionName,
+				Description:          result.Description,
+				Name:                 result.Name,
+				PortionName:          result.PortionName,
+				ID:                   result.ID,
+				CreatedByUser:        result.CreatedByUser,
+				Source:               result.Source,
+				SourceISBN:           result.SourceIsbn,
+				Slug:                 result.Slug,
+				YieldsComponentType:  string(result.YieldsComponentType),
+				MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
+				MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
+				Status:               string(result.Status),
+				EligibleForMeals:     result.EligibleForMeals,
+			}
+		},
+		func(result *generated.SearchForMealEligibleRecipesRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(r *mealplanning.Recipe) string { return r.ID },
 		filter,
 	)
@@ -841,14 +818,16 @@ func (q *repository) SearchForRecipesWithInstrumentOwnership(ctx context.Context
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.SearchForRecipesWithInstrumentOwnership(ctx, q.readDB, &generated.SearchForRecipesWithInstrumentOwnershipParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 		Query:           recipeNameQuery,
 		AccountID:       accountID,
 	})
@@ -856,41 +835,33 @@ func (q *repository) SearchForRecipesWithInstrumentOwnership(ctx context.Context
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing recipes search with instrument ownership query")
 	}
 
-	var (
-		data          []*mealplanning.Recipe
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		data = append(data, &mealplanning.Recipe{
-			CreatedAt:            result.CreatedAt,
-			InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
-			LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-			PluralPortionName:    result.PluralPortionName,
-			Description:          result.Description,
-			Name:                 result.Name,
-			PortionName:          result.PortionName,
-			ID:                   result.ID,
-			CreatedByUser:        result.CreatedByUser,
-			Source:               result.Source,
-			SourceISBN:           result.SourceIsbn,
-			Slug:                 result.Slug,
-			YieldsComponentType:  string(result.YieldsComponentType),
-			MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
-			MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
-			Status:               string(result.Status),
-			EligibleForMeals:     result.EligibleForMeals,
-		})
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.SearchForRecipesWithInstrumentOwnershipRow) *mealplanning.Recipe {
+			return &mealplanning.Recipe{
+				CreatedAt:            result.CreatedAt,
+				InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
+				LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
+				PluralPortionName:    result.PluralPortionName,
+				Description:          result.Description,
+				Name:                 result.Name,
+				PortionName:          result.PortionName,
+				ID:                   result.ID,
+				CreatedByUser:        result.CreatedByUser,
+				Source:               result.Source,
+				SourceISBN:           result.SourceIsbn,
+				Slug:                 result.Slug,
+				YieldsComponentType:  string(result.YieldsComponentType),
+				MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
+				MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
+				Status:               string(result.Status),
+				EligibleForMeals:     result.EligibleForMeals,
+			}
+		},
+		func(result *generated.SearchForRecipesWithInstrumentOwnershipRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(r *mealplanning.Recipe) string { return r.ID },
 		filter,
 	)

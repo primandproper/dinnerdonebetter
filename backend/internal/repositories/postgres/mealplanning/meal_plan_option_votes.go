@@ -196,50 +196,42 @@ func (q *repository) GetMealPlanOptionVotes(ctx context.Context, mealPlanID, mea
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	var (
-		data          []*types.MealPlanOptionVote
-		filteredCount uint64
-		totalCount    uint64
-	)
+	filterArgs := filtering.ToSQLArgs(filter)
 
 	results, err := q.generatedQuerier.GetMealPlanOptionVotes(ctx, q.readDB, &generated.GetMealPlanOptionVotesParams{
 		MealPlanID:       mealPlanID,
 		MealPlanOptionID: mealPlanOptionID,
 		MealPlanEventID:  database.NullStringFromString(mealPlanEventID),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:    filterArgs.CreatedBefore,
+		CreatedAfter:     filterArgs.CreatedAfter,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
+		IncludeArchived:  filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing meal plan option votes list retrieval query")
 	}
 
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, &types.MealPlanOptionVote{
-			CreatedAt:               result.CreatedAt,
-			ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ID:                      result.ID,
-			Notes:                   result.Notes,
-			BelongsToMealPlanOption: result.BelongsToMealPlanOption,
-			ByUser:                  result.ByUser,
-			Rank:                    uint8(result.Rank),
-			Abstain:                 result.Abstain,
-		})
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.GetMealPlanOptionVotesRow) *types.MealPlanOptionVote {
+			return &types.MealPlanOptionVote{
+				CreatedAt:               result.CreatedAt,
+				ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
+				LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ID:                      result.ID,
+				Notes:                   result.Notes,
+				BelongsToMealPlanOption: result.BelongsToMealPlanOption,
+				ByUser:                  result.ByUser,
+				Rank:                    uint8(result.Rank),
+				Abstain:                 result.Abstain,
+			}
+		},
+		func(result *generated.GetMealPlanOptionVotesRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(mpov *types.MealPlanOptionVote) string { return mpov.ID },
 		filter,
 	)

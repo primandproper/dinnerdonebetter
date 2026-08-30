@@ -86,12 +86,14 @@ func (r *repository) GetPaymentTransactionsForAccount(ctx context.Context, accou
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	params := &generated.GetPaymentTransactionsForAccountParams{
 		BelongsToAccount: accountID,
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:     filterArgs.CreatedAfter,
+		CreatedBefore:    filterArgs.CreatedBefore,
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
 	}
 
 	results, err := r.generatedQuerier.GetPaymentTransactionsForAccount(ctx, r.readDB, params)
@@ -103,27 +105,24 @@ func (r *repository) GetPaymentTransactionsForAccount(ctx context.Context, accou
 }
 
 func convertPaymentTransactionsResult(rows []*generated.GetPaymentTransactionsForAccountRow, filter *filtering.QueryFilter) *filtering.QueryFilteredResult[payments.PaymentTransaction] {
-	data := make([]*payments.PaymentTransaction, 0, len(rows))
-	var filteredCount, totalCount uint64
-	for _, row := range rows {
-		data = append(data, &payments.PaymentTransaction{
-			ID:                    row.ID,
-			BelongsToAccount:      row.BelongsToAccount,
-			SubscriptionID:        database.StringPointerFromNullString(row.SubscriptionID),
-			PurchaseID:            database.StringPointerFromNullString(row.PurchaseID),
-			ExternalTransactionID: row.ExternalTransactionID,
-			AmountCents:           row.AmountCents,
-			Currency:              row.Currency,
-			Status:                string(row.Status),
-			CreatedAt:             row.CreatedAt,
-		})
-		filteredCount = uint64(row.FilteredCount)
-		totalCount = uint64(row.TotalCount)
-	}
-	return filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	return filtering.Drain(
+		rows,
+		func(row *generated.GetPaymentTransactionsForAccountRow) *payments.PaymentTransaction {
+			return &payments.PaymentTransaction{
+				ID:                    row.ID,
+				BelongsToAccount:      row.BelongsToAccount,
+				SubscriptionID:        database.StringPointerFromNullString(row.SubscriptionID),
+				PurchaseID:            database.StringPointerFromNullString(row.PurchaseID),
+				ExternalTransactionID: row.ExternalTransactionID,
+				AmountCents:           row.AmountCents,
+				Currency:              row.Currency,
+				Status:                string(row.Status),
+				CreatedAt:             row.CreatedAt,
+			}
+		},
+		func(row *generated.GetPaymentTransactionsForAccountRow) (int64, int64) {
+			return row.FilteredCount, row.TotalCount
+		},
 		func(p *payments.PaymentTransaction) string { return p.ID },
 		filter,
 	)

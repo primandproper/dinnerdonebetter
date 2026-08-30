@@ -471,14 +471,16 @@ func (r *repository) GetPendingAccountInvitationsFromUser(ctx context.Context, u
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 	filter.AttachToLogger(logger)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetPendingInvitesFromUser(ctx, r.readDB, &generated.GetPendingInvitesFromUserParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 		Status:          generated.InvitationState(identity.PendingAccountInvitationStatus),
 		FromUser:        userID,
 	})
@@ -486,77 +488,70 @@ func (r *repository) GetPendingAccountInvitationsFromUser(ctx context.Context, u
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing account invitation query")
 	}
 
-	var (
-		data                      []*identity.AccountInvitation
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, &identity.AccountInvitation{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			ToUser:        database.StringPointerFromNullString(result.ToUser),
-			Status:        string(result.Status),
-			ToEmail:       result.ToEmail,
-			StatusNote:    result.StatusNote,
-			Token:         result.Token,
-			ID:            result.ID,
-			Note:          result.Note,
-			ToName:        result.ToName,
-			ExpiresAt:     result.ExpiresAt,
-			DestinationAccount: identity.Account{
-				CreatedAt:                  result.AccountCreatedAt,
-				SubscriptionPlanID:         database.StringPointerFromNullString(result.AccountSubscriptionPlanID),
-				LastUpdatedAt:              database.TimePointerFromNullTime(result.AccountLastUpdatedAt),
-				ArchivedAt:                 database.TimePointerFromNullTime(result.AccountArchivedAt),
-				ContactPhone:               result.AccountContactPhone,
-				BillingStatus:              result.AccountBillingStatus,
-				AddressLine1:               result.AccountAddressLine1,
-				AddressLine2:               result.AccountAddressLine2,
-				City:                       result.AccountCity,
-				State:                      result.AccountState,
-				ZipCode:                    result.AccountZipCode,
-				Country:                    result.AccountCountry,
-				Latitude:                   database.Float64PointerFromNullString(result.AccountLatitude),
-				Longitude:                  database.Float64PointerFromNullString(result.AccountLongitude),
-				PaymentProcessorCustomerID: result.AccountPaymentProcessorCustomerID,
-				BelongsToUser:              result.AccountBelongsToUser,
-				ID:                         result.AccountID,
-				Name:                       result.AccountName,
-				Members:                    nil,
-			},
-			FromUser: identity.User{
-				CreatedAt:                  result.UserCreatedAt,
-				PasswordLastChangedAt:      database.TimePointerFromNullTime(result.UserPasswordLastChangedAt),
-				LastUpdatedAt:              database.TimePointerFromNullTime(result.UserLastUpdatedAt),
-				LastAcceptedTermsOfService: database.TimePointerFromNullTime(result.UserLastAcceptedTermsOfService),
-				LastAcceptedPrivacyPolicy:  database.TimePointerFromNullTime(result.UserLastAcceptedPrivacyPolicy),
-				TwoFactorSecretVerifiedAt:  database.TimePointerFromNullTime(result.UserTwoFactorSecretVerifiedAt),
-				Avatar:                     avatarFromRow(result.UserAvatarID, result.UserAvatarStoragePath, result.UserAvatarMimeType, result.UserAvatarCreatedAt, result.UserAvatarLastUpdatedAt, result.UserAvatarArchivedAt, result.UserAvatarCreatedByUser),
-				Birthday:                   database.TimePointerFromNullTime(result.UserBirthday),
-				ArchivedAt:                 database.TimePointerFromNullTime(result.UserArchivedAt),
-				AccountStatusExplanation:   result.UserUserAccountStatusExplanation,
-				TwoFactorSecret:            result.UserTwoFactorSecret,
-				HashedPassword:             result.UserHashedPassword,
-				ID:                         result.UserID,
-				AccountStatus:              result.UserUserAccountStatus,
-				Username:                   result.UserUsername,
-				FirstName:                  result.UserFirstName,
-				LastName:                   result.UserLastName,
-				EmailAddress:               result.UserEmailAddress,
-				EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.UserEmailAddressVerifiedAt),
-				RequiresPasswordChange:     result.UserRequiresPasswordChange,
-			},
-		})
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetPendingInvitesFromUserRow) *identity.AccountInvitation {
+			return &identity.AccountInvitation{
+				CreatedAt:     result.CreatedAt,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				ToUser:        database.StringPointerFromNullString(result.ToUser),
+				Status:        string(result.Status),
+				ToEmail:       result.ToEmail,
+				StatusNote:    result.StatusNote,
+				Token:         result.Token,
+				ID:            result.ID,
+				Note:          result.Note,
+				ToName:        result.ToName,
+				ExpiresAt:     result.ExpiresAt,
+				DestinationAccount: identity.Account{
+					CreatedAt:                  result.AccountCreatedAt,
+					SubscriptionPlanID:         database.StringPointerFromNullString(result.AccountSubscriptionPlanID),
+					LastUpdatedAt:              database.TimePointerFromNullTime(result.AccountLastUpdatedAt),
+					ArchivedAt:                 database.TimePointerFromNullTime(result.AccountArchivedAt),
+					ContactPhone:               result.AccountContactPhone,
+					BillingStatus:              result.AccountBillingStatus,
+					AddressLine1:               result.AccountAddressLine1,
+					AddressLine2:               result.AccountAddressLine2,
+					City:                       result.AccountCity,
+					State:                      result.AccountState,
+					ZipCode:                    result.AccountZipCode,
+					Country:                    result.AccountCountry,
+					Latitude:                   database.Float64PointerFromNullString(result.AccountLatitude),
+					Longitude:                  database.Float64PointerFromNullString(result.AccountLongitude),
+					PaymentProcessorCustomerID: result.AccountPaymentProcessorCustomerID,
+					BelongsToUser:              result.AccountBelongsToUser,
+					ID:                         result.AccountID,
+					Name:                       result.AccountName,
+					Members:                    nil,
+				},
+				FromUser: identity.User{
+					CreatedAt:                  result.UserCreatedAt,
+					PasswordLastChangedAt:      database.TimePointerFromNullTime(result.UserPasswordLastChangedAt),
+					LastUpdatedAt:              database.TimePointerFromNullTime(result.UserLastUpdatedAt),
+					LastAcceptedTermsOfService: database.TimePointerFromNullTime(result.UserLastAcceptedTermsOfService),
+					LastAcceptedPrivacyPolicy:  database.TimePointerFromNullTime(result.UserLastAcceptedPrivacyPolicy),
+					TwoFactorSecretVerifiedAt:  database.TimePointerFromNullTime(result.UserTwoFactorSecretVerifiedAt),
+					Avatar:                     avatarFromRow(result.UserAvatarID, result.UserAvatarStoragePath, result.UserAvatarMimeType, result.UserAvatarCreatedAt, result.UserAvatarLastUpdatedAt, result.UserAvatarArchivedAt, result.UserAvatarCreatedByUser),
+					Birthday:                   database.TimePointerFromNullTime(result.UserBirthday),
+					ArchivedAt:                 database.TimePointerFromNullTime(result.UserArchivedAt),
+					AccountStatusExplanation:   result.UserUserAccountStatusExplanation,
+					TwoFactorSecret:            result.UserTwoFactorSecret,
+					HashedPassword:             result.UserHashedPassword,
+					ID:                         result.UserID,
+					AccountStatus:              result.UserUserAccountStatus,
+					Username:                   result.UserUsername,
+					FirstName:                  result.UserFirstName,
+					LastName:                   result.UserLastName,
+					EmailAddress:               result.UserEmailAddress,
+					EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.UserEmailAddressVerifiedAt),
+					RequiresPasswordChange:     result.UserRequiresPasswordChange,
+				},
+			}
+		},
+		func(result *generated.GetPendingInvitesFromUserRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *identity.AccountInvitation) string {
 			return t.ID
 		},
@@ -577,14 +572,16 @@ func (r *repository) GetPendingAccountInvitationsForUser(ctx context.Context, us
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 	filter.AttachToLogger(logger)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetPendingInvitesForUser(ctx, r.readDB, &generated.GetPendingInvitesForUserParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 		Status:          generated.InvitationState(identity.PendingAccountInvitationStatus),
 		ToUser:          database.NullStringFromString(userID),
 	})
@@ -592,77 +589,70 @@ func (r *repository) GetPendingAccountInvitationsForUser(ctx context.Context, us
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing account invitation query")
 	}
 
-	var (
-		data                      []*identity.AccountInvitation
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, &identity.AccountInvitation{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			ToUser:        database.StringPointerFromNullString(result.ToUser),
-			Status:        string(result.Status),
-			ToEmail:       result.ToEmail,
-			StatusNote:    result.StatusNote,
-			Token:         result.Token,
-			ID:            result.ID,
-			Note:          result.Note,
-			ToName:        result.ToName,
-			ExpiresAt:     result.ExpiresAt,
-			DestinationAccount: identity.Account{
-				CreatedAt:                  result.AccountCreatedAt,
-				SubscriptionPlanID:         database.StringPointerFromNullString(result.AccountSubscriptionPlanID),
-				LastUpdatedAt:              database.TimePointerFromNullTime(result.AccountLastUpdatedAt),
-				ArchivedAt:                 database.TimePointerFromNullTime(result.AccountArchivedAt),
-				ContactPhone:               result.AccountContactPhone,
-				BillingStatus:              result.AccountBillingStatus,
-				AddressLine1:               result.AccountAddressLine1,
-				AddressLine2:               result.AccountAddressLine2,
-				City:                       result.AccountCity,
-				State:                      result.AccountState,
-				ZipCode:                    result.AccountZipCode,
-				Country:                    result.AccountCountry,
-				Latitude:                   database.Float64PointerFromNullString(result.AccountLatitude),
-				Longitude:                  database.Float64PointerFromNullString(result.AccountLongitude),
-				PaymentProcessorCustomerID: result.AccountPaymentProcessorCustomerID,
-				BelongsToUser:              result.AccountBelongsToUser,
-				ID:                         result.AccountID,
-				Name:                       result.AccountName,
-				Members:                    nil,
-			},
-			FromUser: identity.User{
-				CreatedAt:                  result.UserCreatedAt,
-				PasswordLastChangedAt:      database.TimePointerFromNullTime(result.UserPasswordLastChangedAt),
-				LastUpdatedAt:              database.TimePointerFromNullTime(result.UserLastUpdatedAt),
-				LastAcceptedTermsOfService: database.TimePointerFromNullTime(result.UserLastAcceptedTermsOfService),
-				LastAcceptedPrivacyPolicy:  database.TimePointerFromNullTime(result.UserLastAcceptedPrivacyPolicy),
-				TwoFactorSecretVerifiedAt:  database.TimePointerFromNullTime(result.UserTwoFactorSecretVerifiedAt),
-				Avatar:                     avatarFromRow(result.UserAvatarID, result.UserAvatarStoragePath, result.UserAvatarMimeType, result.UserAvatarCreatedAt, result.UserAvatarLastUpdatedAt, result.UserAvatarArchivedAt, result.UserAvatarCreatedByUser),
-				Birthday:                   database.TimePointerFromNullTime(result.UserBirthday),
-				ArchivedAt:                 database.TimePointerFromNullTime(result.UserArchivedAt),
-				AccountStatusExplanation:   result.UserUserAccountStatusExplanation,
-				TwoFactorSecret:            result.UserTwoFactorSecret,
-				HashedPassword:             result.UserHashedPassword,
-				ID:                         result.UserID,
-				AccountStatus:              result.UserUserAccountStatus,
-				Username:                   result.UserUsername,
-				FirstName:                  result.UserFirstName,
-				LastName:                   result.UserLastName,
-				EmailAddress:               result.UserEmailAddress,
-				EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.UserEmailAddressVerifiedAt),
-				RequiresPasswordChange:     result.UserRequiresPasswordChange,
-			},
-		})
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetPendingInvitesForUserRow) *identity.AccountInvitation {
+			return &identity.AccountInvitation{
+				CreatedAt:     result.CreatedAt,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				ToUser:        database.StringPointerFromNullString(result.ToUser),
+				Status:        string(result.Status),
+				ToEmail:       result.ToEmail,
+				StatusNote:    result.StatusNote,
+				Token:         result.Token,
+				ID:            result.ID,
+				Note:          result.Note,
+				ToName:        result.ToName,
+				ExpiresAt:     result.ExpiresAt,
+				DestinationAccount: identity.Account{
+					CreatedAt:                  result.AccountCreatedAt,
+					SubscriptionPlanID:         database.StringPointerFromNullString(result.AccountSubscriptionPlanID),
+					LastUpdatedAt:              database.TimePointerFromNullTime(result.AccountLastUpdatedAt),
+					ArchivedAt:                 database.TimePointerFromNullTime(result.AccountArchivedAt),
+					ContactPhone:               result.AccountContactPhone,
+					BillingStatus:              result.AccountBillingStatus,
+					AddressLine1:               result.AccountAddressLine1,
+					AddressLine2:               result.AccountAddressLine2,
+					City:                       result.AccountCity,
+					State:                      result.AccountState,
+					ZipCode:                    result.AccountZipCode,
+					Country:                    result.AccountCountry,
+					Latitude:                   database.Float64PointerFromNullString(result.AccountLatitude),
+					Longitude:                  database.Float64PointerFromNullString(result.AccountLongitude),
+					PaymentProcessorCustomerID: result.AccountPaymentProcessorCustomerID,
+					BelongsToUser:              result.AccountBelongsToUser,
+					ID:                         result.AccountID,
+					Name:                       result.AccountName,
+					Members:                    nil,
+				},
+				FromUser: identity.User{
+					CreatedAt:                  result.UserCreatedAt,
+					PasswordLastChangedAt:      database.TimePointerFromNullTime(result.UserPasswordLastChangedAt),
+					LastUpdatedAt:              database.TimePointerFromNullTime(result.UserLastUpdatedAt),
+					LastAcceptedTermsOfService: database.TimePointerFromNullTime(result.UserLastAcceptedTermsOfService),
+					LastAcceptedPrivacyPolicy:  database.TimePointerFromNullTime(result.UserLastAcceptedPrivacyPolicy),
+					TwoFactorSecretVerifiedAt:  database.TimePointerFromNullTime(result.UserTwoFactorSecretVerifiedAt),
+					Avatar:                     avatarFromRow(result.UserAvatarID, result.UserAvatarStoragePath, result.UserAvatarMimeType, result.UserAvatarCreatedAt, result.UserAvatarLastUpdatedAt, result.UserAvatarArchivedAt, result.UserAvatarCreatedByUser),
+					Birthday:                   database.TimePointerFromNullTime(result.UserBirthday),
+					ArchivedAt:                 database.TimePointerFromNullTime(result.UserArchivedAt),
+					AccountStatusExplanation:   result.UserUserAccountStatusExplanation,
+					TwoFactorSecret:            result.UserTwoFactorSecret,
+					HashedPassword:             result.UserHashedPassword,
+					ID:                         result.UserID,
+					AccountStatus:              result.UserUserAccountStatus,
+					Username:                   result.UserUsername,
+					FirstName:                  result.UserFirstName,
+					LastName:                   result.UserLastName,
+					EmailAddress:               result.UserEmailAddress,
+					EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.UserEmailAddressVerifiedAt),
+					RequiresPasswordChange:     result.UserRequiresPasswordChange,
+				},
+			}
+		},
+		func(result *generated.GetPendingInvitesForUserRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *identity.AccountInvitation) string {
 			return t.ID
 		},

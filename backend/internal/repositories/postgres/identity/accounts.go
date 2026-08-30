@@ -125,15 +125,17 @@ func (r *repository) getAccountsForUser(ctx context.Context, querier database.SQ
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	args := &generated.GetAccountsForUserParams{
 		BelongsToUser:   userID,
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	}
 	results, err := r.generatedQuerier.GetAccountsForUser(ctx, querier, args)
 	if err != nil {
@@ -144,40 +146,34 @@ func (r *repository) getAccountsForUser(ctx context.Context, querier database.SQ
 		return nil, sql.ErrNoRows
 	}
 
-	var (
-		data                      []*identity.Account
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, &identity.Account{
-			CreatedAt:                  result.CreatedAt,
-			SubscriptionPlanID:         database.StringPointerFromNullString(result.SubscriptionPlanID),
-			LastUpdatedAt:              database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:                 database.TimePointerFromNullTime(result.ArchivedAt),
-			ContactPhone:               result.ContactPhone,
-			BillingStatus:              result.BillingStatus,
-			AddressLine1:               result.AddressLine1,
-			AddressLine2:               result.AddressLine2,
-			City:                       result.City,
-			State:                      result.State,
-			ZipCode:                    result.ZipCode,
-			Country:                    result.Country,
-			Latitude:                   database.Float64PointerFromNullString(result.Latitude),
-			Longitude:                  database.Float64PointerFromNullString(result.Longitude),
-			PaymentProcessorCustomerID: result.PaymentProcessorCustomerID,
-			BelongsToUser:              result.BelongsToUser,
-			ID:                         result.ID,
-			Name:                       result.Name,
-			Members:                    nil,
-		})
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetAccountsForUserRow) *identity.Account {
+			return &identity.Account{
+				CreatedAt:                  result.CreatedAt,
+				SubscriptionPlanID:         database.StringPointerFromNullString(result.SubscriptionPlanID),
+				LastUpdatedAt:              database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:                 database.TimePointerFromNullTime(result.ArchivedAt),
+				ContactPhone:               result.ContactPhone,
+				BillingStatus:              result.BillingStatus,
+				AddressLine1:               result.AddressLine1,
+				AddressLine2:               result.AddressLine2,
+				City:                       result.City,
+				State:                      result.State,
+				ZipCode:                    result.ZipCode,
+				Country:                    result.Country,
+				Latitude:                   database.Float64PointerFromNullString(result.Latitude),
+				Longitude:                  database.Float64PointerFromNullString(result.Longitude),
+				PaymentProcessorCustomerID: result.PaymentProcessorCustomerID,
+				BelongsToUser:              result.BelongsToUser,
+				ID:                         result.ID,
+				Name:                       result.Name,
+				Members:                    nil,
+			}
+		},
+		func(result *generated.GetAccountsForUserRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *identity.Account) string {
 			return t.ID
 		},

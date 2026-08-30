@@ -93,48 +93,44 @@ func (q *repository) GetSelectionsForMealPlanOption(ctx context.Context, mealPla
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx, q.readDB, &generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionParams{
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:     filterArgs.CreatedAfter,
+		CreatedBefore:    filterArgs.CreatedBefore,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		IncludeArchived:  filterArgs.IncludeArchived,
 		MealPlanOptionID: mealPlanOptionID,
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing meal plan recipe option selections list retrieval query")
 	}
 
-	var (
-		x                         = []*types.MealPlanRecipeOptionSelection{}
-		filteredCount, totalCount uint64
+	y := filtering.Drain(
+		results,
+		func(result *generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRow) *types.MealPlanRecipeOptionSelection {
+			return &types.MealPlanRecipeOptionSelection{
+				ID:                      result.ID,
+				BelongsToMealPlanOption: result.BelongsToMealPlanOption,
+				RecipeID:                result.RecipeID,
+				RecipeStepID:            result.RecipeStepID,
+				IngredientIndex:         uint16(result.IngredientIndex),
+				SelectedOptionIndex:     uint16(result.SelectedOptionIndex),
+				SelectionType:           result.SelectionType,
+				CreatedAt:               result.CreatedAt,
+				LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
+			}
+		},
+		func(result *generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
+		func(s *types.MealPlanRecipeOptionSelection) string { return s.ID },
+		filter,
 	)
-
-	for _, result := range results {
-		selection := &types.MealPlanRecipeOptionSelection{
-			ID:                      result.ID,
-			BelongsToMealPlanOption: result.BelongsToMealPlanOption,
-			RecipeID:                result.RecipeID,
-			RecipeStepID:            result.RecipeStepID,
-			IngredientIndex:         uint16(result.IngredientIndex),
-			SelectedOptionIndex:     uint16(result.SelectedOptionIndex),
-			SelectionType:           result.SelectionType,
-			CreatedAt:               result.CreatedAt,
-			LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
-		}
-
-		if filteredCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-
-		x = append(x, selection)
-	}
-
-	y := filtering.NewQueryFilteredResult(x, filteredCount, totalCount, func(s *types.MealPlanRecipeOptionSelection) string { return s.ID }, filter)
 
 	return y, nil
 }
@@ -158,14 +154,16 @@ func (q *repository) GetSelectionsForMealPlan(ctx context.Context, mealPlanID st
 	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetMealPlanRecipeOptionSelectionsForMealPlan(ctx, q.readDB, &generated.GetMealPlanRecipeOptionSelectionsForMealPlanParams{
 		MealPlanID:      mealPlanID,
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
+		PageCursor:      filterArgs.Cursor,
 		ResultLimit:     nil, // fetch everything always
 	})
 	if err != nil {

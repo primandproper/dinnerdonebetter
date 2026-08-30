@@ -126,46 +126,47 @@ func (q *repository) SearchForValidMeasurementUnits(ctx context.Context, query s
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.SearchForValidMeasurementUnits(ctx, q.readDB, &generated.SearchForValidMeasurementUnitsParams{
 		NameQuery:       query,
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid measurement units list retrieval query")
 	}
 
-	var (
-		data                      = []*types.ValidMeasurementUnit{}
-		filteredCount, totalCount uint64
+	x := filtering.Drain(
+		results,
+		func(result *generated.SearchForValidMeasurementUnitsRow) *types.ValidMeasurementUnit {
+			return &types.ValidMeasurementUnit{
+				CreatedAt:     result.CreatedAt,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				Name:          result.Name,
+				IconPath:      result.IconPath,
+				ID:            result.ID,
+				Description:   result.Description,
+				PluralName:    result.PluralName,
+				Slug:          result.Slug,
+				Volumetric:    database.BoolFromNullBool(result.Volumetric),
+				Universal:     result.Universal,
+				Metric:        result.Metric,
+				Imperial:      result.Imperial,
+			}
+		},
+		func(result *generated.SearchForValidMeasurementUnitsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
+		func(vmu *types.ValidMeasurementUnit) string { return vmu.ID },
+		filter,
 	)
-	for _, result := range results {
-		data = append(data, &types.ValidMeasurementUnit{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			Name:          result.Name,
-			IconPath:      result.IconPath,
-			ID:            result.ID,
-			Description:   result.Description,
-			PluralName:    result.PluralName,
-			Slug:          result.Slug,
-			Volumetric:    database.BoolFromNullBool(result.Volumetric),
-			Universal:     result.Universal,
-			Metric:        result.Metric,
-			Imperial:      result.Imperial,
-		})
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(data, filteredCount, totalCount, func(vmu *types.ValidMeasurementUnit) string { return vmu.ID }, filter)
 
 	return x, nil
 }
@@ -189,52 +190,44 @@ func (q *repository) ValidMeasurementUnitsForIngredientID(ctx context.Context, v
 	logger = logger.WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.SearchValidMeasurementUnitsByIngredientID(ctx, q.readDB, &generated.SearchValidMeasurementUnitsByIngredientIDParams{
-		CreatedBefore:     database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:      database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:     database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:      database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:        database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:       database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived:   database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:     filterArgs.CreatedBefore,
+		CreatedAfter:      filterArgs.CreatedAfter,
+		UpdatedBefore:     filterArgs.UpdatedBefore,
+		UpdatedAfter:      filterArgs.UpdatedAfter,
+		PageCursor:        filterArgs.Cursor,
+		ResultLimit:       filterArgs.ResultLimit,
+		IncludeArchived:   filterArgs.IncludeArchived,
 		ValidIngredientID: validIngredientID,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid measurement units list retrieval query")
 	}
 
-	var (
-		data          []*types.ValidMeasurementUnit
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, &types.ValidMeasurementUnit{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			Name:          result.Name,
-			IconPath:      result.IconPath,
-			ID:            result.ID,
-			Description:   result.Description,
-			PluralName:    result.PluralName,
-			Slug:          result.Slug,
-			Volumetric:    database.BoolFromNullBool(result.Volumetric),
-			Universal:     result.Universal,
-			Metric:        result.Metric,
-			Imperial:      result.Imperial,
-		})
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.SearchValidMeasurementUnitsByIngredientIDRow) *types.ValidMeasurementUnit {
+			return &types.ValidMeasurementUnit{
+				CreatedAt:     result.CreatedAt,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				Name:          result.Name,
+				IconPath:      result.IconPath,
+				ID:            result.ID,
+				Description:   result.Description,
+				PluralName:    result.PluralName,
+				Slug:          result.Slug,
+				Volumetric:    database.BoolFromNullBool(result.Volumetric),
+				Universal:     result.Universal,
+				Metric:        result.Metric,
+				Imperial:      result.Imperial,
+			}
+		},
+		func(result *generated.SearchValidMeasurementUnitsByIngredientIDRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(vmu *types.ValidMeasurementUnit) string { return vmu.ID },
 		filter,
 	)
@@ -255,51 +248,43 @@ func (q *repository) GetValidMeasurementUnits(ctx context.Context, filter *filte
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetValidMeasurementUnits(ctx, q.readDB, &generated.GetValidMeasurementUnitsParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid measurement units list retrieval query")
 	}
 
-	var (
-		data          []*types.ValidMeasurementUnit
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, &types.ValidMeasurementUnit{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			Name:          result.Name,
-			IconPath:      result.IconPath,
-			ID:            result.ID,
-			Description:   result.Description,
-			PluralName:    result.PluralName,
-			Slug:          result.Slug,
-			Volumetric:    database.BoolFromNullBool(result.Volumetric),
-			Universal:     result.Universal,
-			Metric:        result.Metric,
-			Imperial:      result.Imperial,
-		})
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.GetValidMeasurementUnitsRow) *types.ValidMeasurementUnit {
+			return &types.ValidMeasurementUnit{
+				CreatedAt:     result.CreatedAt,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				Name:          result.Name,
+				IconPath:      result.IconPath,
+				ID:            result.ID,
+				Description:   result.Description,
+				PluralName:    result.PluralName,
+				Slug:          result.Slug,
+				Volumetric:    database.BoolFromNullBool(result.Volumetric),
+				Universal:     result.Universal,
+				Metric:        result.Metric,
+				Imperial:      result.Imperial,
+			}
+		},
+		func(result *generated.GetValidMeasurementUnitsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(vmu *types.ValidMeasurementUnit) string { return vmu.ID },
 		filter,
 	)
