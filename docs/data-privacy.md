@@ -31,7 +31,7 @@ erasure would be unrecoverable, and ours is initiated by the subject themselves 
 authenticated call.
 
 | Step | Who | What happens |
-|------|-----|--------------|
+| ------ | ----- | -------------- |
 | Submit | API server (`AggregateUserDataReport` / `DestroyAllUserData`) | Writes a `pending` row, stamps `due_at` from the response window, returns the request. |
 | Fulfill | Scheduler (`dataprivacy.Worker`) | Fans out over the registry; writes the artifact, or runs every eraser in one transaction. |
 | Delivery | API server (`FetchUserDataReport`) | `Open`s the artifact — decrypt, decompress — and returns the JSON. |
@@ -49,7 +49,7 @@ already-encoded JSON. The library composes the fragments into a document by key 
 inside one.
 
 | Key | Package | Covers |
-|-----|---------|--------|
+| ----- | --------- | -------- |
 | `identity` | `identity/privacy` | The user, their accounts, invitations sent and received |
 | `meal_planning` | `mealplanning/privacy` | Recipes, meals, meal plans, ingredient preferences, ratings |
 | `webhooks` | `webhooks/privacy` | Webhooks, keyed by account |

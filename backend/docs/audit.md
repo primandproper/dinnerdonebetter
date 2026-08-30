@@ -73,7 +73,7 @@ of the caller's transaction. Everything sharing a scope therefore serializes.
 `audit.ScopeFor` decides, and it is the only place that decides:
 
 | Entry has | Scope | Why |
-|---|---|---|
+| --- | --- | --- |
 | an account | the account ID | the natural tenancy boundary; covers most events |
 | no account, a user | the user ID | signup, login, password reset — filing these under the empty scope would put every login in the application behind one row lock |
 | neither | `""` | platform-level events, rare enough to serialize |
@@ -210,7 +210,7 @@ scope resolver in `internal/domain/audit/privacy`.
 `ScopeFor` is what makes that cover most of a departing user's trail:
 
 | Their entries | Scope | Erased? |
-|---|---|---|
+| --- | --- | --- |
 | In accounts they own | the account | ✅ deleted whole |
 | Outside any account (signup, login, password reset) | their user ID | ✅ deleted whole |
 | In accounts they merely belong to | somebody else's account | ❌ retained, and reported |
