@@ -22,10 +22,6 @@ const (
 	electionMethodColumn                 = "election_method"
 )
 
-func init() {
-	registerTableName(mealPlansTableName)
-}
-
 var mealPlansColumns = []string{
 	idColumn,
 	notesColumn,

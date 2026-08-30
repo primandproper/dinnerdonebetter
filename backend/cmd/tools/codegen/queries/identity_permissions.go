@@ -14,10 +14,6 @@ const (
 	permissionsTableName = "permissions"
 )
 
-func init() {
-	registerTableName(permissionsTableName)
-}
-
 var permissionsColumns = []string{
 	idColumn,
 	nameColumn,

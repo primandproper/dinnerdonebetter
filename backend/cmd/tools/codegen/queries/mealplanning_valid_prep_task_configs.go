@@ -14,10 +14,6 @@ const (
 	validPrepTaskConfigsTableName = "valid_prep_task_configs"
 )
 
-func init() {
-	registerTableName(validPrepTaskConfigsTableName)
-}
-
 var validPrepTaskConfigsColumns = []string{
 	idColumn,
 	validIngredientIDColumn,

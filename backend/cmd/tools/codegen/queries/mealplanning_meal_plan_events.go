@@ -18,10 +18,6 @@ const (
 	belongsToMealPlanColumn      = "belongs_to_meal_plan"
 )
 
-func init() {
-	registerTableName(mealPlanEventsTableName)
-}
-
 var mealPlanEventsColumns = []string{
 	idColumn,
 	notesColumn,

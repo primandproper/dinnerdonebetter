@@ -22,10 +22,6 @@ const (
 	accountInvitationsExpiresAtColumn  = "expires_at"
 )
 
-func init() {
-	registerTableName(accountInvitationsTableName)
-}
-
 var accountInvitationsColumns = []string{
 	idColumn,
 	fromUserColumn,

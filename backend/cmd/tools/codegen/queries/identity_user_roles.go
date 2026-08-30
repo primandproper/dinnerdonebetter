@@ -16,10 +16,6 @@ const (
 	scopeColumn = "scope"
 )
 
-func init() {
-	registerTableName(userRolesTableName)
-}
-
 var userRolesColumns = []string{
 	idColumn,
 	nameColumn,

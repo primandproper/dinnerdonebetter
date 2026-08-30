@@ -1,5 +1,19 @@
 -- name: DestroyAllData :exec
-TRUNCATE account_instrument_ownerships, account_invitations, account_user_memberships, accounts, comments, issue_reports, meal_components, meal_list_items, meal_lists, meal_plan_events, meal_plan_grocery_list_items, meal_plan_option_votes, meal_plan_options, meal_plan_recipe_option_selections, meal_plan_tasks, meal_plans, meals, oauth2_clients, password_reset_tokens, payment_transactions, permissions, products, purchases, queue_test_messages, recipe_list_items, recipe_lists, recipe_media, recipe_prep_task_steps, recipe_prep_tasks, recipe_ratings, recipe_step_completion_condition_ingredients, recipe_step_completion_conditions, recipe_step_ingredients, recipe_step_instruments, recipe_step_products, recipe_step_vessels, recipe_steps, recipes, service_setting_configurations, service_settings, subscriptions, uploaded_media, user_avatars, user_ingredient_preferences, user_notifications, user_role_assignments, user_role_hierarchy, user_role_permissions, user_roles, user_sessions, users, valid_ingredient_group_members, valid_ingredient_groups, valid_ingredient_measurement_units, valid_ingredient_preparations, valid_ingredient_state_ingredients, valid_ingredient_states, valid_ingredients, valid_instruments, valid_measurement_unit_conversions, valid_measurement_units, valid_prep_task_configs, valid_preparation_instruments, valid_preparation_vessels, valid_preparations, valid_vessels, waitlist_signups, waitlists, webhook_trigger_configs, webhooks CASCADE;
+DO $$
+DECLARE
+	truncation TEXT;
+BEGIN
+	SELECT 'TRUNCATE ' || string_agg(format('%I.%I', schemaname, tablename), ', ') || ' CASCADE'
+	INTO truncation
+	FROM pg_tables
+	WHERE schemaname = 'public'
+	  AND tablename <> 'goose_db_version';
+
+	IF truncation IS NOT NULL THEN
+		EXECUTE truncation;
+	END IF;
+END
+$$;
 
 -- name: CreateQueueTestMessage :exec
 INSERT INTO queue_test_messages (id, queue_name) VALUES (sqlc.arg(id), sqlc.arg(queue_name));

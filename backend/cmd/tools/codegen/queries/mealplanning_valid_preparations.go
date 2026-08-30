@@ -17,10 +17,6 @@ const (
 	restrictToIngredientsColumn = "restrict_to_ingredients"
 )
 
-func init() {
-	registerTableName(validPreparationsTableName)
-}
-
 var validPreparationsColumns = []string{
 	idColumn,
 	nameColumn,

@@ -14,10 +14,6 @@ const (
 	purchasesTableName = "purchases"
 )
 
-func init() {
-	registerTableName(purchasesTableName)
-}
-
 var purchasesColumns = []string{
 	idColumn,
 	belongsToAccountColumn,

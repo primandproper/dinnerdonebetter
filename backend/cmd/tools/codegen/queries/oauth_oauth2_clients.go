@@ -15,10 +15,6 @@ const (
 	clientIDColumn         = "client_id"
 )
 
-func init() {
-	registerTableName(oauth2ClientsTableName)
-}
-
 var oauth2ClientsColumns = []string{
 	idColumn,
 	nameColumn,

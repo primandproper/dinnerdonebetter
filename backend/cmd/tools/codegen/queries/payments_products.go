@@ -14,10 +14,6 @@ const (
 	productsTableName = "products"
 )
 
-func init() {
-	registerTableName(productsTableName)
-}
-
 var productsColumns = []string{
 	idColumn,
 	nameColumn,

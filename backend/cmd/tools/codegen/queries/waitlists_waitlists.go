@@ -14,10 +14,6 @@ const (
 	waitlistsTableName = "waitlists"
 )
 
-func init() {
-	registerTableName(waitlistsTableName)
-}
-
 var waitlistsColumns = []string{
 	idColumn,
 	nameColumn,

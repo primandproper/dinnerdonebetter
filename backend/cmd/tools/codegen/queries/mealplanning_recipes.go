@@ -20,10 +20,6 @@ const (
 	statusColumn           = "status"
 )
 
-func init() {
-	registerTableName(recipesTableName)
-}
-
 var recipesColumns = []string{
 	idColumn,
 	nameColumn,

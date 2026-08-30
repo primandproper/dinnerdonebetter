@@ -16,10 +16,6 @@ const (
 	userIngredientPreferencesIngredientColumn = "ingredient"
 )
 
-func init() {
-	registerTableName(userIngredientPreferencesTableName)
-}
-
 var userIngredientPreferencesColumns = []string{
 	idColumn,
 	userIngredientPreferencesIngredientColumn,

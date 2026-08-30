@@ -14,10 +14,6 @@ const (
 	recipeMediaTableName = "recipe_media"
 )
 
-func init() {
-	registerTableName(recipeMediaTableName)
-}
-
 var recipeMediaColumns = []string{
 	idColumn,
 	belongsToRecipeColumn,

@@ -18,10 +18,6 @@ const (
 	relevantRecordIDColumn = "relevant_record_id"
 )
 
-func init() {
-	registerTableName(issueReportsTableName)
-}
-
 var issueReportsColumns = []string{
 	idColumn,
 	issueTypeColumn,

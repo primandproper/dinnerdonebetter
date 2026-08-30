@@ -16,10 +16,6 @@ const (
 	userNotificationStatusDismissed = "dismissed"
 )
 
-func init() {
-	registerTableName(userNotificationsTableName)
-}
-
 var (
 	userNotificationsColumns = []string{
 		idColumn,

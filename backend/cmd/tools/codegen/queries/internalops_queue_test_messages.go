@@ -6,10 +6,6 @@ import (
 
 const queueTestMessagesTableName = "queue_test_messages"
 
-func init() {
-	registerTableName(queueTestMessagesTableName)
-}
-
 func buildQueueTestMessagesQueries(database string) []*Query {
 	switch database {
 	case postgres:

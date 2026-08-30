@@ -14,10 +14,6 @@ const (
 	commentsTableName = "comments"
 )
 
-func init() {
-	registerTableName(commentsTableName)
-}
-
 var commentsColumns = []string{
 	idColumn,
 	"content",

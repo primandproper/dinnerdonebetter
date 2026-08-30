@@ -14,10 +14,6 @@ const (
 	webhooksTableName = "webhooks"
 )
 
-func init() {
-	registerTableName(webhooksTableName)
-}
-
 var (
 	webhooksColumns = []string{
 		idColumn,
