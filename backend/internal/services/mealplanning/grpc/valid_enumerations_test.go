@@ -11,6 +11,7 @@ import (
 
 	"github.com/primandproper/platform-go/v13/fake"
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 
@@ -25,6 +26,27 @@ func buildServiceImplForTest(t *testing.T) *serviceImpl {
 		tracer: tracing.NewTracerForTest(t.Name()),
 		logger: loggingnoop.NewLogger(),
 	}
+}
+
+// requestWithSortDirection replaces the sort direction on a faked request's
+// query filter with one a client could actually have sent.
+//
+// The filter crosses the wire and comes back through filtering/grpc, which
+// reports a sort direction nobody recognizes rather than quietly listing under
+// ascending — and faker fills sort_by, a string field with two legal values,
+// with twenty-five random letters. That is the fake being an impossible request
+// rather than the handler being wrong, so this fixes the fake and leaves every
+// other faked field alone.
+func requestWithSortDirection[T interface {
+	GetFilter() *filteringpb.QueryFilter
+}](t *testing.T, request T) T {
+	t.Helper()
+
+	if filter := request.GetFilter(); filter != nil {
+		filter.SortBy = new(*filtering.SortAscending)
+	}
+
+	return request
 }
 
 func TestServiceImpl_ArchiveValidIngredient(T *testing.T) {
@@ -2113,7 +2135,7 @@ func TestServiceImpl_SearchForValidIngredientGroups(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeValidIngredientGroupsList()
-		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForValidIngredientGroupsRequest](t)
+		exampleRequest := requestWithSortDirection(t, fake.BuildFakeForTest[mealplanninggrpc.SearchForValidIngredientGroupsRequest](t))
 
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
@@ -2144,7 +2166,7 @@ func TestServiceImpl_SearchForValidIngredientStates(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeValidIngredientStatesList()
-		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForValidIngredientStatesRequest](t)
+		exampleRequest := requestWithSortDirection(t, fake.BuildFakeForTest[mealplanninggrpc.SearchForValidIngredientStatesRequest](t))
 
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
@@ -2175,7 +2197,7 @@ func TestServiceImpl_SearchForValidIngredients(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeValidIngredientsList()
-		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForValidIngredientsRequest](t)
+		exampleRequest := requestWithSortDirection(t, fake.BuildFakeForTest[mealplanninggrpc.SearchForValidIngredientsRequest](t))
 
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
@@ -2206,7 +2228,7 @@ func TestServiceImpl_SearchForValidInstruments(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeValidInstrumentsList()
-		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForValidInstrumentsRequest](t)
+		exampleRequest := requestWithSortDirection(t, fake.BuildFakeForTest[mealplanninggrpc.SearchForValidInstrumentsRequest](t))
 
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
@@ -2237,7 +2259,7 @@ func TestServiceImpl_SearchForValidMeasurementUnits(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeValidMeasurementUnitsList()
-		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForValidMeasurementUnitsRequest](t)
+		exampleRequest := requestWithSortDirection(t, fake.BuildFakeForTest[mealplanninggrpc.SearchForValidMeasurementUnitsRequest](t))
 
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
@@ -2268,7 +2290,7 @@ func TestServiceImpl_SearchForValidPreparations(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeValidPreparationsList()
-		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForValidPreparationsRequest](t)
+		exampleRequest := requestWithSortDirection(t, fake.BuildFakeForTest[mealplanninggrpc.SearchForValidPreparationsRequest](t))
 
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
@@ -2299,7 +2321,7 @@ func TestServiceImpl_SearchForValidVessels(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeValidVesselsList()
-		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForValidVesselsRequest](t)
+		exampleRequest := requestWithSortDirection(t, fake.BuildFakeForTest[mealplanninggrpc.SearchForValidVesselsRequest](t))
 
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
@@ -2330,7 +2352,7 @@ func TestServiceImpl_SearchValidIngredientsByPreparation(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeValidIngredientsList()
-		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchValidIngredientsByPreparationRequest](t)
+		exampleRequest := requestWithSortDirection(t, fake.BuildFakeForTest[mealplanninggrpc.SearchValidIngredientsByPreparationRequest](t))
 
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)
@@ -2361,7 +2383,7 @@ func TestServiceImpl_SearchValidMeasurementUnitsByIngredient(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeValidMeasurementUnitsList()
-		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchValidMeasurementUnitsByIngredientRequest](t)
+		exampleRequest := requestWithSortDirection(t, fake.BuildFakeForTest[mealplanninggrpc.SearchValidMeasurementUnitsByIngredientRequest](t))
 
 		ctx := t.Context()
 		s := buildServiceImplForTest(t)

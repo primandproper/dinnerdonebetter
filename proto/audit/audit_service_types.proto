@@ -4,29 +4,29 @@ package audit;
 
 import "audit/audit_messages.proto";
 import "common.proto";
-import "filtering.proto";
+import "primandproper/platform/filtering/v1/filtering.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit";
 
 message GetAuditLogEntriesForAccountRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string account_id = 2;
 }
 
 message GetAuditLogEntriesForAccountResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated AuditLogEntry results = 3;
 }
 
 message GetAuditLogEntriesForUserRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string user_id = 2;
 }
 
 message GetAuditLogEntriesForUserResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated AuditLogEntry results = 3;
 }
 

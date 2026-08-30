@@ -9,13 +9,13 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	notificationkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	notificationssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 	grpctypes "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/notifications/grpc/converters"
 
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 	"github.com/primandproper/platform-go/v13/identifiers"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 
@@ -102,7 +102,11 @@ func (s *serviceImpl) GetUserDeviceTokens(ctx context.Context, request *notifica
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	var platformFilter *string
 	if request.PlatformFilter != nil {
 		platformFilter = request.PlatformFilter
@@ -119,7 +123,7 @@ func (s *serviceImpl) GetUserDeviceTokens(ctx context.Context, request *notifica
 		ResponseDetails: &grpctypes.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(tokens.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(tokens.Pagination),
 	}
 	for _, token := range tokens.Data {
 		x.Results = append(x.Results, converters.ConvertUserDeviceTokenToGRPCUserDeviceToken(token))

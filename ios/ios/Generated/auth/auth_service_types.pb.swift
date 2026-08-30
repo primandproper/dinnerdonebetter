@@ -1124,8 +1124,8 @@ public struct Auth_ListActiveSessionsRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -1137,7 +1137,7 @@ public struct Auth_ListActiveSessionsRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Auth_ListActiveSessionsResponse: Sendable {
@@ -1154,8 +1154,8 @@ public struct Auth_ListActiveSessionsResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -1170,7 +1170,7 @@ public struct Auth_ListActiveSessionsResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Auth_RevokeSessionRequest: Sendable {
@@ -1275,8 +1275,8 @@ public struct Auth_AdminListSessionsForUserRequest: Sendable {
 
   public var userID: String = String()
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -1288,7 +1288,7 @@ public struct Auth_AdminListSessionsForUserRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Auth_AdminRevokeUserSessionRequest: Sendable {

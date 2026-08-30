@@ -334,8 +334,8 @@ public struct Payments_GetProductsRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -347,7 +347,7 @@ public struct Payments_GetProductsRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Payments_GetProductsResponse: Sendable {
@@ -364,8 +364,8 @@ public struct Payments_GetProductsResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -380,7 +380,7 @@ public struct Payments_GetProductsResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Payments_UpdateProductRequest: Sendable {
@@ -560,8 +560,8 @@ public struct Payments_GetSubscriptionsForAccountRequest: Sendable {
 
   public var accountID: String = String()
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -573,7 +573,7 @@ public struct Payments_GetSubscriptionsForAccountRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Payments_GetSubscriptionsForAccountResponse: Sendable {
@@ -590,8 +590,8 @@ public struct Payments_GetSubscriptionsForAccountResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -606,7 +606,7 @@ public struct Payments_GetSubscriptionsForAccountResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Payments_UpdateSubscriptionRequest: Sendable {
@@ -726,8 +726,8 @@ public struct Payments_GetPurchasesForAccountRequest: Sendable {
 
   public var accountID: String = String()
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -739,7 +739,7 @@ public struct Payments_GetPurchasesForAccountRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Payments_GetPurchasesForAccountResponse: Sendable {
@@ -756,8 +756,8 @@ public struct Payments_GetPurchasesForAccountResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -772,7 +772,7 @@ public struct Payments_GetPurchasesForAccountResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Payments_GetPaymentHistoryForAccountRequest: Sendable {
@@ -782,8 +782,8 @@ public struct Payments_GetPaymentHistoryForAccountRequest: Sendable {
 
   public var accountID: String = String()
 
-  public var filter: Filtering_QueryFilter {
-    get {return _filter ?? Filtering_QueryFilter()}
+  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
+    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
     set {_filter = newValue}
   }
   /// Returns true if `filter` has been explicitly set.
@@ -795,7 +795,7 @@ public struct Payments_GetPaymentHistoryForAccountRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _filter: Filtering_QueryFilter? = nil
+  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Payments_GetPaymentHistoryForAccountResponse: Sendable {
@@ -812,8 +812,8 @@ public struct Payments_GetPaymentHistoryForAccountResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Filtering_Pagination {
-    get {return _pagination ?? Filtering_Pagination()}
+  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
+    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
     set {_pagination = newValue}
   }
   /// Returns true if `pagination` has been explicitly set.
@@ -828,7 +828,7 @@ public struct Payments_GetPaymentHistoryForAccountResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Filtering_Pagination? = nil
+  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.

@@ -3,8 +3,8 @@ syntax = "proto3";
 package oauth;
 
 import "common.proto";
-import "filtering.proto";
 import "oauth/oauth_messages.proto";
+import "primandproper/platform/filtering/v1/filtering.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth";
 
@@ -35,12 +35,12 @@ message GetOAuth2ClientResponse {
 }
 
 message GetOAuth2ClientsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetOAuth2ClientsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated OAuth2Client results = 3;
 }
 

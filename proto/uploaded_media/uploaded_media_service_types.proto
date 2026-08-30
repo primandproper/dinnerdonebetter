@@ -3,7 +3,7 @@ syntax = "proto3";
 package uploaded_media;
 
 import "common.proto";
-import "filtering.proto";
+import "primandproper/platform/filtering/v1/filtering.proto";
 import "uploaded_media/uploaded_media_messages.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media";
@@ -41,12 +41,12 @@ message GetUploadedMediaWithIDsResponse {
 // GetUploadedMediaForUser
 message GetUploadedMediaForUserRequest {
   string user_id = 1;
-  filtering.QueryFilter filter = 2;
+  primandproper.platform.filtering.v1.QueryFilter filter = 2;
 }
 
 message GetUploadedMediaForUserResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated UploadedMedia results = 3;
 }
 

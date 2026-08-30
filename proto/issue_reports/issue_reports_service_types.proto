@@ -4,8 +4,8 @@ package issue_reports;
 
 import "comments/comments_messages.proto";
 import "common.proto";
-import "filtering.proto";
 import "issue_reports/issue_reports_messages.proto";
+import "primandproper/platform/filtering/v1/filtering.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports";
 
@@ -42,46 +42,46 @@ message GetIssueReportResponse {
 }
 
 message GetIssueReportsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetIssueReportsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated IssueReport results = 3;
 }
 
 message GetIssueReportsForAccountRequest {
   string account_id = 1;
-  filtering.QueryFilter filter = 2;
+  primandproper.platform.filtering.v1.QueryFilter filter = 2;
 }
 
 message GetIssueReportsForAccountResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated IssueReport results = 3;
 }
 
 message GetIssueReportsForTableRequest {
   string table_name = 1;
-  filtering.QueryFilter filter = 2;
+  primandproper.platform.filtering.v1.QueryFilter filter = 2;
 }
 
 message GetIssueReportsForTableResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated IssueReport results = 3;
 }
 
 message GetIssueReportsForRecordRequest {
   string table_name = 1;
   string record_id = 2;
-  filtering.QueryFilter filter = 3;
+  primandproper.platform.filtering.v1.QueryFilter filter = 3;
 }
 
 message GetIssueReportsForRecordResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated IssueReport results = 3;
 }
 

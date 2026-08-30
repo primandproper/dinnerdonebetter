@@ -7,9 +7,9 @@
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { ResponseDetails } from '../common';
-import { Pagination, QueryFilter } from '../filtering';
 import { Timestamp } from '../google/protobuf/timestamp';
 import { Account, User } from '../identity/identity_messages';
+import { Pagination, QueryFilter } from '../primandproper/platform/filtering/v1/filtering';
 import { UserLoginInput, UserSession } from './auth_messages';
 
 export const protobufPackage = 'auth';

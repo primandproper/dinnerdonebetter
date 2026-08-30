@@ -12,7 +12,6 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	uploadedmediakeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
@@ -20,6 +19,7 @@ import (
 
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 	"github.com/primandproper/platform-go/v13/identifiers"
 	"github.com/primandproper/platform-go/v13/metering"
 	"github.com/primandproper/platform-go/v13/observability"
@@ -355,7 +355,10 @@ func (s *serviceImpl) GetUploadedMediaForUser(ctx context.Context, request *uplo
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("permission denied"), logger, span, codes.PermissionDenied, "cannot access other user's media")
 	}
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	uploadedMediaList, err := s.uploadedMediaManager.GetUploadedMediaForUser(ctx, request.UserId, filter)
 	if err != nil {
@@ -367,7 +370,7 @@ func (s *serviceImpl) GetUploadedMediaForUser(ctx context.Context, request *uplo
 			TraceId:          span.SpanContext().TraceID().String(),
 			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(uploadedMediaList.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(uploadedMediaList.Pagination),
 	}
 
 	for _, uploadedMedia := range uploadedMediaList.Data {

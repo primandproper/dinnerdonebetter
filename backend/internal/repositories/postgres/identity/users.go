@@ -433,10 +433,6 @@ func (r *repository) GetUsersForAccount(ctx context.Context, accountID string, f
 	tracing.AttachQueryFilterToSpan(span, filter)
 	filter.AttachToLogger(logger)
 
-	x = &filtering.QueryFilteredResult[identity.User]{
-		Pagination: filter.ToPagination(),
-	}
-
 	filterArgs := filtering.ToSQLArgs(filter)
 
 	results, err := r.generatedQuerier.GetUsersForAccount(ctx, r.readDB, &generated.GetUsersForAccountParams{
@@ -452,6 +448,11 @@ func (r *repository) GetUsersForAccount(ctx context.Context, accountID string, f
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "scanning user")
 	}
+
+	var (
+		users                     []*identity.User
+		filteredCount, totalCount uint64
+	)
 
 	for _, result := range results {
 		u := &identity.User{
@@ -477,12 +478,14 @@ func (r *repository) GetUsersForAccount(ctx context.Context, accountID string, f
 			RequiresPasswordChange:     result.RequiresPasswordChange,
 		}
 
-		x.Data = append(x.Data, u)
-		x.FilteredCount = uint64(result.FilteredCount)
-		x.TotalCount = uint64(result.TotalCount)
+		users = append(users, u)
+		filteredCount = uint64(result.FilteredCount)
+		totalCount = uint64(result.TotalCount)
 	}
 
-	return x, nil
+	return filtering.NewQueryFilteredResult(users, filteredCount, totalCount, func(t *identity.User) string {
+		return t.ID
+	}, filter), nil
 }
 
 // GetUsersWithIDs fetches a list of users from the database that meet a particular filter.

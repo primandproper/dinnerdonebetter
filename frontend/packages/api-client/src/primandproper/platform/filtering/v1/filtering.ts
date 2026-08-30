@@ -2,32 +2,162 @@
 // versions:
 //   protoc-gen-ts_proto  v2.11.5
 //   protoc               v6.33.1
-// source: filtering.proto
+// source: primandproper/platform/filtering/v1/filtering.proto
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
-import { Timestamp } from './google/protobuf/timestamp';
+import { Timestamp } from '../../../../google/protobuf/timestamp';
 
-export const protobufPackage = 'filtering';
+export const protobufPackage = 'primandproper.platform.filtering.v1';
 
+/**
+ * Package primandproper.platform.filtering.v1 is the wire schema for the
+ * vocabulary of a list query: which slice of a collection a caller asked for,
+ * and which slice they got.
+ *
+ * This file is shipped inside the published Go module, and it is the file
+ * itself that is shipped -- not a copy for you to keep in sync. A consumer
+ * puts the module's proto directory on protoc's path and imports this file by
+ * its canonical name:
+ *
+ * 	PLATFORM_PROTO := $(shell go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v13)/filtering/proto
+ *
+ * 	protoc --proto_path proto/ --proto_path $(PLATFORM_PROTO) \
+ * 	    --go_opt=Mprimandproper/platform/filtering/v1/filtering.proto=github.com/primandproper/platform-go/v13/filtering/filteringpb \
+ * 	    $(CONSUMER_PROTO_FILES)   # this file deliberately absent from that list
+ *
+ * which is how google/protobuf/timestamp.proto already works in a consumer's
+ * own file: imported, not generated, linked against bindings that ship with
+ * the runtime. go.mod already pins which version of this file you get, so
+ * there is no protos repository to stand up and nothing to vendor.
+ *
+ * The Go bindings are pre-generated into
+ * github.com/primandproper/platform-go/v13/filtering/filteringpb, and the
+ * converters between them and the Go types live beside them in
+ * .../filtering/grpc. Go is the language that needs shared *code* rather than
+ * shared *schema*: the page-size clamp, the default, and the cursor asymmetry
+ * are server-side rules, and a second copy of one can be wrong in a way
+ * nothing reports. A generated QueryFilter in Swift, TypeScript, or Kotlin is
+ * a data class with eight fields and no rules to restate, so those languages
+ * generate from this file and need nothing else from it.
+ *
+ * go_package is here because this module generates from this file too. A
+ * consumer generating into its own tree overrides it with the -M mapping
+ * above, or with its own --go_opt, and owns its output paths entirely.
+ *
+ * Field numbers are the compatibility promise, and they are the promise across
+ * every language a consumer generates into. Numbers are never reused and never
+ * repurposed: a field that goes away is reserved.
+ */
+
+/**
+ * QueryFilter is the request half: the slice of a collection a caller is
+ * asking for.
+ *
+ * Every field is optional and an absent one filters nothing, so the empty
+ * message is a request for the default page.
+ *
+ * The scalars carry explicit presence rather than leaning on a zero to mean
+ * "unset", so a caller that set a field to its zero value stays distinguishable
+ * on the wire from one that set nothing at all. What each of those means is the
+ * converters' business, and .../filtering/grpc documents it.
+ */
 export interface QueryFilter {
+  /**
+   * sort_by is a direction, not a column: "asc" walks a list forwards and
+   * "desc" backwards, and nothing else. On the usual list, ordered by when a
+   * row was created, that is oldest first and newest first; a read ordered by
+   * something else -- a name search -- is walked in that order instead.
+   *
+   * It is a string rather than an enum because it is one on the other
+   * transports this type crosses -- the query parameter and the JSON body both
+   * carry those two words -- and an enum here would put a third spelling of the
+   * same two values on the wire.
+   */
   sortBy?: string | undefined;
-  createdAfter?: Date | undefined;
-  createdBefore?: Date | undefined;
-  updatedAfter?: Date | undefined;
-  updatedBefore?: Date | undefined;
+  /**
+   * The four windows on when a row was created or last updated. Message fields
+   * already have explicit presence, so they carry no `optional` keyword; an
+   * unset one is absent exactly as an unset scalar above is.
+   */
+  createdAfter: Date | undefined;
+  createdBefore: Date | undefined;
+  updatedAfter: Date | undefined;
+  updatedBefore: Date | undefined;
+  /**
+   * max_response_size is how many rows one page may hold. Absent means the
+   * default; a value above the ceiling is clamped to the ceiling rather than
+   * rejected.
+   *
+   * It is a uint32 because protobuf has no uint16, which is the type the Go
+   * field it maps to actually is. That narrowing is the reason the converters
+   * in .../filtering/grpc exist rather than each consumer writing their own: a
+   * value that narrows before it is clamped wraps instead, and 70000 becomes a
+   * legible-looking answer to a question nobody asked.
+   */
   maxResponseSize?: number | undefined;
+  /** include_archived asks for archived rows as well. Absent leaves them out. */
   includeArchived?: boolean | undefined;
+  /**
+   * cursor is an opaque value from a previous response. The page resumes after
+   * the row it names; absent starts at the beginning.
+   */
   cursor?: string | undefined;
 }
 
+/**
+ * Pagination is the response half: what was applied, and where the next page
+ * starts.
+ *
+ * Its cursors are directional and are not the same cursor. previous_cursor is
+ * the one that reached this page, so an empty one is the first page, and
+ * cursor is the one that reaches the next. Nothing has to compare them.
+ */
 export interface Pagination {
-  maxResponseSize: number;
+  /**
+   * applied_query_filter is the filter this page was answered with, after
+   * defaults and bounds -- not necessarily the one that was sent.
+   */
+  appliedQueryFilter: QueryFilter | undefined;
+  /**
+   * cursor reaches the page after this one. It is the last row's identifier,
+   * so it is empty only when this page held no rows, and it says nothing about
+   * whether a further page exists: a full page and the final page carry an
+   * equally non-empty cursor.
+   */
+  cursor: string;
+  /**
+   * previous_cursor is the cursor that reached this page, echoed back from the
+   * filter that was applied. Empty means the first page.
+   */
+  previousCursor: string;
+  /**
+   * filtered_count is how many rows matched the filter and total_count how
+   * many were in scope regardless of it. Neither describes this page: they
+   * describe the collection it was cut from, which is why they do not shrink
+   * as a caller walks it.
+   *
+   * Both mean nothing unless counts_known is set.
+   */
   filteredCount: number;
   totalCount: number;
-  cursor: string;
-  previousCursor: string;
-  appliedQueryFilter: QueryFilter | undefined;
+  /**
+   * max_response_size is the page size that was applied, uint32 for the same
+   * reason the request's is.
+   */
+  maxResponseSize: number;
+  /**
+   * counts_known reports whether the counts above were answered at all.
+   *
+   * They are plain integers, so an unanswered pair reads as 0 and 0 -- which
+   * is also what an empty collection reads as. A store whose counts ride along
+   * on its rows, handed a page that came back empty, has no row to read them
+   * off, so a caller walking a keyset to its end sees a final 0 that is not a
+   * result. This is the field that tells those apart, and false is the default
+   * so a message assembled by hand vouches for nothing until it says
+   * otherwise.
+   */
+  countsKnown: boolean;
 }
 
 function createBaseQueryFilter(): QueryFilter {
@@ -241,34 +371,38 @@ export const QueryFilter: MessageFns<QueryFilter> = {
 
 function createBasePagination(): Pagination {
   return {
-    maxResponseSize: 0,
-    filteredCount: 0,
-    totalCount: 0,
+    appliedQueryFilter: undefined,
     cursor: '',
     previousCursor: '',
-    appliedQueryFilter: undefined,
+    filteredCount: 0,
+    totalCount: 0,
+    maxResponseSize: 0,
+    countsKnown: false,
   };
 }
 
 export const Pagination: MessageFns<Pagination> = {
   encode(message: Pagination, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.maxResponseSize !== 0) {
-      writer.uint32(8).uint32(message.maxResponseSize);
-    }
-    if (message.filteredCount !== 0) {
-      writer.uint32(16).uint64(message.filteredCount);
-    }
-    if (message.totalCount !== 0) {
-      writer.uint32(24).uint64(message.totalCount);
+    if (message.appliedQueryFilter !== undefined) {
+      QueryFilter.encode(message.appliedQueryFilter, writer.uint32(10).fork()).join();
     }
     if (message.cursor !== '') {
-      writer.uint32(34).string(message.cursor);
+      writer.uint32(18).string(message.cursor);
     }
     if (message.previousCursor !== '') {
-      writer.uint32(42).string(message.previousCursor);
+      writer.uint32(26).string(message.previousCursor);
     }
-    if (message.appliedQueryFilter !== undefined) {
-      QueryFilter.encode(message.appliedQueryFilter, writer.uint32(50).fork()).join();
+    if (message.filteredCount !== 0) {
+      writer.uint32(32).uint64(message.filteredCount);
+    }
+    if (message.totalCount !== 0) {
+      writer.uint32(40).uint64(message.totalCount);
+    }
+    if (message.maxResponseSize !== 0) {
+      writer.uint32(48).uint32(message.maxResponseSize);
+    }
+    if (message.countsKnown !== false) {
+      writer.uint32(56).bool(message.countsKnown);
     }
     return writer;
   },
@@ -281,51 +415,59 @@ export const Pagination: MessageFns<Pagination> = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1: {
-          if (tag !== 8) {
+          if (tag !== 10) {
             break;
           }
 
-          message.maxResponseSize = reader.uint32();
+          message.appliedQueryFilter = QueryFilter.decode(reader, reader.uint32());
           continue;
         }
         case 2: {
-          if (tag !== 16) {
-            break;
-          }
-
-          message.filteredCount = longToNumber(reader.uint64());
-          continue;
-        }
-        case 3: {
-          if (tag !== 24) {
-            break;
-          }
-
-          message.totalCount = longToNumber(reader.uint64());
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
+          if (tag !== 18) {
             break;
           }
 
           message.cursor = reader.string();
           continue;
         }
-        case 5: {
-          if (tag !== 42) {
+        case 3: {
+          if (tag !== 26) {
             break;
           }
 
           message.previousCursor = reader.string();
           continue;
         }
-        case 6: {
-          if (tag !== 50) {
+        case 4: {
+          if (tag !== 32) {
             break;
           }
 
-          message.appliedQueryFilter = QueryFilter.decode(reader, reader.uint32());
+          message.filteredCount = longToNumber(reader.uint64());
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.totalCount = longToNumber(reader.uint64());
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.maxResponseSize = reader.uint32();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.countsKnown = reader.bool();
           continue;
         }
       }
@@ -339,11 +481,17 @@ export const Pagination: MessageFns<Pagination> = {
 
   fromJSON(object: any): Pagination {
     return {
-      maxResponseSize: isSet(object.maxResponseSize)
-        ? globalThis.Number(object.maxResponseSize)
-        : isSet(object.max_response_size)
-          ? globalThis.Number(object.max_response_size)
-          : 0,
+      appliedQueryFilter: isSet(object.appliedQueryFilter)
+        ? QueryFilter.fromJSON(object.appliedQueryFilter)
+        : isSet(object.applied_query_filter)
+          ? QueryFilter.fromJSON(object.applied_query_filter)
+          : undefined,
+      cursor: isSet(object.cursor) ? globalThis.String(object.cursor) : '',
+      previousCursor: isSet(object.previousCursor)
+        ? globalThis.String(object.previousCursor)
+        : isSet(object.previous_cursor)
+          ? globalThis.String(object.previous_cursor)
+          : '',
       filteredCount: isSet(object.filteredCount)
         ? globalThis.Number(object.filteredCount)
         : isSet(object.filtered_count)
@@ -354,30 +502,23 @@ export const Pagination: MessageFns<Pagination> = {
         : isSet(object.total_count)
           ? globalThis.Number(object.total_count)
           : 0,
-      cursor: isSet(object.cursor) ? globalThis.String(object.cursor) : '',
-      previousCursor: isSet(object.previousCursor)
-        ? globalThis.String(object.previousCursor)
-        : isSet(object.previous_cursor)
-          ? globalThis.String(object.previous_cursor)
-          : '',
-      appliedQueryFilter: isSet(object.appliedQueryFilter)
-        ? QueryFilter.fromJSON(object.appliedQueryFilter)
-        : isSet(object.applied_query_filter)
-          ? QueryFilter.fromJSON(object.applied_query_filter)
-          : undefined,
+      maxResponseSize: isSet(object.maxResponseSize)
+        ? globalThis.Number(object.maxResponseSize)
+        : isSet(object.max_response_size)
+          ? globalThis.Number(object.max_response_size)
+          : 0,
+      countsKnown: isSet(object.countsKnown)
+        ? globalThis.Boolean(object.countsKnown)
+        : isSet(object.counts_known)
+          ? globalThis.Boolean(object.counts_known)
+          : false,
     };
   },
 
   toJSON(message: Pagination): unknown {
     const obj: any = {};
-    if (message.maxResponseSize !== 0) {
-      obj.maxResponseSize = Math.round(message.maxResponseSize);
-    }
-    if (message.filteredCount !== 0) {
-      obj.filteredCount = Math.round(message.filteredCount);
-    }
-    if (message.totalCount !== 0) {
-      obj.totalCount = Math.round(message.totalCount);
+    if (message.appliedQueryFilter !== undefined) {
+      obj.appliedQueryFilter = QueryFilter.toJSON(message.appliedQueryFilter);
     }
     if (message.cursor !== '') {
       obj.cursor = message.cursor;
@@ -385,8 +526,17 @@ export const Pagination: MessageFns<Pagination> = {
     if (message.previousCursor !== '') {
       obj.previousCursor = message.previousCursor;
     }
-    if (message.appliedQueryFilter !== undefined) {
-      obj.appliedQueryFilter = QueryFilter.toJSON(message.appliedQueryFilter);
+    if (message.filteredCount !== 0) {
+      obj.filteredCount = Math.round(message.filteredCount);
+    }
+    if (message.totalCount !== 0) {
+      obj.totalCount = Math.round(message.totalCount);
+    }
+    if (message.maxResponseSize !== 0) {
+      obj.maxResponseSize = Math.round(message.maxResponseSize);
+    }
+    if (message.countsKnown !== false) {
+      obj.countsKnown = message.countsKnown;
     }
     return obj;
   },
@@ -396,15 +546,16 @@ export const Pagination: MessageFns<Pagination> = {
   },
   fromPartial<I extends Exact<DeepPartial<Pagination>, I>>(object: I): Pagination {
     const message = createBasePagination();
-    message.maxResponseSize = object.maxResponseSize ?? 0;
-    message.filteredCount = object.filteredCount ?? 0;
-    message.totalCount = object.totalCount ?? 0;
-    message.cursor = object.cursor ?? '';
-    message.previousCursor = object.previousCursor ?? '';
     message.appliedQueryFilter =
       object.appliedQueryFilter !== undefined && object.appliedQueryFilter !== null
         ? QueryFilter.fromPartial(object.appliedQueryFilter)
         : undefined;
+    message.cursor = object.cursor ?? '';
+    message.previousCursor = object.previousCursor ?? '';
+    message.filteredCount = object.filteredCount ?? 0;
+    message.totalCount = object.totalCount ?? 0;
+    message.maxResponseSize = object.maxResponseSize ?? 0;
+    message.countsKnown = object.countsKnown ?? false;
     return message;
   },
 };

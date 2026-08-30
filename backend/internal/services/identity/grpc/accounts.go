@@ -6,11 +6,11 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
 
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 	"github.com/primandproper/platform-go/v13/observability"
 
 	"google.golang.org/grpc/codes"
@@ -140,7 +140,10 @@ func (s *serviceImpl) GetAccounts(ctx context.Context, request *identitysvc.GetA
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	accounts, err := s.identityDataManager.GetAccounts(ctx, sessionContextData.GetUserID(), filter)
 	if err != nil {
@@ -149,7 +152,7 @@ func (s *serviceImpl) GetAccounts(ctx context.Context, request *identitysvc.GetA
 
 	x := &identitysvc.GetAccountsResponse{
 		ResponseDetails: s.buildResponseDetails(ctx, span),
-		Pagination:      grpcconverters.ConvertPaginationToGRPCPagination(accounts.Pagination, filter),
+		Pagination:      filteringgrpc.PaginationToProto(accounts.Pagination),
 	}
 
 	for _, account := range accounts.Data {
@@ -163,7 +166,11 @@ func (s *serviceImpl) GetAccountsForUser(ctx context.Context, request *identitys
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	accounts, err := s.identityDataManager.GetAccounts(ctx, request.UserId, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Internal, "failed to get accounts")
@@ -171,7 +178,7 @@ func (s *serviceImpl) GetAccountsForUser(ctx context.Context, request *identitys
 
 	x := &identitysvc.GetAccountsForUserResponse{
 		ResponseDetails: s.buildResponseDetails(ctx, span),
-		Pagination:      grpcconverters.ConvertPaginationToGRPCPagination(accounts.Pagination, filter),
+		Pagination:      filteringgrpc.PaginationToProto(accounts.Pagination),
 	}
 
 	for _, account := range accounts.Data {

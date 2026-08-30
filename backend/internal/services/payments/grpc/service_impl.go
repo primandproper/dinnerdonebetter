@@ -5,12 +5,12 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc/converters"
 
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 
 	"google.golang.org/grpc/codes"
 )
@@ -50,7 +50,11 @@ func (s *serviceImpl) GetProducts(ctx context.Context, request *paymentssvc.GetP
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	results, err := s.paymentsManager.GetProducts(ctx, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Internal, "failed to retrieve products")
@@ -58,7 +62,7 @@ func (s *serviceImpl) GetProducts(ctx context.Context, request *paymentssvc.GetP
 
 	x := &paymentssvc.GetProductsResponse{
 		ResponseDetails: &types.ResponseDetails{TraceId: span.SpanContext().TraceID().String()},
-		Pagination:      grpcconverters.ConvertPaginationToGRPCPagination(results.Pagination, filter),
+		Pagination:      filteringgrpc.PaginationToProto(results.Pagination),
 	}
 	for _, p := range results.Data {
 		x.Results = append(x.Results, converters.ConvertProductToGRPC(p))
@@ -133,7 +137,11 @@ func (s *serviceImpl) GetSubscriptionsForAccount(ctx context.Context, request *p
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	results, err := s.paymentsManager.GetSubscriptionsForAccount(ctx, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Internal, "failed to retrieve subscriptions")
@@ -141,7 +149,7 @@ func (s *serviceImpl) GetSubscriptionsForAccount(ctx context.Context, request *p
 
 	x := &paymentssvc.GetSubscriptionsForAccountResponse{
 		ResponseDetails: &types.ResponseDetails{TraceId: span.SpanContext().TraceID().String()},
-		Pagination:      grpcconverters.ConvertPaginationToGRPCPagination(results.Pagination, filter),
+		Pagination:      filteringgrpc.PaginationToProto(results.Pagination),
 	}
 	for _, sub := range results.Data {
 		x.Results = append(x.Results, converters.ConvertSubscriptionToGRPC(sub))
@@ -185,7 +193,11 @@ func (s *serviceImpl) GetPurchasesForAccount(ctx context.Context, request *payme
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	results, err := s.paymentsManager.GetPurchasesForAccount(ctx, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Internal, "failed to retrieve purchases")
@@ -193,7 +205,7 @@ func (s *serviceImpl) GetPurchasesForAccount(ctx context.Context, request *payme
 
 	x := &paymentssvc.GetPurchasesForAccountResponse{
 		ResponseDetails: &types.ResponseDetails{TraceId: span.SpanContext().TraceID().String()},
-		Pagination:      grpcconverters.ConvertPaginationToGRPCPagination(results.Pagination, filter),
+		Pagination:      filteringgrpc.PaginationToProto(results.Pagination),
 	}
 	for _, p := range results.Data {
 		x.Results = append(x.Results, converters.ConvertPurchaseToGRPC(p))
@@ -210,7 +222,11 @@ func (s *serviceImpl) GetPaymentHistoryForAccount(ctx context.Context, request *
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	results, err := s.paymentsManager.GetPaymentTransactionsForAccount(ctx, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Internal, "failed to retrieve payment history")
@@ -218,7 +234,7 @@ func (s *serviceImpl) GetPaymentHistoryForAccount(ctx context.Context, request *
 
 	x := &paymentssvc.GetPaymentHistoryForAccountResponse{
 		ResponseDetails: &types.ResponseDetails{TraceId: span.SpanContext().TraceID().String()},
-		Pagination:      grpcconverters.ConvertPaginationToGRPCPagination(results.Pagination, filter),
+		Pagination:      filteringgrpc.PaginationToProto(results.Pagination),
 	}
 	for _, t := range results.Data {
 		x.Results = append(x.Results, converters.ConvertPaymentTransactionToGRPC(t))

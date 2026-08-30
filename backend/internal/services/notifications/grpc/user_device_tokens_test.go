@@ -9,11 +9,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	notificationsfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/fakes"
 	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
-	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	notificationssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 
 	"github.com/primandproper/platform-go/v13/fake"
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -239,7 +239,7 @@ func TestServiceImpl_GetUserDeviceTokens(t *testing.T) {
 
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &notificationssvc.GetUserDeviceTokensRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &grpcPageSize,
 			},
 		}
@@ -262,7 +262,7 @@ func TestServiceImpl_GetUserDeviceTokens(t *testing.T) {
 
 		grpcPageSize := uint32(20)
 		request := &notificationssvc.GetUserDeviceTokensRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &grpcPageSize,
 			},
 		}

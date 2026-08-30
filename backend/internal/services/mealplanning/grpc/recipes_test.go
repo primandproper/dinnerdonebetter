@@ -2465,7 +2465,7 @@ func TestServiceImpl_SearchForRecipes(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeRecipesList()
-		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForRecipesRequest](t)
+		exampleRequest := requestWithSortDirection(t, fake.BuildFakeForTest[mealplanninggrpc.SearchForRecipesRequest](t))
 
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
@@ -2496,7 +2496,7 @@ func TestServiceImpl_SearchForMealEligibleRecipes(T *testing.T) {
 		t.Parallel()
 
 		exampleResult := mealplanningfakes.BuildFakeRecipesList()
-		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForMealEligibleRecipesRequest](t)
+		exampleRequest := requestWithSortDirection(t, fake.BuildFakeForTest[mealplanninggrpc.SearchForMealEligibleRecipesRequest](t))
 
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)
@@ -2527,7 +2527,7 @@ func TestServiceImpl_SearchForRecipesWithInstrumentOwnership(T *testing.T) {
 
 		exampleAccountID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeRecipesList()
-		exampleRequest := fake.BuildFakeForTest[mealplanninggrpc.SearchForRecipesWithInstrumentOwnershipRequest](t)
+		exampleRequest := requestWithSortDirection(t, fake.BuildFakeForTest[mealplanninggrpc.SearchForRecipesWithInstrumentOwnershipRequest](t))
 
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForRecipesTest(t)

@@ -10,10 +10,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	auditfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/fakes"
 	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
-	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	auditsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 	"github.com/primandproper/platform-go/v13/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
@@ -102,7 +102,7 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &auditsvc.GetAuditLogEntriesForAccountRequest{
 			AccountId: accountID,
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &grpcPageSize,
 			},
 		}
@@ -149,7 +149,7 @@ func TestServiceImpl_GetAuditLogEntriesForAccount(t *testing.T) {
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &auditsvc.GetAuditLogEntriesForAccountRequest{
 			AccountId: accountID,
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &grpcPageSize,
 			},
 		}
@@ -198,7 +198,7 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &auditsvc.GetAuditLogEntriesForUserRequest{
 			UserId: userID,
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &grpcPageSize,
 			},
 		}
@@ -242,7 +242,7 @@ func TestServiceImpl_GetAuditLogEntriesForUser(t *testing.T) {
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &auditsvc.GetAuditLogEntriesForUserRequest{
 			UserId: userID,
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &grpcPageSize,
 			},
 		}

@@ -7,7 +7,7 @@
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { ResponseDetails } from '../common';
-import { Pagination, QueryFilter } from '../filtering';
+import { Pagination, QueryFilter } from '../primandproper/platform/filtering/v1/filtering';
 import { ServiceSetting, ServiceSettingConfiguration } from './settings_messages';
 
 export const protobufPackage = 'settings';

@@ -5,11 +5,11 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
 
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 	"github.com/primandproper/platform-go/v13/observability"
 
 	"google.golang.org/grpc/codes"
@@ -115,7 +115,11 @@ func (s *serviceImpl) GetReceivedAccountInvitations(ctx context.Context, request
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	logger := filter.AttachToLogger(s.logger.WithSpan(span))
 
 	sessionContextData, err := sessions.RequireFromContext(ctx)
@@ -130,7 +134,7 @@ func (s *serviceImpl) GetReceivedAccountInvitations(ctx context.Context, request
 
 	x := &identitysvc.GetReceivedAccountInvitationsResponse{
 		ResponseDetails: s.buildResponseDetails(ctx, span),
-		Pagination:      grpcconverters.ConvertPaginationToGRPCPagination(invites.Pagination, filter),
+		Pagination:      filteringgrpc.PaginationToProto(invites.Pagination),
 	}
 
 	for _, invite := range invites.Data {
@@ -144,7 +148,11 @@ func (s *serviceImpl) GetSentAccountInvitations(ctx context.Context, request *id
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	logger := filter.AttachToLogger(s.logger.WithSpan(span))
 
 	sessionContextData, err := sessions.RequireFromContext(ctx)
@@ -159,7 +167,7 @@ func (s *serviceImpl) GetSentAccountInvitations(ctx context.Context, request *id
 
 	x := &identitysvc.GetSentAccountInvitationsResponse{
 		ResponseDetails: s.buildResponseDetails(ctx, span),
-		Pagination:      grpcconverters.ConvertPaginationToGRPCPagination(invites.Pagination, filter),
+		Pagination:      filteringgrpc.PaginationToProto(invites.Pagination),
 	}
 
 	for _, invite := range invites.Data {

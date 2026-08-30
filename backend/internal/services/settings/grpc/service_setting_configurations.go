@@ -6,12 +6,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	settingskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/settings/grpc/converters"
 
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 
 	"google.golang.org/grpc/codes"
 )
@@ -89,7 +89,10 @@ func (s *serviceImpl) GetServiceSettingConfigurationsForAccount(ctx context.Cont
 	}
 	logger = logger.WithValue(identitykeys.AccountIDKey, sessionContextData.GetActiveAccountID())
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
 
 	serviceSettingConfigs, err := s.settingsManager.GetServiceSettingConfigurationsForAccount(ctx, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
@@ -100,7 +103,7 @@ func (s *serviceImpl) GetServiceSettingConfigurationsForAccount(ctx context.Cont
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(serviceSettingConfigs.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(serviceSettingConfigs.Pagination),
 	}
 
 	for _, cfg := range serviceSettingConfigs.Data {
@@ -122,7 +125,11 @@ func (s *serviceImpl) GetServiceSettingConfigurationsForUser(ctx context.Context
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	serviceSettingConfigs, err := s.settingsManager.GetServiceSettingConfigurationsForUser(ctx, sessionContextData.GetUserID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to retrieve service setting configurations for user")
@@ -132,7 +139,7 @@ func (s *serviceImpl) GetServiceSettingConfigurationsForUser(ctx context.Context
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(serviceSettingConfigs.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(serviceSettingConfigs.Pagination),
 	}
 
 	for _, cfg := range serviceSettingConfigs.Data {

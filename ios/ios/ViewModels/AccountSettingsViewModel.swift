@@ -194,7 +194,7 @@ class AccountSettingsViewModel {
 
   private func fetchInvitations() async throws -> [Identity_AccountInvitation] {
     let (clientManager, metadata) = try await getClientManagerAndMetadata()
-    let filter = Filtering_QueryFilter()
+    let filter = QueryFilterMessage()
     var request = Identity_GetSentAccountInvitationsRequest()
     request.filter = filter
 
@@ -211,7 +211,7 @@ class AccountSettingsViewModel {
   {
     let (clientManager, metadata) = try await getClientManagerAndMetadata()
     var request = Mealplanning_GetAccountInstrumentOwnershipsRequest()
-    request.filter = Filtering_QueryFilter()
+    request.filter = QueryFilterMessage()
 
     let response = try await clientManager.client.mealPlanning.getAccountInstrumentOwnerships(
       request,
@@ -226,7 +226,7 @@ class AccountSettingsViewModel {
     let (clientManager, metadata) = try await getClientManagerAndMetadata()
     var request = Mealplanning_SearchForValidInstrumentsNotOwnedByAccountRequest()
     request.query = ""
-    request.filter = Filtering_QueryFilter()
+    request.filter = QueryFilterMessage()
 
     let response = try await clientManager.client.mealPlanning
       .searchForValidInstrumentsNotOwnedByAccount(

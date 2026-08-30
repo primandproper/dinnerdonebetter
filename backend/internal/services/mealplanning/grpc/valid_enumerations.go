@@ -4,12 +4,12 @@ import (
 	"context"
 
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	mealplanningconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"google.golang.org/grpc/codes"
@@ -625,7 +625,11 @@ func (s *serviceImpl) GetValidIngredientGroups(ctx context.Context, request *mea
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.ListValidIngredientGroups(ctx, filter)
@@ -634,7 +638,7 @@ func (s *serviceImpl) GetValidIngredientGroups(ctx context.Context, request *mea
 	}
 
 	res := &mealplanning.GetValidIngredientGroupsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 	for _, y := range x.Data {
 		res.Results = append(res.Results, mealplanningconverters.ConvertValidIngredientGroupToGRPCValidIngredientGroup(y))
@@ -667,7 +671,11 @@ func (s *serviceImpl) GetValidIngredientMeasurementUnits(ctx context.Context, re
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.ListValidIngredientMeasurementUnits(ctx, filter)
@@ -676,7 +684,7 @@ func (s *serviceImpl) GetValidIngredientMeasurementUnits(ctx context.Context, re
 	}
 
 	res := &mealplanning.GetValidIngredientMeasurementUnitsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 	for _, y := range x.Data {
 		res.Results = append(res.Results, mealplanningconverters.ConvertValidIngredientMeasurementUnitToGRPCValidIngredientMeasurementUnit(y))
@@ -691,7 +699,11 @@ func (s *serviceImpl) GetValidIngredientMeasurementUnitsByIngredient(ctx context
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidIngredientMeasurementUnitsByIngredient(ctx, request.ValidIngredientId, filter)
@@ -700,7 +712,7 @@ func (s *serviceImpl) GetValidIngredientMeasurementUnitsByIngredient(ctx context
 	}
 
 	res := &mealplanning.GetValidIngredientMeasurementUnitsByIngredientResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -715,7 +727,11 @@ func (s *serviceImpl) GetValidIngredientMeasurementUnitsByMeasurementUnit(ctx co
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidIngredientMeasurementUnitsByMeasurementUnit(ctx, request.ValidMeasurementUnitId, filter)
@@ -724,7 +740,7 @@ func (s *serviceImpl) GetValidIngredientMeasurementUnitsByMeasurementUnit(ctx co
 	}
 
 	res := &mealplanning.GetValidIngredientMeasurementUnitsByMeasurementUnitResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -758,7 +774,11 @@ func (s *serviceImpl) GetValidIngredientPreparations(ctx context.Context, reques
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.ListValidIngredientPreparations(ctx, filter)
@@ -767,7 +787,7 @@ func (s *serviceImpl) GetValidIngredientPreparations(ctx context.Context, reques
 	}
 
 	res := &mealplanning.GetValidIngredientPreparationsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -783,7 +803,11 @@ func (s *serviceImpl) GetValidIngredientPreparationsByIngredient(ctx context.Con
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidIngredientPreparationsByIngredient(ctx, request.ValidIngredientId, filter)
@@ -792,7 +816,7 @@ func (s *serviceImpl) GetValidIngredientPreparationsByIngredient(ctx context.Con
 	}
 
 	res := &mealplanning.GetValidIngredientPreparationsByIngredientResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -808,7 +832,11 @@ func (s *serviceImpl) GetValidIngredientPreparationsByPreparation(ctx context.Co
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidIngredientPreparationsByPreparation(ctx, request.ValidPreparationId, filter)
@@ -817,7 +845,7 @@ func (s *serviceImpl) GetValidIngredientPreparationsByPreparation(ctx context.Co
 	}
 
 	res := &mealplanning.GetValidIngredientPreparationsByPreparationResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -851,7 +879,11 @@ func (s *serviceImpl) GetValidPrepTaskConfigs(ctx context.Context, request *meal
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.ListValidPrepTaskConfigs(ctx, filter)
@@ -860,7 +892,7 @@ func (s *serviceImpl) GetValidPrepTaskConfigs(ctx context.Context, request *meal
 	}
 
 	res := &mealplanning.GetValidPrepTaskConfigsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -876,7 +908,11 @@ func (s *serviceImpl) GetValidPrepTaskConfigsByIngredient(ctx context.Context, r
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidPrepTaskConfigsByIngredient(ctx, request.ValidIngredientId, filter)
@@ -885,7 +921,7 @@ func (s *serviceImpl) GetValidPrepTaskConfigsByIngredient(ctx context.Context, r
 	}
 
 	res := &mealplanning.GetValidPrepTaskConfigsByIngredientResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -901,7 +937,11 @@ func (s *serviceImpl) GetValidPrepTaskConfigsByPreparation(ctx context.Context, 
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidPrepTaskConfigsByPreparation(ctx, request.ValidPreparationId, filter)
@@ -910,7 +950,7 @@ func (s *serviceImpl) GetValidPrepTaskConfigsByPreparation(ctx context.Context, 
 	}
 
 	res := &mealplanning.GetValidPrepTaskConfigsByPreparationResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -929,7 +969,11 @@ func (s *serviceImpl) GetValidPrepTaskConfigsByIngredientAndPreparation(ctx cont
 		WithValue(mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidPrepTaskConfigsByIngredientAndPreparation(ctx, request.ValidIngredientId, request.ValidPreparationId, filter)
@@ -938,7 +982,7 @@ func (s *serviceImpl) GetValidPrepTaskConfigsByIngredientAndPreparation(ctx cont
 	}
 
 	res := &mealplanning.GetValidPrepTaskConfigsByIngredientAndPreparationResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -991,7 +1035,11 @@ func (s *serviceImpl) GetValidIngredientStateIngredients(ctx context.Context, re
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.ListValidIngredientStateIngredients(ctx, filter)
@@ -1000,7 +1048,7 @@ func (s *serviceImpl) GetValidIngredientStateIngredients(ctx context.Context, re
 	}
 
 	res := &mealplanning.GetValidIngredientStateIngredientsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1016,7 +1064,11 @@ func (s *serviceImpl) GetValidIngredientStateIngredientsByIngredient(ctx context
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidIngredientStateIngredientsByIngredient(ctx, request.ValidIngredientId, filter)
@@ -1025,7 +1077,7 @@ func (s *serviceImpl) GetValidIngredientStateIngredientsByIngredient(ctx context
 	}
 
 	res := &mealplanning.GetValidIngredientStateIngredientsByIngredientResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1041,7 +1093,11 @@ func (s *serviceImpl) GetValidIngredientStateIngredientsByIngredientState(ctx co
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientStateIDKey, request.ValidIngredientStateId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientStateIDKey, request.ValidIngredientStateId)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidIngredientStateIngredientsByIngredientState(ctx, request.ValidIngredientStateId, filter)
@@ -1050,7 +1106,7 @@ func (s *serviceImpl) GetValidIngredientStateIngredientsByIngredientState(ctx co
 	}
 
 	res := &mealplanning.GetValidIngredientStateIngredientsByIngredientStateResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1065,7 +1121,11 @@ func (s *serviceImpl) GetValidIngredientStates(ctx context.Context, request *mea
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.ListValidIngredientStates(ctx, filter)
@@ -1074,7 +1134,7 @@ func (s *serviceImpl) GetValidIngredientStates(ctx context.Context, request *mea
 	}
 
 	res := &mealplanning.GetValidIngredientStatesResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1089,7 +1149,11 @@ func (s *serviceImpl) GetValidIngredients(ctx context.Context, request *mealplan
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.ListValidIngredients(ctx, filter)
@@ -1100,7 +1164,7 @@ func (s *serviceImpl) GetValidIngredients(ctx context.Context, request *mealplan
 	logger.WithValue("pagination", x.Pagination).Info("Valid ingredients retrieved")
 
 	res := &mealplanning.GetValidIngredientsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1134,7 +1198,11 @@ func (s *serviceImpl) GetValidInstruments(ctx context.Context, request *mealplan
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.ListValidInstruments(ctx, filter)
@@ -1143,7 +1211,7 @@ func (s *serviceImpl) GetValidInstruments(ctx context.Context, request *mealplan
 	}
 
 	res := &mealplanning.GetValidInstrumentsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1198,7 +1266,11 @@ func (s *serviceImpl) GetValidMeasurementUnitConversionsForUnit(ctx context.Cont
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, request.ValidMeasurementUnitId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, request.ValidMeasurementUnitId)
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.ValidMeasurementUnitConversionsForMeasurementUnit(ctx, request.ValidMeasurementUnitId, filter)
@@ -1207,7 +1279,7 @@ func (s *serviceImpl) GetValidMeasurementUnitConversionsForUnit(ctx context.Cont
 	}
 
 	res := &mealplanning.GetValidMeasurementUnitConversionsForUnitResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 	for _, y := range x.Data {
 		res.Results = append(res.Results, mealplanningconverters.ConvertValidMeasurementUnitConversionToGRPCValidMeasurementUnitConversion(y))
@@ -1263,7 +1335,11 @@ func (s *serviceImpl) GetValidMeasurementUnits(ctx context.Context, request *mea
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.ListValidMeasurementUnits(ctx, filter)
@@ -1272,7 +1348,7 @@ func (s *serviceImpl) GetValidMeasurementUnits(ctx context.Context, request *mea
 	}
 
 	res := &mealplanning.GetValidMeasurementUnitsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1325,7 +1401,11 @@ func (s *serviceImpl) GetValidPreparationInstruments(ctx context.Context, reques
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.ListValidPreparationInstruments(ctx, filter)
@@ -1334,7 +1414,7 @@ func (s *serviceImpl) GetValidPreparationInstruments(ctx context.Context, reques
 	}
 
 	res := &mealplanning.GetValidPreparationInstrumentsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1350,7 +1430,11 @@ func (s *serviceImpl) GetValidPreparationInstrumentsByInstrument(ctx context.Con
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidInstrumentIDKey, request.ValidInstrumentId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidInstrumentIDKey, request.ValidInstrumentId)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidPreparationInstrumentsByInstrument(ctx, request.ValidInstrumentId, filter)
@@ -1359,7 +1443,7 @@ func (s *serviceImpl) GetValidPreparationInstrumentsByInstrument(ctx context.Con
 	}
 
 	res := &mealplanning.GetValidPreparationInstrumentsByInstrumentResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1375,7 +1459,11 @@ func (s *serviceImpl) GetValidPreparationInstrumentsByPreparation(ctx context.Co
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidPreparationInstrumentsByPreparation(ctx, request.ValidPreparationId, filter)
@@ -1384,7 +1472,7 @@ func (s *serviceImpl) GetValidPreparationInstrumentsByPreparation(ctx context.Co
 	}
 
 	res := &mealplanning.GetValidPreparationInstrumentsByPreparationResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1418,7 +1506,11 @@ func (s *serviceImpl) GetValidPreparationVessels(ctx context.Context, request *m
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.ListValidPreparationVessels(ctx, filter)
@@ -1427,7 +1519,7 @@ func (s *serviceImpl) GetValidPreparationVessels(ctx context.Context, request *m
 	}
 
 	res := &mealplanning.GetValidPreparationVesselsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1443,7 +1535,11 @@ func (s *serviceImpl) GetValidPreparationVesselsByPreparation(ctx context.Contex
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidPreparationVesselsByPreparation(ctx, request.ValidPreparationId, filter)
@@ -1452,7 +1548,7 @@ func (s *serviceImpl) GetValidPreparationVesselsByPreparation(ctx context.Contex
 	}
 
 	res := &mealplanning.GetValidPreparationVesselsByPreparationResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1468,7 +1564,11 @@ func (s *serviceImpl) GetValidPreparationVesselsByVessel(ctx context.Context, re
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidVesselIDKey, request.ValidVesselId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, request.ValidVesselId)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidPreparationVesselsByVessel(ctx, request.ValidVesselId, filter)
@@ -1477,7 +1577,7 @@ func (s *serviceImpl) GetValidPreparationVesselsByVessel(ctx context.Context, re
 	}
 
 	res := &mealplanning.GetValidPreparationVesselsByVesselResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1492,7 +1592,11 @@ func (s *serviceImpl) GetValidPreparations(ctx context.Context, request *mealpla
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.ListValidPreparations(ctx, filter)
@@ -1501,7 +1605,7 @@ func (s *serviceImpl) GetValidPreparations(ctx context.Context, request *mealpla
 	}
 
 	res := &mealplanning.GetValidPreparationsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1535,7 +1639,11 @@ func (s *serviceImpl) GetValidVessels(ctx context.Context, request *mealplanning
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.ListValidVessels(ctx, filter)
@@ -1544,7 +1652,7 @@ func (s *serviceImpl) GetValidVessels(ctx context.Context, request *mealplanning
 	}
 
 	res := &mealplanning.GetValidVesselsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1559,7 +1667,11 @@ func (s *serviceImpl) SearchForValidIngredientGroups(ctx context.Context, reques
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidIngredientGroups(ctx, request.Query, request.UseSearchService, filter)
@@ -1568,7 +1680,7 @@ func (s *serviceImpl) SearchForValidIngredientGroups(ctx context.Context, reques
 	}
 
 	res := &mealplanning.SearchForValidIngredientGroupsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1583,7 +1695,11 @@ func (s *serviceImpl) SearchForValidIngredientStates(ctx context.Context, reques
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidIngredientStates(ctx, request.Query, request.UseSearchService, filter)
@@ -1592,7 +1708,7 @@ func (s *serviceImpl) SearchForValidIngredientStates(ctx context.Context, reques
 	}
 
 	res := &mealplanning.SearchForValidIngredientStatesResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1607,7 +1723,11 @@ func (s *serviceImpl) SearchForValidIngredients(ctx context.Context, request *me
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidIngredients(ctx, request.Query, request.UseSearchService, filter)
@@ -1616,7 +1736,7 @@ func (s *serviceImpl) SearchForValidIngredients(ctx context.Context, request *me
 	}
 
 	res := &mealplanning.SearchForValidIngredientsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1631,7 +1751,11 @@ func (s *serviceImpl) SearchForValidInstruments(ctx context.Context, request *me
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidInstruments(ctx, request.Query, request.UseSearchService, filter)
@@ -1640,7 +1764,7 @@ func (s *serviceImpl) SearchForValidInstruments(ctx context.Context, request *me
 	}
 
 	res := &mealplanning.SearchForValidInstrumentsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1655,7 +1779,11 @@ func (s *serviceImpl) SearchForValidMeasurementUnits(ctx context.Context, reques
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidMeasurementUnits(ctx, request.Query, request.UseSearchService, filter)
@@ -1664,7 +1792,7 @@ func (s *serviceImpl) SearchForValidMeasurementUnits(ctx context.Context, reques
 	}
 
 	res := &mealplanning.SearchForValidMeasurementUnitsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1679,7 +1807,11 @@ func (s *serviceImpl) SearchForValidPreparations(ctx context.Context, request *m
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidPreparations(ctx, request.Query, request.UseSearchService, filter)
@@ -1688,7 +1820,7 @@ func (s *serviceImpl) SearchForValidPreparations(ctx context.Context, request *m
 	}
 
 	res := &mealplanning.SearchForValidPreparationsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1703,7 +1835,11 @@ func (s *serviceImpl) SearchForValidVessels(ctx context.Context, request *mealpl
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidVessels(ctx, request.Query, request.UseSearchService, filter)
@@ -1712,7 +1848,7 @@ func (s *serviceImpl) SearchForValidVessels(ctx context.Context, request *mealpl
 	}
 
 	res := &mealplanning.SearchForValidVesselsResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1728,7 +1864,11 @@ func (s *serviceImpl) SearchValidIngredientsByPreparation(ctx context.Context, r
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidIngredientsByPreparationAndIngredientName(ctx, request.ValidPreparationId, request.Query, filter)
@@ -1737,7 +1877,7 @@ func (s *serviceImpl) SearchValidIngredientsByPreparation(ctx context.Context, r
 	}
 
 	res := &mealplanning.SearchValidIngredientsByPreparationResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {
@@ -1753,7 +1893,11 @@ func (s *serviceImpl) SearchValidMeasurementUnitsByIngredient(ctx context.Contex
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	x, err := s.mealPlanningManager.SearchValidMeasurementUnitsByIngredientID(ctx, request.ValidIngredientId, filter)
@@ -1762,7 +1906,7 @@ func (s *serviceImpl) SearchValidMeasurementUnitsByIngredient(ctx context.Contex
 	}
 
 	res := &mealplanning.SearchValidMeasurementUnitsByIngredientResponse{
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(x.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(x.Pagination),
 	}
 
 	for _, y := range x.Data {

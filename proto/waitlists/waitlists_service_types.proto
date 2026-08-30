@@ -3,8 +3,8 @@ syntax = "proto3";
 package waitlists;
 
 import "common.proto";
-import "filtering.proto";
 import "google/protobuf/timestamp.proto";
+import "primandproper/platform/filtering/v1/filtering.proto";
 import "waitlists/waitlists_messages.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists";
@@ -51,22 +51,22 @@ message GetWaitlistResponse {
 }
 
 message GetWaitlistsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetWaitlistsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated Waitlist results = 3;
 }
 
 message GetActiveWaitlistsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetActiveWaitlistsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated Waitlist results = 3;
 }
 
@@ -118,12 +118,12 @@ message GetWaitlistSignupResponse {
 
 message GetWaitlistSignupsForWaitlistRequest {
   string waitlist_id = 1;
-  filtering.QueryFilter filter = 2;
+  primandproper.platform.filtering.v1.QueryFilter filter = 2;
 }
 
 message GetWaitlistSignupsForWaitlistResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated WaitlistSignup results = 3;
 }
 

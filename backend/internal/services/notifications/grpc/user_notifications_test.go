@@ -9,11 +9,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	notificationsfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/fakes"
 	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
-	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	notificationssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/notifications/grpc/converters"
 
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 
@@ -160,7 +160,7 @@ func TestServiceImpl_GetUserNotifications(t *testing.T) {
 
 		grpcPageSize := uint32(*filter.MaxResponseSize)
 		request := &notificationssvc.GetUserNotificationsRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &grpcPageSize,
 			},
 		}
@@ -183,7 +183,7 @@ func TestServiceImpl_GetUserNotifications(t *testing.T) {
 
 		grpcPageSize := uint32(20)
 		request := &notificationssvc.GetUserNotificationsRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &grpcPageSize,
 			},
 		}
@@ -211,7 +211,7 @@ func TestServiceImpl_GetUserNotifications(t *testing.T) {
 
 		grpcPageSize := uint32(20)
 		request := &notificationssvc.GetUserNotificationsRequest{
-			Filter: &grpcfiltering.QueryFilter{
+			Filter: &filteringpb.QueryFilter{
 				MaxResponseSize: &grpcPageSize,
 			},
 		}

@@ -4,12 +4,12 @@ import (
 	"context"
 
 	settingskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/keys"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/settings/grpc/converters"
 
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 
@@ -69,7 +69,11 @@ func (s *serviceImpl) GetServiceSettings(ctx context.Context, request *settingss
 
 	logger := s.logger.WithSpan(span)
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	serviceSettings, err := s.settingsManager.GetServiceSettings(ctx, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to retrieve service settings")
@@ -79,7 +83,7 @@ func (s *serviceImpl) GetServiceSettings(ctx context.Context, request *settingss
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(serviceSettings.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(serviceSettings.Pagination),
 	}
 
 	for _, serviceSetting := range serviceSettings.Data {
@@ -95,7 +99,11 @@ func (s *serviceImpl) SearchForServiceSettings(ctx context.Context, request *set
 
 	logger := s.logger.WithSpan(span).WithValue(platformkeys.SearchQueryKey, request.Query)
 
-	filter := grpcconverters.ConvertGRPCQueryFilterToQueryFilter(request.Filter)
+	filter, err := filteringgrpc.FromProto(request.Filter)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
+	}
+
 	tracing.AttachQueryFilterToSpan(span, filter)
 
 	serviceSettings, err := s.settingsManager.SearchForServiceSettings(ctx, request.Query, filter)
@@ -107,7 +115,7 @@ func (s *serviceImpl) SearchForServiceSettings(ctx context.Context, request *set
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: grpcconverters.ConvertPaginationToGRPCPagination(serviceSettings.Pagination, filter),
+		Pagination: filteringgrpc.PaginationToProto(serviceSettings.Pagination),
 	}
 
 	for _, serviceSetting := range serviceSettings.Data {

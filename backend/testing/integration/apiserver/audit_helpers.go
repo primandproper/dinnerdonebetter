@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	auditgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
+
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,7 +62,7 @@ func AssertAuditLogContainsFuzzy(t *testing.T, ctx context.Context, c client.Cli
 	limit32 := uint32(limit)
 	resp, err := c.GetAuditLogEntriesForAccount(ctx, &auditgrpc.GetAuditLogEntriesForAccountRequest{
 		AccountId: accountID,
-		Filter: &filtering.QueryFilter{
+		Filter: &filteringpb.QueryFilter{
 			MaxResponseSize: &limit32,
 		},
 	})
@@ -91,7 +92,7 @@ func AssertAuditLogContainsFuzzyForUser(t *testing.T, ctx context.Context, c cli
 	limit32 := uint32(limit)
 	resp, err := c.GetAuditLogEntriesForUser(ctx, &auditgrpc.GetAuditLogEntriesForUserRequest{
 		UserId: userID,
-		Filter: &filtering.QueryFilter{
+		Filter: &filteringpb.QueryFilter{
 			MaxResponseSize: &limit32,
 		},
 	})

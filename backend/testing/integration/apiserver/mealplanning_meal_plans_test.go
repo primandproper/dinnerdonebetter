@@ -7,13 +7,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mpconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	identitygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
+
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -146,7 +147,7 @@ func TestMealPlans_Listing(T *testing.T) {
 
 		// assert meal plan list equality - filter to our meal plans only
 		actual, err := userClient.GetMealPlansForAccount(ctx, &mealplanninggrpc.GetMealPlansForAccountRequest{
-			Filter: &filtering.QueryFilter{CreatedAfter: createdAfterProto},
+			Filter: &filteringpb.QueryFilter{CreatedAfter: createdAfterProto},
 		})
 		require.NoError(t, err)
 		assert.LessOrEqual(

@@ -8,10 +8,11 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mpconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
+
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -134,7 +135,7 @@ func TestMeals_Listing(T *testing.T) {
 
 		// assert meal list equality - filter to our meals only
 		actual, err := userClient.GetMeals(ctx, &mealplanninggrpc.GetMealsRequest{
-			Filter: &filtering.QueryFilter{CreatedAfter: createdAfterProto},
+			Filter: &filteringpb.QueryFilter{CreatedAfter: createdAfterProto},
 		})
 		require.NoError(t, err)
 		assert.LessOrEqual(

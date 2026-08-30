@@ -11,11 +11,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	waitlistfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
 	waitlistmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/mock"
-	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 
 	"github.com/primandproper/platform-go/v13/fake"
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 
@@ -259,7 +259,7 @@ func TestServiceImpl_GetWaitlists(t *testing.T) {
 		}
 
 		request := &waitlistssvc.GetWaitlistsRequest{
-			Filter: &grpcfiltering.QueryFilter{},
+			Filter: &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetWaitlists(ctx, request)
@@ -286,7 +286,7 @@ func TestServiceImpl_GetWaitlists(t *testing.T) {
 		}
 
 		request := &waitlistssvc.GetWaitlistsRequest{
-			Filter: &grpcfiltering.QueryFilter{},
+			Filter: &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetWaitlists(ctx, request)
@@ -315,7 +315,7 @@ func TestServiceImpl_GetActiveWaitlists(t *testing.T) {
 		}
 
 		request := &waitlistssvc.GetActiveWaitlistsRequest{
-			Filter: &grpcfiltering.QueryFilter{},
+			Filter: &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetActiveWaitlists(ctx, request)
@@ -342,7 +342,7 @@ func TestServiceImpl_GetActiveWaitlists(t *testing.T) {
 		}
 
 		request := &waitlistssvc.GetActiveWaitlistsRequest{
-			Filter: &grpcfiltering.QueryFilter{},
+			Filter: &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetActiveWaitlists(ctx, request)
@@ -878,7 +878,7 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 
 		request := &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
 			WaitlistId: waitlistID,
-			Filter:     &grpcfiltering.QueryFilter{},
+			Filter:     &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetWaitlistSignupsForWaitlist(ctx, request)
@@ -902,7 +902,7 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 
 		request := &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
 			WaitlistId: fake.BuildFakeID(),
-			Filter:     &grpcfiltering.QueryFilter{},
+			Filter:     &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetWaitlistSignupsForWaitlist(ctx, request)
@@ -920,7 +920,7 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 
 		request := &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
 			WaitlistId: fake.BuildFakeID(),
-			Filter:     &grpcfiltering.QueryFilter{},
+			Filter:     &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetWaitlistSignupsForWaitlist(ctx, request)
@@ -946,7 +946,7 @@ func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 
 		request := &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
 			WaitlistId: waitlistID,
-			Filter:     &grpcfiltering.QueryFilter{},
+			Filter:     &filteringpb.QueryFilter{},
 		}
 
 		response, err := service.GetWaitlistSignupsForWaitlist(ctx, request)

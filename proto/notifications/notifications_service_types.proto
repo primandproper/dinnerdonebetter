@@ -3,8 +3,8 @@ syntax = "proto3";
 package notifications;
 
 import "common.proto";
-import "filtering.proto";
 import "notifications/notifications_messages.proto";
+import "primandproper/platform/filtering/v1/filtering.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications";
 
@@ -18,12 +18,12 @@ message GetUserNotificationResponse {
 }
 
 message GetUserNotificationsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetUserNotificationsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated UserNotification results = 3;
 }
 
@@ -66,13 +66,13 @@ message GetUserDeviceTokenResponse {
 }
 
 message GetUserDeviceTokensRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   optional string platform_filter = 2;
 }
 
 message GetUserDeviceTokensResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated UserDeviceToken results = 3;
 }
 

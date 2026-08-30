@@ -3,9 +3,9 @@ syntax = "proto3";
 package identity;
 
 import "common.proto";
-import "filtering.proto";
 import "google/protobuf/timestamp.proto";
 import "identity/identity_messages.proto";
+import "primandproper/platform/filtering/v1/filtering.proto";
 import "uploaded_media/uploaded_media_messages.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity";
@@ -99,43 +99,43 @@ message GetAccountInvitationResponse {
 }
 
 message GetAccountsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetAccountsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated Account results = 3;
 }
 
 message GetAccountsForUserRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string user_id = 2;
 }
 
 message GetAccountsForUserResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated Account results = 3;
 }
 
 message GetReceivedAccountInvitationsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetReceivedAccountInvitationsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated AccountInvitation results = 3;
 }
 
 message GetSentAccountInvitationsRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetSentAccountInvitationsResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated AccountInvitation results = 3;
 }
 
@@ -149,23 +149,23 @@ message GetUserResponse {
 }
 
 message GetUsersRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
 message GetUsersResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated User results = 3;
 }
 
 message GetUsersForAccountRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string account_id = 2;
 }
 
 message GetUsersForAccountResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated User results = 3;
 }
 
@@ -179,14 +179,14 @@ message RejectAccountInvitationResponse {
 }
 
 message SearchForUsersRequest {
-  filtering.QueryFilter filter = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
   string query = 2;
   bool use_search_service = 3;
 }
 
 message SearchForUsersResponse {
   common.ResponseDetails response_details = 1;
-  filtering.Pagination pagination = 2;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated User results = 3;
 }
 

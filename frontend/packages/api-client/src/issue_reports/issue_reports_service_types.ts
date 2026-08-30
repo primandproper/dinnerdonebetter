@@ -8,7 +8,7 @@
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { Comment, CommentCreationRequestInput } from '../comments/comments_messages';
 import { ResponseDetails } from '../common';
-import { Pagination, QueryFilter } from '../filtering';
+import { Pagination, QueryFilter } from '../primandproper/platform/filtering/v1/filtering';
 import { IssueReport } from './issue_reports_messages';
 
 export const protobufPackage = 'issue_reports';

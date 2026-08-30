@@ -16,6 +16,19 @@ ARTIFACTS_DIR         := artifacts
 
 # Exclude monolithic proto/X/X.proto files (they're duplicates of the split files)
 PROTO_FILES_PATH          := $(shell find proto -name "*.proto" -type f ! -regex "proto/\([^/]*\)/\1\.proto")
+
+# filtering's schema is not ours to keep a copy of: platform-go ships the .proto
+# inside the published module, so go.mod already pins which version we build
+# against. Putting the module's proto directory on protoc's path is how a
+# consumer imports it, exactly as google/protobuf/timestamp.proto already works.
+PLATFORM_PROTO_PATH       := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v13)/filtering/proto
+PLATFORM_FILTERING_PROTO  := primandproper/platform/filtering/v1/filtering.proto
+# Go links against the bindings platform already generated rather than making a
+# second copy, because the page-size clamp and the default are server-side rules
+# and a second copy of one can be wrong in a way nothing reports. Swift and
+# TypeScript generate the file: a QueryFilter there is a data class with eight
+# fields and no rules to restate.
+PROTO_GO_FILTERING_MAP    := M$(PLATFORM_FILTERING_PROTO)=github.com/primandproper/platform-go/v13/filtering/filteringpb
 PROTO_GO_OUTPUT_PATH      := backend
 PROTO_OUTPUT_BACKEND_PATH := backend/internal/grpc
 PROTO_OUTPUT_IOS_PATH     := ios/ios/Generated
@@ -197,7 +210,10 @@ proto_golang: ensure_protoc_installed ensure_protoc-gen-go_installed ensure_prot
 		--go-grpc_out=$(ARTIFACTS_DIR)/proto_golang \
 		--go_opt=module=$(BACKEND_REPO_NAME) \
 		--go-grpc_opt=module=$(BACKEND_REPO_NAME) \
+		--go_opt=$(PROTO_GO_FILTERING_MAP) \
+		--go-grpc_opt=$(PROTO_GO_FILTERING_MAP) \
 		--proto_path proto/ \
+		--proto_path $(PLATFORM_PROTO_PATH) \
 		$(PROTO_FILES_PATH);
 	rm -rf $(PROTO_OUTPUT_BACKEND_PATH)/generated
 	mv $(ARTIFACTS_DIR)/proto_golang/internal/grpc/generated $(PROTO_OUTPUT_BACKEND_PATH)/generated
@@ -213,7 +229,8 @@ proto_swift: ensure_protoc-gen-swift_installed ensure_protoc-gen-grpc-swift_inst
       	--grpc-swift-2_opt=Client=true,Server=false \
       	--swift_opt=Visibility=Public \
 		--proto_path proto/ \
-		$(PROTO_FILES_PATH)
+		--proto_path $(PLATFORM_PROTO_PATH) \
+		$(PROTO_FILES_PATH) $(PLATFORM_PROTO_PATH)/$(PLATFORM_FILTERING_PROTO)
 	rm -rf $(PROTO_OUTPUT_IOS_PATH)
 	mv $(ARTIFACTS_DIR)/proto_swift $(PROTO_OUTPUT_IOS_PATH)
 	(cd ios && $(MAKE) format)
@@ -230,7 +247,8 @@ proto_typescript: ensure_protoc_installed ensure_proto_ts_plugin_installed
 		--ts_proto_opt=outputServices=grpc-js \
 		--ts_proto_opt=esModuleInterop=true \
 		--proto_path proto/ \
-		$(PROTO_FILES_PATH)
+		--proto_path $(PLATFORM_PROTO_PATH) \
+		$(PROTO_FILES_PATH) $(PLATFORM_PROTO_PATH)/$(PLATFORM_FILTERING_PROTO)
 	mkdir -p $(ARTIFACTS_DIR)/proto_ts_handwritten
 	for f in $(PROTO_TS_HANDWRITTEN); do \
 		if [ -f $(PROTO_TS_OUTPUT_PATH)/$$f ]; then \
