@@ -102,12 +102,14 @@ func (q *repository) GetOAuth2Clients(ctx context.Context, filter *filtering.Que
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetOAuth2Clients(ctx, q.readDB, &generated.GetOAuth2ClientsParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching oauth2 clients")

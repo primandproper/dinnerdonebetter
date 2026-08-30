@@ -40,14 +40,16 @@ func (q *repository) GetRecipeLists(ctx context.Context, filter *filtering.Query
 	)
 	listsByID := map[string]*types.RecipeList{}
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetRecipeLists(ctx, q.readDB, &generated.GetRecipeListsParams{
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing recipe lists list retrieval query")

@@ -109,15 +109,17 @@ func (r *repository) GetUploadedMediaForUser(ctx context.Context, userID string,
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetUploadedMediaForUser(ctx, r.readDB, &generated.GetUploadedMediaForUserParams{
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
 		CreatedByUser:   userID,
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching uploaded media from database")

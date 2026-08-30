@@ -134,14 +134,16 @@ func (q *repository) GetValidPreparationVessels(ctx context.Context, filter *fil
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetValidPreparationVessels(ctx, q.readDB, &generated.GetValidPreparationVesselsParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid preparation vessels list retrieval query")
@@ -260,15 +262,17 @@ func (q *repository) GetValidPreparationVesselsForPreparation(ctx context.Contex
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetValidPreparationVesselsForPreparation(ctx, q.readDB, &generated.GetValidPreparationVesselsForPreparationParams{
 		ID:              preparationID,
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid preparation vessels list retrieval query")
@@ -391,15 +395,17 @@ func (q *repository) GetValidPreparationVesselsForVessel(ctx context.Context, ve
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetValidPreparationVesselsForVessel(ctx, q.readDB, &generated.GetValidPreparationVesselsForVesselParams{
 		ID:              vesselID,
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid preparation vessels list retrieval query")

@@ -125,15 +125,17 @@ func (r *repository) getAccountsForUser(ctx context.Context, querier database.SQ
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	args := &generated.GetAccountsForUserParams{
 		BelongsToUser:   userID,
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	}
 	results, err := r.generatedQuerier.GetAccountsForUser(ctx, querier, args)
 	if err != nil {

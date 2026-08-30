@@ -237,15 +237,17 @@ func (q *Repository) GetServiceSettingConfigurationsForUser(ctx context.Context,
 	tracing.AttachQueryFilterToSpan(span, filter)
 	filter.AttachToLogger(logger)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetServiceSettingConfigurationsForUser(ctx, q.readDB, &generated.GetServiceSettingConfigurationsForUserParams{
 		BelongsToUser:   userID,
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing service setting configurations list retrieval query")
@@ -323,15 +325,17 @@ func (q *Repository) GetServiceSettingConfigurationsForAccount(ctx context.Conte
 	tracing.AttachQueryFilterToSpan(span, filter)
 	filter.AttachToLogger(logger)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetServiceSettingConfigurationsForAccount(ctx, q.readDB, &generated.GetServiceSettingConfigurationsForAccountParams{
 		BelongsToAccount: accountID,
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:     filterArgs.CreatedAfter,
+		CreatedBefore:    filterArgs.CreatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
+		IncludeArchived:  filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing service setting configurations list retrieval query")

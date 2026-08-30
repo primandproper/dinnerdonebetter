@@ -144,15 +144,17 @@ func (q *repository) SearchForValidPreparations(ctx context.Context, query strin
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.SearchForValidPreparations(ctx, q.readDB, &generated.SearchForValidPreparationsParams{
 		NameQuery:       query,
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid preparations search")
@@ -210,14 +212,16 @@ func (q *repository) GetValidPreparations(ctx context.Context, filter *filtering
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetValidPreparations(ctx, q.readDB, &generated.GetValidPreparationsParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid preparations list retrieval query")

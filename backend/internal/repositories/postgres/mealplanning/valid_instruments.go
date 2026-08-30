@@ -124,15 +124,17 @@ func (q *repository) SearchForValidInstruments(ctx context.Context, query string
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.SearchForValidInstruments(ctx, q.readDB, &generated.SearchForValidInstrumentsParams{
 		NameQuery:       query,
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid instruments list retrieval query")
@@ -181,16 +183,18 @@ func (q *repository) SearchForValidInstrumentsNotOwnedByAccount(ctx context.Cont
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.SearchForValidInstrumentsNotOwnedByAccount(ctx, q.readDB, &generated.SearchForValidInstrumentsNotOwnedByAccountParams{
 		AccountID:       accountID,
 		NameQuery:       query,
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid instruments not owned by account search query")
@@ -239,14 +243,16 @@ func (q *repository) GetValidInstruments(ctx context.Context, filter *filtering.
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetValidInstruments(ctx, q.readDB, &generated.GetValidInstrumentsParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid instruments list retrieval query")

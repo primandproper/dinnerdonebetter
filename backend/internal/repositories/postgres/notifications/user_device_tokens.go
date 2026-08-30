@@ -117,14 +117,16 @@ func (q *Repository) GetUserDeviceTokens(ctx context.Context, userID string, fil
 		platformFilterNull = database.NullStringFromStringPointer(platformFilter)
 	}
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetUserDeviceTokensForUser(ctx, q.readDB, &generated.GetUserDeviceTokensForUserParams{
 		UserID:          userID,
 		PlatformFilter:  platformFilterNull,
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		IncludeArchived: filterArgs.IncludeArchived,
+		Cursor:          filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing user device tokens list retrieval query")

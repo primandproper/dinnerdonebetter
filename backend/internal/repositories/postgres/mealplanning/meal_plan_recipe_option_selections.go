@@ -93,15 +93,17 @@ func (q *repository) GetSelectionsForMealPlanOption(ctx context.Context, mealPla
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx, q.readDB, &generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionParams{
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:     filterArgs.CreatedAfter,
+		CreatedBefore:    filterArgs.CreatedBefore,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		IncludeArchived:  filterArgs.IncludeArchived,
 		MealPlanOptionID: mealPlanOptionID,
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing meal plan recipe option selections list retrieval query")
@@ -158,14 +160,16 @@ func (q *repository) GetSelectionsForMealPlan(ctx context.Context, mealPlanID st
 	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetMealPlanRecipeOptionSelectionsForMealPlan(ctx, q.readDB, &generated.GetMealPlanRecipeOptionSelectionsForMealPlanParams{
 		MealPlanID:      mealPlanID,
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
+		PageCursor:      filterArgs.Cursor,
 		ResultLimit:     nil, // fetch everything always
 	})
 	if err != nil {

@@ -113,15 +113,17 @@ func (r *repository) GetSubscriptionsForAccount(ctx context.Context, accountID s
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	params := &generated.GetSubscriptionsForAccountParams{
 		BelongsToAccount: accountID,
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:     filterArgs.CreatedAfter,
+		CreatedBefore:    filterArgs.CreatedBefore,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
+		IncludeArchived:  filterArgs.IncludeArchived,
 	}
 
 	results, err := r.generatedQuerier.GetSubscriptionsForAccount(ctx, r.readDB, params)

@@ -126,15 +126,17 @@ func (q *repository) SearchForValidMeasurementUnits(ctx context.Context, query s
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.SearchForValidMeasurementUnits(ctx, q.readDB, &generated.SearchForValidMeasurementUnitsParams{
 		NameQuery:       query,
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid measurement units list retrieval query")
@@ -189,14 +191,16 @@ func (q *repository) ValidMeasurementUnitsForIngredientID(ctx context.Context, v
 	logger = logger.WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.SearchValidMeasurementUnitsByIngredientID(ctx, q.readDB, &generated.SearchValidMeasurementUnitsByIngredientIDParams{
-		CreatedBefore:     database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:      database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:     database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:      database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:        database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:       database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived:   database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:     filterArgs.CreatedBefore,
+		CreatedAfter:      filterArgs.CreatedAfter,
+		UpdatedBefore:     filterArgs.UpdatedBefore,
+		UpdatedAfter:      filterArgs.UpdatedAfter,
+		PageCursor:        filterArgs.Cursor,
+		ResultLimit:       filterArgs.ResultLimit,
+		IncludeArchived:   filterArgs.IncludeArchived,
 		ValidIngredientID: validIngredientID,
 	})
 	if err != nil {
@@ -255,14 +259,16 @@ func (q *repository) GetValidMeasurementUnits(ctx context.Context, filter *filte
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetValidMeasurementUnits(ctx, q.readDB, &generated.GetValidMeasurementUnitsParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid measurement units list retrieval query")

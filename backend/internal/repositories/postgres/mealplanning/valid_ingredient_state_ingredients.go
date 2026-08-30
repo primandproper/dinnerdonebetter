@@ -134,14 +134,16 @@ func (q *repository) GetValidIngredientStateIngredients(ctx context.Context, fil
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetValidIngredientStateIngredients(ctx, q.readDB, &generated.GetValidIngredientStateIngredientsParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid ingredient state ingredients list retrieval query")
@@ -251,14 +253,16 @@ func (q *repository) GetValidIngredientStateIngredientsForIngredientState(ctx co
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetValidIngredientStateIngredientsForIngredientState(ctx, q.readDB, &generated.GetValidIngredientStateIngredientsForIngredientStateParams{
-		CreatedBefore:        database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:         database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:        database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:         database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:           database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:          database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived:      database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:        filterArgs.CreatedBefore,
+		CreatedAfter:         filterArgs.CreatedAfter,
+		UpdatedBefore:        filterArgs.UpdatedBefore,
+		UpdatedAfter:         filterArgs.UpdatedAfter,
+		PageCursor:           filterArgs.Cursor,
+		ResultLimit:          filterArgs.ResultLimit,
+		IncludeArchived:      filterArgs.IncludeArchived,
 		ValidIngredientState: ingredientStateID,
 	})
 	if err != nil {
@@ -369,14 +373,16 @@ func (q *repository) GetValidIngredientStateIngredientsForIngredient(ctx context
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetValidIngredientStateIngredientsForIngredient(ctx, q.readDB, &generated.GetValidIngredientStateIngredientsForIngredientParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 		ValidIngredient: ingredientID,
 	})
 	if err != nil {

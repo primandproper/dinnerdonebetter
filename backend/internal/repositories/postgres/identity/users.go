@@ -289,14 +289,16 @@ func (r *repository) SearchForUsersByUsername(ctx context.Context, usernameQuery
 	tracing.AttachQueryFilterToSpan(span, filter)
 	filter.AttachToLogger(logger)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.SearchUsersByUsername(ctx, r.readDB, &generated.SearchUsersByUsernameParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 		Username:        usernameQuery,
 	})
 	if err != nil {
@@ -359,14 +361,16 @@ func (r *repository) GetUsers(ctx context.Context, filter *filtering.QueryFilter
 	tracing.AttachQueryFilterToSpan(span, filter)
 	filter.AttachToLogger(logger) // TODO: is assignment necessary here? if not, make consistent
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetUsers(ctx, r.readDB, &generated.GetUsersParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "scanning user")
@@ -441,15 +445,17 @@ func (r *repository) GetUsersForAccount(ctx context.Context, accountID string, f
 		Pagination: filter.ToPagination(),
 	}
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetUsersForAccount(ctx, r.readDB, &generated.GetUsersForAccountParams{
 		BelongsToAccount: accountID,
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:    filterArgs.CreatedBefore,
+		CreatedAfter:     filterArgs.CreatedAfter,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
+		IncludeArchived:  filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "scanning user")

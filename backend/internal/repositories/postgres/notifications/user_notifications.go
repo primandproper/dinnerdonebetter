@@ -112,14 +112,16 @@ func (q *Repository) GetUserNotifications(ctx context.Context, userID string, fi
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetUserNotificationsForUser(ctx, q.readDB, &generated.GetUserNotificationsForUserParams{
 		UserID:        userID,
-		CreatedBefore: database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:  database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore: database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:  database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:    database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:   database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedBefore: filterArgs.CreatedBefore,
+		CreatedAfter:  filterArgs.CreatedAfter,
+		UpdatedBefore: filterArgs.UpdatedBefore,
+		UpdatedAfter:  filterArgs.UpdatedAfter,
+		PageCursor:    filterArgs.Cursor,
+		ResultLimit:   filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing user notifications list retrieval query")

@@ -86,12 +86,14 @@ func (r *repository) GetPaymentTransactionsForAccount(ctx context.Context, accou
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	params := &generated.GetPaymentTransactionsForAccountParams{
 		BelongsToAccount: accountID,
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:     filterArgs.CreatedAfter,
+		CreatedBefore:    filterArgs.CreatedBefore,
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
 	}
 
 	results, err := r.generatedQuerier.GetPaymentTransactionsForAccount(ctx, r.readDB, params)

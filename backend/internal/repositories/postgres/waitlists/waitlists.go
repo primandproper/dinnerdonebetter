@@ -100,14 +100,16 @@ func (r *Repository) GetWaitlists(ctx context.Context, filter *filtering.QueryFi
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetWaitlists(ctx, r.readDB, &generated.GetWaitlistsParams{
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching waitlists from database")
@@ -158,14 +160,16 @@ func (r *Repository) GetActiveWaitlists(ctx context.Context, filter *filtering.Q
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetActiveWaitlists(ctx, r.readDB, &generated.GetActiveWaitlistsParams{
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching active waitlists from database")
@@ -416,15 +420,17 @@ func (r *Repository) GetWaitlistSignupsForWaitlist(ctx context.Context, waitlist
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetWaitlistSignupsForWaitlist(ctx, r.readDB, &generated.GetWaitlistSignupsForWaitlistParams{
 		BelongsToWaitlist: database.NullStringFromString(waitlistID),
-		CreatedAfter:      database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:     database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:     database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:      database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived:   database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:        database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:       database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:      filterArgs.CreatedAfter,
+		CreatedBefore:     filterArgs.CreatedBefore,
+		UpdatedBefore:     filterArgs.UpdatedBefore,
+		UpdatedAfter:      filterArgs.UpdatedAfter,
+		IncludeArchived:   filterArgs.IncludeArchived,
+		PageCursor:        filterArgs.Cursor,
+		ResultLimit:       filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching waitlist signups from database")
@@ -482,15 +488,17 @@ func (r *Repository) GetWaitlistSignupsForUser(ctx context.Context, userID strin
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetWaitlistSignupsForUser(ctx, r.readDB, &generated.GetWaitlistSignupsForUserParams{
 		BelongsToUser:   database.NullStringFromString(userID),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching waitlist signups for user from database")

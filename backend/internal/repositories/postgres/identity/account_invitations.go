@@ -471,14 +471,16 @@ func (r *repository) GetPendingAccountInvitationsFromUser(ctx context.Context, u
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 	filter.AttachToLogger(logger)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetPendingInvitesFromUser(ctx, r.readDB, &generated.GetPendingInvitesFromUserParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 		Status:          generated.InvitationState(identity.PendingAccountInvitationStatus),
 		FromUser:        userID,
 	})
@@ -577,14 +579,16 @@ func (r *repository) GetPendingAccountInvitationsForUser(ctx context.Context, us
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 	filter.AttachToLogger(logger)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetPendingInvitesForUser(ctx, r.readDB, &generated.GetPendingInvitesForUserParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 		Status:          generated.InvitationState(identity.PendingAccountInvitationStatus),
 		ToUser:          database.NullStringFromString(userID),
 	})

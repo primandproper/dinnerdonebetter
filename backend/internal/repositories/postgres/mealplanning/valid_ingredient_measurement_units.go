@@ -145,15 +145,17 @@ func (q *repository) GetValidIngredientMeasurementUnitsForIngredient(ctx context
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetValidIngredientMeasurementUnitsForIngredient(ctx, q.readDB, &generated.GetValidIngredientMeasurementUnitsForIngredientParams{
 		ValidIngredientID: ingredientID,
-		CreatedBefore:     database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:      database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:     database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:      database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:        database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:       database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived:   database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:     filterArgs.CreatedBefore,
+		CreatedAfter:      filterArgs.CreatedAfter,
+		UpdatedBefore:     filterArgs.UpdatedBefore,
+		UpdatedAfter:      filterArgs.UpdatedAfter,
+		PageCursor:        filterArgs.Cursor,
+		ResultLimit:       filterArgs.ResultLimit,
+		IncludeArchived:   filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid ingredient measurement units list retrieval query")
@@ -266,15 +268,17 @@ func (q *repository) GetValidIngredientMeasurementUnitsForMeasurementUnit(ctx co
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetValidIngredientMeasurementUnitsForMeasurementUnit(ctx, q.readDB, &generated.GetValidIngredientMeasurementUnitsForMeasurementUnitParams{
 		ValidMeasurementUnitID: validMeasurementUnitID,
-		CreatedBefore:          database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:           database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:          database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:           database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:             database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:            database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived:        database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:          filterArgs.CreatedBefore,
+		CreatedAfter:           filterArgs.CreatedAfter,
+		UpdatedBefore:          filterArgs.UpdatedBefore,
+		UpdatedAfter:           filterArgs.UpdatedAfter,
+		PageCursor:             filterArgs.Cursor,
+		ResultLimit:            filterArgs.ResultLimit,
+		IncludeArchived:        filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid ingredient measurement units list retrieval query")
@@ -381,14 +385,16 @@ func (q *repository) GetValidIngredientMeasurementUnits(ctx context.Context, fil
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetValidIngredientMeasurementUnits(ctx, q.readDB, &generated.GetValidIngredientMeasurementUnitsParams{
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:   filterArgs.CreatedBefore,
+		CreatedAfter:    filterArgs.CreatedAfter,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
+		IncludeArchived: filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid ingredient measurement units list retrieval query")

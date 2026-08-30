@@ -148,12 +148,14 @@ func (r *repository) GetActiveSessionsForUser(ctx context.Context, userID string
 	}
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetActiveSessionsForUser(ctx, r.readDB, &generated.GetActiveSessionsForUserParams{
 		BelongsToUser: userID,
-		CreatedAfter:  database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore: database.NullTimeFromTimePointer(filter.CreatedBefore),
-		Cursor:        database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:   database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:  filterArgs.CreatedAfter,
+		CreatedBefore: filterArgs.CreatedBefore,
+		Cursor:        filterArgs.Cursor,
+		ResultLimit:   filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, r.logger, span, "getting active sessions for user")

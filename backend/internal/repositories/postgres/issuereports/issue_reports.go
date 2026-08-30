@@ -72,14 +72,16 @@ func (r *repository) GetIssueReports(ctx context.Context, filter *filtering.Quer
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetIssueReports(ctx, r.readDB, &generated.GetIssueReportsParams{
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")
@@ -139,15 +141,17 @@ func (r *repository) GetIssueReportsForAccount(ctx context.Context, accountID st
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetIssueReportsForAccount(ctx, r.readDB, &generated.GetIssueReportsForAccountParams{
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedAfter:     filterArgs.CreatedAfter,
+		CreatedBefore:    filterArgs.CreatedBefore,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		IncludeArchived:  filterArgs.IncludeArchived,
 		BelongsToAccount: accountID,
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")
@@ -330,15 +334,17 @@ func (r *repository) GetIssueReportsForTable(ctx context.Context, tableName stri
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetIssueReportsForTable(ctx, r.readDB, &generated.GetIssueReportsForTableParams{
 		RelevantTable:   database.NullStringFromString(tableName),
-		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:    filterArgs.CreatedAfter,
+		CreatedBefore:   filterArgs.CreatedBefore,
+		UpdatedBefore:   filterArgs.UpdatedBefore,
+		UpdatedAfter:    filterArgs.UpdatedAfter,
+		IncludeArchived: filterArgs.IncludeArchived,
+		PageCursor:      filterArgs.Cursor,
+		ResultLimit:     filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")
@@ -404,16 +410,18 @@ func (r *repository) GetIssueReportsForRecord(ctx context.Context, tableName, re
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := r.generatedQuerier.GetIssueReportsForRecord(ctx, r.readDB, &generated.GetIssueReportsForRecordParams{
 		RelevantTable:    database.NullStringFromString(tableName),
 		RelevantRecordID: database.NullStringFromString(recordID),
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
+		CreatedAfter:     filterArgs.CreatedAfter,
+		CreatedBefore:    filterArgs.CreatedBefore,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		IncludeArchived:  filterArgs.IncludeArchived,
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")

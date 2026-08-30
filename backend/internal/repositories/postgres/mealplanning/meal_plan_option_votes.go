@@ -202,17 +202,19 @@ func (q *repository) GetMealPlanOptionVotes(ctx context.Context, mealPlanID, mea
 		totalCount    uint64
 	)
 
+	filterArgs := filtering.ToSQLArgs(filter)
+
 	results, err := q.generatedQuerier.GetMealPlanOptionVotes(ctx, q.readDB, &generated.GetMealPlanOptionVotesParams{
 		MealPlanID:       mealPlanID,
 		MealPlanOptionID: mealPlanOptionID,
 		MealPlanEventID:  database.NullStringFromString(mealPlanEventID),
-		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
-		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
-		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
-		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
+		CreatedBefore:    filterArgs.CreatedBefore,
+		CreatedAfter:     filterArgs.CreatedAfter,
+		UpdatedBefore:    filterArgs.UpdatedBefore,
+		UpdatedAfter:     filterArgs.UpdatedAfter,
+		PageCursor:       filterArgs.Cursor,
+		ResultLimit:      filterArgs.ResultLimit,
+		IncludeArchived:  filterArgs.IncludeArchived,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing meal plan option votes list retrieval query")
