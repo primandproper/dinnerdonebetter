@@ -14,7 +14,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	authfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/fakes"
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
-	authmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
@@ -25,7 +24,6 @@ import (
 	platformtotp "github.com/primandproper/platform-go/v13/authentication/totp"
 	mocktotp "github.com/primandproper/platform-go/v13/authentication/totp/mock"
 	"github.com/primandproper/platform-go/v13/fake"
-	"github.com/primandproper/platform-go/v13/filtering"
 	"github.com/primandproper/platform-go/v13/messagequeue"
 	mockpublishers "github.com/primandproper/platform-go/v13/messagequeue/mock"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
@@ -34,6 +32,8 @@ import (
 	"github.com/primandproper/platform-go/v13/qrcodes"
 	"github.com/primandproper/platform-go/v13/random"
 	randommock "github.com/primandproper/platform-go/v13/random/mock"
+	platformsessions "github.com/primandproper/platform-go/v13/sessions"
+	sessionsmock "github.com/primandproper/platform-go/v13/sessions/mock"
 	"github.com/primandproper/platform-go/v13/tenancy"
 
 	"github.com/pquerna/otp/totp"
@@ -61,7 +61,7 @@ func TestProvideAuthManager(t *testing.T) {
 			loggingnoop.NewLogger(),
 			tracingnoop.NewTracerProvider(),
 			&passwordresetmock.StoreMock{},
-			&authmock.UserSessionDataManagerMock{},
+			&sessionsmock.StoreMock[auth.SessionPayload]{},
 			&identitymock.RepositoryMock{},
 			&mockauthn.AuthenticatorMock{},
 			&mocktotp.VerifierMock{},
@@ -181,7 +181,7 @@ func TestProvideAuthManager_NilConfig(t *testing.T) {
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		&passwordresetmock.StoreMock{},
-		&authmock.UserSessionDataManagerMock{},
+		&sessionsmock.StoreMock[auth.SessionPayload]{},
 		&identitymock.RepositoryMock{},
 		&mockauthn.AuthenticatorMock{},
 		&mocktotp.VerifierMock{},
@@ -1112,89 +1112,55 @@ func TestAuthManager_GetActiveSessionsForUser(t *testing.T) {
 
 		ctx := t.Context()
 		userID := fake.BuildFakeID()
-		filter := filtering.DefaultQueryFilter()
+		currentSessionID := fake.BuildFakeID()
 
-		expected := &filtering.QueryFilteredResult[auth.UserSession]{
-			Data: []*auth.UserSession{
-				{ID: fake.BuildFakeID(), BelongsToUser: userID},
-			},
+		expected := []*auth.UserSession{
+			{ID: fake.BuildFakeID(), Holder: auth.SessionHolder(userID), IsCurrent: true},
 		}
 
-		sessionDM := &authmock.UserSessionDataManagerMock{
-			GetActiveSessionsForUserFunc: func(_ context.Context, actualUserID string, actualFilter *filtering.QueryFilter) (*filtering.QueryFilteredResult[auth.UserSession], error) {
-				assert.Equal(t, userID, actualUserID)
-				assert.Equal(t, filter, actualFilter)
+		store := &sessionsmock.StoreMock[auth.SessionPayload]{
+			ListFunc: func(_ context.Context, holder platformsessions.Holder, actualCurrentID string) ([]*auth.UserSession, error) {
+				assert.Equal(t, auth.SessionHolder(userID), holder)
+				assert.Equal(t, currentSessionID, actualCurrentID)
 				return expected, nil
 			},
 		}
 
 		manager := &AuthManager{
-			sessionDataManager: sessionDM,
-			tracer:             tracing.NewTracerForTest("auth_manager"),
+			sessionStore: store,
+			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
 
-		result, err := manager.GetActiveSessionsForUser(ctx, userID, filter)
+		result, err := manager.GetActiveSessionsForUser(ctx, userID, currentSessionID)
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
-		assert.Len(t, sessionDM.GetActiveSessionsForUserCalls(), 1)
+		assert.Len(t, store.ListCalls(), 1)
 	})
 
-	t.Run("nil filter defaults", func(t *testing.T) {
+	t.Run("error from session store", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		userID := fake.BuildFakeID()
 
-		expected := &filtering.QueryFilteredResult[auth.UserSession]{
-			Data: []*auth.UserSession{},
-		}
-
-		sessionDM := &authmock.UserSessionDataManagerMock{
-			GetActiveSessionsForUserFunc: func(_ context.Context, actualUserID string, actualFilter *filtering.QueryFilter) (*filtering.QueryFilteredResult[auth.UserSession], error) {
-				assert.Equal(t, userID, actualUserID)
-				assert.Equal(t, filtering.DefaultQueryFilter(), actualFilter)
-				return expected, nil
-			},
-		}
-
-		manager := &AuthManager{
-			sessionDataManager: sessionDM,
-			tracer:             tracing.NewTracerForTest("auth_manager"),
-		}
-
-		result, err := manager.GetActiveSessionsForUser(ctx, userID, nil)
-
-		require.NoError(t, err)
-		assert.Equal(t, expected, result)
-		assert.Len(t, sessionDM.GetActiveSessionsForUserCalls(), 1)
-	})
-
-	t.Run("error from data manager", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		userID := fake.BuildFakeID()
-		filter := filtering.DefaultQueryFilter()
-
-		sessionDM := &authmock.UserSessionDataManagerMock{
-			GetActiveSessionsForUserFunc: func(_ context.Context, actualUserID string, actualFilter *filtering.QueryFilter) (*filtering.QueryFilteredResult[auth.UserSession], error) {
-				assert.Equal(t, userID, actualUserID)
-				assert.Equal(t, filter, actualFilter)
+		store := &sessionsmock.StoreMock[auth.SessionPayload]{
+			ListFunc: func(_ context.Context, holder platformsessions.Holder, _ string) ([]*auth.UserSession, error) {
+				assert.Equal(t, auth.SessionHolder(userID), holder)
 				return nil, errors.New("db error")
 			},
 		}
 
 		manager := &AuthManager{
-			sessionDataManager: sessionDM,
-			tracer:             tracing.NewTracerForTest("auth_manager"),
+			sessionStore: store,
+			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
 
-		result, err := manager.GetActiveSessionsForUser(ctx, userID, filter)
+		result, err := manager.GetActiveSessionsForUser(ctx, userID, "")
 
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Len(t, sessionDM.GetActiveSessionsForUserCalls(), 1)
+		assert.Len(t, store.ListCalls(), 1)
 	})
 }
 
@@ -1208,49 +1174,50 @@ func TestAuthManager_RevokeSession(t *testing.T) {
 		sessionID := fake.BuildFakeID()
 		userID := fake.BuildFakeID()
 
-		sessionDM := &authmock.UserSessionDataManagerMock{
-			RevokeUserSessionFunc: func(_ context.Context, actualSessionID, actualUserID string) error {
+		store := &sessionsmock.StoreMock[auth.SessionPayload]{
+			RevokeFunc: func(_ context.Context, holder platformsessions.Holder, actualSessionID string) error {
+				assert.Equal(t, auth.SessionHolder(userID), holder)
 				assert.Equal(t, sessionID, actualSessionID)
-				assert.Equal(t, userID, actualUserID)
 				return nil
 			},
 		}
 
 		manager := &AuthManager{
-			sessionDataManager: sessionDM,
-			tracer:             tracing.NewTracerForTest("auth_manager"),
+			sessionStore: store,
+			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
 
-		err := manager.RevokeSession(ctx, sessionID, userID)
-
-		require.NoError(t, err)
-		assert.Len(t, sessionDM.RevokeUserSessionCalls(), 1)
+		require.NoError(t, manager.RevokeSession(ctx, sessionID, userID))
+		assert.Len(t, store.RevokeCalls(), 1)
 	})
 
-	t.Run("error from data manager", func(t *testing.T) {
+	// A session that is not the named user's is answered as absent rather than as
+	// forbidden, and the manager passes that through unchanged: an error that
+	// distinguished the two would confirm that somebody else's identifier names something.
+	t.Run("with a session the user does not hold", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		sessionID := fake.BuildFakeID()
 		userID := fake.BuildFakeID()
 
-		sessionDM := &authmock.UserSessionDataManagerMock{
-			RevokeUserSessionFunc: func(_ context.Context, actualSessionID, actualUserID string) error {
+		store := &sessionsmock.StoreMock[auth.SessionPayload]{
+			RevokeFunc: func(_ context.Context, holder platformsessions.Holder, actualSessionID string) error {
+				assert.Equal(t, auth.SessionHolder(userID), holder)
 				assert.Equal(t, sessionID, actualSessionID)
-				assert.Equal(t, userID, actualUserID)
-				return errors.New("db error")
+				return platformsessions.ErrNotFound
 			},
 		}
 
 		manager := &AuthManager{
-			sessionDataManager: sessionDM,
-			tracer:             tracing.NewTracerForTest("auth_manager"),
+			sessionStore: store,
+			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
 
 		err := manager.RevokeSession(ctx, sessionID, userID)
 
-		require.Error(t, err)
-		assert.Len(t, sessionDM.RevokeUserSessionCalls(), 1)
+		require.ErrorIs(t, err, platformsessions.ErrNotFound)
+		assert.Len(t, store.RevokeCalls(), 1)
 	})
 }
 
@@ -1264,48 +1231,89 @@ func TestAuthManager_RevokeAllSessionsForUserExcept(t *testing.T) {
 		userID := fake.BuildFakeID()
 		currentSessionID := fake.BuildFakeID()
 
-		sessionDM := &authmock.UserSessionDataManagerMock{
-			RevokeAllSessionsForUserExceptFunc: func(_ context.Context, actualUserID, sessionID string) error {
-				assert.Equal(t, userID, actualUserID)
-				assert.Equal(t, currentSessionID, sessionID)
-				return nil
+		store := &sessionsmock.StoreMock[auth.SessionPayload]{
+			RevokeAllExceptFunc: func(_ context.Context, holder platformsessions.Holder, keepID string) (int, error) {
+				assert.Equal(t, auth.SessionHolder(userID), holder)
+				assert.Equal(t, currentSessionID, keepID)
+				return 3, nil
 			},
 		}
 
 		manager := &AuthManager{
-			sessionDataManager: sessionDM,
-			tracer:             tracing.NewTracerForTest("auth_manager"),
+			sessionStore: store,
+			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
 
-		err := manager.RevokeAllSessionsForUserExcept(ctx, userID, currentSessionID)
-
-		require.NoError(t, err)
-		assert.Len(t, sessionDM.RevokeAllSessionsForUserExceptCalls(), 1)
+		require.NoError(t, manager.RevokeAllSessionsForUserExcept(ctx, userID, currentSessionID))
+		assert.Len(t, store.RevokeAllExceptCalls(), 1)
 	})
 
-	t.Run("error from data manager", func(t *testing.T) {
+	t.Run("error from session store", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		userID := fake.BuildFakeID()
 		currentSessionID := fake.BuildFakeID()
 
-		sessionDM := &authmock.UserSessionDataManagerMock{
-			RevokeAllSessionsForUserExceptFunc: func(_ context.Context, actualUserID, sessionID string) error {
-				assert.Equal(t, userID, actualUserID)
-				assert.Equal(t, currentSessionID, sessionID)
-				return errors.New("db error")
+		store := &sessionsmock.StoreMock[auth.SessionPayload]{
+			RevokeAllExceptFunc: func(context.Context, platformsessions.Holder, string) (int, error) {
+				return 0, errors.New("db error")
 			},
 		}
 
 		manager := &AuthManager{
-			sessionDataManager: sessionDM,
-			tracer:             tracing.NewTracerForTest("auth_manager"),
+			sessionStore: store,
+			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
 
-		err := manager.RevokeAllSessionsForUserExcept(ctx, userID, currentSessionID)
+		require.Error(t, manager.RevokeAllSessionsForUserExcept(ctx, userID, currentSessionID))
+		assert.Len(t, store.RevokeAllExceptCalls(), 1)
+	})
+}
 
-		require.Error(t, err)
-		assert.Len(t, sessionDM.RevokeAllSessionsForUserExceptCalls(), 1)
+func TestAuthManager_RevokeAllSessionsForUser(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		userID := fake.BuildFakeID()
+
+		store := &sessionsmock.StoreMock[auth.SessionPayload]{
+			RevokeAllFunc: func(_ context.Context, holder platformsessions.Holder) (int, error) {
+				assert.Equal(t, auth.SessionHolder(userID), holder)
+				return 2, nil
+			},
+		}
+
+		manager := &AuthManager{
+			sessionStore: store,
+			tracer:       tracing.NewTracerForTest("auth_manager"),
+		}
+
+		require.NoError(t, manager.RevokeAllSessionsForUser(ctx, userID))
+		assert.Len(t, store.RevokeAllCalls(), 1)
+	})
+
+	t.Run("error from session store", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		userID := fake.BuildFakeID()
+
+		store := &sessionsmock.StoreMock[auth.SessionPayload]{
+			RevokeAllFunc: func(context.Context, platformsessions.Holder) (int, error) {
+				return 0, errors.New("db error")
+			},
+		}
+
+		manager := &AuthManager{
+			sessionStore: store,
+			tracer:       tracing.NewTracerForTest("auth_manager"),
+		}
+
+		require.Error(t, manager.RevokeAllSessionsForUser(ctx, userID))
+		assert.Len(t, store.RevokeAllCalls(), 1)
 	})
 }

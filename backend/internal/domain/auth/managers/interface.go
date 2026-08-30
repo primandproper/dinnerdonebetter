@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-
-	"github.com/primandproper/platform-go/v13/filtering"
 )
 
 var (
@@ -24,7 +22,7 @@ type AuthManagerInterface interface {
 	VerifyUserEmailAddressByToken(ctx context.Context, token string) error
 	TOTPSecretVerification(ctx context.Context, input *auth.TOTPSecretVerificationInput) error
 	UpdatePassword(ctx context.Context, input *auth.PasswordUpdateInput) error
-	GetActiveSessionsForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[auth.UserSession], error)
+	GetActiveSessionsForUser(ctx context.Context, userID, currentSessionID string) ([]*auth.UserSession, error)
 	RevokeSession(ctx context.Context, sessionID, userID string) error
 	RevokeAllSessionsForUserExcept(ctx context.Context, userID, currentSessionID string) error
 	RevokeAllSessionsForUser(ctx context.Context, userID string) error

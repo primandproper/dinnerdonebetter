@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	authmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 
@@ -20,6 +19,8 @@ import (
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v13/sessions"
+	sessionsmock "github.com/primandproper/platform-go/v13/sessions/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,8 +52,25 @@ type managerTestMocks struct {
 	authenticator       *AuthenticatorMock
 	totpVerifier        *mocktotp.VerifierMock
 	userAuthDataManager *identitymock.RepositoryMock
-	sessionDataManager  *authmock.UserSessionDataManagerMock
+	sessionStore        *sessionsmock.StoreMock[auth.SessionPayload]
 	publisher           *mockpublishers.PublisherMock
+}
+
+// exampleSessionID is what the session store mock hands back from NewFor, and therefore what
+// the `sid` claim on the tokens a login issues carries.
+const exampleSessionID = "session-abc"
+
+// newSessionStoreMock builds a session store that establishes and writes back without
+// complaint, which is what every test that is not about the session store wants.
+func newSessionStoreMock() *sessionsmock.StoreMock[auth.SessionPayload] {
+	return &sessionsmock.StoreMock[auth.SessionPayload]{
+		NewForFunc: func(_ context.Context, holder sessions.Holder, _ sessions.Metadata, _ *auth.SessionPayload) (*auth.UserSession, error) {
+			return &auth.UserSession{ID: exampleSessionID, Holder: holder}, nil
+		},
+		SaveFunc: func(context.Context, string, *auth.SessionPayload) error {
+			return nil
+		},
+	}
 }
 
 // helper to build a minimal manager for testing.
@@ -64,7 +82,7 @@ func buildTestManager(t *testing.T) (*manager, *managerTestMocks) {
 		authenticator:       &AuthenticatorMock{},
 		totpVerifier:        &mocktotp.VerifierMock{},
 		userAuthDataManager: &identitymock.RepositoryMock{},
-		sessionDataManager:  &authmock.UserSessionDataManagerMock{},
+		sessionStore:        newSessionStoreMock(),
 		publisher: &mockpublishers.PublisherMock{
 			PublishFunc:      func(_ context.Context, _ any, _ ...messagequeue.PublishOption) error { return nil },
 			PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
@@ -79,7 +97,7 @@ func buildTestManager(t *testing.T) (*manager, *managerTestMocks) {
 		logger:                  loggingnoop.NewLogger(),
 		dataChangesPublisher:    mocks.publisher,
 		userAuthDataManager:     mocks.userAuthDataManager,
-		sessionDataManager:      mocks.sessionDataManager,
+		sessionStore:            mocks.sessionStore,
 		maxAccessTokenLifetime:  15 * time.Minute,
 		maxRefreshTokenLifetime: 24 * time.Hour,
 	}
@@ -172,11 +190,6 @@ func TestManager_ProcessLogin(T *testing.T) {
 
 		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("access-token", "access-jti", "refresh-token", "refresh-jti")
 
-		mocks.sessionDataManager.CreateUserSessionFunc = func(_ context.Context, input *auth.UserSessionDatabaseCreationInput) (*auth.UserSession, error) {
-			assert.NotNil(t, input)
-			return &auth.UserSession{}, nil
-		}
-
 		response, err := m.ProcessLogin(ctx, false, loginInput, &LoginMetadata{
 			ClientIP:  "127.0.0.1",
 			UserAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
@@ -192,7 +205,8 @@ func TestManager_ProcessLogin(T *testing.T) {
 		assert.Len(t, mocks.userAuthDataManager.GetUserByUsernameCalls(), 1)
 		assert.Len(t, mocks.authenticator.PasswordMatchesCalls(), 1)
 		assert.Len(t, mocks.userAuthDataManager.GetDefaultAccountIDForUserCalls(), 1)
-		assert.Len(t, mocks.sessionDataManager.CreateUserSessionCalls(), 1)
+		assert.Len(t, mocks.sessionStore.NewForCalls(), 1)
+		assert.Len(t, mocks.sessionStore.SaveCalls(), 1)
 		assert.Len(t, mocks.tokenIssuer.IssueTokenCalls(), 2)
 	})
 
@@ -226,11 +240,6 @@ func TestManager_ProcessLogin(T *testing.T) {
 
 		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("access-token", "access-jti", "refresh-token", "refresh-jti")
 
-		mocks.sessionDataManager.CreateUserSessionFunc = func(_ context.Context, input *auth.UserSessionDatabaseCreationInput) (*auth.UserSession, error) {
-			assert.NotNil(t, input)
-			return &auth.UserSession{}, nil
-		}
-
 		response, err := m.ProcessLogin(ctx, false, loginInput, nil)
 
 		require.NoError(t, err)
@@ -240,7 +249,8 @@ func TestManager_ProcessLogin(T *testing.T) {
 		assert.Len(t, mocks.userAuthDataManager.GetUserByUsernameCalls(), 1)
 		assert.Len(t, mocks.authenticator.PasswordMatchesCalls(), 1)
 		assert.Len(t, mocks.userAuthDataManager.UserIsMemberOfAccountCalls(), 1)
-		assert.Len(t, mocks.sessionDataManager.CreateUserSessionCalls(), 1)
+		assert.Len(t, mocks.sessionStore.NewForCalls(), 1)
+		assert.Len(t, mocks.sessionStore.SaveCalls(), 1)
 	})
 
 	T.Run("with invalid credentials", func(t *testing.T) {
@@ -455,11 +465,6 @@ func TestManager_ProcessLogin(T *testing.T) {
 
 		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("access-token", "access-jti", "refresh-token", "refresh-jti")
 
-		mocks.sessionDataManager.CreateUserSessionFunc = func(_ context.Context, input *auth.UserSessionDatabaseCreationInput) (*auth.UserSession, error) {
-			assert.NotNil(t, input)
-			return &auth.UserSession{}, nil
-		}
-
 		response, err := m.ProcessLogin(ctx, true, loginInput, nil)
 
 		require.NoError(t, err)
@@ -468,7 +473,8 @@ func TestManager_ProcessLogin(T *testing.T) {
 		assert.Len(t, mocks.userAuthDataManager.GetAdminUserByUsernameCalls(), 1)
 		assert.Len(t, mocks.authenticator.PasswordMatchesCalls(), 1)
 		assert.Len(t, mocks.userAuthDataManager.GetDefaultAccountIDForUserCalls(), 1)
-		assert.Len(t, mocks.sessionDataManager.CreateUserSessionCalls(), 1)
+		assert.Len(t, mocks.sessionStore.NewForCalls(), 1)
+		assert.Len(t, mocks.sessionStore.SaveCalls(), 1)
 	})
 }
 
@@ -494,9 +500,12 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 
 		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("access-token", "access-jti", "refresh-token", "refresh-jti")
 
-		mocks.sessionDataManager.CreateUserSessionFunc = func(_ context.Context, input *auth.UserSessionDatabaseCreationInput) (*auth.UserSession, error) {
-			assert.Equal(t, auth.LoginMethodPasskey, input.LoginMethod)
-			return &auth.UserSession{}, nil
+		mocks.sessionStore.NewForFunc = func(_ context.Context, holder sessions.Holder, metadata sessions.Metadata, _ *auth.SessionPayload) (*auth.UserSession, error) {
+			assert.Equal(t, user.ID, holder.Principal)
+			assert.Equal(t, auth.LoginMethodPasskey, metadata.LoginMethod)
+			assert.Equal(t, "iPhone", metadata.DeviceName)
+			assert.Equal(t, "10.0.0.1", metadata.IPAddress)
+			return &auth.UserSession{ID: exampleSessionID, Holder: holder}, nil
 		}
 
 		response, err := m.ProcessPasskeyLogin(ctx, user.ID, "", &LoginMetadata{
@@ -513,7 +522,8 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
 		assert.Len(t, mocks.userAuthDataManager.GetDefaultAccountIDForUserCalls(), 1)
-		assert.Len(t, mocks.sessionDataManager.CreateUserSessionCalls(), 1)
+		assert.Len(t, mocks.sessionStore.NewForCalls(), 1)
+		assert.Len(t, mocks.sessionStore.SaveCalls(), 1)
 	})
 
 	T.Run("with desired account ID", func(t *testing.T) {
@@ -536,11 +546,6 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 
 		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("access-token", "access-jti", "refresh-token", "refresh-jti")
 
-		mocks.sessionDataManager.CreateUserSessionFunc = func(_ context.Context, input *auth.UserSessionDatabaseCreationInput) (*auth.UserSession, error) {
-			assert.NotNil(t, input)
-			return &auth.UserSession{}, nil
-		}
-
 		response, err := m.ProcessPasskeyLogin(ctx, user.ID, "specific-account", nil)
 
 		require.NoError(t, err)
@@ -549,7 +554,8 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
 		assert.Len(t, mocks.userAuthDataManager.UserIsMemberOfAccountCalls(), 1)
-		assert.Len(t, mocks.sessionDataManager.CreateUserSessionCalls(), 1)
+		assert.Len(t, mocks.sessionStore.NewForCalls(), 1)
+		assert.Len(t, mocks.sessionStore.SaveCalls(), 1)
 	})
 
 	T.Run("with banned user", func(t *testing.T) {
@@ -634,19 +640,19 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		refreshToken := "valid-refresh-token"
 
 		mocks.tokenIssuer.ParseTokenFunc = func(_ context.Context, _ string) (tokens.Claims, error) {
-			return newClaimsMock(user.ID, "refresh-jti-old", map[string]string{"account_id": "account123", "sid": "session-abc"}), nil
+			return newClaimsMock(user.ID, "refresh-jti-old", map[string]string{"account_id": "account123", "sid": exampleSessionID}), nil
 		}
 		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
 			assert.Equal(t, user.ID, userID)
 			return user, nil
 		}
 
-		mocks.sessionDataManager.GetUserSessionByRefreshTokenIDFunc = func(_ context.Context, refreshTokenID string) (*auth.UserSession, error) {
-			assert.Equal(t, "refresh-jti-old", refreshTokenID)
+		mocks.sessionStore.GetFunc = func(_ context.Context, id string) (*auth.UserSession, error) {
+			assert.Equal(t, exampleSessionID, id)
 			return &auth.UserSession{
-				ID:             "session-abc",
-				BelongsToUser:  user.ID,
-				RefreshTokenID: "refresh-jti-old",
+				ID:     exampleSessionID,
+				Holder: auth.SessionHolder(user.ID),
+				Data:   &auth.SessionPayload{RefreshTokenID: "refresh-jti-old"},
 			}, nil
 		}
 
@@ -657,11 +663,10 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 
 		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("new-access-token", "new-access-jti", "new-refresh-token", "new-refresh-jti")
 
-		mocks.sessionDataManager.UpdateSessionTokenIDsFunc = func(_ context.Context, sessionID, newSessionTokenID, newRefreshTokenID string, newExpiresAt time.Time) error {
-			assert.Equal(t, "session-abc", sessionID)
-			assert.Equal(t, "new-access-jti", newSessionTokenID)
-			assert.Equal(t, "new-refresh-jti", newRefreshTokenID)
-			assert.False(t, newExpiresAt.IsZero())
+		mocks.sessionStore.SaveFunc = func(_ context.Context, id string, data *auth.SessionPayload) error {
+			assert.Equal(t, exampleSessionID, id)
+			assert.Equal(t, "new-access-jti", data.SessionTokenID)
+			assert.Equal(t, "new-refresh-jti", data.RefreshTokenID)
 			return nil
 		}
 
@@ -675,9 +680,9 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		assert.Equal(t, "account123", response.AccountID)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
-		assert.Len(t, mocks.sessionDataManager.GetUserSessionByRefreshTokenIDCalls(), 1)
+		assert.Len(t, mocks.sessionStore.GetCalls(), 1)
 		assert.Len(t, mocks.userAuthDataManager.GetDefaultAccountIDForUserCalls(), 1)
-		assert.Len(t, mocks.sessionDataManager.UpdateSessionTokenIDsCalls(), 1)
+		assert.Len(t, mocks.sessionStore.SaveCalls(), 1)
 	})
 
 	T.Run("with revoked session", func(t *testing.T) {
@@ -690,17 +695,18 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		refreshToken := "revoked-refresh-token"
 
 		mocks.tokenIssuer.ParseTokenFunc = func(_ context.Context, _ string) (tokens.Claims, error) {
-			return newClaimsMock(user.ID, "old-jti", map[string]string{"account_id": "account123", "sid": "session-abc"}), nil
+			return newClaimsMock(user.ID, "old-jti", map[string]string{"account_id": "account123", "sid": exampleSessionID}), nil
 		}
 		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
 			assert.Equal(t, user.ID, userID)
 			return user, nil
 		}
 
-		// Session not found means it was revoked
-		mocks.sessionDataManager.GetUserSessionByRefreshTokenIDFunc = func(_ context.Context, refreshTokenID string) (*auth.UserSession, error) {
-			assert.Equal(t, "old-jti", refreshTokenID)
-			return nil, errors.New("not found")
+		// A session the store cannot find is one that was revoked or has expired. Either
+		// way the refresh token naming it is spent.
+		mocks.sessionStore.GetFunc = func(_ context.Context, id string) (*auth.UserSession, error) {
+			assert.Equal(t, exampleSessionID, id)
+			return nil, sessions.ErrNotFound
 		}
 
 		response, err := m.ExchangeTokenForUser(ctx, refreshToken, "")
@@ -709,7 +715,7 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
-		assert.Len(t, mocks.sessionDataManager.GetUserSessionByRefreshTokenIDCalls(), 1)
+		assert.Len(t, mocks.sessionStore.GetCalls(), 1)
 	})
 
 	T.Run("with desired account ID", func(t *testing.T) {
@@ -722,18 +728,18 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		refreshToken := "valid-refresh-token"
 
 		mocks.tokenIssuer.ParseTokenFunc = func(_ context.Context, _ string) (tokens.Claims, error) {
-			return newClaimsMock(user.ID, "refresh-jti", map[string]string{"account_id": "account123", "sid": "session-abc"}), nil
+			return newClaimsMock(user.ID, "refresh-jti", map[string]string{"account_id": "account123", "sid": exampleSessionID}), nil
 		}
 		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
 			assert.Equal(t, user.ID, userID)
 			return user, nil
 		}
 
-		mocks.sessionDataManager.GetUserSessionByRefreshTokenIDFunc = func(_ context.Context, refreshTokenID string) (*auth.UserSession, error) {
-			assert.Equal(t, "refresh-jti", refreshTokenID)
+		mocks.sessionStore.GetFunc = func(_ context.Context, id string) (*auth.UserSession, error) {
+			assert.Equal(t, exampleSessionID, id)
 			return &auth.UserSession{
-				ID:             "session-abc",
-				RefreshTokenID: "refresh-jti",
+				ID:   exampleSessionID,
+				Data: &auth.SessionPayload{RefreshTokenID: "refresh-jti"},
 			}, nil
 		}
 
@@ -745,11 +751,10 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 
 		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("new-access-token", "new-access-jti", "new-refresh-token", "new-refresh-jti")
 
-		mocks.sessionDataManager.UpdateSessionTokenIDsFunc = func(_ context.Context, sessionID, newSessionTokenID, newRefreshTokenID string, newExpiresAt time.Time) error {
-			assert.Equal(t, "session-abc", sessionID)
-			assert.Equal(t, "new-access-jti", newSessionTokenID)
-			assert.Equal(t, "new-refresh-jti", newRefreshTokenID)
-			assert.False(t, newExpiresAt.IsZero())
+		mocks.sessionStore.SaveFunc = func(_ context.Context, id string, data *auth.SessionPayload) error {
+			assert.Equal(t, exampleSessionID, id)
+			assert.Equal(t, "new-access-jti", data.SessionTokenID)
+			assert.Equal(t, "new-refresh-jti", data.RefreshTokenID)
 			return nil
 		}
 
@@ -760,9 +765,9 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		assert.Equal(t, "desired-account", response.AccountID)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
-		assert.Len(t, mocks.sessionDataManager.GetUserSessionByRefreshTokenIDCalls(), 1)
+		assert.Len(t, mocks.sessionStore.GetCalls(), 1)
 		assert.Len(t, mocks.userAuthDataManager.UserIsMemberOfAccountCalls(), 1)
-		assert.Len(t, mocks.sessionDataManager.UpdateSessionTokenIDsCalls(), 1)
+		assert.Len(t, mocks.sessionStore.SaveCalls(), 1)
 	})
 
 	T.Run("with banned user", func(t *testing.T) {
@@ -793,16 +798,18 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
 	})
 
-	T.Run("without JTI or session ID in token", func(t *testing.T) {
+	T.Run("with a refresh token naming no session", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		m, mocks := buildTestManager(t)
 
 		user := buildExampleUser()
-		refreshToken := "legacy-refresh-token"
+		refreshToken := "sessionless-refresh-token"
 
-		// Legacy token: JTI empty, no "sid" claim.
+		// No "sid" claim. Every token this application issues carries one, so a refresh
+		// token without it names no session — and a refresh that minted tokens for no
+		// session would mint a pair nothing can sign out.
 		mocks.tokenIssuer.ParseTokenFunc = func(_ context.Context, _ string) (tokens.Claims, error) {
 			return newClaimsMock(user.ID, "", map[string]string{"account_id": "account123"}), nil
 		}
@@ -810,24 +817,55 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 			assert.Equal(t, user.ID, userID)
 			return user, nil
 		}
-
-		mocks.userAuthDataManager.GetDefaultAccountIDForUserFunc = func(_ context.Context, userID string) (string, error) {
-			assert.Equal(t, user.ID, userID)
-			return "account123", nil
+		mocks.sessionStore.GetFunc = func(_ context.Context, id string) (*auth.UserSession, error) {
+			assert.Empty(t, id)
+			return nil, sessions.ErrIDRequired
 		}
-
-		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("new-access-token", "new-access-jti", "new-refresh-token", "new-refresh-jti")
-
-		// UpdateSessionTokenIDs should NOT be called because sessionID is empty
 
 		response, err := m.ExchangeTokenForUser(ctx, refreshToken, "")
 
-		require.NoError(t, err)
-		require.NotNil(t, response)
-		assert.Equal(t, "new-access-token", response.AccessToken)
+		require.Error(t, err)
+		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
-		assert.Len(t, mocks.userAuthDataManager.GetDefaultAccountIDForUserCalls(), 1)
+		assert.Empty(t, mocks.tokenIssuer.IssueTokenCalls())
+	})
+
+	T.Run("with a superseded refresh token", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		m, mocks := buildTestManager(t)
+
+		user := buildExampleUser()
+		refreshToken := "already-spent-refresh-token"
+
+		mocks.tokenIssuer.ParseTokenFunc = func(_ context.Context, _ string) (tokens.Claims, error) {
+			return newClaimsMock(user.ID, "spent-jti", map[string]string{"account_id": "account123", "sid": exampleSessionID}), nil
+		}
+		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+			assert.Equal(t, user.ID, userID)
+			return user, nil
+		}
+
+		// The session is perfectly live; it has simply been issued a newer pair since,
+		// which is what spending this refresh token once already did.
+		mocks.sessionStore.GetFunc = func(_ context.Context, id string) (*auth.UserSession, error) {
+			assert.Equal(t, exampleSessionID, id)
+			return &auth.UserSession{
+				ID:   exampleSessionID,
+				Data: &auth.SessionPayload{RefreshTokenID: "newer-jti"},
+			}, nil
+		}
+
+		response, err := m.ExchangeTokenForUser(ctx, refreshToken, "")
+
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrSessionSuperseded)
+		assert.Nil(t, response)
+
+		assert.Len(t, mocks.sessionStore.GetCalls(), 1)
+		assert.Empty(t, mocks.tokenIssuer.IssueTokenCalls())
 	})
 
 	T.Run("with invalid refresh token", func(t *testing.T) {
@@ -882,18 +920,18 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		refreshToken := "valid-refresh-token"
 
 		mocks.tokenIssuer.ParseTokenFunc = func(_ context.Context, _ string) (tokens.Claims, error) {
-			return newClaimsMock(user.ID, "jti", map[string]string{"account_id": "account123", "sid": "session-abc"}), nil
+			return newClaimsMock(user.ID, "jti", map[string]string{"account_id": "account123", "sid": exampleSessionID}), nil
 		}
 		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
 			assert.Equal(t, user.ID, userID)
 			return user, nil
 		}
 
-		mocks.sessionDataManager.GetUserSessionByRefreshTokenIDFunc = func(_ context.Context, refreshTokenID string) (*auth.UserSession, error) {
-			assert.Equal(t, "jti", refreshTokenID)
+		mocks.sessionStore.GetFunc = func(_ context.Context, id string) (*auth.UserSession, error) {
+			assert.Equal(t, exampleSessionID, id)
 			return &auth.UserSession{
-				ID:             "session-abc",
-				RefreshTokenID: "jti",
+				ID:   exampleSessionID,
+				Data: &auth.SessionPayload{RefreshTokenID: "jti"},
 			}, nil
 		}
 
@@ -909,7 +947,7 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
-		assert.Len(t, mocks.sessionDataManager.GetUserSessionByRefreshTokenIDCalls(), 1)
+		assert.Len(t, mocks.sessionStore.GetCalls(), 1)
 		assert.Len(t, mocks.userAuthDataManager.UserIsMemberOfAccountCalls(), 1)
 	})
 }

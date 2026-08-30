@@ -46,7 +46,7 @@ store read per request, which is the trade `oauth2server`'s package doc argues.
 
 1. Client calls gRPC `LoginForToken` (or `AdminLoginForToken` for admin-only) with username, password, and optionally TOTP.
 2. `ProcessLogin` validates credentials via `Authenticator.CredentialsAreValid` (password + TOTP if 2FA verified).
-3. Manager creates a server-side session record in the `user_sessions` table with device metadata (IP, User-Agent).
+3. Manager establishes a server-side session in the `ddb_sessions` table with device metadata (IP, User-Agent).
 4. Manager issues JWT with `IssueToken` (user ID + account ID + session ID + JTI).
 5. Client receives `TokenResponse` with `AccessToken` and `RefreshToken`.
 
@@ -166,7 +166,7 @@ Every gRPC request (except unauthenticated routes) goes through `AuthInterceptor
 2. **Resolve session** (in order):
    - **OAuth2 first**: `oauth2Server.Authenticate(ctx, accessToken)` — a Store lookup by digest. If it resolves, the token's audience is checked against this server's own resource identifier (RFC 8707) and the subject's `sub` becomes the user ID. An audience naming somewhere else — the MCP server, which shares this database and therefore this store — is refused; an empty audience is accepted, because a client that sent no `resource` parameter gets one.
    - **JWT fallback**: `tokenIssuer.ParseToken(ctx, accessToken)` — if OAuth2 fails, treat as JWT.
-3. **Validate session** (JWT path only): If the token has a `sid` claim, extract the `jti` and look up the session in `user_sessions`. If the session has been revoked or expired, return 401. Tokens without `sid` (pre-session-management) skip this check. Asynchronously updates `last_active_at` on the session.
+3. **Validate session** (JWT path only): read the session the `sid` claim names, and check that the token's `jti` is the one the session was last issued with. A missing `sid`, a session that is gone or past either deadline, and a superseded token are all 401. The read is also the touch: the store refreshes the session's idle deadline, at most once per configured touch interval.
 4. **Build session context**: `identityDataManager.BuildSessionContextDataForUser(ctx, userID, accountID)`. The session ID is attached to `ContextData.SessionID`.
 5. **Zuck mode** (optional): If `X-Zuck-Mode-User` header present and user can impersonate, override session with that user/account.
 6. **Permissions**: Check method’s required permissions against session; deny if missing.
@@ -263,39 +263,82 @@ After auth, handlers receive `sessions.ContextData` in the request context. It c
 - `Requester`: User ID, username, email, account status, service role
 - `ActiveAccountID`: Account for this request
 - `AccountPermissions`: Map of account ID → role checker
-- `SessionID`: The server-side session ID (from the `sid` claim; empty for OAuth2 tokens or pre-session JWTs)
+- `SessionID`: The server-side session ID (from the `sid` claim; empty for OAuth2 tokens, which name no session)
 
 **Implementation**: [`internal/authentication/sessions/session_context.go`](backend/internal/authentication/sessions/session_context.go)
 
 ## Session Management
 
-Users can view and manage their active login sessions. Each login (password, passkey) creates a record in the `user_sessions` table that tracks:
+Users can view and manage their active login sessions. Each login (password, passkey)
+establishes a session in platform-go's `sessions` store, backed by the `ddb_sessions` table,
+which tracks:
 
-- **Device metadata**: Client IP, User-Agent, friendly device name (derived from User-Agent)
-- **Login method**: `password` or `passkey`
-- **Activity**: `created_at`, `last_active_at` (updated asynchronously on each request), `expires_at`
-- **Token linkage**: `session_token_id` (access token JTI) and `refresh_token_id` (refresh token JTI), rotated on each token refresh
+- **Device metadata**: client IP, User-Agent, friendly device name (derived from the
+  User-Agent), and login method — every field the client's own account of itself, rendered
+  and never compared against anything
+- **Activity**: `created_at`, `last_seen_at`, `expires_at`
+- **Token linkage**: the JTI of the access token and of the refresh token the session was
+  last issued alongside, rotated on each refresh
+
+### Two timeouts
+
+The store enforces both an idle timeout and an absolute one, and a session's `expires_at` is
+the earlier of the two. Idle asks how long somebody may close the app and come back; absolute
+asks how long a session may exist at all, which is the only bound on a stolen refresh token
+— a thief is not idle. The deployed values are a week idle and thirty days absolute; see
+`sessionIdleTimeout` in `internal/config/environments/utils.go`.
+
+Reading a session refreshes its idle deadline, but no more often than the configured touch
+interval — an hour, against a week. So `last_seen_at` is a session's last activity to within
+an hour, and always understates it, which expires a session early rather than late.
+
+### Revocation is a delete
+
+Ending a session removes its row. There is no `revoked_at` column that reads have to
+remember to filter on, and no second table recording which sessions are live — a session
+table maintained beside the store's is a second account of the same fact, and the moment the
+two disagree a revocation has not taken.
 
 ### Token Refresh and Session Continuity
 
 When a client calls `ExchangeToken` with a refresh token, the system:
 
-1. Extracts the `jti` and `sid` from the refresh token.
-2. Looks up the session by refresh token JTI — rejects if revoked.
-3. Issues new access + refresh tokens with the same `sid` but new JTIs.
-4. Updates the session record with the new JTIs and expiration.
+1. Extracts the `sid` and `jti` from the refresh token.
+2. Reads the session — rejects if it is gone or past either deadline.
+3. Rejects if this is not the refresh token the session was last issued with, which is what
+   retires a refresh token that has already been spent.
+4. Issues new access + refresh tokens with the same `sid` but new JTIs.
+5. Writes the new pair back to the session before returning the tokens.
 
-This means the session ID is stable across token refreshes, while individual tokens rotate.
+The session identifier is stable across refreshes, while individual tokens rotate. It is not
+rotated because it is not a credential a client ever holds on its own — it rides inside a
+token this server signs — so there is no identifier an attacker could have planted for a
+rotation to invalidate.
 
 ### gRPC Endpoints
 
-- **`ListActiveSessions`**: Returns all active (non-revoked, non-expired) sessions for the current user with pagination. Each session includes an `is_current` flag.
-- **`RevokeSession`**: Revokes a specific session by ID. The revoked session's tokens are rejected on the next request.
-- **`RevokeAllOtherSessions`**: Revokes all sessions except the one making the request.
+- **`ListActiveSessions`**: returns the live sessions the current user holds, newest first,
+  each with an `is_current` flag. There is no page: a person's live sessions are the devices
+  they are signed in on, which is a handful.
+- **`RevokeSession`**: ends one session by ID. A session that is not the caller's is answered
+  as absent rather than as forbidden, so the answer does not confirm that somebody else's
+  identifier names anything.
+- **`RevokeAllOtherSessions`**: ends every session but the caller's own.
+- **`AdminListSessionsForUser`**, **`AdminRevokeUserSession`**,
+  **`AdminRevokeAllUserSessions`**: the same three for an administrator, gated on
+  `manage.user_sessions`.
 
-### Backward Compatibility
+### Every token names a session
 
-Tokens issued before session management (without a `sid` claim) continue to work — the interceptor skips session validation for these tokens. As old tokens expire, all active tokens will have session tracking.
+A JWT this application issues always carries a `sid`, and the interceptor refuses one that
+does not. A token naming no session is a token nothing can sign out.
+
+### Sweeping
+
+Expired rows are removed by `ddb job db-cleaner`, alongside the authorization server's and
+the password reset store's — one scheduled sweep for the fleet rather than a sweeper
+goroutine in every replica. The sweep is a garbage collector, not a security control: the
+store refuses a session past either deadline whether or not anything has swept it.
 
 **Implementation**: [`internal/domain/auth/user_session.go`](backend/internal/domain/auth/user_session.go), [`internal/repositories/postgres/auth/user_sessions.go`](backend/internal/repositories/postgres/auth/user_sessions.go), [`internal/services/auth/grpc/auth.go`](backend/internal/services/auth/grpc/auth.go)
 
@@ -319,10 +362,11 @@ Tokens issued before session management (without a `sid` claim) continue to work
 | gRPC client (OAuth2, Bearer)                  | `pkg/client/client.go`                                                              |
 | Password reset store (audit wrapper)          | `internal/repositories/postgres/auth/password_reset_tokens.go`                      |
 | Password reset flow (issue, redeem)           | `internal/domain/auth/managers/auth_manager.go`                                     |
-| Expired-row sweep (oauth2 + password reset)   | `internal/services/oauth/workers/db_cleaner/db_cleaner.go`                          |
-| Session domain model + interfaces             | `internal/domain/auth/user_session.go`                                              |
-| Session DB repository                         | `internal/repositories/postgres/auth/user_sessions.go`                              |
-| Session DB migration                          | `internal/repositories/postgres/migrations/migration_files/00023_user_sessions.sql` |
+| Expired-row sweep (oauth2, reset, sessions)   | `internal/services/oauth/workers/db_cleaner/db_cleaner.go`                          |
+| Session payload, holder, aliases              | `internal/domain/auth/user_session.go`                                              |
+| Session store + audit wrapper                 | `internal/repositories/postgres/auth/user_sessions.go`                              |
+| Session expiry policy config                  | `internal/authentication/config/config.go`                                          |
+| Session table migration (version 35)          | `internal/repositories/postgres/migrations/migrate.go`                              |
 
 ## Flow Diagram
 
@@ -335,7 +379,7 @@ flowchart TB
 
     subgraph "Token Issuance"
         PM[ProcessLogin / ProcessPasskeyLogin]
-        SESS[(user_sessions table)]
+        SESS[(ddb_sessions table)]
         JWT[JWT with user_id + account_id + sid + jti]
     end
 

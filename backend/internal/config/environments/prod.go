@@ -284,6 +284,11 @@ func BuildProdConfig() *config.APIServiceConfig {
 			},
 		},
 		Auth: authcfg.Config{
+			Sessions: authcfg.SessionsConfig{
+				AbsoluteTimeout: sessionAbsoluteTimeout,
+				IdleTimeout:     sessionIdleTimeout,
+				TouchInterval:   sessionTouchInterval,
+			},
 			Passkey: webauthncfg.Config{
 				// The table, named rather than left to the default. Ceremony state has to
 				// outlive the replica that issued the challenge, and a passkey login that
@@ -344,9 +349,16 @@ func BuildProdConfig() *config.APIServiceConfig {
 					// shares this database, and therefore this store — is not spendable
 					// here.
 					Resources: []string{prodAPIPublicURL},
-					// Zero, so the store starts no sweeper of its own. `ddb job db-cleaner`
-					// calls Sweep instead: one pass for the fleet rather than one per
-					// replica, each running the same full-table delete on its own timer.
+					// Meant as "no sweeper of its own": `ddb job db-cleaner` calls Sweep
+					// instead, one pass for the fleet rather than one per replica, each
+					// running the same full-table delete on its own timer.
+					//
+					// It does not take effect. The field documents a non-positive value
+					// as no sweeper, but oauth2servercfg.EnsureDefaults rewrites this
+					// zero to ten minutes before it reaches WithSweeper, so every replica
+					// sweeps as well — see platform-go#456. Left at zero rather than
+					// worked around with a negative duration, which is undocumented
+					// behavior the fix upstream may well remove.
 					SweepInterval: 0,
 				},
 				Debug:                 false,

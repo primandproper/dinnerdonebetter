@@ -25,6 +25,42 @@ type (
 		MaxRefreshTokenLifetime time.Duration `env:"MAX_REFRESH_TOKEN_LIFETIME" json:"maxRefreshTokenLifetime,omitempty"`
 	}
 
+	// SessionsConfig is the expiry policy the user session store enforces.
+	//
+	// It is not platform-go's sessionscfg.Config, and the two things missing from it are
+	// the reason. That type chooses where sessions live, and this application cannot take
+	// either position: "sign out my other devices" needs an index on the holder, which
+	// only sessions/database has — sessions/cache answers ErrNoPrincipalIndex from all
+	// three of List, Revoke, and RevokeAllExcept — so a provider knob here would be a knob
+	// whose other setting turns three RPCs into errors.
+	//
+	// And it cannot express the sweeper this deployment wants, which is none: the session
+	// table is swept by `ddb job db-cleaner`, one pass for the fleet, for the same reason
+	// the authorization server's and the password reset store's tables are. Its
+	// SweepInterval field documents a non-positive value as "no sweeper", but
+	// EnsureDefaults rewrites zero to five minutes before the value reaches WithSweeper,
+	// so through that config every replica sweeps — see platform-go#456. Building the
+	// store directly is how the interval stays absent rather than defaulted.
+	//
+	// What is left after removing both is the expiry policy, which is these three.
+	SessionsConfig struct {
+		_ struct{} `json:"-"`
+
+		// AbsoluteTimeout bounds a session's total lifetime from the moment it was
+		// established. Nothing extends it — not activity, not a token refresh — which
+		// is what makes it the only bound on a stolen refresh token.
+		AbsoluteTimeout time.Duration `env:"ABSOLUTE_TIMEOUT" json:"absoluteTimeout,omitempty"`
+
+		// IdleTimeout bounds how long a session may go unauthenticated-against. A
+		// request bearing the session's access token is what counts as a read.
+		IdleTimeout time.Duration `env:"IDLE_TIMEOUT" json:"idleTimeout,omitempty"`
+
+		// TouchInterval is how much of the idle window has to elapse before a read
+		// bothers refreshing the idle deadline. Zero writes on every authenticated
+		// request; see sessions.Policy for why that is not the default.
+		TouchInterval time.Duration `env:"TOUCH_INTERVAL" json:"touchInterval,omitempty"`
+	}
+
 	// Config is our configuration.
 	Config struct {
 		_ struct{} `json:"-"`
@@ -40,6 +76,10 @@ type (
 		// requests and nothing pins them to a replica, so a per-process store fails a
 		// fraction of passkey logins in a way that reads as a browser bug.
 		Passkey webauthncfg.Config `envPrefix:"PASSKEY_" json:"passkey,omitzero"`
+
+		// Sessions is the server-side session store's expiry policy. Zero values take
+		// platform-go's defaults, which are the ones sessions.Policy documents.
+		Sessions SessionsConfig `envPrefix:"SESSIONS_" json:"sessions,omitzero"`
 
 		Debug                 bool  `env:"DEBUG"                   json:"debug,omitempty"`
 		EnableUserSignup      bool  `env:"ENABLE_USER_SIGNUP"      json:"enableUserSignup,omitempty"`

@@ -16,11 +16,11 @@ import (
 
 	"github.com/primandproper/platform-go/v13/authentication/tokens"
 	"github.com/primandproper/platform-go/v13/authentication/totp"
-	"github.com/primandproper/platform-go/v13/identifiers"
 	"github.com/primandproper/platform-go/v13/messagequeue"
 	"github.com/primandproper/platform-go/v13/observability"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/sessions"
 )
 
 const (
@@ -48,7 +48,7 @@ type (
 		logger                  logging.Logger
 		dataChangesPublisher    messagequeue.Publisher
 		userAuthDataManager     identity.Repository
-		sessionDataManager      auth.UserSessionDataManager
+		sessionStore            auth.SessionStore
 		maxAccessTokenLifetime  time.Duration
 		maxRefreshTokenLifetime time.Duration
 	}
@@ -64,7 +64,7 @@ func NewManager(
 	logger logging.Logger,
 	publisherProvider messagequeue.PublisherProvider,
 	userAuthDataManager identity.Repository,
-	sessionDataManager auth.UserSessionDataManager,
+	sessionStore auth.SessionStore,
 	cfg *authcfg.TokensConfig,
 ) (Manager, error) {
 	dataChangesPublisher, err := publisherProvider.NewPublisher(ctx, queuesConfig.DataChangesTopicName)
@@ -82,7 +82,7 @@ func NewManager(
 		totpVerifier:            totpVerifier,
 		dataChangesPublisher:    dataChangesPublisher,
 		userAuthDataManager:     userAuthDataManager,
-		sessionDataManager:      sessionDataManager,
+		sessionStore:            sessionStore,
 	}
 
 	return m, nil
@@ -301,15 +301,18 @@ func (m *manager) ExchangeTokenForUser(ctx context.Context, refreshToken, desire
 		return nil, observability.PrepareError(ErrUserBanned, span, "checking ban status")
 	}
 
-	// Validate the existing session via refresh token JTI.
-	refreshJTI := claims.JTI()
+	// Validate the session the refresh token names, and that this is the refresh token
+	// it was last issued with. The second half is the rotation: a refresh token spent
+	// once is superseded by the one this call is about to issue, and presenting the old
+	// one afterwards has to fail even though the session it names is perfectly live.
 	sessionID, _ := claims.GetString("sid")
 
-	if refreshJTI != "" && sessionID != "" {
-		session, sessErr := m.sessionDataManager.GetUserSessionByRefreshTokenID(ctx, refreshJTI)
-		if sessErr != nil || session == nil {
-			return nil, observability.PrepareError(errors.New("session has been revoked"), span, "validating session")
-		}
+	session, err := m.sessionStore.Get(ctx, sessionID)
+	if err != nil {
+		return nil, observability.PrepareError(err, span, "reading session")
+	}
+	if session.Data == nil || session.Data.RefreshTokenID != claims.JTI() {
+		return nil, observability.PrepareError(ErrSessionSuperseded, span, "validating session")
 	}
 
 	var accountID string
@@ -332,7 +335,11 @@ func (m *manager) ExchangeTokenForUser(ctx context.Context, refreshToken, desire
 		accountID = defaultAccountID
 	}
 
-	// Issue new tokens with the same session ID.
+	// Issue new tokens against the same session. The identifier is not rotated: it is
+	// not a credential a client ever holds on its own — it rides inside a token this
+	// server signs — so there is no identifier an attacker could have planted for the
+	// rotation to invalidate. What does rotate is the pair of JTIs below, which is what
+	// retires the tokens this call was made with.
 	var accessJTI, refreshJTINew string
 	response := &auth.TokenResponse{
 		UserID:     user.ID,
@@ -352,11 +359,15 @@ func (m *manager) ExchangeTokenForUser(ctx context.Context, refreshToken, desire
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating refresh token")
 	}
 
-	// Update the session with new token JTIs.
-	if sessionID != "" {
-		if updateErr := m.sessionDataManager.UpdateSessionTokenIDs(ctx, sessionID, accessJTI, refreshJTINew, time.Now().Add(m.sessionExpiryDuration()).UTC()); updateErr != nil {
-			logger.Error("updating session token IDs", updateErr)
-		}
+	// Recorded before the tokens are handed back, and a failure here fails the refresh.
+	// The session is what says which pair is current, so a write that did not land is a
+	// pair that will not authenticate — better to answer that now than to return two
+	// tokens that are already dead.
+	if err = m.sessionStore.Save(ctx, sessionID, &auth.SessionPayload{
+		SessionTokenID: accessJTI,
+		RefreshTokenID: refreshJTINew,
+	}); err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "recording rotated session tokens")
 	}
 
 	dcm := &audit.DataChangeMessage{
@@ -372,17 +383,42 @@ func (m *manager) ExchangeTokenForUser(ctx context.Context, refreshToken, desire
 	return response, nil
 }
 
-// issueTokensWithSession creates a session record and issues tokens with the session ID embedded.
+// issueTokensWithSession establishes a session and issues tokens with its identifier
+// embedded.
+//
+// The session comes first because its identifier is minted by the store rather than here,
+// and the tokens have to carry it. That order costs a second write — the session is
+// established, then saved again once the two JTIs exist — and the alternative would be
+// minting the identifier locally, which is how the store would end up not owning the one
+// thing it is the authority on.
+//
+// A session that cannot be established fails the login. The version this replaced logged
+// and carried on, which handed the user two tokens naming a session that was not there:
+// they authenticated with them exactly zero times, and the failure surfaced as a sign-in
+// that appeared to work and then did not.
 func (m *manager) issueTokensWithSession(ctx context.Context, user *identity.User, accountID, loginMethod string, meta *LoginMetadata) (*auth.TokenResponse, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
-
-	sessionID := identifiers.New()
 
 	var clientIP, userAgent string
 	if meta != nil {
 		clientIP = meta.ClientIP
 		userAgent = meta.UserAgent
+	}
+
+	session, err := m.sessionStore.NewFor(
+		ctx,
+		auth.SessionHolder(user.ID),
+		sessions.Metadata{
+			DeviceName:  deriveDeviceName(userAgent),
+			IPAddress:   clientIP,
+			UserAgent:   userAgent,
+			LoginMethod: loginMethod,
+		},
+		&auth.SessionPayload{},
+	)
+	if err != nil {
+		return nil, observability.PrepareError(err, span, "establishing session")
 	}
 
 	response := &auth.TokenResponse{
@@ -391,11 +427,8 @@ func (m *manager) issueTokensWithSession(ctx context.Context, user *identity.Use
 		ExpiresUTC: time.Now().Add(m.maxAccessTokenLifetime).UTC(),
 	}
 
-	var (
-		err                   error
-		accessJTI, refreshJTI string
-	)
-	extraClaims := tokenClaims(accountID, sessionID)
+	var accessJTI, refreshJTI string
+	extraClaims := tokenClaims(accountID, session.ID)
 
 	response.AccessToken, accessJTI, err = m.tokenIssuer.IssueToken(ctx, user.ID, m.maxAccessTokenLifetime, extraClaims)
 	if err != nil {
@@ -407,18 +440,11 @@ func (m *manager) issueTokensWithSession(ctx context.Context, user *identity.Use
 		return nil, observability.PrepareError(err, span, "creating refresh token")
 	}
 
-	if _, err = m.sessionDataManager.CreateUserSession(ctx, &auth.UserSessionDatabaseCreationInput{
-		ID:             sessionID,
-		BelongsToUser:  user.ID,
+	if err = m.sessionStore.Save(ctx, session.ID, &auth.SessionPayload{
 		SessionTokenID: accessJTI,
 		RefreshTokenID: refreshJTI,
-		ClientIP:       clientIP,
-		UserAgent:      userAgent,
-		DeviceName:     deriveDeviceName(userAgent),
-		LoginMethod:    loginMethod,
-		ExpiresAt:      time.Now().Add(m.sessionExpiryDuration()).UTC(),
 	}); err != nil {
-		m.logger.Error("creating user session", err)
+		return nil, observability.PrepareError(err, span, "recording session tokens")
 	}
 
 	return response, nil
@@ -432,17 +458,6 @@ func tokenClaims(accountID, sessionID string) map[string]any {
 		"account_id": accountID,
 		"sid":        sessionID,
 	}
-}
-
-const defaultSessionExpiry = 72 * time.Hour
-
-// sessionExpiryDuration returns the session expiry duration, defaulting to 72h if the
-// configured refresh token lifetime is zero (e.g. in test configs).
-func (m *manager) sessionExpiryDuration() time.Duration {
-	if m.maxRefreshTokenLifetime > 0 {
-		return m.maxRefreshTokenLifetime
-	}
-	return defaultSessionExpiry
 }
 
 // deriveDeviceName produces a simple friendly device name from a User-Agent string.

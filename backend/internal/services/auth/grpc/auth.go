@@ -20,7 +20,6 @@ import (
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
 	"github.com/primandproper/platform-go/v13/featureflags"
-	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
 	"github.com/primandproper/platform-go/v13/observability"
 
 	"google.golang.org/grpc/codes"
@@ -705,38 +704,46 @@ func (s *serviceImpl) ListActiveSessions(ctx context.Context, request *authsvc.L
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
-	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
-	}
-
-	sessionsResult, err := s.authManager.GetActiveSessionsForUser(ctx, sessionContextData.GetUserID(), filter)
+	// The caller's own session identifier goes in, and comes back as the IsCurrent flag on
+	// one of the results. It is decided by the store rather than compared here because
+	// "current" is a fact about a request rather than about a session: the same row is
+	// current to one browser and not to the other four.
+	listed, err := s.authManager.GetActiveSessionsForUser(ctx, sessionContextData.GetUserID(), sessionContextData.GetSessionID())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to list active sessions")
-	}
-
-	results := make([]*authsvc.UserSession, 0, len(sessionsResult.Data))
-	for _, sess := range sessionsResult.Data {
-		results = append(results, &authsvc.UserSession{
-			Id:           sess.ID,
-			ClientIp:     sess.ClientIP,
-			UserAgent:    sess.UserAgent,
-			DeviceName:   sess.DeviceName,
-			LoginMethod:  sess.LoginMethod,
-			CreatedAt:    grpcconverters.ConvertTimeToPBTimestamp(sess.CreatedAt),
-			LastActiveAt: grpcconverters.ConvertTimeToPBTimestamp(sess.LastActiveAt),
-			ExpiresAt:    grpcconverters.ConvertTimeToPBTimestamp(sess.ExpiresAt),
-			IsCurrent:    sess.ID == sessionContextData.GetSessionID(),
-		})
 	}
 
 	return &authsvc.ListActiveSessionsResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: filteringgrpc.PaginationToProto(sessionsResult.Pagination),
-		Sessions:   results,
+		Sessions: userSessionsToProto(listed),
 	}, nil
+}
+
+// userSessionsToProto renders live sessions for the security page that lists them.
+//
+// last_active_at is the store's LastSeenAt, which is refreshed no more often than the
+// configured touch interval — so it is a session's last activity to within that interval,
+// and never later than it really was.
+func userSessionsToProto(listed []*auth.UserSession) []*authsvc.UserSession {
+	results := make([]*authsvc.UserSession, 0, len(listed))
+
+	for _, sess := range listed {
+		results = append(results, &authsvc.UserSession{
+			Id:           sess.ID,
+			ClientIp:     sess.Metadata.IPAddress,
+			UserAgent:    sess.Metadata.UserAgent,
+			DeviceName:   sess.Metadata.DeviceName,
+			LoginMethod:  sess.Metadata.LoginMethod,
+			CreatedAt:    grpcconverters.ConvertTimeToPBTimestamp(sess.CreatedAt),
+			LastActiveAt: grpcconverters.ConvertTimeToPBTimestamp(sess.LastSeenAt),
+			ExpiresAt:    grpcconverters.ConvertTimeToPBTimestamp(sess.ExpiresAt),
+			IsCurrent:    sess.IsCurrent,
+		})
+	}
+
+	return results
 }
 
 func (s *serviceImpl) RevokeSession(ctx context.Context, request *authsvc.RevokeSessionRequest) (*authsvc.RevokeSessionResponse, error) {
@@ -835,36 +842,18 @@ func (s *serviceImpl) AdminListSessionsForUser(ctx context.Context, request *aut
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("user_id is required"), logger, span, codes.InvalidArgument, "user_id is required")
 	}
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
-	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
-	}
-
-	sessionsResult, err := s.authManager.GetActiveSessionsForUser(ctx, userID, filter)
+	// No current session identifier: none of the sessions listed here is the
+	// administrator's, so none of them is flagged as current.
+	listed, err := s.authManager.GetActiveSessionsForUser(ctx, userID, "")
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to list active sessions for user")
-	}
-
-	results := make([]*authsvc.UserSession, 0, len(sessionsResult.Data))
-	for _, sess := range sessionsResult.Data {
-		results = append(results, &authsvc.UserSession{
-			Id:           sess.ID,
-			ClientIp:     sess.ClientIP,
-			UserAgent:    sess.UserAgent,
-			DeviceName:   sess.DeviceName,
-			LoginMethod:  sess.LoginMethod,
-			CreatedAt:    grpcconverters.ConvertTimeToPBTimestamp(sess.CreatedAt),
-			LastActiveAt: grpcconverters.ConvertTimeToPBTimestamp(sess.LastActiveAt),
-			ExpiresAt:    grpcconverters.ConvertTimeToPBTimestamp(sess.ExpiresAt),
-		})
 	}
 
 	return &authsvc.ListActiveSessionsResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Pagination: filteringgrpc.PaginationToProto(sessionsResult.Pagination),
-		Sessions:   results,
+		Sessions: userSessionsToProto(listed),
 	}, nil
 }
 

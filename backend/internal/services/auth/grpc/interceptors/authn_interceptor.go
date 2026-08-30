@@ -46,7 +46,7 @@ type AuthInterceptor struct {
 	tracer                      tracing.Tracer
 	logger                      logging.Logger
 	identityDataManager         identitymanager.IdentityDataManager
-	sessionDataManager          auth.UserSessionDataManager
+	sessionStore                auth.SessionStore
 	methodPermissions           map[string][]authorization.Permission
 	oauth2Server                *oauth2server.Server
 	tokenIssuer                 tokens.Issuer
@@ -64,7 +64,7 @@ func ProvideAuthInterceptor(
 	tracerProvider tracing.Provider,
 	logger logging.Logger,
 	identityDataManager identitymanager.IdentityDataManager,
-	sessionDataManager auth.UserSessionDataManager,
+	sessionStore auth.SessionStore,
 	oauth2Server *oauth2server.Server,
 	oauth2Resource string,
 	tokenIssuer tokens.Issuer,
@@ -101,7 +101,7 @@ func ProvideAuthInterceptor(
 		tracer:              tracing.NewNamedTracer(tracerProvider, o11yName),
 		logger:              logging.NewNamedLogger(logger, o11yName),
 		identityDataManager: identityDataManager,
-		sessionDataManager:  sessionDataManager,
+		sessionStore:        sessionStore,
 		oauth2Server:        oauth2Server,
 		oauth2Resource:      oauth2Resource,
 		tokenIssuer:         tokenIssuer,
@@ -221,24 +221,27 @@ func (s *AuthInterceptor) extractSessionContextData(ctx context.Context, metaDat
 		userID := claims.Subject()
 		if userID != "" {
 			accountID, _ := claims.GetString("account_id")
-			// Validate session if token has a session ID.
+			// The token names a session; the session has to still be there, and this has
+			// to be the access token it was last issued with. The second half is what
+			// makes a refresh retire the token it replaced — the session outlives the
+			// rotation, so its liveness alone would not.
+			//
+			// The read is also the touch. sessions.Store refreshes the idle deadline on
+			// Get, at most once per configured touch interval, which is why there is no
+			// fire-and-forget goroutine here any more: the version that had one wrote on
+			// every authenticated request, and did it in a goroutine to hide the cost.
 			sessionID, _ := claims.GetString("sid")
-			if sessionID != "" {
-				jti := claims.JTI()
-				if jti != "" {
-					if _, sessErr := s.sessionDataManager.GetUserSessionBySessionTokenID(ctx, jti); sessErr != nil {
-						return nil, Unauthenticated("session has been revoked or expired")
-					}
-					// Touch last active asynchronously so it doesn't block the request. Use a local error
-					// variable so the goroutine doesn't race on the outer err captured by the closure.
-					touchJTI := jti
-					touchCtx := context.WithoutCancel(ctx)
-					go func() {
-						if touchErr := s.sessionDataManager.TouchSessionLastActive(touchCtx, touchJTI); touchErr != nil {
-							logger.Error("touch session last active failed", touchErr)
-						}
-					}()
-				}
+			if sessionID == "" {
+				return nil, Unauthenticated("token names no session")
+			}
+
+			session, sessErr := s.sessionStore.Get(ctx, sessionID)
+			if sessErr != nil {
+				return nil, Unauthenticated("session has been revoked or expired")
+			}
+
+			if session.Data == nil || session.Data.SessionTokenID != claims.JTI() {
+				return nil, Unauthenticated("token has been superseded")
 			}
 
 			sessionCtxData, sessionErr := s.identityDataManager.BuildSessionContextDataForUser(ctx, userID, accountID)

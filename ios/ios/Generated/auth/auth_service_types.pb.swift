@@ -1124,22 +1124,14 @@ public struct Auth_ListActiveSessionsRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
-    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
-    set {_filter = newValue}
-  }
-  /// Returns true if `filter` has been explicitly set.
-  public var hasFilter: Bool {return self._filter != nil}
-  /// Clears the value of `filter`. Subsequent reads from it will return its default value.
-  public mutating func clearFilter() {self._filter = nil}
-
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
-
-  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
+/// ListActiveSessionsResponse carries the whole set rather than a page of it. A person's
+/// live sessions are the devices they are signed in on, which is a handful, and the store
+/// that holds them enumerates a holder's sessions rather than windowing them.
 public struct Auth_ListActiveSessionsResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -1154,15 +1146,6 @@ public struct Auth_ListActiveSessionsResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var pagination: Primandproper_Platform_Filtering_V1_Pagination {
-    get {return _pagination ?? Primandproper_Platform_Filtering_V1_Pagination()}
-    set {_pagination = newValue}
-  }
-  /// Returns true if `pagination` has been explicitly set.
-  public var hasPagination: Bool {return self._pagination != nil}
-  /// Clears the value of `pagination`. Subsequent reads from it will return its default value.
-  public mutating func clearPagination() {self._pagination = nil}
-
   public var sessions: [Auth_UserSession] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
@@ -1170,7 +1153,6 @@ public struct Auth_ListActiveSessionsResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
 public struct Auth_RevokeSessionRequest: Sendable {
@@ -1275,20 +1257,9 @@ public struct Auth_AdminListSessionsForUserRequest: Sendable {
 
   public var userID: String = String()
 
-  public var filter: Primandproper_Platform_Filtering_V1_QueryFilter {
-    get {return _filter ?? Primandproper_Platform_Filtering_V1_QueryFilter()}
-    set {_filter = newValue}
-  }
-  /// Returns true if `filter` has been explicitly set.
-  public var hasFilter: Bool {return self._filter != nil}
-  /// Clears the value of `filter`. Subsequent reads from it will return its default value.
-  public mutating func clearFilter() {self._filter = nil}
-
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
-
-  fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
 public struct Auth_AdminRevokeUserSessionRequest: Sendable {
@@ -3343,33 +3314,18 @@ extension Auth_ArchivePasskeyResponse: SwiftProtobuf.Message, SwiftProtobuf._Mes
 
 extension Auth_ListActiveSessionsRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".ListActiveSessionsRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}filter\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap()
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularMessageField(value: &self._filter) }()
-      default: break
-      }
-    }
+    // Load everything into unknown fields
+    while try decoder.nextFieldNumber() != nil {}
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._filter {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Auth_ListActiveSessionsRequest, rhs: Auth_ListActiveSessionsRequest) -> Bool {
-    if lhs._filter != rhs._filter {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -3377,7 +3333,7 @@ extension Auth_ListActiveSessionsRequest: SwiftProtobuf.Message, SwiftProtobuf._
 
 extension Auth_ListActiveSessionsResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".ListActiveSessionsResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}pagination\0\u{1}sessions\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}sessions\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -3386,8 +3342,7 @@ extension Auth_ListActiveSessionsResponse: SwiftProtobuf.Message, SwiftProtobuf.
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._pagination) }()
-      case 3: try { try decoder.decodeRepeatedMessageField(value: &self.sessions) }()
+      case 2: try { try decoder.decodeRepeatedMessageField(value: &self.sessions) }()
       default: break
       }
     }
@@ -3401,18 +3356,14 @@ extension Auth_ListActiveSessionsResponse: SwiftProtobuf.Message, SwiftProtobuf.
     try { if let v = self._responseDetails {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
     } }()
-    try { if let v = self._pagination {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-    } }()
     if !self.sessions.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.sessions, fieldNumber: 3)
+      try visitor.visitRepeatedMessageField(value: self.sessions, fieldNumber: 2)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Auth_ListActiveSessionsResponse, rhs: Auth_ListActiveSessionsResponse) -> Bool {
     if lhs._responseDetails != rhs._responseDetails {return false}
-    if lhs._pagination != rhs._pagination {return false}
     if lhs.sessions != rhs.sessions {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
@@ -3591,7 +3542,7 @@ extension Auth_RevokeCurrentSessionResponse: SwiftProtobuf.Message, SwiftProtobu
 
 extension Auth_AdminListSessionsForUserRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".AdminListSessionsForUserRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}user_id\0\u{1}filter\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}user_id\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -3600,29 +3551,20 @@ extension Auth_AdminListSessionsForUserRequest: SwiftProtobuf.Message, SwiftProt
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.userID) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._filter) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
     if !self.userID.isEmpty {
       try visitor.visitSingularStringField(value: self.userID, fieldNumber: 1)
     }
-    try { if let v = self._filter {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Auth_AdminListSessionsForUserRequest, rhs: Auth_AdminListSessionsForUserRequest) -> Bool {
     if lhs.userID != rhs.userID {return false}
-    if lhs._filter != rhs._filter {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

@@ -9,8 +9,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
-
-	"github.com/primandproper/platform-go/v13/filtering"
 )
 
 // Ensure, that AuthManagerInterfaceMock does implement managers.AuthManagerInterface.
@@ -29,7 +27,7 @@ var _ managers.AuthManagerInterface = &AuthManagerInterfaceMock{}
 //			CreatePasswordResetTokenFunc: func(ctx context.Context, input *auth.PasswordResetTokenCreationRequestInput) error {
 //				panic("mock out the CreatePasswordResetToken method")
 //			},
-//			GetActiveSessionsForUserFunc: func(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[auth.UserSession], error) {
+//			GetActiveSessionsForUserFunc: func(ctx context.Context, userID string, currentSessionID string) ([]*auth.UserSession, error) {
 //				panic("mock out the GetActiveSessionsForUser method")
 //			},
 //			NewTOTPSecretFunc: func(ctx context.Context, input *auth.TOTPSecretRefreshInput) (*auth.TOTPSecretRefreshResponse, error) {
@@ -79,7 +77,7 @@ type AuthManagerInterfaceMock struct {
 	CreatePasswordResetTokenFunc func(ctx context.Context, input *auth.PasswordResetTokenCreationRequestInput) error
 
 	// GetActiveSessionsForUserFunc mocks the GetActiveSessionsForUser method.
-	GetActiveSessionsForUserFunc func(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[auth.UserSession], error)
+	GetActiveSessionsForUserFunc func(ctx context.Context, userID string, currentSessionID string) ([]*auth.UserSession, error)
 
 	// NewTOTPSecretFunc mocks the NewTOTPSecret method.
 	NewTOTPSecretFunc func(ctx context.Context, input *auth.TOTPSecretRefreshInput) (*auth.TOTPSecretRefreshResponse, error)
@@ -136,8 +134,8 @@ type AuthManagerInterfaceMock struct {
 			Ctx context.Context
 			// UserID is the userID argument value.
 			UserID string
-			// Filter is the filter argument value.
-			Filter *filtering.QueryFilter
+			// CurrentSessionID is the currentSessionID argument value.
+			CurrentSessionID string
 		}
 		// NewTOTPSecret holds details about calls to the NewTOTPSecret method.
 		NewTOTPSecret []struct {
@@ -308,23 +306,23 @@ func (mock *AuthManagerInterfaceMock) CreatePasswordResetTokenCalls() []struct {
 }
 
 // GetActiveSessionsForUser calls GetActiveSessionsForUserFunc.
-func (mock *AuthManagerInterfaceMock) GetActiveSessionsForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[auth.UserSession], error) {
+func (mock *AuthManagerInterfaceMock) GetActiveSessionsForUser(ctx context.Context, userID string, currentSessionID string) ([]*auth.UserSession, error) {
 	if mock.GetActiveSessionsForUserFunc == nil {
 		panic("AuthManagerInterfaceMock.GetActiveSessionsForUserFunc: method is nil but AuthManagerInterface.GetActiveSessionsForUser was just called")
 	}
 	callInfo := struct {
-		Ctx    context.Context
-		UserID string
-		Filter *filtering.QueryFilter
+		Ctx              context.Context
+		UserID           string
+		CurrentSessionID string
 	}{
-		Ctx:    ctx,
-		UserID: userID,
-		Filter: filter,
+		Ctx:              ctx,
+		UserID:           userID,
+		CurrentSessionID: currentSessionID,
 	}
 	mock.lockGetActiveSessionsForUser.Lock()
 	mock.calls.GetActiveSessionsForUser = append(mock.calls.GetActiveSessionsForUser, callInfo)
 	mock.lockGetActiveSessionsForUser.Unlock()
-	return mock.GetActiveSessionsForUserFunc(ctx, userID, filter)
+	return mock.GetActiveSessionsForUserFunc(ctx, userID, currentSessionID)
 }
 
 // GetActiveSessionsForUserCalls gets all the calls that were made to GetActiveSessionsForUser.
@@ -332,14 +330,14 @@ func (mock *AuthManagerInterfaceMock) GetActiveSessionsForUser(ctx context.Conte
 //
 //	len(mockedAuthManagerInterface.GetActiveSessionsForUserCalls())
 func (mock *AuthManagerInterfaceMock) GetActiveSessionsForUserCalls() []struct {
-	Ctx    context.Context
-	UserID string
-	Filter *filtering.QueryFilter
+	Ctx              context.Context
+	UserID           string
+	CurrentSessionID string
 } {
 	var calls []struct {
-		Ctx    context.Context
-		UserID string
-		Filter *filtering.QueryFilter
+		Ctx              context.Context
+		UserID           string
+		CurrentSessionID string
 	}
 	mock.lockGetActiveSessionsForUser.RLock()
 	calls = mock.calls.GetActiveSessionsForUser

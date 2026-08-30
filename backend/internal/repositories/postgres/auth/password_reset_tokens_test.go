@@ -40,9 +40,9 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo := buildDatabaseClientForTest(t)
 
-	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	user := pgtesting.CreateUserForTest(t, nil, dbc.Writer())
 
-	store, err := ProvidePasswordResetTokenStore(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditRepo, dbc.Client)
+	store, err := ProvidePasswordResetTokenStore(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditRepo, dbc)
 	require.NoError(t, err)
 
 	// issue

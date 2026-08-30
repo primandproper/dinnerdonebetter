@@ -2,298 +2,248 @@ package auth
 
 import (
 	"context"
-	"database/sql"
-	"time"
 
+	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth/generated"
 
 	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
 	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/metrics"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/sessions"
+	sessionsdatabase "github.com/primandproper/platform-go/v13/sessions/database"
 )
 
 const (
+	sessionsO11yName = "user_session_store"
+
+	// resourceTypeUserSessions is the audit log's name for a session, which is this
+	// application's vocabulary rather than the table's — the table is ddb_sessions. It is
+	// unchanged from what the store this replaced recorded, so an investigation reading
+	// across the changeover reads one resource type rather than two.
 	resourceTypeUserSessions = "user_sessions"
 )
 
-var _ auth.UserSessionDataManager = (*repository)(nil)
+var _ auth.SessionStore = (*auditedUserSessionStore)(nil)
 
-func convertUserSession(row *generated.UserSessions) *auth.UserSession {
-	return &auth.UserSession{
-		ID:             row.ID,
-		BelongsToUser:  row.BelongsToUser,
-		SessionTokenID: row.SessionTokenID,
-		RefreshTokenID: row.RefreshTokenID,
-		ClientIP:       row.ClientIp,
-		UserAgent:      row.UserAgent,
-		DeviceName:     row.DeviceName,
-		LoginMethod:    row.LoginMethod,
-		CreatedAt:      row.CreatedAt,
-		LastActiveAt:   row.LastActiveAt,
-		ExpiresAt:      row.ExpiresAt,
-		RevokedAt:      database.TimePointerFromNullTime(row.RevokedAt),
-	}
+// auditedUserSessionStore is platform-go's session store with this repository's audit log
+// wrapped around establishment and revocation.
+//
+// The store itself is the platform's, whole. What it replaces here was a table of its own
+// keyed by the JTI of the token issued alongside a session, with a revoked_at column that
+// only the reads knew to filter on — which is to say a second account of which sessions
+// were live, kept beside the one the sign-in wrote, and wrong the moment they disagreed.
+// The platform's row *is* the session: a revocation removes it, and there is nothing left
+// for a read to be read past.
+//
+// What the platform has no opinion about is who wants a record of it. "When did this
+// account sign in, from what, and who ended those sessions" is a question asked months
+// after the rows are gone — the db-cleaner deletes an expired session, and a revoked one
+// never reaches the sweep at all — so the two facts are written somewhere that keeps them.
+//
+// Get and Save are the embedded store's, unrecorded. Get happens on every authenticated
+// request, and an entry per call would bury every entry that means something; Save is the
+// token rotation that follows a refresh, which is bookkeeping about a session rather than
+// a thing that happened to one.
+type auditedUserSessionStore struct {
+	auth.SessionStore
+
+	db                database.Client
+	auditLogEntryRepo audit.Repository
+	tracer            tracing.Tracer
+	logger            logging.Logger
 }
 
-// CreateUserSession creates a user session in the database.
-func (r *repository) CreateUserSession(ctx context.Context, input *auth.UserSessionDatabaseCreationInput) (*auth.UserSession, error) {
-	ctx, span := r.tracer.StartSpan(ctx)
+// ProvideUserSessionBackend builds the platform's SQL session backend over this
+// deployment's database.
+//
+// It is the concrete backend rather than the sessions.Backend seam, because the db-cleaner
+// job needs Sweep and that is deliberately not on the interface — a caller who chose the
+// cache has nothing to sweep.
+//
+// No sweeper goroutine is started, which is the same call the authorization server's and
+// the password reset store's tables make: one scheduled sweep for the deployment rather
+// than one per replica, each running the same full-table delete on its own timer. See
+// services/oauth/workers/db_cleaner.
+//
+// The prefix is the domain's rather than a configured one, because it has to be the prefix
+// migration 35 created the table under — a prefix that differs between the DDL and the
+// store is a service that comes up clean and cannot find a table.
+func ProvideUserSessionBackend(
+	logger logging.Logger,
+	tracerProvider tracing.Provider,
+	metricsProvider metrics.Provider,
+	client database.Client,
+) (*sessionsdatabase.Backend[auth.SessionPayload], error) {
+	return sessionsdatabase.NewBackend[auth.SessionPayload](
+		&sessionsdatabase.Config{TablePrefix: auth.TablePrefix},
+		client,
+		sessionsdatabase.WithLogger(logging.NewNamedLogger(logger, sessionsO11yName)),
+		sessionsdatabase.WithTracerProvider(tracerProvider),
+		sessionsdatabase.WithMetricsProvider(metricsProvider),
+	)
+}
+
+// ProvideUserSessionStore builds the session store the API server uses: the platform's over
+// the table above, with this repository's audit log around it.
+//
+// The expiry policy is the configuration's, and a zero field is left off rather than passed
+// as zero, because zero is meaningful to two of the three options — a zero timeout disables
+// that timeout, and a zero touch interval refreshes the idle deadline on every read. Left
+// off, the store applies the defaults sessions.Policy documents.
+func ProvideUserSessionStore(
+	cfg *authcfg.SessionsConfig,
+	backend *sessionsdatabase.Backend[auth.SessionPayload],
+	logger logging.Logger,
+	tracerProvider tracing.Provider,
+	metricsProvider metrics.Provider,
+	auditLogEntryRepo audit.Repository,
+	client database.Client,
+) (auth.SessionStore, error) {
+	namedLogger := logging.NewNamedLogger(logger, sessionsO11yName)
+
+	opts := []sessions.Option{
+		sessions.WithLogger(namedLogger),
+		sessions.WithTracerProvider(tracerProvider),
+		sessions.WithMetricsProvider(metricsProvider),
+	}
+
+	if cfg.AbsoluteTimeout > 0 {
+		opts = append(opts, sessions.WithAbsoluteTimeout(cfg.AbsoluteTimeout))
+	}
+
+	if cfg.IdleTimeout > 0 {
+		opts = append(opts, sessions.WithIdleTimeout(cfg.IdleTimeout))
+	}
+
+	if cfg.TouchInterval > 0 {
+		opts = append(opts, sessions.WithTouchInterval(cfg.TouchInterval))
+	}
+
+	store, err := sessions.NewStore[auth.SessionPayload](backend, opts...)
+	if err != nil {
+		return nil, observability.PrepareError(err, nil, "building the user session store")
+	}
+
+	return &auditedUserSessionStore{
+		SessionStore:      store,
+		db:                client,
+		auditLogEntryRepo: auditLogEntryRepo,
+		tracer:            tracing.NewNamedTracer(tracerProvider, sessionsO11yName),
+		logger:            namedLogger,
+	}, nil
+}
+
+// NewFor establishes a session and records the sign-in that established it.
+func (s *auditedUserSessionStore) NewFor(
+	ctx context.Context,
+	holder sessions.Holder,
+	metadata sessions.Metadata,
+	data *auth.SessionPayload,
+) (*auth.UserSession, error) {
+	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if input == nil {
-		return nil, platformerrors.ErrNilInputParameter
-	}
-	logger := r.logger.WithValue(authkeys.UserSessionIDKey, input.ID)
-	tracing.AttachToSpan(span, authkeys.UserSessionIDKey, input.ID)
-
-	var err error
-	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
-		if err = r.generatedQuerier.CreateUserSession(ctx, tx, &generated.CreateUserSessionParams{
-			ID:             input.ID,
-			BelongsToUser:  input.BelongsToUser,
-			SessionTokenID: input.SessionTokenID,
-			RefreshTokenID: input.RefreshTokenID,
-			ClientIp:       input.ClientIP,
-			UserAgent:      input.UserAgent,
-			DeviceName:     input.DeviceName,
-			LoginMethod:    input.LoginMethod,
-			ExpiresAt:      input.ExpiresAt,
-		}); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "creating user session")
-		}
-
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			ResourceType:  resourceTypeUserSessions,
-			RelevantID:    input.ID,
-			EventType:     audit.AuditLogEventTypeCreated,
-			BelongsToUser: input.BelongsToUser,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		return nil
-	}); err != nil {
+	session, err := s.SessionStore.NewFor(ctx, holder, metadata, data)
+	if err != nil {
 		return nil, err
 	}
 
-	session := &auth.UserSession{
-		ID:             input.ID,
-		BelongsToUser:  input.BelongsToUser,
-		SessionTokenID: input.SessionTokenID,
-		RefreshTokenID: input.RefreshTokenID,
-		ClientIP:       input.ClientIP,
-		UserAgent:      input.UserAgent,
-		DeviceName:     input.DeviceName,
-		LoginMethod:    input.LoginMethod,
-		ExpiresAt:      input.ExpiresAt,
-		CreatedAt:      r.CurrentTime(),
-		LastActiveAt:   r.CurrentTime(),
+	if err = s.record(ctx, span, holder.Principal, audit.AuditLogEventTypeCreated, session.ID); err != nil {
+		return nil, err
 	}
-
-	logger.Info("user session created")
 
 	return session, nil
 }
 
-// GetUserSessionBySessionTokenID fetches a user session by its access token JTI.
-func (r *repository) GetUserSessionBySessionTokenID(ctx context.Context, sessionTokenID string) (*auth.UserSession, error) {
-	ctx, span := r.tracer.StartSpan(ctx)
+// Revoke ends one of a holder's sessions and records that it was ended.
+func (s *auditedUserSessionStore) Revoke(ctx context.Context, holder sessions.Holder, id string) error {
+	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if sessionTokenID == "" {
-		return nil, platformerrors.ErrEmptyInputProvided
+	if err := s.SessionStore.Revoke(ctx, holder, id); err != nil {
+		return err
 	}
 
-	result, err := r.generatedQuerier.GetUserSessionBySessionTokenID(ctx, r.readDB, sessionTokenID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, r.logger, span, "getting user session by session token ID")
-	}
-
-	return convertUserSession(result), nil
+	return s.record(ctx, span, holder.Principal, audit.AuditLogEventTypeArchived, id)
 }
 
-// GetUserSessionByRefreshTokenID fetches a user session by its refresh token JTI.
-func (r *repository) GetUserSessionByRefreshTokenID(ctx context.Context, refreshTokenID string) (*auth.UserSession, error) {
-	ctx, span := r.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if refreshTokenID == "" {
-		return nil, platformerrors.ErrEmptyInputProvided
-	}
-
-	result, err := r.generatedQuerier.GetUserSessionByRefreshTokenID(ctx, r.readDB, refreshTokenID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, r.logger, span, "getting user session by refresh token ID")
-	}
-
-	return convertUserSession(result), nil
+// RevokeAll ends every session a holder holds and records each one that ended.
+func (s *auditedUserSessionStore) RevokeAll(ctx context.Context, holder sessions.Holder) (int, error) {
+	return s.revokeMany(ctx, holder, "")
 }
 
-// GetActiveSessionsForUser fetches all active sessions for a user.
-func (r *repository) GetActiveSessionsForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[auth.UserSession], error) {
-	ctx, span := r.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if userID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	tracing.AttachQueryFilterToSpan(span, filter)
-
-	filterArgs := filtering.ToSQLArgs(filter)
-
-	results, err := r.generatedQuerier.GetActiveSessionsForUser(ctx, r.readDB, &generated.GetActiveSessionsForUserParams{
-		BelongsToUser: userID,
-		CreatedAfter:  filterArgs.CreatedAfter,
-		CreatedBefore: filterArgs.CreatedBefore,
-		Cursor:        filterArgs.Cursor,
-		ResultLimit:   filterArgs.ResultLimit,
-	})
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, r.logger, span, "getting active sessions for user")
-	}
-
-	return filtering.Drain(
-		results,
-		func(result *generated.GetActiveSessionsForUserRow) *auth.UserSession {
-			return &auth.UserSession{
-				ID:             result.ID,
-				BelongsToUser:  result.BelongsToUser,
-				SessionTokenID: result.SessionTokenID,
-				RefreshTokenID: result.RefreshTokenID,
-				ClientIP:       result.ClientIp,
-				UserAgent:      result.UserAgent,
-				DeviceName:     result.DeviceName,
-				LoginMethod:    result.LoginMethod,
-				CreatedAt:      result.CreatedAt,
-				LastActiveAt:   result.LastActiveAt,
-				ExpiresAt:      result.ExpiresAt,
-				RevokedAt:      database.TimePointerFromNullTime(result.RevokedAt),
-			}
-		},
-		func(result *generated.GetActiveSessionsForUserRow) (int64, int64) {
-			return result.FilteredCount, result.TotalCount
-		},
-		func(t *auth.UserSession) string {
-			return t.ID
-		},
-		filter,
-	), nil
+// RevokeAllExcept ends every session a holder holds but one, and records each one that
+// ended.
+func (s *auditedUserSessionStore) RevokeAllExcept(ctx context.Context, holder sessions.Holder, keepID string) (int, error) {
+	return s.revokeMany(ctx, holder, keepID)
 }
 
-// RevokeUserSession revokes a specific user session.
-func (r *repository) RevokeUserSession(ctx context.Context, sessionID, userID string) error {
-	ctx, span := r.tracer.StartSpan(ctx)
+// revokeMany is the body both bulk revocations share.
+//
+// The identifiers are read before the revocation rather than reported by it, because the
+// store reports a count and an audit entry naming no session says only that something
+// happened. The read is the same indexed one the security page makes, over a set that is a
+// handful of rows.
+//
+// Reading first means a session established between the read and the revocation is ended
+// without an entry — the only direction this can be wrong, since the revocation is what
+// runs second. That is the same trade the record below makes, for the same reason: an
+// audit log that occasionally misses an event is worth more than one that reports events
+// which did not occur.
+func (s *auditedUserSessionStore) revokeMany(ctx context.Context, holder sessions.Holder, keepID string) (int, error) {
+	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if sessionID == "" || userID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	listed, err := s.List(ctx, holder, keepID)
+	if err != nil {
+		return 0, observability.PrepareAndLogError(err, s.logger, span, "listing sessions ahead of revocation")
 	}
-	logger := r.logger.WithValue(authkeys.UserSessionIDKey, sessionID)
+
+	revoked, err := s.SessionStore.RevokeAllExcept(ctx, holder, keepID)
+	if err != nil {
+		return 0, err
+	}
+
+	for _, session := range listed {
+		if session.ID == keepID {
+			continue
+		}
+
+		if err = s.record(ctx, span, holder.Principal, audit.AuditLogEventTypeArchived, session.ID); err != nil {
+			return revoked, err
+		}
+	}
+
+	return revoked, nil
+}
+
+// record writes one audit entry for a session, in a transaction of its own.
+//
+// Of its own, because the write it describes has already committed inside the platform
+// store, whose transaction nothing outside that package can join. So the pair is not
+// atomic, and the gap has a direction: a crash between them loses the entry, never the
+// session change. That is the right way round.
+//
+// A failure to record is returned rather than swallowed. A sign-in or a sign-out the log
+// has no record of is precisely the one an investigation needs, so refusing the operation
+// is better than completing it silently — the caller signs in again, or presses the button
+// a second time.
+func (s *auditedUserSessionStore) record(ctx context.Context, span tracing.Span, userID, eventType, sessionID string) error {
 	tracing.AttachToSpan(span, authkeys.UserSessionIDKey, sessionID)
 
-	rowsAffected, err := r.generatedQuerier.RevokeUserSession(ctx, r.writeDB, &generated.RevokeUserSessionParams{
-		ID:            sessionID,
-		BelongsToUser: userID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "revoking user session")
-	}
-
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
-
-	logger.Info("user session revoked")
-
-	return nil
-}
-
-// RevokeAllSessionsForUser revokes all sessions for a user.
-func (r *repository) RevokeAllSessionsForUser(ctx context.Context, userID string) error {
-	ctx, span := r.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if userID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-
-	if _, err := r.generatedQuerier.RevokeAllSessionsForUser(ctx, r.writeDB, userID); err != nil {
-		return observability.PrepareAndLogError(err, r.logger, span, "revoking all sessions for user")
-	}
-
-	r.logger.Info("all sessions revoked for user")
-
-	return nil
-}
-
-// RevokeAllSessionsForUserExcept revokes all sessions for a user except the specified one.
-func (r *repository) RevokeAllSessionsForUserExcept(ctx context.Context, userID, sessionID string) error {
-	ctx, span := r.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if userID == "" || sessionID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-
-	if _, err := r.generatedQuerier.RevokeAllSessionsForUserExcept(ctx, r.writeDB, &generated.RevokeAllSessionsForUserExceptParams{
-		BelongsToUser: userID,
-		SessionID:     sessionID,
+	if err := s.db.WithTransaction(ctx, func(tx database.Tx) error {
+		return s.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+			ResourceType:  resourceTypeUserSessions,
+			RelevantID:    sessionID,
+			EventType:     eventType,
+			BelongsToUser: userID,
+		})
 	}); err != nil {
-		return observability.PrepareAndLogError(err, r.logger, span, "revoking all sessions for user except current")
-	}
-
-	r.logger.Info("all other sessions revoked for user")
-
-	return nil
-}
-
-// UpdateSessionTokenIDs updates the token IDs for a session after a token refresh.
-func (r *repository) UpdateSessionTokenIDs(ctx context.Context, sessionID, newSessionTokenID, newRefreshTokenID string, newExpiresAt time.Time) error {
-	ctx, span := r.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if sessionID == "" || newSessionTokenID == "" || newRefreshTokenID == "" {
-		return platformerrors.ErrEmptyInputProvided
-	}
-	tracing.AttachToSpan(span, authkeys.UserSessionIDKey, sessionID)
-
-	rowsAffected, err := r.generatedQuerier.UpdateSessionTokenIDs(ctx, r.writeDB, &generated.UpdateSessionTokenIDsParams{
-		ID:             sessionID,
-		SessionTokenID: newSessionTokenID,
-		RefreshTokenID: newRefreshTokenID,
-		ExpiresAt:      newExpiresAt,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, r.logger, span, "updating session token IDs")
-	}
-
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
-
-	return nil
-}
-
-// TouchSessionLastActive updates the last active timestamp for a session.
-func (r *repository) TouchSessionLastActive(ctx context.Context, sessionTokenID string) error {
-	ctx, span := r.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if sessionTokenID == "" {
-		return platformerrors.ErrEmptyInputProvided
-	}
-
-	if _, err := r.generatedQuerier.TouchSessionLastActive(ctx, r.writeDB, sessionTokenID); err != nil {
-		return observability.PrepareAndLogError(err, r.logger, span, "touching session last active")
+		return observability.PrepareAndLogError(err, s.logger, span, "recording user session audit log entry")
 	}
 
 	return nil

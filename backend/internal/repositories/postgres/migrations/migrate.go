@@ -28,6 +28,7 @@ import (
 	outboxmigrations "github.com/primandproper/platform-go/v13/outbox/migrations"
 	"github.com/primandproper/platform-go/v13/saga"
 	sagamigrations "github.com/primandproper/platform-go/v13/saga/migrations"
+	sessionsmigrations "github.com/primandproper/platform-go/v13/sessions/database/migrations"
 	"github.com/primandproper/platform-go/v13/webhooks"
 	webhooksmigrations "github.com/primandproper/platform-go/v13/webhooks/migrations"
 )
@@ -60,6 +61,7 @@ const (
 	webauthnMigrationVersion      = 32
 	oauth2MigrationVersion        = 33
 	passwordResetMigrationVersion = 34
+	sessionsMigrationVersion      = 35
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -145,6 +147,11 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, err
 	}
 
+	sessionsDDL, err := renderSessionsDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -160,6 +167,7 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithGeneratedMigration(webauthnMigrationVersion, "create_webauthn_sessions_table", webauthnDDL),
 		migrate.WithGeneratedMigration(oauth2MigrationVersion, "create_oauth2_server_tables", oauth2DDL),
 		migrate.WithGeneratedMigration(passwordResetMigrationVersion, "create_password_reset_tokens_table", passwordResetDDL),
+		migrate.WithGeneratedMigration(sessionsMigrationVersion, "create_sessions_table", sessionsDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
@@ -188,6 +196,33 @@ func renderPasswordResetDDL() (string, error) {
 	}
 
 	return "DROP TABLE IF EXISTS password_reset_tokens;\n\n" + schema, nil
+}
+
+// renderSessionsDDL renders the session table, dropping the one 00018_user_sessions.sql
+// created first.
+//
+// Nothing is carried across, and the two tables are not the same shape anyway. The old one
+// keyed a session by the JTI of the token issued alongside it and ended one by stamping a
+// revoked_at column that only the reads knew to filter on; the platform's keys a session by
+// an identifier of its own and ends one by removing the row, so there is no state a
+// revocation can be read past. The worst case at deploy is that everybody signs in again,
+// which is what a session store's rows are for.
+//
+// The old table is dropped rather than left behind because a second table recording which
+// sessions are live is the one thing sessions/database exists to prevent: the moment the
+// two disagree a revocation has not taken, and nothing says which of them was right.
+//
+// The prefix is auth.TablePrefix, so this renders ddb_sessions. The platform's own name is
+// "sessions", generic enough that a database shared with anything else would eventually
+// collide — and its DDL says CREATE TABLE IF NOT EXISTS, so the collision would be a silent
+// no-op followed by a store reading columns that are not there.
+func renderSessionsDDL() (string, error) {
+	schema, err := sessionsmigrations.SQL(dialect.Postgres, ddbauth.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering sessions migration")
+	}
+
+	return "DROP TABLE IF EXISTS user_sessions;\n\n" + schema, nil
 }
 
 // renderWebAuthnDDL renders the passkey ceremony session table, dropping the one this

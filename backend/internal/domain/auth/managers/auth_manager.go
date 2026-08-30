@@ -21,7 +21,6 @@ import (
 	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
 	platformtotp "github.com/primandproper/platform-go/v13/authentication/totp"
 	perrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
 	"github.com/primandproper/platform-go/v13/messagequeue"
 	"github.com/primandproper/platform-go/v13/observability"
 	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
@@ -73,7 +72,7 @@ func (a servicePermissionCheckerAdapter) IsServiceAdmin() bool {
 
 type AuthManager struct {
 	passwordResetTokens   passwordreset.Store
-	sessionDataManager    auth.UserSessionDataManager
+	sessionStore          auth.SessionStore
 	userDataManager       identity.UserDataManager
 	tracer                tracing.Tracer
 	authenticator         authentication.Authenticator
@@ -90,7 +89,7 @@ func ProvideAuthManager(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	passwordResetTokens passwordreset.Store,
-	sessionDataManager auth.UserSessionDataManager,
+	sessionStore auth.SessionStore,
 	userDataManager identity.UserDataManager,
 	authenticator authentication.Authenticator,
 	totpVerifier platformtotp.Verifier,
@@ -112,7 +111,7 @@ func ProvideAuthManager(
 		logger:                logging.NewNamedLogger(logger, o11yName),
 		tracer:                tracing.NewNamedTracer(tracerProvider, o11yName),
 		passwordResetTokens:   passwordResetTokens,
-		sessionDataManager:    sessionDataManager,
+		sessionStore:          sessionStore,
 		userDataManager:       userDataManager,
 		authenticator:         authenticator,
 		totpVerifier:          totpVerifier,
@@ -783,24 +782,33 @@ func (l *AuthManager) validateCredentialsForUpdateRequest(ctx context.Context, u
 	return user, nil
 }
 
-// GetActiveSessionsForUser returns all active sessions for a user.
-func (l *AuthManager) GetActiveSessionsForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[auth.UserSession], error) {
+// GetActiveSessionsForUser returns the live sessions a user holds, newest first.
+//
+// currentSessionID is the session the caller is asking with, and decides which of the
+// returned sessions is flagged as theirs. It is not a filter — a security page that hid the
+// session you are reading it from would be listing the wrong set — and the empty string is
+// what the admin read passes, since none of the listed sessions is the administrator's.
+//
+// There is no page here. A person's live sessions are the devices they are signed in on,
+// which is a handful, and the store returns the set rather than a window onto it.
+func (l *AuthManager) GetActiveSessionsForUser(ctx context.Context, userID, currentSessionID string) ([]*auth.UserSession, error) {
 	ctx, span := l.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-
-	return l.sessionDataManager.GetActiveSessionsForUser(ctx, userID, filter)
+	return l.sessionStore.List(ctx, auth.SessionHolder(userID), currentSessionID)
 }
 
 // RevokeSession revokes a specific user session.
+//
+// The user is part of the question rather than checked beforehand: the store decides "this
+// session, and it is theirs" where the row goes, and answers a session that is not the
+// named user's as absent rather than as forbidden — so the answer does not confirm that
+// somebody else's identifier names anything.
 func (l *AuthManager) RevokeSession(ctx context.Context, sessionID, userID string) error {
 	ctx, span := l.tracer.StartSpan(ctx)
 	defer span.End()
 
-	return l.sessionDataManager.RevokeUserSession(ctx, sessionID, userID)
+	return l.sessionStore.Revoke(ctx, auth.SessionHolder(userID), sessionID)
 }
 
 // RevokeAllSessionsForUserExcept revokes all sessions for a user except the specified one.
@@ -808,7 +816,9 @@ func (l *AuthManager) RevokeAllSessionsForUserExcept(ctx context.Context, userID
 	ctx, span := l.tracer.StartSpan(ctx)
 	defer span.End()
 
-	return l.sessionDataManager.RevokeAllSessionsForUserExcept(ctx, userID, currentSessionID)
+	_, err := l.sessionStore.RevokeAllExcept(ctx, auth.SessionHolder(userID), currentSessionID)
+
+	return err
 }
 
 // RevokeAllSessionsForUser revokes all sessions for a user.
@@ -816,5 +826,7 @@ func (l *AuthManager) RevokeAllSessionsForUser(ctx context.Context, userID strin
 	ctx, span := l.tracer.StartSpan(ctx)
 	defer span.End()
 
-	return l.sessionDataManager.RevokeAllSessionsForUser(ctx, userID)
+	_, err := l.sessionStore.RevokeAll(ctx, auth.SessionHolder(userID))
+
+	return err
 }
